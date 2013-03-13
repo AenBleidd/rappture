@@ -343,7 +343,7 @@ NvParticleRenderer::render()
 }
 
 void 
-NvParticleRenderer::setVectorField(unsigned int texID, const Vector3& origin, 
+NvParticleRenderer::setVectorField(unsigned int texID, const vrmath::Vector3f& origin, 
                                    float scaleX, float scaleY, float scaleZ, 
                                    float max)
 {

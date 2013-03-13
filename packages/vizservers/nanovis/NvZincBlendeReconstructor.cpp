@@ -3,8 +3,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <vrmath/Vector3f.h>
+
 #include "NvZincBlendeReconstructor.h"
 #include "ZincBlendeVolume.h"
+#include "Trace.h"
+
+using namespace vrmath;
 
 NvZincBlendeReconstructor *NvZincBlendeReconstructor::_instance = NULL;
 
@@ -27,8 +32,6 @@ NvZincBlendeReconstructor *NvZincBlendeReconstructor::getInstance()
 
 ZincBlendeVolume *NvZincBlendeReconstructor::loadFromFile(const char *fileName)
 {
-    Vector3 origin, delta;
-
     std::ifstream stream;
     stream.open(fileName, std::ios::binary);
 
@@ -42,7 +45,7 @@ ZincBlendeVolume *NvZincBlendeReconstructor::loadFromFile(const char *fileName)
 ZincBlendeVolume *NvZincBlendeReconstructor::loadFromStream(std::istream& stream)
 {
     ZincBlendeVolume *volume = NULL;
-    Vector3 origin, delta;
+    Vector3f origin, delta;
     int width = 0, height = 0, depth = 0;
     void *data = NULL;
     int version = 1;
@@ -193,7 +196,7 @@ inline T _NvMin4(T* a)
 { return _NvMin2(_NvMin2(a[0], a[1]), _NvMin2(a[2], a[3])); }
 
 ZincBlendeVolume * 
-NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
+NvZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
                                    int width, int height, int depth, void *data)
 {
     ZincBlendeVolume *zincBlendeVolume = NULL;
@@ -248,7 +251,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
         }
     }
 
-    Vector3 cellSize;
+    Vector3f cellSize;
     cellSize.x = 0.25 / width;
     cellSize.y = 0.25 / height;
     cellSize.z = 0.25 / depth;
@@ -262,7 +265,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
 }
 
 ZincBlendeVolume *
-NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
+NvZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
                                    int width, int height, int depth,
                                    int datacount, double emptyvalue, void* data)
 {
@@ -326,7 +329,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
         }
     }
 
-    Vector3 cellSize;
+    Vector3f cellSize;
     cellSize.x = 0.25 / width;
     cellSize.y = 0.25 / height;
     cellSize.z = 0.25 / depth;
@@ -364,7 +367,7 @@ ZincBlendeVolume *
 NvZincBlendeReconstructor::loadFromMemory(void *dataBlock)
 {
     ZincBlendeVolume *volume = NULL;
-    Vector3 origin, delta;
+    Vector3f origin, delta;
     int width = 0, height = 0, depth = 0;
     void *data = NULL;
     int version = 1;

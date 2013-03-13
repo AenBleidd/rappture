@@ -1,10 +1,18 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
+
 #include <vrmath/Plane.h>
 #include <vrmath/Matrix4x4f.h>
 
-void vrPlane::transform(vrMatrix4x4f& mat)
+using namespace vrmath;
+
+void Plane::transform(Matrix4x4f& mat)
 {
-    vrVector4f v(normal.x, normal.y, normal.z, distance);
+    Vector4f v(normal.x, normal.y, normal.z, distance);
     float* m = mat.get();
 
     normal.set(m[0]*v.x + m[1]*v.y + m[2]*v.z + m[3]*v.w,

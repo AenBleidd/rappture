@@ -6,10 +6,13 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include <vrmath/Vector3f.h>
+
 #include "VolumeInterpolator.h"
 #include "Volume.h"
-#include "Vector3.h"
 #include "Trace.h"
+
+using namespace vrmath;
 
 VolumeInterpolator::VolumeInterpolator() : 
     _volume(0), 
@@ -56,15 +59,15 @@ Volume *VolumeInterpolator::update(float fraction)
         float *data2 = _volumes[key2]->data();
         float *result = _volume->data();
 
-        Vector3 normal1, normal2, normal;
+        Vector3f normal1, normal2, normal;
         for (unsigned int i = 0; i < _dataCount; ++i) {
             *result = interp * (*data2 - *data1) + *data1;
-            normal1 = (*(Vector3*)(data1 + 1) - 0.5) * 2;
-            normal2 = (*(Vector3*)(data2 + 1) - 0.5) * 2;
+            normal1 = (*(Vector3f*)(data1 + 1) - 0.5) * 2;
+            normal2 = (*(Vector3f*)(data2 + 1) - 0.5) * 2;
             normal = (normal2 - normal2) * interp + normal1;
             normal = normal.normalize();
             normal = normal * 0.5 + 0.5;
-            *((Vector3*)(result + 1)) = normal;
+            *((Vector3f*)(result + 1)) = normal;
 
             result += _numComponents;
             data1 += _numComponents;
@@ -131,7 +134,7 @@ VolumeInterpolator::addVolume(Volume *refPtr)
         _dataCount = refPtr->width() * refPtr->height() * refPtr->depth();
         _numComponents = refPtr->numComponents();
         _numBytes = _dataCount * _numComponents * sizeof(float);
-        Vector3 loc = refPtr->location();
+        Vector3f loc = refPtr->location();
         _volume = new Volume(loc.x, loc.y, loc.z,
                              refPtr->width(),
                              refPtr->height(),

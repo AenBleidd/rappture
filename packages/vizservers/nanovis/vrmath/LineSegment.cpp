@@ -1,21 +1,27 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
+
 #include <vrmath/LineSegment.h>
+#include <vrmath/Matrix4x4f.h>
 
+using namespace vrmath;
 
-vrLineSegment::vrLineSegment():
-    pos(0.0f, 0.0f, 0.0f), dir(0.0f, 0.0f, -1.0f), length(0.0f)
+LineSegment::LineSegment():
+    pos(0, 0, 0, 1), dir(0.0f, 0.0f, -1.0f), length(0.0f)
 {
 }
 
-void vrLineSegment::transform(const vrMatrix4x4f &mat, const vrLineSegment &seg)
+void LineSegment::transform(const Matrix4x4f &mat, const LineSegment &seg)
 {
-    pos.transform(mat, seg.pos);
-	
-    dir.x *= length;
-    dir.y *= length;
-    dir.z *= length;
+    pos = mat.transform(seg.pos);
 
-    dir.transformVec(mat, seg.dir);
+    dir *= length;
+
+    dir = mat.transformVec(seg.dir);
     length = dir.length();
-    dir.normalize();
+    dir = dir.normalize();
 }

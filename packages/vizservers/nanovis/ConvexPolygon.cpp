@@ -20,32 +20,34 @@
 #include "ConvexPolygon.h"
 #include "Trace.h"
 
+using namespace vrmath;
+
 ConvexPolygon::ConvexPolygon(VertexVector newvertices)
 {
     vertices.insert(vertices.begin(), newvertices.begin(), newvertices.end());
 }
 
 void
-ConvexPolygon::transform(const Mat4x4& mat)
+ConvexPolygon::transform(const Matrix4x4d& mat)
 {
     VertexVector tmp = vertices;
     vertices.clear();
 
     for (unsigned int i = 0; i < tmp.size(); i++) {
-        Vector4 vec = tmp[i];
+        Vector4f vec = tmp[i];
         vertices.push_back(mat.transform(vec));
     }
 }
 
 void
-ConvexPolygon::translate(const Vector4& shift)
+ConvexPolygon::translate(const Vector4f& shift)
 {
     VertexVector tmp = vertices;
     vertices.clear();
 
     for (unsigned int i = 0; i < tmp.size(); i++) {
-        Vector4 vec = tmp[i];
-        vertices.push_back(vec+shift);
+        Vector4f vec = tmp[i];
+        vertices.push_back(vec + shift);
     }
 }
 
@@ -53,7 +55,7 @@ ConvexPolygon::translate(const Vector4& shift)
     ( ((x) < 0.0 && (y) > 0.0) || ((x) > 0.0 && (y) < 0.0) )
 
 bool
-ConvexPolygon::clip(Plane& clipPlane, bool copyToTexcoord)
+ConvexPolygon::clip(nv::Plane& clipPlane, bool copyToTexcoord)
 {
     if (vertices.size() == 0) {
         ERROR("polygon has no vertices");
@@ -73,7 +75,7 @@ ConvexPolygon::clip(Plane& clipPlane, bool copyToTexcoord)
     // current vertex is in the inside half-space,
     // add it to the new list as well.
 
-    Vector4 plane = clipPlane.getCoeffs();
+    Vector4f plane = clipPlane.getCoeffs();
 
     // This implementation is based on the Mesa 3D library (MIT license)
     int v1 = 0;
@@ -148,15 +150,15 @@ ConvexPolygon::emit(bool useTexture)
 }
 
 void 
-ConvexPolygon::emit(bool useTexture, const Vector3& shift, const Vector3& scale) 
+ConvexPolygon::emit(bool useTexture, const Vector3f& shift, const Vector3f& scale) 
 {
     if (vertices.size() >= 3) {
 	for (unsigned int i = 0; i < vertices.size(); i++) {
 	    if (useTexture) {
 		glTexCoord4fv((float *)&(vertices[i]));
 	    }
-	    Vector4 tmp = (vertices[i]);
-	    Vector4 shift_4d = Vector4(shift.x, shift.y, shift.z, 0);
+	    Vector4f tmp = (vertices[i]);
+	    Vector4f shift_4d = Vector4f(shift.x, shift.y, shift.z, 0);
 	    tmp = tmp + shift_4d;
 	    tmp.x = tmp.x * scale.x;
 	    tmp.y = tmp.y * scale.y;

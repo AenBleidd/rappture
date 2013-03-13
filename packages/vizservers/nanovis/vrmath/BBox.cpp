@@ -1,32 +1,43 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <vrmath/BBox.h>
-#include <vrmath/Vector3f.h>
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
 
-vrBBox::vrBBox()
+#include <float.h>
+
+#include <vrmath/BBox.h>
+#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
+using namespace vrmath;
+
+BBox::BBox()
 {
     makeEmpty();
 }
 
-vrBBox::vrBBox(const vrBBox& bbox)
+BBox::BBox(const BBox& bbox)
 {
     min = bbox.min;
     max = bbox.max;	
 }
 
-vrBBox::vrBBox(const vrVector3f& minv, const vrVector3f& maxv)
+BBox::BBox(const Vector3f& minv, const Vector3f& maxv)
 {
     min = minv;
     max = maxv;	
 }
 
-void vrBBox::makeEmpty()
+void BBox::makeEmpty()
 {
-    float big = 1e27f;
-    min.set(big, big, big);
-    max.set(-big, -big, -big);
+    min.set(FLT_MAX, FLT_MAX, FLT_MAX);
+    max.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 }
 
-bool vrBBox::isEmpty()
+bool BBox::isEmpty()
 {
     if ((min.x > max.x) || (min.y > max.y) || (min.z > max.z)) {
         return true;
@@ -35,7 +46,7 @@ bool vrBBox::isEmpty()
     return false;
 }
 
-void vrBBox::make(const vrVector3f& center, const vrVector3f& size)
+void BBox::make(const Vector3f& center, const Vector3f& size)
 {
     float halfX = size.x * 0.5f, halfY = size.y * 0.5f, halfZ = size.z * 0.5f;
 
@@ -49,7 +60,7 @@ void vrBBox::make(const vrVector3f& center, const vrVector3f& size)
     max.z = center.z + halfZ;
 }
 
-void vrBBox::extend(const vrVector3f& point)
+void BBox::extend(const Vector3f& point)
 {
     if (min.x > point.x) {
         min.x = point.x;
@@ -70,7 +81,7 @@ void vrBBox::extend(const vrVector3f& point)
     }
 }
 
-void vrBBox::extend(const vrBBox& box)
+void BBox::extend(const BBox& box)
 {
     if (min.x > box.min.x) min.x = box.min.x;
     if (min.y > box.min.y) min.y = box.min.y;
@@ -81,7 +92,7 @@ void vrBBox::extend(const vrBBox& box)
     if (max.z < box.max.z) max.z = box.max.z;
 }
 
-void vrBBox::transform(const vrBBox& box, const vrMatrix4x4f& mat)
+void BBox::transform(const BBox& box, const Matrix4x4f& mat)
 {
     float halfSizeX = (box.max.x - box.min.x) * 0.5f;
     float halfSizeY = (box.max.y - box.min.y) * 0.5f;
@@ -91,28 +102,28 @@ void vrBBox::transform(const vrBBox& box, const vrMatrix4x4f& mat)
     float centerY = (box.max.y + box.min.y) * 0.5f;
     float centerZ = (box.max.z + box.min.z) * 0.5f;
 
-    vrVector3f points[8];
+    Vector4f points[8];
 
-    points[0].set(centerX + halfSizeX, centerY + halfSizeY, centerZ + halfSizeZ);
-    points[1].set(centerX + halfSizeX, centerY + halfSizeY, centerZ - halfSizeZ);
-    points[2].set(centerX - halfSizeX, centerY + halfSizeY, centerZ - halfSizeZ);
-    points[3].set(centerX - halfSizeX, centerY + halfSizeY, centerZ + halfSizeZ);
-    points[4].set(centerX - halfSizeX, centerY - halfSizeY, centerZ + halfSizeZ);
-    points[5].set(centerX - halfSizeX, centerY - halfSizeY, centerZ - halfSizeZ);
-    points[6].set(centerX + halfSizeX, centerY - halfSizeY, centerZ - halfSizeZ);
-    points[7].set(centerX + halfSizeX, centerY - halfSizeY, centerZ + halfSizeZ);
+    points[0].set(centerX + halfSizeX, centerY + halfSizeY, centerZ + halfSizeZ, 1);
+    points[1].set(centerX + halfSizeX, centerY + halfSizeY, centerZ - halfSizeZ, 1);
+    points[2].set(centerX - halfSizeX, centerY + halfSizeY, centerZ - halfSizeZ, 1);
+    points[3].set(centerX - halfSizeX, centerY + halfSizeY, centerZ + halfSizeZ, 1);
+    points[4].set(centerX - halfSizeX, centerY - halfSizeY, centerZ + halfSizeZ, 1);
+    points[5].set(centerX - halfSizeX, centerY - halfSizeY, centerZ - halfSizeZ, 1);
+    points[6].set(centerX + halfSizeX, centerY - halfSizeY, centerZ - halfSizeZ, 1);
+    points[7].set(centerX + halfSizeX, centerY - halfSizeY, centerZ + halfSizeZ, 1);
 
     float minX, minY, minZ;
     float maxX, maxY, maxZ;
 
-    points[0].transform(mat, points[0]);
+    points[0] = mat.transform(points[0]);
 
     minX = maxX = points[0].x;
     minY = maxY = points[0].y;
     minZ = maxZ = points[0].z;
 
     for (int i = 1; i < 8; i++) {
-        points[i].transform(mat, points[i]);
+        points[i] = mat.transform(points[i]);
 
         if (points[i].x > maxX) maxX = points[i].x;
         else if (points[i].x < minX) minX = points[i].x;
@@ -128,7 +139,7 @@ void vrBBox::transform(const vrBBox& box, const vrMatrix4x4f& mat)
     max.set(maxX, maxY, maxZ);
 }
 
-bool vrBBox::intersect(const vrBBox& box)
+bool BBox::intersect(const BBox& box)
 {
     if (min.x > box.max.x || max.x < box.min.x) return false;
     if (min.y > box.max.y || max.y < box.min.y) return false;
@@ -137,7 +148,7 @@ bool vrBBox::intersect(const vrBBox& box)
     return true;
 }
 
-bool vrBBox::intersect(const vrVector3f& point)
+bool BBox::intersect(const Vector3f& point)
 {
     if ((point.x < min.x) || (point.x > max.x)) return false;
     if ((point.y < min.y) || (point.y > max.y)) return false;

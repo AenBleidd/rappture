@@ -22,15 +22,15 @@ public:
     bool isEnabled() const;
 
     std::string _name;
-    vrVector3f _position;
+    vrmath::Vector3f _position;
 
-    vrVector3f _oldPosition;
+    vrmath::Vector3f _oldPosition;
 
     float _minLifeTime;
     float _maxLifeTime;
 
     // [0..1] * _maxPositionOffset;
-    vrVector3f _maxPositionOffset;
+    vrmath::Vector3f _maxPositionOffset;
 
     int _minNumOfNewParticles;
     int _maxNumOfNewParticles;

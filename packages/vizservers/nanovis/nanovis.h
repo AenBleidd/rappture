@@ -27,7 +27,7 @@
 #include <vector>
 #include <iostream>
 
-#include <rappture.h>
+#include <vrmath/Vector3f.h>
 
 #include "config.h"
 
@@ -68,11 +68,18 @@ class FlowIterator;
 class NanoVis
 {
 public:
+    enum AxisDirections { 
+        X_POS = 1,
+        Y_POS = 2,
+        Z_POS = 3,
+        X_NEG = -1,
+        Y_NEG = -2,
+        Z_NEG = -3
+    };
+
     enum NanoVisFlags { 
 	REDRAW_PENDING = (1 << 0), 
-	MAP_FLOWS = (1 << 1),
-	MAP_VOLUMES = (1 << 2),
-	MAP_HEIGHTMAPS = (1 << 3),
+	MAP_FLOWS = (1 << 1)
     };
 
     static void processCommands();
@@ -93,6 +100,7 @@ public:
     }
     static void pan(float dx, float dy);
     static void zoom(float z);
+    static void resetCamera(bool resetOrientation = false);
 
     static void eventuallyRedraw(unsigned int flag = 0);
 
@@ -140,6 +148,9 @@ public:
     static int CreateFlow(Tcl_Interp *interp, Tcl_Obj *objPtr);
     static void DeleteFlows(Tcl_Interp *interp);
     static bool MapFlows();
+    static void GetFlowBounds(vrmath::Vector3f& min,
+                              vrmath::Vector3f& max,
+                              bool onlyVisible = false);
     static void RenderFlows();
     static void ResetFlows();
     static bool UpdateFlows();
@@ -168,6 +179,7 @@ public:
 
     static double magMin, magMax;
     static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
+    static vrmath::Vector3f sceneMin, sceneMax;
 
     static NvColorTableRenderer *colorTableRenderer;
     static VolumeRenderer *volRenderer;
@@ -189,6 +201,8 @@ public:
     static Tcl_Interp *interp;
     static struct timeval startTime;           /* Start of elapsed time. */
 private:
+    static void collectBounds(bool onlyVisible = false);
+
     static float _licSlice;  ///< Slice position [0,1]
     static int _licAxis;     ///< Slice axis: 0:x, 1:y, 2:z
 

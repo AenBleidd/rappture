@@ -2,7 +2,8 @@
 #ifndef NV_PARTICLE_ADV_SHADER_H
 #define NV_PARTICLE_ADV_SHADER_H
 
-#include "Vector3.h"
+#include <vrmath/Vector3f.h>
+
 #include "NvShader.h"
 
 class NvParticleAdvectionShader : public NvShader
@@ -16,7 +17,7 @@ public:
 
     virtual void unbind();
 
-    void setScale(const Vector3& scale)
+    void setScale(const vrmath::Vector3f& scale)
     {
         _scale = scale;
     }
@@ -44,7 +45,7 @@ private:
     void init();
 
     unsigned int _velocityVolumeID;
-    Vector3 _scale;
+    vrmath::Vector3f _scale;
     float _max;
     float _timeStep;
     int _mode;

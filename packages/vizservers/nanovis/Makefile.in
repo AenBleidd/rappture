@@ -1,4 +1,4 @@
-TRACE			= #yes
+TRACE		= #yes
 
 SHELL = /bin/sh
 
@@ -111,7 +111,6 @@ OBJS		= \
 		Axis.o \
 		Chain.o \
 		CmdProc.o \
-		Color.o \
 		Command.o \
 		ContourLineFilter.o \
 		ConvexPolygon.o \
@@ -119,7 +118,6 @@ OBJS		= \
 		GradientFilter.o \
 		Grid.o \
 		HeightMap.o \
-		Mat4x4.o \
 		NvCamera.o \
 		NvColorTableRenderer.o \
 		NvColorTableShader.o \
@@ -278,19 +276,18 @@ distclean: clean clean-docs
 	$(RM) Makefile nvconf.h *~
 
 Axis.o: Axis.cpp Axis.h Chain.h
-BucketSort.o: BucketSort.cpp BucketSort.h Vector3.h Vector4.h Mat4x4.h PCASplit.h
+BucketSort.o: BucketSort.cpp BucketSort.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h PCASplit.h
 Chain.o: Chain.cpp Chain.h
 CmdProc.o: CmdProc.cpp CmdProc.h
-Color.o: Color.cpp Color.h
 Command.o: Command.cpp nanovis.h $(AUXSRC) CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h Volume.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
-ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
+ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h Plane.h
 FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h Volume.h VelocityArrowsSlice.h 
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
-Mat4x4.o: Mat4x4.cpp Mat4x4.h
-NvCamera.o: NvCamera.cpp NvCamera.h config.h
+Mat4x4.o: Mat4x4.cpp $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
+NvCamera.o: NvCamera.cpp NvCamera.h config.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
 NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
@@ -302,14 +299,14 @@ NvShader.o: NvShader.cpp NvShader.h
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h NvShader.h
 NvVectorField.o: NvVectorField.cpp NvVectorField.h NvParticleRenderer.h
 NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h NvShader.h
-NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h Vector3.h
+NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h NvVolumeShader.h NvShader.h
 ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
 ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h DataLoader.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
 PCASplit.o: PCASplit.cpp PCASplit.h
 PerfQuery.o: PerfQuery.cpp PerfQuery.h
-Plane.o: Plane.cpp Plane.h Vector4.h Mat4x4.h
+Plane.o: Plane.cpp Plane.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
 PointSet.o: PointSet.cpp PointSet.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
@@ -330,5 +327,5 @@ VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h Volume.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
-dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
+dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h

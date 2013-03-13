@@ -2,9 +2,10 @@
 #ifndef POINT_SET_H
 #define POINT_SET_H
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
 #include "PCASplit.h"
-#include "Vector4.h"
-#include "Vector3.h"
 
 class PointSet
 {
@@ -24,8 +25,8 @@ public :
 	}
     }
 
-    void initialize(Vector4 *values, const unsigned int count, 
-		    const Vector3& scale, const Vector3& origin, 
+    void initialize(vrmath::Vector4f *values, const unsigned int count, 
+		    const vrmath::Vector3f& scale, const vrmath::Vector3f& origin, 
 		    float min, float max);
 
     void updateColor(float *color, int count);
@@ -50,22 +51,22 @@ public :
         return _cluster;
     }
 
-    Vector3& getScale()
+    vrmath::Vector3f& getScale()
     {
         return _scale;
     }
 
-    const Vector3& getScale() const
+    const vrmath::Vector3f& getScale() const
     {
         return _scale;
     }
 
-    Vector3& getOrigin()
+    vrmath::Vector3f& getOrigin()
     {
         return _origin;
     }
 
-    const Vector3& getOrigin() const
+    const vrmath::Vector3f& getOrigin() const
     {
         return _origin;
     }
@@ -74,8 +75,8 @@ private:
     unsigned int _sortLevel;
     PCA::ClusterAccel *_cluster;
 
-    Vector3 _scale;
-    Vector3 _origin;
+    vrmath::Vector3f _scale;
+    vrmath::Vector3f _origin;
     float _max;
     float _min;
     bool _visible;

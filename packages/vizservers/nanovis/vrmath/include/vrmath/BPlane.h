@@ -1,32 +1,36 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/** \class vrBPlane vrBPlane.h <vrmath/vrBPlane.h>
- *  \author Insoo Woo(iwoo@purdue.edu), Sung-Ye Kim (inside@purdue.edu)
- *  \author PhD research assistants in PURPL at Purdue University  
- *  \version 1.0
- *  \date    Nov. 2006-2007
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ * Author: Sung-Ye Kim <inside@purdue.edu>
  */
 #ifndef VRBPLANE_H
 #define VRBPLANE_H
 
 #include <vrmath/Vector3f.h>
 
-class vrLineSegment;
+namespace vrmath {
 
-class vrBPlane
+class LineSegment;
+
+class BPlane
 {
 public:
-    void makePts(const vrVector3f& pt1, const vrVector3f& pt2, const vrVector3f& pt3);
+    void makePts(const Vector3f& pt1, const Vector3f& pt2, const Vector3f& pt3);
 
-    void makeNormalPt(const vrVector3f& norm, const vrVector3f& pos);
+    void makeNormalPt(const Vector3f& norm, const Vector3f& pos);
 
-    bool intersect(const vrLineSegment &seg, float &d) const;
+    bool intersect(const LineSegment &seg, float &d) const;
 
-    float distance(const vrVector3f& point) const;
+    double distance(const Vector3f& point) const;
 
-    vrVector3f crossPoint(const vrVector3f& point) const;
+    Vector3f crossPoint(const Vector3f& point) const;
 
-    vrVector3f normal;
-    vrVector3f point;
+    Vector3f normal;
+    Vector3f point;
 };
+
+}
 
 #endif

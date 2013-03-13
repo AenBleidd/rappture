@@ -16,10 +16,10 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Matrix4x4d.h>
+#include <vrmath/Vector3f.h>
 
 #include "config.h"
-#include "Vector3.h"
 
 class NvCamera
 {
@@ -75,13 +75,18 @@ public:
         return _fov;
     }
 
+    void reset(const vrmath::Vector3f& bboxMin,
+               const vrmath::Vector3f& bboxMax,
+               bool resetOrientation = false);
+
     void setClippingRange(float near, float far)
     {
         _near = near;
         _far = far;
     }
 
-    void setClippingRange(const Vector3& bboxMin, const Vector3& bboxMax);
+    void resetClippingRange(const vrmath::Vector3f& bboxMin,
+                            const vrmath::Vector3f& bboxMax);
 
     void setScreenSize(int sx, int sy, int w, int h)
     {
@@ -97,11 +102,15 @@ public:
      */
     void initialize();
 
+    void print() const;
+
 private:
+    void getUpDirMatrix(vrmath::Matrix4x4d& upMat);
+
     /// Location of the camera in the scene
-    Vector3 _location;
+    vrmath::Vector3f _location;
     /// Camera view matrix (orientation only, no translation)
-    vrMatrix4x4f _cameraMatrix;
+    vrmath::Matrix4x4d _cameraMatrix;
     /// Field of view (vertical angle in degrees)
     float _fov;
     /// Near, far z clipping

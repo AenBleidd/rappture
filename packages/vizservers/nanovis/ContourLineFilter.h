@@ -3,11 +3,11 @@
 #define CONTOURLINEFILTER_H
 
 #include <list>
+#include <vector>
 
 #include <graphics/Geometry.h>
-
-#include "Vector3.h"
-#include "Vector4.h"
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
 
 class ContourLineFilter
 {
@@ -20,11 +20,11 @@ public:
         /**
 	 * @return Returns the number of points
 	 */
-	int createLine(int width, int height, Vector3 *vertices, bool top);
-	int createLine(int width, int height, Vector4 *vertices, bool top);
+	int createLine(int width, int height, vrmath::Vector3f *vertices, bool top);
+	int createLine(int width, int height, vrmath::Vector4f *vertices, bool top);
 
 	float _value;
-	std::list<Vector3> _points;
+	std::list<vrmath::Vector3f> _points;
 
     private:
 	bool isValueWithIn(float v1, float v2)
@@ -32,18 +32,19 @@ public:
 	    return ((_value >= v1 && _value <= v2) || 
 		    (_value >= v2 && _value <= v1));
 	}
-	void getContourPoint(int vertexIndex1, int vertexIndex2, Vector3 *vertices, int width, bool top);
-	void getContourPoint(int vertexIndex1, int vertexIndex2, Vector4 *vertices, int width, bool top);
+	void getContourPoint(int vertexIndex1, int vertexIndex2, vrmath::Vector3f *vertices, int width, bool top);
+	void getContourPoint(int vertexIndex1, int vertexIndex2, vrmath::Vector4f *vertices, int width, bool top);
     };
 
     typedef std::list<ContourLine *> ContourLineList;
+    typedef std::vector<vrmath::Vector3f> Vector3fArray;
 
     ContourLineFilter();
 
-    nv::graphics::Geometry *create(float min, float max, int linecount, Vector3 *vertices, int width, int height);
-    nv::graphics::Geometry *create(float min, float max, int linecount, Vector4 *vertices, int width, int height);
+    nv::graphics::Geometry *create(float min, float max, int linecount, vrmath::Vector3f *vertices, int width, int height);
+    nv::graphics::Geometry *create(float min, float max, int linecount, vrmath::Vector4f *vertices, int width, int height);
 
-    void setColorMap(Vector3Array *colorMap);
+    void setColorMap(Vector3fArray *colorMap);
     
     void setHeightTop(bool top)
     {
@@ -54,7 +55,7 @@ private:
     void clear();
 
     ContourLineList _lines;
-    Vector3Array *_colorMap;
+    Vector3fArray *_colorMap;
     bool _top;
 };
 

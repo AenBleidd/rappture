@@ -1,12 +1,19 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
 
 #include <math.h>
 #include <memory.h>
 
+using namespace vrmath;
+
 #if 0
-vrVector3f vrCalcNormal(const vrVector3f& v1, const vrVector3f& v2, const vrVector3f& v3)
+Vector3f calcNormal(const Vector3f& v1, const Vector3f& v2, const Vector3f& v3)
 {
-    vrVector3f temp;
+    Vector3f temp;
 
     float a[3], b[3];
 

@@ -16,7 +16,7 @@
 #include <ImageLoader.h>
 #include <ImageLoaderFactory.h>
 
-#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Matrix4x4d.h>
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
 
@@ -123,8 +123,8 @@ void MakeSphereTexture()
 
     float *img = new float[DIM*DIM];
 
-    vrVector3f light(1,1,3);
-    light.normalize();
+    vrmath::Vector3f light(1,1,3);
+    light = light.normalize();
 
     for (int y = 0; y < DIM; y++) {
         for (int x = 0; x < DIM; x++) {
@@ -132,8 +132,8 @@ void MakeSphereTexture()
             if (x == 0 || x == DIM-1 || y == 0 || y == DIM-1) {
                 img[y*DIM+x] = 0;
             } else {
-                vrVector3f p(x, y, 0);
-                p = p - vrVector3f(DIM2, DIM2, 0);
+                vrmath::Vector3f p(x, y, 0);
+                p = p - vrmath::Vector3f(DIM2, DIM2, 0);
                 float len = p.length();
                 float z = sqrt(DIM2*DIM2 - len*len);
                 p.z = z;
@@ -142,7 +142,7 @@ void MakeSphereTexture()
                     continue;
                 }
 
-                p.normalize();
+                p = p.normalize();
                 float v = p.dot(light);
                 if(v < 0) v = 0;
 
@@ -159,8 +159,8 @@ void MakeSphereTexture()
     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_ALPHA16, DIM, DIM, GL_ALPHA, GL_FLOAT, img);
 }
 
-//extern void algorithm_test(vrVector4f* data, int flowWidth, int flowHeight, int flowDepth);
-//extern std::vector<vrVector3f>* find_critical_points(vrVector4f* data, int flowWidth, int flowHeight, int flowDepth);
+//extern void algorithm_test(vrmath::Vector4f* data, int flowWidth, int flowHeight, int flowDepth);
+//extern std::vector<vrmath::Vector3f>* find_critical_points(vrmath::Vector4f* data, int flowWidth, int flowHeight, int flowDepth);
 ParticleSystem::ParticleSystem(int width, int height,
                                const std::string& fileName,
                                int fieldWidth, int fieldHeight, int fieldDepth, 
@@ -214,7 +214,7 @@ ParticleSystem::ParticleSystem(int width, int height,
     _colorBuffer = new color4[_particleMaxCount];
     memset(_colorBuffer, 0, sizeof(color4) * _particleMaxCount);
 
-    _positionBuffer = new vrVector3f[_particleMaxCount];
+    _positionBuffer = new vrmath::Vector3f[_particleMaxCount];
     _vertices = new RenderVertexArray(_particleMaxCount, 3, GL_FLOAT);
 
     srand(time(0));
@@ -262,8 +262,8 @@ ParticleSystem::ParticleSystem(int width, int height,
             data = (float*) LoadFlowRaw(fileName.c_str(), _flowWidth, _flowHeight, _flowDepth, min, max, nonzero_min, axisScaleX, axisScaleY, axisScaleZ, 0, true);
 #endif
         }
-        //_criticalPoints = find_critical_points((vrVector4f*) data, _flowWidth,  _flowHeight,  _flowDepth);
-        //algorithm_test((vrVector4f*) data,  _flowWidth,  _flowHeight,  _flowDepth);
+        //_criticalPoints = find_critical_points((vrmath::Vector4f*) data, _flowWidth,  _flowHeight,  _flowDepth);
+        //algorithm_test((vrmath::Vector4f*) data,  _flowWidth,  _flowHeight,  _flowDepth);
     }
 
     _scalex = 1;
@@ -567,7 +567,7 @@ void ParticleSystem::reset()
     glUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
 
     // POSITION
-    memset(_positionBuffer, 0, sizeof(vrVector3f) * _width * _height);
+    memset(_positionBuffer, 0, sizeof(vrmath::Vector3f) * _width * _height);
     for (int y = 0; y < _height; y++) {
         for (int x = 0; x < _width; x++) {
             _positionBuffer[_width * y + x].x = (float)rand() / (float) RAND_MAX;
@@ -1104,14 +1104,14 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
             // TBD..
             unsigned int numOfNewParticles = (unsigned int)(randomRange(_emitters[i]->_minNumOfNewParticles, _emitters[i]->_maxNumOfNewParticles) * deltaT);
             for (unsigned int k = 0; k < numOfNewParticles; ++k) {
-                vrVector3f position = _emitters[i]->_position;
+                vrmath::Vector3f position = _emitters[i]->_position;
                 position += _emitters[i]->_maxPositionOffset * 
-                    vrVector3f(randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f));
+                    vrmath::Vector3f(randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f));
 
                 float lifetime = randomRange(_emitters[i]->_minLifeTime, _emitters[i]->_maxLifeTime);
 
                 // TBD..
-                allocateParticle(position, vrVector3f(0.0f, 0.0f, 0.0f),  lifetime, 1 - (float) k / numOfNewParticles);
+                allocateParticle(position, vrmath::Vector3f(0.0f, 0.0f, 0.0f),  lifetime, 1 - (float) k / numOfNewParticles);
             }
         }
 
@@ -1125,7 +1125,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
     return true;
 }
 
-void ParticleSystem::allocateParticle(const vrVector3f& position, const vrVector3f& velocity,
+void ParticleSystem::allocateParticle(const vrmath::Vector3f& position, const vrmath::Vector3f& velocity,
                                       float lifeTime, float initTimeStep)
 {
     if (_availableIndices.empty()) {
@@ -1297,13 +1297,13 @@ void ParticleSystem::sort()
 {
     ///////////////////////////////////////////////////////////
     // BEGIN - COMPUTE DISTANCE	
-    vrVector3f pos;
-    vrMatrix4x4f mat;
+    vrmath::Vector3f pos;
+    vrmath::Matrix4x4d mat;
     glPushMatrix();
     glLoadIdentity();
     glScalef(_scalex, _scaley, _scalez);
     glTranslatef(-0.5f, -0.5f, -0.5f);
-    glGetFloatv(GL_MODELVIEW_MATRIX, mat.get());
+    glGetDoublev(GL_MODELVIEW_MATRIX, mat.get());
     glPopMatrix();
     mat.invert();
     mat.getTranslation(pos);
@@ -1731,7 +1731,7 @@ void ParticleSystem::render()
 
 #ifdef notdef
         if (_criticalPoints && _criticalPoints->size()) {
-            std::vector<vrVector3f>::iterator iter;
+            std::vector<vrmath::Vector3f>::iterator iter;
             glColor4f(1, 1, 1, 1);
             glPointSize(10);
             glBegin(GL_POINTS);

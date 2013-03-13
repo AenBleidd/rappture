@@ -39,6 +39,9 @@ CXX_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
 VRMATHLIB	= vrmath.a
 
+#		BBox.o \
+#		BPlane.o \
+# 		Color4f.o \
 #		Projection.o \
 
 OBJS		= \
@@ -47,8 +50,8 @@ OBJS		= \
 		Color4f.o \
 		LineSegment.o \
 		Matrix4x4f.o \
+		Matrix4x4d.o \
 		Plane.o \
-		Plane2.o \
 		Quaternion.o \
 		Rotation.o \
 		Vector2f.o \
@@ -79,9 +82,9 @@ BBox.o: $(srcdir)/include/vrmath/BBox.h $(srcdir)/include/vrmath/Vector3f.h
 BPlane.o: $(srcdir)/include/vrmath/BPlane.h $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/LineSegment.h
 Color4f.o: $(srcdir)/include/vrmath/Color4f.h
 LineSegment.o: $(srcdir)/include/vrmath/LineSegment.h
-Matrix4x4f.o: $(srcdir)/include/vrmath/Matrix4x4f.h $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/Rotation.h
+Matrix4x4d.o: $(srcdir)/include/vrmath/Matrix4x4d.h $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/Vector4f.h $(srcdir)/include/vrmath/Rotation.h
+Matrix4x4f.o: $(srcdir)/include/vrmath/Matrix4x4f.h $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/Vector4f.h $(srcdir)/include/vrmath/Rotation.h
 Plane.o: $(srcdir)/include/vrmath/Plane.h $(srcdir)/include/vrmath/Matrix4x4f.h
-Plane2.o: $(srcdir)/include/vrmath/Plane2.h $(srcdir)/include/vrmath/LineSegment.h
 Quaternion.o: $(srcdir)/include/vrmath/Quaternion.h $(srcdir)/include/vrmath/Rotation.h $(srcdir)/include/vrmath/Vector3f.h
 Rotation.o: $(srcdir)/include/vrmath/Quaternion.h $(srcdir)/include/vrmath/Rotation.h $(srcdir)/include/vrmath/Vector3f.h
 Vector2f.o: $(srcdir)/include/vrmath/Vector2f.h

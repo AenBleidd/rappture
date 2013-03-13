@@ -4,8 +4,9 @@
 
 #include <vector>
 
+#include <vrmath/Vector3f.h>
+
 #include "Texture2D.h"
-#include "Vector3.h"
 #include "NvShader.h"
 
 class VelocityArrowsSlice
@@ -20,7 +21,7 @@ public:
 
     ~VelocityArrowsSlice();
 
-    void setVectorField(unsigned int vfGraphicsID, const Vector3& origin,
+    void setVectorField(unsigned int vfGraphicsID, const vrmath::Vector3f& origin,
                         float xScale, float yScale, float zScale, float max);
 
     void axis(int axis);
@@ -65,7 +66,7 @@ public:
         return _tickCountForMinSizeAxis;
     }
 
-    void arrowColor(const Vector3& color)
+    void arrowColor(const vrmath::Vector3f& color)
     {
         _arrowColor = color;
     }
@@ -103,9 +104,9 @@ private:
 
     int _renderTargetWidth;
     int _renderTargetHeight;
-    Vector3 *_velocities;
-    std::vector<Vector3> _samplingPositions;
-    Vector3 _projectionVector;
+    vrmath::Vector3f *_velocities;
+    std::vector<vrmath::Vector3f> _samplingPositions;
+    vrmath::Vector3f _projectionVector;
 
     int _tickCountForMinSizeAxis;
     int _tickCountX;
@@ -114,8 +115,8 @@ private:
 
     int _pointCount;
 
-    Vector3 _maxVelocityScale;
-    Vector3 _arrowColor;
+    vrmath::Vector3f _maxVelocityScale;
+    vrmath::Vector3f _arrowColor;
 
     bool _enabled;
     bool _dirty;

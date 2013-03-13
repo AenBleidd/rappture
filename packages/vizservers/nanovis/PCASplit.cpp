@@ -10,6 +10,8 @@
 
 #include "PCASplit.h"
 
+using namespace vrmath;
+
 #ifdef use_namespace
 using namespace NEWMAT;              // access NEWMAT namespace
 #endif
@@ -38,7 +40,7 @@ PCASplit::~PCASplit()
 }
 
 void 
-PCASplit::computeCentroid(Point *data, int count, Vector3& mean)
+PCASplit::computeCentroid(Point *data, int count, Vector3f& mean)
 {
     float sumx = 0, sumy = 0, sumz = 0;
     float size = 0;
@@ -55,7 +57,7 @@ PCASplit::computeCentroid(Point *data, int count, Vector3& mean)
 }
 
 void 
-PCASplit::computeCovariant(Point *data, int count, const Vector3& mean, 
+PCASplit::computeCovariant(Point *data, int count, const Vector3f& mean, 
                            float *m)
 {
     memset(m, 0, sizeof(float) * 9);
@@ -82,7 +84,7 @@ PCASplit::computeCovariant(Point *data, int count, const Vector3& mean,
 }
 
 void 
-PCASplit::computeDistortion(Point *data, int count, const Vector3& mean, 
+PCASplit::computeDistortion(Point *data, int count, const Vector3f& mean, 
 			    float& distortion, float& finalSize)
 {
     distortion = 0.0f;
@@ -163,7 +165,7 @@ PCASplit::doIt(Point *data, int count)
     _clusterHeader->numOfClusters[0] = 1;
     _clusterHeader->startPointerCluster[0] = root;
 
-    Vector3 mean;
+    Vector3f mean;
     float distortion, scale;
 
     computeCentroid(cluster_t->points_t, cluster_t->numOfPoints_t, mean);
@@ -212,7 +214,7 @@ PCASplit::addLeafCluster(Cluster_t *cluster)
 void 
 PCASplit::split(Point *data, int count, float limit)
 {
-    Vector3 mean;
+    Vector3f mean;
     float m[9];
 
     computeCentroid(data, count, mean);
@@ -244,7 +246,7 @@ PCASplit::split(Point *data, int count, float limit)
     Matrix U;
     DiagonalMatrix D;
     eigenvalues(A, D ,U);
-    Vector3 emax(U(1, 3), U(2, 3), U(3, 3));
+    Vector3f emax(U(1, 3), U(2, 3), U(3, 3));
 
     // End newmat11 dependency
 
@@ -302,7 +304,7 @@ PCASplit::analyze(ClusterListNode *clusterNode, Cluster *parent, int level,
         clNode = clNode->next;
     }
 
-    //Vector3 mean;
+    //Vector3f mean;
     //computeCentroid(cluster->points, cluster->numOfPoints, mean);
 
     // the process values of split are in _curClusterNode and _curClusterCount

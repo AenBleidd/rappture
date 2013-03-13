@@ -49,6 +49,8 @@
 #include <RpOutcome.h>
 #include <RpBuffer.h>
 
+#include <vrmath/Vector3f.h>
+
 #include "nanovis.h"
 #include "CmdProc.h"
 #include "Trace.h"
@@ -586,6 +588,25 @@ CameraPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraResetOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool all = false;
+    if (objc == 3) {
+        const char *string = Tcl_GetString(objv[2]);
+        char c = string[0];
+        if ((c != 'a') || (strcmp(string, "all") != 0)) {
+            Tcl_AppendResult(interp, "bad camera reset option \"", string,
+                             "\": should be all", (char*)NULL);
+            return TCL_ERROR;
+        }
+        all = true;
+    }
+    NanoVis::resetCamera(all);
+    return TCL_OK;
+}
+
+static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -602,6 +623,7 @@ static Rappture::CmdSpec cameraOps[] = {
     {"orient",  1, CameraOrientOp,   6, 6, "qw qx qy qz",},
     {"pan",     2, CameraPanOp,      4, 4, "x y",},
     {"pos",     2, CameraPositionOp, 5, 5, "x y z",},
+    {"reset",   1, CameraResetOp,    2, 3, "?all?",},
     {"zoom",    1, CameraZoomOp,     3, 3, "factor",},
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
@@ -1220,11 +1242,10 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         TRACE("finish loading");
 
-        Vector3 scale = volPtr->getPhysicalScaling();
-        float dx0 = -0.5 * scale.x;
-        float dy0 = -0.5 * scale.y;
-        float dz0 = -0.5 * scale.z;
-        volPtr->location(Vector3(dx0, dy0, dz0));
+        vrmath::Vector3f scale = volPtr->getPhysicalScaling();
+        vrmath::Vector3f loc(scale);
+        loc *= -0.5;
+        volPtr->location(loc);
 
 	int isNew;
 	Tcl_HashEntry *hPtr;

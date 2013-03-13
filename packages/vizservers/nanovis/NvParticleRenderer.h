@@ -18,10 +18,11 @@
 
 #include <GL/glew.h>
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
 #include "NvParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
-#include "Vector3.h"
-#include "Vector4.h"
 
 struct Particle {
     float x;
@@ -44,7 +45,7 @@ public:
 
     ~NvParticleRenderer();
 
-    void setVectorField(unsigned int texID, const Vector3& origin,
+    void setVectorField(unsigned int texID, const vrmath::Vector3f& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     void initialize();
@@ -67,7 +68,7 @@ public:
         _activate = state;
     }
 
-    void setColor(const Vector4& color)
+    void setColor(const vrmath::Vector4f& color)
     {
         _color = color;
     }
@@ -117,16 +118,16 @@ private:
     RenderVertexArray *_vertexArray;
 
     /// scale of flow data
-    Vector3 _scale;
+    vrmath::Vector3f _scale;
 
-    Vector3 _origin;
+    vrmath::Vector3f _origin;
 
     bool _activate;
 
     float _slicePos;
     int _sliceAxis;
 
-    Vector4 _color;
+    vrmath::Vector4f _color;
 
     //the storage of particles is implemented as a 2D array.
     int _psysWidth;

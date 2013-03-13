@@ -1,12 +1,16 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "PointSet.h"
-#include "PCASplit.h"
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
+#include "PointSet.h"
+#include "PCASplit.h"
+
 void 
-PointSet::initialize(Vector4 *values, const unsigned int count, 
-		     const Vector3& scale, const Vector3& origin, 
+PointSet::initialize(vrmath::Vector4f *values, const unsigned int count, 
+		     const vrmath::Vector3f& scale, const vrmath::Vector3f& origin, 
 		     float min, float max)
 {
     PCA::PCASplit pcaSplit;
@@ -44,10 +48,10 @@ PointSet::updateColor(float *color, int colorCount)
     PCA::Cluster *c = &(cluster[0]);
     PCA::Cluster *end = &(cluster[_cluster->numOfClusters[level - 1] - 1]);
 
-    Vector3 pos;
+    vrmath::Vector3f pos;
 
     PCA::Point *points;
-    Vector4 *colors = (Vector4 *)color;
+    vrmath::Vector4f *colors = (vrmath::Vector4f *)color;
     int numOfPoints;
     int index;
     float d = _max - _min;
@@ -64,4 +68,3 @@ PointSet::updateColor(float *color, int colorCount)
         }
     }
 }
-

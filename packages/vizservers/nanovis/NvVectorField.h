@@ -5,8 +5,10 @@
 #include <string>
 #include <map>
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
 #include "Volume.h"
-#include "Vector3.h"
 #include "NvParticleRenderer.h"
 
 class NvDeviceShape
@@ -17,9 +19,9 @@ public:
     {
     }
 
-    Vector3 min;
-    Vector3 max;
-    Vector4 color;
+    vrmath::Vector3f min;
+    vrmath::Vector3f max;
+    vrmath::Vector4f color;
     bool visible;
 };
 
@@ -30,7 +32,7 @@ public :
 
     ~NvVectorField();
 
-    void setVectorField(Volume *vol, const Vector3& origin,
+    void setVectorField(Volume *vol, const vrmath::Vector3f& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     bool active()
@@ -85,7 +87,7 @@ public :
 
     void setParticleColor(const std::string& name, float r, float g, float b, float a);
 
-    void setParticleColor(const std::string& name, const Vector4& color);
+    void setParticleColor(const std::string& name, const vrmath::Vector4f& color);
 
 private:
     GLuint _vectorFieldId;
@@ -98,7 +100,7 @@ private:
      */
     bool _activated;
 
-    Vector3 _origin;
+    vrmath::Vector3f _origin;
     float _scaleX;
     float _scaleY;
     float _scaleZ;

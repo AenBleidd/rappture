@@ -21,8 +21,8 @@
 
 struct NewParticle {
     int index;
-    vrVector3f position;
-    vrVector3f velocity;
+    vrmath::Vector3f position;
+    vrmath::Vector3f velocity;
     float timeOfDeath;
     float initTimeStep;
 };
@@ -203,7 +203,7 @@ public:
     RenderVertexArray* _vertices;
 
     Particle *_particles;
-    vrVector3f *_positionBuffer;
+    vrmath::Vector3f *_positionBuffer;
     color4 *_colorBuffer;
     unsigned _colorBufferID;
     //////////////////////////////////////////
@@ -303,7 +303,7 @@ public:
 
     // INSOO
     // TEST
-    std::vector<vrVector3f> *_criticalPoints;
+    std::vector<vrmath::Vector3f> *_criticalPoints;
 
     // TEMP
     static CGcontext _context;
@@ -321,7 +321,7 @@ protected:
     void resetStreamlines();
     void initInitPosTex();
 
-    void allocateParticle(const vrVector3f&, const vrVector3f&, float, float);
+    void allocateParticle(const vrmath::Vector3f&, const vrmath::Vector3f&, float, float);
     void initNewParticles();
     void cleanUpParticles();
 };

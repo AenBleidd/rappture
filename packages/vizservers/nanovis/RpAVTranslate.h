@@ -34,7 +34,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 #endif
 }
-#include "RpOutcome.h"
+#include <RpOutcome.h>
 
 namespace Rappture {
 

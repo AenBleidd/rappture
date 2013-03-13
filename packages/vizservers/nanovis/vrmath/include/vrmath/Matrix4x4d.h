@@ -4,8 +4,8 @@
  *
  * Author: Insoo Woo <iwoo@purdue.edu>
  */
-#ifndef VRMATRIX4X4F_H
-#define VRMATRIX4X4F_H
+#ifndef VRMATRIX4X4D_H
+#define VRMATRIX4X4D_H
 
 #include <memory.h>
 
@@ -18,15 +18,15 @@ namespace vrmath {
 
 class Rotation;
 
-class Matrix4x4f
+class Matrix4x4d
 {
 public:
-    Matrix4x4f()
+    Matrix4x4d()
     {
         makeIdentity();
     }
 
-    Matrix4x4f(float *m)
+    Matrix4x4d(double *m)
     {
         set(m);
     }
@@ -44,7 +44,7 @@ public:
     /**
      * @brief make a translation matrix
      */
-    void makeTranslation(float x, float y, float z);
+    void makeTranslation(double x, double y, double z);
 
     /**
      * @brief make a rotation matrix
@@ -63,35 +63,35 @@ public:
      */
     void makeScale(const Vector3f& scale);
 
-    void makeScale(float x, float y, float z);
+    void makeScale(double x, double y, double z);
 
     void makeTR(const Vector3f& translation, const Rotation& rotation);
     void makeTRS(const Vector3f& translation, const Rotation& rotation, const Vector3f& scale);
 
     Vector4f transform(const Vector4f& v) const;
     Vector3f transformVec(const Vector3f& v) const;
-
     Vector4f preMultiplyRowVector(const Vector4f& v) const;
 
-    void multiply(const Matrix4x4f& mat1, const Matrix4x4f& mat2);
+    void multiply(const Matrix4x4d& mat1, const Matrix4x4d& mat2);
 
-    void multiply(const Matrix4x4f& mat1, const Vector3f& position);
-    void multiplyScale(const Matrix4x4f& mat, const Vector3f& scale);
-    void multiply(const Matrix4x4f& mat1, const Rotation& rotation);
-    void multiply(const Vector3f& position, const Matrix4x4f& mat1);
-    void multiply(const Rotation& rotation, const Matrix4x4f& mat1);
-    void multiplyScale(const Vector3f& scale, const Matrix4x4f& mat);
+    void multiply(const Matrix4x4d& mat1, const Vector3f& position);
+    void multiplyScale(const Matrix4x4d& mat, const Vector3f& scale);
+    void multiply(const Matrix4x4d& mat1, const Rotation& rotation);
+    void multiply(const Vector3f& position, const Matrix4x4d& mat1);
+    void multiply(const Rotation& rotation, const Matrix4x4d& mat1);
+    void multiplyScale(const Vector3f& scale, const Matrix4x4d& mat);
 
-    void multiply(const Matrix4x4f& mat1);
-    void multiplyFast(const Matrix4x4f& mat1, const Matrix4x4f& mat2);
+    void multiply(const Matrix4x4d& mat1);
+    void multiplyFast(const Matrix4x4d& mat1, const Matrix4x4d& mat2);
 
     void invert();
-    void invert(const Matrix4x4f& mat);
-    void invertFast(const Matrix4x4f& mat);
+    void invert(const Matrix4x4d& mat);
+    void invertFast(const Matrix4x4d& mat);
+    Matrix4x4d inverse() const;
 
     void transpose();
-    void transpose(const Matrix4x4f& mat);
-    void transposeFast(const Matrix4x4f& mat);
+    void transpose(const Matrix4x4d& mat);
+    void transposeFast(const Matrix4x4d& mat);
 	
     void getTranslation(Vector3f& vector);
     void getRotation(Rotation& rotation);
@@ -100,25 +100,21 @@ public:
      * @brief return data pointer of the matrix
      * @return float array of the matrix
      */
-    const float *get() const;
+    const double *get() const;
 
     /**
      * @brief return data pointer of the matrix
      * @return float array of the matrix
      */
-    float *get();
-
-    /**
-     * @brief set float arrary to this
-     * @param m float matrix values
-     */
-    void set(float *m);
+    double *get();
 
     /**
      * @brief set double arrary to this
      * @param m float matrix values
      */
-    void setDouble(double *m);
+    void set(double *m);
+
+    void setFloat(float *m);
 
     void print() const;
 
@@ -126,34 +122,34 @@ private:
     /**
      * \brief Column-major array (like OpenGL)
      */
-    float _data[16];
+    double _data[16];
 };
 
-inline const float *Matrix4x4f::get() const
+inline const double *Matrix4x4d::get() const
 {
     return _data;
 }
 
-inline float *Matrix4x4f::get()
+inline double *Matrix4x4d::get()
 {
     return _data;
 }
 
-inline void Matrix4x4f::set(float *m)
+inline void Matrix4x4d::set(double *m)
 {
-    memcpy(_data, m, sizeof(float) * 16);
+    memcpy(_data, m, sizeof(double) * 16);
 }
 
-inline void Matrix4x4f::getTranslation(Vector3f& translation)
+inline void Matrix4x4d::getTranslation(Vector3f& translation)
 {
-    translation.set(_data[12], _data[13], _data[14]);
+    translation.set((float)_data[12], (float)_data[13], (float)_data[14]);
 }
 
-inline void Matrix4x4f::makeTRS(const Vector3f& translation,
+inline void Matrix4x4d::makeTRS(const Vector3f& translation,
                                 const Rotation& rotation,
                                 const Vector3f& scale)
 {
-    Matrix4x4f mat;
+    Matrix4x4d mat;
     mat.makeTR(translation, rotation);
 	
     makeScale(scale);
@@ -161,7 +157,7 @@ inline void Matrix4x4f::makeTRS(const Vector3f& translation,
     multiply(mat, *this);
 }
 
-inline void Matrix4x4f::makeTR(const Vector3f& translation,
+inline void Matrix4x4d::makeTR(const Vector3f& translation,
                                const Rotation& rotation)
 {
     makeRotation(rotation);
@@ -171,7 +167,7 @@ inline void Matrix4x4f::makeTR(const Vector3f& translation,
     _data[14] = translation.z;
 }
 
-inline void Matrix4x4f::print() const
+inline void Matrix4x4d::print() const
 {
     TRACE("% 8.6f % 8.6f % 8.6f % 8.6f", _data[0], _data[4], _data[8 ], _data[12]);
     TRACE("% 8.6f % 8.6f % 8.6f % 8.6f", _data[1], _data[5], _data[9 ], _data[13]);

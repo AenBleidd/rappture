@@ -2,15 +2,18 @@
 #include "dxReaderCommon.h"
 #include "GradientFilter.h"
 
-#include "Vector3.h"
+#include <vrmath/Vector3f.h>
+
 #include "stdlib.h"
+
+using namespace vrmath;
 
 float *
 merge(float *scalar, float *gradient, int size)
 {
     float *data = (float *)malloc(sizeof(float) * 4 * size);
 
-    Vector3 *g = (Vector3 *)gradient;
+    Vector3f *g = (Vector3f *)gradient;
 
     int ngen = 0, sindex = 0;
     for (sindex = 0; sindex < size; ++sindex) {

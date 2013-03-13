@@ -1,41 +1,46 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/** \class vrLineSegment vrLineSegment.h <vrmath/vrLineSegment.h>
- *  \author Insoo Woo(iwoo@purdue.edu), Sung-Ye Kim (inside@purdue.edu)
- *  \author PhD research assistants in PURPL at Purdue University  
- *  \version 1.0
- *  \date    Nov. 2006-2007
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ * Author: Sung-Ye Kim <inside@purdue.edu>
  */
 #ifndef VRLINESEGMENT_H
 #define VRLINESEGMENT_H
 
 #include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
 
-class vrMatrix4x4f;
+namespace vrmath {
 
-class vrLineSegment
+class Matrix4x4f;
+
+class LineSegment
 {
 public:
-    vrLineSegment();
+    LineSegment();
 
     /// Return the point
-    vrVector3f getPoint(float d) const;
+    Vector3f getPoint(float d) const;
 
     /// Transfrom the line segment using mat
-    void transform(const vrMatrix4x4f &transMat, const vrLineSegment &seg);
+    void transform(const Matrix4x4f &transMat, const LineSegment &seg);
 
     /// The position of the line segment
-    vrVector3f pos;
+    Vector4f pos;
 
     /// The direction of the line segment
-    vrVector3f dir;
+    Vector3f dir;
 
     /// The length of the line segment
     float length;
 };
 
-inline vrVector3f vrLineSegment::getPoint(float d) const 
+inline Vector3f LineSegment::getPoint(float d) const 
 {
-    return vrVector3f(pos.x + d * dir.x, pos.y + d * dir.y, pos.z + d * dir.z);
+    return Vector3f(pos.x + d * dir.x, pos.y + d * dir.y, pos.z + d * dir.z);
+}
+
 }
 
 #endif

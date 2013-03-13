@@ -4,16 +4,15 @@
 
 #include <vector>
 #include <list>
-#include "Vector3.h"
-#include "Mat4x4.h"
+
+#include <vrmath/Matrix4x4d.h>
+
 #include "PCASplit.h"
 
 namespace PCA {
 
-class ClusterList {
-public :
-    Cluster* data;
-    ClusterList* next;
+class ClusterList
+{
 public :
     ClusterList(Cluster *d, ClusterList *n) :
         data(d), next(n)
@@ -27,20 +26,13 @@ public :
     {
         //if (next) delete next;
     }
+
+    Cluster *data;
+    ClusterList *next;
 };
 
-class BucketSort {
-    ClusterList **_buffer;
-    int _size;
-    int _count;
-
-    int _memChuckSize;
-    bool _memChunckUsedFlag;
-    ClusterList *_memChunck;
-
-    float _invMaxLength;
-private:
-    void _sort(Cluster *cluster, const Mat4x4& cameraMat, int level);
+class BucketSort
+{
 public:
     BucketSort(int maxSize)
     {
@@ -68,12 +60,25 @@ public:
 
     void init();
 
-    void sort(ClusterAccel* cluster, const Mat4x4& cameraMat, int level);
+    void sort(ClusterAccel* cluster, const vrmath::Matrix4x4d& cameraMat, int level);
 
     void addBucket(Cluster* cluster, float ratio);
 
     ClusterList **getBucket()
     { return _buffer; }
+
+private:
+    void _sort(Cluster *cluster, const vrmath::Matrix4x4d& cameraMat, int level);
+
+    ClusterList **_buffer;
+    int _size;
+    int _count;
+
+    int _memChuckSize;
+    bool _memChunckUsedFlag;
+    ClusterList *_memChunck;
+
+    float _invMaxLength;
 };
 
 }

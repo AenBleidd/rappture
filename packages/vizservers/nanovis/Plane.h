@@ -16,8 +16,11 @@
 #ifndef PLANE_H
 #define PLANE_H
 
-#include "Vector3.h"
-#include "Mat4x4.h"
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+#include <vrmath/Matrix4x4d.h>
+
+namespace nv {
 
 class Plane
 {
@@ -29,26 +32,27 @@ public:
     Plane()
     {}
 
-    void getPoint(Vector3& point);
+    void getPoint(vrmath::Vector3f& point);
 
     //bool clips(float point[3]) const { return !retains(point); }
 
-    void transform(const Mat4x4& mat);
+    void transform(const vrmath::Matrix4x4d& mat);
 
     void transform(float *m)
     {
-        Mat4x4 mat(m);
+        vrmath::Matrix4x4d mat;
+        mat.setFloat(m);
         transform(mat);
     }
 
-    bool retains(const Vector3& point) const
+    bool retains(const vrmath::Vector3f& point) const
     {
 	return ((a*point.x + b*point.y + c*point.z + d) >= 0);
     }
 
-    Vector4 getCoeffs() const
+    vrmath::Vector4f getCoeffs() const
     {
-        return Vector4(a, b, c, d);
+        return vrmath::Vector4f(a, b, c, d);
     }
 
     void setCoeffs(float a_val, float b_val, float c_val, float d_val)
@@ -56,7 +60,7 @@ public:
         a = a_val, b = b_val, c = c_val, d = d_val;
     }
 
-    void getNormal(Vector3& normal) const
+    void getNormal(vrmath::Vector3f& normal) const
     {
         normal.x = a;
         normal.y = b;
@@ -67,5 +71,6 @@ private:
     float a, b, c, d;
 };
 
+}
 
 #endif

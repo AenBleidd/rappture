@@ -15,9 +15,15 @@
  */
 #include <memory.h>
 #include <assert.h>
+#include <float.h>
+
+#include <vrmath/Vector4f.h>
+#include <vrmath/Matrix4x4d.h>
 
 #include "Volume.h"
 #include "Trace.h"
+
+using namespace vrmath;
 
 bool Volume::updatePending = false;
 double Volume::valueMin = 0.0;
@@ -48,11 +54,12 @@ Volume::Volume(float x, float y, float z,
     _enabled(true),
     _dataEnabled(true),
     _outlineEnabled(true),
-    _outlineColor(1., 1., 1.),
     _volumeType(CUBIC),
     _isosurface(0)
 {
     TRACE("Enter: %dx%dx%d", _width, _height, _depth);
+
+    _outlineColor[0] = _outlineColor[1] = _outlineColor[2] = 1.0f;
 
     _tex = new Texture3D(_width, _height, _depth, GL_FLOAT, GL_LINEAR, n);
     int fcount = _width * _height * _depth * _numComponents;
@@ -88,4 +95,42 @@ Volume::~Volume()
 
     delete [] _data;
     delete _tex;
+}
+
+void Volume::getWorldSpaceBounds(Vector3f& bboxMin, Vector3f& bboxMax) const
+{
+    Vector3f scale = getPhysicalScaling();
+
+    Matrix4x4d mat;
+    mat.makeTranslation(_location);
+    Matrix4x4d mat2;
+    mat2.makeScale(scale);
+
+    mat.multiply(mat2);
+
+    bboxMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
+    bboxMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+    Vector3f modelMin(0, 0, 0);
+    Vector3f modelMax(1, 1, 1);
+
+    Vector4f bvert[8];
+    bvert[0] = Vector4f(modelMin.x, modelMin.y, modelMin.z, 1);
+    bvert[1] = Vector4f(modelMax.x, modelMin.y, modelMin.z, 1);
+    bvert[2] = Vector4f(modelMin.x, modelMax.y, modelMin.z, 1);
+    bvert[3] = Vector4f(modelMin.x, modelMin.y, modelMax.z, 1);
+    bvert[4] = Vector4f(modelMax.x, modelMax.y, modelMin.z, 1);
+    bvert[5] = Vector4f(modelMax.x, modelMin.y, modelMax.z, 1);
+    bvert[6] = Vector4f(modelMin.x, modelMax.y, modelMax.z, 1);
+    bvert[7] = Vector4f(modelMax.x, modelMax.y, modelMax.z, 1);
+
+    for (int i = 0; i < 8; i++) {
+        Vector4f worldVert = mat.transform(bvert[i]);
+        if (worldVert.x < bboxMin.x) bboxMin.x = worldVert.x;
+        if (worldVert.x > bboxMax.x) bboxMax.x = worldVert.x;
+        if (worldVert.y < bboxMin.y) bboxMin.y = worldVert.y;
+        if (worldVert.y > bboxMax.y) bboxMax.y = worldVert.y;
+        if (worldVert.z < bboxMin.z) bboxMin.z = worldVert.z;
+        if (worldVert.z > bboxMax.z) bboxMax.z = worldVert.z;
+    }
 }

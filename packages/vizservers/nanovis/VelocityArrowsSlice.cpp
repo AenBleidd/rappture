@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+#include <vrmath/Vector3f.h>
 #include <util/FilePath.h>
 #include <Image.h>
 #include <ImageLoaderFactory.h>
@@ -17,6 +18,7 @@
 #include "NvCamera.h"
 
 using namespace nv::util;
+using namespace vrmath;
 
 static inline float deg2rad(float deg)
 {
@@ -126,7 +128,7 @@ void VelocityArrowsSlice::createRenderTarget()
     if (_velocities != NULL) {
         delete [] _velocities;
     }
-    _velocities = new Vector3[_renderTargetWidth * _renderTargetHeight];
+    _velocities = new Vector3f[_renderTargetWidth * _renderTargetHeight];
 
     if (_vertexBufferGraphicsID != 0) {
         glDeleteBuffers(1, &_vertexBufferGraphicsID);
@@ -320,11 +322,11 @@ void VelocityArrowsSlice::render()
         glLineWidth(2.0);
         glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
  
-        Vector3 pos;
-        Vector3 vel;
-        Vector3 refVec;
-        Vector3 blue(0, 0, 1);
-        Vector3 red(1, 0, 0);
+        Vector3f pos;
+        Vector3f vel;
+        Vector3f refVec;
+        Vector3f blue(0, 0, 1);
+        Vector3f red(1, 0, 0);
 
         int index = 0, icount, jcount;
         switch (_axis) {
@@ -359,10 +361,10 @@ void VelocityArrowsSlice::render()
                     continue;
                 }
                 if (length > 1.0e-6) {
-                    Vector3 vnorm = vel.normalize();
-                    Vector3 rotationAxis = refVec.cross(vnorm);
+                    Vector3f vnorm = vel.normalize();
+                    Vector3f rotationAxis = refVec.cross(vnorm);
                     double angle = rad2deg(acos(refVec.dot(vnorm)));
-                    Vector3 color = blue * (1.0 - length) + red * length;
+                    Vector3f color = blue * (1.0 - length) + red * length;
                     float scale = length;
                     if (scale < 0.10) scale = 0.10;
                     glMatrixMode(GL_MODELVIEW);
@@ -449,7 +451,7 @@ void VelocityArrowsSlice::render()
 }
 
 void 
-VelocityArrowsSlice::setVectorField(unsigned int vfGraphicsID, const Vector3& origin,
+VelocityArrowsSlice::setVectorField(unsigned int vfGraphicsID, const Vector3f& origin,
                                     float xScale, float yScale, float zScale, float max)
 {
     _vectorFieldGraphicsID = vfGraphicsID;
@@ -531,11 +533,11 @@ void VelocityArrowsSlice::computeSamplingTicks()
 
     createRenderTarget();
 
-    Vector3 pos;
-    Vector3 *pinfo = NULL;
+    Vector3f pos;
+    Vector3f *pinfo = NULL;
     if (_renderMode == GLYPHS) {
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);
-        pinfo = (Vector3 *)glMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+        pinfo = (Vector3f *)glMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
     }
 
     if (_axis == 2) {

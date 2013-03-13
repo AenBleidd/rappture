@@ -1,51 +1,80 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
 #ifndef VRVECTOR4F_H
 #define VRVECTOR4F_H
 
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
 
-class vrMatrix4x4f;
+namespace vrmath {
 
-class vrVector4f
+class Vector4f
 {
 public:
-    vrVector4f() :
+    Vector4f() :
         x(0.0f), y(0.0f), z(0.0f), w(0.0f)
     {}
 
-    vrVector4f(const vrVector4f& v4) :
+    Vector4f(const Vector4f& v4) :
         x(v4.x), y(v4.y), z(v4.z), w(v4.w)
     {}
 
-    vrVector4f(const vrVector3f& v3, float w1) :
+    Vector4f(const Vector3f& v3, float w1) :
         x(v3.x), y(v3.y), z(v3.z), w(w1)
     {}
 
-    vrVector4f(float x1, float y1, float z1, float w1) :
+    Vector4f(float x1, float y1, float z1, float w1) :
         x(x1), y(y1), z(z1), w(w1)
     {}
 
     void set(float x1, float y1, float z1, float w1);
  
-    void set(const vrVector3f& v, float w);
+    void set(const Vector3f& v, float w);
 
-    void set(const vrVector4f& v4);
+    void set(const Vector4f& v4);
+
+    bool operator==(const Vector4f& op2) const
+    {
+        return (x == op2.x && y == op2.y && z == op2.z && w == op2.w);
+    }
+
+    Vector4f operator+(const Vector4f& op2) const
+    {
+        return Vector4f(x + op2.x, y + op2.y, z + op2.z, w + op2.w);
+    }
+
+    Vector4f operator-(const Vector4f& op2) const
+    {
+        return Vector4f(x - op2.x, y - op2.y, z - op2.z, w - op2.w);
+    }
+
+    float operator*(const Vector4f& op2) const
+    {
+        return (x * op2.x) + (y * op2.y) + (z * op2.z) + (w * op2.w);
+    }
+
+    Vector4f operator*(float op2) const
+    {
+        return Vector4f(x * op2, y * op2, z * op2, w * op2);
+    }
+
+    Vector4f operator/(float op2) const
+    {
+        return Vector4f(x / op2, y / op2, z / op2, w / op2);
+    }
 
     void divideByW();
 
-    float dot(const vrVector4f& vec);
-
-    void mult(const vrMatrix4x4f& mat, const vrVector4f& vec);
-
-    void mult(const vrMatrix4x4f& mat);
-
-    void transform(const vrVector4f& v, const vrMatrix4x4f& m);
+    float dot(const Vector4f& vec) const;
 
     float x, y, z, w;
 };
 
-inline void vrVector4f::divideByW()
+inline void Vector4f::divideByW()
 {
     if (w != 0) {
         x /= w; y /= w; z /= w;
@@ -53,7 +82,7 @@ inline void vrVector4f::divideByW()
     }
 }
 
-inline void vrVector4f::set(float x1, float y1, float z1, float w1)
+inline void Vector4f::set(float x1, float y1, float z1, float w1)
 {
     x = x1;
     y = y1;
@@ -61,7 +90,7 @@ inline void vrVector4f::set(float x1, float y1, float z1, float w1)
     w = w1;
 }
 
-inline void vrVector4f::set(const vrVector4f& v4)
+inline void Vector4f::set(const Vector4f& v4)
 {
     x = v4.x;
     y = v4.y;
@@ -69,7 +98,7 @@ inline void vrVector4f::set(const vrVector4f& v4)
     w = v4.w;
 }
 
-inline void vrVector4f::set(const vrVector3f& v, float w1)
+inline void Vector4f::set(const Vector3f& v, float w1)
 {
     x = v.x;
     y = v.y;
@@ -77,9 +106,79 @@ inline void vrVector4f::set(const vrVector3f& v, float w1)
     w = w1;
 }
 
-inline float vrVector4f::dot(const vrVector4f& vec)
+inline float Vector4f::dot(const Vector4f& vec) const
 {
-    return x * vec.x + y * vec.y + z * vec.z + w * vec.w;
+    return (x * vec.x + y * vec.y + z * vec.z + w * vec.w);
+}
+
+/**
+ * \brief Linear interpolation of 2 points
+ */
+inline Vector4f vlerp(const Vector4f& v1, const Vector4f& v2, double t)
+{
+    return Vector4f(v1.x * (1.0-t) + v2.x * t,
+                    v1.y * (1.0-t) + v2.y * t,
+                    v1.z * (1.0-t) + v2.z * t,
+                    v1.w * (1.0-t) + v2.w * t);
+}
+
+/**
+ * \brief Finds the intersection of a line through 
+ * p1 and p2 with the given plane.
+ *
+ * If the line lies in the plane, an arbitrary 
+ * point on the line is returned.
+ *
+ * Reference:
+ * http://astronomy.swin.edu.au/pbourke/geometry/planeline/
+ *
+ * \param[in] pt1 First point
+ * \param[in] pt2 Second point
+ * \param[in] plane Plane equation coefficients
+ * \param[out] ret Point of intersection if a solution was found
+ * \return Bool indicating if an intersection was found
+ */
+inline bool 
+planeLineIntersection(const Vector4f& pt1, const Vector4f& pt2,
+                      const Vector4f& plane, Vector4f& ret)
+{
+    float a = plane.x;
+    float b = plane.y;
+    float c = plane.z;
+    float d = plane.w;
+
+    Vector4f p1 = pt1;
+    float x1 = p1.x;
+    float y1 = p1.y;
+    float z1 = p1.z;
+
+    Vector4f p2 = pt2;
+    float x2 = p2.x;
+    float y2 = p2.y;
+    float z2 = p2.z;
+
+    float uDenom = a * (x1 - x2) + b * (y1 - y2) + c * (z1 - z2);
+    float uNumer = a * x1 + b * y1 + c * z1 + d;
+
+    if (uDenom == 0.0f) {
+        // Plane parallel to line
+        if (uNumer == 0.0f) {
+            // Line within plane
+            ret = p1;
+            return true;
+        }
+        // No solution
+        return false;
+    }
+
+    float u = uNumer / uDenom;
+    ret.x = x1 + u * (x2 - x1);
+    ret.y = y1 + u * (y2 - y1);
+    ret.z = z1 + u * (z2 - z1);
+    ret.w = 1;
+    return true;
+}
+
 }
 
 #endif

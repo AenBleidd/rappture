@@ -13,14 +13,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-#include "Texture3D.h"
-#include "Trace.h"
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
 
 #include "config.h"
+
+#include "Texture3D.h"
+#include "Trace.h"
 
 Texture3D::Texture3D() :
     _width(0),

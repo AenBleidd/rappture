@@ -28,6 +28,8 @@
 #define DM ((float) (1.0/(NMESH-1.0))) //distance in world coords between mesh lines
 #define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
+using namespace vrmath;
+
 NvLIC::NvLIC(int size, int width, int height, int axis, 
              float offset) :
     _width(width),
@@ -487,13 +489,13 @@ NvLIC::render()
 }
 
 void 
-NvLIC::setVectorField(unsigned int texID, const Vector3& origin, 
+NvLIC::setVectorField(unsigned int texID, const Vector3f& origin, 
                       float scaleX, float scaleY, float scaleZ, float max)
 {
     TRACE("NvLIC: vector field is assigned [%d]", texID);
     _vectorFieldId = texID;
     _origin = origin;
-    _scale = Vector3(scaleX, scaleY, scaleZ);
+    _scale = Vector3f(scaleX, scaleY, scaleZ);
     _max = max;
 
     makePatterns();

@@ -519,7 +519,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     float dy0 = -0.5*ly/lx;
     float dz0 = -0.5*lz/lx;
     if (volPtr) {
-        volPtr->location(Vector3(dx0, dy0, dz0));
+        volPtr->location(vrmath::Vector3f(dx0, dy0, dz0));
         TRACE("Set volume location to %g %g %g", dx0, dy0, dz0);
     }
     return volPtr;

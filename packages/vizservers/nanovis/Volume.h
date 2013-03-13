@@ -16,12 +16,13 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
+#include <cstring>
 #include <string>
 #include <vector>
 
-#include "Color.h"
+#include <vrmath/Vector3f.h>
+
 #include "Texture3D.h"
-#include "Vector3.h"
 #include "AxisRange.h"
 #include "TransferFunction.h"
 
@@ -102,12 +103,12 @@ public:
         return _enabled; 
     }
 
-    void location(const Vector3& loc)
+    void location(const vrmath::Vector3f& loc)
     { 
         _location = loc; 
     }
 
-    Vector3 location() const
+    vrmath::Vector3f location() const
     {
         return _location;
     }
@@ -287,15 +288,18 @@ public:
 
     void getOutlineColor(float *rgb);
 
-    Vector3 getPhysicalScaling() const
+    vrmath::Vector3f getPhysicalScaling() const
     {
-        Vector3 scale;
+        vrmath::Vector3f scale;
         scale.x = 1;
         scale.y = yAxis.length() / xAxis.length();
         scale.z = zAxis.length() / xAxis.length();
         return scale;
     }
 
+    void getWorldSpaceBounds(vrmath::Vector3f& bboxMin,
+                             vrmath::Vector3f& bboxMax) const;
+ 
     double sampleDistanceX() const
     {
         return (xAxis.length() / ((double)_width-1.0));
@@ -387,7 +391,7 @@ protected:
 
     Texture3D *_tex;		///< OpenGL texture storing the volume
 
-    Vector3 _location;
+    vrmath::Vector3f _location;
 
     /**
      * Number of slices when rendered. The greater
@@ -397,7 +401,7 @@ protected:
     bool _enabled; 
     bool _dataEnabled;		///< show/hide cloud of volume data
     bool _outlineEnabled;	///< show/hide outline around volume
-    Color _outlineColor;	///< color for outline around volume
+    float _outlineColor[3];	///< color for outline around volume
     int _volumeType;		///< cubic or zincblende
     int _isosurface;
 };
@@ -453,13 +457,13 @@ Volume::isCutplaneEnabled(int index) const
 inline void 
 Volume::setOutlineColor(float *rgb) 
 {
-    _outlineColor = Color(rgb[0], rgb[1], rgb[2]);
+    memcpy(_outlineColor, rgb, sizeof(float)*3);
 }
 
 inline void 
 Volume::getOutlineColor(float *rgb) 
 {
-    _outlineColor.getRGB(rgb);
+    memcpy(rgb, _outlineColor, sizeof(float)*3);
 }
 
 #endif

@@ -1,8 +1,13 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "nanovis.h"
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
 #include "NvVectorField.h"
 #include "NvParticleRenderer.h"
+
+using namespace vrmath;
 
 NvVectorField::NvVectorField() :
     _vectorFieldId(0),
@@ -27,7 +32,7 @@ NvVectorField::~NvVectorField()
 }
 
 void 
-NvVectorField::setVectorField(Volume *volPtr, const Vector3& origin, 
+NvVectorField::setVectorField(Volume *volPtr, const Vector3f& origin, 
 			      float scaleX, float scaleY, float scaleZ, 
 			      float max)
 {
@@ -134,7 +139,7 @@ void NvVectorField::deactivatePlane(const std::string& name)
     }
 }
 
-void NvVectorField::setParticleColor(const std::string& name, const Vector4& color)
+void NvVectorField::setParticleColor(const std::string& name, const vrmath::Vector4f& color)
 {
     std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
@@ -146,7 +151,7 @@ void NvVectorField::setParticleColor(const std::string& name, float r, float g, 
 {
     std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
-	if ((*iter).second) (*iter).second->setColor(Vector4(r,g,b,a));
+	if ((*iter).second) (*iter).second->setColor(vrmath::Vector4f(r,g,b,a));
     }
 }
 
@@ -186,13 +191,13 @@ NvVectorField::drawDeviceShape()
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    Vector3 origin = _volPtr->location();
+    Vector3f origin = _volPtr->location();
     glTranslatef(origin.x, origin.y, origin.z);
 
-    Vector3 scale = _volPtr->getPhysicalScaling();
+    Vector3f scale = _volPtr->getPhysicalScaling();
     glScaled(scale.x, scale.y, scale.z);
 
-    Vector3 min, max;
+    Vector3f min, max;
     min.x = _volPtr->xAxis.min();
     min.y = _volPtr->yAxis.min();
     min.z = _volPtr->zAxis.min();

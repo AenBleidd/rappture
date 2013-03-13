@@ -5,7 +5,9 @@
 #include <map>
 #include <string>
 
-#include "Vector3.h"
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+
 #include "NvVectorField.h"
 
 class NvParticleRenderer;
@@ -27,10 +29,10 @@ public:
 
     void render();
 
-    void addVectorField(Volume *volPtr, const Vector3& ori, float scaleX, 
+    void addVectorField(Volume *volPtr, const vrmath::Vector3f& ori, float scaleX, 
                         float scaleY, float scaleZ, float max);
 
-    void addVectorField(const std::string& vfName, Volume *volPtr, const Vector3& ori,
+    void addVectorField(const std::string& vfName, Volume *volPtr, const vrmath::Vector3f& ori,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     void removeVectorField(const std::string& vfName);
@@ -49,7 +51,7 @@ public:
      */
     void setPlanePos(const std::string& vfName, const std::string& name, float pos);
 
-    void setParticleColor(const std::string& vfName, const std::string& name, const Vector4& color);
+    void setParticleColor(const std::string& vfName, const std::string& name, const vrmath::Vector4f& color);
 
     void activatePlane(const std::string& vfName, const std::string& name);
 

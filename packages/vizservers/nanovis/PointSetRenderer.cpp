@@ -102,8 +102,8 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
     glPointSize(1);
 }
 
-void PointSetRenderer::render(PCA::ClusterAccel *cluster, const Mat4x4& mat,
-                              int sortLevel, const Vector3& scale, const Vector3& origin)
+void PointSetRenderer::render(PCA::ClusterAccel *cluster, const Matrix4x4d& mat,
+                              int sortLevel, const Vector3f& scale, const Vector3f& origin)
 {
     _bucketSort->init();
     _bucketSort->sort(cluster, mat, sortLevel);
