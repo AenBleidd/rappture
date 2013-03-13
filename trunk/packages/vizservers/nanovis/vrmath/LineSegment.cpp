@@ -6,7 +6,7 @@
  */
 
 #include <vrmath/LineSegment.h>
-#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Matrix4x4d.h>
 
 using namespace vrmath;
 
@@ -15,7 +15,7 @@ LineSegment::LineSegment():
 {
 }
 
-void LineSegment::transform(const Matrix4x4f &mat, const LineSegment &seg)
+void LineSegment::transform(const Matrix4x4d &mat, const LineSegment &seg)
 {
     pos = mat.transform(seg.pos);
 

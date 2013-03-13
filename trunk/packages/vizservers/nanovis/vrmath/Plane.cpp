@@ -6,14 +6,14 @@
  */
 
 #include <vrmath/Plane.h>
-#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Matrix4x4d.h>
 
 using namespace vrmath;
 
-void Plane::transform(Matrix4x4f& mat)
+void Plane::transform(Matrix4x4d& mat)
 {
     Vector4f v(normal.x, normal.y, normal.z, distance);
-    float* m = mat.get();
+    double* m = mat.get();
 
     normal.set(m[0]*v.x + m[1]*v.y + m[2]*v.z + m[3]*v.w,
                m[4]*v.x + m[5]*v.y + m[6]*v.z + m[7]*v.w,

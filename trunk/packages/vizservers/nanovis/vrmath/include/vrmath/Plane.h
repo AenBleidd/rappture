@@ -13,14 +13,14 @@
 
 namespace vrmath {
 
-class Matrix4x4f;
+class Matrix4x4d;
 
 class Plane
 {
 public:
     bool intersect(const Vector3f& p1, const Vector3f& p2, Vector3f& intersectPoint) const;
     bool intersect(const Vector3f& p1, const Vector3f& p2, Vector4f& intersectPoint) const;
-    void transform(Matrix4x4f& mat);
+    void transform(Matrix4x4d& mat);
 
     /// normal vector
     Vector3f normal;

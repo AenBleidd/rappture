@@ -13,7 +13,7 @@
 
 namespace vrmath {
 
-class Matrix4x4f;
+class Matrix4x4d;
 
 class LineSegment
 {
@@ -24,7 +24,7 @@ public:
     Vector3f getPoint(float d) const;
 
     /// Transfrom the line segment using mat
-    void transform(const Matrix4x4f &transMat, const LineSegment &seg);
+    void transform(const Matrix4x4d &transMat, const LineSegment &seg);
 
     /// The position of the line segment
     Vector4f pos;
