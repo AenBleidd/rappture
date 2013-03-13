@@ -8,7 +8,7 @@
 #include <float.h>
 
 #include <vrmath/BBox.h>
-#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Matrix4x4d.h>
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
 
@@ -92,7 +92,7 @@ void BBox::extend(const BBox& box)
     if (max.z < box.max.z) max.z = box.max.z;
 }
 
-void BBox::transform(const BBox& box, const Matrix4x4f& mat)
+void BBox::transform(const BBox& box, const Matrix4x4d& mat)
 {
     float halfSizeX = (box.max.x - box.min.x) * 0.5f;
     float halfSizeY = (box.max.y - box.min.y) * 0.5f;

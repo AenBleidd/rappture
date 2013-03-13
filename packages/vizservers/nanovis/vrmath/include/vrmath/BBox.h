@@ -11,7 +11,7 @@
 
 namespace vrmath {
 
-class Matrix4x4f;
+class Matrix4x4d;
 
 class BBox
 {
@@ -64,7 +64,7 @@ public:
     /**
      * @brief transform a bounding box with an matrix and set the bounding box
      */
-    void transform(const BBox& box, const Matrix4x4f& mat);
+    void transform(const BBox& box, const Matrix4x4d& mat);
 
     /**
      * @brief check if the bounding box intersect with a box
