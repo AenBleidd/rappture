@@ -2110,7 +2110,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
 
         NanoVis::bindOffscreenBuffer();
-        NanoVis::display();
+        NanoVis::render();
         NanoVis::readScreen();
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);

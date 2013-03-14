@@ -1702,7 +1702,7 @@ NanoVis::setBgColor(float color[3])
 }
 
 void
-NanoVis::display()
+NanoVis::render()
 {
     TRACE("Enter");
 
@@ -1912,9 +1912,7 @@ NanoVis::processCommands()
     update();
 
     bindOffscreenBuffer();  //enable offscreen render
-
-    display();
-
+    render();
     readScreen();
 
     if (feof(NanoVis::stdin)) {
@@ -1959,7 +1957,7 @@ main(int argc, char **argv)
     NanoVis::renderWindow = glutCreateWindow("nanovis");
     glutIdleFunc(NanoVis::idle);
 
-    glutDisplayFunc(NanoVis::display);
+    glutDisplayFunc(NanoVis::render);
     glutReshapeFunc(NanoVis::resizeOffscreenBuffer);
 
     while (1) {

@@ -25,7 +25,7 @@ public:
     void render(nv::graphics::RenderContext *renderContext);
 
     /**
-     *@brief Create a height map with heigh values
+     *@brief Create a height map with height values
      *@param startX x position of the first height value
      *@param startY y position of the first height value
      *@param endX x position of the last height value
