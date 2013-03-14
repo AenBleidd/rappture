@@ -35,6 +35,7 @@ using namespace Rappture::VtkVis;
 
 Cutplane::Cutplane() :
     VtkGraphicsObject(),
+    _pipelineInitialized(false),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -122,7 +123,11 @@ void Cutplane::initProp()
             property->LightingOff();
             
             getAssembly()->AddPart(_borderActor[i]);
-            getAssembly()->AddPart(_actor[i]);
+            //getAssembly()->AddPart(_actor[i]);
+        }
+    } else {
+        for (int i = 0; i < 3; i++) {
+            getAssembly()->RemovePart(_actor[i]);
         }
     }
 }
@@ -159,195 +164,203 @@ void Cutplane::update()
             _mapper[i]->SetColorModeToMapScalars();
             //_mapper[i]->InterpolateScalarsBeforeMappingOn();
         }
-        _cutPlane[i] = vtkSmartPointer<vtkPlane>::New();
-        switch (i) {
-        case 0:
-            _cutPlane[i]->SetNormal(1, 0, 0);
-            _cutPlane[i]->SetOrigin(bounds[0] + (bounds[1]-bounds[0])/2.,
-                                    0,
-                                    0);
-            break;
-        case 1:
-            _cutPlane[i]->SetNormal(0, 1, 0);
-            _cutPlane[i]->SetOrigin(0,
-                                    bounds[2] + (bounds[3]-bounds[2])/2.,
-                                    0);
-            break;
-        case 2:
-        default:
-            _cutPlane[i]->SetNormal(0, 0, 1);
-            _cutPlane[i]->SetOrigin(0,
-                                    0,
-                                    bounds[4] + (bounds[5]-bounds[4])/2.);
-            break;
+        if (_cutPlane[i] == NULL) {
+            _cutPlane[i] = vtkSmartPointer<vtkPlane>::New();
+            switch (i) {
+            case 0:
+                _cutPlane[i]->SetNormal(1, 0, 0);
+                _cutPlane[i]->SetOrigin(bounds[0] + (bounds[1]-bounds[0])/2.,
+                                        0,
+                                        0);
+                break;
+            case 1:
+                _cutPlane[i]->SetNormal(0, 1, 0);
+                _cutPlane[i]->SetOrigin(0,
+                                        bounds[2] + (bounds[3]-bounds[2])/2.,
+                                        0);
+                break;
+            case 2:
+            default:
+                _cutPlane[i]->SetNormal(0, 0, 1);
+                _cutPlane[i]->SetOrigin(0,
+                                        0,
+                                        bounds[4] + (bounds[5]-bounds[4])/2.);
+                break;
+            }
         }
-        _cutter[i] = vtkSmartPointer<vtkCutter>::New();
-        _cutter[i]->SetCutFunction(_cutPlane[i]);
+        if (_cutter[i] == NULL) {
+            _cutter[i] = vtkSmartPointer<vtkCutter>::New();
+            _cutter[i]->SetCutFunction(_cutPlane[i]);
+        }
     }
 
     initProp();
 
-    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-    if (pd && 
-        pd->GetNumberOfLines() == 0 &&
-        pd->GetNumberOfPolys() == 0 &&
-        pd->GetNumberOfStrips() == 0) {
-        // DataSet is a point cloud
-        PrincipalPlane plane;
-        double offset;
-        if (_dataSet->is2D(&plane, &offset)) {
-            // DataSet is a 2D point cloud
+    if (!_pipelineInitialized) {
+        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+        if (pd && 
+            pd->GetNumberOfLines() == 0 &&
+            pd->GetNumberOfPolys() == 0 &&
+            pd->GetNumberOfStrips() == 0) {
+            // DataSet is a point cloud
+            PrincipalPlane plane;
+            double offset;
+            if (_dataSet->is2D(&plane, &offset)) {
+                // DataSet is a 2D point cloud
 #ifdef MESH_POINT_CLOUDS
-            vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-            if (plane == PLANE_ZY) {
-                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                trans->RotateWXYZ(90, 0, 1, 0);
-                if (offset != 0.0) {
-                    trans->Translate(-offset, 0, 0);
+                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                if (plane == PLANE_ZY) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(90, 0, 1, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(-offset, 0, 0);
+                    }
+                    mesher->SetTransform(trans);
+                    _actor[1]->VisibilityOff();
+                    _actor[2]->VisibilityOff();
+                } else if (plane == PLANE_XZ) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(-90, 1, 0, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(0, -offset, 0);
+                    }
+                    mesher->SetTransform(trans);
+                    _actor[0]->VisibilityOff();
+                    _actor[2]->VisibilityOff();
+                } else if (offset != 0.0) {
+                    // XY with Z offset
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->Translate(0, 0, -offset);
+                    mesher->SetTransform(trans);
+                    _actor[0]->VisibilityOff();
+                    _actor[1]->VisibilityOff();
                 }
-                mesher->SetTransform(trans);
-                _actor[1]->VisibilityOff();
-                _actor[2]->VisibilityOff();
-            } else if (plane == PLANE_XZ) {
-                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                trans->RotateWXYZ(-90, 1, 0, 0);
-                if (offset != 0.0) {
-                    trans->Translate(0, -offset, 0);
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
+                mesher->SetInput(pd);
+#endif
+                for (int i = 0; i < 3; i++) {
+                    _mapper[i]->SetInputConnection(mesher->GetOutputPort());
                 }
-                mesher->SetTransform(trans);
-                _actor[0]->VisibilityOff();
-                _actor[2]->VisibilityOff();
-            } else if (offset != 0.0) {
-                // XY with Z offset
-                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                trans->Translate(0, 0, -offset);
-                mesher->SetTransform(trans);
-                _actor[0]->VisibilityOff();
-                _actor[1]->VisibilityOff();
-            }
+#else
+                if (_splatter == NULL) {
+                    _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                }
 #ifdef USE_VTK6
-            mesher->SetInputData(pd);
+                _splatter->SetInputData(pd);
 #else
-            mesher->SetInput(pd);
+                _splatter->SetInput(pd);
 #endif
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetInputConnection(mesher->GetOutputPort());
-            }
-#else
-            if (_splatter == NULL) {
-                _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-            }
-#ifdef USE_VTK6
-            _splatter->SetInputData(pd);
-#else
-            _splatter->SetInput(pd);
+                int dims[3];
+                _splatter->GetSampleDimensions(dims);
+                TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
+                if (plane == PLANE_ZY) {
+                    dims[0] = 3;
+                } else if (plane == PLANE_XZ) {
+                    dims[1] = 3;
+                } else {
+                    dims[2] = 3;
+                }
+                _splatter->SetSampleDimensions(dims);
+                for (int i = 0; i < 3; i++) {
+                    _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
+                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                }
 #endif
-            int dims[3];
-            _splatter->GetSampleDimensions(dims);
-            TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-            if (plane == PLANE_ZY) {
-                dims[0] = 3;
-            } else if (plane == PLANE_XZ) {
-                dims[1] = 3;
             } else {
-                dims[2] = 3;
-            }
-            _splatter->SetSampleDimensions(dims);
-            for (int i = 0; i < 3; i++) {
-                _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
-                gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                _mapper[i]->SetInputConnection(gf->GetOutputPort());
-            }
-#endif
-        } else {
 #ifdef MESH_POINT_CLOUDS
-            // Data Set is a 3D point cloud
-            // Result of Delaunay3D mesher is unstructured grid
-            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+                // Data Set is a 3D point cloud
+                // Result of Delaunay3D mesher is unstructured grid
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-            mesher->SetInputData(pd);
+                mesher->SetInputData(pd);
 #else
-            mesher->SetInput(pd);
+                mesher->SetInput(pd);
 #endif
-            // Sample a plane within the grid bounding box
-            for (int i = 0; i < 3; i++) {
-                _cutter[i]->SetInputConnection(mesher->GetOutputPort());
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
-                gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                _mapper[i]->SetInputConnection(gf->GetOutputPort());
-            }
+                // Sample a plane within the grid bounding box
+                for (int i = 0; i < 3; i++) {
+                    _cutter[i]->SetInputConnection(mesher->GetOutputPort());
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
+                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                }
 #else
-            if (_splatter == NULL) {
-                _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-            }
+                if (_splatter == NULL) {
+                    _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                }
 #ifdef USE_VTK6
-            _splatter->SetInputData(pd);
+                _splatter->SetInputData(pd);
 #else
-            _splatter->SetInput(pd);
+                _splatter->SetInput(pd);
 #endif
-            int dims[3];
-            dims[0] = dims[1] = dims[2] = 64;
-            TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
-                  dims[0], dims[1], dims[2]);
-            _splatter->SetSampleDimensions(dims);
-            for (int i = 0; i < 3; i++) {
-                _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
-                gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                _mapper[i]->SetInputConnection(gf->GetOutputPort());
-            }
+                int dims[3];
+                dims[0] = dims[1] = dims[2] = 64;
+                TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
+                      dims[0], dims[1], dims[2]);
+                _splatter->SetSampleDimensions(dims);
+                for (int i = 0; i < 3; i++) {
+                    _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
+                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                }
 #endif
-        }
-    } else {
-        // DataSet can be: image/volume/uniform grid, structured grid, unstructured grid, rectilinear grid, or
-        // PolyData with cells other than points
-        PrincipalPlane plane;
-        double offset;
-        if (!_dataSet->is2D(&plane, &offset)) {
-            // Sample a plane within the grid bounding box
-            for (int i = 0; i < 3; i++) {
-#ifdef USE_VTK6
-                _cutter[i]->SetInputData(ds);
-#else
-                _cutter[i]->SetInput(ds);
-#endif
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
-                gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                _mapper[i]->SetInputConnection(gf->GetOutputPort());
             }
         } else {
-            // 2D data
-            if (plane == PLANE_ZY) {
-                _actor[1]->VisibilityOff();
-                _actor[2]->VisibilityOff();
-            } else if (plane == PLANE_XZ) {
-                _actor[0]->VisibilityOff();
-                _actor[2]->VisibilityOff();
-            } else if (offset != 0.0) {
-                // XY with Z offset
-                _actor[0]->VisibilityOff();
-                _actor[1]->VisibilityOff();
-            }
-            for (int i = 0; i < 3; i++) {
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
+            // DataSet can be: image/volume/uniform grid, structured grid, unstructured grid, rectilinear grid, or
+            // PolyData with cells other than points
+            PrincipalPlane plane;
+            double offset;
+            if (!_dataSet->is2D(&plane, &offset)) {
+                // Sample a plane within the grid bounding box
+                for (int i = 0; i < 3; i++) {
 #ifdef USE_VTK6
-                gf->SetInputData(ds);
+                    _cutter[i]->SetInputData(ds);
 #else
-                gf->SetInput(ds);
+                    _cutter[i]->SetInput(ds);
 #endif
-                _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
+                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                }
+            } else {
+                // 2D data
+                if (plane == PLANE_ZY) {
+                    _actor[1]->VisibilityOff();
+                    _actor[2]->VisibilityOff();
+                } else if (plane == PLANE_XZ) {
+                    _actor[0]->VisibilityOff();
+                    _actor[2]->VisibilityOff();
+                } else if (offset != 0.0) {
+                    // XY with Z offset
+                    _actor[0]->VisibilityOff();
+                    _actor[1]->VisibilityOff();
+                }
+                for (int i = 0; i < 3; i++) {
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
+#ifdef USE_VTK6
+                    gf->SetInputData(ds);
+#else
+                    gf->SetInput(ds);
+#endif
+                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                }
             }
         }
     }
 
+    _pipelineInitialized = true;
+
     for (int i = 0; i < 3; i++) {
-        if (_mapper[i] != NULL) {
+        if (_mapper[i] != NULL && _borderMapper[i] == NULL) {
             _borderMapper[i] = vtkSmartPointer<vtkPolyDataMapper>::New();
 #ifdef CUTPLANE_TIGHT_OUTLINE
             _outlineFilter[i] = vtkSmartPointer<vtkOutlineFilter>::New();
@@ -385,9 +398,8 @@ void Cutplane::update()
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
+        setColorMode(_colorMode);
     }
-
-    setColorMode(_colorMode);
 
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] != NULL) {
@@ -397,6 +409,13 @@ void Cutplane::update()
         if (_borderMapper[i] != NULL) {
             _borderActor[i]->SetMapper(_borderMapper[i]);
             _borderMapper[i]->Update();
+        }
+        // Only add cutter actor to assembly if geometry was
+        // produced, in order to prevent messing up assembly bounds
+        double bounds[6];
+        _actor[i]->GetBounds(bounds);
+        if (bounds[0] <= bounds[1]) {
+            getAssembly()->AddPart(_actor[i]);
         }
     }
 }
@@ -449,8 +468,6 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
                                      bounds[2], bounds[3],
                                      bounds[4], bounds[5]);
 #endif
-        if (_mapper[0] != NULL)
-            _mapper[0]->Update();
         break;
     case Y_AXIS:
         _cutPlane[1]->SetOrigin(0,
@@ -462,8 +479,6 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
                                      bounds[2] + (bounds[3]-bounds[2]) * ratio,
                                      bounds[4], bounds[5]);
 #endif
-        if (_mapper[1] != NULL)
-            _mapper[1]->Update();
         break;
     case Z_AXIS:
         _cutPlane[2]->SetOrigin(0,
@@ -475,13 +490,12 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
                                      bounds[4] + (bounds[5]-bounds[4]) * ratio,
                                      bounds[4] + (bounds[5]-bounds[4]) * ratio);
 #endif
-        if (_mapper[2] != NULL)
-            _mapper[2]->Update();
         break;
     default:
         ERROR("Invalid Axis");
         return;
     }
+    update();
 }
 
 void Cutplane::updateRanges(Renderer *renderer)

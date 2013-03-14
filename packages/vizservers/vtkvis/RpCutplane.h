@@ -96,6 +96,8 @@ private:
     virtual void initProp();
     virtual void update();
 
+    bool _pipelineInitialized;
+
     ColorMap *_colorMap;
     ColorMode _colorMode;
     std::string _colorFieldName;
