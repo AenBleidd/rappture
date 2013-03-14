@@ -657,7 +657,7 @@ SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     NanoVis::cam->setScreenSize(30, 90, 2048 - 60, 2048 - 120);
 #endif
     NanoVis::bindOffscreenBuffer();  //enable offscreen render
-    NanoVis::display();
+    NanoVis::render();
     NanoVis::readScreen();
 
     NanoVis::ppmWrite("nv>image -type print -bytes %d");
@@ -1125,7 +1125,7 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
             NanoVis::bindOffscreenBuffer();  //enable offscreen render
 
-            NanoVis::display();
+            NanoVis::render();
             NanoVis::readScreen();
 
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
