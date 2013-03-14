@@ -108,7 +108,7 @@ void Contour3D::update()
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
     if (_dataSet->is2D()) {
-        ERROR("DataSet is 2D");
+        USER_ERROR("Cannot create isosurface(s) since the data set is not 3D");
         return;
     }
 

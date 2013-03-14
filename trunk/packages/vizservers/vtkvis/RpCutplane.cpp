@@ -123,7 +123,6 @@ void Cutplane::initProp()
             property->LightingOff();
             
             getAssembly()->AddPart(_borderActor[i]);
-            //getAssembly()->AddPart(_actor[i]);
         }
     } else {
         for (int i = 0; i < 3; i++) {
