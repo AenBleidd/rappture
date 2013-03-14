@@ -837,6 +837,12 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Rebuild {} {
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
+    if { $w < 2 || $h < 2 } {
+        $_dispatcher event -idle !rebuild
+        return
+    }
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
@@ -852,11 +858,18 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         }
     }
 
-    if { $_reset } {
-        set _width [winfo width $itk_component(3dview)]
-        set _height [winfo height $itk_component(3dview)]
+    if { $_width != $w || $_height != $h || $_reset } {
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
         DoResize
+    }
+    if { $_reset } {
         if { $_reportClientInfo }  {
+            # Tell the server the name of the tool, the version, and
+            # dataset that we are rendering.  Have to do it here because
+            # we don't know what data objects are using the renderer until
+            # be get here.
             global env
 
             set info {}

@@ -1154,6 +1154,17 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
 # display new data.  
 #
 itcl::body Rappture::FlowvisViewer::Rebuild {} {
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
+    if { $w < 2 || $h < 2 } {
+        $_dispatcher event -idle !rebuild
+        return
+    }
+
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    StartBufferingCommands
 
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
@@ -1164,11 +1175,14 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         }
     }
 
+    if { $_width != $w || $_height != $h || $_reset } {
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
+        Resize
+    }
+
     set _first ""
-    # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
-    StartBufferingCommands
 
     if { $_reset } {
         if { $_reportClientInfo }  {
@@ -1193,9 +1207,6 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             lappend info "session" $session
             SendCmd "clientinfo [list $info]"
         }
-        set _width [winfo width $itk_component(3dview)]
-        set _height [winfo height $itk_component(3dview)]
-        Resize
     }
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
@@ -1235,7 +1246,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set _first [lindex [get] 0]
 
     # Reset the camera and other view parameters
-    InitSettings isosurface grid axes volume outline light2side light transp
+    InitSettings light2side light transp isosurface grid axes volume outline
     
     # nothing to send -- activate the proper volume
     if {"" != $_first} {

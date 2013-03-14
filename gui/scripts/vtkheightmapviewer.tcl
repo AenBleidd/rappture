@@ -858,10 +858,11 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         return
     }
 
-    StartBufferingCommands
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
+    StartBufferingCommands
+
     if { $_width != $w || $_height != $h || $_reset } {
 	set _width $w
 	set _height $h
