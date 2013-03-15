@@ -14,7 +14,7 @@
  *           Michael McLennan <mmclennan@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
- *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -62,6 +62,7 @@
 #include "PointSet.h"
 #endif
 #include "dxReader.h"
+#include "VtkReader.h"
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
@@ -1231,7 +1232,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Volume *volPtr = NULL;
 
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
-        TRACE("ZincBlende stream is in");
+        TRACE("ZincBlende Stream loading...");
          //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
         //fdata.write(buf.bytes(),buf.size());
         //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
@@ -1258,20 +1259,35 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	Tcl_SetHashValue(hPtr, volPtr);
 	volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
+    } else if ((nBytes > 14) && (strncmp(bytes, "# vtk DataFile", 14) == 0)) {
+        TRACE("VTK loading...");
+        std::stringstream fdata;
+        fdata.write(bytes, nBytes);
+        if (nBytes <= 0) {
+	    ERROR("data buffer is empty");
+	    abort();
+        }
+        Rappture::Outcome context;
+        volPtr = load_vtk_volume_stream(context, tag, fdata);
+        if (volPtr == NULL) {
+            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-	if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
-	    bytes += 5;
-	    nBytes -= 5;
+        // **Deprecated** OpenDX format
+        if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
+            bytes += 5;
+            nBytes -= 5;
         }
         TRACE("DX loading...");
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
-	if (nBytes <= 0) {
-	    ERROR("data buffer is empty");
-	    abort();
-	}
+        if (nBytes <= 0) {
+            ERROR("data buffer is empty");
+            abort();
+        }
         Rappture::Outcome context;
-        volPtr = load_volume_stream(context, tag, fdata);
+        volPtr = load_dx_volume_stream(context, tag, fdata);
         if (volPtr == NULL) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;

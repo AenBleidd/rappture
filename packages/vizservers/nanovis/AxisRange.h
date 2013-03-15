@@ -1,4 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Authors: George A. Howlett <gah@purdue.edu>
+ */
 #ifndef AXIS_RANGE_H
 #define AXIS_RANGE_H
 
