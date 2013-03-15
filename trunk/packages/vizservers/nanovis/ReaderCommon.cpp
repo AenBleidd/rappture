@@ -1,5 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "dxReaderCommon.h"
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ */
+#include "ReaderCommon.h"
 #include "GradientFilter.h"
 
 #include <vrmath/Vector3f.h>

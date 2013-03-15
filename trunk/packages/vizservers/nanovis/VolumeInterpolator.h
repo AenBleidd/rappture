@@ -1,4 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ */
 #ifndef VOLUME_INTERPOLATOR_H
 #define VOLUME_INTERPOLATOR_H
 

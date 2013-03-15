@@ -1,4 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ */
 #ifndef GRADIENT_FILTER_H
 #define GRADIENT_FILTER_H
 

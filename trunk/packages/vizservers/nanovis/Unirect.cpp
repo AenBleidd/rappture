@@ -1,4 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: George A. Howlett <gah@purdue.edu>
+ */
 #include <float.h>
 #include <tcl.h>
 

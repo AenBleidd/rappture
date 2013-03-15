@@ -11,7 +11,7 @@
  *           Michael McLennan <mmclennan@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
- *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,8 +33,8 @@
 #include <RpFieldRect3D.h>
 #include <RpFieldPrism3D.h>
 
-// common dx functions
-#include "dxReaderCommon.h"
+// common file/data reader functions
+#include "ReaderCommon.h"
 
 #include "config.h"
 #include "nanovis.h"
@@ -59,10 +59,10 @@
  *  e.g. rank 1 shape 3 means a 3-component vector field
  */
 Volume *
-load_volume_stream(Rappture::Outcome& result, const char *tag,
-                   std::iostream& fin)
+load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
+                      std::iostream& fin)
 {
-    TRACE("load_volume_stream %s", tag);
+    TRACE("Enter tag:%s", tag);
 
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;

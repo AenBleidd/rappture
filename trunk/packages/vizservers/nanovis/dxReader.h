@@ -1,4 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ */
 #ifndef DXREADER_H
 #define DXREADER_H
 
@@ -10,7 +14,7 @@ namespace Rappture {
 class Volume;
 
 extern Volume *
-load_volume_stream(Rappture::Outcome& status, const char *tag, 
-                   std::iostream& fin);
+load_dx_volume_stream(Rappture::Outcome& status, const char *tag, 
+                      std::iostream& fin);
 
 #endif

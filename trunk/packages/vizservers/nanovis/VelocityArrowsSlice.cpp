@@ -1,4 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ */
 #include "nvconf.h"
 
 #include <math.h>

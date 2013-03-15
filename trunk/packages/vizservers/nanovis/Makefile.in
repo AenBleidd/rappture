@@ -134,6 +134,7 @@ OBJS		= \
 		PerfQuery.o \
 		Plane.o \
 		PlaneRenderer.o \
+		ReaderCommon.o \
 		RenderVertexArray.o \
 		RpAVTranslate.o \
 		Switch.o \
@@ -147,11 +148,11 @@ OBJS		= \
 		Volume.o \
 		VolumeInterpolator.o \
 		VolumeRenderer.o \
+		VtkReader.o \
 		ZincBlendeVolume.o \
 		dxReader.o \
-		dxReaderCommon.o \
 		nanovis.o \
-		md5.o 
+		md5.o
 
 resources	= \
 		$(srcdir)/resources/arrows.bmp \
@@ -310,6 +311,7 @@ PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
 PointSet.o: PointSet.cpp PointSet.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
 PointShader.o: PointShader.cpp PointShader.h
+ReaderCommon.o: ReaderCommon.cpp ReaderCommon.h GradientFilter.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
 Switch.o: Switch.cpp Switch.h
@@ -323,8 +325,8 @@ VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
 Volume.o: Volume.cpp Volume.h $(AUXSRC)
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h Volume.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
+VtkReader.o: VtkReader.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h ReaderCommon.h nanovis.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
-dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
-dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
+dxReader.o: dxReader.cpp ReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
 md5.o: md5.h
