@@ -181,6 +181,8 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                     result.error("Error in data stream");
                     return NULL;
                 }
+                for (start = line; *start == ' ' || *start == '\t'; start++)
+                    ;  // skip leading blanks
                 if (sscanf(start, "SCALARS %s %s", str, type) != 2) {
                     result.error("Error in data stream");
                     return NULL;
@@ -204,17 +206,18 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                     result.error("Error in data stream");
                     return NULL;
                 }
-                if (sscanf("LOOKUP_TABLE %s", str) == 1) {
-                    // skip line
+                for (start = line; *start == ' ' || *start == '\t'; start++)
+                    ;  // skip leading blanks
+                if (sscanf(start, "LOOKUP_TABLE %s", str) == 1) {
+                    // skip lookup table, but don't read ahead
                     if (fin.eof()) {
                         result.error("Error in data stream");
                         return NULL;
                     }
-                    fin.getline(line, sizeof(line) - 1);
-                    if (fin.fail()) {
-                        result.error("Error in data stream");
-                        return NULL;
-                    }
+                } else {
+                    // Lookup table line is required
+                    result.error("Missing LOOKUP_TABLE");
+                    return NULL;
                 }
                 // found start of field data
                 allocFieldData(&fieldData, npts, ftype);
