@@ -323,20 +323,29 @@ itcl::body Rappture::Tool::run {args} {
         set result [string trim $job(output)]
         if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
             set status [catch {Rappture::library $file} result]
-            if {$status != 0} {
+            if {$status == 0} {
+                # add cputime info to run.xml file
+                $result put output.walltime $times(walltime)
+                $result put output.cputime $times(cputime)
+            } else {
                 global errorInfo
                 set result "$result\n$errorInfo"
             }
 
             # if there's a results_directory defined in the resources
             # file, then move the run.xml file there for storage
-            if {[info exists _resources(-resultdir)]
-                  && "" != $_resources(-resultdir)} {
+            if {$status == 0 && [info exists _resources(-resultdir)]
+                  && $_resources(-resultdir) ne ""} {
                 catch {
                     if {![file exists $_resources(-resultdir)]} {
                         _mkdir $_resources(-resultdir)
                     }
-                    file rename -force -- $file $_resources(-resultdir)
+                    set tail [file tail $file]
+                    set fid [open [file join $_resources(-resultdir) $tail] w]
+                    puts $fid "<?xml version=\"1.0\"?>"
+                    puts $fid [$result xml]
+                    close $fid
+                    file delete -force -- $file
                 }
             }
         } else {
