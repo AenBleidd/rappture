@@ -44,6 +44,109 @@ if {[llength $argv] < 1} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: normval <libObj> <rappturePath> ?-default?
+#
+# Returns information about the normalized value of a particular input
+# in the Rappture run <libObj> at the specified <rappturePath> for the
+# input.  The optional -default switch causes the processing to apply
+# to the default value instead of the current value.
+#
+# Returns info as a list of values in the form:
+#
+#   <rappturePath> <type> <normValue>
+#   <rappturePath2> <type2> <normValue2>
+#   ...
+#
+# Most inputs return just 3 values: path/type/value.  But some inputs
+# split into multiple parts and return several triples.  Images, for
+# example, return a hash for the image itself, but also width/height
+# parameters.  The width/height may actually be the better predictors
+# of CPU time required.
+# ----------------------------------------------------------------------
+proc normval {libobj path {what "-current"}} {
+    set rlist ""
+
+    # get the default or the current raw value
+    set raw ""
+    switch -- $what {
+        -default {
+            set raw [$libobj get $path.default]
+        }
+        -current {
+            if {[$libobj element $path.current] ne ""} {
+                set raw [$libobj get $path.current]
+            } else {
+                set raw [$libobj get $path.default]
+            }
+        }
+        default {
+            error "bad option \"$what\": should be -current or -default"
+        }
+    }
+
+    # normalize the value depending on the type
+    switch -- [$libobj element -as type $path] {
+        integer {
+            lappend rlist $path "INTEGER" $raw
+        }
+        number {
+            set norm ""
+            if {$raw ne ""} {
+                # then normalize to default units
+                set units [$libobj get $path.units]
+                if {$units ne ""} {
+                    set norm [Rappture::Units::convert $raw \
+                        -context $units -to $units -units off]
+                }
+            }
+            lappend rlist $path "REAL" $norm
+        }
+        boolean - choice - loader - periodicelement {
+            lappend rlist $path "TEXT" $raw
+        }
+        image {
+            # convert long string inputs into a unique (short) hash
+            set norm [base64::encode [md5::md5 $raw]]
+            if {[catch {package require Img; wm withdraw .} result]} {
+                error "can't analyze <image> types: $result"
+            }
+            if {[catch {image create photo -data $raw} result]} {
+                error "can't analyze <image> data: $result"
+            }
+            set width [image width $result]
+            set height [image height $result]
+
+            lappend rlist $path "TEXT" $norm
+            lappend rlist $path-WIDTH "INTEGER" $width
+            lappend rlist $path-HEIGHT "INTEGER" $height
+        }
+        string {
+            # convert long string inputs into a unique (short) hash
+            set norm [base64::encode [md5::md5 $raw]]
+            lappend rlist $path "TEXT" $norm
+        }
+        structure {
+            # oops! structure doesn't have a clear .current value
+            # use the XML dump of the data as its "value"
+            if {$what eq "-current"} {
+                if {[catch {$libobj xml $path.current} raw]} {
+                    if {[catch {$libobj xml $path.default} raw]} {
+                        set raw ""
+                    }
+                }
+            } elseif {[catch {$libobj xml $path.default} raw]} {
+                set raw ""
+            }
+            set norm [base64::encode [md5::md5 $raw]]
+            lappend rlist $path "TEXT" $norm
+        }
+        default {
+            # for anything else, punt and use the raw value
+            lappend rlist $path "TEXT" $raw
+        }
+    }
+    return $rlist
+}
 
 #
 # Run through each run.xml file and load params and execution time
@@ -103,56 +206,50 @@ foreach fname $argv {
         set cols ""
         set vals ""
         foreach path [Rappture::entities $libobj input] {
-            set def [$libobj get $path.default]
-            foreach {raw norm} [Rappture::LibraryObj::value $libobj $path] break
-
-            switch -- [$libobj element -as type $path] {
-                integer {
-                    set type "INTEGER"
-                }
-                number {
-                    set type "REAL"
-                }
-                boolean - choice - loader - periodicelement {
-                    set type "TEXT"
-                }
-                image - string {
-                    # convert long string inputs into a unique (short) hash
-                    set norm [base64::encode [md5::md5 $norm]]
-                    set type "TEXT"
-                }
-                default {
-                    set type "TEXT"
-                }
-            }
-
+            # get the nickname (column name) for this paraemter
             set id [db eval "SELECT nickName from parameters where rappturePath='$path'"]
             if {$id eq ""} {
                 # haven't seen this parameter before -- add it
-                set num [db eval "SELECT COUNT(nickName) from parameters;"]
-                set id [format "x%03d" [incr num]]
-                db eval "INSERT INTO parameters values('$id','$path','$def','$type')"
-                db eval "ALTER TABLE jobs ADD COLUMN $id $type;"
+                foreach {rp type def} [normval $libobj $path -default] {
+                    set num [db eval "SELECT COUNT(nickName) from parameters;"]
+                    set id [format "x%03d" [incr num]]
+
+                    db eval "INSERT INTO parameters values('$id','$rp','$def','$type')"
+                    db eval "ALTER TABLE jobs ADD COLUMN $id $type;"
+                }
             }
 
-            lappend cols $id
-            if {$type eq "TEXT"} {
-                lappend vals '$norm'
-            } else {
-                lappend vals $norm
+            # add the current value onto the values we're building up for ALTER
+            foreach {raw norm} [Rappture::LibraryObj::value $libobj $path] break
+
+            foreach {rp type val} [normval $libobj $path] {
+                set num [db eval "SELECT COUNT(nickName) from parameters;"]
+                set id [db eval "SELECT nickName FROM parameters WHERE rappturePath='$rp'"]
+                if {$id eq ""} {
+                    set err "INTERNAL ERROR: couldn't find nickName for existing parameter $rp"
+                    break
+                }
+                lappend cols $id
+                if {$type eq "TEXT"} {
+                    lappend vals '$val'
+                } else {
+                    lappend vals $val
+                }
             }
         }
 
-        # add the info for this job
-        db eval "DELETE from jobs WHERE runToken='$runtoken';"
-        db eval "INSERT INTO jobs (runToken,date,cpuTime,wallTime,nCpus,venue,[join $cols ,]) values ('$runtoken','$date',$cput,$wallt,$ncpus,'$venue',[join $vals ,]);"
+        if {$err eq ""} {
+            # add the info for this job
+            db eval "DELETE from jobs WHERE runToken='$runtoken';"
+            db eval "INSERT INTO jobs (runToken,date,cpuTime,wallTime,nCpus,venue,[join $cols ,]) values ('$runtoken','$date',$cput,$wallt,$ncpus,'$venue',[join $vals ,]);"
+        }
     }
 
     if {$err ne ""} {
         puts stderr $err
         set status 1
     }
+    catch {db close}
 }
 
-catch {db close}
 exit $status
