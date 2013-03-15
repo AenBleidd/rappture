@@ -146,7 +146,6 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     foreach axis {x y z} {
         set _limits($axis) ""
     }
-    GetDimension $path
     set u [$_mesh get units]
     if {"" != $u} {
         while {[llength $u] < 3} {
@@ -393,6 +392,7 @@ itcl::body Rappture::Mesh::GetInt { path } {
 itcl::body Rappture::Mesh::ReadVtk { path } {
     set _type "vtk"
 
+    GetDimension $path
     # Create a VTK file with the mesh in it.  
     set _vtkdata [$_xmlobj get $path.vtk]
     append out "# vtk DataFile Version 3.0\n"
@@ -414,13 +414,9 @@ itcl::body Rappture::Mesh::ReadVtk { path } {
     $reader Update
     set output [$reader GetOutput]
     foreach { xmin xmax ymin ymax zmin zmax } [$output GetBounds] break
-    set _dim 3;				# Hard coding all vtk meshes to 3D?
     set _limits(x) [list $xmin $xmax]
     set _limits(y) [list $ymin $ymax]
     set _limits(z) [list $zmin $zmax]
-    if { $zmin >= $zmax } {
-	set _dim 2
-    } 
     file delete $tmpfile
     rename $output ""
     rename $reader ""
@@ -429,6 +425,8 @@ itcl::body Rappture::Mesh::ReadVtk { path } {
 
 itcl::body Rappture::Mesh::ReadGrid { path } {
     set _type "grid"
+
+    GetDimension $path
     set numUniform 0
     set numRectilinear 0
     set numCurvilinear 0
@@ -942,6 +940,7 @@ itcl::body Rappture::Mesh::WriteHybridCells { xv yv zv cells celltypes } {
 itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     set _type "unstructured"
 
+    GetDimension $path
     # Step 1: Verify that there's only one cell tag of any kind.
     set numCells 0
     foreach type { cells triangles quads tetrahedrons 
