@@ -23,7 +23,11 @@
 enum FieldType {
     FLOAT,
     DOUBLE,
-    UCHAR
+    UCHAR,
+    SHORT,
+    USHORT,
+    INT,
+    UINT
 };
 
 static inline int typeSize(FieldType type)
@@ -35,6 +39,14 @@ static inline int typeSize(FieldType type)
         return sizeof(double);
     case UCHAR:
         return sizeof(unsigned char);
+    case SHORT:
+        return sizeof(short);
+    case USHORT:
+        return sizeof(unsigned short);
+    case INT:
+        return sizeof(int);
+    case UINT:
+        return sizeof(unsigned int);
     default:
         return 0;
     }
@@ -51,6 +63,18 @@ static inline void allocFieldData(void **data, int npts, FieldType type)
         break;
     case UCHAR:
         *data = (unsigned char *)(new unsigned char[npts]);
+        break;
+    case SHORT:
+        *data = (short *)(new short[npts]);
+        break;
+    case USHORT:
+        *data = (unsigned short *)(new unsigned short[npts]);
+        break;
+    case INT:
+        *data = (int *)(new int[npts]);
+        break;
+    case UINT:
+        *data = (unsigned int *)(new unsigned int[npts]);
         break;
     default:
         ;
@@ -72,10 +96,28 @@ static inline void readFieldValue(void *data, int idx, FieldType type, std::iost
         ((float *)data)[idx] = val;
     }
         break;
-    case UCHAR: {
-        unsigned char val;
+    case SHORT: {
+        short val;
         fin >> val;
-        ((unsigned char *)data)[idx] = val;
+        ((short *)data)[idx] = val;
+    }
+        break;
+    case USHORT: {
+        unsigned short val;
+        fin >> val;
+        ((unsigned short *)data)[idx] = val;
+    }
+        break;
+    case INT: {
+        int val;
+        fin >> val;
+        ((int *)data)[idx] = val;
+    }
+        break;
+    case UINT: {
+        unsigned int val;
+        fin >> val;
+        ((unsigned int *)data)[idx] = val;
     }
         break;
     default:
@@ -92,7 +134,15 @@ static inline float getFieldData(void *data, int i, FieldType type)
     case DOUBLE:
         return (float)((double *)data)[i];
     case UCHAR:
-        return ((float)((unsigned char *)data)[i])/255.f;
+        return ((float)((unsigned char *)data)[i]);
+    case SHORT:
+        return (float)((short *)data)[i];
+    case USHORT:
+        return (float)((unsigned short *)data)[i];
+    case INT:
+        return (float)((int *)data)[i];
+    case UINT:
+        return (float)((unsigned int *)data)[i];
     default:
         return 0.0f;
     }
@@ -111,6 +161,18 @@ static inline void deleteFieldData(void *data, FieldType type)
         break;
     case UCHAR:
         delete [] ((unsigned char *)data);
+        break;
+    case SHORT:
+        delete [] ((short *)data);
+        break;
+    case USHORT:
+        delete [] ((unsigned short *)data);
+        break;
+    case INT:
+        delete [] ((int *)data);
+        break;
+    case UINT:
+        delete [] ((unsigned int *)data);
         break;
     default:
         ;
@@ -193,6 +255,18 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                     ftype = FLOAT;
                 } else if (strncmp(type, "unsigned_char", 13) == 0) {
                     ftype = UCHAR;
+                    if (!isBinary) {
+                        result.addError("unsigned char only supported in binary VTK files");
+                        return NULL;
+                    }
+                } else if (strncmp(type, "short", 5) == 0) {
+                    ftype = SHORT;
+                } else if (strncmp(type, "unsigned_short", 14) == 0) {
+                    ftype = USHORT;
+                } else if (strncmp(type, "int", 3) == 0) {
+                    ftype = INT;
+                } else if (strncmp(type, "unsigned_int", 12) == 0) {
+                    ftype = UINT;
                 } else {
                     result.addError("Unsupported scalar type: '%s'", type);
                     return NULL;
