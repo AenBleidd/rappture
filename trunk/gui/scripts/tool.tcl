@@ -132,7 +132,7 @@ itcl::body Rappture::Tool::resources {{option ""}} {
 # results.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::run {args} {
-    global errorInfo
+    global env errorInfo
 
     #
     # Make sure that we save the proper application name.
@@ -327,6 +327,9 @@ itcl::body Rappture::Tool::run {args} {
                 # add cputime info to run.xml file
                 $result put output.walltime $times(walltime)
                 $result put output.cputime $times(cputime)
+                if {[info exists env(SESSION)]} {
+                    $result put output.session $env(SESSION)
+                }
             } else {
                 global errorInfo
                 set result "$result\n$errorInfo"
