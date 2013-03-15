@@ -37,6 +37,8 @@ SCRIPTS	= \
 		rappture.env \
 		rappture-csh.env \
 		rappture.use \
+		rpdiff \
+		rptimes \
 		rerun \
 		simsim  \
 		xmldiff

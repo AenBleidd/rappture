@@ -1,0 +1,158 @@
+#!/bin/sh
+# ----------------------------------------------------------------------
+#  RPTIMES
+#
+#  Scans through a series of run.xml files and puts their runtime info
+#  into a SQLite database.  This database can be used to predict
+#  future runtimes for runs with similar parameters.
+#
+#    USAGE:
+#    % rptimes <run.xml> ?<run.xml>...?
+#
+#  Exits with status 0 if successful, and non-zero if any run.xml
+#  files cannot be processed.
+#
+#  The SQLite DB created by this command contains the following data:
+#
+#     CREATE TABLE times:
+#       tool ...... tool.id - app name of tool on nanoHUB (text)
+#       version ... tool.version.identifier - tool version (text)
+#       walltime .. execution wall time in seconds (double)
+#       cputime ... execution cpu time in seconds (double)
+#       user ...... output.user - user name (text)
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+# \
+exec tclsh "$0" ${1+"$@"}
+# tclsh executes the rest...
+
+package require Rappture
+package require sqlite3
+package require md5
+package require base64
+
+if {[llength $argv] < 1} {
+    puts stderr "bad option \"$arg\""
+    puts stderr "USAGE: rptimes run.xml ?run.xml...?"
+    exit 1
+}
+
+# ----------------------------------------------------------------------
+
+#
+# Run through each run.xml file and load params and execution time
+#
+set status 0
+foreach fname $argv {
+    set db ""
+    set err ""
+    if {[catch {Rappture::library $fname} libobj]} {
+        set err "failed: $fname ($libobj)"
+    }
+
+    set app [$libobj get tool.id]
+    set rev [$libobj get tool.version.application.revision]
+    if {$err eq ""} {
+        if {$app eq "" || $rev eq ""} {
+            set err "failed: $fname (missing app info -- is tool deployed?)"
+        } else {
+            set dbfile "${app}_r$rev.sql3"
+            if {![file exists $dbfile]} {
+                sqlite3 db $dbfile
+                db eval {CREATE TABLE parameters(nickName TEXT PRIMARY KEY, rappturePath TEXT, defValue TEXT, type TEXT);}
+                db eval {CREATE TABLE jobs(runToken TEXT, date TEXT, cpuTime REAL, wallTime REAL, nCpus INTEGER, venue TEXT);}
+            } else {
+                sqlite3 db $dbfile
+            }
+        }
+    }
+
+    if {$err eq "" && [set cput [$libobj get output.cputime]] eq ""} {
+        set err "failed: $fname (missing cpu time)"
+    }
+    if {$err eq "" && [set wallt [$libobj get output.walltime]] eq ""} {
+        set err "failed: $fname (missing wall time)"
+    }
+
+    set date "?"
+    if {$err eq "" && [$libobj get output.time] ne "" && [catch {clock scan [$libobj get output.time]} d] == 0} {
+        set date $d
+    }
+
+    if {$err eq "" && [$libobj get output.venue.name] ne ""} {
+        set venue [$libobj get output.venue.name]
+    } else {
+        set venue ""
+    }
+
+    if {$err eq "" && [$libobj get output.venue.ncpus] ne ""} {
+        set ncpus [$libobj get output.venue.ncpus]
+    } else {
+        set ncpus 1
+    }
+
+    if {$err eq ""} {
+        set runtoken [base64::encode [md5::md5 [$libobj xml]]]
+
+        set cols ""
+        set vals ""
+        foreach path [Rappture::entities $libobj input] {
+            set def [$libobj get $path.default]
+            foreach {raw norm} [Rappture::LibraryObj::value $libobj $path] break
+
+            switch -- [$libobj element -as type $path] {
+                integer {
+                    set type "INTEGER"
+                }
+                number {
+                    set type "REAL"
+                }
+                boolean - choice - loader - periodicelement {
+                    set type "TEXT"
+                }
+                image - string {
+                    # convert long string inputs into a unique (short) hash
+                    set norm [base64::encode [md5::md5 $norm]]
+                    set type "TEXT"
+                }
+                default {
+                    set type "TEXT"
+                }
+            }
+
+            set id [db eval "SELECT nickName from parameters where rappturePath='$path'"]
+            if {$id eq ""} {
+                # haven't seen this parameter before -- add it
+                set num [db eval "SELECT COUNT(nickName) from parameters;"]
+                set id [format "x%03d" [incr num]]
+                db eval "INSERT INTO parameters values('$id','$path','$def','$type')"
+                db eval "ALTER TABLE jobs ADD COLUMN $id $type;"
+            }
+
+            lappend cols $id
+            if {$type eq "TEXT"} {
+                lappend vals '$norm'
+            } else {
+                lappend vals $norm
+            }
+        }
+
+        # add the info for this job
+        db eval "DELETE from jobs WHERE runToken='$runtoken';"
+        db eval "INSERT INTO jobs (runToken,date,cpuTime,wallTime,nCpus,venue,[join $cols ,]) values ('$runtoken','$date',$cput,$wallt,$ncpus,'$venue',[join $vals ,]);"
+    }
+
+    if {$err ne ""} {
+        puts stderr $err
+        set status 1
+    }
+}
+
+catch {db close}
+exit $status
