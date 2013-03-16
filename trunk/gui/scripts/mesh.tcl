@@ -1124,6 +1124,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     append out $points
+    append out "\n"
     append out "CELLS $_numCells $count\n"
     append out $data
     append out "CELL_TYPES $_numCells\n"
