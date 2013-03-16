@@ -85,7 +85,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     } else {
         set fdir "."
     }
-    set defval [$_owner xml get $path.default]
+    set defval [string trim [$_owner xml get $path.default]]
 
     #
     # If this loader has a <new> section, then create that
@@ -93,7 +93,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set newfile ""
     foreach comp [$_owner xml children -type new $path] {
-        set name [$_owner xml get $path.$comp]
+        set name [string trim [$_owner xml get $path.$comp]]
         set fname [file join $fdir examples $name]
 
         if {[file exists $fname]} {
@@ -129,7 +129,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     foreach comp [$_owner xml children -type upload $path] {
         foreach tcomp [$_owner xml children -type to $path.$comp] {
-            set topath [$_owner xml get $path.$comp.$tcomp]
+            set topath [string trim [$_owner xml get $path.$comp.$tcomp]]
             if { [$_owner xml element -as id $topath] == "" } {
                 puts stderr \
                     "unknown <upload> path \"$topath\": please fix tool.xml"
@@ -158,7 +158,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     set i 0
     foreach comp [$_owner xml children -type download $path] {
         foreach dcomp [$_owner xml children -type from $path.$comp] {
-            set frompath [$_owner xml get $path.$comp.$dcomp]
+            set frompath [string trim [$_owner xml get $path.$comp.$dcomp]]
             if {"" != $frompath} {
                 lappend _dnpaths $frompath
                 set _dnpath2state($this-$frompath) [expr {$i == 0}]
@@ -190,7 +190,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set flist ""
     foreach comp [$_owner xml children -type example $path] {
-        lappend flist [$_owner xml get $path.$comp]
+        lappend flist [string trim [$_owner xml get $path.$comp]]
     }
 
     # if there are no examples, then look for *.xml
@@ -237,13 +237,13 @@ itcl::body Rappture::Loader::constructor {owner path args} {
         $itk_component(combo) choices insert end $entries($label) $label
     }
 
-    set _copyfrom [$_owner xml get $path.copy.from]
-    set _copyto [$_owner xml get $path.copy.to]
+    set _copyfrom [string trim [$_owner xml get $path.copy.from]]
+    set _copyto [string trim [$_owner xml get $path.copy.to]]
 
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$_owner xml get $path.default]
+    set str [string trim [$_owner xml get $path.default]]
     if { $str != "" } { 
         bind $itk_component(hull) <Map> [itcl::code $this SetDefaultValue $str]
     }
@@ -400,7 +400,7 @@ itcl::body Rappture::Loader::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::_tooltip {} {
-    set str [string trim [$_owner xml get $_path.about.description]]
+    set str [$_owner xml get $_path.about.description]
 
     # get the description for the current choice, if there is one
     set newval [$itk_component(combo) value]
