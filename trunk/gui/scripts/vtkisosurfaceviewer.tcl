@@ -1356,7 +1356,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "cutplaneVisible" {
             set bool $_settings($what)
-            puts stderr "cutplane visible $bool"
             SendCmd "cutplane visible $bool"
         }
         "cutplaneWireframe" {
