@@ -37,6 +37,33 @@ static Tcl_CmdProc RpTclUnitsSearchFor;
  * ::Rappture::Units::Search::for
  */
 
+#include <algorithm> 
+#include <functional>
+#include <cctype>
+
+// Trim from start
+static inline std::string &ltrim(std::string &s) 
+{
+    s.erase(s.begin(), 
+	std::find_if(s.begin(), s.end(), 
+		     std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
+
+// Trim from end
+static inline std::string &rtrim(std::string &s) 
+{
+    s.erase(std::find_if(s.rbegin(), s.rend(), 
+	std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+// Trim from both ends
+static inline std::string &trim(std::string &s) 
+{
+    return ltrim(rtrim(s));
+}
+
 extern "C" int
 RpUnits_Init(Tcl_Interp *interp)
 {
@@ -70,6 +97,7 @@ RpUnits_Init(Tcl_Interp *interp)
  * units attached to <value> take precedence over units 
  * provided in -context option.
  */
+
 
 int
 RpTclUnitsConvert   (   ClientData cdata,
@@ -207,8 +235,12 @@ RpTclUnitsConvert   (   ClientData cdata,
     // check the inValue to see if it has units
     // or if we should use those provided in -context option
 
+
+    // Trim away white space from the value.  
+    trim(inValue);
+
     double value;
-    value = strtod(inValue.c_str(),&endptr);
+    value = strtod(inValue.c_str(), &endptr);
     if (endptr == inValue.c_str()) {
         // there was no numeric value that could be pulled from inValue
         // return error

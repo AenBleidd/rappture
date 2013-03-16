@@ -47,26 +47,26 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     }
     set _owner $owner
     set _path $path
-
+    
     #
     # Figure out what sort of control to create
     #
     set presets ""
     foreach pre [$_owner xml children -type preset $path] {
-        lappend presets \
-            [$_owner xml get $path.$pre.value] \
-            [$_owner xml get $path.$pre.label]
+        set value [string trim [$_owner xml get $path.$pre.value]]
+        set label [$_owner xml get $path.$pre.label]
+        lappend presets $value $label
     }
-
+    
     set class Rappture::Gauge
-    set units [$_owner xml get $path.units]
+    set units [string trim [$_owner xml get $path.units]]
     if {$units != ""} {
         set desc [Rappture::Units::description $units]
         if {[string match temperature* $desc]} {
             set class Rappture::TemperatureGauge
         }
     }
-
+    
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
@@ -76,18 +76,22 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     }
     pack $itk_component(gauge) -expand yes -fill both
     bind $itk_component(gauge) <<Value>> [itcl::code $this _newValue]
-
-    set min [$_owner xml get $path.min]
-    if {$min ne ""} { $itk_component(gauge) configure -minvalue $min }
-
-    set max [$_owner xml get $path.max]
-    if {$max ne ""} { $itk_component(gauge) configure -maxvalue $max }
+    
+    set min [string trim [$_owner xml get $path.min]]
+    if {$min ne ""} { 
+        $itk_component(gauge) configure -minvalue $min 
+    }
+    
+    set max [string trim [$_owner xml get $path.max]]
+    if {$max ne ""} { 
+        $itk_component(gauge) configure -maxvalue $max 
+    }
 
     if {$class == "Rappture::Gauge" && $min ne "" && $max ne ""} {
-        set color [$_owner xml get $path.about.color]
+        set color [string trim [$_owner xml get $path.about.color]]
         if {$color == ""} {
             # deprecated.  Color should be in "about"
-            set color [$_owner xml get $path.color]
+            set color [string trim [$_owner xml get $path.color]]
         }
         if {$color != ""}  {
             if {$units != ""} {
@@ -99,23 +103,24 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
                 set color [list $min white $max $color]
             }
             $itk_component(gauge) configure \
-                -spectrum [Rappture::Spectrum ::#auto $color -units $units]
+                -spectrum [Rappture::Spectrum ::\#auto $color -units $units]
         }
     }
 
     # if the control has an icon, plug it in
-    set str [$_owner xml get $path.about.icon]
+    set str [string trim [$_owner xml get $path.about.icon]]
     if {$str ne ""} {
         $itk_component(gauge) configure -image [image create photo -data $str]
     }
-
     eval itk_initialize $args
 
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$_owner xml get $path.default]
-    if {$str ne ""} { $itk_component(gauge) value $str }
+    set str [string trim [$_owner xml get $path.default]]
+    if {$str ne ""} { 
+        $itk_component(gauge) value $str 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -179,9 +184,9 @@ itcl::body Rappture::NumberEntry::label {} {
 itcl::body Rappture::NumberEntry::tooltip {} {
     set str [$_owner xml get $_path.about.description]
 
-    set units [$_owner xml get $_path.units]
-    set min [$_owner xml get $_path.min]
-    set max [$_owner xml get $_path.max]
+    set units [string trim [$_owner xml get $_path.units]]
+    set min [string trim [$_owner xml get $_path.min]]
+    set max [string trim [$_owner xml get $_path.max]]
 
     if {$units != "" || $min != "" || $max != ""} {
         append str "\n\nEnter a number"
