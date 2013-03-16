@@ -700,7 +700,6 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
     pack $f.send.e -side left -expand yes -fill x
     bind $f.send.e <Return> [itcl::code $this SendDebugCommand]
     bind $f.send.e <KP_Enter> [itcl::code $this SendDebugCommand]
-    
     scrollbar $f.sb -orient vertical -command "$f.comm yview"
     pack $f.sb -side right -fill y
     itk_component add trace {
@@ -709,6 +708,7 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
 	ignore -background
     }
     pack $f.comm -expand yes -fill both
+    bind $f.comm <Control-F1> [itcl::code $this ToggleConsole]
 
     $itk_component(trace) tag configure error -foreground red \
 	-font -*-courier-medium-o-normal-*-*-120-*

@@ -912,7 +912,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             DoRotate
 	} 	    
 	PanCamera
+        StopBufferingCommands
         SendCmd "imgflush"
+        StartBufferingCommands
     }
 
     set _first ""
@@ -1356,8 +1358,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                     SendCmd "colormap res $numColors $color"
                 }
 	    }
-            #SendCmd "heightmap colormode scalar $_curFldName"
-            #SendCmd "dataset scalar $_curFldName"
             StopBufferingCommands
 	    EventuallyRequestLegend
         }
