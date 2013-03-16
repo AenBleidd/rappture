@@ -54,7 +54,7 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     }
 
     # if the control has an icon, plug it in
-    set icon [$_owner xml get $path.about.icon]
+    set icon [string trim [$_owner xml get $path.about.icon]]
     if {$icon != ""} {
         itk_component add icon {
             set icon [image create photo -data $icon]
@@ -79,7 +79,7 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
         Rappture::Switch $itk_component(vframe).switch \
             -interactcommand [itcl::code $this _log]
     }
-    set color [$_owner xml get $path.about.color]
+    set color [string trim [$_owner xml get $path.about.color]]
     if {$color != ""} {
         $itk_component(switch) configure -oncolor $color
     }
@@ -92,7 +92,7 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$_owner xml get $path.default]
+    set str [string trim [$_owner xml get $path.default]]
     if {"" != $str} {
         $itk_component(switch) value $str
     } else {

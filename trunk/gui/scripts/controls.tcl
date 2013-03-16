@@ -168,9 +168,11 @@ itcl::body Rappture::Controls::insert {pos path} {
             Rappture::ImageEntry $w $_owner $path
         }
         control {
-            set label [$_owner xml get $path.label]
-            if {"" == $label} { set label "Simulate" }
-            set service [$_owner xml get $path.service]
+            set label [string trim [$_owner xml get $path.label]]
+            if {"" == $label} { 
+                set label "Simulate" 
+            }
+            set service [string trim [$_owner xml get $path.service]]
             button $w -text $label -command [list $service run]
         }
         separator {
@@ -265,7 +267,7 @@ itcl::body Rappture::Controls::insert {pos path} {
     }
     set _name2info($name-enable) $enable
 
-    set hidden [$_owner xml get $_name2info($name-path).hide]
+    set hidden [string trim [$_owner xml get $_name2info($name-path).hide]]
     if { $hidden != "" } {
 	set _name2info($name-enable) [expr !$hidden]
     }

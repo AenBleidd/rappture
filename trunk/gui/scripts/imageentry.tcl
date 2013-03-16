@@ -107,6 +107,7 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
         _redraw  ;# draw Empty image/info
     }
 
+    # Don't trim this string.  It make be important.
     set str [$_owner xml get $path.current]
     if {[string length $str] == 0} {
         set str [$_owner xml get $path.default]
@@ -173,7 +174,7 @@ itcl::body Rappture::ImageEntry::value {args} {
     # Query the value and return.
     #
     set bytes $_data
-    set fmt [$_owner xml get $_path.convert]
+    set fmt [string trim [$_owner xml get $_path.convert]]
     if {"" != $fmt && "" != $_imh} {
         if {"pgm" == $fmt} { set fmt "ppm -grayscale" }
         set bytes [eval $_imh data -format $fmt]

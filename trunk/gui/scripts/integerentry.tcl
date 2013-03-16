@@ -59,29 +59,29 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     bind $itk_component(spinner) <<Value>> [itcl::code $this _newValue]
 
     # if there are min/max values, plug them in.
-    set min [$_owner xml get $path.min]
+    set min [string trim [$_owner xml get $path.min]]
     if {"" != $min} {
         $itk_component(spinner) configure -minvalue $min
     }
 
-    set max [$_owner xml get $path.max]
+    set max [string trim [$_owner xml get $path.max]]
     if {"" != $max} {
         $itk_component(spinner) configure -maxvalue $max
     }
 
     # if there is a color, use it for the min/max spectrum
-    set color [$_owner xml get $path.about.color]
+    set color [string trim [$_owner xml get $path.about.color]]
     if {$color != "" && $min != "" && $max != ""} {
         # For compatibility. If only one color use white for min
         if {[llength $color] == 1} {
             set color [list $min white $max $color]
         }
         $itk_component(spinner) configure \
-            -spectrum [Rappture::Spectrum ::#auto $color]
+            -spectrum [Rappture::Spectrum ::\#auto $color]
     }
 
     # if the control has an icon, plug it in
-    set str [$_owner xml get $path.about.icon]
+    set str [string trim [$_owner xml get $path.about.icon]]
     if {$str != ""} {
         $itk_component(spinner) configure -image \
             [image create photo -data $str]
@@ -92,8 +92,10 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$_owner xml get $path.default]
-    if {"" != $str != ""} { $itk_component(spinner) value $str }
+    set str [string trim [$_owner xml get $path.default]]
+    if {"" != $str != ""} { 
+        $itk_component(spinner) value $str 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -157,8 +159,8 @@ itcl::body Rappture::IntegerEntry::label {} {
 itcl::body Rappture::IntegerEntry::tooltip {} {
     set str [$_owner xml get $_path.about.description]
 
-    set min [$_owner xml get $_path.min]
-    set max [$_owner xml get $_path.max]
+    set min [string trim [$_owner xml get $_path.min]]
+    set max [string trim [$_owner xml get $_path.max]]
 
     if {$min != "" || $max != ""} {
         append str "\n\nEnter an integer"

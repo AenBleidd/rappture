@@ -82,10 +82,10 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     $_dispatcher register !layout
     $_dispatcher dispatch $this !layout "[itcl::code $this _layout]; list"
 
-    set _size [$_owner xml get $path.size]
+    set _size [string trim [$_owner xml get $path.size]]
 
-    set hints [$_owner xml get $path.about.hints]
-    set icon [$_owner xml get $path.about.icon]
+    set hints [string trim [$_owner xml get $path.about.hints]]
+    set icon [string trim [$_owner xml get $path.about.icon]]
     if {[string length $icon] > 0} {
         set _icon [image create photo -data $icon] 
     } 
@@ -102,6 +102,8 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
 
     eval itk_initialize $args
 
+    # Don't trim the text default value.  Assume that any leading/trailing
+    # whitespace is wanted.
     set str [$_owner xml get $path.default]
     if {"" != $str} {
         value $str
