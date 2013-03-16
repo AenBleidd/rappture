@@ -69,10 +69,11 @@ itcl::body Rappture::Switch::value {args} {
     }
     if {[llength $args] == 1} {
         set newval [lindex $args 0]
-        if {![string is boolean -strict $newval]} {
-            error "Should be a boolean value"
+        # I don't like the "string is" commands. They have too many quirks.
+        # If we're calling "expr" anyways, just put a catch on it.
+        if { [catch {expr {($newval) ? 1 : 0}} newval] != 0 } {
+            error "$newval: should be a yes, no, on, off, true, false, 0, or 1."
         }
-        set newval [expr {($newval) ? 1 : 0}]
         if {$onlycheck} {
             return
         }
