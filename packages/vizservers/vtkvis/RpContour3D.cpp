@@ -186,6 +186,7 @@ void Contour3D::update()
 
     if (_contours.empty()) {
         // Evenly spaced isovalues
+        TRACE("Setting %d contours between %g and %g", _numContours, _dataRange[0], _dataRange[1]);
         _contourFilter->GenerateValues(_numContours, _dataRange[0], _dataRange[1]);
     } else {
         // User-supplied isovalues
