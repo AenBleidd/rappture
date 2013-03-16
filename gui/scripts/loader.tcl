@@ -302,7 +302,7 @@ itcl::body Rappture::Loader::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "Example"
     }

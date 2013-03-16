@@ -158,7 +158,7 @@ set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 # can't check some inputs, such as strings), then disable the
 # automatic ticket submission for job failures
 # ----------------------------------------------------------------------
-set val [$tool xml get tool.reportJobFailures]
+set val [string trim [$tool xml get tool.reportJobFailures]]
 if { "" != $val} {
     if {[catch {Rappture::bugreport::shouldReport jobfailures $val} result]} {
         puts stderr "WARNING for reportJobFailures: $result"
@@ -255,7 +255,7 @@ if {[llength $phases] > 0} {
 }
 
 foreach comp $phases {
-    set title [$tool xml get $comp.about.label]
+    set title [string trim [$tool xml get $comp.about.label]]
     if {$title == ""} {
         set title "Input #auto"
     }
@@ -322,9 +322,9 @@ if {[llength [$win.pager page]] > 2} {
             $f.analyze configure -holdwindow [$win.pager page @0]
         }
     }
-    set type [$tool xml get tool.control]
+    set type [string trim [$tool xml get tool.control]]
     if {$type == ""} {
-        set type [$tool xml get tool.control.type]
+        set type [string trim [$tool xml get tool.control.type]]
     }
     set arrangement [$win.pager cget -arrangement]
     if { $type == "" } {

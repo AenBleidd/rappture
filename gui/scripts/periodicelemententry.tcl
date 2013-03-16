@@ -51,6 +51,7 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     set _path $path
 
     set defval [string trim [$_owner xml get $_path.default]]
+    # Active and inactive are lists.  Don't need to trim.
     set active [$_owner xml get $_path.active]
     set inactive [$_owner xml get $_path.inactive]
     #
@@ -113,7 +114,7 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
     #
     # Query the value and return.
     #
-    set how [$_owner xml get $_path.returnvalue]
+    set how [string trim [$_owner xml get $_path.returnvalue]]
     switch -- $how { 
         weight - number - name - symbol - all {
             set how "-$how"
@@ -133,7 +134,7 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicElementEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "Element"
     }
@@ -171,7 +172,7 @@ itcl::body Rappture::PeriodicElementEntry::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicElementEntry::_tooltip {} {
-    set tip [string trim [$_owner xml get $_path.about.description]]
+    set tip [$_owner xml get $_path.about.description]
 
     # get the description for the current element, if there is one
     set str [$itk_component(element) element get -all]

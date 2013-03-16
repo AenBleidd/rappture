@@ -354,9 +354,9 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     $itk_component(notebook) current about
 
     # tool can run on "manual" (default) or "auto"
-    set cntl [$tool xml get tool.control]
+    set cntl [string trim [$tool xml get tool.control]]
     if {"" == $cntl} {
-        set cntl [$tool xml get tool.control.type]
+        set cntl [string trim [$tool xml get tool.control.type]]
     }
     if {"" != $cntl} {
         set _control $cntl
@@ -502,7 +502,7 @@ itcl::body Rappture::Analyzer::reset {{when -eventually}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::load {xmlobj} {
     # only show the last result? then clear first
-    if {[$_tool xml get tool.analyzer] == "last"} {
+    if {[string trim [$_tool xml get tool.analyzer]] == "last"} {
         clear
     }
 

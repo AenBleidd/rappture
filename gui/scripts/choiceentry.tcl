@@ -192,7 +192,7 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
                 #
                 $_owner notify add $this $cntl [itcl::code $this _rebuild]
 
-                set label [string trim [$_owner xml get $_path.$cname.about.label]]
+                set label [$_owner xml get $_path.$cname.about.label]
                 if {"" == $label} {
                     set label "%type #%n"
                 }
@@ -225,7 +225,7 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
             # Add the label as-is into the list of choices.
             #
             set val [string trim [$_owner xml get $_path.$cname.value]]
-            set str [string trim [$_owner xml get $_path.$cname.about.label]]
+            set str [$_owner xml get $_path.$cname.about.label]
             if {"" == $val} {
                 set val $str
             }
@@ -275,7 +275,7 @@ itcl::body Rappture::ChoiceEntry::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ChoiceEntry::_tooltip {} {
-    set tip [string trim [$_owner xml get $_path.about.description]]
+    set tip [$_owner xml get $_path.about.description]
 
     # get the description for the current choice, if there is one
     set str [$itk_component(choice) value]

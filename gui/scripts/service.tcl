@@ -53,7 +53,7 @@ itcl::body Rappture::Service::constructor {owner path args} {
     #
     # Load up the tool description from the <interface> file.
     #
-    set intf [$_owner xml get $path.interface]
+    set intf [string trim [$_owner xml get $path.interface]]
     if {"" == $intf} {
         puts "can't find <interface> description for tool at $path"
     } else {
@@ -62,8 +62,8 @@ itcl::body Rappture::Service::constructor {owner path args} {
 
         set xmlobj [Rappture::library $intf]
         set installdir [file dirname $intf]
-        set _tool [Rappture::Tool ::#auto $xmlobj $installdir]
-        set _control [$_tool xml get tool.control]
+        set _tool [Rappture::Tool ::\#auto $xmlobj $installdir]
+        set _control [string trim [$_tool xml get tool.control]]
 
         #
         # Scan through the <tool> and establish all of the
@@ -82,7 +82,7 @@ itcl::body Rappture::Service::constructor {owner path args} {
             foreach cname [$_owner xml children $path.$dir] {
                 set ppath $path.$dir.$cname
 
-                set spath [$_owner xml get $ppath.path]
+                set spath [string trim [$_owner xml get $ppath.path]]
                 if {"" == $spath} {
                     error "missing <path> at $ppath"
                 }
@@ -91,40 +91,40 @@ itcl::body Rappture::Service::constructor {owner path args} {
                 switch -- $type {
                   show {
 puts "show: $spath"
-                    set tpath [$_owner xml get $ppath.to]
-                    if {"" == $tpath && $dir == "input"} {
-                        error "missing <to> at $ppath"
-                    }
-                    set obj [$_tool xml element -as object $spath]
-puts " => $obj"
-                    lappend _show($dir) $obj
-                    set _obj2path($obj) $spath
-
-                    if {$dir == "input"} {
-puts "link: $tpath => $spath"
-                        $_owner notify add $this $tpath \
-                            [itcl::code $this _link $tpath $spath]
-                    }
+                      set tpath [string trim [$_owner xml get $ppath.to]]
+                      if {"" == $tpath && $dir == "input"} {
+                          error "missing <to> at $ppath"
+                      }
+                      set obj [$_tool xml element -as object $spath]
+                      puts " => $obj"
+                      lappend _show($dir) $obj
+                      set _obj2path($obj) $spath
+                      
+                      if {$dir == "input"} {
+                          puts "link: $tpath => $spath"
+                          $_owner notify add $this $tpath \
+                              [itcl::code $this _link $tpath $spath]
+                      }
                   }
                   link {
-                    set tpath [$_owner xml get $ppath.to]
-                    if {"" == $tpath} {
-                        error "missing <to> at $ppath"
-                    }
-                    if {"" == [$_owner xml element $tpath]} {
-                        error "bad <to> path \"$tpath\" at $ppath"
-                    }
-                    if {$dir == "input"} {
-puts "link: $tpath => $spath"
-                        $_owner notify add $this $tpath \
-                            [itcl::code $this _link $tpath $spath]
-                    } else {
-puts "path2path: $spath => $tpath"
-                        set _path2path($spath) $tpath
-                    }
+                      set tpath [string trim [$_owner xml get $ppath.to]]
+                      if {"" == $tpath} {
+                          error "missing <to> at $ppath"
+                      }
+                      if {"" == [$_owner xml element $tpath]} {
+                          error "bad <to> path \"$tpath\" at $ppath"
+                      }
+                      if {$dir == "input"} {
+                          puts "link: $tpath => $spath"
+                          $_owner notify add $this $tpath \
+                              [itcl::code $this _link $tpath $spath]
+                      } else {
+                          puts "path2path: $spath => $tpath"
+                          set _path2path($spath) $tpath
+                      }
                   }
-                  set {
-                    if {"" == [$_owner xml element $ppath.value]} {
+                    set {
+                        if {"" == [$_owner xml element $ppath.value]} {
                         error "missing <value> at $ppath"
                     }
 puts "set: $spath from $ppath.value"
