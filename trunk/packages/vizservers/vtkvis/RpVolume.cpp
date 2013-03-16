@@ -95,7 +95,7 @@ void Volume::update()
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
     if (_dataSet->is2D()) {
-        ERROR("Volume requires a 3D DataSet");
+        USER_ERROR("Volume rendering requires a 3D data set");
         _dataSet = NULL;
         return;
     }
