@@ -225,7 +225,7 @@ itcl::body Rappture::Gauge::value {args} {
             set nvUnits [Rappture::Units::Search::for $newval]
             if { "" == $nvUnits} {
                 set msg [Rappture::Units::description $units]
-                error "Unrecognized units: $newval\nEnter value with units of $msg"
+                error "unrecognized units in value \"$newval\": should be value with units of $msg"
             }
             set nv [Rappture::Units::convert $nv \
                 -context $units -to $units -units off]
