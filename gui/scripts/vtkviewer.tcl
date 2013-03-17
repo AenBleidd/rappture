@@ -104,6 +104,7 @@ itcl::class Rappture::VtkViewer {
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
+    private method SetOrientation { side }
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
