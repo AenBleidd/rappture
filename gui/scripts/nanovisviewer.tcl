@@ -117,7 +117,7 @@ itcl::class Rappture::NanovisViewer {
     private method ParseMarkersOption { tf markers }
     private method volume { tag name }
     private method GetVolumeInfo { w }
-    private method SetOrientation {}
+    private method SetOrientation { side }
 
     private variable _arcball ""
 
@@ -199,8 +199,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         qy      0.353553
         qz      0.146447
         zoom    1.0
-        pan-x   0
-        pan-y   0
+        xpan   0
+        ypan   0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -216,8 +216,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-qy                $_view(qy)
         $this-qz                $_view(qz)
         $this-zoom              $_view(zoom)    
-        $this-pan-x             $_view(pan-x)
-        $this-pan-y             $_view(pan-y)
+        $this-xpan             $_view(xpan)
+        $this-ypan             $_view(ypan)
         $this-volume            1
         $this-xcutplane         0
         $this-xcutposition      0
@@ -923,8 +923,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         set _settings($this-qx)    $_view(qx)
         set _settings($this-qy)    $_view(qy)
         set _settings($this-qz)    $_view(qz)
-	set _settings($this-pan-x) $_view(pan-x)
-	set _settings($this-pan-y) $_view(pan-y)
+	set _settings($this-xpan) $_view(xpan)
+	set _settings($this-ypan) $_view(ypan)
 	set _settings($this-zoom)  $_view(zoom)
 
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -1028,8 +1028,8 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                 qy      0.353553
                 qz      0.146447
                 zoom    1.0
-                pan-x   0
-                pan-y   0
+                xpan   0
+                ypan   0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1045,8 +1045,8 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
             set _settings($this-qx)    $_view(qx)
             set _settings($this-qy)    $_view(qy)
             set _settings($this-qz)    $_view(qz)
-            set _settings($this-pan-x) $_view(pan-x)
-            set _settings($this-pan-y) $_view(pan-y)
+            set _settings($this-xpan) $_view(xpan)
+            set _settings($this-ypan) $_view(ypan)
             set _settings($this-zoom)  $_view(zoom)
             $itk_component(orientation) value "default" 
         }
@@ -1054,10 +1054,10 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
 }
 
 itcl::body Rappture::NanovisViewer::PanCamera {} {
-    #set x [expr ($_view(pan-x)) / $_limits(xrange)]
-    #set y [expr ($_view(pan-y)) / $_limits(yrange)]
-    set x $_view(pan-x)
-    set y $_view(pan-y)
+    #set x [expr ($_view(xpan)) / $_limits(xrange)]
+    #set y [expr ($_view(ypan)) / $_limits(yrange)]
+    set x $_view(xpan)
+    set y $_view(ypan)
     SendCmd "camera pan $x $y"
 }
 
@@ -1133,11 +1133,11 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
     if { $option == "set" } {
         set x [expr $x / double($w)]
         set y [expr $y / double($h)]
-        set _view(pan-x) [expr $_view(pan-x) + $x]
-        set _view(pan-y) [expr $_view(pan-y) + $y]
+        set _view(xpan) [expr $_view(xpan) + $x]
+        set _view(ypan) [expr $_view(ypan) + $y]
         PanCamera
-        set _settings($this-pan-x) $_view(pan-x)
-        set _settings($this-pan-y) $_view(pan-y)
+        set _settings($this-xpan) $_view(xpan)
+        set _settings($this-ypan) $_view(ypan)
         return
     }
     if { $option == "click" } {
@@ -1150,11 +1150,11 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
         set dy [expr ($_click(y) - $y)/double($h)]
         set _click(x) $x
         set _click(y) $y
-        set _view(pan-x) [expr $_view(pan-x) - $dx]
-        set _view(pan-y) [expr $_view(pan-y) - $dy]
+        set _view(xpan) [expr $_view(xpan) - $dx]
+        set _view(ypan) [expr $_view(ypan) - $dy]
         PanCamera
-        set _settings($this-pan-x) $_view(pan-x)
-        set _settings($this-pan-y) $_view(pan-y)
+        set _settings($this-xpan) $_view(xpan)
+        set _settings($this-ypan) $_view(ypan)
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -1909,30 +1909,21 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    set row 0
-    label $inner.orientation_l -text "View" -font "Arial 9" 
-    itk_component add orientation { 
-        Rappture::Combobox $inner.orientation -width 10 -editable no 
-    }
-    $inner.orientation choices insert end \
-        "1 0 0 0" "front" \
-        "0 0 1 0" "back" \
-        "0.707107 -0.707107 0 0" "top" \
-        "0.707107 0.707107 0 0" "bottom" \
-        "0.707107 0 -0.707107 0" "left" \
-        "0.707107 0 0.707107 0" "right" \
-        "0.853553 -0.353553 0.353553 0.146447" "default"
-    $itk_component(orientation) value "default" 
-    bind $inner.orientation <<Value>> [itcl::code $this SetOrientation]
-    if 1 {
-    blt::table $inner \
-            $row,0 $inner.orientation_l -anchor e -pady 2 \
-            $row,1 $inner.orientation -anchor w -pady 2 -fill x 
-    blt::table configure $inner r$row -resize none
-    incr row
+    label $inner.view_l -text "view" -font "Arial 9"
+    set f [frame $inner.view]
+    foreach side { front back left right top bottom } {
+        button $f.$side  -image [Rappture::icon view$side] \
+            -command [itcl::code $this SetOrientation $side]
+        Rappture::Tooltip::for $f.$side "Change the view to $side"
+        pack $f.$side -side left
     }
 
-    set labels { qw qx qy qz pan-x pan-y zoom }
+    blt::table $inner \
+            0,0 $inner.view_l -anchor e -pady 2 \
+            0,1 $inner.view -anchor w -pady 2
+
+    set row 1
+    set labels { qw qx qy qz xpan ypan zoom }
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
@@ -1948,7 +1939,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         incr row
     }
 
-    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -2035,7 +2026,7 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
                 return
             }
             switch -- $who {
-                "pan-x" - "pan-y" {
+                "xpan" - "ypan" {
                     set _view($who) $_settings($this-$who)
                     PanCamera
                 }
@@ -2113,21 +2104,20 @@ itcl::body Rappture::NanovisViewer::volume { tag name } {
     SendCmd "volume statue $bool $name"
 }
 
-itcl::body Rappture::NanovisViewer::SetOrientation {} { 
-    set quat [$itk_component(orientation) value]
-    set quat [$itk_component(orientation) translate $quat]
-    foreach name { qw qx qy qz } comp $quat {
-        set _view($name) $comp
-        set _settings($this-$name) $comp
+itcl::body Rappture::NanovisViewer::SetOrientation { side } { 
+    array set positions {
+        front "1 0 0 0"
+        back  "0 0 1 0"
+        left  "0.707107 0 -0.707107 0"
+        right "0.707107 0 0.707107 0"
+        top   "0.707107 -0.707107 0 0"
+        bottom "0.707107 0.707107 0 0"
+    }
+    foreach name { qw qx qy qz } value $positions($side) {
+        set _view($name) $value
     } 
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
     SendCmd "camera orient $q" 
-    SendCmd "camera reset"
-    set $_view(pan-x) 0.0
-    set $_view(pan-y) 0.0
-    set $_view(zoom) 1.0
-    set _settings($this-pan-x) $_view(pan-x)
-    set _settings($this-pan-y) $_view(pan-y)
-    set _settings($this-zoom)  $_view(zoom)
 }
+
