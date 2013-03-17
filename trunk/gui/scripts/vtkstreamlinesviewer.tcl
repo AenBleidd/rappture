@@ -106,6 +106,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
+    private method SetOrientation { side }
 
     private variable _arcball ""
 
@@ -1867,8 +1868,21 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
+    label $inner.view_l -text "view" -font "Arial 9"
+    set f [frame $inner.view]
+    foreach side { front back left right top bottom } {
+        button $f.$side  -image [Rappture::icon view$side] \
+            -command [itcl::code $this SetOrientation $side]
+        Rappture::Tooltip::for $f.$side "Change the view to $side"
+        pack $f.$side -side left
+    }
+
+    blt::table $inner \
+            0,0 $inner.view_l -anchor e -pady 2 \
+            0,1 $inner.view -anchor w -pady 2
+
     set labels { qx qy qz qw xpan ypan zoom }
-    set row 0
+    set row 1
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
@@ -1891,7 +1905,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -2445,5 +2459,22 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
             error "bad option \"$option\": should be post, unpost, select"
         }
     }
+}
+
+itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } { 
+    array set positions {
+        front "1 0 0 0"
+        back  "0 0 1 0"
+        left  "0.707107 0 -0.707107 0"
+        right "0.707107 0 0.707107 0"
+        top   "0.707107 -0.707107 0 0"
+        bottom "0.707107 0.707107 0 0"
+    }
+    foreach name { qw qx qy qz } value $positions($side) {
+        set _view($name) $value
+    } 
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
 }
 

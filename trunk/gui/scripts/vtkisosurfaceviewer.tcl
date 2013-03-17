@@ -104,6 +104,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
     private method SetCurrentColormap { color }
+    private method SetOrientation { side }
 
     private variable _arcball ""
 
@@ -231,6 +232,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         axisZGrid		0
         cutplaneEdges           0
         cutplaneLighting        1
+        cutplanePreinterp       0
         cutplaneOpacity		100
         cutplaneVisible		0
         cutplaneWireframe	0
@@ -1051,7 +1053,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             isosurfaceEdges isosurfaceLighting isosurfaceOpacity \
 	    isosurfaceWireframe isosurfaceOutline \
 	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
-	    cutplaneXVisible cutplaneYVisible cutplaneZVisible 
+	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
+            cutplanePreinterp
 
         Zoom reset
 	foreach axis { x y z } {
@@ -1370,6 +1373,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "cutplane opacity $sval"
+        }
+        "cutplanePreinterp" {
+            set bool $_settings($what)
+            SendCmd "cutplane preinterp $bool"
         }
         "cutplaneXVisible" - "cutplaneYVisible" - "cutplaneZVisible" {
             set axis [string tolower [string range $what 8 8]]
@@ -1738,7 +1745,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
-        -icon [Rappture::icon axis1]]
+        -icon [Rappture::icon axis2]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
@@ -1802,8 +1809,21 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
+    label $inner.view_l -text "view" -font "Arial 9"
+    set f [frame $inner.view]
+    foreach side { front back left right top bottom } {
+        button $f.$side  -image [Rappture::icon view$side] \
+            -command [itcl::code $this SetOrientation $side]
+        Rappture::Tooltip::for $f.$side "Change the view to $side"
+        pack $f.$side -side left
+    }
+
+    blt::table $inner \
+            0,0 $inner.view_l -anchor e -pady 2 \
+            0,1 $inner.view -anchor w -pady 2
+
     set labels { qx qy qz qw xpan ypan zoom }
-    set row 0
+    set row 1
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
@@ -1826,7 +1846,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -1863,6 +1883,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
         -text "Edges" \
         -variable [itcl::scope _settings(cutplaneEdges)] \
         -command [itcl::code $this AdjustSetting cutplaneEdges] \
+        -font "Arial 9"
+
+    checkbutton $inner.preinterp \
+        -text "Interpolate" \
+        -variable [itcl::scope _settings(cutplanePreinterp)] \
+        -command [itcl::code $this AdjustSetting cutplanePreinterp] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
@@ -1966,8 +1992,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
         1,0 $inner.lighting             -anchor w -pady 2 -cspan 3 \
         2,0 $inner.wireframe            -anchor w -pady 2 -cspan 3 \
         3,0 $inner.edges                -anchor w -pady 2 -cspan 3 \
-        4,0 $inner.opacity_l            -anchor w -pady 2 -cspan 1 \
-        4,1 $inner.opacity              -fill x   -pady 2 -cspan 3 \
+        4,0 $inner.preinterp            -anchor w -pady 2 -cspan 3 \
+        5,0 $inner.opacity_l            -anchor w -pady 2 -cspan 1 \
+        5,1 $inner.opacity              -fill x   -pady 2 -cspan 3 \
         6,0 $inner.xbutton		-anchor w -padx 2 -pady 2 \
         7,0 $inner.ybutton		-anchor w -padx 2 -pady 2 \
         8,0 $inner.zbutton		-anchor w -padx 2 -pady 2 \
@@ -1978,7 +2005,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r9 c4 -resize expand
-    blt::table configure $inner r5 -height 0.12i
 }
 
 
@@ -2508,5 +2534,19 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildColormap { name } {
     SendCmd "colormap add $name { $cmap } { $wmap }"
 }
 
-
-
+itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } { 
+    array set positions {
+        front "1 0 0 0"
+        back  "0 0 1 0"
+        left  "0.707107 0 -0.707107 0"
+        right "0.707107 0 0.707107 0"
+        top   "0.707107 -0.707107 0 0"
+        bottom "0.707107 0.707107 0 0"
+    }
+    foreach name { qw qx qy qz } value $positions($side) {
+        set _view($name) $value
+    } 
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
+}

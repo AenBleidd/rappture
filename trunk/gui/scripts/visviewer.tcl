@@ -856,8 +856,10 @@ itcl::body Rappture::VisViewer::HandleError { args } {
         set inner [$popup component inner]
         $inner.scrl.text delete 0.0 end
         
+        $inner.scrl.text configure -state normal
         $inner.scrl.text insert end "The following error was reported by the render server:\n\n" bold
         $inner.scrl.text insert end $bytes code
+        $inner.scrl.text configure -state disabled
         update
         $popup activate $itk_component(hull) below
     } else {
