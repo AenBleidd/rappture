@@ -1139,7 +1139,7 @@ itcl::body Rappture::Mesh::GetCellType { name } {
         "triangle"     5
         "quad"         9
         "tetrahedron"  10
-        "hexahedron"   11
+        "hexahedron"   12
         "wedge"        13
         "pyramid"      14
     }
