@@ -1420,7 +1420,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set _changed(numContours) 1
             set _settings(numContours) [$itk_component(numcontours) value]
             set _currentNumContours $_settings(numContours)
-            SendCmd "contour3d numcontours [expr $_settings(numContours) + 1]"
+            SendCmd "contour3d numcontours $_settings(numContours)"
             DrawLegend
         }
         "isosurfaceWireframe" {
@@ -2177,7 +2177,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         $itk_component(numcontours) value $_currentNumContours
         DrawLegend
     }
-    SendCmd "contour3d add numcontours [expr $_currentNumContours+1] $tag"
+    SendCmd "contour3d add numcontours $_currentNumContours $tag"
     SendCmd "contour3d edges $style(-edges) $tag"
     SendCmd "dataset outline $style(-outline) $tag"
     SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)]"
