@@ -569,7 +569,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::delete {args} {
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
-        SendCmd "contour3d visible 0"
+        SendCmd "dataset visible 0"
         array unset _obj2ovride $dataobj-*
         array unset _settings $dataobj-*
         # Append to the end of the dataobj list.
@@ -966,7 +966,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         StartBufferingCommands
     }
     set _first ""
-    SendCmd "contour3d visible 0"
+    SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1002,7 +1002,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 # Setting dataset visible enables outline (if enabled) 
                 # and contour3d
-		SendCmd "contour3d visible 1 $tag"
+		SendCmd "dataset visible 1 $tag"
             }
         }
     }
@@ -1036,7 +1036,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-
+    InitSettings cutplaneVisible
     if { $_reset } {
 	# These are settings that rely on a dataset being loaded.
         InitSettings \
@@ -1046,7 +1046,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	    isosurfaceWireframe isosurfaceOutline \
 	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
-            cutplanePreinterp cutplaneVisible
+            cutplanePreinterp 
 
         Zoom reset
 	foreach axis { x y z } {
