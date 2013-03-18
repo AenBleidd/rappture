@@ -346,18 +346,14 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
         Rappture::Mesh1D zgrid(z0, z0 + lz, nz);
         Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
 #else // !DOWNSAMPLE_DATA
-        data = new float[nx *  ny *  nz * 4];
-        memset(data, 0, nx*ny*nz*4);
+        data = new float[npts * 4];
+        memset(data, 0, npts * 4);
 #endif // DOWNSAMPLE_DATA
-        int ix = 0;
-        int iy = 0;
-        int iz = 0;
         for (int p = 0; p < npts; p++) {
 #ifdef DOWNSAMPLE_DATA
-            int nindex = iz*nx*ny + iy*nx + ix;
-            field.define(nindex, getFieldData(fieldData, p, ftype));
+            field.define(p, getFieldData(fieldData, p, ftype));
 #else // !DOWNSAMPLE_DATA
-            int nindex = (iz*nx*ny + iy*nx + ix) * 4;
+            int nindex = p * 4;
             data[nindex] = getFieldData(fieldData, p, ftype);
             if (data[nindex] < vmin) {
                 vmin = data[nindex];
@@ -368,13 +364,6 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                 nzero_min = data[nindex];
             }
 #endif // DOWNSAMPLE_DATA
-            if (++iz >= nz) {
-                iz = 0;
-                if (++iy >= ny) {
-                    iy = 0;
-                    ++ix;
-                }
-            }
         }
 
         deleteFieldData(fieldData, ftype);
@@ -387,7 +376,7 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
 
         int ngen = 0;
         const int step = 4;
-        for (int i = 0; i < nx*ny*nz; ++i) {
+        for (int i = 0; i < npts; ++i) {
             double v = data[ngen];
             // scale all values [0-1], -1 => out of bounds
             v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
@@ -431,12 +420,12 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
         // Sobel filter expects a single float at
         // each node
         const int step = 1;
-        float *cdata = new float[nx*ny*nz * step];
+        float *cdata = new float[npts * step];
 #else // !FILTER_GRADIENTS
         // Leave 3 floats of space for gradients
         // to be filled in by computeSimpleGradient()
         const int step = 4;
-        data = new float[nx*ny*nz * step];
+        data = new float[npts * step];
 #endif // FILTER_GRADIENTS
 
         for (int iz = 0; iz < nz; iz++) {
