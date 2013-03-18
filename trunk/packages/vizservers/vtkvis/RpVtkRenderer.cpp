@@ -3908,12 +3908,14 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
 
     if (id.compare("all") == 0) {
         itr = _dataSets.begin();
+        if (itr == _dataSets.end())
+            return;
         doAll = true;
     } else {
         itr = _dataSets.find(id);
     }
     if (itr == _dataSets.end()) {
-        TRACE("Unknown dataset %s", id.c_str());
+        ERROR("Unknown dataset %s", id.c_str());
         return;
     }
 
@@ -4014,12 +4016,14 @@ void Renderer::setDataSetShowBounds(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = _dataSets.begin();
+        if (itr == _dataSets.end())
+            return;
         doAll = true;
     } else {
         itr = _dataSets.find(id);
     }
     if (itr == _dataSets.end()) {
-        TRACE("Unknown dataset %s", id.c_str());
+        ERROR("Unknown dataset %s", id.c_str());
         return;
     }
 
@@ -4050,12 +4054,14 @@ void Renderer::setDataSetOutlineColor(const DataSetId& id, float color[3])
 
     if (id.compare("all") == 0) {
         itr = _dataSets.begin();
+        if (itr == _dataSets.end())
+            return;
         doAll = true;
     } else {
         itr = _dataSets.find(id);
     }
     if (itr == _dataSets.end()) {
-        TRACE("Unknown dataset %s", id.c_str());
+        ERROR("Unknown dataset %s", id.c_str());
         return;
     }
 

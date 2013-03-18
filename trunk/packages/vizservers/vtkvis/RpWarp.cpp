@@ -126,7 +126,7 @@ void Warp::update()
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
         } else {
-            ERROR("No vector data in dataset %s", _dataSet->getName().c_str());
+            USER_ERROR("No vector field was found in the data set");
             return;
         }
     }

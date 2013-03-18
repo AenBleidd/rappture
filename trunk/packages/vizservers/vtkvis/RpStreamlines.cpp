@@ -477,10 +477,8 @@ void Streamlines::update()
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetVectors() == NULL) {
         TRACE("No vector point data found in DataSet %s", _dataSet->getName().c_str());
-        if (ds->GetCellData() == NULL ||
-            ds->GetCellData()->GetVectors() == NULL) {
-            ERROR("No vectors found in DataSet %s", _dataSet->getName().c_str());
-        } else {
+        if (ds->GetCellData() != NULL &&
+            ds->GetCellData()->GetVectors() != NULL) {
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
 #ifdef USE_VTK6
@@ -491,6 +489,9 @@ void Streamlines::update()
             //cellToPtData->PassCellDataOn();
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
+        } else {
+            USER_ERROR("No vector field was found in the data set.");
+            return;
         }
     }
 
