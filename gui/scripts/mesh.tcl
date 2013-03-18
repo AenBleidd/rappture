@@ -533,7 +533,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum $yNum 1\n"
 	    append out "SPACING $xSpace $ySpace 0\n"
-	    append out "ORIGIN 0 0 0\n"
+	    append out "ORIGIN $xMin $yMin 0\n"
 	    set _vtkdata $out
 	    foreach axis {x y} {
 		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
@@ -546,7 +546,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum $yNum $zNum\n"
 	    append out "SPACING $xSpace $ySpace $zSpace\n"
-	    append out "ORIGIN 0 0 0\n"
+	    append out "ORIGIN $xMin $yMin $zMin\n"
 	    set _vtkdata $out
 	    foreach axis {x y z} {
 		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
