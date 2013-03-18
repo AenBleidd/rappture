@@ -908,7 +908,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
-        $_dispatcher event -after 200 !rebuild
+        $_dispatcher event -idle !rebuild
         return
     }
 
