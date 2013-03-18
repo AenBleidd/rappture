@@ -215,9 +215,9 @@ void computeGradients(float *gradients, void *volData, int *sizes,
                                                            [j + 1]
                                                            [k + 1] *
                                                getVoxel(idx + i,
-                                                      idy + j,
-                                                      idz + k,
-                                                      dataType);
+                                                        idy + j,
+                                                        idz + k,
+                                                        dataType);
                                 }
                             }
                         }

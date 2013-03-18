@@ -55,7 +55,7 @@
  * Determines if Sobel filter is applied to gradients when loading a 
  * volume
  */
-#define FILTER_GRADIENTS
+//#define FILTER_GRADIENTS
 
 /* 
  * Controls whether the plane* commands are registered in the 
