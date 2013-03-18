@@ -1097,7 +1097,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     array set node2celltype {
 	3 5
 	4 10
-	8 11
+	8 12
 	6 13
 	5 14
     }
@@ -1115,6 +1115,16 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
 	}
 	set celltype $node2celltype($numNodes)
 	append celltypes "  $celltype\n"
+        if { $celltype == 12 } {
+            # Formerly used voxels instead of hexahedrons. We're converting
+            # it here to be backward compatible and still fault-tolerant of
+            # non-axis aligned cells.
+            set newList {}
+            foreach i { 0 1 3 2 4 5 7 6 } {
+                lappend newList [lindex $nodeList $i]
+            }
+            set nodeList $newList
+        } 
 	append data "  $numNodes $nodeList\n"
 	incr _numCells
 	incr count $numNodes 

@@ -709,6 +709,8 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
     }
     pack $f.comm -expand yes -fill both
     bind $f.comm <Control-F1> [itcl::code $this ToggleConsole]
+    bind $f.comm <Enter> [list focus %W]
+    bind $f.send.e <Control-F1> [itcl::code $this ToggleConsole]
 
     $itk_component(trace) tag configure error -foreground red \
 	-font -*-courier-medium-o-normal-*-*-120-*
