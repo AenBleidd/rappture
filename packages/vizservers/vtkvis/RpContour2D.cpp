@@ -127,7 +127,7 @@ void Contour2D::update()
 
         if (ds->GetPointData() == NULL ||
             ds->GetPointData()->GetScalars() == NULL) {
-            WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
+            TRACE("No scalar point data in dataset %s", _dataSet->getName().c_str());
             if (ds->GetCellData() != NULL &&
                 ds->GetCellData()->GetScalars() != NULL) {
                 cellToPtData = 
@@ -141,7 +141,7 @@ void Contour2D::update()
                 cellToPtData->Update();
                 ds = cellToPtData->GetOutput();
             } else {
-                ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+                USER_ERROR("No scalar field was found in the data set");
             }
         }
 

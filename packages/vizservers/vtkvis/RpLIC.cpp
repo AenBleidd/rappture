@@ -68,7 +68,7 @@ void LIC::update()
     vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetVectors() == NULL) {
-         WARN("No vector point data in dataset %s", _dataSet->getName().c_str());
+         TRACE("No vector point data in dataset %s", _dataSet->getName().c_str());
          if (ds->GetCellData() != NULL &&
              ds->GetCellData()->GetVectors() != NULL) {
              cellToPtData = 
@@ -82,7 +82,7 @@ void LIC::update()
              cellToPtData->Update();
              ds = cellToPtData->GetOutput();
          } else {
-             ERROR("No vector cell data in dataset %s", _dataSet->getName().c_str());
+             USER_ERROR("No vector field was found in the data set");
              return;
          }
     }
