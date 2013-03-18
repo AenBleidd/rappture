@@ -320,8 +320,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.$mode
                         Rappture::Field3DResult $w -mode $mode
+                        set _mode2widget($mode) $w
                     }
-                    set _mode2widget($mode) $w
                 }
                 default {
                     error "can't handle \"$dims\" dimension field"
@@ -377,16 +377,16 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.number
                         Rappture::NumberResult $w
+                        set _mode2widget($mode) $w
                     }
-                    set _mode2widget($mode) $w
                 }
                 boolean - choice {
                     set mode "value"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.value
                         Rappture::ValueResult $w
+                        set _mode2widget($mode) $w
                     }
-                    set _mode2widget($mode) $w
                 }
             }
         }
