@@ -9887,13 +9887,8 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
             TRACE("status=%d errorInfo=(%s)", status, string);
 
             std::ostringstream oss;
-#ifdef OLD_ERRORS
-            oss << "VtkVis Server Error: " << string << "\n";
-            nBytes += 22;
-#else
             oss << "nv>viserror -type internal_error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
             nBytes = oss.str().length();
-#endif
 
 #ifdef USE_THREADS
             queueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
@@ -9912,13 +9907,8 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
         TRACE("userError=(%s)", string);
 
         std::ostringstream oss;
-#ifdef OLD_ERRORS
-        oss << "VtkVis Server Error: " << string << "\n";
-        nBytes += 22;
-#else
         oss << "nv>viserror -type error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
         nBytes = oss.str().length();
-#endif
 
 #ifdef USE_THREADS
         queueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
