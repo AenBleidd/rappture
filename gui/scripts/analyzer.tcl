@@ -85,7 +85,7 @@ itcl::class Rappture::Analyzer {
     private variable _label2item       ;# maps output label => output.xxx item
     private variable _lastlabel ""     ;# label of last example loaded
     private variable _plotlist ""      ;# items currently being plotted
-
+    private variable _lastPlot
     private common job                 ;# array var used for blt::bgexec jobs
 }
 
@@ -747,13 +747,18 @@ itcl::body Rappture::Analyzer::_fixResult {} {
     } elseif {$page != ""} {
         set _lastlabel $name
         set win [winfo toplevel $itk_component(hull)]
-        blt::busy hold $win
         $itk_component(resultpages) current $page
-
         set f [$itk_component(resultpages) page $page]
-        $f.rviewer plot clear
-        eval $f.rviewer plot add $_plotlist
-        blt::busy release [winfo toplevel $itk_component(hull)]
+
+        # We don't want to replot if we're using an existing viewer with the
+        # the same list of objects to plot.  So track the viewer and the list.
+        if { ![info exists _lastPlot($f)] || $_plotlist != $_lastPlot($f) } {
+            set _lastPlot($f) $_plotlist
+            blt::busy hold $win
+            $f.rviewer plot clear
+            eval $f.rviewer plot add $_plotlist
+            blt::busy release [winfo toplevel $itk_component(hull)]
+        }
         Rappture::Logger::log output $_label2item($name)
         Rappture::Tooltip::for $itk_component(viewselector) \
             "@[itcl::code $this _resultTooltip]" -log $_label2item($name)

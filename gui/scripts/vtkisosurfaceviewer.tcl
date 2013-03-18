@@ -304,7 +304,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -389,13 +390,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         [itcl::code $this Rotate drag %x %y]
     bind $itk_component(view) <ButtonRelease-1> \
         [itcl::code $this Rotate release %x %y]
-    bind $itk_component(view) <Configure> \
-        [itcl::code $this EventuallyResize %w %h]
 
-    if 0 {
-    bind $itk_component(view) <Configure> \
-        [itcl::code $this EventuallyResize %w %h]
-    }
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
         [itcl::code $this Pan click %x %y]
@@ -910,11 +905,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveDataset { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
-    update
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
-        $_dispatcher event -idle !rebuild
+        $_dispatcher event -after 200 !rebuild
         return
     }
 
@@ -972,7 +966,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         StartBufferingCommands
     }
     set _first ""
-    SendCmd "dataset visible 0"
+    SendCmd "contour3d visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1008,12 +1002,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 # Setting dataset visible enables outline (if enabled) 
                 # and contour3d
-		SendCmd "dataset visible 1 $tag"
+		SendCmd "contour3d visible 1 $tag"
             }
         }
     }
-    # FIXME: Why do I have to reassert the cutplane visibility?
-    InitSettings cutplaneVisible
 
     if { $_first != "" } {
 	$itk_component(field) choices delete 0 end
@@ -1054,7 +1046,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	    isosurfaceWireframe isosurfaceOutline \
 	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
-            cutplanePreinterp
+            cutplanePreinterp cutplaneVisible
 
         Zoom reset
 	foreach axis { x y z } {

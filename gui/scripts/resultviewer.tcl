@@ -307,8 +307,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 	                set w $itk_interior.$mode
                         if { ![winfo exists $w] } {
                             Rappture::Field2DResult $w -mode $viewer
-			    set _mode2widget($mode) $w
 			}
+                        set _mode2widget($mode) $w
                     }
                 }
                 3D {
@@ -320,8 +320,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.$mode
                         Rappture::Field3DResult $w -mode $mode
-                        set _mode2widget($mode) $w
                     }
+                    set _mode2widget($mode) $w
                 }
                 default {
                     error "can't handle \"$dims\" dimension field"
@@ -377,16 +377,16 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.number
                         Rappture::NumberResult $w
-                        set _mode2widget($mode) $w
                     }
+                    set _mode2widget($mode) $w
                 }
                 boolean - choice {
                     set mode "value"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.value
                         Rappture::ValueResult $w
-                        set _mode2widget($mode) $w
                     }
+                    set _mode2widget($mode) $w
                 }
             }
         }
@@ -417,7 +417,6 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             return  ;# mixing data that doesn't mix -- ignore it!
         }
     }
-
     # Are we plotting in a new mode? then change widgets
     if {$_mode2widget($mode) != [pack slaves $itk_interior]} {
         # remove any current window
