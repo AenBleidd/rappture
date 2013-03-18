@@ -118,15 +118,15 @@ itcl::class Rappture::VtkViewer {
     private variable _dataset2style;	# maps dataobj-component to transfunc
     private variable _style2datasets;	# maps tf back to list of 
 					# dataobj-components using the tf.
-    private variable _click        ;	# info used for rotate operations
-    private variable _limits       ;	# autoscale min/max for all axes
-    private variable _view         ;	# view params for 3D view
+    private variable _click;            # info used for rotate operations
+    private variable _limits;           # autoscale min/max for all axes
+    private variable _view;             # view params for 3D view
     private variable _settings
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
     private variable _axis
-    private variable _reset 1      ;# indicates if camera needs to be reset
-                                    # to starting position.
+    private variable _reset 1;          # Indicates that server was reset and
+                                        # needs to be reinitialized.
     private variable _haveGlyphs 0
     private variable _haveMolecules 0
 
