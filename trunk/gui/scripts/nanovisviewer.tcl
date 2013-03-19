@@ -199,8 +199,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         qy      0.353553
         qz      0.146447
         zoom    1.0
-        xpan   0
-        ypan   0
+        xpan    0
+        ypan    0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -216,8 +216,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-qy                $_view(qy)
         $this-qz                $_view(qz)
         $this-zoom              $_view(zoom)    
-        $this-xpan             $_view(xpan)
-        $this-ypan             $_view(ypan)
+        $this-xpan              $_view(xpan)
+        $this-ypan              $_view(ypan)
         $this-volume            1
         $this-xcutplane         0
         $this-xcutposition      0
@@ -815,8 +815,8 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     if { $_settings($this-volume) && $dataobj == $_first } {
         SendCmd "volume state 1 $tag"
     }
-    set _limits($tag-min) $info(min);  # Minimum value of the volume.
-    set _limits($tag-max) $info(max);  # Maximum value of the volume.
+    set _limits($tag-min)  $info(min);  # Minimum value of the volume.
+    set _limits($tag-max)  $info(max);  # Maximum value of the volume.
     set _limits(vmin)      $info(vmin); # Overall minimum value.
     set _limits(vmax)      $info(vmax); # Overall maximum value.
 
@@ -923,8 +923,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         set _settings($this-qx)    $_view(qx)
         set _settings($this-qy)    $_view(qy)
         set _settings($this-qz)    $_view(qz)
-	set _settings($this-xpan) $_view(xpan)
-	set _settings($this-ypan) $_view(ypan)
+	set _settings($this-xpan)  $_view(xpan)
+	set _settings($this-ypan)  $_view(ypan)
 	set _settings($this-zoom)  $_view(zoom)
 
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -1045,10 +1045,9 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
             set _settings($this-qx)    $_view(qx)
             set _settings($this-qy)    $_view(qy)
             set _settings($this-qz)    $_view(qz)
-            set _settings($this-xpan) $_view(xpan)
-            set _settings($this-ypan) $_view(ypan)
+            set _settings($this-xpan)  $_view(xpan)
+            set _settings($this-ypan)  $_view(ypan)
             set _settings($this-zoom)  $_view(zoom)
-            $itk_component(orientation) value "default" 
         }
     }
 }
@@ -1919,8 +1918,8 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
     }
 
     blt::table $inner \
-            0,0 $inner.view_l -anchor e -pady 2 \
-            0,1 $inner.view -anchor w -pady 2
+        0,0 $inner.view_l -anchor e -pady 2 \
+        0,1 $inner.view -anchor w -pady 2
 
     set row 1
     set labels { qw qx qy qz xpan ypan zoom }
@@ -2119,5 +2118,12 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
     SendCmd "camera orient $q" 
+    SendCmd "camera reset"
+    set _view(xpan) 0
+    set _view(ypan) 0
+    set _view(zoom) 1.0
+    set _settings($this-xpan) $_view(xpan)
+    set _settings($this-ypan) $_view(ypan)
+    set _settings($this-zoom) $_view(zoom)
 }
 
