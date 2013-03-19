@@ -900,6 +900,11 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	# Reset the camera and other view parameters
 	#
 	SendCmd "axis color all [Color2RGB $itk_option(-plotforeground)]"
+
+        # Let's see how this goes.  I think it's preferable to overloading the
+        # axis title with the exponent.
+        SendCmd "axis exp 0 0 0 1"
+
 	SendCmd "axis lrot z 90"
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
