@@ -7077,6 +7077,194 @@ MoleculeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+OutlineAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        if (!g_renderer->addGraphicsObject<Outline>(name)) {
+            Tcl_AppendResult(interp, "Failed to create Outline", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->addGraphicsObject<Outline>("all")) {
+            Tcl_AppendResult(interp, "Failed to create Outline for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Outline>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Outline>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Outline>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Outline>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Outline>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Outline>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Outline>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Outline>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Outline>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Outline>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+OutlinePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Outline>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Outline>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Outline>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Outline>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+OutlineVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Outline>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Outline>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec outlineOps[] = {
+    {"add",       1, OutlineAddOp, 2, 3, "?dataSetName?"},
+    {"color",     1, OutlineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"delete",    1, OutlineDeleteOp, 2, 3, "?dataSetName?"},
+    {"linecolor", 5, OutlineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, OutlineLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",   2, OutlineOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",    2, OutlineOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       2, OutlinePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     2, OutlineScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",   1, OutlineVisibleOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nOutlineOps = NumCmdSpecs(outlineOps);
+
+static int
+OutlineCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nOutlineOps, outlineOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -9954,6 +10142,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "lic",         LICCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "line",        LineCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "outline",     OutlineCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    clientData, NULL);
     Tcl_CreateObjCommand(interp, "polygon",     PolygonCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, clientData, NULL);
@@ -9991,6 +10180,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "lic");
     Tcl_DeleteCommand(interp, "line");
     Tcl_DeleteCommand(interp, "molecule");
+    Tcl_DeleteCommand(interp, "outline");
     Tcl_DeleteCommand(interp, "polydata");
     Tcl_DeleteCommand(interp, "polygon");
     Tcl_DeleteCommand(interp, "pseudocolor");
