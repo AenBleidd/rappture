@@ -525,6 +525,7 @@ line add <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
 line color <r> <g> <b> <?name?>
 line delete <?name?>
 line linecolor <r> <g> <b> <?name?>
+     Synonym for color
 line linewidth <val> <?name?>
 line opacity <val> <?name?>
 line orient <qw> <qx> <qy> <qz> <?name?>
@@ -570,6 +571,18 @@ molecule rscale <val> <?dataSetName?>
 molecule scale <sx> <sy> <sz> <?dataSetName?>
 molecule visible <bool> <?datasetName?>
 molecule wireframe <bool> <?datasetName?>
+
+outline add <?datasetName?>
+outline color <r> <g> <b> <?datasetName?>
+outline delete <?datasetName?>
+outline linecolor <r> <g> <b> <?datasetName?>
+        Synonym for color
+outline linewidth <val> <?datasetName?>
+outline opacity <val> <?datasetName?>
+outline orient <qw> <qx> <qy> <qz> <?datasetName?>
+outline pos <x> <y> <z> <?datasetName?>
+outline scale <sx> <sy> <sz> <?datasetName?>
+outline visible <bool> <?datasetName?>
 
 polydata add <?datasetName?>
 polydata color <r> <g> <b> <?datasetName?>
