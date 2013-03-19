@@ -1878,8 +1878,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
     }
 
     blt::table $inner \
-            0,0 $inner.view_l -anchor e -pady 2 \
-            0,1 $inner.view -anchor w -pady 2
+        0,0 $inner.view_l -anchor e -pady 2 \
+        0,1 $inner.view -anchor w -pady 2
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -2476,5 +2476,9 @@ itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
     SendCmd "camera orient $q" 
+    SendCmd "camera reset"
+    set _view(xpan) 0
+    set _view(ypan) 0
+    set _view(zoom) 1.0
 }
 
