@@ -1029,8 +1029,8 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
                 qy      0.353553
                 qz      0.146447
                 zoom    1.0
-                xpan   0
-                ypan   0
+                xpan    0
+                ypan    0
             }
             SendCmd "camera reset all"
             if { $_first != "" } {
