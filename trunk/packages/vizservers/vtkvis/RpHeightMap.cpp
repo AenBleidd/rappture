@@ -504,13 +504,12 @@ void HeightMap::update()
         //_contourActor->InterpolateScalarsBeforeMappingOn();
     }
 
-    //_dsMapper->InterpolateScalarsBeforeMappingOn();
+    setInterpolateBeforeMapping(true);
+
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
         setColorMode(_colorMode);
     }
-
-    //setAspect(1.0);
 
     // Ensure updated dataScale is applied
     if (_warp != NULL) {

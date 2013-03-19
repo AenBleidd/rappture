@@ -393,6 +393,11 @@ cutplane orient <qw> <qx> <qy> <qz> <?dataSetName?>
 cutplane outline <bool> <?dataSetName?>
          Toggle rendering of cutplane outlines
 cutplane pos <x> <y> <z> <?dataSetName?>
+cutplane preinterp <bool> <?dataSetName?>
+         Controls if VTK's InterpolateScalarsBeforeMapping option is set.
+         Setting this on will give more correct colors, as the interpolation
+         is done on texture coordinates that lookup into a 1D texture instead
+         of using color interpolation from triangle vertices.
 cutplane scale <sx> <sy> <sz> <?dataSetName?>
 cutplane slice axis ratio <?dataSetName?>
          For 3D data, select a slice along a principle axis of the volume. The
@@ -496,6 +501,11 @@ heightmap numcontours <n> <?dataSetName?>
 heightmap opacity <value> <?dataSetName?>
 heightmap orient <qw> <qx> <qy> <qz> <?dataSetName?>
 heightmap pos <x> <y> <z> <?dataSetName?>
+heightmap preinterp <bool> <?dataSetName?>
+          Controls if VTK's InterpolateScalarsBeforeMapping option is set.
+          Setting this on will give more correct colors, as the interpolation
+          is done on texture coordinates that lookup into a 1D texture instead
+          of using color interpolation from triangle vertices.
 heightmap scale <sx> <sy> <sz> <?dataSetName?>
 heightmap slice <axis> <ratio> <?dataSetName?>
           For 3D data, select a slice along a principle axis of the volume. The
@@ -515,6 +525,11 @@ lic linewidth <val> <?datasetName?>
 lic opacity <val> <?datasetName?>
 lic orient <qw> <qx> <qy> <qz> <?dataSetName?>
 lic pos <x> <y> <z> <?dataSetName?>
+lic preinterp <bool> <?dataSetName?>
+    Controls if VTK's InterpolateScalarsBeforeMapping option is set.
+    Setting this on will give more correct colors, as the interpolation
+    is done on texture coordinates that lookup into a 1D texture instead
+    of using color interpolation from triangle vertices.
 lic scale <sx> <sy> <sz> <?dataSetName?>
 lic slice <axis> <ratio> <?datasetName?>
     For 3D data, select a slice along a principle axis of the volume. The
@@ -632,6 +647,11 @@ pseudocolor linewidth <val> <?datasetName?>
 pseudocolor opacity <val> <?datasetName?>
 pseudocolor orient <qw> <qx> <qy> <qz> <?dataSetName?>
 pseudocolor pos <x> <y> <z> <?dataSetName?>
+pseudocolor preinterp <bool> <?dataSetName?>
+            Controls if VTK's InterpolateScalarsBeforeMapping option is set.
+            Setting this on will give more correct colors, as the interpolation
+            is done on texture coordinates that lookup into a 1D texture instead
+            of using color interpolation from triangle vertices.
 pseudocolor scale <sx> <sy> <sz> <?dataSetName?>
 pseudocolor visible <bool> <?datasetName?>
 pseudocolor wireframe <bool> <?datasetName?>
@@ -743,6 +763,11 @@ warp linewidth <width> <?dataSetName?>
 warp opacity <value> <?dataSetName?>
 warp orient <qw> <qx> <qy> <qz> <?dataSetName?>
 warp pos <x> <y> <z> <?dataSetName?>
+warp preinterp <bool> <?dataSetName?>
+     ontrols if VTK's InterpolateScalarsBeforeMapping option is set.
+     Setting this on will give more correct colors, as the interpolation
+     is done on texture coordinates that lookup into a 1D texture instead
+     of using color interpolation from triangle vertices.
 warp scale <sx> <sy> <sz> <?dataSetName?>
 warp visible <bool> <?dataSetName?>
 warp warpscale <value> <?dataSetName?>

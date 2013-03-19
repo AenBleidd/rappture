@@ -45,6 +45,8 @@ public:
 
     void selectVolumeSlice(Axis axis, double ratio);
 
+    void setInterpolateBeforeMapping(bool state);
+
     void setColorMap(ColorMap *colorMap);
 
     /**

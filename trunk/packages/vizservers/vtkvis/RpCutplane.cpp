@@ -161,7 +161,6 @@ void Cutplane::update()
             _mapper[i] = vtkSmartPointer<vtkDataSetMapper>::New();
             // Map scalars through lookup table regardless of type
             _mapper[i]->SetColorModeToMapScalars();
-            //_mapper[i]->InterpolateScalarsBeforeMappingOn();
         }
         if (_cutPlane[i] == NULL) {
             _cutPlane[i] = vtkSmartPointer<vtkPlane>::New();
@@ -394,6 +393,8 @@ void Cutplane::update()
             _borderMapper[i]->SetResolveCoincidentTopologyToPolygonOffset();
         }
     }
+
+    setInterpolateBeforeMapping(true);
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());

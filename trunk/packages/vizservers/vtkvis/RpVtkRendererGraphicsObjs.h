@@ -811,6 +811,39 @@ void Renderer::setGraphicsObjectWireframe(const DataSetId& id, bool state)
  * \brief Associate an existing named color map with a graphics object for the given DataSet
  */
 template<class GraphicsObject>
+void Renderer::setGraphicsObjectInterpolateBeforeMapping(const DataSetId& id, bool state)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+
+    if (itr == hashmap.end()) {
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setInterpolateBeforeMapping(state);
+    } while (doAll && ++itr != hashmap.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Associate an existing named color map with a graphics object for the given DataSet
+ */
+template<class GraphicsObject>
 void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& colorMapId)
 {
     std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
