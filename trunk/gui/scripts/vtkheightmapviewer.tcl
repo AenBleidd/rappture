@@ -230,6 +230,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         outline			0
         wireframe		0
         saveOpacity		100
+        saveOutline		0
     }
     array set _changed {
         opacity                 0
@@ -1435,7 +1436,9 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         "heightmapScale" {
 	    if { $_settings(isHeightmap) } {
 		set scale [GetHeightmapScale]
-		foreach dataset [CurrentDatasets -all] {
+                # Have to set the datasets individually because we are 
+                # tracking them in _comp2scale.
+                foreach dataset [CurrentDatasets -all] {
 		    SendCmd "heightmap heightscale $scale $dataset"
 		    set _comp2scale($dataset) $scale
 		}
@@ -1451,14 +1454,19 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 set _settings(heightmapScale) 50
                 set _settings(opacity) $_settings(saveOpacity)
                 set _settings(lighting) $_settings(saveLighting)
+                set _settings(outline) 0
             } else {
                 set _settings(heightmapScale) 0
                 set _settings(lighting) 0
                 set _settings(opacity) 100
+                set _settings(outline)  $_settings(saveOutline)
             }
             AdjustSetting lighting
             AdjustSetting opacity
+            AdjustSetting outline
             set scale [GetHeightmapScale]
+            # Have to set the datasets individually because we are 
+            # tracking them in _comp2scale.
             foreach dataset [CurrentDatasets -all] {
                 SendCmd "heightmap heightscale $scale $dataset"
                 set _comp2scale($dataset) $scale
@@ -1469,6 +1477,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		$itk_component(scale) configure -state normal
 		$itk_component(opacity_l) configure -state normal
 		$itk_component(scale_l) configure -state normal
+		$itk_component(outline) configure -state disabled
                 if {$_view(ortho)} {
                     SendCmd "camera mode ortho"
                 } else {
@@ -1480,6 +1489,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		$itk_component(scale) configure -state disabled
 		$itk_component(opacity_l) configure -state disabled
 		$itk_component(scale_l) configure -state disabled
+		$itk_component(outline) configure -state normal
                 SendCmd "camera mode image"
 	    }
             if {$_settings(stretchToFit)} {
@@ -1574,8 +1584,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
         }
         "outline" {
-	    set bool $_settings($what)
-	    SendCmd "dataset outline $bool"
+	    if { $_settings(isHeightmap) } {
+		SendCmd "dataset outline 0"
+            } else {
+                set _settings(saveOutline) $_settings(outline)
+                set bool $_settings(outline)
+                SendCmd "dataset outline $bool"
+            }
 	}
         "stretchToFit" {
 	    set bool $_settings($what)
@@ -1801,12 +1816,15 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         -command [itcl::code $this AdjustSetting edges] \
         -font "Arial 9"
 
-    checkbutton $inner.outline \
-        -text "Outline" \
-        -variable [itcl::scope _settings(outline)] \
-        -command [itcl::code $this AdjustSetting outline] \
-        -font "Arial 9"
-
+    itk_component add outline {
+        checkbutton $inner.outline \
+            -text "Outline" \
+            -variable [itcl::scope _settings(outline)] \
+            -command [itcl::code $this AdjustSetting outline] \
+            -font "Arial 9"
+    } {
+        ignore -font
+    }
     checkbutton $inner.stretch \
         -text "Stretch to fit" \
         -variable [itcl::scope _settings(stretchToFit)] \
@@ -1926,7 +1944,9 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
     bind $itk_component(numisolines) <<Value>> \
         [itcl::code $this AdjustSetting numIsolines]
 
-    frame $inner.separator -height 2 -relief sunken -bd 1
+    frame $inner.separator1 -height 2 -relief sunken -bd 1
+    frame $inner.separator2 -height 2 -relief sunken -bd 1
+
     blt::table $inner \
         0,0 $inner.field_l -anchor w -pady 2 \
         0,1 $inner.field -anchor w -pady 2 -fill x \
@@ -1943,17 +1963,18 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         7,0 $inner.legend     -anchor w -pady 2 -cspan 2 \
         8,0 $inner.colormapDiscrete -anchor w -pady 2 -cspan 2 \
         9,0 $inner.wireframe  -anchor w -pady 2 -cspan 2\
-        10,0 $inner.outline    -anchor w -pady 2 -cspan 2 \
-        11,0 $inner.isolines   -anchor w -pady 2 -cspan 2 \
-        12,0 $inner.separator -padx 2 -fill x -cspan 2 \
-        13,0 $inner.lighting   -anchor w -pady 2 -cspan 2 \
-        14,0 $inner.opacity_l -anchor w -pady 2 \
-        14,1 $inner.opacity   -fill x   -pady 2 \
-        15,0 $inner.scale_l   -anchor w -pady 2 -cspan 2 \
-        15,1 $inner.scale     -fill x   -pady 2 -cspan 2 \
+        10,0 $inner.isolines   -anchor w -pady 2 -cspan 2 \
+        11,0 $inner.separator1 -padx 2 -fill x -cspan 2 \
+        12,0 $inner.outline    -anchor w -pady 2 -cspan 2 \
+        13,0 $inner.separator2 -padx 2 -fill x -cspan 2 \
+        14,0 $inner.lighting   -anchor w -pady 2 -cspan 2 \
+        15,0 $inner.opacity_l -anchor w -pady 2 \
+        15,1 $inner.opacity   -fill x   -pady 2 \
+        16,0 $inner.scale_l   -anchor w -pady 2 -cspan 2 \
+        16,1 $inner.scale     -fill x   -pady 2 -cspan 2 \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r16 c1 -resize expand
+    blt::table configure $inner r17 c1 -resize expand
 }
 
 itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
