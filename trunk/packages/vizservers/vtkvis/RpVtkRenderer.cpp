@@ -164,6 +164,7 @@ Renderer::~Renderer()
     deleteAllGraphicsObjects<LIC>();
     deleteAllGraphicsObjects<Line>();
     deleteAllGraphicsObjects<Molecule>();
+    deleteAllGraphicsObjects<Outline>();
     deleteAllGraphicsObjects<PolyData>();
     deleteAllGraphicsObjects<Polygon>();
     deleteAllGraphicsObjects<PseudoColor>();
@@ -242,6 +243,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteGraphicsObject<HeightMap>(itr->second->getName());
         deleteGraphicsObject<LIC>(itr->second->getName());
         deleteGraphicsObject<Molecule>(itr->second->getName());
+        deleteGraphicsObject<Outline>(itr->second->getName());
         deleteGraphicsObject<PolyData>(itr->second->getName());
         deleteGraphicsObject<PseudoColor>(itr->second->getName());
         deleteGraphicsObject<Streamlines>(itr->second->getName());
@@ -2207,6 +2209,7 @@ void Renderer::setObjectAspects(double aspectRatio)
     setGraphicsObjectAspect<LIC>(aspectRatio);
     setGraphicsObjectAspect<Line>(aspectRatio);
     setGraphicsObjectAspect<Molecule>(aspectRatio);
+    setGraphicsObjectAspect<Outline>(aspectRatio);
     setGraphicsObjectAspect<PolyData>(aspectRatio);
     setGraphicsObjectAspect<Polygon>(aspectRatio);
     setGraphicsObjectAspect<PseudoColor>(aspectRatio);
@@ -3125,6 +3128,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Molecule>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Outline>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<PolyData>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Polygon>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<PseudoColor>(bounds, onlyVisible);
@@ -3203,6 +3207,7 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectUnscaledBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Molecule>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Outline>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<PolyData>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Polygon>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<PseudoColor>(bounds, onlyVisible);
@@ -3937,6 +3942,8 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
         setGraphicsObjectOpacity<LIC>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
         setGraphicsObjectOpacity<Molecule>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Outline>(id) != NULL)
+        setGraphicsObjectOpacity<Outline>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<PolyData>(id) != NULL)
         setGraphicsObjectOpacity<PolyData>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<PseudoColor>(id) != NULL)
@@ -3991,6 +3998,8 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
         setGraphicsObjectVisibility<LIC>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
         setGraphicsObjectVisibility<Molecule>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Outline>(id) != NULL)
+        setGraphicsObjectVisibility<Outline>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<PolyData>(id) != NULL)
         setGraphicsObjectVisibility<PolyData>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<PseudoColor>(id) != NULL)
@@ -4210,6 +4219,7 @@ void Renderer::setCameraClippingPlanes()
     setGraphicsObjectClippingPlanes<LIC>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Line>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Molecule>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Outline>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<PolyData>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Polygon>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<PseudoColor>(_activeClipPlanes);

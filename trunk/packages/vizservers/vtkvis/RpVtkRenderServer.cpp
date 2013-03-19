@@ -521,7 +521,7 @@ main(int argc, char *argv[])
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    fprintf(g_fOut, "VtkVis 1.1 (build %s)\n", SVN_VERSION);
+    fprintf(g_fOut, "VtkVis 1.2 (build %s)\n", SVN_VERSION);
     fflush(g_fOut);
 
     g_renderer = new Renderer();

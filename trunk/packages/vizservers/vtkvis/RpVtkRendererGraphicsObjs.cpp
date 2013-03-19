@@ -114,6 +114,11 @@ Renderer::getGraphicsObjectHashmap<Molecule>()
 { return _molecules; }
 
 template<>
+Renderer::OutlineHashmap &
+Renderer::getGraphicsObjectHashmap<Outline>()
+{ return _outlines; }
+
+template<>
 Renderer::PolyDataHashmap &
 Renderer::getGraphicsObjectHashmap<PolyData>()
 { return _polyDatas; }

@@ -42,6 +42,7 @@
 #include "RpLIC.h"
 #include "RpLine.h"
 #include "RpMolecule.h"
+#include "RpOutline.h"
 #include "RpPolyData.h"
 #include "RpPolygon.h"
 #include "RpPseudoColor.h"
@@ -839,6 +840,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
     typedef std::tr1::unordered_map<DataSetId, Line *> LineHashmap;
     typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Outline *> OutlineHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
     typedef std::tr1::unordered_map<DataSetId, Polygon *> PolygonHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
@@ -969,6 +971,7 @@ private:
     LICHashmap _lics;
     LineHashmap _lines;
     MoleculeHashmap _molecules;
+    OutlineHashmap _outlines;
     PolyDataHashmap _polyDatas;
     PolygonHashmap _polygons;
     PseudoColorHashmap _pseudoColors;
