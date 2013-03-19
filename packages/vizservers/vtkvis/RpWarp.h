@@ -60,6 +60,8 @@ public:
         return _warpScale;
     }
 
+    void setInterpolateBeforeMapping(bool state);
+
     void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
                       const char *name, double range[2] = NULL);
 

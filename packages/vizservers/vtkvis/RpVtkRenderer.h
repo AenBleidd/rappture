@@ -480,6 +480,9 @@ public:
     void setGraphicsObjectAspect(double aspectRatio);
 
     template<class GraphicsObject>
+    void setGraphicsObjectInterpolateBeforeMapping(const DataSetId& id, bool state);
+
+    template<class GraphicsObject>
     void setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
     template<class GraphicsObject>
@@ -620,8 +623,6 @@ public:
                               DataSet::DataAttributeType type,
                               const char *name, double range[2] = NULL);
 
-    void setCutplaneInterpolateBeforeMapping(const DataSetId& id, bool state);
-
     // Cylinders
 
     bool addCylinder(const DataSetId& id, double radius, double height, bool cap);
@@ -667,8 +668,6 @@ public:
     void setHeightMapNumContours(const DataSetId& id, int numContours);
 
     void setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours);
-
-    void setHeightMapInterpolateBeforeMapping(const DataSetId& id, bool state);
 
     void setHeightMapContourSurfaceVisibility(const DataSetId& id, bool state);
 
@@ -737,8 +736,6 @@ public:
                                  PseudoColor::ColorMode mode,
                                  DataSet::DataAttributeType type,
                                  const char *name, double range[2] = NULL);
-
-    void setPseudoColorInterpolateBeforeMapping(const DataSetId& id, bool state);
 
     // Spheres
 

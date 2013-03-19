@@ -1013,36 +1013,6 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
 }
 
 /**
- * \brief Set scalar interpolation mode for the specified DataSet
- */
-void Renderer::setCutplaneInterpolateBeforeMapping(const DataSetId& id, bool state)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        if (itr == _cutplanes.end())
-            return;
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setInterpolateBeforeMapping(state);
-     } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
  * \brief Create a new Cylinder and associate it with an ID
  */
 bool Renderer::addCylinder(const DataSetId& id, double radius, double height, bool cap)
@@ -1587,35 +1557,6 @@ void Renderer::setHeightMapContourList(const DataSetId& id, const std::vector<do
 
     sceneBoundsChanged();
      _needsRedraw = true;
-}
-
-/**
- * \brief Set scalar interpolation mode for the specified DataSet
- */
-void Renderer::setHeightMapInterpolateBeforeMapping(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        if (itr == _heightMaps.end())
-            return;
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setInterpolateBeforeMapping(state);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
 }
 
 /**
@@ -2291,35 +2232,6 @@ void Renderer::setPseudoColorColorMode(const DataSetId& id,
 
     do {
         itr->second->setColorMode(mode, name, range);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set scalar interpolation mode for the specified DataSet
- */
-void Renderer::setPseudoColorInterpolateBeforeMapping(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        if (itr == _pseudoColors.end())
-            return;
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setInterpolateBeforeMapping(state);
     } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;

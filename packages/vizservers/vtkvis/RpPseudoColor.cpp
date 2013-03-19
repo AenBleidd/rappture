@@ -100,7 +100,6 @@ void PseudoColor::update()
         _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
         // Map scalars through lookup table regardless of type
         _dsMapper->SetColorModeToMapScalars();
-        //_dsMapper->InterpolateScalarsBeforeMappingOn();
     }
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
@@ -207,6 +206,8 @@ void PseudoColor::update()
 #endif
         _dsMapper->SetInputConnection(gf->GetOutputPort());
     }
+
+    setInterpolateBeforeMapping(true);
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());

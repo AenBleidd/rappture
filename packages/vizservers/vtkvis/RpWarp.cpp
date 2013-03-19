@@ -106,7 +106,6 @@ void Warp::update()
         _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
         // Map scalars through lookup table regardless of type
         _dsMapper->SetColorModeToMapScalars();
-        //_dsMapper->InterpolateScalarsBeforeMappingOn();
     }
 
     vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
@@ -246,6 +245,8 @@ void Warp::update()
         _dsMapper->SetInputConnection(warpOutput);
     }
 
+    setInterpolateBeforeMapping(true);
+
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
     }
@@ -255,6 +256,13 @@ void Warp::update()
     initProp();
     getActor()->SetMapper(_dsMapper);
     _dsMapper->Update();
+}
+
+void Warp::setInterpolateBeforeMapping(bool state)
+{
+    if (_dsMapper != NULL) {
+        _dsMapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    }
 }
 
 vtkAlgorithmOutput *Warp::initWarp(vtkAlgorithmOutput *input)

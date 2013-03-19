@@ -3683,9 +3683,9 @@ CutplanePreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneInterpolateBeforeMapping(name, state);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<Cutplane>(name, state);
     } else {
-        g_renderer->setCutplaneInterpolateBeforeMapping("all", state);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<Cutplane>("all", state);
     }
     return TCL_OK;
 }
@@ -5353,26 +5353,26 @@ GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec glyphsOps[] = {
-    {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetName?"},
-    {"ccolor",    2, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges",     1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"gorient",   2, GlyphsOrientGlyphsOp, 4, 5, "bool fieldName ?dataSetName?"},
-    {"gscale",    2, GlyphsScaleFactorOp, 3, 4, "scaleFactor ?dataSetName?"},
-    {"lighting",  3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth", 5, GlyphsLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"normscale", 1, GlyphsNormalizeScaleOp, 3, 4, "bool ?dataSetName?"},
-    {"opacity",   2, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"orient",    2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",     2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"shape",     2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
-    {"smode",     2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"visible",   1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"wireframe", 1, GlyphsWireframeOp, 3, 4, "bool ?dataSetName?"}
+    {"add",          1, GlyphsAddOp, 3, 4, "shape ?dataSetName?"},
+    {"ccolor",       2, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"delete",       1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"gorient",      2, GlyphsOrientGlyphsOp, 4, 5, "bool fieldName ?dataSetName?"},
+    {"gscale",       2, GlyphsScaleFactorOp, 3, 4, "scaleFactor ?dataSetName?"},
+    {"lighting",     3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, GlyphsLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"normscale",    1, GlyphsNormalizeScaleOp, 3, 4, "bool ?dataSetName?"},
+    {"opacity",      2, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"shape",        2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
+    {"smode",        2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"visible",      1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe",    1, GlyphsWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nGlyphsOps = NumCmdSpecs(glyphsOps);
 
@@ -5865,9 +5865,9 @@ HeightMapPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapInterpolateBeforeMapping(name, state);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<HeightMap>(name, state);
     } else {
-        g_renderer->setHeightMapInterpolateBeforeMapping("all", state);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<HeightMap>("all", state);
     }
     return TCL_OK;
 }
@@ -6279,6 +6279,23 @@ LICPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+LICPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<LIC>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<LIC>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 LICScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
            Tcl_Obj *const *objv)
 {
@@ -6346,19 +6363,20 @@ LICVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec licOps[] = {
-    {"add",         1, LICAddOp, 2, 3, "?dataSetName?"},
-    {"colormap",    1, LICColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"delete",      1, LICDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges",       1, LICEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting",    3, LICLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor",   5, LICLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth",   5, LICLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",     2, LICOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"orient",      2, LICOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",         1, LICPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",       2, LICScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"slice",       2, LICVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
-    {"visible",     1, LICVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"add",          1, LICAddOp, 2, 3, "?dataSetName?"},
+    {"colormap",     1, LICColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",       1, LICDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, LICEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",     3, LICLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, LICLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, LICLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",      2, LICOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, LICOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          2, LICPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp",    2, LICPreInterpOp, 3, 4, "bool ?dataSetName?"},
+    {"scale",        2, LICScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"slice",        2, LICVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
+    {"visible",      1, LICVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nLICOps = NumCmdSpecs(licOps);
 
@@ -7035,30 +7053,30 @@ MoleculeWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec moleculeOps[] = {
-    {"add",        2, MoleculeAddOp, 2, 3, "?dataSetName?"},
-    {"ascale",     2, MoleculeAtomScaleFactorOp, 3, 4, "value ?dataSetName?"},
-    {"atoms",      2, MoleculeAtomVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"bcmode",     3, MoleculeBondColorModeOp, 3, 4, "mode ?dataSetName?"},
-    {"bcolor",     3, MoleculeBondColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"bonds",      2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"bscale",     3, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
-    {"bstyle",     3, MoleculeBondStyleOp, 3, 4, "value ?dataSetName?"},
-    {"ccolor",     2, MoleculeColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",   7, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode",  7, MoleculeColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"delete",     1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges",      1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"labels",     2, MoleculeAtomLabelVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting",   3, MoleculeLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor",  5, MoleculeLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth",  5, MoleculeLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",    2, MoleculeOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"orient",     2, MoleculeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",        1, MoleculePositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"rscale",     1, MoleculeAtomScalingOp, 3, 4, "scaling ?dataSetName?"},
-    {"scale",      1, MoleculeScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"visible",    1, MoleculeVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"wireframe",  1, MoleculeWireframeOp, 3, 4, "bool ?dataSetName?"}
+    {"add",          2, MoleculeAddOp, 2, 3, "?dataSetName?"},
+    {"ascale",       2, MoleculeAtomScaleFactorOp, 3, 4, "value ?dataSetName?"},
+    {"atoms",        2, MoleculeAtomVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"bcmode",       3, MoleculeBondColorModeOp, 3, 4, "mode ?dataSetName?"},
+    {"bcolor",       3, MoleculeBondColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"bonds",        2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"bscale",       3, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
+    {"bstyle",       3, MoleculeBondStyleOp, 3, 4, "value ?dataSetName?"},
+    {"ccolor",       2, MoleculeColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, MoleculeColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"delete",       1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"labels",       2, MoleculeAtomLabelVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",     3, MoleculeLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, MoleculeLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, MoleculeLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",      2, MoleculeOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, MoleculeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, MoleculePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"rscale",       1, MoleculeAtomScalingOp, 3, 4, "scaling ?dataSetName?"},
+    {"scale",        1, MoleculeScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",      1, MoleculeVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe",    1, MoleculeWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nMoleculeOps = NumCmdSpecs(moleculeOps);
 
@@ -8090,9 +8108,9 @@ PseudoColorPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorInterpolateBeforeMapping(name, state);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<PseudoColor>(name, state);
     } else {
-        g_renderer->setPseudoColorInterpolateBeforeMapping("all", state);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<PseudoColor>("all", state);
     }
     return TCL_OK;
 }
@@ -8151,22 +8169,22 @@ PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec pseudoColorOps[] = {
-    {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
-    {"ccolor",    2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   2, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"orient",    2, PseudoColorOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       2, PseudoColorPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"preinterp", 2, PseudoColorPreInterpOp, 3, 4, "bool ?dataSetName?"},
-    {"scale",     1, PseudoColorScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"wireframe", 1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
+    {"add",          1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
+    {"ccolor",       2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"delete",       1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",     3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",      2, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, PseudoColorOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          2, PseudoColorPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp",    2, PseudoColorPreInterpOp, 3, 4, "bool ?dataSetName?"},
+    {"scale",        1, PseudoColorScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",      1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe",    1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
 
@@ -9320,25 +9338,25 @@ StreamlinesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec streamlinesOps[] = {
-    {"add",       1, StreamlinesAddOp,            2, 3, "?dataSetName?"},
-    {"ccolor",    1, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, StreamlinesColorMapOp,       3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, StreamlinesColorModeOp,      4, 5, "mode fieldName ?dataSetName?"},
-    {"delete",    1, StreamlinesDeleteOp,         2, 3, "?dataSetName?"},
-    {"edges",     1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"length",    2, StreamlinesLengthOp,         3, 4, "length ?dataSetName?"},
-    {"lighting",  3, StreamlinesLightingOp,       3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, StreamlinesLineColorOp,      5, 6, "r g b ?dataSetName?"},
-    {"lines",     5, StreamlinesLinesOp,          2, 3, "?dataSetName?"},
-    {"linewidth", 5, StreamlinesLineWidthOp,      3, 4, "width ?dataSetName?"},
-    {"opacity",   2, StreamlinesOpacityOp,        3, 4, "val ?dataSetName?"},
-    {"orient",    2, StreamlinesOrientOp,         6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, StreamlinesPositionOp,       5, 6, "x y z ?dataSetName?"},
-    {"ribbons",   1, StreamlinesRibbonsOp,        4, 5, "width angle ?dataSetName?"},
-    {"scale",     2, StreamlinesScaleOp,          5, 6, "sx sy sz ?dataSetName?"},
-    {"seed",      2, StreamlinesSeedOp,           3, 14, "op params... ?dataSetName?"},
-    {"tubes",     1, StreamlinesTubesOp,          4, 5, "numSides radius ?dataSetName?"},
-    {"visible",   1, StreamlinesVisibleOp,        3, 4, "bool ?dataSetName?"}
+    {"add",          1, StreamlinesAddOp,            2, 3, "?dataSetName?"},
+    {"ccolor",       1, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, StreamlinesColorMapOp,       3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, StreamlinesColorModeOp,      4, 5, "mode fieldName ?dataSetName?"},
+    {"delete",       1, StreamlinesDeleteOp,         2, 3, "?dataSetName?"},
+    {"edges",        1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"length",       2, StreamlinesLengthOp,         3, 4, "length ?dataSetName?"},
+    {"lighting",     3, StreamlinesLightingOp,       3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, StreamlinesLineColorOp,      5, 6, "r g b ?dataSetName?"},
+    {"lines",        5, StreamlinesLinesOp,          2, 3, "?dataSetName?"},
+    {"linewidth",    5, StreamlinesLineWidthOp,      3, 4, "width ?dataSetName?"},
+    {"opacity",      2, StreamlinesOpacityOp,        3, 4, "val ?dataSetName?"},
+    {"orient",       2, StreamlinesOrientOp,         6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, StreamlinesPositionOp,       5, 6, "x y z ?dataSetName?"},
+    {"ribbons",      1, StreamlinesRibbonsOp,        4, 5, "width angle ?dataSetName?"},
+    {"scale",        2, StreamlinesScaleOp,          5, 6, "sx sy sz ?dataSetName?"},
+    {"seed",         2, StreamlinesSeedOp,           3, 14, "op params... ?dataSetName?"},
+    {"tubes",        1, StreamlinesTubesOp,          4, 5, "numSides radius ?dataSetName?"},
+    {"visible",      1, StreamlinesVisibleOp,        3, 4, "bool ?dataSetName?"}
 };
 static int nStreamlinesOps = NumCmdSpecs(streamlinesOps);
 
@@ -9618,17 +9636,17 @@ VolumeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeOps[] = {
-    {"add",      1, VolumeAddOp,        2, 3, "?dataSetName?"},
-    {"colormap", 1, VolumeColorMapOp,   3, 4, "colorMapName ?dataSetName?"},
-    {"delete",   1, VolumeDeleteOp,     2, 3, "?dataSetName?"},
-    {"lighting", 1, VolumeLightingOp,   3, 4, "bool ?dataSetName?"},
-    {"opacity",  2, VolumeOpacityOp,    3, 4, "val ?dataSetName?"},
-    {"orient",   2, VolumeOrientOp,     6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",      1, VolumePositionOp,   5, 6, "x y z ?dataSetName?"},
-    {"quality",  1, VolumeSampleRateOp, 3, 4, "val ?dataSetName?"},
-    {"scale",    2, VolumeScaleOp,      5, 6, "sx sy sz ?dataSetName?"},
-    {"shading",  2, VolumeShadingOp,    4, 6, "oper val ?dataSetName?"},
-    {"visible",  1, VolumeVisibleOp,    3, 4, "bool ?dataSetName?"}
+    {"add",          1, VolumeAddOp,        2, 3, "?dataSetName?"},
+    {"colormap",     1, VolumeColorMapOp,   3, 4, "colorMapName ?dataSetName?"},
+    {"delete",       1, VolumeDeleteOp,     2, 3, "?dataSetName?"},
+    {"lighting",     1, VolumeLightingOp,   3, 4, "bool ?dataSetName?"},
+    {"opacity",      2, VolumeOpacityOp,    3, 4, "val ?dataSetName?"},
+    {"orient",       2, VolumeOrientOp,     6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, VolumePositionOp,   5, 6, "x y z ?dataSetName?"},
+    {"quality",      1, VolumeSampleRateOp, 3, 4, "val ?dataSetName?"},
+    {"scale",        2, VolumeScaleOp,      5, 6, "sx sy sz ?dataSetName?"},
+    {"shading",      2, VolumeShadingOp,    4, 6, "oper val ?dataSetName?"},
+    {"visible",      1, VolumeVisibleOp,    3, 4, "bool ?dataSetName?"}
 };
 static int nVolumeOps = NumCmdSpecs(volumeOps);
 
@@ -9874,6 +9892,23 @@ WarpPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+WarpPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<Warp>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<Warp>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 WarpScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -9955,7 +9990,8 @@ static Rappture::CmdSpec warpOps[] = {
     {"linewidth",    5, WarpLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",      2, WarpOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, WarpOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",          1, WarpPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"pos",          2, WarpPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp",    2, WarpPreInterpOp, 3, 4, "bool ?dataSetName?"},
     {"scale",        2, WarpScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",      1, WarpVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"warpscale",    2, WarpWarpScaleOp, 3, 4, "value ?dataSetName?"},

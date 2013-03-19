@@ -258,6 +258,8 @@ void LIC::update()
 #endif
     }
 
+    setInterpolateBeforeMapping(true);
+
     if (_lut == NULL) {
         setColorMap(ColorMap::getGrayDefault());
     }
@@ -273,6 +275,13 @@ void LIC::update()
         TRACE("LIC status: %d", _painter->GetLICSuccess());
     }
 #endif
+}
+
+void LIC::setInterpolateBeforeMapping(bool state)
+{
+    if (_mapper != NULL) {
+        _mapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    }
 }
 
 /**
