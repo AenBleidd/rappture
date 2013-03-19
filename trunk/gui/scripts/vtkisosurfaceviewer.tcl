@@ -105,6 +105,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method Slice {option args} 
     private method SetCurrentColormap { color }
     private method SetOrientation { side }
+    private method UpdateContourList {}
 
     private variable _arcball ""
 
@@ -118,7 +119,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
     private variable _currentColormap "" ;    
-    private variable _currentNumContours "" ;    
+    private variable _currentNumContours -1;    
     private variable _currentOpacity "" ;    
 
     private variable _dataset2style    ;# maps dataobj-component to transfunc
@@ -137,6 +138,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _start 0
     private variable _title ""
     private variable _isolines
+    private variable _contourList ""
 
     common _downloadPopup;              # download options from popup
     private common _hardcopy
@@ -1046,7 +1048,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	    isosurfaceWireframe isosurfaceOutline \
 	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
-            cutplanePreinterp 
+            cutplanePreinterp numContours
 
         Zoom reset
 	foreach axis { x y z } {
@@ -1409,10 +1411,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 	    EventuallyRequestLegend
         }
         "numContours" {
-            set _changed(numContours) 1
             set _settings(numContours) [$itk_component(numcontours) value]
             set _currentNumContours $_settings(numContours)
-            SendCmd "contour3d numcontours $_settings(numContours)"
+            UpdateContourList 
+            set _changed(numContours) 1
+            SendCmd "contour3d contourlist [list $_contourList]"
             DrawLegend
         }
         "isosurfaceWireframe" {
@@ -1474,6 +1477,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "contour3d colormode $_colorMode $_curFldName"
             SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "camera reset"
+            UpdateContourList
             DrawLegend
         }
         "legendVisible" {
@@ -1701,7 +1705,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
     label $inner.numcontours_l -text "Number of Isosurfaces" -font "Arial 9"
     itk_component add numcontours {
         Rappture::Spinint $inner.numcontours \
-            -min 2 -max 50 -font "arial 9"
+            -min 1 -max 50 -font "arial 9"
     }
     $itk_component(numcontours) value $_settings(numContours)
     bind $itk_component(numcontours) <<Value>> \
@@ -2167,9 +2171,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         set _currentNumContours $style(-levels)
         set _settings(numContours) $_currentNumContours
         $itk_component(numcontours) value $_currentNumContours
+        UpdateContourList 
         DrawLegend
     }
-    SendCmd "contour3d add numcontours $_currentNumContours $tag"
+    SendCmd [list contour3d add contourlist $_contourList $tag]
     SendCmd "contour3d edges $style(-edges) $tag"
     SendCmd "dataset outline $style(-outline) $tag"
     SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)]"
@@ -2410,30 +2415,26 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     array unset _isolines
     if { $color != "none"  && [info exists _limits($_curFldName)] &&
          $_settings(numContours) > 0 } {
-	set pixels [blt::vector create \#auto]
-	set values [blt::vector create \#auto]
-	set range [image height $_image(legend)]
-	# Order of pixels is max to min (max is at top of legend).
-	$pixels seq $ih 0 $_settings(numContours)
+
+        foreach { vmin vmax } $_limits($_curFldName) break
+        set range [expr double($vmax - $vmin)]
+        if { $range <= 0.0 } {
+            set range 1.0;              # Min is greater or equal to max.
+        }
+        set tags "isoline legend"
 	set offset [expr 2 + $lineht]
-	# If there's a legend title, increase the offset by the line height.
 	if { $title != "" } {
 	    incr offset $lineht
 	}
-	# Order of values is min to max.
-        $pixels expr {round($pixels + $offset)}
-        foreach { vmin vmax } $_limits($_curFldName) break
-        $values seq $vmin $vmax $_settings(numContours)
-        set tags "isoline legend"
-        foreach pos [$pixels range 0 end] value [$values range end 0] {
-	    set y1 [expr int($pos)]
+        foreach value $_contourList {
+            set norm [expr ($value - $vmin) / $range]
+            set y1 [expr int(round(($norm * $ih) + $offset))]
             for { set off 0 } { $off < 3 } { incr off } {
                 set _isolines([expr $y1 + $off]) $value
                 set _isolines([expr $y1 - $off]) $value
             }
-            set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
+            $c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags
         }
-        blt::vector destroy $pixels $values
     }
 
     $c bind title <ButtonPress> [itcl::code $this Combo post]
@@ -2545,4 +2546,16 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
     set _view(xpan) 0
     set _view(ypan) 0
     set _view(zoom) 1.0
+}
+
+itcl::body Rappture::VtkIsosurfaceViewer::UpdateContourList {} { 
+    if { ![info exists _limits($_curFldName)] } {
+        return
+    }
+    foreach { vmin vmax } $_limits($_curFldName) break
+    set v [blt::vector create \#auto] 
+    $v seq $vmin $vmax [expr $_currentNumContours+2]
+    $v delete end 0 
+    set _contourList [$v range 0 end]
+    blt::vector destroy $v
 }
