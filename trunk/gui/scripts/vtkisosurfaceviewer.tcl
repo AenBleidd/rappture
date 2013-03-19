@@ -1146,11 +1146,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qw              0.853553
-                qx              -0.353553
-                qy              0.353553
-                qz              0.146447
-                zoom    1.0
+                qw     0.853553
+                qx     -0.353553
+                qy     0.353553
+                qz     0.146447
+                zoom   1.0
                 xpan   0
                 ypan   0
             }
@@ -1811,8 +1811,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     }
 
     blt::table $inner \
-            0,0 $inner.view_l -anchor e -pady 2 \
-            0,1 $inner.view -anchor w -pady 2
+        0,0 $inner.view_l -anchor e -pady 2 \
+        0,1 $inner.view -anchor w -pady 2
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -1878,7 +1878,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
         -font "Arial 9"
 
     checkbutton $inner.preinterp \
-        -text "Interpolate" \
+        -text "Interpolate Scalars" \
         -variable [itcl::scope _settings(cutplanePreinterp)] \
         -command [itcl::code $this AdjustSetting cutplanePreinterp] \
         -font "Arial 9"
@@ -2540,5 +2540,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
     } 
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient $q"
+    SendCmd "camera reset"
+    set _view(xpan) 0
+    set _view(ypan) 0
+    set _view(zoom) 1.0
 }
