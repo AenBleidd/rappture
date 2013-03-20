@@ -166,7 +166,7 @@ itk::usual VtkHeightmapViewer {
 itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
 
-    EnableWaitDialog 1000
+    EnableWaitDialog 500
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
