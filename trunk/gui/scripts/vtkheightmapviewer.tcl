@@ -1378,10 +1378,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             StartBufferingCommands
             if {$bool} {
                 SendCmd "colormap res $numColors"
+                # Discrete colormap requires preinterp on
+                SendCmd "heightmap preinterp on"
             } else {
                 SendCmd "colormap res default"
+                # FIXME: add setting for preinterp (default on)
+                SendCmd "heightmap preinterp on"
             }
-            SendCmd "heightmap preinterp $bool"
             StopBufferingCommands
             EventuallyRequestLegend
         }
@@ -2555,12 +2558,12 @@ itcl::body Rappture::VtkHeightmapViewer::GetHeightmapScale {} {
 
 itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } { 
     array set positions {
-        front "1 0 0 0"
-        back  "0 0 1 0"
-        left  "0.707107 0 -0.707107 0"
-        right "0.707107 0 0.707107 0"
-        top   "0.707107 -0.707107 0 0"
-        bottom "0.707107 0.707107 0 0"
+        front  "0.707107 0.707107 0 0"
+        back   "0 0 0.707107 0.707107"
+        left   "0.5 0.5 -0.5 -0.5"
+        right  "0.5 0.5 0.5 0.5"
+        top    "1 0 0 0"
+        bottom "0 1 0 0"
     }
     foreach name { qw qx qy qz } value $positions($side) {
         set _view($name) $value
