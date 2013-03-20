@@ -79,6 +79,7 @@ itcl::class Rappture::Field {
     private variable _field2Units;      # field name => units
     private variable _hints 
     private variable _viewer "";        # Hints which viewer to use
+    private variable _xv "";            # For 1D meshes only.  Holds the points
     constructor {xmlobj path} { 
 	# defined below 
     }
@@ -277,6 +278,9 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
     }
     if { [info exists _comp2vtk($cname)] } {
 	# FIXME: extract mesh from VTK file data.
+        if { $_comp2dims($cname) == "1D" } {
+            return $_xv
+        } 
         error "method \"mesh\" is not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
@@ -313,6 +317,9 @@ itcl::body Rappture::Field::values {{cname -overall}} {
     # VTK file data 
     if { [info exists _comp2vtk($cname)] } {
 	# FIXME: extract the values from the VTK file data
+        if { $_comp2dims($cname) == "1D" } {
+            return $_values
+        } 
         error "method \"values\" is not implemented for vtk file data"
     }
     # Points-on-mesh
@@ -730,6 +737,8 @@ itcl::body Rappture::Field::Build {} {
             } else {
                 set type "dx"
             }
+        } elseif {[$_fldObj element $cname.ucd] != ""} {
+            set type "ucd"
 	}
         set _comp2style($cname) ""
         
@@ -842,9 +851,7 @@ itcl::body Rappture::Field::Build {} {
                     [Rapture::FlowHints ::\#auto $_fldObj $cname $_units]
             }
             incr _counter
-        } elseif {[$_fldObj element $cname.ucd] != ""} {
-	    set _viewer "isosurface"
-	    set _comp2dims($cname) "3D"
+        } elseif { $type == "ucd"} {
             set contents [$_fldObj get $cname.ucd]
             set vtkdata [AvsToVtk $cname $contents]
 	    ReadVtkDataSet $cname $vtkdata
@@ -1143,10 +1150,27 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
 	}
     }
     set _comp2dims($cname) ${_dim}D
+    if { $_dim < 2 } {
+        set points [$dataset GetPoints]
+        set numPoints [$points GetNumberOfPoints]
+        puts stderr "\#points are $numPoints"
+        set xv [blt::vector create \#auto]
+        for { set i 0 } { $i < $numPoints } { incr i } {
+            set point [$points GetPoint 0]
+            $xv append [lindex $point 0] 
+        }
+        set yv [blt::vector create \#auto]
+        $yv seq 0 1 [$xv length]
+        set _comp2xy($cname) [list $xv $yv]
+    }
     lappend limits x [list $xmin $xmax] 
     lappend limits y [list $ymin $ymax] 
     lappend limits z [list $zmin $zmax]
     set dataAttrs [$dataset GetPointData]
+    if { $_dim == 1 } {
+        set numArrays [$dataAttrs GetNumberOfArrays]
+        puts stderr "\#arrays are $numArrays"
+    }
     if { $dataAttrs == ""} {
 	puts stderr "No point data"
     }
@@ -1377,14 +1401,15 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     error "unhandled case in field dim=$_dim element=$element"
 }
 
-itcl::body Rappture::Field::AvsToVtk { comp contents } {
+itcl::body Rappture::Field::AvsToVtk { cname contents } {
     package require vtk
 
+    puts stderr "AVSToVTK"
     set reader $this-datasetreader
     vtkAVSucdReader $reader
 
     # Write the contents to a file just in case it's binary.
-    set tmpfile file[pid].vtk
+    set tmpfile $cname[pid].ucd
     set f [open "$tmpfile" "w"]
     fconfigure $f -translation binary -encoding binary
     puts $f $contents
@@ -1400,6 +1425,7 @@ itcl::body Rappture::Field::AvsToVtk { comp contents } {
         set name [$pointData GetArrayName $i]
 	lappend _scalars $name $name "???"
     }
+    set tmpfile $cname[pid].vtk
     set writer $this-datasetwriter
     vtkDataSetWriter $writer
     $writer SetInputConnection [$reader GetOutputPort]
@@ -1407,10 +1433,12 @@ itcl::body Rappture::Field::AvsToVtk { comp contents } {
     $writer Write
     rename $reader ""
     rename $writer ""
+
     set f [open "$tmpfile" "r"]
     fconfigure $f -translation binary -encoding binary
     set vtkdata [read $f]
     close $f
-    file delete $tmpfile
+    puts stderr "wrote $tmpfile"
+    #file delete $tmpfile
     return $vtkdata
 }
