@@ -2427,7 +2427,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 	    incr offset $lineht
 	}
         foreach value $_contourList {
-            set norm [expr ($value - $vmin) / $range]
+            set norm [expr 1.0 - (($value - $vmin) / $range)]
             set y1 [expr int(round(($norm * $ih) + $offset))]
             for { set off 0 } { $off < 3 } { incr off } {
                 set _isolines([expr $y1 + $off]) $value
@@ -2548,14 +2548,17 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
     set _view(zoom) 1.0
 }
 
+
 itcl::body Rappture::VtkIsosurfaceViewer::UpdateContourList {} { 
     if { ![info exists _limits($_curFldName)] } {
         return
     }
     foreach { vmin vmax } $_limits($_curFldName) break
     set v [blt::vector create \#auto] 
-    $v seq $vmin $vmax [expr $_currentNumContours+2]
-    $v delete end 0 
+    $v seq $vmin $vmax [expr $_currentNumContours+1]
+    set slice [expr ($vmax - $vmin) / double($_currentNumContours)]
+    $v expr {$v + ($slice * 0.5)}
+    $v delete end 
     set _contourList [$v range 0 end]
     blt::vector destroy $v
 }
