@@ -1444,7 +1444,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "isosurfaceOutline" {
             set bool $_settings(isosurfaceOutline)
-	    SendCmd "dataset outline $bool"
+	    SendCmd "outline visible $bool"
         }
         "isolineColor" {
             set color [$itk_component(isolineColor) value]
@@ -1560,7 +1560,7 @@ itcl::configbody Rappture::VtkIsosurfaceViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
 	SendCmd "axis color all $rgb"
-        SendCmd "dataset color $rgb"
+        SendCmd "outline color $rgb"
         SendCmd "cutplane ccolor $rgb"
     }
 }
@@ -2176,8 +2176,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     }
     SendCmd [list contour3d add contourlist $_contourList $tag]
     SendCmd "contour3d edges $style(-edges) $tag"
-    SendCmd "dataset outline $style(-outline) $tag"
-    SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)]"
+    SendCmd "outline add $tag"
+    SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "outline visible $style(-outline) $tag"
     set _settings(isosurfaceOutline) $style(-outline)
     set _settings(isosurfaceEdges) $style(-edges)
     #SendCmd "contour3d color [Color2RGB $settings(-color)] $tag"
