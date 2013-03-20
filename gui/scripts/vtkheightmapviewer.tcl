@@ -1039,7 +1039,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	# Reset the camera and other view parameters
 	#
 	SendCmd "axis color all [Color2RGB $itk_option(-plotforeground)]"
-	SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)]"
+	SendCmd "outline color [Color2RGB $itk_option(-plotforeground)]"
 	ResetAxes
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
@@ -1585,11 +1585,11 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "outline" {
 	    if { $_settings(isHeightmap) } {
-		SendCmd "dataset outline 0"
+		SendCmd "outline visible 0"
             } else {
                 set _settings(saveOutline) $_settings(outline)
                 set bool $_settings(outline)
-                SendCmd "dataset outline $bool"
+                SendCmd "outline visible $bool"
             }
 	}
         "stretchToFit" {
@@ -1764,7 +1764,7 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotbackground {
 itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
-        SendCmd "dataset color $rgb"
+        SendCmd "outline color $rgb"
 	SendCmd "axis color all $rgb"
     }
 }
@@ -2252,8 +2252,9 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         $itk_component(numisolines) value $_currentNumIsolines
         DrawLegend
     }
-    SendCmd "dataset outline $_settings(outline) $tag"
-    SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "outline add $tag"
+    SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "outline visible $_settings(outline) $tag"
     set scale [GetHeightmapScale]
     SendCmd "heightmap add numcontours $_currentNumIsolines $scale $tag"
     set _comp2scale($tag) $_settings(heightmapScale)
