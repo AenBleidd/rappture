@@ -2333,10 +2333,9 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
         $c create text $x $y \
-            -anchor ne \
-            -fill $itk_option(-plotforeground) -tags "title legend" \
-            -font $font 
-	    incr y $lineht
+		-anchor ne \
+		-fill $itk_option(-plotforeground) -tags "title legend" \
+		-font $font 
 	$c create text $x $y \
 	    -anchor ne \
 	    -fill $itk_option(-plotforeground) -tags "vmax legend" \

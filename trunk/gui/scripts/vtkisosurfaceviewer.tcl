@@ -2381,13 +2381,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     if { [$c find withtag "legend"] == "" } {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
-	if { $title != "" } {
-	    $c create text $x $y \
+        $c create text $x $y \
 		-anchor ne \
 		-fill $itk_option(-plotforeground) -tags "title legend" \
 		-font $font 
 	    incr y $lineht
-	}
 	$c create text $x $y \
 	    -anchor ne \
 	    -fill $itk_option(-plotforeground) -tags "zmax legend" \
@@ -2450,9 +2448,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     }
     set y 2
     # If there's a legend title, move the title to the correct position
+puts stderr "DrawLegend title=$title x=$x y=$y $itk_option(-plotforeground)"
     if { $title != "" } {
+        $c itemconfigure title -text $title
 	$c coords title $x $y
 	incr y $lineht
+        $c raise title
     }
     $c coords zmax $x $y
     incr y $lineht
@@ -2480,7 +2481,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Combo {option} {
     switch -- $option {
         post {
             foreach { x1 y1 x2 y2 } [$c bbox title] break
-            set x1 [expr [winfo width $itk_component(view)] - [winfo reqwidth $itk_component(fieldmenu)]]
+            set cw [winfo width $itk_component(view)]
+            set mw [winfo reqwidth $itk_component(fieldmenu)]
+            set x1 [expr $cw - $mw]
             set x [expr $x1 + [winfo rootx $itk_component(view)]]
             set y [expr $y2 + [winfo rooty $itk_component(view)]]
             tk_popup $itk_component(fieldmenu) $x $y
