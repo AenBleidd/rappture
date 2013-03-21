@@ -1153,7 +1153,6 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     if { $_dim < 2 } {
         set points [$dataset GetPoints]
         set numPoints [$points GetNumberOfPoints]
-        puts stderr "\#points are $numPoints"
         set xv [blt::vector create \#auto]
         for { set i 0 } { $i < $numPoints } { incr i } {
             set point [$points GetPoint 0]
@@ -1169,7 +1168,6 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set dataAttrs [$dataset GetPointData]
     if { $_dim == 1 } {
         set numArrays [$dataAttrs GetNumberOfArrays]
-        puts stderr "\#arrays are $numArrays"
     }
     if { $dataAttrs == ""} {
 	puts stderr "No point data"
@@ -1404,7 +1402,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 itcl::body Rappture::Field::AvsToVtk { cname contents } {
     package require vtk
 
-    puts stderr "AVSToVTK"
     set reader $this-datasetreader
     vtkAVSucdReader $reader
 
@@ -1438,7 +1435,6 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
     fconfigure $f -translation binary -encoding binary
     set vtkdata [read $f]
     close $f
-    puts stderr "wrote $tmpfile"
-    #file delete $tmpfile
+    file delete $tmpfile
     return $vtkdata
 }
