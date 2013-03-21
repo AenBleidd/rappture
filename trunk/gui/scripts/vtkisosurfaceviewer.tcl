@@ -1057,15 +1057,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             # the viewer itself.
 	    set label [$_first hints ${axis}label]
 	    if { $label == "" } {
-		if {$axis == "z"} {
-                    if { [string match "component*" $_curFldName] } {
-                        set label [string toupper $axis]
-                    } else {
-                        set label $_curFldLabel
-                    }
-		} else {
-		    set label [string toupper $axis]
-		}
+                set label [string toupper $axis]
 	    }
 	    # May be a space in the axis label.
 	    SendCmd [list axis name $axis $label]
@@ -2448,7 +2440,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     }
     set y 2
     # If there's a legend title, move the title to the correct position
-puts stderr "DrawLegend title=$title x=$x y=$y $itk_option(-plotforeground)"
     if { $title != "" } {
         $c itemconfigure title -text $title
 	$c coords title $x $y
