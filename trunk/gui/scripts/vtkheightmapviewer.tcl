@@ -961,7 +961,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline (if enabled)
+                # Setting dataset visible enables outline
                 # and heightmap
                 SendCmd "dataset visible 1 $tag"
             }
@@ -1001,7 +1001,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings stretchToFit 
+    InitSettings stretchToFit outline
 
     if { $_reset } {
 	SendCmd "axis tickpos outside"
