@@ -1032,7 +1032,6 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
                 xpan    0
                 ypan    0
             }
-            SendCmd "camera reset all"
             if { $_first != "" } {
                 set location [$_first hints camera]
                 if { $location != "" } {
@@ -1042,6 +1041,7 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
             $_arcball quaternion $q
             DoRotate
+            SendCmd "camera reset"
         }
     }
 }

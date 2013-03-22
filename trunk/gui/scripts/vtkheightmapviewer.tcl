@@ -909,15 +909,15 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	SendCmd "axis lrot z 90"
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
-	if {$_settings(isHeightmap) } {
-	    if { $_view(ortho)} {
-		SendCmd "camera mode ortho"
-	    } else {
-		SendCmd "camera mode persp"
-	    }
-	    SendCmd "camera reset"
+        if {$_settings(isHeightmap) } {
+            if { $_view(ortho)} {
+                SendCmd "camera mode ortho"
+            } else {
+                SendCmd "camera mode persp"
+            }
             DoRotate
-	} 	    
+            SendCmd "camera reset"
+	}
 	PanCamera
         StopBufferingCommands
         SendCmd "imgflush"
@@ -1043,15 +1043,15 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	ResetAxes
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
-	if {$_settings(isHeightmap) } {
-	    if { $_view(ortho)} {
-		SendCmd "camera mode ortho"
-	    } else {
-		SendCmd "camera mode persp"
-	    }
-	    SendCmd "camera reset"
+        if {$_settings(isHeightmap) } {
+            if { $_view(ortho)} {
+                SendCmd "camera mode ortho"
+            } else {
+                SendCmd "camera mode persp"
+            }
             DoRotate
-	}
+            SendCmd "camera reset"
+        }
 	PanCamera
 	InitSettings axisXGrid axisYGrid axisZGrid \
 	    axisVisible axisLabels 
@@ -1153,10 +1153,10 @@ itcl::body Rappture::VtkHeightmapViewer::Zoom {option} {
             }
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
             $_arcball quaternion $q
-            SendCmd "camera reset"
             if {$_settings(isHeightmap) } {
                 DoRotate
             }
+            SendCmd "camera reset"
         }
     }
 }
@@ -1503,7 +1503,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 }
             }
             ResetAxes
-            SendCmd "camera reset"
             if { $bool } {
                 set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
                 $_arcball quaternion $q
@@ -1513,6 +1512,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 bind $c <B1-Motion> {}
                 bind $c <ButtonRelease-1> {}
             }
+            SendCmd "camera reset"
             # Fix the mouse bindings for rotation/panning and the 
             # camera mode. Ideally we'd create a bindtag for these.
             if { $bool } {
