@@ -1156,8 +1156,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
             }
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
             $_arcball quaternion $q
-            SendCmd "camera reset"
             DoRotate
+            SendCmd "camera reset"
         }
     }
 }
