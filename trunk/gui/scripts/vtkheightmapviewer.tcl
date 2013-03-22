@@ -1699,6 +1699,14 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     set heightScale [GetHeightmapScale]
     set bmin [expr $heightScale * $dataScale * $vmin]
     set bmax [expr $heightScale * $dataScale * $vmax]
+    if {$heightScale > 0} {
+        set zpos [expr - $bmin]
+        SendCmd "heightmap pos 0 0 $zpos"
+    } else {
+        SendCmd "heightmap pos 0 0 0"
+    }
+    set bmax [expr $bmax - $bmin]
+    set bmin 0
     SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
     SendCmd "axis bounds z $bmin $bmax"
     SendCmd "axis range z $_limits($_curFldName)"
