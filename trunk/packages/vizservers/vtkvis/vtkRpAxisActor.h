@@ -122,6 +122,9 @@ class VTKRENDERINGANNOTATION_EXPORT vtkRpAxisActor : public vtkActor
   double *GetBounds(void);
   void   GetBounds(double bounds[6]);
 
+  vtkSetMacro(ScreenSize, double);
+  vtkGetMacro(ScreenSize, double);
+
   // Description:
   // Set/Get the format with which to print the labels on the axis.
   vtkSetStringMacro(LabelFormat);
@@ -465,6 +468,10 @@ class VTKRENDERINGANNOTATION_EXPORT vtkRpAxisActor : public vtkActor
 
   void TransformBounds(vtkViewport *, double bnds[6]);
 
+  void AutoScale(vtkViewport *viewport);
+  double AutoScale(vtkViewport *viewport, double screenSize,
+                   double position[3]);
+
   void BuildLabels(vtkViewport *, bool);
   void BuildLabels2D(vtkViewport *, bool);
   void SetLabelPositions(vtkViewport *, bool);
@@ -550,6 +557,8 @@ class VTKRENDERINGANNOTATION_EXPORT vtkRpAxisActor : public vtkActor
 
   int                 CalculateTitleOffset;
   int                 CalculateLabelOffset;
+
+  double              ScreenSize;
 
   // Description:
   // Use xy-axis only when Use2DMode=1:

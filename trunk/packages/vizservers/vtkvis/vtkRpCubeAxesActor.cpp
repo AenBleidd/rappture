@@ -28,7 +28,6 @@
 #include "vtkTextProperty.h"
 #include "vtkViewport.h"
 
-
 vtkStandardNewMacro(vtkRpCubeAxesActor);
 vtkCxxSetObjectMacro(vtkRpCubeAxesActor, Camera,vtkCamera);
 // *************************************************************************
@@ -117,6 +116,12 @@ vtkRpCubeAxesActor::vtkRpCubeAxesActor() : vtkActor()
   //this->YAxesGridpolysProperty->LightingOff();       // To be able to see the polys from high camera angles
   //this->ZAxesGridpolysProperty->LightingOff();       // To be able to see the polys from high camera angles
 
+  this->ScreenSize = 10.0;
+
+  this->LabelScreenOffset = 20.0 + this->ScreenSize * 0.5;
+  this->TitleScreenOffset =
+    this->LabelScreenOffset * 2.0 + this->ScreenSize * 0.5;
+
   for (int i = 0; i < NUMBER_OF_ALIGNED_AXIS; i++)
     {
     this->XAxes[i] = vtkRpAxisActor::New();
@@ -132,6 +137,7 @@ vtkRpCubeAxesActor::vtkRpCubeAxesActor() : vtkActor()
     this->XAxes[i]->SetGridpolysProperty(this->XAxesGridpolysProperty);
     this->XAxes[i]->SetCalculateTitleOffset(0);
     this->XAxes[i]->SetCalculateLabelOffset(0);
+    this->XAxes[i]->SetScreenSize(this->ScreenSize);
 
     this->YAxes[i] = vtkRpAxisActor::New();
     this->YAxes[i]->SetTickVisibility(1);
@@ -146,6 +152,7 @@ vtkRpCubeAxesActor::vtkRpCubeAxesActor() : vtkActor()
     this->YAxes[i]->SetGridpolysProperty(this->YAxesGridpolysProperty);
     this->YAxes[i]->SetCalculateTitleOffset(0);
     this->YAxes[i]->SetCalculateLabelOffset(0);
+    this->YAxes[i]->SetScreenSize(this->ScreenSize);
 
     this->ZAxes[i] = vtkRpAxisActor::New();
     this->ZAxes[i]->SetTickVisibility(1);
@@ -160,12 +167,7 @@ vtkRpCubeAxesActor::vtkRpCubeAxesActor() : vtkActor()
     this->ZAxes[i]->SetGridpolysProperty(this->ZAxesGridpolysProperty);
     this->ZAxes[i]->SetCalculateTitleOffset(0);
     this->ZAxes[i]->SetCalculateLabelOffset(0);
-
-    this->ScreenSize = 10.0;
-
-    this->LabelScreenOffset = 20.0 + this->ScreenSize * 0.5;
-    this->TitleScreenOffset =
-      this->LabelScreenOffset * 2.0 + this->ScreenSize * 0.5;
+    this->ZAxes[i]->SetScreenSize(this->ScreenSize);
 
     // Pass information to axes followers.
     vtkRpAxisFollower* follower = this->XAxes[i]->GetTitleActor();
@@ -679,6 +681,10 @@ void vtkRpCubeAxesActor::SetScreenSize(double screenSize)
 
   for (int i = 0; i < NUMBER_OF_ALIGNED_AXIS; i++)
     {
+    this->XAxes[i]->SetScreenSize(this->ScreenSize);
+    this->YAxes[i]->SetScreenSize(this->ScreenSize);
+    this->ZAxes[i]->SetScreenSize(this->ScreenSize);
+
     this->XAxes[i]->GetTitleActor()->SetScreenOffset(this->TitleScreenOffset);
     this->YAxes[i]->GetTitleActor()->SetScreenOffset(this->TitleScreenOffset);
     this->ZAxes[i]->GetTitleActor()->SetScreenOffset(this->TitleScreenOffset);

@@ -176,6 +176,8 @@ vtkRpAxisActor::vtkRpAxisActor()
   this->CalculateTitleOffset = 1;
   this->CalculateLabelOffset = 1;
 
+  this->ScreenSize = 10.;
+
   // Instance variables specific to 2D mode
   this->Use2DMode = 0;
   this->SaveTitlePosition = 0;
@@ -657,6 +659,9 @@ void vtkRpAxisActor::BuildAxis(vtkViewport *viewport, bool force)
       }
     }
 
+  // If label positions changed, need to rescale
+  this->AutoScale(viewport);
+
   this->LastAxisPosition = this->AxisPosition;
 
   this->LastRange[0] = this->Range[0];
@@ -777,6 +782,50 @@ void vtkRpAxisActor::SetLabelPositions(vtkViewport *viewport, bool force)
 
     this->LabelActors[i]->SetPosition(pos[0], pos[1], pos[2]);
     }
+}
+
+void
+vtkRpAxisActor::AutoScale(vtkViewport *viewport)
+{
+    double newTitleScale
+        = this->AutoScale(viewport,
+                          this->ScreenSize,
+                          this->GetTitleActor()->GetPosition());
+
+    this->SetTitleScale(newTitleScale);
+
+    // Now labels.
+    vtkRpAxisFollower** labelActors = this->GetLabelActors();
+
+    for(int j = 0; j < this->GetNumberOfLabelsBuilt(); ++j)
+      {
+      double newLabelScale
+        = this->AutoScale(viewport,
+                          this->ScreenSize,
+                          labelActors[j]->GetPosition());
+
+      labelActors[j]->SetScale(newLabelScale);
+      }
+}
+
+double
+vtkRpAxisActor::AutoScale(vtkViewport *viewport, double screenSize,
+                          double position[3])
+{
+  double factor = 1;
+  if (viewport->GetSize()[1] > 0)
+    {
+    factor = 2.0 * screenSize
+      * tan(vtkMath::RadiansFromDegrees(this->Camera->GetViewAngle()/2.0))
+      / viewport->GetSize()[1];
+    }
+
+    double dist = sqrt(
+          vtkMath::Distance2BetweenPoints(position,
+                                          this->Camera->GetPosition()));
+    double newScale = factor * dist;
+
+    return newScale;
 }
 
 // *******************************************************************
