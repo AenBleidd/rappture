@@ -1084,11 +1084,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible
 
-        # FIXME: Don't know exactly why this "imgflush" is needed. 
-        #        But this makes the "camera reset" below to work correctly.
-        #        I left this in because the axis labels are scaled too big.
-        SendCmd "imgflush"
-
 	# Reset the camera and other view parameters
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q
