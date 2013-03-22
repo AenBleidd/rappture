@@ -1465,9 +1465,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
+            SendCmd "dataset scalar $_curFldName"
             SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
-            SendCmd "contour3d colormode $_colorMode $_curFldName"
             SendCmd "cutplane colormode $_colorMode $_curFldName"
+            SendCmd "contour3d colormode $_colorMode $_curFldName"
             SendCmd "camera reset"
             UpdateContourList
             DrawLegend

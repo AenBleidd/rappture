@@ -231,7 +231,7 @@ itcl::body Rappture::Balloon::activate {where placement} {
 
     # grab the mouse pointer
     update
-    while {[catch {grab set -global $itk_component(hull)}]} {
+    while {[catch {grab set -local $itk_component(hull)}]} {
         after 100
     }
     focus $itk_component(hull)

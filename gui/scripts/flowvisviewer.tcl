@@ -810,6 +810,7 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
             set word [Rappture::filexfer::label downloadWord]
             $inner.summary configure -text "$word $num in the following format:"
             update idletasks ;# fix initial sizes
+            update
             return $popup
         }
         now {
@@ -2896,6 +2897,7 @@ itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
     SendCmd "print $token $width $height"
 
     $popup activate $widget below
+    update idletasks
     update
     # We wait here for either 
     #  1) the png to be delivered or 
@@ -2945,6 +2947,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
     } else {
         set inner [$popup component inner]
     }
+    update 
     # Timeout is set to 10 minutes.
     $_dispatcher event -after 600000 !movietimeout
     WaitIcon start $inner.icon
@@ -2964,6 +2967,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
     SendCmd "flow video $token -width $w -height $h -numframes $nframes "
     
     $popup activate $widget below
+    update idletasks 
     update
     # We wait here until
     #  1. the movie is delivered or 

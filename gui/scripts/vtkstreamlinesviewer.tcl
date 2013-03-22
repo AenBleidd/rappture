@@ -1741,7 +1741,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -showvalue off \
         -command [itcl::code $this AdjustSetting streamlinesScale]
 
-    label $inner.field_l -text "Field" -font "Arial 9" 
+    label $inner.field_l -text "Color by" -font "Arial 9" 
     itk_component add field {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
