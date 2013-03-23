@@ -80,7 +80,7 @@ static const char def_transfunc[] =
   0.00  0 0 1\n\
   0.25  0 1 1\n\
   0.50  0 1 0\n\
-   0.75  1 1 0\n\
+  0.75  1 1 0\n\
   1.00  1 0 0\n\
 } {\n\
   0.000000 0.0\n\
@@ -1305,15 +1305,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     }
 
-    //
-    // BE CAREFUL: Set the number of slices to something slightly different
-    // for each volume.  If we have identical volumes at exactly the same
-    // position with exactly the same number of slices, the second volume will
-    // overwrite the first, so the first won't appear at all.
-    //
     if (volPtr != NULL) {
-        //volPtr->numSlices(512-n);
-        //volPtr->numSlices(256-n);
         volPtr->disableCutplane(0);
         volPtr->disableCutplane(1);
         volPtr->disableCutplane(2);
