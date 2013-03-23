@@ -1,7 +1,7 @@
 
 /* 
  * ----------------------------------------------------------------------
- *  RpConvertDxToVtk - 
+ *  RpDxToVtk - 
  *
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
@@ -110,12 +110,12 @@ GetPoints(Tcl_Interp *interp, int nPoints, int *counts, char **stringPtr,
 }
 
 /* 
- *  ConvertDxToVtk string
+ *  DxToVtk string
  */
 
 static int
-ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
-		  Tcl_Obj *const *objv) 
+DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	   Tcl_Obj *const *objv) 
 {
     Tcl_Obj *objPtr, *pointsObjPtr;
     char *p, *pend;
@@ -263,20 +263,20 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 /*
  * ------------------------------------------------------------------------
- *  RpConvertDxToVtk_Init --
+ *  RpDxToVtk_Init --
  *
  *  Invoked when the Rappture GUI library is being initialized
- *  to install the "ConvertDxToVtk" command into the interpreter.
+ *  to install the "DxToVtk" command into the interpreter.
  *
  *  Returns TCL_OK if successful, or TCL_ERROR (along with an error
  *  message in the interp) if anything goes wrong.
  * ------------------------------------------------------------------------
  */
 int
-RpConvertDxToVtk_Init(Tcl_Interp *interp)
+RpDxToVtk_Init(Tcl_Interp *interp)
 {
     /* install the widget command */
-    Tcl_CreateObjCommand(interp, "Rappture::ConvertDxToVtk", ConvertDxToVtkCmd,
+    Tcl_CreateObjCommand(interp, "Rappture::DxToVtk", DxToVtkCmd,
         NULL, NULL);
     return TCL_OK;
 }
