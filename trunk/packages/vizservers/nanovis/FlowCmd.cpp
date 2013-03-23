@@ -161,8 +161,8 @@ FlowParticles::render()
 {
     TRACE("Particles '%s' axis: %d pos: %g rel pos: %g",
           _name, _sv.position.axis, _sv.position.value,
-          FlowCmd::GetRelativePosition(&_sv.position));
-    _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
+          FlowCmd::getRelativePosition(&_sv.position));
+    _rendererPtr->setPos(FlowCmd::getRelativePosition(&_sv.position));
     _rendererPtr->setAxis(_sv.position.axis);
     assert(_rendererPtr->active());
     _rendererPtr->render();
@@ -171,7 +171,7 @@ FlowParticles::render()
 void 
 FlowParticles::configure() 
 {
-    _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
+    _rendererPtr->setPos(FlowCmd::getRelativePosition(&_sv.position));
     _rendererPtr->setColor(Vector4f(_sv.color.r, _sv.color.g, _sv.color.b, 
                                     _sv.color.a));
     _rendererPtr->particleSize(_sv.particleSize);
@@ -268,7 +268,7 @@ FlowBox::getWorldSpaceBounds(Vector3f& bboxMin,
 }
 
 void 
-FlowBox::Render(Volume *vol)
+FlowBox::render(Volume *vol)
 {
     TRACE("Box: '%s'", _name);
 
@@ -402,15 +402,15 @@ FlowCmd::~FlowCmd()
 
     FlowBox *boxPtr;
     FlowBoxIterator boxIter;
-    for (boxPtr = FirstBox(&boxIter); boxPtr != NULL; 
-         boxPtr = NextBox(&boxIter)) {
+    for (boxPtr = firstBox(&boxIter); boxPtr != NULL; 
+         boxPtr = nextBox(&boxIter)) {
         boxPtr->disconnect();
         delete boxPtr;
     }
     FlowParticles *particlesPtr;
     FlowParticlesIterator partIter;
-    for (particlesPtr = FirstParticles(&partIter); particlesPtr != NULL;
-         particlesPtr = NextParticles(&partIter)) {
+    for (particlesPtr = firstParticles(&partIter); particlesPtr != NULL;
+         particlesPtr = nextParticles(&partIter)) {
         particlesPtr->disconnect();
         delete particlesPtr;
     }
@@ -419,25 +419,25 @@ FlowCmd::~FlowCmd()
 }
 
 void
-FlowCmd::ResetParticles()
+FlowCmd::resetParticles()
 {
     FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+    for (FlowParticles *particlesPtr = firstParticles(&iter);
          particlesPtr != NULL;
-         particlesPtr = NextParticles(&iter)) {
+         particlesPtr = nextParticles(&iter)) {
         particlesPtr->reset();
     }
 }
 
 void
-FlowCmd::Advect()
+FlowCmd::advect()
 {
-    NvVectorField *fieldPtr = VectorField();
+    NvVectorField *fieldPtr = getVectorField();
     fieldPtr->active(true);
     FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+    for (FlowParticles *particlesPtr = firstParticles(&iter);
          particlesPtr != NULL;
-         particlesPtr = NextParticles(&iter)) {
+         particlesPtr = nextParticles(&iter)) {
         if (particlesPtr->visible()) {
             particlesPtr->advect();
         }
@@ -445,23 +445,23 @@ FlowCmd::Advect()
 }
 
 void
-FlowCmd::Render()
+FlowCmd::render()
 {
     _fieldPtr->active(true);
     _fieldPtr->render();
     FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+    for (FlowParticles *particlesPtr = firstParticles(&iter);
          particlesPtr != NULL; 
-         particlesPtr = NextParticles(&iter)) {
+         particlesPtr = nextParticles(&iter)) {
         if (particlesPtr->visible()) {
             particlesPtr->render();
         }
     }
-    RenderBoxes();
+    renderBoxes();
 }
 
 int
-FlowCmd::CreateParticles(Tcl_Interp *interp, Tcl_Obj *objPtr)
+FlowCmd::createParticles(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
     Tcl_HashEntry *hPtr;
     int isNew;
@@ -486,7 +486,7 @@ FlowCmd::CreateParticles(Tcl_Interp *interp, Tcl_Obj *objPtr)
 }
 
 int
-FlowCmd::GetParticles(Tcl_Interp *interp, Tcl_Obj *objPtr, 
+FlowCmd::getParticles(Tcl_Interp *interp, Tcl_Obj *objPtr, 
                       FlowParticles **particlesPtrPtr)
 {
     Tcl_HashEntry *hPtr;
@@ -503,7 +503,7 @@ FlowCmd::GetParticles(Tcl_Interp *interp, Tcl_Obj *objPtr,
 }
 
 FlowParticles *
-FlowCmd::FirstParticles(FlowParticlesIterator *iterPtr) 
+FlowCmd::firstParticles(FlowParticlesIterator *iterPtr) 
 {
     iterPtr->hashPtr = Tcl_FirstHashEntry(&_particlesTable, 
                                           &iterPtr->hashSearch);
@@ -514,7 +514,7 @@ FlowCmd::FirstParticles(FlowParticlesIterator *iterPtr)
 }
 
 FlowParticles *
-FlowCmd::NextParticles(FlowParticlesIterator *iterPtr) 
+FlowCmd::nextParticles(FlowParticlesIterator *iterPtr) 
 {
     if (iterPtr->hashPtr == NULL) {
         return NULL;
@@ -527,7 +527,7 @@ FlowCmd::NextParticles(FlowParticlesIterator *iterPtr)
 }
 
 int
-FlowCmd::CreateBox(Tcl_Interp *interp, Tcl_Obj *objPtr)
+FlowCmd::createBox(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
     Tcl_HashEntry *hPtr;
     int isNew;
@@ -552,7 +552,7 @@ FlowCmd::CreateBox(Tcl_Interp *interp, Tcl_Obj *objPtr)
 }
 
 int
-FlowCmd::GetBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr)
+FlowCmd::getBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr)
 {
     Tcl_HashEntry *hPtr;
     hPtr = Tcl_FindHashEntry(&_boxTable, Tcl_GetString(objPtr));
@@ -569,7 +569,7 @@ FlowCmd::GetBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr)
 }
 
 FlowBox *
-FlowCmd::FirstBox(FlowBoxIterator *iterPtr) 
+FlowCmd::firstBox(FlowBoxIterator *iterPtr) 
 {
     iterPtr->hashPtr = Tcl_FirstHashEntry(&_boxTable, &iterPtr->hashSearch);
     if (iterPtr->hashPtr == NULL) {
@@ -579,7 +579,7 @@ FlowCmd::FirstBox(FlowBoxIterator *iterPtr)
 }
 
 FlowBox *
-FlowCmd::NextBox(FlowBoxIterator *iterPtr) 
+FlowCmd::nextBox(FlowBoxIterator *iterPtr) 
 {
     if (iterPtr->hashPtr == NULL) {
         return NULL;
@@ -592,18 +592,18 @@ FlowCmd::NextBox(FlowBoxIterator *iterPtr)
 }
 
 void
-FlowCmd::InitializeParticles()
+FlowCmd::initializeParticles()
 {
     FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+    for (FlowParticles *particlesPtr = firstParticles(&iter);
          particlesPtr != NULL;
-         particlesPtr = NextParticles(&iter)) {
+         particlesPtr = nextParticles(&iter)) {
         particlesPtr->initialize();
     }
 }
 
 bool
-FlowCmd::ScaleVectorField()
+FlowCmd::scaleVectorField()
 {
     if (_volPtr != NULL) {
         TRACE("Removing existing volume: %s", _volPtr->name());
@@ -611,12 +611,12 @@ FlowCmd::ScaleVectorField()
         _volPtr = NULL;
     }
     float *vdata;
-    vdata = GetScaledVector();
+    vdata = getScaledVector();
     if (vdata == NULL) {
         return false;
     }
     Volume *volPtr;
-    volPtr = MakeVolume(vdata);
+    volPtr = makeVolume(vdata);
     delete [] vdata;
     if (volPtr == NULL) {
         return false;
@@ -650,9 +650,9 @@ FlowCmd::ScaleVectorField()
                            scale.y,
                            scale.z,
                            _volPtr->wAxis.max());
-        SetCurrentPosition();
-        SetAxis();
-        SetActive();
+        setCurrentPosition();
+        setAxis();
+        setActive();
     }
 
     if (NanoVis::velocityArrowsSlice != NULL) {
@@ -669,9 +669,9 @@ FlowCmd::ScaleVectorField()
     }
 
     FlowParticlesIterator partIter;
-    for (FlowParticles *particlesPtr = FirstParticles(&partIter);
+    for (FlowParticles *particlesPtr = firstParticles(&partIter);
          particlesPtr != NULL;
-         particlesPtr = NextParticles(&partIter)) {
+         particlesPtr = nextParticles(&partIter)) {
         particlesPtr->setVectorField(_volPtr,
                                      location,
                                      scale.x,
@@ -683,19 +683,19 @@ FlowCmd::ScaleVectorField()
 }
 
 void
-FlowCmd::RenderBoxes()
+FlowCmd::renderBoxes()
 {
     FlowBoxIterator iter;
     FlowBox *boxPtr;
-    for (boxPtr = FirstBox(&iter); boxPtr != NULL; boxPtr = NextBox(&iter)) {
+    for (boxPtr = firstBox(&iter); boxPtr != NULL; boxPtr = nextBox(&iter)) {
         if (boxPtr->visible()) {
-            boxPtr->Render(_volPtr);
+            boxPtr->render(_volPtr);
         }
     }
 }
 
 float *
-FlowCmd::GetScaledVector()
+FlowCmd::getScaledVector()
 {
     assert(_dataPtr->nComponents() == 3);
     size_t n = _dataPtr->nValues() / _dataPtr->nComponents() * 4;
@@ -727,7 +727,7 @@ FlowCmd::GetScaledVector()
 }
 
 Volume *
-FlowCmd::MakeVolume(float *data)
+FlowCmd::makeVolume(float *data)
 {
     Volume *volPtr;
 
@@ -968,7 +968,7 @@ FlowDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 float
-FlowCmd::GetRelativePosition(FlowPosition *posPtr)
+FlowCmd::getRelativePosition(FlowPosition *posPtr)
 {
     if (posPtr->flags == RELPOS) {
         return posPtr->value;
@@ -988,21 +988,21 @@ FlowCmd::GetRelativePosition(FlowPosition *posPtr)
 }
 
 float
-FlowCmd::GetRelativePosition() 
+FlowCmd::getRelativePosition() 
 {
-    return FlowCmd::GetRelativePosition(&_sv.slicePos);
+    return FlowCmd::getRelativePosition(&_sv.slicePos);
 }
 
 /* Static NanoVis class commands. */
 
 void
-NanoVis::InitFlows() 
+NanoVis::initFlows() 
 {
     Tcl_InitHashTable(&flowTable, TCL_STRING_KEYS);
 }
 
 FlowCmd *
-NanoVis::FirstFlow(FlowIterator *iterPtr) 
+NanoVis::firstFlow(FlowIterator *iterPtr) 
 {
     iterPtr->hashPtr = Tcl_FirstHashEntry(&flowTable, &iterPtr->hashSearch);
     if (iterPtr->hashPtr == NULL) {
@@ -1012,7 +1012,7 @@ NanoVis::FirstFlow(FlowIterator *iterPtr)
 }
 
 FlowCmd *
-NanoVis::NextFlow(FlowIterator *iterPtr) 
+NanoVis::nextFlow(FlowIterator *iterPtr) 
 {
     if (iterPtr->hashPtr == NULL) {
         return NULL;
@@ -1025,7 +1025,7 @@ NanoVis::NextFlow(FlowIterator *iterPtr)
 }
 
 int
-NanoVis::GetFlow(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowCmd **flowPtrPtr)
+NanoVis::getFlow(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowCmd **flowPtrPtr)
 {
     Tcl_HashEntry *hPtr;
     hPtr = Tcl_FindHashEntry(&flowTable, Tcl_GetString(objPtr));
@@ -1041,7 +1041,7 @@ NanoVis::GetFlow(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowCmd **flowPtrPtr)
 }
 
 int
-NanoVis::CreateFlow(Tcl_Interp *interp, Tcl_Obj *objPtr)
+NanoVis::createFlow(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
     Tcl_HashEntry *hPtr;
     int isNew;
@@ -1072,12 +1072,12 @@ NanoVis::CreateFlow(Tcl_Interp *interp, Tcl_Obj *objPtr)
 }
 
 void
-NanoVis::DeleteFlows(Tcl_Interp *interp)
+NanoVis::deleteFlows(Tcl_Interp *interp)
 {
     FlowCmd *flowPtr;
     FlowIterator iter;
-    for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NextFlow(&iter)) {
+    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = nextFlow(&iter)) {
         flowPtr->disconnect();                /* Don't disrupt the hash walk */
         Tcl_DeleteCommand(interp, flowPtr->name());
     }
@@ -1085,7 +1085,7 @@ NanoVis::DeleteFlows(Tcl_Interp *interp)
 }
 
 bool
-NanoVis::MapFlows()
+NanoVis::mapFlows()
 {
     TRACE("Enter");
 
@@ -1099,8 +1099,8 @@ NanoVis::MapFlows()
 
     FlowCmd *flowPtr;
     FlowIterator iter;
-    for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NextFlow(&iter)) {
+    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = nextFlow(&iter)) {
         double min, max;
         if (!flowPtr->isDataLoaded()) {
             continue;
@@ -1139,27 +1139,27 @@ NanoVis::MapFlows()
     /* 
      * Step 2. Generate the vector field from each data set. 
      */
-    for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NextFlow(&iter)) {
+    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = nextFlow(&iter)) {
         if (!flowPtr->isDataLoaded()) {
             continue; // Flow exists, but no data has been loaded yet.
         }
         if (flowPtr->visible()) {
-            flowPtr->InitializeParticles();
+            flowPtr->initializeParticles();
         }
-        if (!flowPtr->ScaleVectorField()) {
+        if (!flowPtr->scaleVectorField()) {
             return false;
         }
         // FIXME: This doesn't work when there is more than one flow.
-        licRenderer->setOffset(flowPtr->GetRelativePosition());
-        velocityArrowsSlice->slicePos(flowPtr->GetRelativePosition());
+        licRenderer->setOffset(flowPtr->getRelativePosition());
+        velocityArrowsSlice->slicePos(flowPtr->getRelativePosition());
     }
-    AdvectFlows();
+    advectFlows();
     return true;
 }
 
 void
-NanoVis::GetFlowBounds(Vector3f& min,
+NanoVis::getFlowBounds(Vector3f& min,
                        Vector3f& max,
                        bool onlyVisible)
 {
@@ -1170,8 +1170,8 @@ NanoVis::GetFlowBounds(Vector3f& min,
 
     FlowCmd *flow;
     FlowIterator iter;
-    for (flow = FirstFlow(&iter); flow != NULL; 
-         flow = NextFlow(&iter)) {
+    for (flow = firstFlow(&iter); flow != NULL; 
+         flow = nextFlow(&iter)) {
         if (onlyVisible && !flow->visible())
             continue;
  #if 0  // Using volume bounds instead of these
@@ -1201,8 +1201,8 @@ NanoVis::GetFlowBounds(Vector3f& min,
 #endif
         FlowBox *box;
         FlowBoxIterator iter;
-        for (box = flow->FirstBox(&iter); box != NULL;
-             box = flow->NextBox(&iter)) {
+        for (box = flow->firstBox(&iter); box != NULL;
+             box = flow->nextBox(&iter)) {
             if (!onlyVisible || box->visible()) {
                 Vector3f fbmin, fbmax;
                 box->getWorldSpaceBounds(fbmin, fbmax,
@@ -1231,21 +1231,21 @@ NanoVis::GetFlowBounds(Vector3f& min,
 }
 
 void
-NanoVis::RenderFlows()
+NanoVis::renderFlows()
 {
     FlowCmd *flowPtr;
     FlowIterator iter;
-    for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NextFlow(&iter)) {
+    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = nextFlow(&iter)) {
         if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
-            flowPtr->Render();
+            flowPtr->render();
         }
     }
     flags &= ~REDRAW_PENDING;
 }
 
 void
-NanoVis::ResetFlows()
+NanoVis::resetFlows()
 {
     FlowCmd *flowPtr;
     FlowIterator iter;
@@ -1253,26 +1253,26 @@ NanoVis::ResetFlows()
     if (licRenderer->active()) {
         NanoVis::licRenderer->reset();
     }
-    for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NextFlow(&iter)) {
+    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = nextFlow(&iter)) {
         if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
-            flowPtr->ResetParticles();
+            flowPtr->resetParticles();
         }
     }
 }    
 
 void
-NanoVis::AdvectFlows()
+NanoVis::advectFlows()
 {
     FlowCmd *flowPtr;
     FlowIterator iter;
-    for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NextFlow(&iter)) {
+    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = nextFlow(&iter)) {
         if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
-            flowPtr->Advect();
+            flowPtr->advect();
         }
     }
-}    
+}
 
 /**
  * \brief Convert a Tcl_Obj representing the label of a child node into its
@@ -1505,7 +1505,7 @@ FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
 
-    if (flowPtr->ParseSwitches(interp, objc - 2, objv + 2) != TCL_OK) {
+    if (flowPtr->parseSwitches(interp, objc - 2, objv + 2) != TCL_OK) {
         return TCL_ERROR;
     }
     NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
@@ -1518,11 +1518,11 @@ FlowParticlesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
 
-    if (flowPtr->CreateParticles(interp, objv[3]) != TCL_OK) {
+    if (flowPtr->createParticles(interp, objv[3]) != TCL_OK) {
         return TCL_ERROR;
     }
     FlowParticles *particlesPtr;
-    if (flowPtr->GetParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
+    if (flowPtr->getParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
         return TCL_ERROR;
     }
     if (particlesPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
@@ -1542,7 +1542,7 @@ FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     FlowCmd *flowPtr = (FlowCmd *)clientData;
 
     FlowParticles *particlesPtr;
-    if (flowPtr->GetParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
+    if (flowPtr->getParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
         return TCL_ERROR;
     }
     if (particlesPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
@@ -1562,7 +1562,7 @@ FlowParticlesDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (i = 3; i < objc; i++) {
         FlowParticles *particlesPtr;
 
-        if (flowPtr->GetParticles(NULL, objv[i], &particlesPtr) == TCL_OK) {
+        if (flowPtr->getParticles(NULL, objv[i], &particlesPtr) == TCL_OK) {
             delete particlesPtr;
         }
     }
@@ -1579,8 +1579,8 @@ FlowParticlesNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
     FlowParticlesIterator iter;
     FlowParticles *particlesPtr;
-    for (particlesPtr = flowPtr->FirstParticles(&iter); particlesPtr != NULL; 
-         particlesPtr = flowPtr->NextParticles(&iter)) {
+    for (particlesPtr = flowPtr->firstParticles(&iter); particlesPtr != NULL; 
+         particlesPtr = flowPtr->nextParticles(&iter)) {
         Tcl_Obj *objPtr;
 
         objPtr = Tcl_NewStringObj(particlesPtr->name(), -1);
@@ -1633,14 +1633,14 @@ FlowBoxAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
 
-    if (flowPtr->CreateBox(interp, objv[3]) != TCL_OK) {
+    if (flowPtr->createBox(interp, objv[3]) != TCL_OK) {
         return TCL_ERROR;
     }
     FlowBox *boxPtr;
-    if (flowPtr->GetBox(interp, objv[3], &boxPtr) != TCL_OK) {
+    if (flowPtr->getBox(interp, objv[3], &boxPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (boxPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+    if (boxPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         delete boxPtr;
         return TCL_ERROR;
     }
@@ -1658,7 +1658,7 @@ FlowBoxDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (i = 3; i < objc; i++) {
         FlowBox *boxPtr;
 
-        if (flowPtr->GetBox(NULL, objv[i], &boxPtr) == TCL_OK) {
+        if (flowPtr->getBox(NULL, objv[i], &boxPtr) == TCL_OK) {
             delete boxPtr;
         }
     }
@@ -1675,8 +1675,8 @@ FlowBoxNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
     FlowBoxIterator iter;
     FlowBox *boxPtr;
-    for (boxPtr = flowPtr->FirstBox(&iter); boxPtr != NULL; 
-         boxPtr = flowPtr->NextBox(&iter)) {
+    for (boxPtr = flowPtr->firstBox(&iter); boxPtr != NULL; 
+         boxPtr = flowPtr->nextBox(&iter)) {
         Tcl_Obj *objPtr;
 
         objPtr = Tcl_NewStringObj(boxPtr->name(), -1);
@@ -1693,10 +1693,10 @@ FlowBoxConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     FlowCmd *flowPtr = (FlowCmd *)clientData;
 
     FlowBox *boxPtr;
-    if (flowPtr->GetBox(interp, objv[3], &boxPtr) != TCL_OK) {
+    if (flowPtr->getBox(interp, objv[3], &boxPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (boxPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+    if (boxPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         return TCL_ERROR;
     }
     NanoVis::eventuallyRedraw();
@@ -1755,7 +1755,7 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     
     const char *string = Tcl_GetString(objv[1]);
     TransferFunction *tf;
-    tf = flowPtr->GetTransferFunction();
+    tf = flowPtr->getTransferFunction();
     if (tf == NULL) {
         Tcl_AppendResult(interp, "unknown transfer function \"", string, "\"",
                          (char*)NULL);
@@ -1769,7 +1769,7 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
-        NanoVis::MapFlows();
+        NanoVis::mapFlows();
     }
     NanoVis::renderLegend(tf, NanoVis::magMin, NanoVis::magMax, w, h, label);
     return TCL_OK;
@@ -1827,14 +1827,14 @@ static int
 FlowAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
           Tcl_Obj *const *objv)
 {
-    if (NanoVis::CreateFlow(interp, objv[2]) != TCL_OK) {
+    if (NanoVis::createFlow(interp, objv[2]) != TCL_OK) {
         return TCL_ERROR;
     }
     FlowCmd *flowPtr;
-    if (NanoVis::GetFlow(interp, objv[2], &flowPtr) != TCL_OK) {
+    if (NanoVis::getFlow(interp, objv[2], &flowPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (flowPtr->ParseSwitches(interp, objc - 3, objv + 3) != TCL_OK) {
+    if (flowPtr->parseSwitches(interp, objc - 3, objv + 3) != TCL_OK) {
         Tcl_DeleteCommand(interp, flowPtr->name());
         return TCL_ERROR;
     }
@@ -1852,7 +1852,7 @@ FlowDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (i = 2; i < objc; i++) {
         FlowCmd *flowPtr;
 
-        if (NanoVis::GetFlow(interp, objv[i], &flowPtr) != TCL_OK) {
+        if (NanoVis::getFlow(interp, objv[i], &flowPtr) != TCL_OK) {
             return TCL_ERROR;
         }
         Tcl_DeleteCommand(interp, flowPtr->name());
@@ -1869,7 +1869,7 @@ FlowExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     FlowCmd *flowPtr;
 
     value = false;
-    if (NanoVis::GetFlow(NULL, objv[2], &flowPtr) == TCL_OK) {
+    if (NanoVis::getFlow(NULL, objv[2], &flowPtr) == TCL_OK) {
         value = true;
     }
     Tcl_SetBooleanObj(Tcl_GetObjResult(interp), (int)value);
@@ -1892,17 +1892,17 @@ FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_GetString(objv[2]), "\"", (char *)NULL);
         return TCL_ERROR;
     }
-    NanoVis::ResetFlows();
+    NanoVis::resetFlows();
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
-        NanoVis::MapFlows();
+        NanoVis::mapFlows();
     }
     int i;
-    NanoVis::AdvectFlows();
+    NanoVis::advectFlows();
     for (i = 0; i < nSteps; i++) {
         if (NanoVis::licRenderer->active()) {
             NanoVis::licRenderer->convolve();
         }
-        NanoVis::AdvectFlows();
+        NanoVis::advectFlows();
     }
     NanoVis::eventuallyRedraw();
     return TCL_OK;
@@ -1916,8 +1916,8 @@ FlowNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
     FlowCmd *flowPtr;
     FlowIterator iter;
-    for (flowPtr = NanoVis::FirstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NanoVis::NextFlow(&iter)) {
+    for (flowPtr = NanoVis::firstFlow(&iter); flowPtr != NULL; 
+         flowPtr = NanoVis::nextFlow(&iter)) {
         Tcl_Obj *objPtr;
 
         objPtr = Tcl_NewStringObj(flowPtr->name(), -1);
@@ -1933,11 +1933,11 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     assert(NanoVis::licRenderer != NULL);
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
-        NanoVis::MapFlows();
+        NanoVis::mapFlows();
     }
     NanoVis::eventuallyRedraw();
     NanoVis::licRenderer->convolve();
-    NanoVis::AdvectFlows();
+    NanoVis::advectFlows();
     return TCL_OK;
 }
 
@@ -1945,7 +1945,7 @@ static int
 FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
-    NanoVis::ResetFlows();
+    NanoVis::resetFlows();
     return TCL_OK;
 }
 
@@ -2308,7 +2308,7 @@ int
 FlowCmdInitProc(Tcl_Interp *interp)
 {
     Tcl_CreateObjCommand(interp, "flow", FlowCmdProc, NULL, NULL);
-    NanoVis::InitFlows();
+    NanoVis::initFlows();
     return TCL_OK;
 }
 
