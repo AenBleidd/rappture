@@ -246,6 +246,7 @@ NanoVis::removeAllData()
     if (screenBuffer != NULL) {
         TRACE("Deleting screenBuffer");
         delete [] screenBuffer;
+        screenBuffer = NULL;
     }
     if (perf != NULL) {
         TRACE("Deleting perf");
@@ -1301,26 +1302,9 @@ NanoVis::ppmWrite(const char *prefix)
 void
 NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
 {
-    /*
-      char header[200];
+    size_t numRecords = 2;
 
-      // Generate the PPM binary file header
-      sprintf(header, "P6 %d %d %d\n", winWidth, winHeight, PPM_MAXVAL);
-
-      size_t header_length = strlen(header);
-      size_t data_length = winWidth * winHeight * 3;
-
-      char command[200];
-      sprintf(command, "%s %lu\n", prefix, 
-      (unsigned long)header_length + data_length);
-    */
-
-    //    size_t wordsPerRow = (winWidth * 24 + 31) / 32;
-    //    size_t bytesPerRow = wordsPerRow * 4;
-    //    size_t rowLength = winWidth * 3;
-    size_t nRecs = 2;
-
-    struct iovec *iov = new iovec[nRecs];
+    struct iovec *iov = new iovec[numRecords];
 
     // Write the nanovisviewer command, then the image header and data.
     // Command
@@ -1331,12 +1315,10 @@ NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
     // FIXME: shouldn't have to cast this
     iov[1].iov_base = (char *)data;
     iov[1].iov_len = dlen;
-    if (writev(1, iov, nRecs) < 0) {
+    if (writev(1, iov, numRecords) < 0) {
         ERROR("write failed: %s", strerror(errno));
     }
     delete [] iov;
-    // stats.nFrames++;
-    // stats.nBytes += (bytesPerRow * winHeight);
 }
 
 void

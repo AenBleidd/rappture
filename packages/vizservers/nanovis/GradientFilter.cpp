@@ -160,7 +160,7 @@ void computeGradients(float *gradients, void *volData, int *sizes,
     g_sliceDists[1] = spacing[1];
     g_sliceDists[2] = spacing[2];
 
-    int i, j, k, dir, di, vdi, idz, idy, idx;
+    int i, j, k, dir, idz, idy, idx;
     float *gp;
 
     static int weights[][3][3][3] = {
@@ -195,8 +195,6 @@ void computeGradients(float *gradients, void *volData, int *sizes,
 
     TRACE("computing gradients ... may take a while");
 
-    di = 0;
-    vdi = 0;
     gp = gradients;
     for (idz = 0; idz < sizes[2]; idz++) {
         for (idy = 0; idy < sizes[1]; idy++) {

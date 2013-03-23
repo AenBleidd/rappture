@@ -160,8 +160,6 @@ Fonts::loadFont(const char *fontName, const char *fontFileName,
         fsInput.read(reinterpret_cast<char*>(&uiFileId), sizeof(unsigned int));
         if (uiFileId == (unsigned int)c_nFileMagicHeader) {
             // read general font/texture dimensions
-            unsigned int uiTextureWidth, uiTextureHeight, uiFontHeight;
-            uiTextureWidth = uiTextureHeight = uiFontHeight = 0;
             fsInput.read(reinterpret_cast<char*>(&sFont._textureWidth), 
                          sizeof(unsigned int));
             fsInput.read(reinterpret_cast<char*>(&sFont._textureHeight), 

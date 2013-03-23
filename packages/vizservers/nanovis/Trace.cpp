@@ -53,7 +53,9 @@ CheckFBO(GLenum *statusPtr)
 void
 PrintFBOStatus(GLenum status, const char *prefix) 
 {
+#ifdef WANT_TRACE
     const char *mesg;
+
     switch(status) {
     case GL_FRAMEBUFFER_COMPLETE_EXT:
 	mesg = "<<<< OK >>>>";						break;
@@ -77,16 +79,20 @@ PrintFBOStatus(GLenum status, const char *prefix)
 	return;
     }
     TRACE("FB Status: %s: %s", prefix, mesg);
+#endif  /*WANT_TRACE*/
 }
 
 bool
 CheckGL(const char *prefix)
 {
-    const char *mesg;
     GLenum status = (GLenum)glGetError();
-    switch(status) {
-    case GL_NO_ERROR:
+    if (status == GL_NO_ERROR) {
 	return true;
+    }
+#ifdef WANT_TRACE
+    const char *mesg;                   
+
+    switch(status) {
     case GL_INVALID_ENUM:
 	mesg = "GL_INVALID_ENUM";			break;
     case GL_INVALID_VALUE:
@@ -106,6 +112,7 @@ CheckGL(const char *prefix)
 	return false;
     } 
     TRACE("GL Status: %s: %s", prefix, mesg);
+#endif
     return false;
 }
 

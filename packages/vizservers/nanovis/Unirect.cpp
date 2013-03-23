@@ -88,9 +88,7 @@ Rappture::Unirect3d::loadData(Tcl_Interp *interp, int objc,
 {
     int num[3], nValues;
     float min[3], max[3];
-    float *values;
-    const char *units[4], *order;
-
+    const char *units[4];
 
     if ((objc-1) & 0x01) {
         Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
@@ -105,10 +103,9 @@ Rappture::Unirect3d::loadData(Tcl_Interp *interp, int objc,
     axis2 = 1; 			/* Y-axis */
     axis3 = 2;			/* Z-axis */
 
-    values = NULL;
     num[0] = num[1] = num[2] = nValues = 0;
     min[0] = min[1] = min[2] = max[0] = max[1] = max[2] = 0.0f;
-    order = units[0] = units[1] = units[2] = units[3] = NULL;
+    units[0] = units[1] = units[2] = units[3] = NULL;
 
     int i;
     for (i = 1; i < objc; i += 2) {

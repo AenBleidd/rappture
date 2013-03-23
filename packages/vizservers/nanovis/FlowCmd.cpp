@@ -4,12 +4,17 @@
  *
  */
 #include <assert.h>
+#define _OPEN_SYS
+#include <fcntl.h>
+#define _XOPEN_SOURCE_EXTENDED 1
+#include <sys/uio.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <limits.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <poll.h>
-
 #include <tcl.h>
 
 #include <RpField1D.h>
@@ -22,14 +27,6 @@
 #include <vrmath/Matrix4x4d.h>
 
 #include "nvconf.h"
-
-#if defined(HAVE_LIBAVCODEC) || defined(HAVE_LIBAVFORMAT)
-#define HAVE_FFMPEG 1
-#endif
-
-#ifdef HAVE_FFMPEG
-#include "RpAVTranslate.h"
-#endif
 
 #include "nanovis.h"
 #include "FlowCmd.h"
@@ -162,12 +159,6 @@ FlowParticles::~FlowParticles()
 void
 FlowParticles::render() 
 {
-    TRACE("rendering particles %s", _name);
-    TRACE("rendering particles %s axis=%d", _name, _sv.position.axis);
-    TRACE("rendering particles %s position=%g", _name, _sv.position.value);
-    TRACE("rendering particles %s position=%g", _name, 
-          FlowCmd::GetRelativePosition(&_sv.position));
-
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setAxis(_sv.position.axis);
     assert(_rendererPtr->active());
@@ -242,8 +233,6 @@ FlowBox::getWorldSpaceBounds(Vector3f& bboxMin,
         z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
     }
 
-    TRACE("Box model bounds: (%g,%g,%g) - (%g,%g,%g)", x0, y0, z0, x1, y1, z1);
-
     Vector3f modelMin(x0, y0, z0);
     Vector3f modelMax(x1, y1, z1);
 
@@ -266,17 +255,11 @@ FlowBox::getWorldSpaceBounds(Vector3f& bboxMin,
         if (worldVert.z < bboxMin.z) bboxMin.z = worldVert.z;
         if (worldVert.z > bboxMax.z) bboxMax.z = worldVert.z;
     }
-
-    TRACE("Box world bounds: (%g,%g,%g) - (%g,%g,%g)",
-          bboxMin.x, bboxMin.y, bboxMin.z,
-          bboxMax.x, bboxMax.y, bboxMax.z);
 }
 
 void 
 FlowBox::Render(Volume *vol)
 {
-    TRACE("Rendering box %s", _name);
-
     glPushAttrib(GL_ENABLE_BIT);
 
     glEnable(GL_DEPTH_TEST);
@@ -300,13 +283,6 @@ FlowBox::Render(Volume *vol)
     max.y = vol->yAxis.max();
     max.z = vol->zAxis.max();
 
-    TRACE("box is %g,%g %g,%g %g,%g", 
-          _sv.corner1.x, _sv.corner2.x,
-          _sv.corner1.y, _sv.corner2.y,
-          _sv.corner1.z, _sv.corner2.z);
-    TRACE("world is %g,%g %g,%g %g,%g", 
-          min.x, max.x, min.y, max.y, min.z, max.z);
-
     float x0, y0, z0, x1, y1, z1;
     x0 = y0 = z0 = 0.0f;
     x1 = y1 = z1 = 0.0f;
@@ -322,8 +298,6 @@ FlowBox::Render(Volume *vol)
         z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
         z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
     }
-    TRACE("rendering box %g,%g %g,%g %g,%g", x0, x1, y0, y1, z0, z1);
-
     glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
     glLineWidth(_sv.lineWidth);
     glBegin(GL_LINE_LOOP); 
@@ -461,7 +435,6 @@ FlowCmd::Render()
             particlesPtr->render();
         }
     }
-    TRACE("in Render before boxes %s", _name);
     RenderBoxes();
 }
 
@@ -611,7 +584,6 @@ bool
 FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
-        TRACE("from ScaleVectorField volId=%s", _volPtr->name());
         NanoVis::removeVolume(_volPtr);
         _volPtr = NULL;
     }
@@ -693,7 +665,6 @@ FlowCmd::RenderBoxes()
     FlowBoxIterator iter;
     FlowBox *boxPtr;
     for (boxPtr = FirstBox(&iter); boxPtr != NULL; boxPtr = NextBox(&iter)) {
-        TRACE("found box %s", boxPtr->name());
         if (boxPtr->visible()) {
             boxPtr->Render(_volPtr);
         }
@@ -747,11 +718,6 @@ FlowCmd::MakeVolume(float *data)
     volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.setRange(_dataPtr->zMin(), _dataPtr->zMax());
 
-    TRACE("min=%g %g %g max=%g %g %g mag=%g %g", 
-          NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
-          NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
-          NanoVis::magMin, NanoVis::magMax);
-
     volPtr->disableCutplane(0);
     volPtr->disableCutplane(1);
     volPtr->disableCutplane(2);
@@ -785,7 +751,6 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     
     const char *fileName;
     fileName = Tcl_GetString(objv[3]);
-    TRACE("Flow loading data from file %s", fileName);
 
     int nComponents;
     if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
@@ -829,7 +794,6 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
-        TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
@@ -856,8 +820,6 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Rappture::Outcome result;
 
-    TRACE("Flow Data Loading");
-
     int nBytes;
     if (Tcl_GetIntFromObj(interp, objv[3], &nBytes) != TCL_OK) {
         ERROR("Bad nBytes \"%s\"", Tcl_GetString(objv[3]));
@@ -881,7 +843,6 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Rappture::Buffer buf;
-    TRACE("Flow Data Loading %d %d", nBytes, nComponents);
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -912,7 +873,6 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
-        TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
@@ -924,18 +884,6 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
-    TRACE("nx = %d ny = %d nz = %d", dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
-    TRACE("x0 = %lg y0 = %lg z0 = %lg", dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
-    TRACE("lx = %lg ly = %lg lz = %lg",
-          dataPtr->xMax() - dataPtr->xMin(),
-          dataPtr->yMax() - dataPtr->yMin(),
-          dataPtr->zMax() - dataPtr->zMin());
-    TRACE("dx = %lg dy = %lg dz = %lg",
-          dataPtr->xNum() > 1 ? (dataPtr->xMax() - dataPtr->xMin())/(dataPtr->xNum()-1) : 0,
-          dataPtr->yNum() > 1 ? (dataPtr->yMax() - dataPtr->yMin())/(dataPtr->yNum()-1) : 0,
-          dataPtr->zNum() > 1 ? (dataPtr->zMax() - dataPtr->zMin())/(dataPtr->zNum()-1) : 0);
-    TRACE("magMin = %lg magMax = %lg",
-          dataPtr->magMin(), dataPtr->magMax());
     flowPtr->data(dataPtr);
     {
         char info[1024];
@@ -1092,7 +1040,6 @@ bool
 NanoVis::MapFlows()
 {
     flags &= ~MAP_FLOWS;
-    TRACE("Enter");
 
     /* 
      * Step 1. Get the overall min and max magnitudes of all the 
@@ -1137,8 +1084,6 @@ NanoVis::MapFlows()
         }
     }
 
-    TRACE("MapFlows magMin=%g magMax=%g", NanoVis::magMin, NanoVis::magMax);
-
     /* 
      * Step 2. Generate the vector field from each data set. 
      */
@@ -1166,8 +1111,6 @@ NanoVis::GetFlowBounds(Vector3f& min,
                        Vector3f& max,
                        bool onlyVisible)
 {
-    TRACE("Enter");
-
     min.set(FLT_MAX, FLT_MAX, FLT_MAX);
     max.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
@@ -1206,7 +1149,6 @@ NanoVis::GetFlowBounds(Vector3f& min,
         FlowBoxIterator iter;
         for (box = flow->FirstBox(&iter); box != NULL;
              box = flow->NextBox(&iter)) {
-            TRACE("found box %s", box->name());
             if (!onlyVisible || box->visible()) {
                 Vector3f fbmin, fbmax;
                 box->getWorldSpaceBounds(fbmin, fbmax,
@@ -1953,8 +1895,6 @@ FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-#ifdef HAVE_FFMPEG
-
 /**
  * \brief Convert a Tcl_Obj representing the video format into its
  * integer id.
@@ -1974,32 +1914,41 @@ VideoFormatSwitchProc(ClientData clientData, Tcl_Interp *interp,
                       const char *switchName, Tcl_Obj *objPtr,
                       char *record, int offset, int flags)
 {
-    Rappture::AVTranslate::VideoFormats *formatPtr = 
-        (Rappture::AVTranslate::VideoFormats *)(record + offset);
+    Tcl_Obj **formatObjPtr = (Tcl_Obj **)(record + offset);
+    Tcl_Obj *fmtObjPtr;
     const char *string;
     char c; 
+    int length;
 
-    string = Tcl_GetString(objPtr);
+    string = Tcl_GetStringFromObj(objPtr, &length);
     c = string[0];
-    if ((c == 'm') && (strcmp(string, "mpeg") == 0)) {
-        *formatPtr =  Rappture::AVTranslate::MPEG1;
-    } else if ((c == 't') && (strcmp(string, "theora") == 0)) {
-        *formatPtr = Rappture::AVTranslate::THEORA;
-    } else if ((c == 'm') && (strcmp(string, "mov") == 0)) {
-        *formatPtr = Rappture::AVTranslate::QUICKTIME;
+    if ((c == 'm') && (length > 1) && 
+        (strncmp(string, "mpeg", length) == 0)) {
+        fmtObjPtr =  Tcl_NewStringObj("mpeg1video", 10);
+    } else if ((c == 't') && (strncmp(string, "theora", length) == 0)) {
+        fmtObjPtr =  Tcl_NewStringObj("theora", 6);
+    } else if ((c == 'm') && (length > 1) &&
+               (strncmp(string, "mov", length) == 0)) {
+        fmtObjPtr =  Tcl_NewStringObj("mov", 3);
     } else {
         Tcl_AppendResult(interp, "bad video format \"", string,
                          "\": should be mpeg, theora, or mov", (char*)NULL);
+        return TCL_ERROR;
     }
-    return TCL_ERROR;
+    if (*formatObjPtr != NULL) {
+        Tcl_DecrRefCount(*formatObjPtr);
+    }
+    Tcl_IncrRefCount(fmtObjPtr);
+    *formatObjPtr = fmtObjPtr;
+    return TCL_OK;
 }
 
-struct FlowVideoValues {
+struct FlowVideoSwitches {
     float frameRate;         /**< Frame rate */
     int bitRate;             /**< Video bitrate */
     int width, height;       /**< Dimensions of video frame. */
-    int nFrames;
-    Rappture::AVTranslate::VideoFormats format;
+    int numFrames;
+    Tcl_Obj *formatObjPtr;
 };
 
 static Rappture::SwitchParseProc VideoFormatSwitchProc;
@@ -2009,99 +1958,102 @@ static Rappture::SwitchCustom videoFormatSwitch = {
 
 Rappture::SwitchSpec FlowCmd::videoSwitches[] = {
     {Rappture::SWITCH_INT, "-bitrate", "value",
-     offsetof(FlowVideoValues, bitRate), 0},
+     offsetof(FlowVideoSwitches, bitRate), 0},
     {Rappture::SWITCH_CUSTOM, "-format", "string",
-     offsetof(FlowVideoValues, format), 0, 0, &videoFormatSwitch},
+     offsetof(FlowVideoSwitches, formatObjPtr), 0, 0, &videoFormatSwitch},
     {Rappture::SWITCH_FLOAT, "-framerate", "value",
-     offsetof(FlowVideoValues, frameRate), 0},
+     offsetof(FlowVideoSwitches, frameRate), 0},
     {Rappture::SWITCH_INT, "-height", "integer",
-     offsetof(FlowVideoValues, height), 0},
+     offsetof(FlowVideoSwitches, height), 0},
     {Rappture::SWITCH_INT, "-numframes", "count",
-     offsetof(FlowVideoValues, nFrames), 0},
+     offsetof(FlowVideoSwitches, numFrames), 0},
     {Rappture::SWITCH_INT, "-width", "integer",
-     offsetof(FlowVideoValues, width), 0},
+     offsetof(FlowVideoSwitches, width), 0},
     {Rappture::SWITCH_END}
 };
 
+#ifdef HAVE_FFMPEG
+
 static int
-FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-            Tcl_Obj *const *objv)
+ppmWriteToFile(Tcl_Interp *interp, const char *path, FlowVideoSwitches *switchesPtr)
+{
+    int f;
+    
+    /* Open the named file for writing. */
+    f = creat(path, 0600);
+    if (f < 0) {
+        Tcl_AppendResult(interp, "can't open temporary image file \"", path,
+                         "\": ", Tcl_PosixError(interp), (char *)NULL);
+        return TCL_ERROR;
+    }
+    // Generate the PPM binary file header
+    char header[200];
+#define PPM_MAXVAL 255
+    sprintf(header, "P6 %d %d %d\n", switchesPtr->width, switchesPtr->height, 
+        PPM_MAXVAL);
+
+    size_t header_length = strlen(header);
+    size_t wordsPerRow = (switchesPtr->width * 24 + 31) / 32;
+    size_t bytesPerRow = wordsPerRow * 4;
+    size_t rowLength = switchesPtr->width * 3;
+    size_t numRecords = switchesPtr->height + 1;
+
+    struct iovec *iov;
+    iov = (struct iovec *)malloc(sizeof(struct iovec) * numRecords);
+
+    // Add the PPM image header.
+    iov[0].iov_base = header;
+    iov[0].iov_len = header_length;
+
+    // Now add the image data, reversing the order of the rows.
+    int y;
+    unsigned char *srcRowPtr = NanoVis::screenBuffer;
+    /* Reversing the pointers for the image rows.  PPM is top-to-bottom. */
+    for (y = switchesPtr->height; y >= 1; y--) {
+        iov[y].iov_base = srcRowPtr;
+        iov[y].iov_len = rowLength;
+        srcRowPtr += bytesPerRow;
+    }
+    if (writev(f, iov, numRecords) < 0) {
+        Tcl_AppendResult(interp, "writing image to \"", path, "\" failed: ", 
+                         Tcl_PosixError(interp), (char *)NULL);
+        free(iov);
+        close(f);
+        return TCL_ERROR;
+    }
+    close(f);
+    free(iov);
+    return TCL_OK;
+}
+
+static int
+MakeImageFiles(Tcl_Interp *interp, char *tmpFileName, 
+               FlowVideoSwitches *switchesPtr, bool *cancelPtr)
 {
     struct pollfd pollResults;
-    int timeout;
-
     pollResults.fd = fileno(NanoVis::stdin);
     pollResults.events = POLLIN;
-
 #define PENDING_TIMEOUT          10  /* milliseconds. */
-    timeout = PENDING_TIMEOUT;
+    int timeout = PENDING_TIMEOUT;
 
-    FlowVideoValues values;
-    const char *token;
-
-    token = Tcl_GetString(objv[2]);
-    values.frameRate = 25.0f;                // Default frame rate 25 fps
-    values.bitRate = 6000000;                // Default video bit rate.
-    values.width = NanoVis::winWidth;
-    values.height = NanoVis::winHeight;
-    values.nFrames = 100;
-    values.format = Rappture::AVTranslate::MPEG1;
-    if (Rappture::ParseSwitches(interp, FlowCmd::videoSwitches, 
-                                objc - 3, objv + 3, &values, SWITCH_DEFAULTS) < 0) {
-        return TCL_ERROR;
-    }
-    if ((values.width < 0) || (values.width > SHRT_MAX) || 
-        (values.height < 0) || (values.height > SHRT_MAX)) {
-        Tcl_AppendResult(interp, "bad dimensions for video", (char *)NULL);
-        return TCL_ERROR;
-    }
-    if ((values.frameRate < 0.0f) || (values.frameRate > 30.0f)) {
-        Tcl_AppendResult(interp, "bad frame rate.", (char *)NULL);
-        return TCL_ERROR;
-    }
-    if (values.bitRate < 0) {
-        Tcl_AppendResult(interp, "bad bit rate.", (char *)NULL);
-        return TCL_ERROR;
-    }
-    if (NanoVis::licRenderer == NULL) {
-        Tcl_AppendResult(interp, "no lic renderer.", (char *)NULL);
-        return TCL_ERROR;
-    }
-    // Save the old dimensions of the offscreen buffer.
     int oldWidth, oldHeight;
     oldWidth = NanoVis::winWidth;
     oldHeight = NanoVis::winHeight;
 
-    TRACE("FLOW started");
-
-    Rappture::Outcome context;
-
-    Rappture::AVTranslate movie(values.width, values.height,
-                                values.bitRate, 
-                                values.frameRate);
-    char tmpFileName[200];
-    sprintf(tmpFileName,"/tmp/flow%d.mpeg", getpid());
-    if (!movie.init(context, tmpFileName)) {
-        Tcl_AppendResult(interp, "can't initialized movie \"", tmpFileName, 
-                         "\": ", context.remark(), (char *)NULL);
-        return TCL_ERROR;
-    }
-    if ((values.width != oldWidth) || (values.height != oldHeight)) {
+    if ((switchesPtr->width != oldWidth) || 
+        (switchesPtr->height != oldHeight)) {
         // Resize to the requested size.
-        NanoVis::resizeOffscreenBuffer(values.width, values.height);
-    }
-    // Now compute the line padding for the offscreen buffer.
-    int pad = 0;
-    if (( 3 * values.width) % 4 > 0) {
-        pad = 4 - ((3* values.width) % 4);
+        NanoVis::resizeOffscreenBuffer(switchesPtr->width, switchesPtr->height);
     }
     NanoVis::ResetFlows();
-    bool canceled = false;
-    for (int i = 1; i <= values.nFrames; i++) {
-        if (((i & 0xF) == 0) && (poll(&pollResults, 1, 0) > 0)) {
+    *cancelPtr = false;
+    int result = TCL_OK;
+    size_t length = strlen(tmpFileName);
+    for (int i = 1; i <= switchesPtr->numFrames; i++) {
+        if (((i & 0xF) == 0) && (poll(&pollResults, 1, timeout) > 0)) {
             /* If there's another command on stdin, that means the client is
              * trying to cancel this operation. */
-            canceled = true;
+            *cancelPtr = true;
             break;
         }
         if (NanoVis::licRenderer->active()) {
@@ -2118,36 +2070,140 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
-        movie.append(context, NanoVis::screenBuffer, pad);
-    }
-    movie.done(context);
-    TRACE("FLOW end");
-    if (!canceled) {
-        Rappture::Buffer data;
-
-        /* FIXME: find a way to get the data from the movie object as a
-         * void* */
-        if (!data.load(context, tmpFileName)) {
-            Tcl_AppendResult(interp, "can't load data from temporary file \"",
-                             tmpFileName, "\": ", context.remark(), (char *)NULL);
-            return TCL_ERROR;
+        sprintf(tmpFileName + length, "/image%d.ppm", i);
+        result = ppmWriteToFile(interp, tmpFileName, switchesPtr);
+        if (result != TCL_OK) {
+            break;
         }
-
-        char command[200];
-        sprintf(command,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
-                token, (unsigned long)data.size());
-        NanoVis::sendDataToClient(command, data.bytes(), data.size());
     }
-    if ((values.width != oldWidth) || (values.height != oldHeight)) {
+    if ((switchesPtr->width != oldWidth) || 
+        (switchesPtr->height != oldHeight)) {
         NanoVis::resizeOffscreenBuffer(oldWidth, oldHeight);
     }
+    tmpFileName[length] = '\0';
     NanoVis::ResetFlows();
-    if (unlink(tmpFileName) != 0) {
-        Tcl_AppendResult(interp, "can't unlink temporary movie file \"",
-                         tmpFileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+    return result;
+}
+
+static int
+MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
+          FlowVideoSwitches *switchesPtr)
+{
+#ifndef FFMPEG 
+#  define FFMPEG "/usr/bin/ffmpeg"
+#endif
+    /* Generate the movie from the frame images by exec-ing ffmpeg */
+    /* The ffmpeg command is
+     *   ffmpeg -f image2 -i /var/tmp/xxxxx/image%d.ppm                 \
+     *      -b bitrate -f framerate /var/tmp/xxxxx/movie.mpeg 
+     */
+    char cmd[BUFSIZ];
+    sprintf(cmd, "%s -f image2 -i %s/image%%d.ppm -f %s -b:v %d -r %f -",
+            FFMPEG, tmpFileName, Tcl_GetString(switchesPtr->formatObjPtr), 
+            switchesPtr->bitRate, switchesPtr->frameRate);
+    TRACE("MakeMovie %s", cmd);
+    FILE *f;
+    f = popen(cmd, "r");
+    if (f == NULL) {
+        Tcl_AppendResult(interp, "can't run ffmpeg: ", 
+                         Tcl_PosixError(interp), (char *)NULL);
         return TCL_ERROR;
     }
+    Rappture::Buffer data;
+    size_t total = 0;
+    for (;;) {
+        ssize_t numRead;
+        char buffer[BUFSIZ]; 
+        
+        numRead = fread(buffer, sizeof(unsigned char), BUFSIZ, f);
+        total += numRead;
+        if (numRead == 0) {             // EOF
+            break;
+        }
+        if (numRead < 0) {              // Error
+            ERROR("MakeMovie: can't read movie data: %s",
+                  Tcl_PosixError(interp));
+            Tcl_AppendResult(interp, "can't read movie data: ", 
+                Tcl_PosixError(interp), (char *)NULL);
+            return TCL_ERROR;
+        }
+        if (!data.append(buffer, numRead)) {
+            ERROR("MakeMovie: can't append movie data to buffer %d bytes",
+                  numRead);
+            Tcl_AppendResult(interp, "can't append movie data to buffer",
+                             (char *)NULL);
+            return TCL_ERROR;
+        }
+    }
+    sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
+            token, (unsigned long)data.size());
+    NanoVis::sendDataToClient(cmd, data.bytes(), data.size());
     return TCL_OK;
+}
+
+static int
+FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    FlowVideoSwitches switches;
+    const char *token;
+
+    token = Tcl_GetString(objv[2]);
+    switches.frameRate = 25.0f;                // Default frame rate 25 fps
+    switches.bitRate = 6000000;                // Default video bit rate.
+    switches.width = NanoVis::winWidth;
+    switches.height = NanoVis::winHeight;
+    switches.numFrames = 100;
+    switches.formatObjPtr = Tcl_NewStringObj("mpeg1video", 10);
+    Tcl_IncrRefCount(switches.formatObjPtr);
+    if (Rappture::ParseSwitches(interp, FlowCmd::videoSwitches, 
+                objc - 3, objv + 3, &switches, SWITCH_DEFAULTS) < 0) {
+        return TCL_ERROR;
+    }
+    if ((switches.width < 0) || (switches.width > SHRT_MAX) || 
+        (switches.height < 0) || (switches.height > SHRT_MAX)) {
+        Tcl_AppendResult(interp, "bad dimensions for video", (char *)NULL);
+        return TCL_ERROR;
+    }
+    if ((switches.frameRate < 0.0f) || (switches.frameRate > 30.0f)) {
+        Tcl_AppendResult(interp, "bad frame rate.", (char *)NULL);
+        return TCL_ERROR;
+    }
+    if (switches.bitRate < 0) {
+        Tcl_AppendResult(interp, "bad bit rate.", (char *)NULL);
+        return TCL_ERROR;
+    }
+    if (NanoVis::licRenderer == NULL) {
+        Tcl_AppendResult(interp, "no lic renderer.", (char *)NULL);
+        return TCL_ERROR;
+    }
+    TRACE("FLOW started");
+
+    char *tmpFileName;
+    char nameTemplate[200];
+    strcpy(nameTemplate,"/var/tmp/flowXXXXXX");
+    tmpFileName = mkdtemp(nameTemplate);
+    int result = TCL_OK;
+    if (tmpFileName == NULL) {
+        Tcl_AppendResult(interp, "can't create temporary directory \"",
+                         nameTemplate, "\" for frame image files: ", 
+                         Tcl_PosixError(interp), (char *)NULL);
+        return TCL_ERROR;
+    }
+    size_t length = strlen(tmpFileName);
+    bool canceled = false;
+    result = MakeImageFiles(interp, tmpFileName, &switches, &canceled);
+    if ((result == TCL_OK) && (!canceled)) {
+        result = MakeMovie(interp, tmpFileName, token, &switches);
+    }
+    for (int i = 1; i <= switches.numFrames; i++) {
+        sprintf(tmpFileName + length, "/image%d.ppm", i);
+        unlink(tmpFileName);
+    }        
+    tmpFileName[length] = '\0';
+    rmdir(tmpFileName);
+    Rappture::FreeSwitches(FlowCmd::videoSwitches, &switches, 0);
+    return result;
 }
 #else
 /**

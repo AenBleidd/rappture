@@ -39,7 +39,8 @@
 
 #include <assert.h>
 #include <stdlib.h>
-
+#include <unistd.h>                     /* Needed for getpid, gethostname,
+                                         * write, etc. */
 #include <tcl.h>
 
 #include <RpField1D.h>
@@ -54,7 +55,6 @@
 #include "nanovis.h"
 #include "CmdProc.h"
 #include "Trace.h"
-
 #ifdef PLANE_CMD
 #include "PlaneRenderer.h"
 #endif
@@ -80,7 +80,7 @@ static const char def_transfunc[] =
   0.00  0 0 1\n\
   0.25  0 1 1\n\
   0.50  0 1 0\n\
-  0.75  1 1 0\n\
+   0.75  1 1 0\n\
   1.00  1 0 0\n\
 } {\n\
   0.000000 0.0\n\
