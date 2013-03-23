@@ -918,17 +918,19 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
-    TRACE("nx = %d ny = %d nz = %d\n", dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
-    TRACE("x0 = %lg y0 = %lg z0 = %lg\n", dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
-    TRACE("lx = %lg ly = %lg lz = %lg\n",
+    TRACE("nx = %d ny = %d nz = %d",
+          dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
+    TRACE("x0 = %lg y0 = %lg z0 = %lg",
+          dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    TRACE("lx = %lg ly = %lg lz = %lg",
           dataPtr->xMax() - dataPtr->xMin(),
           dataPtr->yMax() - dataPtr->yMin(),
           dataPtr->zMax() - dataPtr->zMin());
-    TRACE("dx = %lg dy = %lg dz = %lg\n",
+    TRACE("dx = %lg dy = %lg dz = %lg",
           dataPtr->xNum() > 1 ? (dataPtr->xMax() - dataPtr->xMin())/(dataPtr->xNum()-1) : 0,
           dataPtr->yNum() > 1 ? (dataPtr->yMax() - dataPtr->yMin())/(dataPtr->yNum()-1) : 0,
           dataPtr->zNum() > 1 ? (dataPtr->zMax() - dataPtr->zMin())/(dataPtr->zNum()-1) : 0);
-    TRACE("magMin = %lg magMax = %lg\n",
+    TRACE("magMin = %lg magMax = %lg",
           dataPtr->magMin(), dataPtr->magMax());
     flowPtr->data(dataPtr);
     {
