@@ -93,7 +93,7 @@ static inline void readFieldValue(void *data, int idx, FieldType type, std::iost
     case DOUBLE: {
         double val;
         fin >> val;
-        ((float *)data)[idx] = val;
+        ((double *)data)[idx] = val;
     }
         break;
     case SHORT: {
