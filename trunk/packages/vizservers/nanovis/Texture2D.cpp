@@ -71,10 +71,12 @@ GLuint Texture2D::initialize(void *data)
 
 void Texture2D::update(void *data)
 {
-    static GLuint floatFormats[] = { -1, GL_LUMINANCE32F_ARB, GL_LUMINANCE_ALPHA32F_ARB, GL_RGB32F_ARB, GL_RGBA32F_ARB };
-    static GLuint halfFloatFormats[] = { -1, GL_LUMINANCE16F_ARB, GL_LUMINANCE_ALPHA16F_ARB, GL_RGB16F_ARB, GL_RGBA16F_ARB };
-    static GLuint basicFormats[] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-
+    static GLuint halfFloatFormats[] = { 
+        (unsigned int)-1, GL_LUMINANCE16F_ARB, GL_LUMINANCE_ALPHA16F_ARB, 
+        GL_RGB16F_ARB, GL_RGBA16F_ARB };
+    static GLuint basicFormats[] = { 
+        (unsigned int)-1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA 
+    };
     glBindTexture(GL_TEXTURE_2D, _id);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

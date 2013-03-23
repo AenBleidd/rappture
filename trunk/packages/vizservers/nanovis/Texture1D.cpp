@@ -75,7 +75,9 @@ void Texture1D::update(void *data)
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, _interpType);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, _interpType);
 
-    GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+    GLuint format[5] = { 
+        (unsigned int)-1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA 
+    };
 
     glTexImage1D(GL_TEXTURE_1D, 0, format[_numComponents], _width, 0,
                  format[_numComponents], _type, data);

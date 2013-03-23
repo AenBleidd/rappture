@@ -136,7 +136,6 @@ OBJS		= \
 		PlaneRenderer.o \
 		ReaderCommon.o \
 		RenderVertexArray.o \
-		RpAVTranslate.o \
 		Switch.o \
 		Texture1D.o \
 		Texture2D.o \
