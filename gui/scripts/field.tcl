@@ -816,16 +816,14 @@ itcl::body Rappture::Field::Build {} {
             set _comp2dims($cname) "3D"
             set _comp2dx($cname)  [$_fldObj get -decode no $cname.dx]
             if 0 {
-                set data  [$_fldObj get -decode yes $cname.dx]
-                set file "/tmp/junk.dx"
-                set f [open $file "w"]
+                set hdr "@@RP-ENC:zb64\n"
+                set data  [$_fldObj get -decode no $cname.dx]
+                set data "$hdr$data"
+                set data  [Rappture::encoding::decode $data]
+                set data  [Rappture::DxToVtk $data]
+                set f [open /tmp/$_path.$cname.vtk "w"]
                 puts $f $data
                 close $f
-                if { [string match "<ODX>*" $data] } {
-                    set data [string range $data 5 end]
-                    set _comp2dx($cname) \
-                        [Rappture::encoding::encode -as zb64 $data]
-                } 
             }
             set _comp2style($cname) [$_fldObj get $cname.style]
             if {[$_fldObj element $cname.flow] != ""} {
@@ -1057,7 +1055,7 @@ itcl::body Rappture::Field::ConvertToVtkData { cname } {
 	    return [$dataobj blob $cname]
 	}
 	"dx" {
-            return [Rappture::ConvertDxToVtk $_comp2dx($cname)]
+            return [Rappture::DxToVtk $_comp2dx($cname)]
 	}
 	default {
 	    set mesh [$dataobj mesh $cname]
@@ -1208,7 +1206,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
     }
     # DX: Convert DX to VTK 
     if {[info exists _comp2dx($cname)]} {
-	return [Rappture::ConvertDxToVtk $_comp2dx($cname)]
+	return [Rappture::DxToVtk $_comp2dx($cname)]
     }
     # Unirect3d: isosurface 
     if {[info exists _comp2unirect3d($cname)]} {
@@ -1229,7 +1227,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
 	append out "ASCII\n"
 	append out [$mesh vtkdata]
 	append out "POINT_DATA [$vector length]\n"
-	append out "SCALARS $label double\n"
+	append out "SCALARS $label double 1\n"
 	append out "LOOKUP_TABLE default\n"
 	append out "[$vector range 0 end]\n"
 	return $out
@@ -1254,6 +1252,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	# Unknown mesh designated.
 	return
     }
+    set _viewer [$_fldObj get "about.view"]
     set element [$_xmlobj element -as type $path]
     set name $cname
     regsub -all { } $name {_} name
@@ -1275,7 +1274,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             set extents 1 
         }
 	set _dim 3
-	set _viewer flowvis
+        if { $_viewer == "" } {
+            set _viewer flowvis
+        }
 	set _comp2dims($cname) "3D"
 	set _comp2unirect3d($cname) \
 	    [Rappture::Unirect3d \#auto $_xmlobj $_fldObj $cname $extents]
@@ -1295,7 +1296,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             set extents 1 
         }
 	set _dim 2
-	set _viewer "flowvis"
+        if { $_viewer == "" } {
+            set _viewer "flowvis"
+        }
 	set _comp2dims($cname) "2D"
 	set _comp2unirect2d($cname) \
 	    [Rappture::Unirect2d \#auto $_xmlobj $path]
@@ -1316,7 +1319,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	incr _counter
 	return
     }
-    set _viewer "contour"
     switch -- $element {
 	"cloud" {
 	    set mesh [Rappture::Cloud::fetch $_xmlobj $path]
@@ -1325,8 +1327,10 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	    set mesh [Rappture::Mesh::fetch $_xmlobj $path]
 	}	    
 	"unirect2d" {
+            if { $_viewer == "" } {
+                set _viewer "heightmap"
+            }
 	    set mesh [Rappture::Unirect2d::fetch $_xmlobj $path]
-	    set _viewer "heightmap"
 	}
     }
     set _dim [$mesh dimensions]
@@ -1381,7 +1385,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	    }
 	    $farray InsertNextValue $v
 	}
-	set _viewer "isosurface"
+        if { $_viewer == "" } {
+            set _viewer "isosurface"
+        }
 	set _type "isosurface"
 	set vector [blt::vector create \#auto]
 	$vector set [$_fldObj get $cname.values]
