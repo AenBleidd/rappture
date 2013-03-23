@@ -27,8 +27,6 @@ AUXSRC          = config.h define.h
 
 CG_INC_SPEC     = @CG_INC_SPEC@
 CG_LIB_SPEC     = @CG_LIB_SPEC@
-FF_LIB_SPEC     = @LIBS@
-FF_INC_SPEC     = @FF_INC_SPEC@
 
 GL_INC_SPEC     =
 GL_LIB_SPEC     = -lGL -lglut -lGLEW -lGLU
@@ -76,7 +74,6 @@ LIBS		= \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
-		$(FF_LIB_SPEC) \
 		$(EXTRA_LIBS) \
 		-Wl,-rpath,$(LD_RUN_PATH)
 
@@ -87,7 +84,6 @@ INCLUDES	= \
 		$(MAT_INC_SPEC) \
 		$(VRMATH_INC_SPEC) \
 		$(TCL_INC_SPEC) \
-		$(FF_INC_SPEC) \
 		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
 		$(RP_INC_SPEC)
@@ -236,9 +232,6 @@ nanovis: $(MAT_LIB) $(GRAPHICS_LIB) $(IMG_LIB) $(UTIL_LIB) $(VRMATH_LIB) $(OBJS)
 .cpp.o:
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
-RpAVTranslate.o: $(srcdir)/RpAVTranslate.cpp
-	$(CXX) -c $(CXX_SWITCHES) $(FF_INC_SPEC) $<
-
 install-resources:
 	$(MKDIR_P) $(libdir)/resources
 	@for i in $(resources) ; do \
@@ -312,7 +305,6 @@ PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
 PointShader.o: PointShader.cpp PointShader.h
 ReaderCommon.o: ReaderCommon.cpp ReaderCommon.h GradientFilter.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
-RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
 Switch.o: Switch.cpp Switch.h
 Texture1D.o: Texture1D.cpp Texture1D.h
 Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
