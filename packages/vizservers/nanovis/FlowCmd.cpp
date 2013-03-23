@@ -159,6 +159,9 @@ FlowParticles::~FlowParticles()
 void
 FlowParticles::render() 
 {
+    TRACE("Particles '%s' axis: %d pos: %g rel pos: %g",
+          _name, _sv.position.axis, _sv.position.value,
+          FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setAxis(_sv.position.axis);
     assert(_rendererPtr->active());
@@ -233,6 +236,9 @@ FlowBox::getWorldSpaceBounds(Vector3f& bboxMin,
         z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
     }
 
+    TRACE("Box model bounds: (%g,%g,%g) - (%g,%g,%g)",
+          x0, y0, z0, x1, y1, z1);
+
     Vector3f modelMin(x0, y0, z0);
     Vector3f modelMax(x1, y1, z1);
 
@@ -255,11 +261,17 @@ FlowBox::getWorldSpaceBounds(Vector3f& bboxMin,
         if (worldVert.z < bboxMin.z) bboxMin.z = worldVert.z;
         if (worldVert.z > bboxMax.z) bboxMax.z = worldVert.z;
     }
+
+    TRACE("Box world bounds: (%g,%g,%g) - (%g,%g,%g)",
+          bboxMin.x, bboxMin.y, bboxMin.z,
+          bboxMax.x, bboxMax.y, bboxMax.z);
 }
 
 void 
 FlowBox::Render(Volume *vol)
 {
+    TRACE("Box: '%s'", _name);
+
     glPushAttrib(GL_ENABLE_BIT);
 
     glEnable(GL_DEPTH_TEST);
@@ -283,6 +295,13 @@ FlowBox::Render(Volume *vol)
     max.y = vol->yAxis.max();
     max.z = vol->zAxis.max();
 
+    TRACE("box is %g,%g %g,%g %g,%g",
+          _sv.corner1.x, _sv.corner2.x,
+          _sv.corner1.y, _sv.corner2.y,
+          _sv.corner1.z, _sv.corner2.z);
+    TRACE("world is %g,%g %g,%g %g,%g",
+          min.x, max.x, min.y, max.y, min.z, max.z);
+
     float x0, y0, z0, x1, y1, z1;
     x0 = y0 = z0 = 0.0f;
     x1 = y1 = z1 = 0.0f;
@@ -298,6 +317,9 @@ FlowBox::Render(Volume *vol)
         z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
         z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
     }
+    TRACE("box bounds: %g,%g %g,%g %g,%g",
+          x0, x1, y0, y1, z0, z1);
+
     glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
     glLineWidth(_sv.lineWidth);
     glBegin(GL_LINE_LOOP); 
@@ -584,6 +606,7 @@ bool
 FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
+        TRACE("Removing existing volume: %s", _volPtr->name());
         NanoVis::removeVolume(_volPtr);
         _volPtr = NULL;
     }
@@ -718,6 +741,11 @@ FlowCmd::MakeVolume(float *data)
     volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.setRange(_dataPtr->zMin(), _dataPtr->zMax());
 
+    TRACE("min=%g %g %g max=%g %g %g mag=%g %g",
+          NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
+          NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
+          NanoVis::magMin, NanoVis::magMax);
+
     volPtr->disableCutplane(0);
     volPtr->disableCutplane(1);
     volPtr->disableCutplane(2);
@@ -748,9 +776,10 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
                Tcl_Obj *const *objv)
 {
     Rappture::Outcome result;
-    
+
     const char *fileName;
     fileName = Tcl_GetString(objv[3]);
+    TRACE("File: %s", fileName);
 
     int nComponents;
     if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
@@ -794,6 +823,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
+        TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
@@ -820,6 +850,8 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Rappture::Outcome result;
 
+    TRACE("Enter");
+
     int nBytes;
     if (Tcl_GetIntFromObj(interp, objv[3], &nBytes) != TCL_OK) {
         ERROR("Bad nBytes \"%s\"", Tcl_GetString(objv[3]));
@@ -843,6 +875,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Rappture::Buffer buf;
+    TRACE("Flow data loading bytes: %d components: %d", nBytes, nComponents);
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -873,6 +906,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
+        TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
@@ -884,6 +918,18 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
+    TRACE("nx = %d ny = %d nz = %d\n", dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
+    TRACE("x0 = %lg y0 = %lg z0 = %lg\n", dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    TRACE("lx = %lg ly = %lg lz = %lg\n",
+          dataPtr->xMax() - dataPtr->xMin(),
+          dataPtr->yMax() - dataPtr->yMin(),
+          dataPtr->zMax() - dataPtr->zMin());
+    TRACE("dx = %lg dy = %lg dz = %lg\n",
+          dataPtr->xNum() > 1 ? (dataPtr->xMax() - dataPtr->xMin())/(dataPtr->xNum()-1) : 0,
+          dataPtr->yNum() > 1 ? (dataPtr->yMax() - dataPtr->yMin())/(dataPtr->yNum()-1) : 0,
+          dataPtr->zNum() > 1 ? (dataPtr->zMax() - dataPtr->zMin())/(dataPtr->zNum()-1) : 0);
+    TRACE("magMin = %lg magMax = %lg\n",
+          dataPtr->magMin(), dataPtr->magMax());
     flowPtr->data(dataPtr);
     {
         char info[1024];
@@ -1039,6 +1085,8 @@ NanoVis::DeleteFlows(Tcl_Interp *interp)
 bool
 NanoVis::MapFlows()
 {
+    TRACE("Enter");
+
     flags &= ~MAP_FLOWS;
 
     /* 
@@ -1084,6 +1132,8 @@ NanoVis::MapFlows()
         }
     }
 
+    TRACE("magMin=%g magMax=%g", NanoVis::magMin, NanoVis::magMax);
+
     /* 
      * Step 2. Generate the vector field from each data set. 
      */
@@ -1111,6 +1161,8 @@ NanoVis::GetFlowBounds(Vector3f& min,
                        Vector3f& max,
                        bool onlyVisible)
 {
+    TRACE("Enter");
+
     min.set(FLT_MAX, FLT_MAX, FLT_MAX);
     max.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
