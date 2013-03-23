@@ -38,6 +38,13 @@ AC_ARG_WITH(
     [with_vtk=$withval],
     [with_vtk=yes])
 
+AC_ARG_WITH(
+    [ffmpeg],
+    [AS_HELP_STRING([--with-ffmpeg[=DIR]],
+      [location of ffmpeg @<:@default=yes@:>@])],
+    [],
+    [with_ffmpeg=yes])
+
 RP_LANG_PYTHON
 
 AC_ARG_WITH(
@@ -205,78 +212,21 @@ AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
 AC_CHECK_FUNCS([accept4])
 
 save_CPPFLAGS=$CPPFLAGS
-# Test for redhat-specific location of ffmpeg headers. 
-if test -d "/usr/include/ffmpeg" ; then 
-  CPPFLAGS="$CPPFLAGS -I/usr/include/ffmpeg"
-  FF_INC_SPEC="-I/usr/include/ffmpeg"
+
+
+#--------------------------------------------------------------------
+# search for ffmpeg executable
+#--------------------------------------------------------------------
+if test "${with_ffmpeg}" != "no" ; then
+  if test "${with_ffmpeg}" = "yes" ; then 
+    AC_PATH_PROG(FFMPEG, ffmpeg)
+  else 
+    AC_PATH_PROG(FFMPEG, ffmpeg, [], [${with_ffmpeg}/bin:${with_ffmpeg}])
+  fi 
+  if test "${FFMPEG}x" != "x" ; then
+    AC_DEFINE(HAVE_FFMPEG, 1, [nanovis can use ffmpeg to create videos.])
+  fi
 fi
-
-AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
-#define __STDC_CONSTANT_MACROS 1
-])
-CPPFLAGS=$save_CPPFLAGS
-
-AC_CHECK_LIB(avcodec, main,,AC_MSG_ERROR(requires libavcodec))
-AC_CHECK_LIB(avutil, main,,AC_MSG_ERROR(requires libavutil))
-AC_CHECK_LIB(avformat, main,,AC_MSG_ERROR(requires libavformat))
-AC_CHECK_LIB(swscale, main)
-AC_CHECK_FUNCS(avcodec_register_all)
-AC_CHECK_FUNCS(avcodec_init)
-AC_CHECK_FUNCS(avformat_new_stream)
-AC_CHECK_FUNCS(av_new_stream)
-AC_CHECK_FUNCS(avcodec_open)
-AC_CHECK_FUNCS(avcodec_open2)
-AC_CHECK_FUNCS(avcodec_decode_video2)
-AC_CHECK_FUNCS(avcodec_decode_video)
-AC_CHECK_FUNCS(avcodec_encode_video2)
-AC_CHECK_FUNCS(avcodec_encode_video)
-AC_CHECK_FUNCS(avformat_open_input)
-AC_CHECK_FUNCS(av_open_input_file)
-AC_CHECK_FUNCS(av_guess_format)
-AC_CHECK_FUNCS(guess_format)
-AC_CHECK_FUNCS(av_dump_format)
-AC_CHECK_FUNCS(dump_format)
-AC_CHECK_FUNCS(avio_open)
-AC_CHECK_FUNCS(url_fopen)
-AC_CHECK_FUNCS(avio_close)
-AC_CHECK_FUNCS(url_fclose)
-AC_CHECK_FUNCS(avformat_alloc_context)
-AC_CHECK_FUNCS(av_alloc_format_context)
-AC_CHECK_FUNCS(av_set_parameters)
-AC_CHECK_FUNCS(avformat_write_header)
-AC_CHECK_FUNCS(av_write_header)
-AC_CHECK_FUNC(av_write_trailer,, 
-  AC_MSG_ERROR(oops! no av_write_trailer?!?))
-AC_CHECK_FUNC(av_freep,, AC_MSG_ERROR(oops! no av_freep ?!?))
-AC_CHECK_FUNC(av_free,,AC_MSG_ERROR(oops! no av_free ?!?))
-AC_CHECK_FUNC(av_new_stream,,AC_MSG_ERROR(oops! av_new_stream ?!?))
-AC_CHECK_FUNC(av_malloc,, AC_MSG_ERROR(oops! no av_malloc ?!?))
-AC_CHECK_FUNC(av_init_packet,,AC_MSG_ERROR(oops! no av_init_packet ?!?))
-AC_CHECK_FUNC(av_rescale_q,,AC_MSG_ERROR(oops! no av_rescale_q ?!?))
-AC_CHECK_FUNC(av_write_frame,,AC_MSG_ERROR(oops! av_write_frame ?!?))
-AC_CHECK_FUNCS(img_convert)
-AC_CHECK_FUNCS(sws_scale)
-AC_TRY_COMPILE([
-#define __STDC_CONSTANT_MACROS 1
-#include <stdlib.h>
-#ifdef HAVE_FFMPEG_AVCODEC_H
-# include <ffmpeg/avcodec.h>
-#endif
-#ifdef HAVE_LIBAVCODEC_AVCODEC_H
-# include <libavcodec/avcodec.h>
-#endif
-int x = AVMEDIA_TYPE_VIDEO;
-],, ac_avmedia_type_video="yes", ac_avmedia_type_video="no")
-if test "$ac_avmedia_type_video" == "yes" ; then
-  AC_DEFINE(HAVE_AVMEDIA_TYPE_VIDEO,1,[Define if AVMEDIA_TYPE_VIDEO enum exists. ])
-fi
-
-AC_CHECK_LIB([avcodec], [avcodec_alloc_frame])
-# Fallback to deprecated av_alloc_format_context if avformat_alloc_context isn't found
-AC_CHECK_LIB([avformat], [avformat_alloc_context], [],
-    AC_CHECK_LIB([avformat], [av_alloc_format_context], [], 
-        [AC_MSG_WARN([libavformat not usable])]))
-
 
 AC_MSG_CHECKING([for nVidia Cg installation])
 CG_DIR=""
@@ -329,6 +279,7 @@ AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
 AC_SUBST(CG_INC_SPEC)
 AC_SUBST(CG_LIB_SPEC)
+AC_SUBST(FFMPEG)
 AC_SUBST(FF_INC_SPEC)
 AC_SUBST(LD_RPATH)
 AC_SUBST(RP_DIR)
