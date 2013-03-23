@@ -179,7 +179,7 @@ public:
         _hashPtr = NULL;
     }
 
-    int ParseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+    int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     {
         if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv, 
                                     SWITCH_DEFAULTS) < 0) {
@@ -188,7 +188,7 @@ public:
         return TCL_OK;
     }
 
-    void Render(Volume *volPtr);
+    void render(Volume *volPtr);
 
     const FlowBoxValues *getValues() const
     {
@@ -237,43 +237,43 @@ public:
 
     ~FlowCmd();
 
-    int CreateParticles(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    int createParticles(Tcl_Interp *interp, Tcl_Obj *objPtr);
 
-    int GetParticles(Tcl_Interp *interp, Tcl_Obj *objPtr,
+    int getParticles(Tcl_Interp *interp, Tcl_Obj *objPtr,
                      FlowParticles **particlePtrPtr);
 
-    void Render();
+    void render();
 
-    void Advect();
+    void advect();
 
-    void ResetParticles();
+    void resetParticles();
 
-    void InitializeParticles();
+    void initializeParticles();
 
-    FlowParticles *FirstParticles(FlowParticlesIterator *iterPtr);
+    FlowParticles *firstParticles(FlowParticlesIterator *iterPtr);
 
-    FlowParticles *NextParticles(FlowParticlesIterator *iterPtr);
+    FlowParticles *nextParticles(FlowParticlesIterator *iterPtr);
 
-    int CreateBox(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    int createBox(Tcl_Interp *interp, Tcl_Obj *objPtr);
 
-    int GetBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr);
+    int getBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr);
 
-    FlowBox *FirstBox(FlowBoxIterator *iterPtr);
+    FlowBox *firstBox(FlowBoxIterator *iterPtr);
 
-    FlowBox *NextBox(FlowBoxIterator *iterPtr);
+    FlowBox *nextBox(FlowBoxIterator *iterPtr);
 
-    float *GetScaledVector();
+    float *getScaledVector();
 
-    Volume *MakeVolume(float *data);
+    Volume *makeVolume(float *data);
     
-    void InitVectorField();
+    void initVectorField();
 
-    NvVectorField *VectorField()
+    NvVectorField *getVectorField()
     {
         return _fieldPtr;
     }
 
-    bool ScaleVectorField();
+    bool scaleVectorField();
 
     bool visible()
     {
@@ -308,7 +308,7 @@ public:
         _dataPtr = dataPtr;
     }
 
-    void ActivateSlice()
+    void activateSlice()
     {
         /* Must set axis before offset or position goes to wrong axis. */
         NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
@@ -316,63 +316,63 @@ public:
         NanoVis::licRenderer->active(true);
     }
 
-    void DeactivateSlice()
+    void ceactivateSlice()
     {
         NanoVis::licRenderer->active(false);
     }
 
-    SliceAxis GetAxis()
+    SliceAxis getAxis()
     {
         return (SliceAxis)_sv.slicePos.axis;
     }
 
-    TransferFunction *GetTransferFunction()
+    TransferFunction *getTransferFunction()
     {
         return _sv.tfPtr;
     }
 
-    float GetRelativePosition();
+    float getRelativePosition();
 
-    void SetAxis()
+    void setAxis()
     {
         NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
     }
 
-    void SetAxis(FlowCmd::SliceAxis axis)
+    void setAxis(FlowCmd::SliceAxis axis)
     {
         _sv.slicePos.axis = axis;
         NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
     }
 
-    void SetCurrentPosition(float position)
+    void setCurrentPosition(float position)
     {
         _sv.slicePos.value = position;
         NanoVis::licRenderer->setOffset(_sv.slicePos.value);
     }
 
-    void SetCurrentPosition()
+    void setCurrentPosition()
     {
         NanoVis::licRenderer->setOffset(_sv.slicePos.value);
     }
 
-    void SetActive(bool state)
+    void setActive(bool state)
     {
         _sv.sliceVisible = state;
         NanoVis::licRenderer->active(state);
     }
 
-    void SetActive()
+    void setActive()
     {
         NanoVis::licRenderer->active(_sv.sliceVisible);
     }
 
-    void SetVectorField(NvVectorField *fieldPtr)
+    void setVectorField(NvVectorField *fieldPtr)
     {
-        DeleteVectorField();
+        deleteVectorField();
         _fieldPtr = fieldPtr;
     }
 
-    void DeleteVectorField()
+    void deleteVectorField()
     {
         if (_fieldPtr != NULL) {
             delete _fieldPtr;
@@ -380,7 +380,7 @@ public:
         }
     }
 
-    int ParseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+    int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     {
         if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv,
                                     SWITCH_DEFAULTS) < 0) {
@@ -394,14 +394,14 @@ public:
         return _volPtr;
     }
 
-    static float GetRelativePosition(FlowPosition *posPtr);
+    static float getRelativePosition(FlowPosition *posPtr);
 
     static Rappture::SwitchSpec videoSwitches[];
 
 private:
-    void Configure();
+    void configure();
 
-    void RenderBoxes();
+    void renderBoxes();
 
     Tcl_Interp *_interp;
     Tcl_HashEntry *_hashPtr;

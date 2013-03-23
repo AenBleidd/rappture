@@ -140,21 +140,21 @@ public:
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     }
 
-    static FlowCmd *FirstFlow(FlowIterator *iterPtr);
-    static FlowCmd *NextFlow(FlowIterator *iterPtr);
-    static void InitFlows();
-    static int GetFlow(Tcl_Interp *interp, Tcl_Obj *objPtr,
+    static FlowCmd *firstFlow(FlowIterator *iterPtr);
+    static FlowCmd *nextFlow(FlowIterator *iterPtr);
+    static void initFlows();
+    static int getFlow(Tcl_Interp *interp, Tcl_Obj *objPtr,
                        FlowCmd **flowPtrPtr);
-    static int CreateFlow(Tcl_Interp *interp, Tcl_Obj *objPtr);
-    static void DeleteFlows(Tcl_Interp *interp);
-    static bool MapFlows();
-    static void GetFlowBounds(vrmath::Vector3f& min,
+    static int createFlow(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    static void deleteFlows(Tcl_Interp *interp);
+    static bool mapFlows();
+    static void getFlowBounds(vrmath::Vector3f& min,
                               vrmath::Vector3f& max,
                               bool onlyVisible = false);
-    static void RenderFlows();
-    static void ResetFlows();
-    static bool UpdateFlows();
-    static void AdvectFlows();
+    static void renderFlows();
+    static void resetFlows();
+    static bool updateFlows();
+    static void advectFlows();
 
     static FILE *stdin, *logfile, *recfile;
     static int statsFile;

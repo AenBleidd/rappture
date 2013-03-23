@@ -230,7 +230,7 @@ NanoVis::removeAllData()
     }
 #endif
     TRACE("Deleting flows");
-    DeleteFlows(interp);
+    deleteFlows(interp);
     if (licRenderer != NULL) {
         TRACE("Deleting licRenderer");
         delete licRenderer;
@@ -1566,7 +1566,7 @@ void
 NanoVis::collectBounds(bool onlyVisible)
 {
     if (flags & MAP_FLOWS) {
-        MapFlows();
+        mapFlows();
         grid->xAxis.setScale(xMin, xMax);
         grid->yAxis.setScale(yMin, yMax);
         grid->zAxis.setScale(zMin, zMax);
@@ -1642,7 +1642,7 @@ NanoVis::collectBounds(bool onlyVisible)
     }
 
     vrmath::Vector3f flowMin, flowMax;
-    GetFlowBounds(flowMin, flowMax, onlyVisible);
+    getFlowBounds(flowMin, flowMax, onlyVisible);
     if (flowMin.x < flowMax.x) {
         if (sceneMin.x > flowMin.x) {
             sceneMin.x = flowMin.x;
@@ -1693,7 +1693,7 @@ NanoVis::render()
         xMin = yMin = zMin = wMin = FLT_MAX, magMin = DBL_MAX;
         xMax = yMax = zMax = wMax = -FLT_MAX, magMax = -DBL_MAX;
 #endif
-        MapFlows();
+        mapFlows();
         grid->xAxis.setScale(xMin, xMax);
         grid->yAxis.setScale(yMin, yMax);
         grid->zAxis.setScale(zMin, zMax);
@@ -1770,7 +1770,7 @@ NanoVis::render()
         }
 #endif
         if (flowTable.numEntries > 0) {
-            RenderFlows();
+            renderFlows();
         }
 
         volRenderer->renderAll();
