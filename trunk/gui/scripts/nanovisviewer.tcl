@@ -893,7 +893,16 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             set tag $dataobj-$cname
             if { ![info exists _serverDatasets($tag)] } {
                 # Send the data as one huge base64-encoded mess -- yuck!
-                set data [$dataobj values $cname]
+                if { [$dataobj type] == "dx" } {
+                    set data [$dataobj values $cname]
+                } else {
+                    set data [$dataobj vtkdata $cname]
+                    if 0 {
+                        set f [open "/tmp/volume.vtk" "w"]
+                        puts $f $data
+                        close $f
+                    }
+                }
                 set nbytes [string length $data]
                 if { $_reportClientInfo }  {
                     set info {}
