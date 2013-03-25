@@ -29,6 +29,18 @@ merge(float *scalar, float *gradient, int size)
     return data;
 }
 
+/**
+ * \brief Normalize data to [0,1] based on vmin,vmax range
+ * 
+ * Data outside of given range is clamped, and NaNs are set to
+ * -1 in the output
+ *
+ * \param data Float array of unnormalized data, will be normalized on return
+ * \param count Number of elts in array
+ * \param stride Stride between values in data array
+ * \param vmin Minimum value in data array
+ * \param vmax Maximum value in data array
+ */
 void
 normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
 {
@@ -38,7 +50,11 @@ normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
         double v = data[i];
         if (isnan(v)) {
             data[i] = -1.0f;
-        } else if (data[i] >= min) {
+        } else if (v < vmin) {
+            data[i] = 0.0f;
+        } else if (v > vmax) {
+            data[i] = 1.0f;
+        } else {
             data[i] = (float)((v - vmin)/ dv);
         }
     }
