@@ -151,11 +151,6 @@ NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 NvLIC *NanoVis::licRenderer = NULL;
 PlaneRenderer *NanoVis::planeRenderer = NULL;
-#ifdef PLANE_CMD
-// pointers to 2D planes, currently handle up 10
-int NanoVis::numPlanes = 10;
-Texture2D *NanoVis::plane[10];
-#endif
 #ifdef USE_POINTSET_RENDERER
 PointSetRenderer *NanoVis::pointSetRenderer = NULL;
 std::vector<PointSet *> NanoVis::pointSet;
@@ -205,12 +200,6 @@ NanoVis::removeAllData()
         TRACE("Deleting colorTableRenderer");
         delete colorTableRenderer;
     }
-#ifdef PLANE_CMD
-    for (int i = 0; i < numPlanes; i++) {
-        TRACE("Deleting plane[%d]", i);
-        delete plane[i];
-    }
-#endif
     if (legendTexture != NULL) {
         TRACE("Deleting legendTexture");
         delete legendTexture;
@@ -619,7 +608,7 @@ NanoVis::getTransferFunction(const TransferFunctionId& id)
 {
     TransferFunctionHashmap::iterator itr = tfTable.find(id);
     if (itr == tfTable.end()) {
-        ERROR("No transfer function named \"%s\" found", id.c_str());
+        TRACE("No transfer function named \"%s\" found", id.c_str());
         return NULL;
     } else {
         return itr->second;
@@ -634,7 +623,7 @@ NanoVis::defineTransferFunction(const TransferFunctionId& id,
     TransferFunction *tf = getTransferFunction(id);
     if (tf == NULL) {
         TRACE("Creating new transfer function \"%s\"", id.c_str());
-        tf = new TransferFunction(n, data);
+        tf = new TransferFunction(id.c_str(), n, data);
         tfTable[id] = tf;
     } else {
         TRACE("Updating existing transfer function \"%s\"", id.c_str());

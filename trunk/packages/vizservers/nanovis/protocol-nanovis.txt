@@ -172,19 +172,6 @@ cutplane state <bool> <x|y|z> <?names?>
 up <x|y|z|-x|-y|-z>
    Set orientation of volumes
 
-
---- Colormaped Plane (if PLANE_CMD is defined in config.h) ---
-plane active <planeIdx>
-      Set the active plane [0,9], or -1 to disable
-      Plane must first be added and linked
-plane add <planeIdx> <width> <height>
-      followed by image data: w * h floats on stdin
-      planeIdx: [0,9]
-plane link <planeIdx> <transfunc name>
-      Enable a plane for rendering using the given transfer
-      function.  Plane must first be added.
---- End Colormaped Plane (if PLANE_CMD is defined in config.h) ---
-
 ================================================================================
 Replies:
 ================================================================================

@@ -16,6 +16,8 @@
 #ifndef TRANSFER_FUNCTION_H
 #define TRANSFER_FUNCTION_H
 
+#include <string>
+
 #include <vrmath/Vector3f.h>
 
 #include "Texture1D.h"
@@ -23,7 +25,7 @@
 class TransferFunction
 {
 public:
-    TransferFunction(int size, float *data);
+    TransferFunction(const char *name, int size, float *data);
 
     void update(float *data);
 
@@ -56,12 +58,7 @@ public:
 
     const char *name() const
     {
-        return _name;
-    }
-
-    void name(const char *name)
-    {
-        _name = name;
+        return _name.c_str();
     }
 
     static void sample(float fraction, float *key, int count, vrmath::Vector3f *keyValue, vrmath::Vector3f *ret);
@@ -76,7 +73,7 @@ private:
     int _size;
     float *_data;
     Texture1D *_tex;	///< the texture storing the colors 
-    const char *_name;
+    std::string _name;
     GLuint _id;		///< OpenGL texture identifier
 };
 

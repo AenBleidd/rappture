@@ -39,7 +39,7 @@ public:
         return _name.c_str();
     }
 
-    bool visible()
+    bool visible() const
     {
         return !_sv.isHidden;
     }

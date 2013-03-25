@@ -197,10 +197,7 @@ public:
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
     static PlaneRenderer *planeRenderer;
-#if PLANE_CMD
-    static int numPlanes;
-    static Texture2D *plane[]; ///< Pointers to 2D planes
-#endif
+
 #ifdef USE_POINTSET_RENDERER
     static PointSetRenderer *pointSetRenderer;
     static std::vector<PointSet *> pointSet;

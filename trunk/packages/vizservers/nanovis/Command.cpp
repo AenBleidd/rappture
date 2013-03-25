@@ -55,9 +55,6 @@
 #include "nanovis.h"
 #include "CmdProc.h"
 #include "Trace.h"
-#ifdef PLANE_CMD
-#include "PlaneRenderer.h"
-#endif
 #ifdef USE_POINTSET_RENDERER
 #include "PointSet.h"
 #endif
@@ -117,9 +114,6 @@ static Tcl_ObjCmdProc CutplaneCmd;
 extern Tcl_AppInitProc FlowCmdInitProc;
 static Tcl_ObjCmdProc GridCmd;
 static Tcl_ObjCmdProc LegendCmd;
-#ifdef PLANE_CMD
-static Tcl_ObjCmdProc PlaneCmd;
-#endif
 static Tcl_ObjCmdProc ScreenCmd;
 static Tcl_ObjCmdProc SnapshotCmd;
 static Tcl_ObjCmdProc TransfuncCmd;
@@ -1617,7 +1611,7 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     std::vector<Volume *>::iterator iter;
-    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+    for (iter = ivol.begin(); iter != ivol.end(); ++iter) {
         TRACE("setting %s with transfer function %s", (*iter)->name(),
                tf->name());
         (*iter)->transferFunction(tf);
@@ -2152,128 +2146,6 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-#ifdef PLANE_CMD
-static int 
-PlaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-           Tcl_Obj *const *objv)
-{
-    TRACE("load plane for 2D visualization command");
-
-    int index, w, h;
-    if (objc != 4) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"", 
-            Tcl_GetString(objv[0]), " plane_index w h \"", (char*)NULL);
-        return TCL_ERROR;
-    }
-    if (Tcl_GetIntFromObj(interp, objv[1], &index) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (index >= NanoVis::numPlanes) {
-        Tcl_AppendResult(interp, "Invalid plane_index", (char*)NULL);
-        return TCL_ERROR;
-    }
-    if (Tcl_GetIntFromObj(interp, objv[2], &w) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK) {
-        return TCL_ERROR;
-    }
-
-    //Now read w*h*4 bytes. The server expects the plane to be a stream of
-    //floats
-    char *tmp = new char[int(w*h*sizeof(float))];
-    if (tmp == NULL) {
-        Tcl_AppendResult(interp, "can't allocate stream data", (char *)NULL);
-        return TCL_ERROR;
-    }
-    bzero(tmp, w*h*4);
-    int status = read(fileno(NanoVis::stdin), tmp, w*h*sizeof(float));
-    if (status <= 0) {
-        delete[] tmp;
-        Tcl_AppendResult(interp, "Failed to read image data for plane", (char*)NULL);
-        return TCL_ERROR;
-    }
-    NanoVis::plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
-    delete[] tmp;
-    return TCL_OK;
-}
-
-static int
-PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
-            Tcl_Obj *const *objv)
-{
-    TRACE("link the plane to the 2D renderer command");
-
-    int plane_index;
-
-    if (objc != 3) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"",
-            Tcl_GetString(objv[0]), " plane_index transfunc_name \"", (char*)NULL);
-        return TCL_ERROR;
-    }
-    if (Tcl_GetIntFromObj(interp, objv[1], &plane_index) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (plane_index >= NanoVis::numPlanes) {
-        Tcl_AppendResult(interp, "Invalid plane_index", (char*)NULL);
-        return TCL_ERROR;
-    }
-    NanoVis::planeRenderer->addPlane(NanoVis::plane[plane_index],
-                                     NanoVis::getTransfunc(Tcl_GetString(objv[2])));
-    return TCL_OK;
-}
-
-//Enable a 2D plane for render
-//The plane_index is the index mantained in the 2D plane renderer
-static int
-PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
-              Tcl_Obj *const *objv)
-{
-    TRACE("enable a plane so the 2D renderer can render it command");
-
-    if (objc != 3) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"", 
-            Tcl_GetString(objv[0]), " plane_index mode \"", (char*)NULL);
-        return TCL_ERROR;
-    }
-    int plane_index;
-    if (Tcl_GetIntFromObj(interp, objv[1], &plane_index) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (plane_index >= NanoVis::numPlanes) {
-        Tcl_AppendResult(interp, "Invalid plane_index", (char*)NULL);
-        return TCL_ERROR;
-    } else if (plane_index < 0) {
-        plane_index = -1;
-    }
-
-    NanoVis::planeRenderer->setActivePlane(plane_index);
-    return TCL_OK;
-}
-
-static Rappture::CmdSpec planeOps[] = {
-    {"active",     2, PlaneEnableOp,    3, 3, "planeIdx",},
-    {"add",        2, PlaneAddOp,       5, 5, "planeIdx width height",},
-    {"link",       1, PlaneLinkOp,      4, 4, "planeIdx transfunc_name",},
-};
-static int nPlaneOps = NumCmdSpecs(planeOps);
-
-static int
-PlaneCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-         Tcl_Obj *const *objv)
-{
-    Tcl_ObjCmdProc *proc;
-
-    proc = Rappture::GetOpFromObj(interp, nPlaneOps, planeOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
-    if (proc == NULL) {
-        return TCL_ERROR;
-    }
-    return (*proc) (clientData, interp, objc, objv);
-}
-
-#endif /*PLANE_CMD*/
-
 /*
  * This command should be Tcl procedure instead of a C command.  The reason
  * for this that 1) we are using a safe interpreter so we would need a master
@@ -2340,9 +2212,6 @@ initTcl()
     Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
-#ifdef PLANE_CMD
-    Tcl_CreateObjCommand(interp, "plane",       PlaneCmd,       NULL, NULL);
-#endif
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "snapshot",    SnapshotCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "transfunc",   TransfuncCmd,   NULL, NULL);
