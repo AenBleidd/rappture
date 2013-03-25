@@ -10,16 +10,17 @@ extern float *
 merge(float *scalar, float *gradient, int size);
 
 extern void
-normalizeScalar(float *fdata, int count, float min, float max);
+normalizeScalar(float *data, int count, int stride, double min, double max);
 
 extern float *
-computeGradient(float *fdata,
-                int width, int height, int depth,
+computeGradient(float *data,
+                int nx, int ny, int nz,
                 float dx, float dy, float dz,
                 float min, float max);
 
 extern void
-computeSimpleGradient(float *data, int nx, int ny, int nz,
+computeSimpleGradient(float *data,
+                      int nx, int ny, int nz,
                       float dx = 1.0f, float dy = 1.0f, float dz = 1.0f);
 
 #endif

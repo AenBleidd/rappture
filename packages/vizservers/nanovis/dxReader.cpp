@@ -287,29 +287,16 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         }
 
         // make sure that we read all of the expected points
-        if (nread != nx*ny*nz) {
+        if (nread != npts) {
             result.addError("inconsistent data: expected %d points"
-                            " but found %d points", nx*ny*nz, nread);
+                            " but found %d points", npts, nread);
             return NULL;
         }
 
 #ifndef DOWNSAMPLE_DATA
-        double dv = vmax - vmin;
-        if (dv == 0.0) {
-            dv = 1.0;
-        }
 
-        int ngen = 0;
-        const int step = 4;
-        for (int i = 0; i < nx*ny*nz; ++i) {
-            double v = data[ngen];
-            // scale all values [0-1], -1 => out of bounds
-            v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-
-            data[ngen] = v;
-            ngen += step;
-        }
-
+        // scale all values [0-1], -1 => out of bounds
+        normalizeScalar(data, npts, 4, vmin, vmax);
         computeSimpleGradient(data, nx, ny, nz,
                               dx, dy, dz);
 #else // DOWNSAMPLE_DATA
@@ -369,8 +356,7 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
                         nzero_min = v;
                     }
 #ifdef FILTER_GRADIENTS
-                    // NOT normalized, -1 => out of bounds
-                    v = (isnan(v)) ? -1.0 : v;
+                    // NOT normalized, may have NaNs (FIXME: how does gradient filter handle NaN?)
                     cdata[ngen] = v;
 #else // !FILTER_GRADIENTS
                     // scale all values [0-1], -1 => out of bounds
@@ -421,9 +407,9 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         }
 
         // make sure that we read all of the expected points
-        if (nread != nxy*nz) {
+        if (nread != npts) {
             result.addError("inconsistent data: expected %d points"
-                            " but found %d points", nxy*nz, nread);
+                            " but found %d points", npts, nread);
             return NULL;
         }
 
