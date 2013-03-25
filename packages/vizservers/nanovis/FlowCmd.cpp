@@ -1756,7 +1756,7 @@ MakeImageFiles(Tcl_Interp *interp, char *tmpFileName,
         // Resize to the requested size.
         NanoVis::resizeOffscreenBuffer(switchesPtr->width, switchesPtr->height);
     }
-    NanoVis::ResetFlows();
+    NanoVis::resetFlows();
     *cancelPtr = false;
     int result = TCL_OK;
     size_t length = strlen(tmpFileName);
@@ -1770,7 +1770,7 @@ MakeImageFiles(Tcl_Interp *interp, char *tmpFileName,
         if (NanoVis::licRenderer->active()) {
             NanoVis::licRenderer->convolve();
         }
-        NanoVis::AdvectFlows();
+        NanoVis::advectFlows();
 
         int fboOrig;
         glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
@@ -1792,7 +1792,7 @@ MakeImageFiles(Tcl_Interp *interp, char *tmpFileName,
         NanoVis::resizeOffscreenBuffer(oldWidth, oldHeight);
     }
     tmpFileName[length] = '\0';
-    NanoVis::ResetFlows();
+    NanoVis::resetFlows();
     return result;
 }
 
