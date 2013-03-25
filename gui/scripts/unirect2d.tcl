@@ -19,30 +19,6 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect2d {
-    constructor {xmlobj path} { 
-	# defined below 
-    }
-    destructor { # defined below }
-
-    public proc fetch {xmlobj path}
-    public proc release {obj}
-    public method limits {axis}
-    public method blob {}
-    public method mesh {}
-    public method dimensions {} {
-	return 2
-    }
-    public method numpoints {} {
-	return $_numPoints
-    }
-    public method vtkdata {} {
-	return $_vtkdata
-    }
-    public method hints {{keyword ""}} 
-    private method GetString { obj path varName }
-    private method GetValue { obj path varName }
-    private method GetSize { obj path varName }
-    
     private variable _axisOrder "x y"
     private variable _xMax      0
     private variable _xMin      0
@@ -56,6 +32,37 @@ itcl::class Rappture::Unirect2d {
 
     private common _xp2obj       ;	# used for fetch/release ref counting
     private common _obj2ref      ;	# used for fetch/release ref counting
+    private variable _isValid 0;        # Indicates if the data is valid.
+
+    constructor {xmlobj path} { 
+	# defined below 
+    }
+    destructor { 
+        # defined below 
+    }
+    public proc fetch {xmlobj path}
+    public proc release {obj}
+    public method limits {axis}
+    public method blob {}
+    public method hints {{keyword ""}} 
+    public method mesh {}
+    public method dimensions {} {
+	return 2
+    }
+    public method isvalid {} {
+        return $_isValid
+    }
+    public method numpoints {} {
+	return $_numPoints
+    }
+    public method vtkdata {} {
+	return $_vtkdata
+    }
+
+    private method GetString { obj path varName }
+    private method GetValue { obj path varName }
+    private method GetSize { obj path varName }
+    
 }
 
 #
@@ -146,7 +153,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     set _numPoints [expr $_xNum * $_yNum]
     if { $_numPoints == 0 } {
 	set _vtkdata ""
-	return 
+	return
     }
     append out "DATASET STRUCTURED_POINTS\n"
     append out "DIMENSIONS $_xNum $_yNum 1"
@@ -155,6 +162,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     append out "SPACING $xSpace $ySpace 0\n"
     append out "ORIGIN 0 0 0\n"
     set _vtkdata $out
+    set _isValid 1
 }
 
 # ----------------------------------------------------------------------

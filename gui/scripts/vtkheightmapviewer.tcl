@@ -463,6 +463,9 @@ itcl::body Rappture::VtkHeightmapViewer::EventuallyRotate { q } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkHeightmapViewer::add {dataobj {settings ""}} {
+    if { ![$dataobj isvalid] } {
+        return;                         # Object doesn't contain valid data.
+    }
     array set params {
         -color auto
         -width 1
@@ -612,6 +615,9 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
 #
 itcl::body Rappture::VtkHeightmapViewer::scale {args} {
     foreach dataobj $args {
+        if { ![$dataobj isvalid] } {
+            continue;                   # Object doesn't contain valid data.
+        }
         foreach axis { x y } {
             set lim [$dataobj limits $axis]
             if { ![info exists _limits($axis)] } {

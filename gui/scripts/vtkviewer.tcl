@@ -2165,7 +2165,7 @@ itcl::body Rappture::VtkViewer::ConvertToVtkData { dataobj comp } {
     append out "ORIGIN 0 0 0 \n"
     append out "SPACING 1 1 1 \n"
     append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS field float 1 \n"
+    append out "SCALARS field double 1 \n"
     append out "LOOKUP_TABLE default \n"
     append out [join $values "\n"]
     append out "\n"

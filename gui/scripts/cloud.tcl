@@ -17,9 +17,24 @@ package require Itcl
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Cloud {
-    constructor {xmlobj path} { # defined below }
-    destructor { # defined below }
+    private variable _xmlobj "";        # ref to XML obj with device data
+    private variable _cloud "";         # lib obj representing this cloud
+    private variable _units "m m m" ;   # system of units for x, y, z
+    private variable _limits;           # limits x, y, z
+    private common _xp2obj ;            # Used for fetch/release ref counting
+    private common _obj2ref ;           # Used for fetch/release ref counting
+    private variable _numPoints 0
+    private variable _vtkdata ""
+    private variable _points ""
+    private variable _dim 0
+    private variable _isValid 0;        # Indicates if the data is valid.
 
+    constructor {xmlobj path} { 
+        # defined below 
+    }
+    destructor { 
+        # defined below 
+    }
     public method points {}
     public method mesh {}
     public method vtkdata {}
@@ -30,21 +45,11 @@ itcl::class Rappture::Cloud {
     public method numpoints {} {
 	return $_numPoints
     }
+    public method isvalid {} {
+        return $_isValid
+    }
     public proc fetch {xmlobj path}
     public proc release {obj}
-
-    private variable _xmlobj ""  ;# ref to XML obj with device data
-    private variable _cloud ""   ;# lib obj representing this cloud
-
-    private variable _units "m m m" ;# system of units for x, y, z
-    private variable _limits        ;# limits xmin, xmax, ymin, ymax, ...
-
-    private common _xp2obj       ;# used for fetch/release ref counting
-    private common _obj2ref      ;# used for fetch/release ref counting
-    private variable _numPoints 0
-    private variable _vtkdata ""
-    private variable _points ""
-    private variable _dim 0
 }
 
 # ----------------------------------------------------------------------
@@ -112,12 +117,6 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
         set _units $u
     }
 
-    #set data [$xmlobj get $path.points]
-    #Rappture::ReadPoints $data _dim values
-
-    foreach lim {xmin xmax ymin ymax zmin zmax} {
-        set _limits($lim) ""
-    }
     set _numPoints 0
     set _points {}
     foreach line [split [$xmlobj get $path.points] \n] {
@@ -131,29 +130,55 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
             lappend line "0"
         }
 
-        # extract each point and add it to the points list
+        # Extract each point and add it to the points list
         foreach {x y z} $line break
-        foreach dim {x y z} units $_units {
-            set v [Rappture::Units::convert [set $dim] \
+        foreach axis {x y z} units $_units {
+            set value [Rappture::Units::convert [set $axis] \
                 -context $units -to $units -units off]
 
-            set $dim $v  ;# save back to real x/y/z variable
-
-            if {"" == $_limits(${dim}min)} {
-                set _limits(${dim}min) $v
-                set _limits(${dim}max) $v
+            set $axis $value;           # Set the (x/y/z) coordinate to 
+                                        # converted value.
+            if { ![info exists _limits($axis)] } {
+                set _limits($axis) [list $value $value]
             } else {
-                if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
-                if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
+                foreach { min max } $_limits($axis) break
+                if {$value < $min} { 
+                    set min $value
+                }
+                if {$value > $max} { 
+                    set max $value
+                }
+                set _limits($axis) [list $min $max]
             }
         }
         append _points "$x $y $z\n"
 	incr _numPoints
     }
     append out "DATASET POLYDATA\n"
-    append out "POINTS $_numPoints float\n"
+    append out "POINTS $_numPoints double\n"
     append out $_points
     set _vtkdata $out
+    if { $_numPoints == 0 } {
+        return
+    }
+    # Check each axis to verify that data exists
+    foreach { xmin xmax } $_limits(x) break
+    if { $xmin >= $xmax } {
+        return 
+    }
+    if { $_dim > 1 } {
+        foreach { ymin ymax } $_limits(y) break
+        if { $ymin >= $ymax } {
+            return 
+        }
+    }
+    if { $_dim > 2 } {
+        foreach { zmin zmax } $_limits(z) break
+        if { $zmin >= $zmax } {
+            return 
+        }
+    }
+    set _isValid 1
 }
 
 # ----------------------------------------------------------------------
@@ -198,14 +223,6 @@ itcl::body Rappture::Cloud::size {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::dimensions {} {
     return $_dim
-    # count the dimensions with real limits
-    set dims 0
-    foreach d {x y z} {
-        if {$_limits(${d}min) != $_limits(${d}max)} {
-            incr dims
-        }
-    }
-    return $dims
 }
 
 # ----------------------------------------------------------------------
@@ -213,11 +230,11 @@ itcl::body Rappture::Cloud::dimensions {} {
 #
 # Returns the {min max} values for the limits of the specified axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Cloud::limits {which} {
-    if {![info exists _limits(${which}min)]} {
-        error "bad axis \"$which\": should be x, y, z"
+itcl::body Rappture::Cloud::limits { axis } {
+    if { ![info exists _limits($axis)] } {
+        error "bad axis \"$axis\": should be x, y, z"
     }
-    return [list $_limits(${which}min) $_limits(${which}max)]
+    return $_limits($axis)
 }
 
 # ----------------------------------------------------------------------

@@ -397,6 +397,9 @@ itcl::body Rappture::NanovisViewer::destructor {} {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
+    if { ![$dataobj isvalid] } {
+        return;                         # Object doesn't contain valid data.
+    }
     array set params {
         -color auto
         -width 1
@@ -521,11 +524,12 @@ itcl::body Rappture::NanovisViewer::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
         set _limits($val) ""
     }
-    foreach obj $args {
+    foreach dataobj $args {
+        if { ![$dataobj isvalid] } {
+            continue;                     # Object doesn't contain valid data.
+        }
         foreach axis {x y z v} {
-
-            foreach { min max } [$obj limits $axis] break
-
+            foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
                 if {"" == $_limits(${axis}min)} {
                     set _limits(${axis}min) $min
@@ -660,7 +664,7 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
             continue
         }
         if { ![info exists _dataset2style($tag)] } {
-            puts stderr "Don't have style for volume $tag"
+            puts stderr "don't have style for volume $tag"
             continue;                        # How does this happen?
         }
         set tf $_dataset2style($tag)
@@ -894,8 +898,12 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             if { ![info exists _serverDatasets($tag)] } {
                 # Send the data as one huge base64-encoded mess -- yuck!
                 if { [$dataobj type] == "dx" } {
+                    if { ![$dataobj isvalid] } {
+                        puts stderr "??? $dataobj is invalid"
+                    }
                     set data [$dataobj values $cname]
                 } else {
+                    puts stderr "type of $dataobj-$cname is [$dataobj type]"
                     set data [$dataobj vtkdata $cname]
                     if 0 {
                         set f [open "/tmp/volume.vtk" "w"]
