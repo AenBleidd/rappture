@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <iostream>
+#include <tr1/unordered_map>
 
 #include <vrmath/Vector3f.h>
 
@@ -63,7 +64,6 @@ class NvCamera;
 class TransferFunction;
 class Volume;
 class FlowCmd;
-class FlowIterator;
 
 class NanoVis
 {
@@ -81,6 +81,15 @@ public:
 	REDRAW_PENDING = (1 << 0), 
 	MAP_FLOWS = (1 << 1)
     };
+
+    typedef std::string TransferFunctionId;
+    typedef std::string VolumeId;
+    typedef std::string FlowId;
+    typedef std::string HeightMapId;
+    typedef std::tr1::unordered_map<TransferFunctionId, TransferFunction *> TransferFunctionHashmap;
+    typedef std::tr1::unordered_map<VolumeId, Volume *> VolumeHashmap;
+    typedef std::tr1::unordered_map<FlowId, FlowCmd *> FlowHashmap;
+    typedef std::tr1::unordered_map<HeightMapId, HeightMap *> HeightMapHashmap;
 
     static void processCommands();
     static void init(const char *path);
@@ -117,8 +126,8 @@ public:
     static void bmpWrite(const char *prefix);
     static void bmpWriteToFile(int frame_number, const char* directory_name);
  
-    static TransferFunction *getTransfunc(const char *name);
-    static TransferFunction *defineTransferFunction(const char *name, 
+    static TransferFunction *getTransferFunction(const TransferFunctionId& id);
+    static TransferFunction *defineTransferFunction(const TransferFunctionId& id, 
                                                     size_t n, float *data);
 
     static int renderLegend(TransferFunction *tf, double min, double max, 
@@ -140,12 +149,9 @@ public:
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     }
 
-    static FlowCmd *firstFlow(FlowIterator *iterPtr);
-    static FlowCmd *nextFlow(FlowIterator *iterPtr);
-    static void initFlows();
-    static int getFlow(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                       FlowCmd **flowPtrPtr);
-    static int createFlow(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    static FlowCmd *getFlow(const char *name);
+    static FlowCmd *createFlow(Tcl_Interp *interp, const char *name);
+    static void deleteFlow(const char *name);
     static void deleteFlows(Tcl_Interp *interp);
     static bool mapFlows();
     static void getFlowBounds(vrmath::Vector3f& min,
@@ -161,9 +167,11 @@ public:
     static unsigned int flags;
     static bool debugFlag;
     static bool axisOn;
-    static int winWidth;	//size of the render window
-    static int winHeight;	//size of the render window
-    static int renderWindow;
+    static struct timeval startTime;       ///< Start of elapsed time.
+
+    static int winWidth;	///< Width of the render window
+    static int winHeight;	///< Height of the render window
+    static int renderWindow;    //< GLUT handle for the render window
     static unsigned char *screenBuffer;
     static Texture2D *legendTexture;
     static Grid *grid;
@@ -172,10 +180,10 @@ public:
     static NvCamera *cam;
     static nv::graphics::RenderContext *renderContext;
 
-    static Tcl_HashTable tfTable;
-    static Tcl_HashTable volumeTable;
-    static Tcl_HashTable flowTable;
-    static Tcl_HashTable heightmapTable;
+    static TransferFunctionHashmap tfTable; ///< maps transfunc name to TransferFunction object
+    static VolumeHashmap volumeTable;
+    static FlowHashmap flowTable;
+    static HeightMapHashmap heightMapTable;
 
     static double magMin, magMax;
     static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
@@ -199,7 +207,7 @@ public:
 #endif
 
     static Tcl_Interp *interp;
-    static struct timeval startTime;           /* Start of elapsed time. */
+
 private:
     static void collectBounds(bool onlyVisible = false);
 

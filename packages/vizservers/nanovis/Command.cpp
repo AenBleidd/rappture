@@ -265,32 +265,29 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
             return NULL;
         }
     }
-    HeightMap* hmPtr;
-    hmPtr = new HeightMap();
-    hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, heights);
-    hmPtr->transferFunction(NanoVis::getTransfunc("default"));
-    hmPtr->setVisible(true);
-    hmPtr->setLineContourVisible(true);
+    HeightMap *heightMap = new HeightMap();
+    heightMap->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, heights);
+    heightMap->transferFunction(NanoVis::getTransferFunction("default"));
+    heightMap->setVisible(true);
+    heightMap->setLineContourVisible(true);
     delete [] heights;
-    return hmPtr;
+    return heightMap;
 }
 
 static int
 GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
 {
-    const char *string;
-    string = Tcl_GetString(objPtr);
+    const char *string = Tcl_GetString(objPtr);
 
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&NanoVis::heightmapTable, string);
-    if (hPtr == NULL) {
-	if (interp != NULL) {
-	    Tcl_AppendResult(interp, "can't find a heightmap named \"",
+    NanoVis::HeightMapHashmap::iterator itr = NanoVis::heightMapTable.find(string);
+    if (itr == NanoVis::heightMapTable.end()) {
+        if (interp != NULL) {
+            Tcl_AppendResult(interp, "can't find a heightmap named \"",
                          string, "\"", (char*)NULL);
-	}
+        }
         return TCL_ERROR;
     }
-    *hmPtrPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+    *hmPtrPtr = itr->second;
     return TCL_OK;
 }
 
@@ -307,19 +304,17 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
 static int
 GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
 {
-    const char *string;
-    string = Tcl_GetString(objPtr);
+    const char *string = Tcl_GetString(objPtr);
 
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&NanoVis::volumeTable, string);
-    if (hPtr == NULL) {
-	if (interp != NULL) {
-	    Tcl_AppendResult(interp, "can't find a volume named \"",
+    NanoVis::VolumeHashmap::iterator itr = NanoVis::volumeTable.find(string);
+    if (itr == NanoVis::volumeTable.end()) {
+        if (interp != NULL) {
+            Tcl_AppendResult(interp, "can't find a volume named \"",
                          string, "\"", (char*)NULL);
-	}
+        }
         return TCL_ERROR;
     }
-    *volPtrPtr = (Volume *)Tcl_GetHashValue(hPtr);
+    *volPtrPtr = itr->second;
     return TCL_OK;
 }
 
@@ -337,24 +332,20 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
            std::vector<Volume *>* vectorPtr)
 {
     if (objc == 0) {
-	// No arguments. Get all volumes. 
-	Tcl_HashSearch iter;
-	Tcl_HashEntry *hPtr;
-        for (hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); 
-	     hPtr != NULL; hPtr = Tcl_NextHashEntry(&iter)) {
-	    Volume *volPtr;
-	    volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-	    vectorPtr->push_back(volPtr);
-	}
+        // No arguments. Get all volumes.
+        NanoVis::VolumeHashmap::iterator itr;
+        for (itr = NanoVis::volumeTable.begin();
+             itr != NanoVis::volumeTable.end(); ++itr) {
+            vectorPtr->push_back(itr->second);
+        }
     } else {
-	// Get the volumes associated with the given index arguments.
+        // Get the volumes associated with the given index arguments.
         for (int n = 0; n < objc; n++) {
-            Volume *volPtr;
-
-            if (GetVolumeFromObj(interp, objv[n], &volPtr) != TCL_OK) {
+            Volume *volume;
+            if (GetVolumeFromObj(interp, objv[n], &volume) != TCL_OK) {
                 return TCL_ERROR;
             }
-            vectorPtr->push_back(volPtr);
+            vectorPtr->push_back(volume);
         }
     }
     return TCL_OK;
@@ -374,23 +365,19 @@ GetHeightMaps(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
               std::vector<HeightMap *>* vectorPtr)
 {
     if (objc == 0) {
-	// No arguments. Get all heightmaps. 
-	Tcl_HashSearch iter;
-	Tcl_HashEntry *hPtr;
-        for (hPtr = Tcl_FirstHashEntry(&NanoVis::heightmapTable, &iter); 
-	     hPtr != NULL; hPtr = Tcl_NextHashEntry(&iter)) {
-	    HeightMap *hmPtr;
-	    hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
-	    vectorPtr->push_back(hmPtr);
-	}
+        // No arguments. Get all heightmaps.
+        NanoVis::HeightMapHashmap::iterator itr;
+        for (itr = NanoVis::heightMapTable.begin();
+             itr != NanoVis::heightMapTable.end(); ++itr) {
+            vectorPtr->push_back(itr->second);
+        }
     } else {
         for (int n = 0; n < objc; n++) {
-            HeightMap *hmPtr;
-
-            if (GetHeightMapFromObj(interp, objv[n], &hmPtr) != TCL_OK) {
+            HeightMap *heightMap;
+            if (GetHeightMapFromObj(interp, objv[n], &heightMap) != TCL_OK) {
                 return TCL_ERROR;
             }
-            vectorPtr->push_back(hmPtr);
+            vectorPtr->push_back(heightMap);
         }
     }
     return TCL_OK;
@@ -516,28 +503,28 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         nBytes -= nRead;
     }
     if (NanoVis::recfile != NULL) {
-	ssize_t nWritten;
+        ssize_t nWritten;
 
         nWritten = fwrite(buf.bytes(), sizeof(char), buf.size(), 
-			  NanoVis::recfile);
-	assert(nWritten == (ssize_t)buf.size());
+                          NanoVis::recfile);
+        assert(nWritten == (ssize_t)buf.size());
         fflush(NanoVis::recfile);
     }
     Rappture::Outcome err;
     TRACE("Checking header[%.13s]", buf.bytes());
     if (strncmp (buf.bytes(), "@@RP-ENC:", 9) == 0) {
-	/* There's a header on the buffer, use it to decode the data. */
-	if (!Rappture::encoding::decode(err, buf, RPENC_HDR)) {
-	    Tcl_AppendResult(interp, err.remark(), (char*)NULL);
-	    return TCL_ERROR;
-	}
+        /* There's a header on the buffer, use it to decode the data. */
+        if (!Rappture::encoding::decode(err, buf, RPENC_HDR)) {
+            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
+            return TCL_ERROR;
+        }
     } else if (Rappture::encoding::isBase64(buf.bytes(), buf.size())) {
-	/* No header, but it's base64 encoded.  It's likely that it's both
-	 * base64 encoded and compressed. */
-	if (!Rappture::encoding::decode(err, buf, RPENC_B64 | RPENC_Z)) {
-	    Tcl_AppendResult(interp, err.remark(), (char*)NULL);
-	    return TCL_ERROR;
-	}
+        /* No header, but it's base64 encoded.  It's likely that it's both
+         * base64 encoded and compressed. */
+        if (!Rappture::encoding::decode(err, buf, RPENC_B64 | RPENC_Z)) {
+            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -643,7 +630,7 @@ static int nCameraOps = NumCmdSpecs(cameraOps);
 
 static int
 CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	  Tcl_Obj *const *objv)
+          Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -657,7 +644,7 @@ CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
-	    Tcl_Obj *const *objv)
+            Tcl_Obj *const *objv)
 {
     int w, h;
 
@@ -786,7 +773,7 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  *      Log initial values to stats file.  The first time this is called
  *      "render_start" is written into the stats file.  Afterwards, it 
  *      is "render_info". 
- *	
+ *        
  *         clientinfo list
  */
 static int
@@ -802,9 +789,9 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     static int first = 1;
 
     if (objc != 2) {
-	Tcl_AppendResult(interp, "wrong # of arguments: should be \"", 
+        Tcl_AppendResult(interp, "wrong # of arguments: should be \"", 
                 Tcl_GetString(objv[0]), " list\"", (char *)NULL);
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
 #ifdef KEEPSTATS
     int f;
@@ -813,9 +800,9 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
      * a unique file name. */
     f = NanoVis::getStatsFile(objv[1]);
     if (f < 0) {
-	Tcl_AppendResult(interp, "can't open stats file: ", 
+        Tcl_AppendResult(interp, "can't open stats file: ", 
                          Tcl_PosixError(interp), (char *)NULL);
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
 #endif
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
@@ -857,7 +844,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_NewLongObj(NanoVis::startTime.tv_sec));
     /* Client arguments. */
     if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     for (i = 0; i < numItems; i++) {
         Tcl_ListObjAppendElement(interp, listObjPtr, items[i]);
@@ -890,7 +877,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  */
 static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	  Tcl_Obj *const *objv)
+          Tcl_Obj *const *objv)
 {
     if (objc != 4) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
@@ -900,8 +887,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
     const char *name;
     name = Tcl_GetString(objv[1]);
-    TransferFunction *tf;
-    tf = NanoVis::getTransfunc(name);
+    TransferFunction *tf = NanoVis::getTransferFunction(name);
     if (tf == NULL) {
         Tcl_AppendResult(interp, "unknown transfer function \"", name, "\"",
                              (char*)NULL);
@@ -1181,13 +1167,10 @@ VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     TRACE("parsing volume data identifier");
-    Tcl_HashSearch iter;
-    Tcl_HashEntry *hPtr;
-    for (hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); hPtr != NULL;
-	 hPtr = Tcl_NextHashEntry(&iter)) {
-	Volume *volPtr;
-	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        NanoVis::volRenderer->addAnimatedVolume(volPtr);
+    NanoVis::VolumeHashmap::iterator itr;
+    for (itr = NanoVis::volumeTable.begin();
+         itr != NanoVis::volumeTable.end(); ++itr) {
+        NanoVis::volRenderer->addAnimatedVolume(itr->second);
     }
     return TCL_OK;
 }
@@ -1209,7 +1192,7 @@ VolumeAnimationOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nVolumeAnimationOps, 
-		volumeAnimationOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
+                volumeAnimationOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1226,8 +1209,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *tag;
-    tag = Tcl_GetString(objv[4]);
+    const char *tag = Tcl_GetString(objv[4]);
     Rappture::Buffer buf;
     if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
@@ -1240,7 +1222,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     TRACE("Checking header[%.20s]", bytes);
 
-    Volume *volPtr = NULL;
+    Volume *volume = NULL;
 
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
         TRACE("ZincBlende Stream loading...");
@@ -1248,39 +1230,37 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         //fdata.write(buf.bytes(),buf.size());
         //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
 
-        volPtr = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
-        if (volPtr == NULL) {
+        volume = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
+        if (volume == NULL) {
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;
         }
         TRACE("finish loading");
 
-        Vector3f scale = volPtr->getPhysicalScaling();
+        Vector3f scale = volume->getPhysicalScaling();
         Vector3f loc(scale);
         loc *= -0.5;
-        volPtr->location(loc);
+        volume->location(loc);
 
-	int isNew;
-	Tcl_HashEntry *hPtr;
-        hPtr = Tcl_CreateHashEntry(&NanoVis::volumeTable, tag, &isNew);
-	if (!isNew) {
+        NanoVis::VolumeHashmap::iterator itr = NanoVis::volumeTable.find(tag);
+        if (itr != NanoVis::volumeTable.end()) {
             Tcl_AppendResult(interp, "volume \"", tag, "\" already exists.",
-			     (char *)NULL);
+                             (char *)NULL);
             return TCL_ERROR;
-	}
-	Tcl_SetHashValue(hPtr, volPtr);
-	volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
+        }
+        NanoVis::volumeTable[tag] = volume;
+        volume->name(tag);
     } else if ((nBytes > 14) && (strncmp(bytes, "# vtk DataFile", 14) == 0)) {
         TRACE("VTK loading...");
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
         if (nBytes <= 0) {
-	    ERROR("data buffer is empty");
-	    abort();
+            ERROR("data buffer is empty");
+            abort();
         }
         Rappture::Outcome context;
-        volPtr = load_vtk_volume_stream(context, tag, fdata);
-        if (volPtr == NULL) {
+        volume = load_vtk_volume_stream(context, tag, fdata);
+        if (volume == NULL) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
         }
@@ -1298,22 +1278,22 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             abort();
         }
         Rappture::Outcome context;
-        volPtr = load_dx_volume_stream(context, tag, fdata);
-        if (volPtr == NULL) {
+        volume = load_dx_volume_stream(context, tag, fdata);
+        if (volume == NULL) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
         }
     }
 
-    if (volPtr != NULL) {
-        volPtr->disableCutplane(0);
-        volPtr->disableCutplane(1);
-        volPtr->disableCutplane(2);
-        volPtr->transferFunction(NanoVis::getTransfunc("default"));
-	volPtr->visible(true);
+    if (volume != NULL) {
+        volume->disableCutplane(0);
+        volume->disableCutplane(1);
+        volume->disableCutplane(2);
+        volume->transferFunction(NanoVis::getTransferFunction("default"));
+        volume->visible(true);
 
         char info[1024];
-	ssize_t nWritten;
+        ssize_t nWritten;
 
         if (Volume::updatePending) {
             NanoVis::setVolumeRanges();
@@ -1321,10 +1301,10 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
         // FIXME: strlen(info) is the return value of sprintf
         sprintf(info, "nv>data tag %s min %g max %g vmin %g vmax %g\n", tag, 
-		volPtr->wAxis.min(), volPtr->wAxis.max(),
+                volume->wAxis.min(), volume->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
         nWritten  = write(1, info, strlen(info));
-	assert(nWritten == (ssize_t)strlen(info));
+        assert(nWritten == (ssize_t)strlen(info));
     }
     return TCL_OK;
 }
@@ -1343,7 +1323,7 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	(*iter)->dataEnabled(state);
+        (*iter)->dataEnabled(state);
     }
     return TCL_OK;
 }
@@ -1370,17 +1350,14 @@ VolumeDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
-	       Tcl_Obj *const *objv)
+               Tcl_Obj *const *objv)
 {
-    int i;
-
-    for (i = 2; i < objc; i++) {
-	Volume *volPtr;
-
-	if (GetVolumeFromObj(interp, objv[i], &volPtr) != TCL_OK) {
-	    return TCL_ERROR;
-	}
-	NanoVis::removeVolume(volPtr);
+    for (int i = 2; i < objc; i++) {
+        Volume *volume;
+        if (GetVolumeFromObj(interp, objv[i], &volume) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        NanoVis::removeVolume(volume);
     }
     NanoVis::eventuallyRedraw();
     return TCL_OK;
@@ -1388,14 +1365,14 @@ VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 VolumeExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
-	       Tcl_Obj *const *objv)
+               Tcl_Obj *const *objv)
 {
     bool value;
-    Volume *volPtr;
+    Volume *volume;
 
     value = false;
-    if (GetVolumeFromObj(NULL, objv[2], &volPtr) == TCL_OK) {
-	value = true;
+    if (GetVolumeFromObj(NULL, objv[2], &volume) == TCL_OK) {
+        value = true;
     }
     Tcl_SetBooleanObj(Tcl_GetObjResult(interp), (int)value);
     return TCL_OK;
@@ -1403,19 +1380,15 @@ VolumeExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 VolumeNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
-	      Tcl_Obj *const *objv)
+              Tcl_Obj *const *objv)
 {
     Tcl_Obj *listObjPtr;
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
-    Tcl_HashEntry *hPtr; 
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); hPtr != NULL; 
-	 hPtr = Tcl_NextHashEntry(&iter)) {
-	Volume *volPtr;
-	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-	Tcl_Obj *objPtr;
-	objPtr = Tcl_NewStringObj(volPtr->name(), -1);
-	Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+    NanoVis::VolumeHashmap::iterator itr;
+    for (itr = NanoVis::volumeTable.begin();
+         itr != NanoVis::volumeTable.end(); ++itr) {
+        Tcl_Obj *objPtr = Tcl_NewStringObj(itr->second->name(), -1);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     }
     Tcl_SetObjResult(interp, listObjPtr);
     return TCL_OK;
@@ -1454,7 +1427,7 @@ VolumeOutlineStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	(*iter)->outline(state);
+        (*iter)->outline(state);
     }
     return TCL_OK;
 }
@@ -1632,10 +1605,9 @@ static int
 VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
-    TransferFunction *tfPtr;
     const char *name = Tcl_GetString(objv[3]);
-    tfPtr = NanoVis::getTransfunc(name);
-    if (tfPtr == NULL) {
+    TransferFunction *tf = NanoVis::getTransferFunction(name);
+    if (tf == NULL) {
         Tcl_AppendResult(interp, "transfer function \"", name,
                          "\" is not defined", (char*)NULL);
         return TCL_ERROR;
@@ -1646,13 +1618,13 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	TRACE("setting %s with transfer function %s", (*iter)->name(),
-	       tfPtr->name());
-        (*iter)->transferFunction(tfPtr);
+        TRACE("setting %s with transfer function %s", (*iter)->name(),
+               tf->name());
+        (*iter)->transferFunction(tf);
 #ifdef USE_POINTSET_RENDERER
         // TBD..
         if ((*iter)->pointsetIndex != -1) {
-            NanoVis::pointSet[(*iter)->pointsetIndex]->updateColor(tfPtr->getData(), 256);
+            NanoVis::pointSet[(*iter)->pointsetIndex]->updateColor(tf->getData(), 256);
         }
 #endif
     }
@@ -1699,24 +1671,7 @@ VolumeStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	(*iter)->visible(state);
-    }
-    return TCL_OK;
-}
-
-static int
-VolumeTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
-{
-    // Find the first volume in the vector.
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); 
-    if (hPtr != NULL) {
-	Volume *volPtr;
-	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        volPtr->dataEnabled(false);
-        volPtr->visible(false);
+        (*iter)->visible(state);
     }
     return TCL_OK;
 }
@@ -1730,7 +1685,6 @@ static Rappture::CmdSpec volumeOps[] = {
     {"outline",   1, VolumeOutlineOp,     3, 0, "oper ?args?",},
     {"shading",   2, VolumeShadingOp,     3, 0, "oper ?args?",},
     {"state",     2, VolumeStateOp,       3, 0, "bool ?indices?",},
-    {"test2",     1, VolumeTestOp,        2, 2, "",},
 };
 static int nVolumeOps = NumCmdSpecs(volumeOps);
 
@@ -1751,7 +1705,7 @@ static int nVolumeOps = NumCmdSpecs(volumeOps);
  */
 static int
 VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	  Tcl_Obj *const *objv)
+          Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -1771,10 +1725,7 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[3], &nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *tag;
-    tag = Tcl_GetString(objv[4]);
-    int isNew;
-    Tcl_HashEntry *hPtr;
+    const char *tag = Tcl_GetString(objv[4]);
 
     Rappture::Buffer buf;
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
@@ -1782,34 +1733,34 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     Rappture::Unirect2d data(1);
     if (data.parseBuffer(interp, buf) != TCL_OK) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     if (data.nValues() == 0) {
-	Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
-	return TCL_ERROR;
+        Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
+        return TCL_ERROR;
     }
     if (!data.isInitialized()) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
-    HeightMap* hmPtr;
-    hPtr = Tcl_CreateHashEntry(&NanoVis::heightmapTable, tag, &isNew);
-    if (isNew) {
-	hmPtr = new HeightMap();
-	Tcl_SetHashValue(hPtr, hmPtr);
+    HeightMap *heightMap;
+    NanoVis::HeightMapHashmap::iterator itr = NanoVis::heightMapTable.find(tag);
+    if (itr != NanoVis::heightMapTable.end()) {
+        heightMap = itr->second;
     } else {
-	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+        heightMap = new HeightMap();
+        NanoVis::heightMapTable[tag] = heightMap;
     }
-    TRACE("Number of heightmaps=%d", NanoVis::heightmapTable.numEntries);
+    TRACE("Number of heightmaps=%d", NanoVis::heightMapTable.size());
     // Must set units before the heights.
-    hmPtr->xAxis.units(data.xUnits());
-    hmPtr->yAxis.units(data.yUnits());
-    hmPtr->zAxis.units(data.vUnits());
-    hmPtr->wAxis.units(data.yUnits());
-    hmPtr->setHeight(data.xMin(), data.yMin(), data.xMax(), data.yMax(), 
-		     data.xNum(), data.yNum(), data.transferValues());
-    hmPtr->transferFunction(NanoVis::getTransfunc("default"));
-    hmPtr->setVisible(true);
-    hmPtr->setLineContourVisible(true);
+    heightMap->xAxis.units(data.xUnits());
+    heightMap->yAxis.units(data.yUnits());
+    heightMap->zAxis.units(data.vUnits());
+    heightMap->wAxis.units(data.yUnits());
+    heightMap->setHeight(data.xMin(), data.yMin(), data.xMax(), data.yMax(), 
+                         data.xNum(), data.yNum(), data.transferValues());
+    heightMap->transferFunction(NanoVis::getTransferFunction("default"));
+    heightMap->setVisible(true);
+    heightMap->setLineContourVisible(true);
     NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
@@ -1877,7 +1828,7 @@ HeightMapLineContourColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp, 
-			      int objc, Tcl_Obj *const *objv)
+                              int objc, Tcl_Obj *const *objv)
 {
     bool visible;
     if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
@@ -1932,26 +1883,21 @@ static int
 HeightMapCreateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
-    const char *tag;
-    tag = Tcl_GetString(objv[2]);
-    Tcl_HashEntry *hPtr;
-    int isNew;
-    hPtr = Tcl_CreateHashEntry(&NanoVis::heightmapTable, tag, &isNew);
-    if (!isNew) {
-	Tcl_AppendResult(interp, "heightmap \"", tag, "\" already exists.",
-			 (char *)NULL);
-	return TCL_ERROR;
-    }
-    HeightMap *hmPtr;
-    /* heightmap create xmin ymin xmax ymax xnum ynum values */
-    hmPtr = CreateHeightMap(clientData, interp, objc - 3, objv + 3);
-    if (hmPtr == NULL) {
+    const char *tag = Tcl_GetString(objv[2]);
+    NanoVis::HeightMapHashmap::iterator itr = NanoVis::heightMapTable.find(tag);
+    if (itr != NanoVis::heightMapTable.end()) {
+        Tcl_AppendResult(interp, "heightmap \"", tag, "\" already exists.",
+                         (char *)NULL);
         return TCL_ERROR;
     }
-    Tcl_SetHashValue(hPtr, hmPtr);
-    Tcl_SetStringObj(Tcl_GetObjResult(interp), tag, -1);;
+    /* heightmap create xmin ymin xmax ymax xnum ynum values */
+    HeightMap *heightMap = CreateHeightMap(clientData, interp, objc - 3, objv + 3);
+    if (heightMap == NULL) {
+        return TCL_ERROR;
+    }
+    NanoVis::heightMapTable[tag] = heightMap;
     NanoVis::eventuallyRedraw();
-    TRACE("Number of heightmaps=%d", NanoVis::heightmapTable.numEntries);
+    TRACE("Number of heightmaps=%d", NanoVis::heightMapTable.size());
     return TCL_OK;
 }
 
@@ -1969,7 +1915,7 @@ HeightMapLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     tfPtr = hmPtr->transferFunction();
     if (tfPtr == NULL) {
         Tcl_AppendResult(interp, "no transfer function defined for heightmap"
-			 " \"", tag, "\"", (char*)NULL);
+                         " \"", tag, "\"", (char*)NULL);
         return TCL_ERROR;
     }
     int w, h;
@@ -2017,9 +1963,8 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     const char *name;
     name = Tcl_GetString(objv[2]);
-    TransferFunction *tfPtr;
-    tfPtr = NanoVis::getTransfunc(name);
-    if (tfPtr == NULL) {
+    TransferFunction *tf = NanoVis::getTransferFunction(name);
+    if (tf == NULL) {
         Tcl_AppendResult(interp, "transfer function \"", name,
                          "\" is not defined", (char*)NULL);
         return TCL_ERROR;
@@ -2030,7 +1975,7 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<HeightMap *>::iterator iter;
     for (iter = imap.begin(); iter != imap.end(); iter++) {
-        (*iter)->transferFunction(tfPtr);
+        (*iter)->transferFunction(tf);
     }
     NanoVis::eventuallyRedraw();
     return TCL_OK;
@@ -2043,7 +1988,7 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     float opacity;
     if (GetFloatFromObj(interp, objv[2], &opacity) != TCL_OK) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     std::vector<HeightMap *> heightmaps;
     if (GetHeightMaps(interp, objc - 3, objv + 3, &heightmaps) != TCL_OK) {
@@ -2072,7 +2017,7 @@ static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 
 static int
 HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	     Tcl_Obj *const *objv)
+             Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2149,7 +2094,7 @@ GridLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 GridVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-	      Tcl_Obj *const *objv)
+              Tcl_Obj *const *objv)
 {
     bool visible;
     if (GetBooleanFromObj(interp, objv[2], &visible) != TCL_OK) {
@@ -2169,7 +2114,7 @@ static int nGridOps = NumCmdSpecs(gridOps);
 
 static int
 GridCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	Tcl_Obj *const *objv)
+        Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2183,7 +2128,7 @@ GridCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	Tcl_Obj *const *objv)
+        Tcl_Obj *const *objv)
 {
     if (objc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
@@ -2210,7 +2155,7 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 #ifdef PLANE_CMD
 static int 
 PlaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-	   Tcl_Obj *const *objv)
+           Tcl_Obj *const *objv)
 {
     TRACE("load plane for 2D visualization command");
 
@@ -2315,7 +2260,7 @@ static int nPlaneOps = NumCmdSpecs(planeOps);
 
 static int
 PlaneCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	 Tcl_Obj *const *objv)
+         Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2363,7 +2308,7 @@ Unirect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 Unirect3dCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	     Tcl_Obj *const *objv)
+             Tcl_Obj *const *objv)
 {
     Rappture::Unirect3d *dataPtr = (Rappture::Unirect3d *)clientData;
 
@@ -2390,7 +2335,7 @@ initTcl()
     Tcl_CreateObjCommand(interp, "clientinfo",  ClientInfoCmd,  NULL, NULL);
     Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    NULL, NULL);
     if (FlowCmdInitProc(interp) != TCL_OK) {
-	return NULL;
+        return NULL;
     }
     Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
@@ -2406,12 +2351,10 @@ initTcl()
     Tcl_CreateObjCommand(interp, "up",          UpCmd,          NULL, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
 
-    Tcl_InitHashTable(&NanoVis::volumeTable, TCL_STRING_KEYS);
-    Tcl_InitHashTable(&NanoVis::heightmapTable, TCL_STRING_KEYS);
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
         WARN("bad default transfer function:\n%s", 
-	     Tcl_GetStringResult(interp));
+             Tcl_GetStringResult(interp));
     }
     return interp;
 }

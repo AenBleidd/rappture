@@ -319,7 +319,7 @@ public:
 
     const char *name() const
     {
-        return _name;
+        return _name.c_str();
     }
 
     void name(const char *name)
@@ -380,7 +380,8 @@ protected:
      */
     float _opacityScale;
 
-    const char *_name;
+    std::string _name;
+
     float *_data;
 
     int _numComponents;

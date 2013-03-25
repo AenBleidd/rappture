@@ -67,7 +67,6 @@
 #include "NvFlowVisRenderer.h"
 #include "NvLIC.h"
 #include "NvZincBlendeReconstructor.h"
-#include "PerfQuery.h"
 #include "PlaneRenderer.h"
 #ifdef USE_POINTSET_RENDERER
 #include "PointSetRenderer.h"
@@ -104,34 +103,6 @@ typedef struct {
 static Stats stats;
 
 // STATIC MEMBER DATA
-struct timeval NanoVis::startTime;      /* Start of elapsed time. */
-Grid *NanoVis::grid = NULL;
-int NanoVis::updir = Y_POS;
-NvCamera *NanoVis::cam = NULL;
-Tcl_HashTable NanoVis::volumeTable;
-Tcl_HashTable NanoVis::heightmapTable;
-VolumeRenderer *NanoVis::volRenderer = NULL;
-#ifdef USE_POINTSET_RENDERER
-PointSetRenderer *NanoVis::pointSetRenderer = NULL;
-std::vector<PointSet *> NanoVis::pointSet;
-#endif
-
-PlaneRenderer *NanoVis::planeRenderer = NULL;
-#ifdef PLANE_CMD
-// pointers to 2D planes, currently handle up 10
-int NanoVis::numPlanes = 10;
-Texture2D *NanoVis::plane[10];
-#endif
-Texture2D *NanoVis::legendTexture = NULL;
-NvColorTableRenderer *NanoVis::colorTableRenderer = NULL;
-#ifdef notdef
-NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
-#endif
-VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
-
-RenderContext *NanoVis::renderContext = NULL;
-NvLIC *NanoVis::licRenderer = NULL;
-Fonts *NanoVis::fonts;
 
 FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
@@ -139,23 +110,27 @@ FILE *NanoVis::recfile = NULL;
 
 int NanoVis::statsFile = -1;
 
-bool NanoVis::axisOn = true;
-bool NanoVis::debugFlag = false;
-
-Tcl_Interp *NanoVis::interp;
-
-//frame buffer for final rendering
-GLuint NanoVis::_finalColorTex = 0;
-GLuint NanoVis::_finalDepthRb = 0;
-GLuint NanoVis::_finalFbo = 0;
-int NanoVis::renderWindow = 0;       /* GLUT handle for the render window */
-int NanoVis::winWidth = NPIX;        /* Width of the render window */
-int NanoVis::winHeight = NPIX;       /* Height of the render window */
-
-unsigned char* NanoVis::screenBuffer = NULL;
-
 unsigned int NanoVis::flags = 0;
-Tcl_HashTable NanoVis::flowTable;
+bool NanoVis::debugFlag = false;
+bool NanoVis::axisOn = true;
+struct timeval NanoVis::startTime;
+
+int NanoVis::winWidth = NPIX;
+int NanoVis::winHeight = NPIX;
+int NanoVis::renderWindow = 0;
+unsigned char *NanoVis::screenBuffer = NULL;
+Texture2D *NanoVis::legendTexture = NULL;
+Grid *NanoVis::grid = NULL;
+Fonts *NanoVis::fonts;
+int NanoVis::updir = Y_POS;
+NvCamera *NanoVis::cam = NULL;
+RenderContext *NanoVis::renderContext = NULL;
+
+NanoVis::TransferFunctionHashmap NanoVis::tfTable;
+NanoVis::VolumeHashmap NanoVis::volumeTable;
+NanoVis::FlowHashmap NanoVis::flowTable;
+NanoVis::HeightMapHashmap NanoVis::heightMapTable;
+
 double NanoVis::magMin = DBL_MAX;
 double NanoVis::magMax = -DBL_MAX;
 float NanoVis::xMin = FLT_MAX;
@@ -168,26 +143,43 @@ float NanoVis::wMin = FLT_MAX;
 float NanoVis::wMax = -FLT_MAX;
 vrmath::Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
 
-/* FIXME: This variable is always true. */
-static bool volumeMode = true; 
+NvColorTableRenderer *NanoVis::colorTableRenderer = NULL;
+VolumeRenderer *NanoVis::volRenderer = NULL;
+#ifdef notdef
+NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
+#endif
+VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
+NvLIC *NanoVis::licRenderer = NULL;
+PlaneRenderer *NanoVis::planeRenderer = NULL;
+#ifdef PLANE_CMD
+// pointers to 2D planes, currently handle up 10
+int NanoVis::numPlanes = 10;
+Texture2D *NanoVis::plane[10];
+#endif
+#ifdef USE_POINTSET_RENDERER
+PointSetRenderer *NanoVis::pointSetRenderer = NULL;
+std::vector<PointSet *> NanoVis::pointSet;
+#endif
 
-// in Command.cpp
-extern Tcl_Interp *initTcl();
-
-// maps transfunc name to TransferFunction object
-Tcl_HashTable NanoVis::tfTable;
-
-PerfQuery *perf = NULL;                        //performance counter
-
-// Default camera location.
-float def_eye_x = 0.0f;
-float def_eye_y = 0.0f;
-float def_eye_z = 2.5f;
+Tcl_Interp *NanoVis::interp;
 
 // Image based flow visualization slice location
 // FLOW
 float NanoVis::_licSlice = 0.5f;
 int NanoVis::_licAxis = 2; // z axis
+
+//frame buffer for final rendering
+GLuint NanoVis::_finalFbo = 0;
+GLuint NanoVis::_finalColorTex = 0;
+GLuint NanoVis::_finalDepthRb = 0;
+
+// in Command.cpp
+extern Tcl_Interp *initTcl();
+
+// Default camera location.
+float def_eye_x = 0.0f;
+float def_eye_y = 0.0f;
+float def_eye_z = 2.5f;
 
 void
 NanoVis::removeAllData()
@@ -248,10 +240,6 @@ NanoVis::removeAllData()
         delete [] screenBuffer;
         screenBuffer = NULL;
     }
-    if (perf != NULL) {
-        TRACE("Deleting perf");
-        delete perf;
-    }
 #ifdef USE_POINTSET_RENDERER
     if (pointSetRenderer != NULL) {
         TRACE("Deleting pointSetRenderer");
@@ -306,7 +294,7 @@ NanoVis::getStatsFile(Tcl_Obj *objPtr)
         return statsFile;
     }
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
-	return -1;
+        return -1;
     }
     Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("pid", 3));
     Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewIntObj(getpid()));
@@ -327,8 +315,8 @@ NanoVis::getStatsFile(Tcl_Obj *objPtr)
     statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
     Tcl_DStringFree(&ds);
     if (statsFile < 0) {
-	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
-	return -1;
+        ERROR("can't open \"%s\": %s", fileName, strerror(errno));
+        return -1;
     }
     return statsFile;
 }
@@ -357,13 +345,13 @@ serverStats(int code)
     int f;
 
     {
-	struct timeval tv;
+        struct timeval tv;
 
-	/* Get ending time.  */
-	gettimeofday(&tv, NULL);
-	finish = CVT2SECS(tv);
-	tv = stats.start;
-	start = CVT2SECS(tv);
+        /* Get ending time.  */
+        gettimeofday(&tv, NULL);
+        finish = CVT2SECS(tv);
+        tv = stats.start;
+        start = CVT2SECS(tv);
     }
     /* 
      * Session information:
@@ -433,28 +421,28 @@ serverStats(int code)
     sprintf(buf, "%d", code);
     Tcl_DStringAppendElement(&ds, buf);
     {
-	long clocksPerSec = sysconf(_SC_CLK_TCK);
-	double clockRes = 1.0 / clocksPerSec;
-	struct tms tms;
+        long clocksPerSec = sysconf(_SC_CLK_TCK);
+        double clockRes = 1.0 / clocksPerSec;
+        struct tms tms;
 
-	memset(&tms, 0, sizeof(tms));
-	times(&tms);
-	/* utime */
-	Tcl_DStringAppendElement(&ds, "utime");
-	sprintf(buf, "%g", tms.tms_utime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-	/* stime */
-	Tcl_DStringAppendElement(&ds, "stime");
-	sprintf(buf, "%g", tms.tms_stime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-	/* cutime */
-	Tcl_DStringAppendElement(&ds, "cutime");
-	sprintf(buf, "%g", tms.tms_cutime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-	/* cstime */
-	Tcl_DStringAppendElement(&ds, "cstime");
-	sprintf(buf, "%g", tms.tms_cstime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
+        memset(&tms, 0, sizeof(tms));
+        times(&tms);
+        /* utime */
+        Tcl_DStringAppendElement(&ds, "utime");
+        sprintf(buf, "%g", tms.tms_utime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+        /* stime */
+        Tcl_DStringAppendElement(&ds, "stime");
+        sprintf(buf, "%g", tms.tms_stime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+        /* cutime */
+        Tcl_DStringAppendElement(&ds, "cutime");
+        sprintf(buf, "%g", tms.tms_cutime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+        /* cstime */
+        Tcl_DStringAppendElement(&ds, "cstime");
+        sprintf(buf, "%g", tms.tms_cstime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
     }
     Tcl_DStringAppend(&ds, "\n", -1);
     f = NanoVis::getStatsFile(NULL);
@@ -512,7 +500,7 @@ exitService(int code)
     //close log file
     if (NanoVis::logfile != NULL) {
         fclose(NanoVis::logfile);
-	NanoVis::logfile = NULL;
+        NanoVis::logfile = NULL;
     }
 
 #ifdef KEEPSTATS
@@ -608,65 +596,51 @@ NanoVis::loadVolume(const char *name, int width, int height, int depth,
                     int n_component, float *data, double vmin, double vmax, 
                     double nzero_min)
 {
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&volumeTable, name);
-    if (hPtr != NULL) {
-        Volume *volPtr; 
+    VolumeHashmap::iterator itr = volumeTable.find(name);
+    if (itr != volumeTable.end()) {
         WARN("volume \"%s\" already exists", name);
-        volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        removeVolume(volPtr);
+        removeVolume(itr->second);
     }
-    int isNew;
-    hPtr = Tcl_CreateHashEntry(&volumeTable, name, &isNew);
-    Volume* volPtr;
-    volPtr = new Volume(0.f, 0.f, 0.f, width, height, depth, n_component,
-                        data, vmin, vmax, nzero_min);
+
+    Volume *volume = new Volume(0.f, 0.f, 0.f,
+                                width, height, depth,
+                                n_component,
+                                data, vmin, vmax, nzero_min);
     Volume::updatePending = true;
-    Tcl_SetHashValue(hPtr, volPtr);
-    volPtr->name(Tcl_GetHashKey(&volumeTable, hPtr));
-    return volPtr;
+    volume->name(name);
+    volumeTable[name] = volume;
+
+    return volume;
 }
 
 // Gets a colormap 1D texture by name.
 TransferFunction *
-NanoVis::getTransfunc(const char *name) 
+NanoVis::getTransferFunction(const TransferFunctionId& id) 
 {
-    Tcl_HashEntry *hPtr;
-
-    hPtr = Tcl_FindHashEntry(&tfTable, name);
-    if (hPtr == NULL) {
-        ERROR("No transfer function named \"%s\" found", name);
+    TransferFunctionHashmap::iterator itr = tfTable.find(id);
+    if (itr == tfTable.end()) {
+        ERROR("No transfer function named \"%s\" found", id.c_str());
         return NULL;
+    } else {
+        return itr->second;
     }
-    return (TransferFunction *)Tcl_GetHashValue(hPtr);
 }
 
 // Creates of updates a colormap 1D texture by name.
 TransferFunction *
-NanoVis::defineTransferFunction(const char *name, size_t n, float *data)
+NanoVis::defineTransferFunction(const TransferFunctionId& id,
+                                size_t n, float *data)
 {
-    int isNew;
-    Tcl_HashEntry *hPtr;
-    TransferFunction *tfPtr;
-
-    hPtr = Tcl_CreateHashEntry(&tfTable, name, &isNew);
-    if (isNew) {
-        TRACE("Creating new transfer function \"%s\"", name);
-
-        tfPtr = new TransferFunction(n, data);
-        tfPtr->name(Tcl_GetHashKey(&tfTable, hPtr));
-        Tcl_SetHashValue(hPtr, tfPtr);
+    TransferFunction *tf = getTransferFunction(id);
+    if (tf == NULL) {
+        TRACE("Creating new transfer function \"%s\"", id.c_str());
+        tf = new TransferFunction(n, data);
+        tfTable[id] = tf;
     } else {
-        TRACE("Updating existing transfer function \"%s\"", name);
-
-        /* 
-         * You can't delete the transfer function because many 
-         * objects may be holding its pointer.  We must update it.
-         */
-        tfPtr = (TransferFunction *)Tcl_GetHashValue(hPtr);
-        tfPtr->update(n, data);
+        TRACE("Updating existing transfer function \"%s\"", id.c_str());
+        tf->update(n, data);
     }
-    return tfPtr;
+    return tf;
 }
 
 int
@@ -977,15 +951,6 @@ NanoVis::initGL()
     glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
     glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
     glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);
-
-    // init table of transfer functions
-    Tcl_InitHashTable(&tfTable, TCL_STRING_KEYS);
-
-    //check if performance query is supported
-    if (PerfQuery::checkQuerySupport()) {
-        //create queries to count number of rendered pixels
-        perf = new PerfQuery();
-    }
 
     initOffscreenBuffer();    //frame buffer object for offscreen rendering
 
@@ -1454,34 +1419,33 @@ NanoVis::setVolumeRanges()
     TRACE("Enter");
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&volumeTable, &iter); hPtr != NULL;
-         hPtr = Tcl_NextHashEntry(&iter)) {
-        Volume *volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        if (xMin > volPtr->xAxis.min()) {
-            xMin = volPtr->xAxis.min();
+    VolumeHashmap::iterator itr;
+    for (itr = volumeTable.begin();
+         itr != volumeTable.end(); ++itr) {
+        Volume *volume = itr->second;
+        if (xMin > volume->xAxis.min()) {
+            xMin = volume->xAxis.min();
         }
-        if (xMax < volPtr->xAxis.max()) {
-            xMax = volPtr->xAxis.max();
+        if (xMax < volume->xAxis.max()) {
+            xMax = volume->xAxis.max();
         }
-        if (yMin > volPtr->yAxis.min()) {
-            yMin = volPtr->yAxis.min();
+        if (yMin > volume->yAxis.min()) {
+            yMin = volume->yAxis.min();
         }
-        if (yMax < volPtr->yAxis.max()) {
-            yMax = volPtr->yAxis.max();
+        if (yMax < volume->yAxis.max()) {
+            yMax = volume->yAxis.max();
         }
-        if (zMin > volPtr->zAxis.min()) {
-            zMin = volPtr->zAxis.min();
+        if (zMin > volume->zAxis.min()) {
+            zMin = volume->zAxis.min();
         }
-        if (zMax < volPtr->zAxis.max()) {
-            zMax = volPtr->zAxis.max();
+        if (zMax < volume->zAxis.max()) {
+            zMax = volume->zAxis.max();
         }
-        if (wMin > volPtr->wAxis.min()) {
-            wMin = volPtr->wAxis.min();
+        if (wMin > volume->wAxis.min()) {
+            wMin = volume->wAxis.min();
         }
-        if (wMax < volPtr->wAxis.max()) {
-            wMax = volPtr->wAxis.max();
+        if (wMax < volume->wAxis.max()) {
+            wMax = volume->wAxis.max();
         }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
@@ -1509,34 +1473,33 @@ NanoVis::setHeightmapRanges()
     TRACE("Enter");
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-         hPtr = Tcl_NextHashEntry(&iter)) {
-        HeightMap *hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
-        if (xMin > hmPtr->xAxis.min()) {
-            xMin = hmPtr->xAxis.min();
+    HeightMapHashmap::iterator itr;
+    for (itr = heightMapTable.begin();
+         itr != heightMapTable.end(); ++itr) {
+        HeightMap *heightMap = itr->second;
+        if (xMin > heightMap->xAxis.min()) {
+            xMin = heightMap->xAxis.min();
         }
-        if (xMax < hmPtr->xAxis.max()) {
-            xMax = hmPtr->xAxis.max();
+        if (xMax < heightMap->xAxis.max()) {
+            xMax = heightMap->xAxis.max();
         }
-        if (yMin > hmPtr->yAxis.min()) {
-            yMin = hmPtr->yAxis.min();
+        if (yMin > heightMap->yAxis.min()) {
+            yMin = heightMap->yAxis.min();
         }
-        if (yMax < hmPtr->yAxis.max()) {
-            yMax = hmPtr->yAxis.max();
+        if (yMax < heightMap->yAxis.max()) {
+            yMax = heightMap->yAxis.max();
         }
-        if (zMin > hmPtr->zAxis.min()) {
-            zMin = hmPtr->zAxis.min();
+        if (zMin > heightMap->zAxis.min()) {
+            zMin = heightMap->zAxis.min();
         }
-        if (zMax < hmPtr->zAxis.max()) {
-            zMax = hmPtr->zAxis.max();
+        if (zMax < heightMap->zAxis.max()) {
+            zMax = heightMap->zAxis.max();
         }
-        if (wMin > hmPtr->wAxis.min()) {
-            wMin = hmPtr->wAxis.min();
+        if (wMin > heightMap->wAxis.min()) {
+            wMin = heightMap->wAxis.min();
         }
-        if (wMax < hmPtr->wAxis.max()) {
-            wMax = hmPtr->wAxis.max();
+        if (wMax < heightMap->wAxis.max()) {
+            wMax = heightMap->wAxis.max();
         }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
@@ -1552,11 +1515,9 @@ NanoVis::setHeightmapRanges()
         HeightMap::valueMin = grid->yAxis.min();
         HeightMap::valueMax = grid->yAxis.max();
     }
-    for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-         hPtr = Tcl_NextHashEntry(&iter)) {
-        HeightMap *hmPtr;
-        hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
-        hmPtr->mapToGrid(grid);
+    for (HeightMapHashmap::iterator itr = heightMapTable.begin();
+         itr != heightMapTable.end(); ++itr) {
+        itr->second->mapToGrid(grid);
     }
     HeightMap::updatePending = false;
     TRACE("Leave");
@@ -1575,17 +1536,15 @@ NanoVis::collectBounds(bool onlyVisible)
     sceneMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
     sceneMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&volumeTable, &iter); hPtr != NULL;
-         hPtr = Tcl_NextHashEntry(&iter)) {
-        Volume *vol = (Volume *)Tcl_GetHashValue(hPtr);
+    for (VolumeHashmap::iterator itr = volumeTable.begin();
+         itr != volumeTable.end(); ++itr) {
+        Volume *volume = itr->second;
 
-        if (onlyVisible && !vol->visible())
+        if (onlyVisible && !volume->visible())
             continue;
 
         vrmath::Vector3f bmin, bmax;
-        vol->getWorldSpaceBounds(bmin, bmax);
+        volume->getWorldSpaceBounds(bmin, bmax);
         if (bmin.x > bmax.x)
             continue;
 
@@ -1609,9 +1568,9 @@ NanoVis::collectBounds(bool onlyVisible)
         }
     }
 
-    for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-         hPtr = Tcl_NextHashEntry(&iter)) {
-        HeightMap *heightMap = (HeightMap *)Tcl_GetHashValue(hPtr);
+    for (HeightMapHashmap::iterator itr = heightMapTable.begin();
+         itr != heightMapTable.end(); ++itr) {
+        HeightMap *heightMap = itr->second;
 
         if (onlyVisible && !heightMap->isVisible())
             continue;
@@ -1711,92 +1670,77 @@ NanoVis::render()
     // Need to reset fbo since it may have been changed to default (0)
     bindOffscreenBuffer();
 
-    TRACE("glClear");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-    if (volumeMode) {
-        TRACE("volumeMode");
-        //3D rendering mode
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_COLOR_MATERIAL);
+    //3D rendering mode
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_COLOR_MATERIAL);
 
-        //camera setting activated
-        cam->initialize();
+    //camera setting activated
+    cam->initialize();
 
-        //set up the orientation of items in the scene.
-        glPushMatrix();
+    //set up the orientation of items in the scene.
+    glPushMatrix();
 
-        switch (updir) {
-        case X_POS:
-            glRotatef(90, 0, 0, 1);
-            glRotatef(90, 1, 0, 0);
-            break;
-        case Y_POS:
-            // this is the default
-            break;
-        case Z_POS:
-            glRotatef(-90, 1, 0, 0);
-            glRotatef(-90, 0, 0, 1);
-            break;
-        case X_NEG:
-            glRotatef(-90, 0, 0, 1);
-            break;
-        case Y_NEG:
-            glRotatef(180, 0, 0, 1);
-            glRotatef(-90, 0, 1, 0);
-            break;
-        case Z_NEG:
-            glRotatef(90, 1, 0, 0);
-            break;
-        }
-
-        //now render things in the scene
-        if (axisOn) {
-            draw3dAxis();
-        }
-        if (grid->isVisible()) {
-            grid->render();
-        }
-        if ((licRenderer != NULL) && (licRenderer->active())) {
-            licRenderer->render();
-        }
-
-        if ((velocityArrowsSlice != NULL) && (velocityArrowsSlice->enabled())) {
-            velocityArrowsSlice->render();
-        }
-#ifdef notdef
-        if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
-            flowVisRenderer->render();
-        }
-#endif
-        if (flowTable.numEntries > 0) {
-            renderFlows();
-        }
-
-        volRenderer->renderAll();
-
-        if (heightmapTable.numEntries > 0) {
-            TRACE("render heightmap");
-            Tcl_HashEntry *hPtr;
-            Tcl_HashSearch iter;
-            for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-                 hPtr = Tcl_NextHashEntry(&iter)) {
-                HeightMap *hmPtr;
-                hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
-                if (hmPtr->isVisible()) {
-                    hmPtr->render(renderContext);
-                }
-            }
-        }
-        glPopMatrix();
-    } else {
-        //2D rendering mode
-        perf->enable();
-        planeRenderer->render();
-        perf->disable();
+    switch (updir) {
+    case X_POS:
+        glRotatef(90, 0, 0, 1);
+        glRotatef(90, 1, 0, 0);
+        break;
+    case Y_POS:
+        // this is the default
+        break;
+    case Z_POS:
+        glRotatef(-90, 1, 0, 0);
+        glRotatef(-90, 0, 0, 1);
+        break;
+    case X_NEG:
+        glRotatef(-90, 0, 0, 1);
+        break;
+    case Y_NEG:
+        glRotatef(180, 0, 0, 1);
+        glRotatef(-90, 0, 1, 0);
+        break;
+    case Z_NEG:
+        glRotatef(90, 1, 0, 0);
+        break;
     }
 
-    perf->reset();
+    //now render things in the scene
+    if (axisOn) {
+        draw3dAxis();
+    }
+    if (grid->isVisible()) {
+        grid->render();
+    }
+    if ((licRenderer != NULL) && (licRenderer->active())) {
+        licRenderer->render();
+    }
+    if ((velocityArrowsSlice != NULL) && (velocityArrowsSlice->enabled())) {
+        velocityArrowsSlice->render();
+    }
+#ifdef notdef
+    if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
+        flowVisRenderer->render();
+    }
+#endif
+    if (!flowTable.empty()) {
+        renderFlows();
+    }
+
+    volRenderer->renderAll();
+
+    TRACE("Render heightmaps");
+    HeightMapHashmap::iterator itr;
+    for (itr = heightMapTable.begin();
+         itr != heightMapTable.end(); ++itr) {
+        HeightMap *heightMap = itr->second;
+        if (heightMap->isVisible()) {
+            heightMap->render(renderContext);
+        }
+    }
+    glPopMatrix();
+
     CHECK_FRAMEBUFFER_STATUS();
     TRACE("Leave");
 }
@@ -2049,12 +1993,11 @@ main(int argc, char **argv)
 }
 
 void 
-NanoVis::removeVolume(Volume *volPtr)
+NanoVis::removeVolume(Volume *volume)
 {
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&volumeTable, volPtr->name());
-    if (hPtr != NULL) {
-        Tcl_DeleteHashEntry(hPtr);
+    VolumeHashmap::iterator itr = volumeTable.find(volume->name());
+    if (itr != volumeTable.end()) {
+        volumeTable.erase(itr);
     }
-    delete volPtr;
+    delete volume;
 }
