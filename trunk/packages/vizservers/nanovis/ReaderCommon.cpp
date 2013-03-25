@@ -30,14 +30,16 @@ merge(float *scalar, float *gradient, int size)
 }
 
 void
-normalizeScalar(float *fdata, int count, float min, float max)
+normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
 {
-    float v = max - min;
-    if (v != 0.0f) {
-        for (int i = 0; i < count; ++i) {
-            if (fdata[i] != -1.0) {
-                fdata[i] = (fdata[i] - min)/ v;
-            }
+    double dv = vmax - vmin;
+    dv = (dv == 0.0) ? 1.0 : 0.0;
+    for (int pt = 0, i = 0; pt < count; ++pt, i += stride) {
+        double v = data[i];
+        if (isnan(v)) {
+            data[i] = -1.0f;
+        } else if (data[i] >= min) {
+            data[i] = (float)((v - vmin)/ dv);
         }
     }
 }
@@ -47,27 +49,40 @@ normalizeScalar(float *fdata, int count, float min, float max)
  *
  * This technique is fairly expensive in terms of memory and
  * running time due to the filter extent.
+ *
+ * \param data Data array with X the fastest running, stride of
+ * 1 float
+ * \param nx number of values in X direction
+ * \param ny number of values in Y direction
+ * \param nz number of values in Z direction
+ * \param dx Size of voxels in X direction
+ * \param dy Size of voxels in Y direction
+ * \param dz Size of voxels in Z direction
+ * \param min Minimum value in data
+ * \param max Maximum value in data
+ * \return Returns a float array with stride of 4 floats 
+ * containing the normalized scalar and the x,y,z components of 
+ * the (normalized) gradient vector
  */
 float *
-computeGradient(float *fdata,
-                int width, int height, int depth,
+computeGradient(float *data,
+                int nx, int ny, int nz,
                 float dx, float dy, float dz,
                 float min, float max)
 {
-    float *gradients = (float *)malloc(width * height * depth * 3 *
-                                       sizeof(float));
-    float *tempGradients = (float *)malloc(width * height * depth * 3 *
-                                           sizeof(float));
-    int sizes[3] = { width, height, depth };
+    int npts = nx * ny * nz;
+    float *gradients = (float *)malloc(npts * 3 * sizeof(float));
+    float *tempGradients = (float *)malloc(npts * 3 * sizeof(float));
+    int sizes[3] = { nx, ny, nz };
     float spacing[3] = { dx, dy, dz };
-    computeGradients(tempGradients, fdata, sizes, spacing, DATRAW_FLOAT);
+    computeGradients(tempGradients, data, sizes, spacing, DATRAW_FLOAT);
     filterGradients(tempGradients, sizes);
     quantizeGradients(tempGradients, gradients, sizes, DATRAW_FLOAT);
     free(tempGradients);
-    normalizeScalar(fdata, width * height * depth, min, max);
-    float *data = merge(fdata, gradients, width * height * depth);
+    normalizeScalar(data, npts, 1, min, max);
+    float *dataOut = merge(data, gradients, npts);
     free(gradients);
-    return data;
+    return dataOut;
 }
 
 /**
@@ -91,7 +106,8 @@ computeGradient(float *fdata,
  * \param dz The spacing (cell length) in the Z direction
  */
 void
-computeSimpleGradient(float *data, int nx, int ny, int nz,
+computeSimpleGradient(float *data,
+                      int nx, int ny, int nz,
                       float dx, float dy, float dz)
 {
     bool clampToEdge = true;

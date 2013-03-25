@@ -377,22 +377,9 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
         deleteFieldData(fieldData, ftype);
 
 #ifndef DOWNSAMPLE_DATA
-        double dv = vmax - vmin;
-        if (dv == 0.0) {
-            dv = 1.0;
-        }
 
-        int ngen = 0;
-        const int step = 4;
-        for (int i = 0; i < npts; ++i) {
-            double v = data[ngen];
-            // scale all values [0-1], -1 => out of bounds
-            v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-
-            data[ngen] = v;
-            ngen += step;
-        }
-
+        // scale all values [0-1], -1 => out of bounds
+        normalizeScalar(data, npts, 4, vmin, vmax);
         computeSimpleGradient(data, nx, ny, nz,
                               dx, dy, dz);
 #else // DOWNSAMPLE_DATA
@@ -452,8 +439,7 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                         nzero_min = v;
                     }
 #ifdef FILTER_GRADIENTS
-                    // NOT normalized, -1 => out of bounds
-                    v = (isnan(v)) ? -1.0 : v;
+                    // NOT normalized, may have NaNs (FIXME: how does gradient filter handle NaN?)
                     cdata[ngen] = v;
 #else // !FILTER_GRADIENTS
                     // scale all values [0-1], -1 => out of bounds
