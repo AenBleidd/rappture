@@ -223,13 +223,21 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                     return NULL;
                 }
             } else if (sscanf(start, "DIMENSIONS %d %d %d", &nx, &ny, &nz) == 3) {
+                if (nx <= 0 || ny <= 0 || nz <= 0) {
+                    result.error("Found non-positive dimensions");
+                    return NULL;
+                }
                 // found dimensions
             } else if (sscanf(start, "ORIGIN %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
             } else if (sscanf(start, "SPACING %lg %lg %lg", &dx, &dy, &dz) == 3) {
+                if ((nx > 1 && dx == 0.0) || (ny > 1 && dy == 0.0) || (nz > 1 && dz == 0.0)) {
+                    result.error("Found zero spacing for dimension");
+                    return NULL;
+                }
                 // found cell spacing
             } else if (sscanf(start, "POINT_DATA %d", &npts) == 1) {
-                if (npts != nx * ny * nz) {
+                if (npts < 1 || npts != nx * ny * nz) {
                     result.addError("Error in data stream: unexpected number of point data: %d", npts);
                     return NULL;
                 }
@@ -320,7 +328,7 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
         }
     }
 
-    if (isRect < 0 || numRead != npts) {
+    if (isRect < 0 || numRead != npts || npts < 1) {
         deleteFieldData(fieldData, ftype);
         result.error("Error in data stream");
         return NULL;
