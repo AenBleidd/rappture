@@ -1809,7 +1809,7 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
      *      -b bitrate -f framerate /var/tmp/xxxxx/movie.mpeg 
      */
     char cmd[BUFSIZ];
-    sprintf(cmd, "%s -f image2 -i %s/image%%d.ppm -f %s -b:v %d -r %f -",
+    sprintf(cmd, "%s -f image2 -i %s/image%%d.ppm -f %s -b %d -r %f -",
             FFMPEG, tmpFileName, Tcl_GetString(switchesPtr->formatObjPtr), 
             switchesPtr->bitRate, switchesPtr->frameRate);
     TRACE("Enter: %s", cmd);
