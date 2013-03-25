@@ -1812,7 +1812,7 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
     sprintf(cmd, "%s -f image2 -i %s/image%%d.ppm -f %s -b:v %d -r %f -",
             FFMPEG, tmpFileName, Tcl_GetString(switchesPtr->formatObjPtr), 
             switchesPtr->bitRate, switchesPtr->frameRate);
-    TRACE("MakeMovie %s", cmd);
+    TRACE("Enter: %s", cmd);
     FILE *f;
     f = popen(cmd, "r");
     if (f == NULL) {
@@ -1832,24 +1832,31 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
             break;
         }
         if (numRead < 0) {              // Error
-            ERROR("MakeMovie: can't read movie data: %s",
+            ERROR("Can't read movie data: %s",
                   Tcl_PosixError(interp));
             Tcl_AppendResult(interp, "can't read movie data: ", 
                 Tcl_PosixError(interp), (char *)NULL);
             return TCL_ERROR;
         }
         if (!data.append(buffer, numRead)) {
-            ERROR("MakeMovie: can't append movie data to buffer %d bytes",
+            ERROR("Can't append movie data to buffer %d bytes",
                   numRead);
             Tcl_AppendResult(interp, "can't append movie data to buffer",
                              (char *)NULL);
             return TCL_ERROR;
         }
     }
-    sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
-            token, (unsigned long)data.size());
-    NanoVis::sendDataToClient(cmd, data.bytes(), data.size());
-    return TCL_OK;
+    if (data.size() == 0) {
+        ERROR("ffmpeg returned 0 bytes");
+        Tcl_AppendResult(interp, "Couldn't create movie file",
+                         (char *)NULL);
+        return TCL_ERROR;
+    } else {
+        sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
+                token, (unsigned long)data.size());
+        NanoVis::sendDataToClient(cmd, data.bytes(), data.size());
+        return TCL_OK;
+    }
 }
 
 static int
