@@ -286,6 +286,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             }
         }
         ::Rappture::Field {
+            if { ![$dataobj isvalid] } {
+                return;                 # Ignore invalid field objects.
+            }
             set dims [lindex [lsort [$dataobj components -dimensions]] end]
             switch -- $dims {
                 1D {
@@ -324,12 +327,15 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     }
                 }
                 default {
-                    puts stderr "can't handle \"$dims\" dimension field"
+                    puts stderr "WARNING: can't handle \"$dims\" dimension field"
                     return
                 }
             }
         }
         ::Rappture::Mesh {
+            if { ![$dataobj isvalid] } {
+                return;                 # Ignore invalid mesh objects.
+            }
             switch -- [$dataobj dimensions] {
                 2 {
                     set mode "mesh"

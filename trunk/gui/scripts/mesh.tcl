@@ -76,14 +76,14 @@ itcl::class Rappture::Mesh {
     private method ReadGrid { path }
     private method ReadUnstructuredGrid { path }
     private method ReadVtk { path }
-    private method WriteTriangles { xv yv zv triangles }
-    private method WriteQuads { xv yv zv quads }
-    private method WriteTetrahedrons { xv yv zv tetrahedrons }
-    private method WriteHexahedrons { xv yv zv hexhedrons }
-    private method WriteWedges { xv yv zv wedges }
-    private method WritePyramids { xv yv zv pyramids }
-    private method WriteHybridCells { xv yv zv cells celltypes }
-    private method WritePointCloud { xv yv zv }
+    private method WriteTriangles { path xv yv zv triangles }
+    private method WriteQuads { path xv yv zv quads }
+    private method WriteTetrahedrons { path xv yv zv tetrahedrons }
+    private method WriteHexahedrons { path xv yv zv hexhedrons }
+    private method WriteWedges { path xv yv zv wedges }
+    private method WritePyramids { path xv yv zv pyramids }
+    private method WriteHybridCells { path xv yv zv cells celltypes }
+    private method WritePointCloud { path xv yv zv }
     private method GetCellType { name }
     private method GetNumIndices { type }
 }
@@ -189,11 +189,11 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 	incr $subcount
     }
     if { $subcount ==  0 } {
-        puts stderr "no mesh specified for $path"
+        puts stderr "WARNING: no mesh specified for \"$path\"."
         return
     }
     if { $subcount > 1 } {
-	puts stderr "too many mesh types specified."
+	puts stderr "WARNING: too many mesh types specified for \"$path\"."
         return
     }
     set result 0
@@ -370,7 +370,7 @@ itcl::body Rappture::Mesh::hints {{keyword ""}} {
 itcl::body Rappture::Mesh::GetDimension { path } {
     set string [$_xmlobj get $path.dim]
     if { $string == "" } {
-	puts stderr "no tag <dim> found in mesh."
+	puts stderr "WARNING: no tag <dim> found in mesh \"$path\"."
         return 0
     }
     if { [scan $string "%d" _dim] == 1 } {
@@ -378,14 +378,14 @@ itcl::body Rappture::Mesh::GetDimension { path } {
             return 1
         }
     }
-    puts stderr "bad <dim> tag value \"$string\": should be 2 or 3."
+    puts stderr "WARNING: bad <dim> tag value \"$string\": should be 2 or 3."
     return 0
 }
 
 itcl::body Rappture::Mesh::GetDouble { path } {
     set string [$_xmlobj get $path]
     if { [scan $string "%g" value] != 1 } {
-        puts stderr "can't get double value \"$string\" of \"$path\""
+        puts stderr "ERROR: can't get double value \"$string\" of \"$path\""
         return 0.0
     }
     return $value
@@ -394,7 +394,7 @@ itcl::body Rappture::Mesh::GetDouble { path } {
 itcl::body Rappture::Mesh::GetInt { path } {
     set string [$_xmlobj get $path]
     if { [scan $string "%d" value] != 1 } {
-        puts stderr "can't get integer value \"$string\" of \"$path\""
+        puts stderr "ERROR: can't get integer value \"$string\" of \"$path\""
         return 0.0
     }
     return $value
@@ -468,26 +468,26 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     set _dim [expr $numRectilinear + $numUniform + $numCurvilinear]
     if { $_dim == 0 } {
 	# No data found.
-        puts stderr "no relevant subelements found in <mesh><grid>"
+        puts stderr "WARNING: bad grid \"$path\": no data found"
 	return 0
     }
     if { $numCurvilinear > 0 } {
         # This is the 2D/3D curilinear case. We found <xdim>, <ydim>, or <zdim>
         if { $numRectilinear > 0 || $numUniform > 0 } {
-            puts stderr "can't mix curvilinear and rectilinear grids."
+            puts stderr "WARNING: bad grid \"$path\": can't mix curvilinear and rectilinear grids."
             return 0
         }
         if { $numCurvilinear < 2 } {
-            puts stderr "curvilinear grid must be 2D or 3D."
+            puts stderr "WARNING: bad grid \"$path\": curvilinear grid must be 2D or 3D."
             return 0
         }
         set points [$_xmlobj get $path.grid.points]
         if { $points == "" } {
-            puts stderr "missing <points> from grid description."
+            puts stderr "WARNING: bad grid \"$path\": no <points> found."
             return 0
         }
 	if { ![info exists xNum] || ![info exists yNum] } {
-            puts stderr "invalid dimensions for curvilinear grid: missing <xdim> or <ydim> from grid description."
+            puts stderr "WARNING: bad grid \"$path\": invalid dimensions for curvilinear grid: missing <xdim> or <ydim> from grid description."
             return 0
         }
         set all [blt::vector create \#auto]
@@ -501,11 +501,11 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    set _numPoints [expr $xNum * $yNum * $zNum]
             $all set $points
             if { ($_numPoints*3) != $numCoords } {
-                puts stderr "invalid grid: \# of points does not match dimensions <xdim> * <ydim>"
+                puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim>"
                 return 0
             }
             if { ($numCoords % 3) != 0 } {
-                puts stderr "wrong \# of coordinates for 3D grid"
+                puts stderr "WARNING: bad grid \"$path\": wrong \# of coordinates for 3D grid"
                 return 0
             }
             $all split $xv $yv $zv
@@ -523,11 +523,11 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             set _dim 2
 	    set _numPoints [expr $xNum * $yNum]
             if { ($_numPoints*2) != $numCoords } {
-                puts stderr "invalid grid: \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
+                puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
                 return 0
             }
             if { ($numCoords % 2) != 0 } {
-                puts stderr "wrong \# of coordinates for 2D grid"
+                puts stderr "WARNING: bad grid \"$path\": wrong \# of coordinates for 2D grid"
                 return 0
             }
 	    foreach axis {x y} {
@@ -575,7 +575,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
 	    }
 	} else { 
-	    puts stderr "bad dimension of mesh \"$_dim\""
+	    puts stderr "WARNING: bad grid \"$path\": bad dimension \"$_dim\""
             return 0
 	}
 	return 1
@@ -650,14 +650,14 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	}
 	set _vtkdata $out
     } else {
-	puts stderr "invalid dimension of grid \"$_dim\""
+	puts stderr "WARNING: bad grid \"$path\": invalid dimension \"$_dim\""
         return 0
     }
     blt::vector destroy $xv $yv $zv 
     return 1
 }
 
-itcl::body Rappture::Mesh::WritePointCloud { xv yv zv } {
+itcl::body Rappture::Mesh::WritePointCloud { path xv yv zv } {
     set _type "cloud"
     set _numPoints [$xv length]
     append out "DATASET POLYDATA\n"
@@ -674,12 +674,8 @@ itcl::body Rappture::Mesh::WritePointCloud { xv yv zv } {
     return 1
 }
 
-itcl::body Rappture::Mesh::WriteTriangles { xv yv zv triangles } {
+itcl::body Rappture::Mesh::WriteTriangles { path xv yv zv triangles } {
     set _type "triangles"
-    if { $triangles == "" } { 
-	puts stderr "no triangle indices specified in mesh"
-	return 0
-    }
     set _numPoints [$xv length]
     set count 0
     set data {}
@@ -707,12 +703,8 @@ itcl::body Rappture::Mesh::WriteTriangles { xv yv zv triangles } {
     return 1
 }
 
-itcl::body Rappture::Mesh::WriteQuads { xv yv zv quads } {
+itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
     set _type "quads"
-    if { $quads == "" } { 
-	puts stderr "no <quads> indices specified in mesh"
-	return 0
-    }
     set _numPoints [$xv length]
     set count 0
     set data {}
@@ -740,12 +732,8 @@ itcl::body Rappture::Mesh::WriteQuads { xv yv zv quads } {
     return 1
 }
 
-itcl::body Rappture::Mesh::WriteTetrahedrons { xv yv zv tetras } {
+itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
     set _type "tetrahedrons"
-    if { $tetras == "" } { 
-	puts stderr "no <tetrahederons> indices specified in mesh"
-	return 0
-    }
     set _numPoints [$xv length]
     set count 0
     set data {}
@@ -773,12 +761,8 @@ itcl::body Rappture::Mesh::WriteTetrahedrons { xv yv zv tetras } {
     return 1
 }
 
-itcl::body Rappture::Mesh::WriteHexahedrons { xv yv zv hexas } {
+itcl::body Rappture::Mesh::WriteHexahedrons { path xv yv zv hexas } {
     set _type "hexahedrons"
-    if { $hexas == "" } { 
-	puts stderr "no <hexahederons> indices specified in mesh"
-	return 0
-    }
     set _numPoints [$xv length]
     set count 0
     set data {}
@@ -806,12 +790,8 @@ itcl::body Rappture::Mesh::WriteHexahedrons { xv yv zv hexas } {
     return 1
 }
 
-itcl::body Rappture::Mesh::WriteWedges { xv yv zv wedges } {
+itcl::body Rappture::Mesh::WriteWedges { path xv yv zv wedges } {
     set _type "wedges"
-    if { $wedges == "" } { 
-	puts stderr "no <wedges> indices specified in mesh"
-	return 0
-    }
     set _numPoints [$xv length]
     set count 0
     set data {}
@@ -839,12 +819,8 @@ itcl::body Rappture::Mesh::WriteWedges { xv yv zv wedges } {
     return 1
 }
 
-itcl::body Rappture::Mesh::WritePyramids { xv yv zv pyramids } {
+itcl::body Rappture::Mesh::WritePyramids { path xv yv zv pyramids } {
     set _type "pyramids"
-    if { $pyramids == "" } { 
-	puts stderr "no <pyramids> indices specified in mesh"
-	return 0
-    }
     set _numPoints [$xv length]
     set count 0
     set data {}
@@ -872,12 +848,8 @@ itcl::body Rappture::Mesh::WritePyramids { xv yv zv pyramids } {
     return 1 
 }
 
-itcl::body Rappture::Mesh::WriteHybridCells { xv yv zv cells celltypes } {
+itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
     set _type "unstructured"
-    if { $cells == "" } {
-	puts stderr "no <cells> description found for <unstructured>."
-	return 0
-    }
     set lines [split $cells \n]
     set numCellTypes [llength $celltypes]
     if { $numCellTypes == 1 } {
@@ -899,7 +871,7 @@ itcl::body Rappture::Mesh::WriteHybridCells { xv yv zv cells celltypes } {
             }
             set numIndices [GetNumIndices $celltype]
             if { $numIndices > 0 && $numIndices != $length } {
-                puts stderr "wrong \# of indices specified for celltype $celltype on line \"$line\""
+                puts stderr "WARNING: bad unstructured grid \"$path\": wrong \# of indices specified for celltype $celltype on line \"$line\""
                 return 0
             }
 	    append data " $numIndices $line\n"
@@ -936,7 +908,7 @@ itcl::body Rappture::Mesh::WriteHybridCells { xv yv zv cells celltypes } {
             }
             set numIndices [GetNumIndices $celltype]
             if { $numIndices > 0 && $numIndices != $length } {
-                puts stderr "wrong \# of indices specified for celltype $celltype on line \"$line\""
+                puts stderr "WARNING: bad unstructured grid \"$path\": wrong \# of indices specified for celltype $celltype on line \"$line\""
                 return 0
             }
 	    append data " $length $line\n"
@@ -981,11 +953,11 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     # The generic <cells> tag requires there be a <celltypes> tag too.
     set celltypes [$_xmlobj get $path.unstructured.celltypes]
     if { $numCells == 0 && $celltypes != "" } {
-	puts stderr "no <cells> description found for <unstructured>."
+	puts stderr "WARNING: bad unstuctured grid \"$path\": no <cells> description found."
         return 0
     }
     if { $numCells > 1 } {
-        puts stderr "too many <cells>, <triangles>, <quads>... descriptions found: should be only one."
+        puts stderr "WARNING: bad unstructured grid \"$path\": too many <cells>, <triangles>, <quads>... descriptions found: should be only one."
         return 0
     }
     foreach type { cells triangles quads tetrahedrons 
@@ -1016,11 +988,11 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
         } elseif { $data != "" } {
             Rappture::ReadPoints $data dim points
             if { $points == "" } {
-                puts stderr "no <points> found for unstructured grid"
+                puts stderr "WARNING: bad unstructured grid \"$path\": no <points> found."
                 return 0
             }
             if { $dim != 2 } {
-                puts stderr "\# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
+                puts stderr "WARNING: bad unstructured grid \"$path\": \# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
                 return 0
             }
             set all [blt::vector create \#auto]
@@ -1030,7 +1002,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
             $all split $xv $yv
             blt::vector destroy $all
         } else {
-            puts stderr "no points specified for unstructured grid"
+            puts stderr "WARNING: bad unstructured grid \"$path\": no points specified."
             return 0
         }
         set zv [blt::vector create \#auto]
@@ -1050,11 +1022,11 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
         } elseif { $data != "" }  {
             Rappture::ReadPoints $data dim points
             if { $points == "" } {
-                puts stderr "no <points> found for <cells> mesh"
+                puts stderr "WARNING: bad unstructured grid \"$path\": no <points> found."
                 return 0
             }
             if { $dim != 3 } {
-                puts stderr "\# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
+                puts stderr "WARNING: bad unstructured grid \"$path\": \# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
                 return 0
             }
             set xv [blt::vector create \#auto]
@@ -1064,24 +1036,28 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
             $all split $xv $yv $zv
             blt::vector destroy $all
         } else {
-            puts stderr "no points specified for unstructured grid"
+            puts stderr "WARNING: bad unstructured grid \"$path\": no points specified."
             return 0
         }
     }
     # Step 3: Write the points and cells as vtk data.
     if { $numCells == 0 } {
-        set result [WritePointCloud $xv $yv $zv]
+        set result [WritePointCloud $path $xv $yv $zv]
     } elseif { $type == "cells" } {
         set cells [$_xmlobj get $path.unstructured.cells]
-        set result [WriteHybridCells $xv $yv $zv $cells $celltypes]
+        if { $cells == "" } {
+            puts stderr "WARNING: bad unstructured grid \"$path\": no cells found."
+            return 0
+        }
+        set result [WriteHybridCells $path $xv $yv $zv $cells $celltypes]
     } else {
         set cmd "Write[string totitle $type]"
         set cells [$_xmlobj get $path.unstructured.$type]
         if { $cells == "" } {
-            puts stderr "no cells in \"$path.unstructured.$type\""
+            puts stderr "WARNING: bad unstructured grid \"$path\": no cells found."
             return 0
         }
-        set result [$cmd $xv $yv $zv $cells]
+        set result [$cmd $path $xv $yv $zv $cells]
     }
     # Clean up.
     blt::vector destroy $xv $yv $zv
@@ -1151,7 +1127,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
         set nodeList [$_mesh get $cname.nodes]
 	set numNodes [llength $nodeList]
 	if { ![info exists node2celltype($numNodes)] } {
-	    puts stderr "unknown number of indices \"$_numNodes\": should be 3, 4, 5, 6, or 8"
+	    puts stderr "WARNING: bad nodes/elements mesh \$path\": unknown number of indices \"$_numNodes\": should be 3, 4, 5, 6, or 8"
 	    return 0
 	}
 	set celltype $node2celltype($numNodes)
