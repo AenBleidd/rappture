@@ -23,7 +23,8 @@
 
 using namespace vrmath;
 
-TransferFunction::TransferFunction(int size, float *data)
+TransferFunction::TransferFunction(const char *name, int size, float *data) :
+    _name(name)
 {
     // _size : # of slot, 4 : rgba
     _size = size * 4;

@@ -57,10 +57,4 @@
  */
 //#define FILTER_GRADIENTS
 
-/* 
- * Controls whether the plane* commands are registered in the 
- * interpreter. [Are these commands still required?]
- */
-//#define PLANE_CMD
-
 #endif 
