@@ -1493,7 +1493,7 @@ FlowAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetCommandInfo(interp, name, &cmdInfo)) {
         Tcl_AppendResult(interp, "an another command \"", name, 
                          "\" already exists.", (char *)NULL);
-        return NULL;
+        return TCL_ERROR;
     }
     FlowCmd *flow = NanoVis::createFlow(interp, name);
     if (flow == NULL) {

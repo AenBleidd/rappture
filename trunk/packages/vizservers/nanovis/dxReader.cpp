@@ -301,7 +301,7 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
                               dx, dy, dz);
 #else // DOWNSAMPLE_DATA
         // figure out a good mesh spacing
-        int nsample = 30;
+        int nsample = 64;
         double dmin = pow((lx*ly*lz)/((nsample-1)*(nsample-1)*(nsample-1)), 0.333);
 
         nx = (int)ceil(lx/dmin) + 1;
@@ -421,7 +421,7 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         lz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
 
         // figure out a good mesh spacing
-        int nsample = 30;
+        int nsample = 64;
         double dmin = pow((lx*ly*lz)/((nsample-1)*(nsample-1)*(nsample-1)), 0.333);
 
         nx = (int)ceil(lx/dmin) + 1;
