@@ -516,6 +516,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::EventuallySetCutplane { axis args } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::add {dataobj {settings ""}} {
+    if { ![$dataobj isvalid] } {
+        return;                         # Object doesn't contain valid data.
+    }
     array set params {
         -color auto
         -width 1
@@ -666,6 +669,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::scale { args } {
     foreach dataobj $args {
+        if { ![$dataobj isvalid] } {
+            continue;                   # Object doesn't contain valid data.
+        }
         foreach axis { x y z } {
             set lim [$dataobj limits $axis]
             if { ![info exists _limits($axis)] } {

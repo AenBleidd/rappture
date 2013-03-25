@@ -69,53 +69,61 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Field {
-    private variable _dim	0;	# Dimension of the mesh
-    private variable _xmlobj ""  ;      # ref to XML obj with field data
-    private variable _limits     ;	# maps box name => {z0 z1} limits
-    private variable _fldObj ""
-    private variable _comp2fields ;	# cname => field names.
-    private variable _field2Components; # field name => number of components
-    private variable _field2Label;      # field name => label
-    private variable _field2Units;      # field name => units
+    private variable _dim 0;            # Dimension of the mesh
+    private variable _xmlobj "";        # ref to XML obj with field data
+    private variable _limits;           # maps axis name => {z0 z1} limits
+    private variable _field ""
+    private variable _comp2fldName ;	# cname => field names.
+    private variable _fld2Components;   # field name => number of components
+    private variable _fld2Label;        # field name => label
+    private variable _fld2Units;        # field name => units
     private variable _hints 
     private variable _viewer "";        # Hints which viewer to use
     private variable _xv "";            # For 1D meshes only.  Holds the points
+    private variable _isValid 0;        # Indicates if the field contains
+                                        # valid data.
+    private variable _isValidComponent
     constructor {xmlobj path} { 
 	# defined below 
     }
     destructor { 
 	# defined below 
     }
+    public method blob { cname }
     public method components {args}
-    public method mesh {{cname -overall}}
-    public method values {{cname -overall}}
-    public method blob {{cname -overall}}
-    public method limits {axis}
-    public method fieldlimits {}
     public method controls {option args}
+    public method extents {{cname -overall}}
+    public method fieldlimits {}
+    public method flowhints { cname }
     public method hints {{key ""}}
-    public method style { cname }
     public method isunirect2d {}
     public method isunirect3d {}
-    public method extents {{cname -overall}}
-    public method flowhints { cname }
+    public method limits {axis}
+    public method mesh {{cname -overall}}
+    public method style { cname }
     public method type {}
+    public method values { cname }
+    public method vtkdata {cname}
+
+    public method fieldnames { cname } {
+        if { ![info exists _comp2fldName($cname)] } {
+            return ""
+        }
+        return $_comp2fldName($cname)
+    }
+    public method fieldinfo { fname } {
+        lappend out $_fld2Label($fname)
+        lappend out $_fld2Units($fname)
+        lappend out $_fld2Components($fname)
+        return $out
+    }
+    public method isvalid {} {
+        return $_isValid
+    }
     public method viewer {} {
 	return $_viewer 
     }
-    public method vtkdata {cname}
-    public method fieldnames { cname } {
-        if { ![info exists _comp2fields($cname)] } {
-            return ""
-        }
-        return $_comp2fields($cname)
-    }
-    public method fieldinfo { fname } {
-        lappend out $_field2Label($fname)
-        lappend out $_field2Units($fname)
-        lappend out $_field2Components($fname)
-        return $out
-    }
+
     protected method Build {}
     protected method _getValue {expr}
 
@@ -155,8 +163,8 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
     }
     set _xmlobj $xmlobj
     set _path $path
-    set _fldObj [$xmlobj element -as object $path]
-    set _units [$_fldObj get units]
+    set _field [$xmlobj element -as object $path]
+    set _units [$_field get units]
 
     set xunits [$xmlobj get units]
     if {"" == $xunits || "arbitrary" == $xunits} {
@@ -193,7 +201,7 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::destructor {} {
-    itcl::delete object $_fldObj
+    itcl::delete object $_field
     # don't destroy the _xmlobj! we don't own it!
 
     foreach name [array names _comp2xy] {
@@ -245,17 +253,31 @@ itcl::body Rappture::Field::components {args} {
         error "wrong # args: should be \"components ?switches? ?pattern?\""
     }
 
-    set rlist ""
-
+    # There's only one dimension of the field.  Components can't have
+    # different dimensions in the same field.  They would by definition be
+    # using different meshes and viewers.
+    if { $params(what) == "-dimensions" } {
+        return "${_dim}D"
+    }
     # BE CAREFUL: return component names in proper order
-    foreach cname [$_fldObj children -type component] {
-        if {[info exists _comp2dims($cname)]
-              && [string match $pattern $cname]} {
-
-            switch -- $params(what) {
-                -name { lappend rlist $cname }
-                -dimensions { lappend rlist $_comp2dims($cname) }
-                -style { lappend rlist $_comp2style($cname) }
+    set rlist ""
+    set components [$_field children -type component]
+    switch -- $params(what) {
+        -name { 
+            foreach cname $components {
+                if { [info exists _isValidComponent($cname)] } {
+                    lappend rlist $cname 
+                }
+            }
+        }
+        -style { 
+            foreach cname $components {
+                if { ![info exists _isValidComponent($cname)] } {
+                    continue
+                }
+                if { [info exists _comp2style($cname)] } {
+                    lappend rlist $_comp2style($cname) 
+                }
             }
         }
     }
@@ -297,7 +319,7 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
         set mobj [lindex $_comp2unirect3d($cname) 0]
         return [$mobj mesh]
     }
-    error "bad option \"$cname\": should be [join [lsort [array names _comp2dims]] {, }]"
+    error "can't get field mesh: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -307,7 +329,7 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
 # If the name is not specified, then it returns the vectors for the
 # overall field (sum of all components).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field::values {{cname -overall}} {
+itcl::body Rappture::Field::values {cname} {
     if {$cname == "component0"} {
         set cname "component"
     }
@@ -336,7 +358,7 @@ itcl::body Rappture::Field::values {{cname -overall}} {
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) blob]
     }
-    error "bad option \"$cname\": should be [join [lsort [array names _comp2dims]] {, }]"
+    error "can't get field values. Unknown component \"$cname\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -344,7 +366,7 @@ itcl::body Rappture::Field::values {{cname -overall}} {
 #
 # Returns a string representing the blob of data for the mesh and values.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field::blob {{cname -overall}} {
+itcl::body Rappture::Field::blob {cname} {
     if {$cname == "component0"} {
         set cname "component"
     }
@@ -365,7 +387,7 @@ itcl::body Rappture::Field::blob {{cname -overall}} {
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) blob]
     }
-    error "bad option \"$cname\": should be [join [lsort [array names _comp2dims]] {, }]"
+    error "can't get field blob: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -396,7 +418,7 @@ itcl::body Rappture::Field::limits {which} {
 			set pos 1; set log 1; set axis y 
 		    }
                     default {
-                        error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+                        error "bad axis \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
                     }
                 }
 
@@ -475,14 +497,14 @@ itcl::body Rappture::Field::limits {which} {
         }
     }
     blt::vector destroy tmp zero
-    set val [$_fldObj get "${axis}axis.min"]
+    set val [$_field get "${axis}axis.min"]
     if {"" != $val && "" != $min} {
         if {$val > $min} {
             # tool specified this min -- don't go any lower
             set min $val
         }
     }
-    set val [$_fldObj get "${axis}axis.max"]
+    set val [$_field get "${axis}axis.max"]
     if {"" != $val && "" != $max} {
         if {$val < $max} {
             # tool specified this max -- don't go any higher
@@ -502,7 +524,7 @@ itcl::body Rappture::Field::limits {which} {
 itcl::body Rappture::Field::fieldlimits {} {
     foreach cname [array names _comp2limits] {
         array set limits $_comp2limits($cname) 
-        foreach fname $_comp2fields($cname) {
+        foreach fname $_comp2fldName($cname) {
             if { ![info exists limits($fname)] } {
                 puts stderr "field \"$fname\" unknown in \"$cname\""
                 continue
@@ -608,7 +630,7 @@ itcl::body Rappture::Field::controls {option args} {
             Build
         }
         default {
-            error "bad option \"$option\": should be get or put"
+            error "bad field controls option \"$option\": should be get or put"
         }
     }
 }
@@ -642,7 +664,7 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
 	    updir           updir
 	    vectors         about.vectors
 	} {
-	    set str [$_fldObj get $path]
+	    set str [$_field get $path]
 	    if { "" != $str } {
 		set _hints($key) $str
 	    }
@@ -708,43 +730,47 @@ itcl::body Rappture::Field::Build {} {
     # Scan through the components of the field and create
     # vectors for each part.
     #
-    foreach cname [$_fldObj children -type component] {
+    array unset _isValidComponent
+    foreach cname [$_field children -type component] {
         set type ""
-        if { ([$_fldObj element $cname.constant] != "" &&
-	      [$_fldObj element $cname.domain] != "") ||
-	      [$_fldObj element $cname.xy] != "" } {
+        if { ([$_field element $cname.constant] != "" &&
+	      [$_field element $cname.domain] != "") ||
+	      [$_field element $cname.xy] != "" } {
             set type "1D"
-        } elseif { [$_fldObj element $cname.mesh] != "" &&
-		   [$_fldObj element $cname.values] != ""} {
+        } elseif { [$_field element $cname.mesh] != "" &&
+		   [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
-        } elseif { [$_fldObj element $cname.vtk] != ""} {
-	    set viewer [$_fldObj get "about.view"]
+        } elseif { [$_field element $cname.vtk] != ""} {
+	    set viewer [$_field get "about.view"]
 	    set type "vtk"
 	    if { $viewer != "" } {
 		set _viewer $viewer
 	    }
-        } elseif {[$_fldObj element $cname.opendx] != ""} {
+        } elseif {[$_field element $cname.opendx] != ""} {
+            global env
+            if { [info exists env(VTKVOLUME)] } {
+                set type "vtkvolume"
+            } else {
+                set type "opendx"
+            }
+        } elseif {[$_field element $cname.dx] != ""} {
             global env
             if { [info exists env(VTKVOLUME)] } {
                 set type "vtkvolume"
             } else {
                 set type "dx"
             }
-        } elseif {[$_fldObj element $cname.dx] != ""} {
-            global env
-            if { [info exists env(VTKVOLUME)] } {
-                set type "vtkvolume"
-            } else {
-                set type "dx"
-            }
-        } elseif {[$_fldObj element $cname.ucd] != ""} {
+        } elseif {[$_field element $cname.ucd] != ""} {
             set type "ucd"
 	}
         set _comp2style($cname) ""
-        
+        if { $type == "" } {
+            puts stderr "ignoring field component \"$cname\": no data found"
+            continue
+        }
         # Save the extents of the component
-        if { [$_fldObj element $cname.extents] != "" } {
-            set extents [$_fldObj get $cname.extents]
+        if { [$_field element $cname.extents] != "" } {
+            set extents [$_field get $cname.extents]
         } else {
             set extents 1 
         }
@@ -758,9 +784,9 @@ itcl::body Rappture::Field::Build {} {
             set xv ""
             set yv ""
 
-            set val [$_fldObj get $cname.constant]
+            set val [$_field get $cname.constant]
             if {$val != ""} {
-                set domain [$_fldObj get $cname.domain]
+                set domain [$_field get $cname.domain]
                 if {$domain == "" || ![info exists _limits($domain)]} {
                     set z0 0
                     set z1 $_zmax
@@ -780,7 +806,7 @@ itcl::body Rappture::Field::Build {} {
                         [list $pcomp $zm $val "$val$_units"]
                 }
             } else {
-                set xydata [$_fldObj get $cname.xy]
+                set xydata [$_field get $cname.xy]
                 if {"" != $xydata} {
                     set xv [blt::vector create x$_counter]
                     set yv [blt::vector create y$_counter]
@@ -799,25 +825,38 @@ itcl::body Rappture::Field::Build {} {
                 incr _counter
             }
         } elseif {$type == "points-on-mesh"} {
-	    BuildPointsOnMesh $cname 
+	    if { ![BuildPointsOnMesh $cname] } {
+                continue;               # Ignore this component
+            }
         } elseif {$type == "vtk"} {
-            set vtkdata [$_fldObj get $cname.vtk]
-	    ReadVtkDataSet $cname $vtkdata
-	    set _comp2vtk($cname) $vtkdata
-            set _comp2style($cname) [$_fldObj get $cname.style]
+            set contents [$_field get $cname.vtk]
+            if { $contents == "" } {
+                puts stderr "no data fo \"$cname.vtk\""
+                continue;               # Ignore this component
+            }
+            ReadVtkDataSet $cname $contents
+            set _comp2vtk($cname) $contents
+            set _comp2style($cname) [$_field get $cname.style]
             incr _counter
-        } elseif {$type == "dx" } {
+        } elseif {$type == "dx" || $type == "opendx" } {
             #
             # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
             # data.  Assume that it's 3D.  Pass it straight
             # off to the NanoVis visualizer.
             #
 	    set _viewer "nanovis"
+            set _dim 3
+            set _type "dx"
             set _comp2dims($cname) "3D"
-            set _comp2dx($cname)  [$_fldObj get -decode no $cname.dx]
+            set contents [$_field get -decode no $cname.$type]
+            if { $contents == "" } {
+                puts stderr "no data for \"$cname.$type\""
+                continue;               # Ignore this component
+            }
+            set _comp2dx($cname) $contents
             if 0 {
                 set hdr "@@RP-ENC:zb64\n"
-                set data  [$_fldObj get -decode no $cname.dx]
+                set data  [$_field get -decode no $cname.$type]
                 set data "$hdr$data"
                 set data  [Rappture::encoding::decode $data]
                 set data  [Rappture::DxToVtk $data]
@@ -825,38 +864,28 @@ itcl::body Rappture::Field::Build {} {
                 puts $f $data
                 close $f
             }
-            set _comp2style($cname) [$_fldObj get $cname.style]
-            if {[$_fldObj element $cname.flow] != ""} {
+            set _comp2style($cname) [$_field get $cname.style]
+            if {[$_field element $cname.flow] != ""} {
                 set _comp2flowhints($cname) \
-                    [Rappture::FlowHints ::\#auto $_fldObj $cname $_units]
-            }
-            incr _counter
-        } elseif {$type == "opendx"} {
-            #
-            # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
-            # data.  Assume that it's 3D.  Pass it straight
-            # off to the NanoVis visualizer.
-            #
-	    set _viewer "nanovis"
-            set _comp2dims($cname) "3D"
-            set data [$_fldObj get -decode yes $cname.opendx]
-            set data "<ODX>$data"
-            set data [Rappture::encoding::encode -as zb64 $data]
-            set _comp2dx($cname) $data
-            set _comp2style($cname) [$_fldObj get $cname.style]
-            if {[$_fldObj element $cname.flow] != ""} {
-                set _comp2flowhints($cname) \
-                    [Rapture::FlowHints ::\#auto $_fldObj $cname $_units]
+                    [Rappture::FlowHints ::\#auto $_field $cname $_units]
             }
             incr _counter
         } elseif { $type == "ucd"} {
-            set contents [$_fldObj get $cname.ucd]
+            set contents [$_field get $cname.ucd]
+            if { $contents == "" } {
+                continue;               # Ignore this compoennt
+            }
             set vtkdata [AvsToVtk $cname $contents]
-	    ReadVtkDataSet $cname $vtkdata
-	    set _comp2vtk($cname) $vtkdata
-            set _comp2style($cname) [$_fldObj get $cname.style]
+            ReadVtkDataSet $cname $vtkdata
+            set _comp2vtk($cname) $vtkdata
+            set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         }
+        set _isValidComponent($cname) 1
+    }
+    if { [array size _isValidComponent] == 0 } {
+        puts stderr "no valid components for field \"$_path\""
+        return 0
     }
     # Sanity check.  Verify that all components of the field have the same 
     # dimension.
@@ -867,7 +896,8 @@ itcl::body Rappture::Field::Build {} {
             continue
         }
         if { $dim != $_comp2dims($cname) } {
-            error "field can't have components of different dimensions: [join [array get _comp2dims] ,]"
+            puts stderr "field can't have components of different dimensions: [join [array get _comp2dims] ,]"
+            return 0
         }
     }
     # FIXME: about.scalars and about.vectors are temporary.  With views
@@ -878,23 +908,25 @@ itcl::body Rappture::Field::Build {} {
     #
     # Override what we found in the VTK file with names that the user
     # selected.  We override the field label and units.
-    foreach { fname label units } [$_fldObj get about.scalars] {
-        if { ![info exists _field2Name($fname)] } {
-            set _field2Name($fname) $fname
-            set _field2Components($fname) 1
+    foreach { fname label units } [$_field get about.scalars] {
+        if { ![info exists _fld2Name($fname)] } {
+            set _fld2Name($fname) $fname
+            set _fld2Components($fname) 1
         }
-        set _field2Label($fname) $label
-        set _field2Units($fname) $units
+        set _fld2Label($fname) $label
+        set _fld2Units($fname) $units
     }
-    foreach { fname label units } [$_fldObj get about.vectors] {
-        if { ![info exists _field2Name($fname)] } {
-            set _field2Name($fname) $fname
+    foreach { fname label units } [$_field get about.vectors] {
+        if { ![info exists _fld2Name($fname)] } {
+            set _fld2Name($fname) $fname
             # We're just marking the field as vector (> 1) for now.
-            set _field2Components($fname) 3
+            set _fld2Components($fname) 3
         }
-        set _field2Label($fname) $label
-        set _field2Units($fname) $units
+        set _fld2Label($fname) $label
+        set _fld2Units($fname) $units
     }
+    set _isValid 1
+    return 1
 }
 
 # ----------------------------------------------------------------------
@@ -999,7 +1031,7 @@ itcl::body Rappture::Field::type {} {
 itcl::body Rappture::Field::extents {{cname -overall}} {
     if {$cname == "-overall" } {
         set max 0
-        foreach cname [$_fldObj children -type component] {
+        foreach cname [$_field children -type component] {
             if { ![info exists _comp2unirect3d($cname)] &&
                  ![info exists _comp2extents($cname)] } {
                 continue
@@ -1168,7 +1200,8 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         set numArrays [$dataAttrs GetNumberOfArrays]
     }
     if { $dataAttrs == ""} {
-	puts stderr "No point data"
+	puts stderr "No point data found in \"$_path\""
+        return 0
     }
     set vmin 0
     set vmax 1
@@ -1182,10 +1215,10 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
 	    set fname  [$dataAttrs GetArrayName $i]
 	    foreach {min max} [$array GetRange] break
 	    lappend limits $fname [list $min $max]
-            set _field2Units($fname) ""
-	    set _field2Label($fname) $fname
-            set _field2Components($fname) [$array GetNumberOfComponents]
-            lappend _comp2fields($cname) $fname
+            set _fld2Units($fname) ""
+	    set _fld2Label($fname) $fname
+            set _fld2Components($fname) [$array GetNumberOfComponents]
+            lappend _comp2fldName($cname) $fname
 	}
     }
     lappend limits v [list $vmin $vmax]
@@ -1247,29 +1280,29 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     # More complex 2D/3D data is represented by a mesh
     # object and an associated vector for field values.
     #
-    set path [$_fldObj get $cname.mesh]
+    set path [$_field get $cname.mesh]
     if {[$_xmlobj element $path] == ""} {
 	# Unknown mesh designated.
-	return
+	return 0
     }
-    set _viewer [$_fldObj get "about.view"]
+    set _viewer [$_field get "about.view"]
     set element [$_xmlobj element -as type $path]
     set name $cname
     regsub -all { } $name {_} name
-    set _field2Label($name) $name
+    set _fld2Label($name) $name
     set label [hints zlabel]
     if { $label != "" } {
-        set _field2Label($name) $label
+        set _fld2Label($name) $label
     }
-    set _field2Units($name) [hints zunits]
-    set _field2Components($name) 1
-    lappend _comp2fields($cname) $name
+    set _fld2Units($name) [hints zunits]
+    set _fld2Components($name) 1
+    lappend _comp2fldName($cname) $name
 
     # Handle bizarre cases that hopefully will be deprecated.
     if { $element == "unirect3d" } {
 	# Special case: unirect3d (should be deprecated) + flow.
-        if { [$_fldObj element $cname.extents] != "" } {
-            set extents [$_fldObj get $cname.extents]
+        if { [$_field element $cname.extents] != "" } {
+            set extents [$_field get $cname.extents]
         } else {
             set extents 1 
         }
@@ -1279,19 +1312,19 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
 	set _comp2dims($cname) "3D"
 	set _comp2unirect3d($cname) \
-	    [Rappture::Unirect3d \#auto $_xmlobj $_fldObj $cname $extents]
-	set _comp2style($cname) [$_fldObj get $cname.style]
-	if {[$_fldObj element $cname.flow] != ""} {
+	    [Rappture::Unirect3d \#auto $_xmlobj $_field $cname $extents]
+	set _comp2style($cname) [$_field get $cname.style]
+	if {[$_field element $cname.flow] != ""} {
 	    set _comp2flowhints($cname) \
-		[Rappture::FlowHints ::\#auto $_fldObj $cname $_units]
+		[Rappture::FlowHints ::\#auto $_field $cname $_units]
 	}
 	incr _counter
-	return
+	return 1
     }
-    if { $element == "unirect2d" && [$_fldObj element $cname.flow] != "" } {
+    if { $element == "unirect2d" && [$_field element $cname.flow] != "" } {
 	# Special case: unirect2d (normally deprecated) + flow.
-        if { [$_fldObj element $cname.extents] != "" } {
-            set extents [$_fldObj get $cname.extents]
+        if { [$_field element $cname.extents] != "" } {
+            set extents [$_field get $cname.extents]
         } else {
             set extents 1 
         }
@@ -1302,10 +1335,10 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	set _comp2dims($cname) "2D"
 	set _comp2unirect2d($cname) \
 	    [Rappture::Unirect2d \#auto $_xmlobj $path]
-	set _comp2style($cname) [$_fldObj get $cname.style]
+	set _comp2style($cname) [$_field get $cname.style]
 	set _comp2flowhints($cname) \
-	    [Rappture::FlowHints ::\#auto $_fldObj $cname $_units]
-	set _values [$_fldObj get $cname.values]
+	    [Rappture::FlowHints ::\#auto $_field $cname $_units]
+	set _values [$_field get $cname.values]
         set limits {}
         foreach axis { x y } {
             lappend limits $axis [$_comp2unirect2d($cname) limits $axis]
@@ -1317,7 +1350,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         blt::vector destroy $xv
         set _comp2limits($cname) $limits
 	incr _counter
-	return
+	return 1
     }
     switch -- $element {
 	"cloud" {
@@ -1332,6 +1365,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             }
 	    set mesh [Rappture::Unirect2d::fetch $_xmlobj $path]
 	}
+    }
+    if { ![$mesh isvalid] } {
+        return 0
     }
     set _dim [$mesh dimensions]
     if {$_dim == 1} {
@@ -1357,26 +1393,31 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	set _comp2dims($cname) "1D"
 	set _comp2xy($cname) [list $xv $yv]
 	incr _counter
-	return
-    } elseif {$_dim == 2} {
+	return 1
+    } 
+    if {$_dim == 2} {
 	set _type "heightmap"
-	set vector [blt::vector create \#auto]
-	$vector set [$_fldObj get $cname.values]
+	set v [blt::vector create \#auto]
+	$v set [$_field get $cname.values]
+        if { [$v length] == 0 } {
+            return 0
+        }
 	set _comp2dims($cname) "[$mesh dimensions]D"
-	set _comp2mesh($cname) [list $mesh $vector]
-	set _comp2style($cname) [$_fldObj get $cname.style]
+	set _comp2mesh($cname) [list $mesh $v]
+	set _comp2style($cname) [$_field get $cname.style]
 	incr _counter
 	array unset _comp2limits $cname
 	lappend _comp2limits($cname) x [$mesh limits x]
 	lappend _comp2limits($cname) y [$mesh limits y]
-	lappend _comp2limits($cname) $cname [$vector limits]
-	lappend _comp2limits($cname) v [$vector limits]
-	return
-    } elseif {$_dim == 3} {
+	lappend _comp2limits($cname) $cname [$v limits]
+	lappend _comp2limits($cname) v [$v limits]
+	return 1
+    } 
+    if {$_dim == 3} {
 	#
 	# 3D data: Store cloud/field as components
 	#
-	set values [$_fldObj get $cname.values]
+	set values [$_field get $cname.values]
 	set farray [vtkFloatArray ::vals$_counter]
 	foreach v $values {
 	    if {"" != $_units} {
@@ -1389,18 +1430,21 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             set _viewer "isosurface"
         }
 	set _type "isosurface"
-	set vector [blt::vector create \#auto]
-	$vector set [$_fldObj get $cname.values]
-	set _comp2dims($cname) "[$mesh dimensions]D"
-	set _comp2mesh($cname) [list $mesh $vector]
-	set _comp2style($cname) [$_fldObj get $cname.style]
-	incr _counter
-	lappend _comp2limits($cname) x [$mesh limits x]
-	lappend _comp2limits($cname) y [$mesh limits y]
-	lappend _comp2limits($cname) z [$mesh limits z]
-	lappend _comp2limits($cname) $cname [$vector limits]
-	lappend _comp2limits($cname) v [$vector limits]
-	return
+	set v [blt::vector create \#auto]
+	$v set [$_field get $cname.values]
+        if { [$v length] == 0 } {
+            return 0
+        }
+        set _comp2dims($cname) "[$mesh dimensions]D"
+        set _comp2mesh($cname) [list $mesh $v]
+        set _comp2style($cname) [$_field get $cname.style]
+        incr _counter
+        lappend _comp2limits($cname) x [$mesh limits x]
+        lappend _comp2limits($cname) y [$mesh limits y]
+        lappend _comp2limits($cname) z [$mesh limits z]
+        lappend _comp2limits($cname) $cname [$v limits]
+        lappend _comp2limits($cname) v [$v limits]
+	return 1
     }
     error "unhandled case in field dim=$_dim element=$element"
 }
