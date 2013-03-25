@@ -384,7 +384,7 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
                               dx, dy, dz);
 #else // DOWNSAMPLE_DATA
         // figure out a good mesh spacing
-        int nsample = 30;
+        int nsample = 64;
         double dmin = pow((lx*ly*lz)/((nsample-1)*(nsample-1)*(nsample-1)), 0.333);
 
         nx = (int)ceil(lx/dmin) + 1;
