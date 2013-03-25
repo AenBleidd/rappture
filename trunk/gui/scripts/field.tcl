@@ -261,20 +261,23 @@ itcl::body Rappture::Field::components {args} {
     }
     # BE CAREFUL: return component names in proper order
     set rlist ""
-    set components [$_field children -type component]
+    set components {}
+    # First compile a list of valid components that match the pattern
+    foreach cname [$_field children -type component] {
+        if { ![info exists _isValidComponent($cname)] } {
+            continue
+        }
+        if { [string match $pattern $cname] } {
+            lappend components $cname
+        }
+    }
+    # Now handle the tests.
     switch -- $params(what) {
         -name { 
-            foreach cname $components {
-                if { [info exists _isValidComponent($cname)] } {
-                    lappend rlist $cname 
-                }
-            }
+            set rlist $components
         }
         -style { 
             foreach cname $components {
-                if { ![info exists _isValidComponent($cname)] } {
-                    continue
-                }
                 if { [info exists _comp2style($cname)] } {
                     lappend rlist $_comp2style($cname) 
                 }
