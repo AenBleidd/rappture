@@ -79,7 +79,14 @@ public:
 
     //friend Vector3f operator*(float scale, const Vector3f& value);
 
-    float x, y, z;
+    union {
+        struct {
+            float x, y, z;
+        };
+        struct {
+            float r, g, b;
+        };
+    };
 };
 
 inline bool Vector3f::operator==(const Vector3f &v) const 

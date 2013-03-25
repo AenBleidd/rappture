@@ -24,191 +24,27 @@
 #ifndef FLOWCMD_H
 #define FLOWCMD_H
 
+#include <tr1/unordered_map>
+#include <vector>
+#include <string>
+
 #include <tcl.h>
 
 #include <vrmath/Vector3f.h>
 
 #include "Switch.h"
+#include "FlowTypes.h"
+#include "FlowParticles.h"
+#include "FlowBox.h"
 #include "NvLIC.h"
 #include "NvParticleRenderer.h"
 #include "NvVectorField.h"
 #include "Unirect.h"
 #include "Volume.h"
-
-struct FlowColor {
-    float r, g, b, a;
-};
-
-struct FlowPosition {
-    float value;
-    unsigned int flags;
-    int axis;
-};
-
-struct FlowPoint {
-    float x, y, z;
-};
-
-struct FlowParticlesValues {
-    FlowPosition position;        ///< Position on axis of particle plane
-    FlowColor color;              ///< Color of particles
-    /// Indicates if particle injection plane is active or not
-    int isHidden;
-    float particleSize;           ///< Size of the particles
-};
-
-struct FlowParticlesIterator {
-    Tcl_HashEntry *hashPtr;
-    Tcl_HashSearch hashSearch;
-};
-
-class FlowParticles
-{
-public:
-    FlowParticles(const char *name, Tcl_HashEntry *hPtr);
-
-    ~FlowParticles();
-
-    const char *name()
-    {
-        return _name;
-    }
-
-    void disconnect()
-    {
-        _hashPtr = NULL;
-    }
-
-    bool visible()
-    {
-        return !_sv.isHidden;
-    }
-
-    int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
-    {
-        if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv, 
-                                    SWITCH_DEFAULTS) < 0) {
-            return TCL_ERROR;
-        }
-        return TCL_OK;
-    }
-
-    void advect()
-    {
-        assert(_rendererPtr->active());
-        _rendererPtr->advect();
-    }
-
-    void render();
-
-    void reset()
-    {
-        _rendererPtr->reset();
-    }
-
-    void initialize()
-    {
-        _rendererPtr->initialize();
-    }
-
-    void setVectorField(Volume *volPtr, const vrmath::Vector3f& location,
-                        float scaleX, float scaleY, float scaleZ,
-                        float max)
-    {
-        _rendererPtr->
-            setVectorField(volPtr->textureID(),
-                           location,
-                           scaleX,
-                           scaleY,
-                           scaleZ,
-                           max);
-    }
-
-    void configure();
-
-private:
-    /**
-     * Name of particle injection plane. Actual character string is
-     * stored in hash table.
-     */
-    const char *_name;
-    Tcl_HashEntry *_hashPtr;
-    NvParticleRenderer *_rendererPtr;        ///< Particle renderer
-    FlowParticlesValues _sv;
-
-    static Rappture::SwitchSpec _switches[];
-};
-
-struct FlowBoxIterator {
-    Tcl_HashEntry *hashPtr;
-    Tcl_HashSearch hashSearch;
-};
-
-struct FlowBoxValues {
-    FlowPoint corner1, corner2;    ///< Coordinates of the box.
-    FlowColor color;               ///< Color of box
-    float lineWidth;
-    int isHidden;
-};
-
-class FlowBox
-{
-public:
-    FlowBox(const char *name, Tcl_HashEntry *hPtr);
-
-    ~FlowBox()
-    {
-        Rappture::FreeSwitches(_switches, &_sv, 0);
-        if (_hashPtr != NULL) {
-            Tcl_DeleteHashEntry(_hashPtr);
-        }
-    }
-
-    const char *name()
-    {
-        return _name;
-    }
-
-    bool visible()
-    {
-        return !_sv.isHidden;
-    }
-
-    void disconnect()
-    {
-        _hashPtr = NULL;
-    }
-
-    int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
-    {
-        if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv, 
-                                    SWITCH_DEFAULTS) < 0) {
-            return TCL_ERROR;
-        }
-        return TCL_OK;
-    }
-
-    void render(Volume *volPtr);
-
-    const FlowBoxValues *getValues() const
-    {
-        return &_sv;
-    }
-
-    void getWorldSpaceBounds(vrmath::Vector3f& min,
-                             vrmath::Vector3f& max,
-                             const Volume *vol) const;
-
-private:
-    const char *_name;          ///< Name of this box in the hash table.
-    Tcl_HashEntry *_hashPtr;    ///< Pointer to this entry in the hash table of boxes.
-    FlowBoxValues _sv;
-    static Rappture::SwitchSpec _switches[];
-
-};
+#include "TransferFunction.h"
 
 struct FlowValues {
-    TransferFunction *tfPtr;
+    TransferFunction *transferFunction;
     FlowPosition slicePos;
     int showArrows;
     int sliceVisible;
@@ -223,24 +59,26 @@ struct FlowValues {
     float opacity;     ///< Volume opacity scaling
 };
 
-struct FlowIterator {
-    Tcl_HashEntry *hashPtr;
-    Tcl_HashSearch hashSearch;
-};
-
 class FlowCmd
 {
 public:
     enum SliceAxis { AXIS_X, AXIS_Y, AXIS_Z };
 
-    FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr);
+    FlowCmd(Tcl_Interp *interp, const char *name);
 
     ~FlowCmd();
 
-    int createParticles(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    void getBounds(vrmath::Vector3f& min,
+                   vrmath::Vector3f& max,
+                   bool onlyVisible);
 
-    int getParticles(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                     FlowParticles **particlePtrPtr);
+    FlowParticles *createParticles(const char *particlesName);
+
+    FlowParticles *getParticles(const char *particlesName);
+
+    void deleteParticles(const char *particlesName);
+
+    void getParticlesNames(std::vector<std::string>& names);
 
     void render();
 
@@ -250,17 +88,13 @@ public:
 
     void initializeParticles();
 
-    FlowParticles *firstParticles(FlowParticlesIterator *iterPtr);
+    FlowBox *createBox(const char *boxName);
 
-    FlowParticles *nextParticles(FlowParticlesIterator *iterPtr);
+    FlowBox *getBox(const char *boxName);
 
-    int createBox(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    void deleteBox(const char *boxName);
 
-    int getBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr);
-
-    FlowBox *firstBox(FlowBoxIterator *iterPtr);
-
-    FlowBox *nextBox(FlowBoxIterator *iterPtr);
+    void getBoxNames(std::vector<std::string>& names);
 
     float *getScaledVector();
 
@@ -270,7 +104,7 @@ public:
 
     NvVectorField *getVectorField()
     {
-        return _fieldPtr;
+        return _field;
     }
 
     bool scaleVectorField();
@@ -280,32 +114,27 @@ public:
         return !_sv.isHidden;
     }
 
-    const char *name()
+    const char *name() const
     {
-        return _name;
-    }
-
-    void disconnect()
-    {
-        _hashPtr = NULL;
+        return _name.c_str();
     }
 
     bool isDataLoaded()
     {
-        return (_dataPtr != NULL);
+        return (_data != NULL);
     }
 
     Rappture::Unirect3d *data()
     {
-        return _dataPtr;
+        return _data;
     }
 
-    void data(Rappture::Unirect3d *dataPtr)
+    void data(Rappture::Unirect3d *data)
     {
-        if (_dataPtr != NULL) {
-            delete _dataPtr;
+        if (_data != NULL) {
+            delete _data;
         }
-        _dataPtr = dataPtr;
+        _data = data;
     }
 
     void activateSlice()
@@ -328,7 +157,7 @@ public:
 
     TransferFunction *getTransferFunction()
     {
-        return _sv.tfPtr;
+        return _sv.transferFunction;
     }
 
     float getRelativePosition();
@@ -366,18 +195,23 @@ public:
         NanoVis::licRenderer->active(_sv.sliceVisible);
     }
 
-    void setVectorField(NvVectorField *fieldPtr)
+    void setVectorField(NvVectorField *field)
     {
         deleteVectorField();
-        _fieldPtr = fieldPtr;
+        _field = field;
     }
 
     void deleteVectorField()
     {
-        if (_fieldPtr != NULL) {
-            delete _fieldPtr;
-            _fieldPtr = NULL;
+        if (_field != NULL) {
+            delete _field;
+            _field = NULL;
         }
+    }
+
+    const Volume *getVolume() const
+    {
+        return _volume;
     }
 
     int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
@@ -389,28 +223,32 @@ public:
         return TCL_OK;
     }
 
-    const Volume *getVolume() const
+    Tcl_Command getCommandToken()
     {
-        return _volPtr;
+        return _cmdToken;
     }
 
-    static float getRelativePosition(FlowPosition *posPtr);
+    static float getRelativePosition(FlowPosition *pos);
 
     static Rappture::SwitchSpec videoSwitches[];
 
 private:
+    typedef std::string ParticlesId;
+    typedef std::string BoxId;
+    typedef std::tr1::unordered_map<ParticlesId, FlowParticles *> ParticlesHashmap;
+    typedef std::tr1::unordered_map<BoxId, FlowBox *> BoxHashmap;
+
     void configure();
 
     void renderBoxes();
 
     Tcl_Interp *_interp;
-    Tcl_HashEntry *_hashPtr;
     /**
      * Name of the flow.  This may differ
      * from the name of the command
      * associated with the flow, if the
      * command was renamed. */
-    const char *_name;
+    std::string _name;
 
     /**
      * Command associated with the flow.
@@ -424,31 +262,31 @@ private:
      * field values.  These values are
      * kept to regenerate the volume
      * associated with the flow. */
-    Rappture::Unirect3d *_dataPtr;
+    Rappture::Unirect3d *_data;
 
     /**
      * The volume associated with the
      * flow.  This isn't the same thing as
      * a normal volume displayed. */
-    Volume *_volPtr;
+    Volume *_volume;
 
     /**
      * Vector field generated from the 
      * above volume */
-    NvVectorField *_fieldPtr;
+    NvVectorField *_field;
 
     /**
      * For each field there can be one or
      * more particle injection planes
      * where the particles are injected
      * into the flow. */
-    Tcl_HashTable _particlesTable;
+    ParticlesHashmap _particlesTable;
 
     /**
      * A table of boxes.  There maybe
      * zero or more boxes associated
      * with each field. */
-    Tcl_HashTable _boxTable;
+    BoxHashmap _boxTable;
 
     FlowValues _sv;
 
@@ -458,15 +296,15 @@ private:
 extern int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes);
 
 extern int GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                             bool *boolPtr);
+                             bool *boolVal);
 
 extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                           float *floatPtr);
+                           float *floatVal);
 
 extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                          int *axisPtr);
+                          int *axisVal);
 
 extern int GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                            Volume **volumePtrPtr);
+                            Volume **volume);
 
 #endif

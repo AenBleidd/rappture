@@ -19,8 +19,8 @@ public:
         x(0.0f), y(0.0f), z(0.0f), w(0.0f)
     {}
 
-    Vector4f(const Vector4f& v4) :
-        x(v4.x), y(v4.y), z(v4.z), w(v4.w)
+    Vector4f(const Vector4f& other) :
+        x(other.x), y(other.y), z(other.z), w(other.w)
     {}
 
     Vector4f(const Vector3f& v3, float w1) :
@@ -71,7 +71,14 @@ public:
 
     float dot(const Vector4f& vec) const;
 
-    float x, y, z, w;
+    union {
+        struct {
+            float x, y, z, w;
+        };
+        struct {
+            float r, g, b, a;
+        };
+    };
 };
 
 inline void Vector4f::divideByW()

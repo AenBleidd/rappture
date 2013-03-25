@@ -84,7 +84,7 @@ flow add <name> <?option value...?>
 flow delete <names>
 flow exists <name>
 flow goto <nSteps>
-flow names <?pattern?>
+flow names
 flow next
 flow reset
 flow video <token> <?switches...?>
@@ -103,8 +103,8 @@ flow video <token> <?switches...?>
          -corner2 <{x y z}>
          -hide <bool>
          -linewidth <val>
-<flowObj> box delete <?names?>
-<flowObj> box names <?pattern?>
+<flowObj> box delete <names>
+<flowObj> box names
 
 <flowObj> configure <?option value...?>
           -ambient <val>
@@ -126,6 +126,7 @@ flow video <token> <?switches...?>
 <flowObj> data follows <nbytes> <numComponents>
           Send flow data.  Data bytes follow the newline after the command
 <flowObj> legend <w> <h>
+
 <flowObj> particles add <name> <?switches?>
           see '<flowObj> particles configure' for switches
 <flowObj> particles configure <name> <?switches?>
@@ -135,6 +136,8 @@ flow video <token> <?switches...?>
           -position <val|%val>
            val = [0,100], or %val = [0,1]
           -size <val>
+<flowObj> particles delete <names>
+<flowObj> particles names
 
 volume data state <on|off> <?names?>
 volume data follows <size> <tag>

@@ -20,8 +20,6 @@
 
 #include <GL/glew.h>
 
-#include <tcl.h>
-
 #include <vrmath/Vector3f.h>
 #include <vrmath/Matrix4x4d.h>
 
@@ -108,13 +106,10 @@ VolumeRenderer::renderAll()
     }
     // Determine the volumes that are to be rendered.
     std::vector<Volume *> volumes;
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); hPtr != NULL;
-         hPtr = Tcl_NextHashEntry(&iter)) {
-        Volume *volPtr;
-        volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        if (!volPtr->visible()) {
+    for (NanoVis::VolumeHashmap::iterator itr = NanoVis::volumeTable.begin();
+         itr != NanoVis::volumeTable.end(); ++itr) {
+        Volume *volume = itr->second;
+        if (!volume->visible()) {
             continue; // Skip this volume
         }
         // BE CAREFUL: Set the number of slices to something slightly
@@ -122,8 +117,8 @@ VolumeRenderer::renderAll()
         // the same position with exactly the same number of slices, the
         // second volume will overwrite the first, so the first won't appear
         // at all.
-        volumes.push_back(volPtr);
-        volPtr->numSlices(256 - volumes.size());
+        volumes.push_back(volume);
+        volume->numSlices(256 - volumes.size());
     }
 
     glPushAttrib(GL_ENABLE_BIT);

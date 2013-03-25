@@ -23,14 +23,15 @@
 #include <RpOutcome.h>
 
 #include <vrmath/Vector3f.h>
-#include <vrmath/Vector4f.h>
-#include <vrmath/Matrix4x4d.h>
 
 #include "nvconf.h"
 
 #include "nanovis.h"
-#include "FlowCmd.h"
 #include "CmdProc.h"
+#include "FlowCmd.h"
+#include "FlowTypes.h"
+#include "FlowBox.h"
+#include "FlowParticles.h"
 #include "Switch.h"
 #include "TransferFunction.h"
 #include "NvLIC.h"
@@ -38,9 +39,6 @@
 #include "Unirect.h"
 #include "VelocityArrowsSlice.h"
 #include "Volume.h"
-
-#define RELPOS 0
-#define ABSPOS 1
 
 using namespace vrmath;
 
@@ -95,7 +93,7 @@ Rappture::SwitchSpec FlowCmd::_switches[] = {
     {Rappture::SWITCH_FLOAT, "-specularLevel", "value",
      offsetof(FlowValues, specular), 0},
     {Rappture::SWITCH_CUSTOM, "-transferfunction", "name",
-     offsetof(FlowValues, tfPtr), 0, 0, &transferFunctionSwitch},
+     offsetof(FlowValues, transferFunction), 0, 0, &transferFunctionSwitch},
     {Rappture::SWITCH_BOOLEAN, "-volume", "boolean",
      offsetof(FlowValues, showVolume), 0},
     {Rappture::SWITCH_END}
@@ -132,300 +130,119 @@ Rappture::SwitchSpec FlowBox::_switches[] = {
 static Tcl_ObjCmdProc FlowInstObjCmd;
 static Tcl_CmdDeleteProc FlowInstDeleteProc;
 
-FlowParticles::FlowParticles(const char *name, Tcl_HashEntry *hPtr) :
-    _name(name),
-    _hashPtr(hPtr),
-    _rendererPtr(new NvParticleRenderer(NMESH, NMESH))
-{
-    _sv.position.value = 0.0f;
-    _sv.position.flags = RELPOS;
-    _sv.position.axis = 0; // X_AXIS
-    _sv.color.r = _sv.color.g = _sv.color.b = _sv.color.a = 1.0f;
-    _sv.isHidden = false;
-    _sv.particleSize = 1.2;
-}
-
-FlowParticles::~FlowParticles() 
-{
-    if (_rendererPtr != NULL) {
-        delete _rendererPtr;
-    }
-    if (_hashPtr != NULL) {
-        Tcl_DeleteHashEntry(_hashPtr);
-    }
-    Rappture::FreeSwitches(_switches, &_sv, 0);
-}
-
-void
-FlowParticles::render() 
-{
-    TRACE("Particles '%s' axis: %d pos: %g rel pos: %g",
-          _name, _sv.position.axis, _sv.position.value,
-          FlowCmd::getRelativePosition(&_sv.position));
-    _rendererPtr->setPos(FlowCmd::getRelativePosition(&_sv.position));
-    _rendererPtr->setAxis(_sv.position.axis);
-    assert(_rendererPtr->active());
-    _rendererPtr->render();
-}
-
-void 
-FlowParticles::configure() 
-{
-    _rendererPtr->setPos(FlowCmd::getRelativePosition(&_sv.position));
-    _rendererPtr->setColor(Vector4f(_sv.color.r, _sv.color.g, _sv.color.b, 
-                                    _sv.color.a));
-    _rendererPtr->particleSize(_sv.particleSize);
-    _rendererPtr->setAxis(_sv.position.axis);
-    _rendererPtr->active(!_sv.isHidden);
-}
-
-FlowBox::FlowBox(const char *name, Tcl_HashEntry *hPtr) 
-{
-    _name = name;
-    _hashPtr = hPtr;
-    _sv.isHidden = false;
-    _sv.corner1.x = 0.0f;
-    _sv.corner1.y = 0.0f;
-    _sv.corner1.z = 0.0f;
-    _sv.corner2.x = 1.0f;
-    _sv.corner2.y = 1.0f;
-    _sv.corner2.z = 1.0f;
-    _sv.lineWidth = 1.2f;
-    _sv.color.r = _sv.color.b = _sv.color.g = _sv.color.a = 1.0f;
-}
-
-void
-FlowBox::getWorldSpaceBounds(Vector3f& bboxMin,
-                             Vector3f& bboxMax,
-                             const Volume *vol) const
-{
-    bboxMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
-    bboxMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-    Vector3f origin = vol->location();
-    Vector3f scale = vol->getPhysicalScaling();
-
-    Matrix4x4d mat;
-    mat.makeTranslation(origin);
-    Matrix4x4d mat2;
-    mat2.makeScale(scale);
-
-    mat.multiply(mat2);
-
-    Vector3f min, max;
-    min.x = vol->xAxis.min();
-    min.y = vol->yAxis.min();
-    min.z = vol->zAxis.min();
-    max.x = vol->xAxis.max();
-    max.y = vol->yAxis.max();
-    max.z = vol->zAxis.max();
-
-    float x0, y0, z0, x1, y1, z1;
-    x0 = y0 = z0 = 0.0f;
-    x1 = y1 = z1 = 0.0f;
-    if (max.x > min.x) {
-        x0 = (_sv.corner1.x - min.x) / (max.x - min.x);
-        x1 = (_sv.corner2.x - min.x) / (max.x - min.x);
-    }
-    if (max.y > min.y) {
-        y0 = (_sv.corner1.y - min.y) / (max.y - min.y);
-        y1 = (_sv.corner2.y - min.y) / (max.y - min.y);
-    }
-    if (max.z > min.z) {
-        z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
-        z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
-    }
-
-    TRACE("Box model bounds: (%g,%g,%g) - (%g,%g,%g)",
-          x0, y0, z0, x1, y1, z1);
-
-    Vector3f modelMin(x0, y0, z0);
-    Vector3f modelMax(x1, y1, z1);
-
-    Vector4f bvert[8];
-    bvert[0] = Vector4f(modelMin.x, modelMin.y, modelMin.z, 1);
-    bvert[1] = Vector4f(modelMax.x, modelMin.y, modelMin.z, 1);
-    bvert[2] = Vector4f(modelMin.x, modelMax.y, modelMin.z, 1);
-    bvert[3] = Vector4f(modelMin.x, modelMin.y, modelMax.z, 1);
-    bvert[4] = Vector4f(modelMax.x, modelMax.y, modelMin.z, 1);
-    bvert[5] = Vector4f(modelMax.x, modelMin.y, modelMax.z, 1);
-    bvert[6] = Vector4f(modelMin.x, modelMax.y, modelMax.z, 1);
-    bvert[7] = Vector4f(modelMax.x, modelMax.y, modelMax.z, 1);
-
-    for (int i = 0; i < 8; i++) {
-        Vector4f worldVert = mat.transform(bvert[i]);
-        if (worldVert.x < bboxMin.x) bboxMin.x = worldVert.x;
-        if (worldVert.x > bboxMax.x) bboxMax.x = worldVert.x;
-        if (worldVert.y < bboxMin.y) bboxMin.y = worldVert.y;
-        if (worldVert.y > bboxMax.y) bboxMax.y = worldVert.y;
-        if (worldVert.z < bboxMin.z) bboxMin.z = worldVert.z;
-        if (worldVert.z > bboxMax.z) bboxMax.z = worldVert.z;
-    }
-
-    TRACE("Box world bounds: (%g,%g,%g) - (%g,%g,%g)",
-          bboxMin.x, bboxMin.y, bboxMin.z,
-          bboxMax.x, bboxMax.y, bboxMax.z);
-}
-
-void 
-FlowBox::render(Volume *vol)
-{
-    TRACE("Box: '%s'", _name);
-
-    glPushAttrib(GL_ENABLE_BIT);
-
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-
-    Vector3f origin = vol->location();
-    glTranslatef(origin.x, origin.y, origin.z);
-
-    Vector3f scale = vol->getPhysicalScaling();
-    glScalef(scale.x, scale.y, scale.z);
-
-    Vector3f min, max;
-    min.x = vol->xAxis.min();
-    min.y = vol->yAxis.min();
-    min.z = vol->zAxis.min();
-    max.x = vol->xAxis.max();
-    max.y = vol->yAxis.max();
-    max.z = vol->zAxis.max();
-
-    TRACE("box is %g,%g %g,%g %g,%g",
-          _sv.corner1.x, _sv.corner2.x,
-          _sv.corner1.y, _sv.corner2.y,
-          _sv.corner1.z, _sv.corner2.z);
-    TRACE("world is %g,%g %g,%g %g,%g",
-          min.x, max.x, min.y, max.y, min.z, max.z);
-
-    float x0, y0, z0, x1, y1, z1;
-    x0 = y0 = z0 = 0.0f;
-    x1 = y1 = z1 = 0.0f;
-    if (max.x > min.x) {
-        x0 = (_sv.corner1.x - min.x) / (max.x - min.x);
-        x1 = (_sv.corner2.x - min.x) / (max.x - min.x);
-    }
-    if (max.y > min.y) {
-        y0 = (_sv.corner1.y - min.y) / (max.y - min.y);
-        y1 = (_sv.corner2.y - min.y) / (max.y - min.y);
-    }
-    if (max.z > min.z) {
-        z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
-        z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
-    }
-    TRACE("box bounds: %g,%g %g,%g %g,%g",
-          x0, x1, y0, y1, z0, z1);
-
-    glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
-    glLineWidth(_sv.lineWidth);
-    glBegin(GL_LINE_LOOP); 
-    {
-        glVertex3d(x0, y0, z0);
-        glVertex3d(x1, y0, z0);
-        glVertex3d(x1, y1, z0);
-        glVertex3d(x0, y1, z0);
-    }
-    glEnd();
-    glBegin(GL_LINE_LOOP);
-    {
-        glVertex3d(x0, y0, z1);
-        glVertex3d(x1, y0, z1);
-        glVertex3d(x1, y1, z1);
-        glVertex3d(x0, y1, z1);
-    }
-    glEnd();
-    
-    glBegin(GL_LINE_LOOP);
-    {
-        glVertex3d(x0, y0, z0);
-        glVertex3d(x0, y0, z1);
-        glVertex3d(x0, y1, z1);
-        glVertex3d(x0, y1, z0);
-    }
-    glEnd();
-    
-    glBegin(GL_LINE_LOOP);
-    {
-        glVertex3d(x1, y0, z0);
-        glVertex3d(x1, y0, z1);
-        glVertex3d(x1, y1, z1);
-        glVertex3d(x1, y1, z0);
-    }
-    glEnd();
-
-    glPopMatrix();
-    glPopAttrib();
-
-    assert(CheckGL(AT));
-}
-
-FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr) :
+FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name) :
     _interp(interp),
-    _hashPtr(hPtr),
     _name(name),
-    _dataPtr(NULL),
-    _volPtr(NULL),
-    _fieldPtr(NULL)
+    _data(NULL),
+    _volume(NULL),
+    _field(NULL)
 {
     memset(&_sv, 0, sizeof(FlowValues));
     _sv.sliceVisible = 1;
-    _sv.tfPtr = NanoVis::getTransfunc("default");
+    _sv.transferFunction = NanoVis::getTransferFunction("default");
 
-    Tcl_InitHashTable(&_particlesTable, TCL_STRING_KEYS);
-    Tcl_InitHashTable(&_boxTable, TCL_STRING_KEYS);
-
-    _cmdToken = Tcl_CreateObjCommand(_interp, (char *)_name, 
+    _cmdToken = Tcl_CreateObjCommand(_interp, (char *)name, 
                                      (Tcl_ObjCmdProc *)FlowInstObjCmd,
                                      this, FlowInstDeleteProc);
 }
 
 FlowCmd::~FlowCmd()
 {
-    Rappture::FreeSwitches(_switches, &_sv, 0);
-    if (_hashPtr != NULL) {
-        Tcl_DeleteHashEntry(_hashPtr);
-    }
-    if (_fieldPtr != NULL) {
-        delete _fieldPtr;
-    }
-    if (_dataPtr != NULL) {
-        delete _dataPtr;
-    }
-    if (_volPtr != NULL) {
-        NanoVis::removeVolume(_volPtr);
-        _volPtr = NULL;
-    }
+    TRACE("Enter");
 
-    FlowBox *boxPtr;
-    FlowBoxIterator boxIter;
-    for (boxPtr = firstBox(&boxIter); boxPtr != NULL; 
-         boxPtr = nextBox(&boxIter)) {
-        boxPtr->disconnect();
-        delete boxPtr;
+    Rappture::FreeSwitches(_switches, &_sv, 0);
+    if (_field != NULL) {
+        delete _field;
     }
-    FlowParticles *particlesPtr;
-    FlowParticlesIterator partIter;
-    for (particlesPtr = firstParticles(&partIter); particlesPtr != NULL;
-         particlesPtr = nextParticles(&partIter)) {
-        particlesPtr->disconnect();
-        delete particlesPtr;
+    if (_data != NULL) {
+        delete _data;
     }
-    Tcl_DeleteHashTable(&_particlesTable);
-    Tcl_DeleteHashTable(&_boxTable);
+    if (_volume != NULL) {
+        NanoVis::removeVolume(_volume);
+        _volume = NULL;
+    }
+    for (BoxHashmap::iterator itr = _boxTable.begin();
+         itr != _boxTable.end(); ++itr) {
+        delete itr->second;
+    }
+    _boxTable.clear();
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        delete itr->second;
+    }
+    _particlesTable.clear();
+}
+
+void
+FlowCmd::getBounds(Vector3f& min,
+                   Vector3f& max,
+                   bool onlyVisible)
+{
+    TRACE("Enter");
+
+    if (onlyVisible && !visible())
+        return;
+
+#if 0  // Using volume bounds instead of these
+    if (isDataLoaded()) {
+        Vector3f umin, umax;
+        Rappture::Unirect3d *unirect = data();
+        unirect->getWorldSpaceBounds(umin, umax);
+        if (min.x > umin.x) {
+            min.x = umin.x;
+        }
+        if (max.x < umax.x) {
+            max.x = umax.x;
+        }
+        if (min.y > umin.y) {
+            min.y = umin.y;
+        }
+        if (max.y < umax.y) {
+            max.y = umax.y;
+        }
+        if (min.z > umin.z) {
+            min.z = umin.z;
+        }
+        if (max.z < umax.z) {
+            max.z = umax.z;
+        }
+    }
+#endif
+    for (BoxHashmap::iterator itr = _boxTable.begin();
+         itr != _boxTable.end(); ++itr) {
+        FlowBox *box = itr->second;
+        if (!onlyVisible || box->visible()) {
+            Vector3f fbmin, fbmax;
+            box->getWorldSpaceBounds(fbmin, fbmax,
+                                     getVolume());
+            if (min.x > fbmin.x) {
+                min.x = fbmin.x;
+            }
+            if (max.x < fbmax.x) {
+                max.x = fbmax.x;
+            }
+            if (min.y > fbmin.y) {
+                min.y = fbmin.y;
+            }
+            if (max.y < fbmax.y) {
+                max.y = fbmax.y;
+            }
+            if (min.z > fbmin.z) {
+                min.z = fbmin.z;
+            }
+            if (max.z < fbmax.z) {
+                max.z = fbmax.z;
+            }
+        }
+    }
 }
 
 void
 FlowCmd::resetParticles()
 {
-    FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = firstParticles(&iter);
-         particlesPtr != NULL;
-         particlesPtr = nextParticles(&iter)) {
-        particlesPtr->reset();
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        itr->second->reset();
     }
 }
 
@@ -434,12 +251,10 @@ FlowCmd::advect()
 {
     NvVectorField *fieldPtr = getVectorField();
     fieldPtr->active(true);
-    FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = firstParticles(&iter);
-         particlesPtr != NULL;
-         particlesPtr = nextParticles(&iter)) {
-        if (particlesPtr->visible()) {
-            particlesPtr->advect();
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        if (itr->second->visible()) {
+            itr->second->advect();
         }
     }
 }
@@ -447,209 +262,164 @@ FlowCmd::advect()
 void
 FlowCmd::render()
 {
-    _fieldPtr->active(true);
-    _fieldPtr->render();
-    FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = firstParticles(&iter);
-         particlesPtr != NULL; 
-         particlesPtr = nextParticles(&iter)) {
-        if (particlesPtr->visible()) {
-            particlesPtr->render();
+    _field->active(true);
+    _field->render();
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        if (itr->second->visible()) {
+            itr->second->render();
         }
     }
     renderBoxes();
 }
 
-int
-FlowCmd::createParticles(Tcl_Interp *interp, Tcl_Obj *objPtr)
+FlowParticles *
+FlowCmd::createParticles(const char *particlesName)
 {
-    Tcl_HashEntry *hPtr;
-    int isNew;
-    const char *particlesName = Tcl_GetString(objPtr);
-    hPtr = Tcl_CreateHashEntry(&_particlesTable, particlesName, &isNew);
-    if (!isNew) {
-        Tcl_AppendResult(interp, "particle injection plane \"",
-                         particlesName, "\" already exists.", (char *)NULL);
-        return TCL_ERROR;
+    ParticlesHashmap::iterator itr = _particlesTable.find(particlesName);
+    if (itr != _particlesTable.end()) {
+        TRACE("Deleting existing particle injection plane '%s'", particlesName);
+        delete itr->second;
+        _particlesTable.erase(itr);
     }
-    particlesName = Tcl_GetHashKey(&_particlesTable, hPtr);
-    FlowParticles *particlesPtr;
-    particlesPtr = new FlowParticles(particlesName, hPtr);
-    if (particlesPtr == NULL) {
-        Tcl_AppendResult(interp, "can't allocate particle injection plane",
-                         (char *)NULL);
-        Tcl_DeleteHashEntry(hPtr);
-        return TCL_ERROR;
-    }
-    Tcl_SetHashValue(hPtr, particlesPtr);
-    return TCL_OK;
-}
-
-int
-FlowCmd::getParticles(Tcl_Interp *interp, Tcl_Obj *objPtr, 
-                      FlowParticles **particlesPtrPtr)
-{
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&_particlesTable, Tcl_GetString(objPtr));
-    if (hPtr == NULL) {
-        if (interp != NULL) {
-            Tcl_AppendResult(interp, "can't find a particle injection plane \"",
-                             Tcl_GetString(objPtr), "\"", (char *)NULL);
-        }
-        return TCL_ERROR;
-    }
-    *particlesPtrPtr = (FlowParticles *)Tcl_GetHashValue(hPtr);
-    return TCL_OK;
+    FlowParticles *particles = new FlowParticles(particlesName);
+    _particlesTable[particlesName] = particles;
+    return particles;
 }
 
 FlowParticles *
-FlowCmd::firstParticles(FlowParticlesIterator *iterPtr) 
+FlowCmd::getParticles(const char *particlesName)
 {
-    iterPtr->hashPtr = Tcl_FirstHashEntry(&_particlesTable, 
-                                          &iterPtr->hashSearch);
-    if (iterPtr->hashPtr == NULL) {
+    ParticlesHashmap::iterator itr;
+    itr = _particlesTable.find(particlesName);
+    if (itr == _particlesTable.end()) {
+        TRACE("Can't find particle injection plane '%s' in '%s'", particlesName, name());
         return NULL;
     }
-    return (FlowParticles *)Tcl_GetHashValue(iterPtr->hashPtr);
+    return itr->second;
 }
 
-FlowParticles *
-FlowCmd::nextParticles(FlowParticlesIterator *iterPtr) 
+void
+FlowCmd::deleteParticles(const char *particlesName)
 {
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
+    ParticlesHashmap::iterator itr = _particlesTable.find(particlesName);
+    if (itr == _particlesTable.end()) {
+        TRACE("Can't find particle injection plane '%s' in '%s'", particlesName, name());
+        return;
     }
-    iterPtr->hashPtr = Tcl_NextHashEntry(&iterPtr->hashSearch);
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
-    }
-    return (FlowParticles *)Tcl_GetHashValue(iterPtr->hashPtr);
+    delete itr->second;
+    _particlesTable.erase(itr);
 }
 
-int
-FlowCmd::createBox(Tcl_Interp *interp, Tcl_Obj *objPtr)
+void
+FlowCmd::getParticlesNames(std::vector<std::string>& names)
 {
-    Tcl_HashEntry *hPtr;
-    int isNew;
-    hPtr = Tcl_CreateHashEntry(&_boxTable, Tcl_GetString(objPtr), &isNew);
-    if (!isNew) {
-        Tcl_AppendResult(interp, "box \"", Tcl_GetString(objPtr),
-                         "\" already exists in flow \"", name(), "\"", (char *)NULL);
-        return TCL_ERROR;
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        names.push_back(std::string(itr->second->name()));
     }
-    const char *boxName;
-    boxName = Tcl_GetHashKey(&_boxTable, hPtr);
-    FlowBox *boxPtr;
-    boxPtr = new FlowBox(boxName, hPtr);
-    if (boxPtr == NULL) {
-        Tcl_AppendResult(interp, "can't allocate box \"", boxName, "\"",
-                         (char *)NULL);
-        Tcl_DeleteHashEntry(hPtr);
-        return TCL_ERROR;
-    }
-    Tcl_SetHashValue(hPtr, boxPtr);
-    return TCL_OK;
-}
-
-int
-FlowCmd::getBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr)
-{
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&_boxTable, Tcl_GetString(objPtr));
-    if (hPtr == NULL) {
-        if (interp != NULL) {
-            Tcl_AppendResult(interp, "can't find a box \"", 
-                             Tcl_GetString(objPtr), "\" in flow \"", name(), "\"", 
-                             (char *)NULL);
-        }
-        return TCL_ERROR;
-    }
-    *boxPtrPtr = (FlowBox *)Tcl_GetHashValue(hPtr);
-    return TCL_OK;
 }
 
 FlowBox *
-FlowCmd::firstBox(FlowBoxIterator *iterPtr) 
+FlowCmd::createBox(const char *boxName)
 {
-    iterPtr->hashPtr = Tcl_FirstHashEntry(&_boxTable, &iterPtr->hashSearch);
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
+    BoxHashmap::iterator itr = _boxTable.find(boxName);
+    if (itr != _boxTable.end()) {
+        TRACE("Deleting existing box '%s'", boxName);
+        delete itr->second;
+        _boxTable.erase(itr);
     }
-    return (FlowBox *)Tcl_GetHashValue(iterPtr->hashPtr);
+    FlowBox *box = new FlowBox(boxName);
+    _boxTable[boxName] = box;
+    return box;
 }
 
 FlowBox *
-FlowCmd::nextBox(FlowBoxIterator *iterPtr) 
+FlowCmd::getBox(const char *boxName)
 {
-    if (iterPtr->hashPtr == NULL) {
+    BoxHashmap::iterator itr = _boxTable.find(boxName);
+    if (itr == _boxTable.end()) {
+        TRACE("Can't find box '%s' in '%s'", boxName, name());
         return NULL;
     }
-    iterPtr->hashPtr = Tcl_NextHashEntry(&iterPtr->hashSearch);
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
+    return itr->second;
+}
+
+void
+FlowCmd::deleteBox(const char *boxName)
+{
+    BoxHashmap::iterator itr = _boxTable.find(boxName);
+    if (itr == _boxTable.end()) {
+        TRACE("Can't find box '%s' in '%s'", boxName, name());
+        return;
     }
-    return (FlowBox *)Tcl_GetHashValue(iterPtr->hashPtr);
+    delete itr->second;
+    _boxTable.erase(itr);
+}
+
+void FlowCmd::getBoxNames(std::vector<std::string>& names)
+{
+    for (BoxHashmap::iterator itr = _boxTable.begin();
+         itr != _boxTable.end(); ++itr) {
+        names.push_back(std::string(itr->second->name()));
+    }
 }
 
 void
 FlowCmd::initializeParticles()
 {
-    FlowParticlesIterator iter;
-    for (FlowParticles *particlesPtr = firstParticles(&iter);
-         particlesPtr != NULL;
-         particlesPtr = nextParticles(&iter)) {
-        particlesPtr->initialize();
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        itr->second->initialize();
     }
 }
 
 bool
 FlowCmd::scaleVectorField()
 {
-    if (_volPtr != NULL) {
-        TRACE("Removing existing volume: %s", _volPtr->name());
-        NanoVis::removeVolume(_volPtr);
-        _volPtr = NULL;
+    if (_volume != NULL) {
+        TRACE("Removing existing volume: %s", _volume->name());
+        NanoVis::removeVolume(_volume);
+        _volume = NULL;
     }
-    float *vdata;
-    vdata = getScaledVector();
+    float *vdata = getScaledVector();
     if (vdata == NULL) {
         return false;
     }
-    Volume *volPtr;
-    volPtr = makeVolume(vdata);
+    Volume *volume = makeVolume(vdata);
     delete [] vdata;
-    if (volPtr == NULL) {
+    if (volume == NULL) {
         return false;
     }
-    _volPtr = volPtr;
+    _volume = volume;
 
     // Remove the associated vector field.
-    if (_fieldPtr != NULL) {
-        delete _fieldPtr;
+    if (_field != NULL) {
+        delete _field;
     }
-    _fieldPtr = new NvVectorField();
-    if (_fieldPtr == NULL) {
+    _field = new NvVectorField();
+    if (_field == NULL) {
         return false;
     }
 
-    Vector3f scale = volPtr->getPhysicalScaling();
-    Vector3f location = _volPtr->location();
+    Vector3f scale = volume->getPhysicalScaling();
+    Vector3f location = _volume->location();
 
-    _fieldPtr->setVectorField(_volPtr,
-                              location,
-                              scale.x,
-                              scale.y,
-                              scale.z,
-                              NanoVis::magMax);
-
-    if (NanoVis::licRenderer != NULL) {
-        NanoVis::licRenderer->
-            setVectorField(_volPtr->textureID(),
+    _field->setVectorField(_volume,
                            location,
                            scale.x,
                            scale.y,
                            scale.z,
-                           _volPtr->wAxis.max());
+                           NanoVis::magMax);
+
+    if (NanoVis::licRenderer != NULL) {
+        NanoVis::licRenderer->
+            setVectorField(_volume->textureID(),
+                           location,
+                           scale.x,
+                           scale.y,
+                           scale.z,
+                           _volume->wAxis.max());
         setCurrentPosition();
         setAxis();
         setActive();
@@ -657,27 +427,25 @@ FlowCmd::scaleVectorField()
 
     if (NanoVis::velocityArrowsSlice != NULL) {
         NanoVis::velocityArrowsSlice->
-            setVectorField(_volPtr->textureID(),
+            setVectorField(_volume->textureID(),
                            location,
                            scale.x,
                            scale.y,
                            scale.z,
-                           _volPtr->wAxis.max());
+                           _volume->wAxis.max());
         NanoVis::velocityArrowsSlice->axis(_sv.slicePos.axis);
         NanoVis::velocityArrowsSlice->slicePos(_sv.slicePos.value);
         NanoVis::velocityArrowsSlice->enabled(_sv.showArrows);
     }
 
-    FlowParticlesIterator partIter;
-    for (FlowParticles *particlesPtr = firstParticles(&partIter);
-         particlesPtr != NULL;
-         particlesPtr = nextParticles(&partIter)) {
-        particlesPtr->setVectorField(_volPtr,
-                                     location,
-                                     scale.x,
-                                     scale.y,
-                                     scale.z,
-                                     _volPtr->wAxis.max());
+    for (ParticlesHashmap::iterator itr = _particlesTable.begin();
+         itr != _particlesTable.end(); ++itr) {
+        itr->second->setVectorField(_volume,
+                                    location,
+                                    scale.x,
+                                    scale.y,
+                                    scale.z,
+                                    _volume->wAxis.max());
     }
     return true;
 }
@@ -685,11 +453,10 @@ FlowCmd::scaleVectorField()
 void
 FlowCmd::renderBoxes()
 {
-    FlowBoxIterator iter;
-    FlowBox *boxPtr;
-    for (boxPtr = firstBox(&iter); boxPtr != NULL; boxPtr = nextBox(&iter)) {
-        if (boxPtr->visible()) {
-            boxPtr->render(_volPtr);
+    for (BoxHashmap::iterator itr = _boxTable.begin();
+         itr != _boxTable.end(); ++itr) {
+        if (itr->second->visible()) {
+            itr->second->render(_volume);
         }
     }
 }
@@ -697,18 +464,18 @@ FlowCmd::renderBoxes()
 float *
 FlowCmd::getScaledVector()
 {
-    assert(_dataPtr->nComponents() == 3);
-    size_t n = _dataPtr->nValues() / _dataPtr->nComponents() * 4;
+    assert(_data->nComponents() == 3);
+    size_t n = _data->nValues() / _data->nComponents() * 4;
     float *data = new float[n];
     if (data == NULL) {
         return NULL;
     }
     memset(data, 0, sizeof(float) * n);
     float *destPtr = data;
-    const float *values = _dataPtr->values();
-    for (size_t iz = 0; iz < _dataPtr->zNum(); iz++) {
-        for (size_t iy = 0; iy < _dataPtr->yNum(); iy++) {
-            for (size_t ix = 0; ix < _dataPtr->xNum(); ix++) {
+    const float *values = _data->values();
+    for (size_t iz = 0; iz < _data->zNum(); iz++) {
+        for (size_t iy = 0; iy < _data->yNum(); iy++) {
+            for (size_t ix = 0; ix < _data->xNum(); ix++) {
                 double vx, vy, vz, vm;
                 vx = values[0];
                 vy = values[1];
@@ -729,46 +496,45 @@ FlowCmd::getScaledVector()
 Volume *
 FlowCmd::makeVolume(float *data)
 {
-    Volume *volPtr;
-
-    volPtr = NanoVis::loadVolume(_name,
-                                 _dataPtr->xNum(),
-                                 _dataPtr->yNum(), 
-                                 _dataPtr->zNum(),
-                                 4, data, 
-                                 NanoVis::magMin, NanoVis::magMax, 0);
-    volPtr->xAxis.setRange(_dataPtr->xMin(), _dataPtr->xMax());
-    volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
-    volPtr->zAxis.setRange(_dataPtr->zMin(), _dataPtr->zMax());
+    Volume *volume =
+        NanoVis::loadVolume(_name.c_str(),
+                            _data->xNum(),
+                            _data->yNum(), 
+                            _data->zNum(),
+                            4, data, 
+                            NanoVis::magMin, NanoVis::magMax, 0);
+    volume->xAxis.setRange(_data->xMin(), _data->xMax());
+    volume->yAxis.setRange(_data->yMin(), _data->yMax());
+    volume->zAxis.setRange(_data->zMin(), _data->zMax());
 
     TRACE("min=%g %g %g max=%g %g %g mag=%g %g",
           NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
           NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
           NanoVis::magMin, NanoVis::magMax);
 
-    volPtr->disableCutplane(0);
-    volPtr->disableCutplane(1);
-    volPtr->disableCutplane(2);
+    volume->disableCutplane(0);
+    volume->disableCutplane(1);
+    volume->disableCutplane(2);
 
     /* Initialize the volume with the previously configured values. */
-    volPtr->transferFunction(_sv.tfPtr);
-    volPtr->dataEnabled(_sv.showVolume);
-    volPtr->twoSidedLighting(_sv.twoSidedLighting);
-    volPtr->outline(_sv.showOutline);
-    volPtr->opacityScale(_sv.opacity);
-    volPtr->ambient(_sv.ambient);
-    volPtr->diffuse(_sv.diffuse);
-    volPtr->specularLevel(_sv.specular);
-    volPtr->specularExponent(_sv.specularExp);
-    volPtr->visible(_sv.showVolume);
+    volume->transferFunction(_sv.transferFunction);
+    volume->dataEnabled(_sv.showVolume);
+    volume->twoSidedLighting(_sv.twoSidedLighting);
+    volume->outline(_sv.showOutline);
+    volume->opacityScale(_sv.opacity);
+    volume->ambient(_sv.ambient);
+    volume->diffuse(_sv.diffuse);
+    volume->specularLevel(_sv.specular);
+    volume->specularExponent(_sv.specularExp);
+    volume->visible(_sv.showVolume);
 
-    Vector3f volScaling = volPtr->getPhysicalScaling();
+    Vector3f volScaling = volume->getPhysicalScaling();
     Vector3f loc(volScaling);
     loc *= -0.5;
-    volPtr->location(loc);
+    volume->location(loc);
 
     Volume::updatePending = true;
-    return volPtr;
+    return volume;
 }
 
 static int
@@ -995,93 +761,59 @@ FlowCmd::getRelativePosition()
 
 /* Static NanoVis class commands. */
 
+FlowCmd *
+NanoVis::getFlow(const char *name)
+{
+    FlowHashmap::iterator itr = flowTable.find(name);
+    if (itr == flowTable.end()) {
+        TRACE("Can't find flow '%s'", name);
+        return NULL;
+    }
+    return itr->second;
+}
+
+FlowCmd *
+NanoVis::createFlow(Tcl_Interp *interp, const char *name)
+{
+    FlowHashmap::iterator itr = flowTable.find(name);
+    if (itr != flowTable.end()) {
+        ERROR("Flow '%s' already exists", name);
+        return NULL;
+    }
+    FlowCmd *flow = new FlowCmd(interp, name);
+    flowTable[name] = flow;
+    return flow;
+}
+
+/**
+ * \brief Delete flow object and hash table entry
+ *
+ * This is called by the flow command instance delete callback
+ */
 void
-NanoVis::initFlows() 
+NanoVis::deleteFlow(const char *name)
 {
-    Tcl_InitHashTable(&flowTable, TCL_STRING_KEYS);
+    FlowHashmap::iterator itr = flowTable.find(name);
+    if (itr != flowTable.end()) {
+        delete itr->second;
+        flowTable.erase(itr);
+    }
 }
 
-FlowCmd *
-NanoVis::firstFlow(FlowIterator *iterPtr) 
-{
-    iterPtr->hashPtr = Tcl_FirstHashEntry(&flowTable, &iterPtr->hashSearch);
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
-    }
-    return (FlowCmd *)Tcl_GetHashValue(iterPtr->hashPtr);
-}
-
-FlowCmd *
-NanoVis::nextFlow(FlowIterator *iterPtr) 
-{
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
-    }
-    iterPtr->hashPtr = Tcl_NextHashEntry(&iterPtr->hashSearch);
-    if (iterPtr->hashPtr == NULL) {
-        return NULL;
-    }
-    return (FlowCmd *)Tcl_GetHashValue(iterPtr->hashPtr);
-}
-
-int
-NanoVis::getFlow(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowCmd **flowPtrPtr)
-{
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&flowTable, Tcl_GetString(objPtr));
-    if (hPtr == NULL) {
-        if (interp != NULL) {
-            Tcl_AppendResult(interp, "can't find a flow \"", 
-                             Tcl_GetString(objPtr), "\"", (char *)NULL);
-        }
-        return TCL_ERROR;
-    }
-    *flowPtrPtr = (FlowCmd *)Tcl_GetHashValue(hPtr);
-    return TCL_OK;
-}
-
-int
-NanoVis::createFlow(Tcl_Interp *interp, Tcl_Obj *objPtr)
-{
-    Tcl_HashEntry *hPtr;
-    int isNew;
-    const char *name;
-    name = Tcl_GetString(objPtr);
-    hPtr = Tcl_CreateHashEntry(&flowTable, name, &isNew);
-    if (!isNew) {
-        Tcl_AppendResult(interp, "flow \"", name, "\" already exists.",
-                         (char *)NULL);
-        return TCL_ERROR;
-    }
-    Tcl_CmdInfo cmdInfo;
-    if (Tcl_GetCommandInfo(interp, name, &cmdInfo)) {
-        Tcl_AppendResult(interp, "an another command \"", name, 
-                         "\" already exists.", (char *)NULL);
-        return TCL_ERROR;
-    }
-    FlowCmd *flowPtr;
-    name = Tcl_GetHashKey(&flowTable, hPtr);
-    flowPtr = new FlowCmd(interp, name, hPtr);
-    if (flowPtr == NULL) {
-        Tcl_AppendResult(interp, "can't allocate a flow object \"", name, 
-                         "\"", (char *)NULL);
-        return TCL_ERROR;
-    }
-    Tcl_SetHashValue(hPtr, flowPtr);
-    return TCL_OK;
-}
-
+/**
+ * \brief Delete all flow object commands
+ *
+ * This will also delete the flow objects and hash table entries
+ */
 void
 NanoVis::deleteFlows(Tcl_Interp *interp)
 {
-    FlowCmd *flowPtr;
-    FlowIterator iter;
-    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = nextFlow(&iter)) {
-        flowPtr->disconnect();                /* Don't disrupt the hash walk */
-        Tcl_DeleteCommand(interp, flowPtr->name());
+    FlowHashmap::iterator itr;
+    for (itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Tcl_DeleteCommandFromToken(interp, itr->second->getCommandToken());
     }
-    Tcl_DeleteHashTable(&flowTable);
+    flowTable.clear();
 }
 
 bool
@@ -1097,40 +829,39 @@ NanoVis::mapFlows()
      */
     magMin = DBL_MAX, magMax = -DBL_MAX;
 
-    FlowCmd *flowPtr;
-    FlowIterator iter;
-    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = nextFlow(&iter)) {
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        FlowCmd *flow = itr->second;
         double min, max;
-        if (!flowPtr->isDataLoaded()) {
+        if (!flow->isDataLoaded()) {
             continue;
         }
-        Rappture::Unirect3d *dataPtr = flowPtr->data();
-        min = dataPtr->magMin();
-        max = dataPtr->magMax();
+        Rappture::Unirect3d *data = flow->data();
+        min = data->magMin();
+        max = data->magMax();
         if (min < magMin) {
             magMin = min;
         } 
         if (max > magMax) {
             magMax = max;
         }
-        if (dataPtr->xMin() < xMin) {
-            xMin = dataPtr->xMin();
+        if (data->xMin() < xMin) {
+            xMin = data->xMin();
         }
-        if (dataPtr->yMin() < yMin) {
-            yMin = dataPtr->yMin();
+        if (data->yMin() < yMin) {
+            yMin = data->yMin();
         }
-        if (dataPtr->zMin() < zMin) {
-            zMin = dataPtr->zMin();
+        if (data->zMin() < zMin) {
+            zMin = data->zMin();
         }
-        if (dataPtr->xMax() > xMax) {
-            xMax = dataPtr->xMax();
+        if (data->xMax() > xMax) {
+            xMax = data->xMax();
         }
-        if (dataPtr->yMax() > yMax) {
-            yMax = dataPtr->yMax();
+        if (data->yMax() > yMax) {
+            yMax = data->yMax();
         }
-        if (dataPtr->zMax() > zMax) {
-            zMax = dataPtr->zMax();
+        if (data->zMax() > zMax) {
+            zMax = data->zMax();
         }
     }
 
@@ -1139,20 +870,21 @@ NanoVis::mapFlows()
     /* 
      * Step 2. Generate the vector field from each data set. 
      */
-    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = nextFlow(&iter)) {
-        if (!flowPtr->isDataLoaded()) {
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        FlowCmd *flow = itr->second;
+        if (!flow->isDataLoaded()) {
             continue; // Flow exists, but no data has been loaded yet.
         }
-        if (flowPtr->visible()) {
-            flowPtr->initializeParticles();
+        if (flow->visible()) {
+            flow->initializeParticles();
         }
-        if (!flowPtr->scaleVectorField()) {
+        if (!flow->scaleVectorField()) {
             return false;
         }
         // FIXME: This doesn't work when there is more than one flow.
-        licRenderer->setOffset(flowPtr->getRelativePosition());
-        velocityArrowsSlice->slicePos(flowPtr->getRelativePosition());
+        licRenderer->setOffset(flow->getRelativePosition());
+        velocityArrowsSlice->slicePos(flow->getRelativePosition());
     }
     advectFlows();
     return true;
@@ -1168,77 +900,20 @@ NanoVis::getFlowBounds(Vector3f& min,
     min.set(FLT_MAX, FLT_MAX, FLT_MAX);
     max.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-    FlowCmd *flow;
-    FlowIterator iter;
-    for (flow = firstFlow(&iter); flow != NULL; 
-         flow = nextFlow(&iter)) {
-        if (onlyVisible && !flow->visible())
-            continue;
- #if 0  // Using volume bounds instead of these
-        if (flow->isDataLoaded()) {
-            Vector3f umin, umax;
-            Rappture::Unirect3d *unirect = flow->data();
-            unirect->getWorldSpaceBounds(umin, umax);
-            if (min.x > umin.x) {
-                min.x = umin.x;
-            }
-            if (max.x < umax.x) {
-                max.x = umax.x;
-            }
-            if (min.y > umin.y) {
-                min.y = umin.y;
-            }
-            if (max.y < umax.y) {
-                max.y = umax.y;
-            }
-            if (min.z > umin.z) {
-                min.z = umin.z;
-            }
-            if (max.z < umax.z) {
-                max.z = umax.z;
-            }
-        }
-#endif
-        FlowBox *box;
-        FlowBoxIterator iter;
-        for (box = flow->firstBox(&iter); box != NULL;
-             box = flow->nextBox(&iter)) {
-            if (!onlyVisible || box->visible()) {
-                Vector3f fbmin, fbmax;
-                box->getWorldSpaceBounds(fbmin, fbmax,
-                                         flow->getVolume());
-                if (min.x > fbmin.x) {
-                    min.x = fbmin.x;
-                }
-                if (max.x < fbmax.x) {
-                    max.x = fbmax.x;
-                }
-                if (min.y > fbmin.y) {
-                    min.y = fbmin.y;
-                }
-                if (max.y < fbmax.y) {
-                    max.y = fbmax.y;
-                }
-                if (min.z > fbmin.z) {
-                    min.z = fbmin.z;
-                }
-                if (max.z < fbmax.z) {
-                    max.z = fbmax.z;
-                }
-            }
-        }
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        itr->second->getBounds(min, max, onlyVisible);
     }
 }
 
 void
 NanoVis::renderFlows()
 {
-    FlowCmd *flowPtr;
-    FlowIterator iter;
-    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = nextFlow(&iter)) {
-        if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
-            flowPtr->render();
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        FlowCmd *flow = itr->second;
+        if (flow->isDataLoaded() && flow->visible()) {
+            flow->render();
         }
     }
     flags &= ~REDRAW_PENDING;
@@ -1247,16 +922,14 @@ NanoVis::renderFlows()
 void
 NanoVis::resetFlows()
 {
-    FlowCmd *flowPtr;
-    FlowIterator iter;
-
     if (licRenderer->active()) {
         NanoVis::licRenderer->reset();
     }
-    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = nextFlow(&iter)) {
-        if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
-            flowPtr->resetParticles();
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        FlowCmd *flow = itr->second;
+        if (flow->isDataLoaded() && flow->visible()) {
+            flow->resetParticles();
         }
     }
 }    
@@ -1264,12 +937,11 @@ NanoVis::resetFlows()
 void
 NanoVis::advectFlows()
 {
-    FlowCmd *flowPtr;
-    FlowIterator iter;
-    for (flowPtr = firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = nextFlow(&iter)) {
-        if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
-            flowPtr->advect();
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        FlowCmd *flow = itr->second;
+        if (flow->isDataLoaded() && flow->visible()) {
+            flow->advect();
         }
     }
 }
@@ -1338,7 +1010,7 @@ ColorSwitchProc(ClientData clientData, Tcl_Interp *interp,
 {
     Tcl_Obj **objv;
     int objc;
-    FlowColor *colorPtr = (FlowColor *)(record + offset);
+    FlowColor *color = (FlowColor *)(record + offset);
 
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
         return TCL_ERROR;
@@ -1365,10 +1037,10 @@ ColorSwitchProc(ClientData clientData, Tcl_Interp *interp,
         }
         values[i] = value;
     }
-    colorPtr->r = values[0];
-    colorPtr->g = values[1];
-    colorPtr->b = values[2];
-    colorPtr->a = values[3];
+    color->r = values[0];
+    color->g = values[1];
+    color->b = values[2];
+    color->a = values[3];
     return TCL_OK;
 }
 
@@ -1391,7 +1063,7 @@ PointSwitchProc(ClientData clientData, Tcl_Interp *interp,
                 const char *switchName, Tcl_Obj *objPtr,
                 char *record, int offset, int flags)
 {
-    FlowPoint *pointPtr = (FlowPoint *)(record + offset);
+    FlowPoint *point = (FlowPoint *)(record + offset);
     int objc;
     Tcl_Obj **objv;
 
@@ -1413,9 +1085,9 @@ PointSwitchProc(ClientData clientData, Tcl_Interp *interp,
         }
         values[i] = value;
     }
-    pointPtr->x = values[0];
-    pointPtr->y = values[1];
-    pointPtr->z = values[2];
+    point->x = values[0];
+    point->y = values[1];
+    point->z = values[2];
     return TCL_OK;
 }
 
@@ -1488,14 +1160,13 @@ TransferFunctionSwitchProc(ClientData clientData, Tcl_Interp *interp,
                            char *record, int offset, int flags)
 {
     TransferFunction **funcPtrPtr = (TransferFunction **)(record + offset);
-    TransferFunction *funcPtr;
-    funcPtr = NanoVis::getTransfunc(Tcl_GetString(objPtr));
-    if (funcPtr == NULL) {
+    TransferFunction *tf = NanoVis::getTransferFunction(Tcl_GetString(objPtr));
+    if (tf == NULL) {
         Tcl_AppendResult(interp, "transfer function \"", Tcl_GetString(objPtr),
                          "\" is not defined", (char*)NULL);
         return TCL_ERROR;
     }
-    *funcPtrPtr = funcPtr;
+    *funcPtrPtr = tf;
     return TCL_OK;
 }
 
@@ -1516,20 +1187,21 @@ static int
 FlowParticlesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
                    Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-
-    if (flowPtr->createParticles(interp, objv[3]) != TCL_OK) {
+    FlowCmd *flow = (FlowCmd *)clientData;
+    const char *particlesName = Tcl_GetString(objv[3]);
+    FlowParticles *particles = flow->createParticles(particlesName);
+    if (particles == NULL) {
+        Tcl_AppendResult(interp, "Flow particle injection plane \"",
+                         particlesName,
+                         "\" already exists or could not be created",
+                         (char*)NULL);
         return TCL_ERROR;
     }
-    FlowParticles *particlesPtr;
-    if (flowPtr->getParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
+    if (particles->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+        flow->deleteParticles(particlesName);
         return TCL_ERROR;
     }
-    if (particlesPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
-        delete particlesPtr;
-        return TCL_ERROR;
-    }
-    particlesPtr->configure();
+    particles->configure();
     NanoVis::eventuallyRedraw();
     Tcl_SetObjResult(interp, objv[3]);
     return TCL_OK;
@@ -1539,16 +1211,19 @@ static int
 FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-
-    FlowParticles *particlesPtr;
-    if (flowPtr->getParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
+    FlowCmd *flow = (FlowCmd *)clientData;
+    const char *particlesName = Tcl_GetString(objv[3]);
+    FlowParticles *particles = flow->getParticles(particlesName);
+    if (particles == NULL) {
+        Tcl_AppendResult(interp, "Flow particle injection plane \"",
+                         particlesName, "\" not found",
+                         (char*)NULL);
         return TCL_ERROR;
     }
-    if (particlesPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+    if (particles->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         return TCL_ERROR;
     }
-    particlesPtr->configure();
+    particles->configure();
     NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
@@ -1557,14 +1232,9 @@ static int
 FlowParticlesDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-    int i;
-    for (i = 3; i < objc; i++) {
-        FlowParticles *particlesPtr;
-
-        if (flowPtr->getParticles(NULL, objv[i], &particlesPtr) == TCL_OK) {
-            delete particlesPtr;
-        }
+    FlowCmd *flow = (FlowCmd *)clientData;
+    for (int i = 3; i < objc; i++) {
+        flow->deleteParticles(Tcl_GetString(objv[i]));
     }
     NanoVis::eventuallyRedraw();
     return TCL_OK;
@@ -1574,16 +1244,14 @@ static int
 FlowParticlesNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
                      Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
+    FlowCmd *flow = (FlowCmd *)clientData;
     Tcl_Obj *listObjPtr;
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
-    FlowParticlesIterator iter;
-    FlowParticles *particlesPtr;
-    for (particlesPtr = flowPtr->firstParticles(&iter); particlesPtr != NULL; 
-         particlesPtr = flowPtr->nextParticles(&iter)) {
-        Tcl_Obj *objPtr;
-
-        objPtr = Tcl_NewStringObj(particlesPtr->name(), -1);
+    std::vector<std::string> names;
+    flow->getParticlesNames(names);
+    for (std::vector<std::string>::iterator itr = names.begin();
+         itr != names.end(); ++itr) {
+        Tcl_Obj *objPtr = Tcl_NewStringObj(itr->c_str(), -1);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     }
     Tcl_SetObjResult(interp, listObjPtr);
@@ -1593,8 +1261,8 @@ FlowParticlesNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec flowParticlesOps[] = {
     {"add",        1, FlowParticlesAddOp,        4, 0, "name ?switches?",},
     {"configure",  1, FlowParticlesConfigureOp,  4, 0, "name ?switches?",},
-    {"delete",     1, FlowParticlesDeleteOp,     4, 0, "?name...?"},
-    {"names",      1, FlowParticlesNamesOp,      3, 4, "?pattern?"},
+    {"delete",     1, FlowParticlesDeleteOp,     4, 0, "name ?name...?"},
+    {"names",      1, FlowParticlesNamesOp,      3, 3, ""},
 };
 
 static int nFlowParticlesOps = NumCmdSpecs(flowParticlesOps);
@@ -1631,17 +1299,17 @@ static int
 FlowBoxAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-
-    if (flowPtr->createBox(interp, objv[3]) != TCL_OK) {
+    FlowCmd *flow = (FlowCmd *)clientData;
+    const char *boxName = Tcl_GetString(objv[3]);
+    FlowBox *box = flow->createBox(boxName);
+    if (box == NULL) {
+        Tcl_AppendResult(interp, "Flow box \"", boxName, 
+                         "\" already exists or could not be created",
+                         (char*)NULL);
         return TCL_ERROR;
     }
-    FlowBox *boxPtr;
-    if (flowPtr->getBox(interp, objv[3], &boxPtr) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (boxPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
-        delete boxPtr;
+    if (box->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+        flow->deleteBox(boxName);
         return TCL_ERROR;
     }
     NanoVis::eventuallyRedraw();
@@ -1650,17 +1318,31 @@ FlowBoxAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+FlowBoxConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                   Tcl_Obj *const *objv)
+{
+    FlowCmd *flow = (FlowCmd *)clientData;
+    const char *boxName = Tcl_GetString(objv[3]);
+    FlowBox *box = flow->getBox(boxName);
+    if (box == NULL) {
+        Tcl_AppendResult(interp, "Flow box \"", boxName, "\" not found",
+                         (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (box->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    NanoVis::eventuallyRedraw();
+    return TCL_OK;
+}
+
+static int
 FlowBoxDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-    int i;
-    for (i = 3; i < objc; i++) {
-        FlowBox *boxPtr;
-
-        if (flowPtr->getBox(NULL, objv[i], &boxPtr) == TCL_OK) {
-            delete boxPtr;
-        }
+    FlowCmd *flow = (FlowCmd *)clientData;
+    for (int i = 3; i < objc; i++) {
+        flow->deleteBox(Tcl_GetString(objv[i]));
     }
     NanoVis::eventuallyRedraw();
     return TCL_OK;
@@ -1670,44 +1352,24 @@ static int
 FlowBoxNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
                Tcl_Obj *const *objv)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-    Tcl_Obj *listObjPtr;
-    listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
-    FlowBoxIterator iter;
-    FlowBox *boxPtr;
-    for (boxPtr = flowPtr->firstBox(&iter); boxPtr != NULL; 
-         boxPtr = flowPtr->nextBox(&iter)) {
-        Tcl_Obj *objPtr;
-
-        objPtr = Tcl_NewStringObj(boxPtr->name(), -1);
+    FlowCmd *flow = (FlowCmd *)clientData;
+    Tcl_Obj *listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
+    std::vector<std::string> names;
+    flow->getBoxNames(names);
+    for (std::vector<std::string>::iterator itr = names.begin();
+         itr != names.end(); ++itr) {
+        Tcl_Obj *objPtr = Tcl_NewStringObj(itr->c_str(), -1);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     }
     Tcl_SetObjResult(interp, listObjPtr);
     return TCL_OK;
 }
 
-static int
-FlowBoxConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
-                   Tcl_Obj *const *objv)
-{
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-
-    FlowBox *boxPtr;
-    if (flowPtr->getBox(interp, objv[3], &boxPtr) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (boxPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    NanoVis::eventuallyRedraw();
-    return TCL_OK;
-}
-
 static Rappture::CmdSpec flowBoxOps[] = {
     {"add",        1, FlowBoxAddOp,        4, 0, "name ?switches?",},
     {"configure",  1, FlowBoxConfigureOp,  4, 0, "name ?switches?",},
-    {"delete",     1, FlowBoxDeleteOp,     3, 0, "?name...?"},
-    {"names",      1, FlowBoxNamesOp,      3, 0, "?pattern?"},
+    {"delete",     1, FlowBoxDeleteOp,     4, 0, "name ?name...?"},
+    {"names",      1, FlowBoxNamesOp,      3, 3, ""},
 };
 
 static int nFlowBoxOps = NumCmdSpecs(flowBoxOps);
@@ -1803,39 +1465,44 @@ FlowInstObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     assert(CheckGL(AT));
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-    Tcl_Preserve(flowPtr);
-    int result;
-    result = (*proc) (clientData, interp, objc, objv);
-    Tcl_Release(flowPtr);
+    FlowCmd *flow = (FlowCmd *)clientData;
+    Tcl_Preserve(flow);
+    int result = (*proc) (clientData, interp, objc, objv);
+    Tcl_Release(flow);
     return result;
 }
 
 /**
- * \brief Deletes the command associated with the tree.
+ * \brief Deletes the command associated with the flow
  *
- * This is called only when the command associated with the tree is destroyed.
+ * This is called only when the command associated with the flow is destroyed.
  */
 static void
 FlowInstDeleteProc(ClientData clientData)
 {
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-    delete flowPtr;
+    FlowCmd *flow = (FlowCmd *)clientData;
+    NanoVis::deleteFlow(flow->name());
 }
 
 static int
 FlowAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
           Tcl_Obj *const *objv)
 {
-    if (NanoVis::createFlow(interp, objv[2]) != TCL_OK) {
+    const char *name = Tcl_GetString(objv[2]);
+    Tcl_CmdInfo cmdInfo;
+    if (Tcl_GetCommandInfo(interp, name, &cmdInfo)) {
+        Tcl_AppendResult(interp, "an another command \"", name, 
+                         "\" already exists.", (char *)NULL);
+        return NULL;
+    }
+    FlowCmd *flow = NanoVis::createFlow(interp, name);
+    if (flow == NULL) {
+        Tcl_AppendResult(interp, "Flow \"", name, "\" already exists",
+                         (char*)NULL);
         return TCL_ERROR;
     }
-    FlowCmd *flowPtr;
-    if (NanoVis::getFlow(interp, objv[2], &flowPtr) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (flowPtr->parseSwitches(interp, objc - 3, objv + 3) != TCL_OK) {
-        Tcl_DeleteCommand(interp, flowPtr->name());
+    if (flow->parseSwitches(interp, objc - 3, objv + 3) != TCL_OK) {
+        Tcl_DeleteCommand(interp, flow->name());
         return TCL_ERROR;
     }
     Tcl_SetObjResult(interp, objv[2]);
@@ -1847,15 +1514,11 @@ static int
 FlowDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    int i;
-
-    for (i = 2; i < objc; i++) {
-        FlowCmd *flowPtr;
-
-        if (NanoVis::getFlow(interp, objv[i], &flowPtr) != TCL_OK) {
-            return TCL_ERROR;
+    for (int i = 2; i < objc; i++) {
+        FlowCmd *flow = NanoVis::getFlow(Tcl_GetString(objv[i]));
+        if (flow != NULL) {
+            Tcl_DeleteCommandFromToken(interp, flow->getCommandToken());
         }
-        Tcl_DeleteCommand(interp, flowPtr->name());
     }
     NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
@@ -1865,11 +1528,9 @@ static int
 FlowExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    bool value;
-    FlowCmd *flowPtr;
-
-    value = false;
-    if (NanoVis::getFlow(NULL, objv[2], &flowPtr) == TCL_OK) {
+    bool value = false;
+    FlowCmd *flow = NanoVis::getFlow(Tcl_GetString(objv[2]));
+    if (flow != NULL) {
         value = true;
     }
     Tcl_SetBooleanObj(Tcl_GetObjResult(interp), (int)value);
@@ -1896,9 +1557,8 @@ FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
         NanoVis::mapFlows();
     }
-    int i;
     NanoVis::advectFlows();
-    for (i = 0; i < nSteps; i++) {
+    for (int i = 0; i < nSteps; i++) {
         if (NanoVis::licRenderer->active()) {
             NanoVis::licRenderer->convolve();
         }
@@ -1914,13 +1574,10 @@ FlowNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_Obj *listObjPtr;
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
-    FlowCmd *flowPtr;
-    FlowIterator iter;
-    for (flowPtr = NanoVis::firstFlow(&iter); flowPtr != NULL; 
-         flowPtr = NanoVis::nextFlow(&iter)) {
-        Tcl_Obj *objPtr;
-
-        objPtr = Tcl_NewStringObj(flowPtr->name(), -1);
+    for (NanoVis::FlowHashmap::iterator itr = NanoVis::flowTable.begin();
+         itr != NanoVis::flowTable.end(); ++itr) {
+        FlowCmd *flow = itr->second;
+        Tcl_Obj *objPtr = Tcl_NewStringObj(flow->name(), -1);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     }
     Tcl_SetObjResult(interp, listObjPtr);
@@ -2273,10 +1930,10 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec flowCmdOps[] = {
     {"add",      1, FlowAddOp,     3, 0, "name ?option value...?",},
-    {"delete",   1, FlowDeleteOp,  2, 0, "name...",},
+    {"delete",   1, FlowDeleteOp,  3, 0, "name ?name...?",},
     {"exists",   1, FlowExistsOp,  3, 3, "name",},
     {"goto",     1, FlowGotoOp,    3, 3, "nSteps",},
-    {"names",    1, FlowNamesOp,   2, 3, "?pattern?",},
+    {"names",    1, FlowNamesOp,   2, 2, "",},
     {"next",     2, FlowNextOp,    2, 2, "",},
     {"reset",    1, FlowResetOp,   2, 2, "",},
     {"video",    1, FlowVideoOp,   3, 0, "token ?switches...?",},
@@ -2298,7 +1955,7 @@ FlowCmdProc(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 /**
- *\brief This procedure is invoked to initialize the "tree" command.
+ *\brief This procedure is invoked to initialize the "flow" command.
  *
  * Side effects:
  *    Creates the new command and adds a new entry into a global Tcl
@@ -2308,120 +1965,5 @@ int
 FlowCmdInitProc(Tcl_Interp *interp)
 {
     Tcl_CreateObjCommand(interp, "flow", FlowCmdProc, NULL, NULL);
-    NanoVis::initFlows();
     return TCL_OK;
 }
-
-#ifdef notdef
-
-// Read the header of a vtk data file. Returns 0 if error.
-bool 
-VtkReadHeader()
-{
-    char *p, *endPtr;
-
-    line = getline(&p, endPtr);
-    if (line == endPtr) {
-        vtkErrorMacro(<<"Premature EOF reading first line! " << " for file: " 
-                      << (this->FileName?this->FileName:"(Null FileName)"));
-        return false;
-    }
-    if (sscanf(line, "# vtk DataFile Version %s", version) != 1) {
-        vtkErrorMacro(<< "Unrecognized file type: "<< line << " for file: " 
-                      << (this->FileName?this->FileName:"(Null FileName)"));
-        return false;
-    }
-
-    // Read title
-    line = getline(&p, endPtr);
-    if (line == endPtr) {
-        vtkErrorMacro(<<"Premature EOF reading title! " << " for file: " 
-                      << (this->FileName?this->FileName:"(Null FileName)"));
-        return false;
-    }
-    if (_title != NULL) {
-        delete [] _title;
-    }
-    _title = new char[strlen(line) + 1];
-    strcpy(_title, line);
-
-    // Read type
-    line = getline(&p, endPtr);
-    if (line == endPtr) {
-        vtkErrorMacro(<<"Premature EOF reading file type!" << " for file: " 
-                      << (this->FileName?this->FileName:"(Null FileName)"));
-        return false;
-    }
-    word = GetWord(line, &endPtr);
-    if (strncasecmp(word, "ascii", 5) == 0) {
-        _fileType = VTK_ASCII;
-    } else if (strcasecmp(word, "binary", 6) == 0) {
-        _fileType = VTK_BINARY;
-    } else {
-        vtkErrorMacro(<< "Unrecognized file type: "<< line << " for file: " 
-                      << (this->FileName?this->FileName:"(Null FileName)"));
-        _fileType = 0;
-        return false;
-    }
-
-    // Read dataset type
-    line = getline(&p, endPtr);
-    if (line == endPtr) {
-        vtkErrorMacro(<<"Premature EOF reading file type!" << " for file: " 
-                      << (this->FileName?this->FileName:"(Null FileName)"));
-        return false;
-    }
-    word = GetWord(line, &endPtr);
-    if (strncasecmp(word, "dataset", 7) == 0) {
-        // Read dataset type
-        line = getline(&p, endPtr);
-        if (line == endPtr) {
-            // EOF
-        }
-        type = GetWord(line, &endPtr);
-        if (strncasecmp(word, "structured_grid", 15) == 0) {
-            vtkErrorMacro(<< "Cannot read dataset type: " << line);
-            return 1;
-        }
-        // Read keyword and dimensions
-        //
-        while (!done) {
-            if (!this->ReadString(line)) {
-                break;
-            }
-
-            // Have to read field data because it may be binary.
-            if (! strncmp(this->LowerCase(line), "field", 5)) {
-                vtkFieldData* fd = this->ReadFieldData();
-                fd->Delete(); 
-            }
-
-            if ( ! strncmp(this->LowerCase(line),"dimensions",10) ) {
-                int ext[6];
-                if (!(this->Read(ext+1) && 
-                      this->Read(ext+3) && 
-                      this->Read(ext+5))) {
-                    vtkErrorMacro(<<"Error reading dimensions!");
-                    this->CloseVTKFile ();
-                    return 1;
-                }
-                // read dimensions, change to extent;
-                ext[0] = ext[2] = ext[4] = 0;
-                --ext[1];
-                --ext[3];
-                --ext[5];
-                outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-                             ext, 6);
-                // That is all we wanted !!!!!!!!!!!!!!!
-                this->CloseVTKFile();
-                return 1;
-            }
-        }
-    }
-
-    float progress = this->GetProgress();
-    this->UpdateProgress(progress + 0.5*(1.0 - progress));
-
-    return 1;
-}
-#endif
