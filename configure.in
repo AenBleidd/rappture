@@ -285,6 +285,16 @@ SC_ENABLE_SYMBOLS
 #--------------------------------------------------------------------
 # search for ffmpeg libraries libavcodec, libavformat, libswscale
 #--------------------------------------------------------------------
+if test "${with_ffmpeg}" != "no" ; then
+  if test "${with_tclsh}" = "yes" ; then 
+    AC_PATH_PROG(FFMPEG, ffmpeg, [], $PATH)
+  else 
+    AC_PATH_PROG(FFMPEG, ffmpeg, [], [${with_ffmpeg}/bin:${with_ffmpeg}])
+  fi 
+  if text "${FFMPEG}x" != "x" ; then
+    AC_DEFINE(HAVE_FFMPEG, 1, [Render servers can use ffmpeg])
+  fi
+fi
 
 AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h ffmpeg/swscale.h libswscale/swscale.h],,,[
 #define __STDC_CONSTANT_MACROS 1
@@ -357,6 +367,7 @@ fi
 AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
 AC_SUBST(ENABLE_GUI)
+AC_SUBST(FFMPEG)
 AC_SUBST(HAVE_FFMPEG_LIBS)
 AC_SUBST(HAVE_INTTYPES_H)
 AC_SUBST(HAVE_RUBY_DEVEL)
