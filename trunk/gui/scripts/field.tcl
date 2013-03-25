@@ -765,7 +765,7 @@ itcl::body Rappture::Field::Build {} {
 	}
         set _comp2style($cname) ""
         if { $type == "" } {
-            puts stderr "ignoring field component \"$cname\": no data found"
+            puts stderr "ignoring field component \"$_path.$cname\": no data found."
             continue
         }
         # Save the extents of the component
