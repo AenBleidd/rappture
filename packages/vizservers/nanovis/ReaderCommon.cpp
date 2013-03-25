@@ -45,7 +45,7 @@ void
 normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
 {
     double dv = vmax - vmin;
-    dv = (dv == 0.0) ? 1.0 : 0.0;
+    dv = (dv == 0.0) ? 1.0 : dv;
     for (int pt = 0, i = 0; pt < count; ++pt, i += stride) {
         double v = data[i];
         if (isnan(v)) {
