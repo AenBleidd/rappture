@@ -526,7 +526,7 @@ itcl::body Rappture::Field::fieldlimits {} {
         array set limits $_comp2limits($cname) 
         foreach fname $_comp2fldName($cname) {
             if { ![info exists limits($fname)] } {
-                puts stderr "field \"$fname\" unknown in \"$cname\""
+                puts stderr "ERROR: field \"$fname\" unknown in \"$cname\""
                 continue
             }
             foreach {min max} $limits($fname) break
@@ -765,7 +765,7 @@ itcl::body Rappture::Field::Build {} {
 	}
         set _comp2style($cname) ""
         if { $type == "" } {
-            puts stderr "ignoring field component \"$_path.$cname\": no data found."
+            puts stderr "WARNING: ignoring field component \"$_path.$cname\": no data found."
             continue
         }
         # Save the extents of the component
@@ -831,7 +831,7 @@ itcl::body Rappture::Field::Build {} {
         } elseif {$type == "vtk"} {
             set contents [$_field get $cname.vtk]
             if { $contents == "" } {
-                puts stderr "no data fo \"$cname.vtk\""
+                puts stderr "WARNING: no data fo \"$_path.$cname.vtk\""
                 continue;               # Ignore this component
             }
             ReadVtkDataSet $cname $contents
@@ -850,7 +850,7 @@ itcl::body Rappture::Field::Build {} {
             set _comp2dims($cname) "3D"
             set contents [$_field get -decode no $cname.$type]
             if { $contents == "" } {
-                puts stderr "no data for \"$cname.$type\""
+                puts stderr "WARNING: no data for \"$_path.$cname.$type\""
                 continue;               # Ignore this component
             }
             set _comp2dx($cname) $contents
@@ -884,7 +884,7 @@ itcl::body Rappture::Field::Build {} {
         set _isValidComponent($cname) 1
     }
     if { [array size _isValidComponent] == 0 } {
-        puts stderr "no valid components for field \"$_path\""
+        puts stderr "WARNING: no valid components for field \"$_path\""
         return 0
     }
     # Sanity check.  Verify that all components of the field have the same 
@@ -896,7 +896,7 @@ itcl::body Rappture::Field::Build {} {
             continue
         }
         if { $dim != $_comp2dims($cname) } {
-            puts stderr "field can't have components of different dimensions: [join [array get _comp2dims] ,]"
+            puts stderr "WARNING: field can't have components of different dimensions: [join [array get _comp2dims] ,]"
             return 0
         }
     }
@@ -1200,7 +1200,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         set numArrays [$dataAttrs GetNumberOfArrays]
     }
     if { $dataAttrs == ""} {
-	puts stderr "No point data found in \"$_path\""
+	puts stderr "WARNING: no point data found in \"$_path\""
         return 0
     }
     set vmin 0
