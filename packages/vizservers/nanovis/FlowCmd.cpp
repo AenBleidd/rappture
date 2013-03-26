@@ -1848,15 +1848,12 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
     }
     if (data.size() == 0) {
         ERROR("ffmpeg returned 0 bytes");
-        Tcl_AppendResult(interp, "Couldn't create movie file",
-                         (char *)NULL);
-        return TCL_ERROR;
-    } else {
-        sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
-                token, (unsigned long)data.size());
-        NanoVis::sendDataToClient(cmd, data.bytes(), data.size());
-        return TCL_OK;
     }
+    // Send zero length to client so it can deal with error
+    sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
+            token, (unsigned long)data.size());
+    NanoVis::sendDataToClient(cmd, data.bytes(), data.size());
+    return TCL_OK;
 }
 
 static int
