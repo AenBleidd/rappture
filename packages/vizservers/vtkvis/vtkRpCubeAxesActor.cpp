@@ -2544,7 +2544,7 @@ void vtkRpCubeAxesActor::UpdateGridLineVisibility(int idx)
 int vtkRpCubeAxesActor::FindClosestAxisIndex(double pts[8][3])
 {
   // Loop over points and find the closest point to the camera
-  double min = VTK_LARGE_FLOAT;
+  double min = VTK_FLOAT_MAX;
   int idx = 0;
   for (int i=0; i < 8; i++)
     {
@@ -2561,7 +2561,7 @@ int vtkRpCubeAxesActor::FindClosestAxisIndex(double pts[8][3])
 int vtkRpCubeAxesActor::FindFurtherstAxisIndex(double pts[8][3])
 {
   // Loop over points and find the furthest point from the camera
-  double max = -VTK_LARGE_FLOAT;
+  double max = -VTK_FLOAT_MAX;
   int idx = 0;
   for (int i=0; i < 8; i++)
     {
@@ -2586,7 +2586,7 @@ int vtkRpCubeAxesActor::FindFurtherstAxisIndex(double pts[8][3])
    int idx = 0;
 
    // Find distance to origin
-   double d2Min = VTK_LARGE_FLOAT;
+   double d2Min = VTK_FLOAT_MAX;
    for (i=0; i < 8; i++)
      {
      d2 = pts[i][0]*pts[i][0] + pts[i][1]*pts[i][1];
@@ -2599,7 +2599,7 @@ int vtkRpCubeAxesActor::FindFurtherstAxisIndex(double pts[8][3])
 
    // find minimum slope point connected to closest point and on
    // right side (in projected coordinates). This is the first edge.
-   minSlope = VTK_LARGE_FLOAT;
+   minSlope = VTK_FLOAT_MAX;
    for (xIdx=0, i=0; i<3; i++)
      {
      num = (pts[vtkRpCubeAxesActorConn[idx][i]][1] - pts[idx][1]);
