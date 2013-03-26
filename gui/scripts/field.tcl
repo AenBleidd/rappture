@@ -149,6 +149,7 @@ itcl::class Rappture::Field {
     private method BuildPointsOnMesh { cname } 
     private method ConvertToVtkData { cname } 
     private method ReadVtkDataSet { cname contents } 
+    private method VerifyVtkDataSet { contents } 
     private method AvsToVtk { cname contents } 
     private variable _values ""
 }
@@ -744,8 +745,8 @@ itcl::body Rappture::Field::Build {} {
 		   [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
         } elseif { [$_field element $cname.vtk] != ""} {
-	    set viewer [$_field get "about.view"]
 	    set type "vtk"
+	    set viewer [$_field get "about.view"]
 	    if { $viewer != "" } {
 		set _viewer $viewer
 	    }
@@ -1143,6 +1144,40 @@ itcl::body Rappture::Field::ConvertToVtkData { cname } {
     return $out
 }
 
+itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
+    package require vtk
+
+    set reader $this-datasetreader
+    vtkDataSetReader $reader
+
+    # Write the contents to a file just in case it's binary.
+    set tmpfile file[pid].vtk
+    set f [open "$tmpfile" "w"]
+    fconfigure $f -translation binary -encoding binary
+    puts $f $contents 
+    close $f
+
+    $reader SetFileName $tmpfile
+    $reader ReadAllScalarsOn
+    $reader ReadAllVectorsOn
+    $reader ReadAllFieldsOn
+    $reader Update
+    set dataset [$reader GetOutput]
+    set points [$dataset GetPoints]
+    set numPoints [$points GetNumberOfPoints]
+    set dataAttrs [$dataset GetPointData]
+    if { $_dim == 1 } {
+        set numArrays [$dataAttrs GetNumberOfArrays]
+    }
+    if { $dataAttrs == ""} {
+	puts stderr "WARNING: no point data found in \"$_path\""
+        return 0
+    }
+    set numArrays [$dataAttrs GetNumberOfArrays]
+    file delete $tmpfile
+    rename $reader ""
+}
+
 itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     package require vtk
 
@@ -1266,6 +1301,9 @@ itcl::body Rappture::Field::vtkdata {cname} {
 	append out "SCALARS $label double 1\n"
 	append out "LOOKUP_TABLE default\n"
 	append out "[$vector range 0 end]\n"
+        if 0 {
+            VerifyVtkDataSet $out
+        }
 	return $out
     }
     error "can't find vtkdata for $cname. This method should only be called by the vtkheightmap widget"
@@ -1374,6 +1412,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     }
     set _dim [$mesh dimensions]
     if {$_dim == 1} {
+	# 1D data: Create vectors for graph widget.
 	# Is this used anywhere?
 	#
 	# OOPS!  This is 1D data
@@ -1399,11 +1438,15 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	return 1
     } 
     if {$_dim == 2} {
+	# 2D data: By default surface or contour plot using heightmap widget.
 	set _type "heightmap"
 	set v [blt::vector create \#auto]
 	$v set [$_field get $cname.values]
         if { [$v length] == 0 } {
             return 0
+        }
+        if { $_viewer == "" } {
+            set _viewer "contour"
         }
 	set _comp2dims($cname) "[$mesh dimensions]D"
 	set _comp2mesh($cname) [list $mesh $v]
@@ -1417,9 +1460,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	return 1
     } 
     if {$_dim == 3} {
-	#
-	# 3D data: Store cloud/field as components
-	#
+	# 3D data: By default isosurfaces plot using isosurface widget.
 	set values [$_field get $cname.values]
 	set farray [vtkFloatArray ::vals$_counter]
 	foreach v $values {
