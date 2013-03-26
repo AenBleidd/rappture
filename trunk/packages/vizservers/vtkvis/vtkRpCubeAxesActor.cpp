@@ -1935,7 +1935,7 @@ inline double vtkRpCubeAxesActor::FSign(double value, double sign)
 // *******************************************************************
 
 void vtkRpCubeAxesActor::AdjustTicksComputeRange(vtkRpAxisActor *axes[NUMBER_OF_ALIGNED_AXIS],
-    double boundsMin, double boundsMax)
+                                                 double boundsMin, double boundsMax)
 {
   double sortedRange[2], range;
   double fxt;
@@ -2007,7 +2007,11 @@ void vtkRpCubeAxesActor::AdjustTicksComputeRange(vtkRpAxisActor *axes[NUMBER_OF_
     {
     // Figure out the first major tick locations, relative to the
     // start of the axis.
-    if (sortedRange[0] <= 0.)
+    if (this->FFix(sortedRange[0]*(1./major)) == sortedRange[0]*(1./major))
+      {
+      majorStart = sortedRange[0];
+      }
+    else if (sortedRange[0] <= 0.)
       {
       majorStart = major*(this->FFix(sortedRange[0]*(1./major)) + 0.);
       }
@@ -2032,7 +2036,11 @@ void vtkRpCubeAxesActor::AdjustTicksComputeRange(vtkRpAxisActor *axes[NUMBER_OF_
   minor = major / 10.;
   // Figure out the first minor tick locations, relative to the
   // start of the axis.
-  if (sortedRange[0] <= 0.)
+  if (this->FFix(sortedRange[0]*(1./minor)) == sortedRange[0]*(1./minor))
+    {
+    minorStart = sortedRange[0];
+    }
+  else if (sortedRange[0] <= 0.)
     {
     minorStart = minor*(this->FFix(sortedRange[0]*(1./minor)) + 0.);
     }
