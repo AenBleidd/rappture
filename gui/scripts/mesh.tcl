@@ -62,7 +62,6 @@ itcl::class Rappture::Mesh {
 
     private common _xp2obj       ;	# used for fetch/release ref counting
     private common _obj2ref      ;	# used for fetch/release ref counting
-    private variable _isValid 0
     private variable _xv	""
     private variable _yv	""
     private variable _zv	""
