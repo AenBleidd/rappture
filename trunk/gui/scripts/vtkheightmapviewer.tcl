@@ -546,7 +546,6 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
     if {[llength $args] == 0} {
         set args "-objects"
     }
-
     set op [lindex $args 0]
     switch -- $op {
         "-objects" {
