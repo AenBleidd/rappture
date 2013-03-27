@@ -166,7 +166,7 @@ itk::usual VtkHeightmapViewer {
 itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
 
-    EnableWaitDialog 500
+    EnableWaitDialog 900
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -865,6 +865,28 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         return
     }
 
+    if { $_reset && $_reportClientInfo }  {
+        # Tell the server the name of the tool, the version, and dataset
+        # that we are rendering.  Have to do it here because we don't know
+        # what data objects are using the renderer until be get here.
+        global env
+        
+        set info {}
+        set user "???"
+        if { [info exists env(USER)] } {
+            set user $env(USER)
+        }
+        set session "???"
+        if { [info exists env(SESSION)] } {
+            set session $env(SESSION)
+        }
+        lappend info "hub" [exec hostname]
+        lappend info "client" "vtkheightmapviewer"
+        lappend info "user" $user
+        lappend info "session" $session
+        SendCmd "clientinfo [list $info]"
+    }
+
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
@@ -880,27 +902,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	}
     }
     if { $_reset } {
-        if { $_reportClientInfo }  {
-            # Tell the server the name of the tool, the version, and dataset
-            # that we are rendering.  Have to do it here because we don't know
-            # what data objects are using the renderer until be get here.
-            global env
-
-            set info {}
-            set user "???"
-	    if { [info exists env(USER)] } {
-                set user $env(USER)
-	    }
-            set session "???"
-	    if { [info exists env(SESSION)] } {
-                set session $env(SESSION)
-	    }
-            lappend info "hub" [exec hostname]
-            lappend info "client" "vtkheightmapviewer"
-            lappend info "user" $user
-            lappend info "session" $session
-            SendCmd "clientinfo [list $info]"
-        }
         InitSettings isHeightmap background
 	#
 	# Reset the camera and other view parameters
