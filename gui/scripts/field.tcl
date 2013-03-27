@@ -82,7 +82,7 @@ itcl::class Rappture::Field {
     private variable _xv "";            # For 1D meshes only.  Holds the points
     private variable _isValid 0;        # Indicates if the field contains
                                         # valid data.
-    private variable _isValidComponent
+    private variable _isValidComponent; #  Array of valid components found
     constructor {xmlobj path} { 
 	# defined below 
     }
@@ -123,7 +123,6 @@ itcl::class Rappture::Field {
     public method viewer {} {
 	return $_viewer 
     }
-
     protected method Build {}
     protected method _getValue {expr}
 
@@ -787,7 +786,7 @@ itcl::body Rappture::Field::Build {} {
             #
             set xv ""
             set yv ""
-
+            set _dim 1
             set val [$_field get $cname.constant]
             if {$val != ""} {
                 set domain [$_field get $cname.domain]
@@ -824,6 +823,7 @@ itcl::body Rappture::Field::Build {} {
             if {$xv != "" && $yv != ""} {
                 # sort x-coords in increasing order
                 $xv sort $yv
+                set _dim 1
                 set _comp2dims($cname) "1D"
                 set _comp2xy($cname) [list $xv $yv]
                 incr _counter
