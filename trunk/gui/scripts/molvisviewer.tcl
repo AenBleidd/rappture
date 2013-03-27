@@ -682,6 +682,27 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     set _reset 1 
     set result [VisViewer::Connect $hosts]
     if { $result } {
+        if { $_reportClientInfo }  {
+            # Tell the server the viewer, hub, user and session.
+            # Do this immediately on connect before buffing any commands
+            global env
+
+            set info {}
+            set user "???"
+	    if { [info exists env(USER)] } {
+                set user $env(USER)
+	    }
+            set session "???"
+	    if { [info exists env(SESSION)] } {
+                set session $env(SESSION)
+	    }
+            lappend info "hub" [exec hostname]
+            lappend info "client" "molvisviewer"
+            lappend info "user" $user
+            lappend info "session" $session
+            ServerCmd "clientinfo [list $info]"
+        }
+
         $_dispatcher event -idle !rebuild
     }
     return $result
@@ -872,27 +893,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         set _rocker(server) 0
         set _cacheid 0
 
-        if { $_reportClientInfo }  {
-            # Tell the server the name of the tool, the version, and dataset
-            # that we are rendering.  Have to do it here because we don't know
-            # what data objects are using the renderer until be get here.
-            global env
-
-            set info {}
-            set user "???"
-	    if { [info exists env(USER)] } {
-                set user $env(USER)
-	    }
-            set session "???"
-	    if { [info exists env(SESSION)] } {
-                set session $env(SESSION)
-	    }
-            lappend info "hub" [exec hostname]
-            lappend info "client" "molvisviewer"
-            lappend info "user" $user
-            lappend info "session" $session
-            ServerCmd "clientinfo [list $info]"
-        }
         ServerCmd "raw -defer {set auto_color,0}"
         ServerCmd "raw -defer {set auto_show_lines,0}"
     }
