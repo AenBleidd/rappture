@@ -199,7 +199,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         zoom	1.0 
         xpan	0
         ypan	0
-        ortho	1
+        ortho	0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -901,11 +901,10 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	}
     }
     if { $_reset } {
-        InitSettings isHeightmap background
 	#
 	# Reset the camera and other view parameters
 	#
-	SendCmd "axis color all [Color2RGB $itk_option(-plotforeground)]"
+        InitSettings isHeightmap background
 
         # Let's see how this goes.  I think it's preferable to overloading the
         # axis title with the exponent.
@@ -1043,8 +1042,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	#
 	# Reset the camera and other view parameters
 	#
-	SendCmd "axis color all [Color2RGB $itk_option(-plotforeground)]"
-	SendCmd "outline color [Color2RGB $itk_option(-plotforeground)]"
 	ResetAxes
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
@@ -1338,15 +1335,18 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             SendCmd "axis grid $axis $bool"
         }
         "background" {
-            set bgcolor [$itk_component(background) value]
+            set bg [$itk_component(background) value]
 	    array set fgcolors {
 		"black" "white"
 		"white" "black"
 		"grey"	"black"
 	    }
-            configure -plotbackground $bgcolor \
-		-plotforeground $fgcolors($bgcolor)
+            set fg $fgcolors($bg)
+            configure -plotbackground $bg -plotforeground $fg
 	    $itk_component(view) delete "legend"
+            SendCmd "screen bgcolor [Color2RGB $bg]"
+            SendCmd "outline color [Color2RGB $fg]"
+            SendCmd "axis color all [Color2RGB $fg]"
 	    DrawLegend
         }
         "colormap" {
@@ -1760,7 +1760,9 @@ itcl::configbody Rappture::VtkHeightmapViewer::mode {
 	    error "unknown mode settings \"$itk_option(-mode)\""
 	}
     }
-    AdjustSetting isHeightmap
+    if { !$_reset } {
+        AdjustSetting isHeightmap
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1769,7 +1771,9 @@ itcl::configbody Rappture::VtkHeightmapViewer::mode {
 itcl::configbody Rappture::VtkHeightmapViewer::plotbackground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotbackground)]
-        SendCmd "screen bgcolor $rgb"
+        if { !$_reset } {
+            SendCmd "screen bgcolor $rgb"
+        }
 	$itk_component(view) configure -background $itk_option(-plotbackground)
     }
 }
@@ -1780,8 +1784,10 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotbackground {
 itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
-        SendCmd "outline color $rgb"
-	SendCmd "axis color all $rgb"
+        if { !$_reset } {
+            SendCmd "outline color $rgb"
+            SendCmd "axis color all $rgb"
+        }
     }
 }
 
