@@ -772,6 +772,27 @@ itcl::body Rappture::VtkVolumeViewer::Connect {} {
     }
     set result [VisViewer::Connect $_hosts]
     if { $result } {
+        if { $_reportClientInfo }  {
+            # Tell the server the viewer, hub, user and session.
+            # Do this immediately on connect before buffing any commands
+            global env
+
+            set info {}
+            set user "???"
+            if { [info exists env(USER)] } {
+                set user $env(USER)
+            }
+            set session "???"
+            if { [info exists env(SESSION)] } {
+                set session $env(SESSION)
+            }
+            lappend info "hub" [exec hostname]
+            lappend info "client" "vtkvolumeviewer"
+            lappend info "user" $user
+            lappend info "session" $session
+            SendCmd "clientinfo [list $info]"
+        }
+
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
@@ -929,28 +950,6 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     set _legendPending 1
 
     if { $_reset } {
-        if { $_reportClientInfo }  {
-            # Tell the server the name of the tool, the version, and dataset
-            # that we are rendering.  Have to do it here because we don't know
-            # what data objects are using the renderer until be get here.
-            global env
-
-            set info {}
-            set user "???"
-	    if { [info exists env(USER)] } {
-                set user $env(USER)
-	    }
-            set session "???"
-	    if { [info exists env(SESSION)] } {
-                set session $env(SESSION)
-	    }
-            lappend info "hub" [exec hostname]
-            lappend info "client" "vtkvolumeviewer"
-            lappend info "user" $user
-            lappend info "session" $session
-            SendCmd "clientinfo [list $info]"
-        }
-        
         set _width $w
         set _height $h
         $_arcball resize $w $h
