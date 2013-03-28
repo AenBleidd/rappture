@@ -63,7 +63,6 @@
 #include "HeightMap.h"
 #include "NvCamera.h"
 #include "NvShader.h"
-#include "NvColorTableRenderer.h"
 #include "NvFlowVisRenderer.h"
 #include "NvLIC.h"
 #include "NvZincBlendeReconstructor.h"
@@ -143,7 +142,6 @@ float NanoVis::wMin = FLT_MAX;
 float NanoVis::wMax = -FLT_MAX;
 vrmath::Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
 
-NvColorTableRenderer *NanoVis::colorTableRenderer = NULL;
 VolumeRenderer *NanoVis::volRenderer = NULL;
 #ifdef notdef
 NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
@@ -195,10 +193,6 @@ NanoVis::removeAllData()
     if (planeRenderer != NULL) {
         TRACE("Deleting planeRenderer");
         delete planeRenderer;
-    }
-    if (colorTableRenderer != NULL) {
-        TRACE("Deleting colorTableRenderer");
-        delete colorTableRenderer;
     }
     if (legendTexture != NULL) {
         TRACE("Deleting legendTexture");
@@ -889,8 +883,6 @@ void NanoVis::init(const char* path)
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
 
-    colorTableRenderer = new NvColorTableRenderer();
-    colorTableRenderer->setFonts(fonts);
 #ifdef notdef
     flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
 #endif

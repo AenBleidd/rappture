@@ -56,7 +56,6 @@ class VelocityArrowsSlice;
 class NvLIC;
 class PointSet;
 class Texture2D;
-class NvColorTableRenderer;
 class HeightMap;
 class NvVectorField;
 class Grid;
@@ -189,7 +188,6 @@ public:
     static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
     static vrmath::Vector3f sceneMin, sceneMax;
 
-    static NvColorTableRenderer *colorTableRenderer;
     static VolumeRenderer *volRenderer;
 #ifdef notdef
     static NvFlowVisRenderer *flowVisRenderer;
