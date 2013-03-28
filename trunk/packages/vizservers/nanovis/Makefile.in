@@ -117,7 +117,6 @@ OBJS		= \
 		Grid.o \
 		HeightMap.o \
 		NvCamera.o \
-		NvColorTableRenderer.o \
 		NvColorTableShader.o \
 		NvLIC.o \
 		NvParticleAdvectionShader.o \
@@ -284,7 +283,6 @@ GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
 NvCamera.o: NvCamera.cpp NvCamera.h config.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
-NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
 NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
 NvLIC.o: NvLIC.cpp NvLIC.h
@@ -323,5 +321,5 @@ VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 VtkReader.o: VtkReader.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h ReaderCommon.h nanovis.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp ReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
-nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
+nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
 md5.o: md5.h
