@@ -275,10 +275,10 @@ CmdProc.o: CmdProc.cpp CmdProc.h
 Command.o: Command.cpp nanovis.h $(AUXSRC) FlowCmd.h CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h Volume.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h Plane.h
-Flow.o: Flow.h FlowCmd.h FlowTypes.h FlowBox.h FlowParticles.h Switch.h Trace.h
-FlowBox.o: FlowBox.h FlowTypes.h Switch.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
+Flow.o: Flow.cpp Flow.h FlowCmd.h FlowTypes.h FlowBox.h FlowParticles.h Switch.h Trace.h
+FlowBox.o: FlowBox.cpp FlowBox.h FlowTypes.h Switch.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 FlowCmd.o: FlowCmd.cpp FlowCmd.h FlowParticles.h FlowBox.h FlowTypes.h Command.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h Volume.h VelocityArrowsSlice.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
-FlowParticles.o: FlowParticles.h FlowTypes.h FlowCmd.h Switch.h Trace.h NvParticleRenderer.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
+FlowParticles.o: FlowParticles.cpp FlowParticles.h FlowTypes.h FlowCmd.h Switch.h Trace.h NvParticleRenderer.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
