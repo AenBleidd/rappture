@@ -983,6 +983,8 @@ FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+#ifdef HAVE_FFMPEG
+
 /**
  * \brief Convert a Tcl_Obj representing the video format into its
  * integer id.
@@ -1059,8 +1061,6 @@ static Rappture::SwitchSpec flowVideoSwitches[] = {
      offsetof(FlowVideoSwitches, width), 0},
     {Rappture::SWITCH_END}
 };
-
-#ifdef HAVE_FFMPEG
 
 static int
 ppmWriteToFile(Tcl_Interp *interp, const char *path, FlowVideoSwitches *switchesPtr)
