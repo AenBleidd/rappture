@@ -37,11 +37,6 @@
 #define USE_HALF_FLOAT
 
 /*
- * Do run length compression
- */
-//#define DO_RLE
-
-/*
  * Keep statistics
  */
 #define KEEPSTATS
