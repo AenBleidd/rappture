@@ -29,7 +29,7 @@ extern void LogMessage(int priority, const char *funcname, const char *fileName,
 #define WARN(...)	LogMessage(LOG_WARNING, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 #define INFO(...)	LogMessage(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 
-extern bool CheckFBO(GLenum *statusPtr);
+extern bool CheckFBO(GLenum *status);
 extern void PrintFBOStatus(GLenum status, const char *prefix);
 extern bool CheckGL(const char *prefix);
 #endif

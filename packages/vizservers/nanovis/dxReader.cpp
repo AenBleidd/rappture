@@ -224,7 +224,7 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         result.error("data not found in stream");
         return NULL;
     }
-    Volume *volPtr = NULL;
+    Volume *volume = NULL;
     float *data = NULL;
     double vmin = DBL_MAX;
     double nzero_min = DBL_MAX;
@@ -480,21 +480,21 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
     TRACE("dataMin = %lg dataMax = %lg nzero_min = %lg",
           vmin, vmax, nzero_min);
 
-    volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+    volume = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
                                  vmin, vmax, nzero_min);
-    volPtr->xAxis.setRange(x0, x0 + lx);
-    volPtr->yAxis.setRange(y0, y0 + ly);
-    volPtr->zAxis.setRange(z0, z0 + lz);
-    volPtr->updatePending = true;
+    volume->xAxis.setRange(x0, x0 + lx);
+    volume->yAxis.setRange(y0, y0 + ly);
+    volume->zAxis.setRange(z0, z0 + lz);
+    volume->updatePending = true;
 
     // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
     PointSet *pset = new PointSet();
-    pset->initialize(volPtr, (float*)data);
+    pset->initialize(volume, (float*)data);
     pset->setVisible(true);
     NanoVis::pointSet.push_back(pset);
     updateColor(pset);
-    volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
+    volume->pointsetIndex = NanoVis::pointSet.size() - 1;
 #endif
     delete [] data;
 
@@ -504,9 +504,9 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
     float dx0 = -0.5;
     float dy0 = -0.5*ly/lx;
     float dz0 = -0.5*lz/lx;
-    if (volPtr) {
-        volPtr->location(vrmath::Vector3f(dx0, dy0, dz0));
+    if (volume) {
+        volume->location(vrmath::Vector3f(dx0, dy0, dz0));
         TRACE("Set volume location to %g %g %g", dx0, dy0, dz0);
     }
-    return volPtr;
+    return volume;
 }

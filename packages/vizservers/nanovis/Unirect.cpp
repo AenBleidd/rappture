@@ -5,18 +5,15 @@
  * Author: George A. Howlett <gah@purdue.edu>
  */
 #include <float.h>
+
 #include <tcl.h>
 
 #include <RpField1D.h>
 #include <RpFieldRect3D.h>
 
+#include "Command.h"
 #include "Unirect.h"
 #include "Trace.h"
-
-extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 
-                           float *valuePtr);
-
-extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr);
 
 static inline char *
 skipspaces(char *string) 

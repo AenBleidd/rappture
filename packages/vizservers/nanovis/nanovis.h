@@ -50,19 +50,17 @@ namespace util {
 class VolumeRenderer;
 class PointSetRenderer;
 class NvParticleRenderer;
-class NvFlowVisRenderer;
 class PlaneRenderer;
 class VelocityArrowsSlice;
 class NvLIC;
 class PointSet;
 class Texture2D;
 class HeightMap;
-class NvVectorField;
 class Grid;
 class NvCamera;
 class TransferFunction;
 class Volume;
-class FlowCmd;
+class Flow;
 
 class NanoVis
 {
@@ -87,7 +85,7 @@ public:
     typedef std::string HeightMapId;
     typedef std::tr1::unordered_map<TransferFunctionId, TransferFunction *> TransferFunctionHashmap;
     typedef std::tr1::unordered_map<VolumeId, Volume *> VolumeHashmap;
-    typedef std::tr1::unordered_map<FlowId, FlowCmd *> FlowHashmap;
+    typedef std::tr1::unordered_map<FlowId, Flow *> FlowHashmap;
     typedef std::tr1::unordered_map<HeightMapId, HeightMap *> HeightMapHashmap;
 
     static void processCommands();
@@ -133,10 +131,10 @@ public:
                             int width, int height, const char *volArg);
 
     static Volume *loadVolume(const char *tag, int width, int height, int depth,
-                              int n, float* data, double vmin, double vmax, 
+                              int numComponents, float *data, double vmin, double vmax, 
                               double nonZeroMin);
 
-    static void removeVolume(Volume *volPtr);
+    static void removeVolume(Volume *volume);
 
     static void readScreen()
     {
@@ -148,8 +146,8 @@ public:
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     }
 
-    static FlowCmd *getFlow(const char *name);
-    static FlowCmd *createFlow(Tcl_Interp *interp, const char *name);
+    static Flow *getFlow(const char *name);
+    static Flow *createFlow(Tcl_Interp *interp, const char *name);
     static void deleteFlow(const char *name);
     static void deleteFlows(Tcl_Interp *interp);
     static bool mapFlows();
@@ -189,9 +187,6 @@ public:
     static vrmath::Vector3f sceneMin, sceneMax;
 
     static VolumeRenderer *volRenderer;
-#ifdef notdef
-    static NvFlowVisRenderer *flowVisRenderer;
-#endif
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
     static PlaneRenderer *planeRenderer;

@@ -341,7 +341,7 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
     ly = (ny - 1) * dy;
     lz = (nz - 1) * dz;
 
-    Volume *volPtr = NULL;
+    Volume *volume = NULL;
     double vmin = DBL_MAX;
     double nzero_min = DBL_MAX;
     double vmax = -DBL_MAX;
@@ -476,12 +476,12 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
     TRACE("dataMin = %lg dataMax = %lg nzero_min = %lg",
           vmin, vmax, nzero_min);
 
-    volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+    volume = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
                                  vmin, vmax, nzero_min);
-    volPtr->xAxis.setRange(x0, x0 + lx);
-    volPtr->yAxis.setRange(y0, y0 + ly);
-    volPtr->zAxis.setRange(z0, z0 + lz);
-    volPtr->updatePending = true;
+    volume->xAxis.setRange(x0, x0 + lx);
+    volume->yAxis.setRange(y0, y0 + ly);
+    volume->zAxis.setRange(z0, z0 + lz);
+    volume->updatePending = true;
 
     delete [] data;
 
@@ -491,9 +491,9 @@ load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream
     float dx0 = -0.5;
     float dy0 = -0.5*ly/lx;
     float dz0 = -0.5*lz/lx;
-    if (volPtr) {
-        volPtr->location(vrmath::Vector3f(dx0, dy0, dz0));
+    if (volume) {
+        volume->location(vrmath::Vector3f(dx0, dy0, dz0));
         TRACE("Set volume location to %g %g %g", dx0, dy0, dz0);
     }
-    return volPtr;
+    return volume;
 }

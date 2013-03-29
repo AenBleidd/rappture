@@ -44,10 +44,10 @@ LogMessage(int priority, const char *funcname,
 }
 
 bool
-CheckFBO(GLenum *statusPtr) 
+CheckFBO(GLenum *status) 
 {
-    *statusPtr = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-    return (*statusPtr == GL_FRAMEBUFFER_COMPLETE_EXT);
+    *status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+    return (*status == GL_FRAMEBUFFER_COMPLETE_EXT);
 }
 
 void

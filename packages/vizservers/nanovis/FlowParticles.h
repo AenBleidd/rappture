@@ -11,6 +11,7 @@
 #ifndef FLOWPARTICLES_H
 #define FLOWPARTICLES_H
 
+#include <cassert>
 #include <string>
 
 #include <tcl.h>

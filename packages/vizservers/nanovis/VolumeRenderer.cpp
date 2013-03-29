@@ -131,19 +131,19 @@ VolumeRenderer::renderAll()
 
     TRACE("start loop %d", volumes.size());
     for (size_t i = 0; i < volumes.size(); i++) {
-        Volume *volPtr = volumes[i];
+        Volume *volume = volumes[i];
         polys[i] = NULL;
         actual_slices[i] = 0;
 
-        int n_slices = volPtr->numSlices();
-        if (volPtr->isosurface()) {
+        int n_slices = volume->numSlices();
+        if (volume->isosurface()) {
             // double the number of slices
             n_slices <<= 1;
         }
 
         //volume start location
-        Vector3f volPos = volPtr->location();
-        Vector3f volScaling = volPtr->getPhysicalScaling();
+        Vector3f volPos = volume->location();
+        Vector3f volScaling = volume->getPhysicalScaling();
 
         TRACE("VOL POS: %g %g %g",
               volPos.x, volPos.y, volPos.z);
@@ -195,9 +195,9 @@ VolumeRenderer::renderAll()
 
         //draw volume bounding box with translation (the correct location in
         //space)
-        if (volPtr->outline()) {
+        if (volume->outline()) {
             float olcolor[3];
-            volPtr->getOutlineColor(olcolor);
+            volume->getOutlineColor(olcolor);
             drawBoundingBox(x0, y0, z0, x0+1, y0+1, z0+1,
                 (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
                 1.5);
@@ -221,7 +221,7 @@ VolumeRenderer::renderAll()
         z_steps[i] = z_step;
         size_t n_actual_slices;
 
-        if (volPtr->dataEnabled()) {
+        if (volume->dataEnabled()) {
             if (z_step == 0.0f)
                 n_actual_slices = 1;
             else
@@ -243,12 +243,12 @@ VolumeRenderer::renderAll()
         // These volume slices will be occluded correctly by the cutplanes and
         // vice versa.
 
-        for (int j = 0; j < volPtr->getCutplaneCount(); j++) {
-            if (!volPtr->isCutplaneEnabled(j)) {
+        for (int j = 0; j < volume->getCutplaneCount(); j++) {
+            if (!volume->isCutplaneEnabled(j)) {
                 continue;
             }
-            float offset = volPtr->getCutplane(j)->offset;
-            int axis = volPtr->getCutplane(j)->orient;
+            float offset = volume->getCutplane(j)->offset;
+            int axis = volume->getCutplane(j)->orient;
 
             switch (axis) {
             case 1:
@@ -278,8 +278,8 @@ VolumeRenderer::renderAll()
             Vector4f texcoord4 = vert4;
 
             _cutplaneShader->bind();
-            _cutplaneShader->setFPTextureParameter("volume", volPtr->textureID());
-            _cutplaneShader->setFPTextureParameter("tf", volPtr->transferFunction()->id());
+            _cutplaneShader->setFPTextureParameter("volume", volume->textureID());
+            _cutplaneShader->setFPTextureParameter("tf", volume->transferFunction()->id());
 
             glPushMatrix();
             glTranslatef(volPos.x, volPos.y, volPos.z);
@@ -382,31 +382,31 @@ VolumeRenderer::renderAll()
     glEnable(GL_BLEND);
 
     for (size_t i = 0; i < total_rendered_slices; i++) {
-        Volume *volPtr = NULL;
+        Volume *volume = NULL;
 
         int volume_index = slices[i].volumeId;
         int slice_index = slices[i].sliceId;
         ConvexPolygon *currentSlice = polys[volume_index][slice_index];
         float z_step = z_steps[volume_index];
 
-        volPtr = volumes[volume_index];
+        volume = volumes[volume_index];
 
-        Vector3f volScaling = volPtr->getPhysicalScaling();
+        Vector3f volScaling = volume->getPhysicalScaling();
 
         glPushMatrix();
         glScalef(volScaling.x, volScaling.y, volScaling.z);
 
         // FIXME: compute view-dependent volume sample distance
-        double avgSampleDistance = 1.0 / pow(volPtr->width() * volScaling.x * 
-                                             volPtr->height() * volScaling.y * 
-                                             volPtr->depth() * volScaling.z, 1.0/3.0);
+        double avgSampleDistance = 1.0 / pow(volume->width() * volScaling.x * 
+                                             volume->height() * volScaling.y * 
+                                             volume->depth() * volScaling.z, 1.0/3.0);
         float sampleRatio = z_step / avgSampleDistance;
 
 #ifdef notdef
         TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d z_step=%g avgSD=%g", 
-              volPtr->name(), volPtr, slice_index, volume_index, z_step, avgSampleDistance);
+              volume->name(), volume, slice_index, volume_index, z_step, avgSampleDistance);
 #endif
-        activateVolumeShader(volPtr, false, sampleRatio);
+        activateVolumeShader(volume, false, sampleRatio);
         glPopMatrix();
 
         glBegin(GL_POLYGON);
@@ -492,16 +492,16 @@ VolumeRenderer::drawBoundingBox(float x0, float y0, float z0,
 }
 
 void 
-VolumeRenderer::activateVolumeShader(Volume *volPtr, bool sliceMode,
+VolumeRenderer::activateVolumeShader(Volume *volume, bool sliceMode,
                                      float sampleRatio)
 {
     //vertex shader
     _stdVertexShader->bind();
-    TransferFunction *tfPtr  = volPtr->transferFunction();
-    if (volPtr->volumeType() == Volume::CUBIC) {
-        _regularVolumeShader->bind(tfPtr->id(), volPtr, sliceMode, sampleRatio);
-    } else if (volPtr->volumeType() == Volume::ZINCBLENDE) {
-        _zincBlendeShader->bind(tfPtr->id(), volPtr, sliceMode, sampleRatio);
+    TransferFunction *transferFunc  = volume->transferFunction();
+    if (volume->volumeType() == Volume::CUBIC) {
+        _regularVolumeShader->bind(transferFunc->id(), volume, sliceMode, sampleRatio);
+    } else if (volume->volumeType() == Volume::ZINCBLENDE) {
+        _zincBlendeShader->bind(transferFunc->id(), volume, sliceMode, sampleRatio);
     }
 }
 
