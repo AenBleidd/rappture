@@ -58,12 +58,12 @@
 #include "nanovis.h"
 #include "define.h"
 
-#include "FlowCmd.h"
+#include "Command.h"
+#include "Flow.h"
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
 #include "NvShader.h"
-#include "NvFlowVisRenderer.h"
 #include "NvLIC.h"
 #include "NvZincBlendeReconstructor.h"
 #include "PlaneRenderer.h"
@@ -81,6 +81,7 @@
 
 using namespace nv::graphics;
 using namespace nv::util;
+using namespace vrmath;
 
 #define SIZEOF_BMP_HEADER   54
 
@@ -140,12 +141,9 @@ float NanoVis::zMin = FLT_MAX;
 float NanoVis::zMax = -FLT_MAX;
 float NanoVis::wMin = FLT_MAX;
 float NanoVis::wMax = -FLT_MAX;
-vrmath::Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
+Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
 
 VolumeRenderer *NanoVis::volRenderer = NULL;
-#ifdef notdef
-NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
-#endif
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 NvLIC *NanoVis::licRenderer = NULL;
 PlaneRenderer *NanoVis::planeRenderer = NULL;
@@ -165,9 +163,6 @@ int NanoVis::_licAxis = 2; // z axis
 GLuint NanoVis::_finalFbo = 0;
 GLuint NanoVis::_finalColorTex = 0;
 GLuint NanoVis::_finalDepthRb = 0;
-
-// in Command.cpp
-extern Tcl_Interp *initTcl();
 
 // Default camera location.
 float def_eye_x = 0.0f;
@@ -198,12 +193,6 @@ NanoVis::removeAllData()
         TRACE("Deleting legendTexture");
         delete legendTexture;
     }
-#ifdef notdef
-    if (flowVisRenderer != NULL) {
-        TRACE("Deleting flowVisRenderer");
-        delete flowVisRenderer;
-    }
-#endif
     TRACE("Deleting flows");
     deleteFlows(interp);
     if (licRenderer != NULL) {
@@ -569,15 +558,23 @@ NanoVis::resetCamera(bool resetOrientation)
 
 /** \brief Load a 3D volume
  *
- * \param n_component the number of scalars for each space point. All component 
+ * \param name Volume ID
+ * \param width Number of samples in X direction
+ * \param height Number of samples in Y direction
+ * \param depth Number of samples in Z direction
+ * \param numComponents the number of scalars for each space point. All component 
  * scalars for a point are placed consequtively in data array
  * width, height and depth: number of points in each dimension
+ * \param data Array of floats
+ * \param vmin Min value of field
+ * \param vmax Max value of field
+ * \param nonZeroMin Minimum non-zero value of field
  * \param data pointer to an array of floats.
  */
 Volume *
 NanoVis::loadVolume(const char *name, int width, int height, int depth, 
-                    int n_component, float *data, double vmin, double vmax, 
-                    double nzero_min)
+                    int numComponents, float *data, double vmin, double vmax, 
+                    double nonZeroMin)
 {
     VolumeHashmap::iterator itr = volumeTable.find(name);
     if (itr != volumeTable.end()) {
@@ -587,8 +584,8 @@ NanoVis::loadVolume(const char *name, int width, int height, int depth,
 
     Volume *volume = new Volume(0.f, 0.f, 0.f,
                                 width, height, depth,
-                                n_component,
-                                data, vmin, vmax, nzero_min);
+                                numComponents,
+                                data, vmin, vmax, nonZeroMin);
     Volume::updatePending = true;
     volume->name(name);
     volumeTable[name] = volume;
@@ -883,11 +880,7 @@ void NanoVis::init(const char* path)
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
 
-#ifdef notdef
-    flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
-#endif
     velocityArrowsSlice = new VelocityArrowsSlice;
-
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, _licAxis, _licSlice);
 
     grid = new Grid();
@@ -935,7 +928,7 @@ NanoVis::initGL()
 
     initOffscreenBuffer();    //frame buffer object for offscreen rendering
 
-    //create volume renderer and add volumes to it
+    //create volume renderer
     volRenderer = new VolumeRenderer();
 
     // create
@@ -948,44 +941,6 @@ NanoVis::initGL()
 
     TRACE("leaving initGL");
 }
-
-#ifdef DO_RLE
-char rle[512*512*3];
-int rleSize;
-
-short offsets[512*512*3];
-int offsetsSize;
-
-static void 
-doRle()
-{
-    int len = NanoVis::winWidth*NanoVis::winHeight*3;
-    rleSize = 0;
-    offsetsSize = 0;
-
-    int i = 0;
-    while (i < len) {
-        if (NanoVis::screenBuffer[i] == 0) {
-            int pos = i+1;
-            while ( (pos < len) && (NanoVis::screenBuffer[pos] == 0)) {
-                pos++;
-            }
-            offsets[offsetsSize++] = -(pos - i);
-            i = pos;
-        }
-
-        else {
-            int pos;
-            for (pos = i; (pos < len) && (NanoVis::screenBuffer[pos] != 0); pos++){
-                rle[rleSize++] = NanoVis::screenBuffer[pos];
-            }
-            offsets[offsetsSize++] = (pos - i);
-            i = pos;
-        }
-
-    }
-}
-#endif
 
 // used internally to build up the BMP file header
 // Writes an integer value into the header data structure at pos
@@ -1524,7 +1479,7 @@ NanoVis::collectBounds(bool onlyVisible)
         if (onlyVisible && !volume->visible())
             continue;
 
-        vrmath::Vector3f bmin, bmax;
+        Vector3f bmin, bmax;
         volume->getWorldSpaceBounds(bmin, bmax);
         if (bmin.x > bmax.x)
             continue;
@@ -1556,7 +1511,7 @@ NanoVis::collectBounds(bool onlyVisible)
         if (onlyVisible && !heightMap->isVisible())
             continue;
 
-        vrmath::Vector3f bmin, bmax;
+        Vector3f bmin, bmax;
         heightMap->getWorldSpaceBounds(bmin, bmax);
         if (bmin.x > bmax.x)
             continue;
@@ -1581,7 +1536,7 @@ NanoVis::collectBounds(bool onlyVisible)
         }
     }
 
-    vrmath::Vector3f flowMin, flowMax;
+    Vector3f flowMin, flowMax;
     getFlowBounds(flowMin, flowMax, onlyVisible);
     if (flowMin.x < flowMax.x) {
         if (sceneMin.x > flowMin.x) {
@@ -1623,6 +1578,191 @@ NanoVis::setBgColor(float color[3])
     glClearColor(color[0], color[1], color[2], 1);
 }
 
+Flow *
+NanoVis::getFlow(const char *name)
+{
+    FlowHashmap::iterator itr = flowTable.find(name);
+    if (itr == flowTable.end()) {
+        TRACE("Can't find flow '%s'", name);
+        return NULL;
+    }
+    return itr->second;
+}
+
+Flow *
+NanoVis::createFlow(Tcl_Interp *interp, const char *name)
+{
+    FlowHashmap::iterator itr = flowTable.find(name);
+    if (itr != flowTable.end()) {
+        ERROR("Flow '%s' already exists", name);
+        return NULL;
+    }
+    Flow *flow = new Flow(interp, name);
+    flowTable[name] = flow;
+    return flow;
+}
+
+/**
+ * \brief Delete flow object and hash table entry
+ *
+ * This is called by the flow command instance delete callback
+ */
+void
+NanoVis::deleteFlow(const char *name)
+{
+    FlowHashmap::iterator itr = flowTable.find(name);
+    if (itr != flowTable.end()) {
+        delete itr->second;
+        flowTable.erase(itr);
+    }
+}
+
+/**
+ * \brief Delete all flow object commands
+ *
+ * This will also delete the flow objects and hash table entries
+ */
+void
+NanoVis::deleteFlows(Tcl_Interp *interp)
+{
+    FlowHashmap::iterator itr;
+    for (itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Tcl_DeleteCommandFromToken(interp, itr->second->getCommandToken());
+    }
+    flowTable.clear();
+}
+
+bool
+NanoVis::mapFlows()
+{
+    TRACE("Enter");
+
+    flags &= ~MAP_FLOWS;
+
+    /* 
+     * Step 1. Get the overall min and max magnitudes of all the 
+     *         flow vectors.
+     */
+    magMin = DBL_MAX, magMax = -DBL_MAX;
+
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Flow *flow = itr->second;
+        double min, max;
+        if (!flow->isDataLoaded()) {
+            continue;
+        }
+        Rappture::Unirect3d *data = flow->data();
+        min = data->magMin();
+        max = data->magMax();
+        if (min < magMin) {
+            magMin = min;
+        } 
+        if (max > magMax) {
+            magMax = max;
+        }
+        if (data->xMin() < xMin) {
+            xMin = data->xMin();
+        }
+        if (data->yMin() < yMin) {
+            yMin = data->yMin();
+        }
+        if (data->zMin() < zMin) {
+            zMin = data->zMin();
+        }
+        if (data->xMax() > xMax) {
+            xMax = data->xMax();
+        }
+        if (data->yMax() > yMax) {
+            yMax = data->yMax();
+        }
+        if (data->zMax() > zMax) {
+            zMax = data->zMax();
+        }
+    }
+
+    TRACE("magMin=%g magMax=%g", NanoVis::magMin, NanoVis::magMax);
+
+    /* 
+     * Step 2. Generate the vector field from each data set. 
+     */
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Flow *flow = itr->second;
+        if (!flow->isDataLoaded()) {
+            continue; // Flow exists, but no data has been loaded yet.
+        }
+        if (flow->visible()) {
+            flow->initializeParticles();
+        }
+        if (!flow->scaleVectorField()) {
+            return false;
+        }
+        // FIXME: This doesn't work when there is more than one flow.
+        licRenderer->setOffset(flow->getRelativePosition());
+        velocityArrowsSlice->slicePos(flow->getRelativePosition());
+    }
+    advectFlows();
+    return true;
+}
+
+void
+NanoVis::getFlowBounds(Vector3f& min,
+                       Vector3f& max,
+                       bool onlyVisible)
+{
+    TRACE("Enter");
+
+    min.set(FLT_MAX, FLT_MAX, FLT_MAX);
+    max.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        itr->second->getBounds(min, max, onlyVisible);
+    }
+}
+
+void
+NanoVis::renderFlows()
+{
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Flow *flow = itr->second;
+        if (flow->isDataLoaded() && flow->visible()) {
+            flow->render();
+        }
+    }
+    flags &= ~REDRAW_PENDING;
+}
+
+void
+NanoVis::resetFlows()
+{
+    if (licRenderer->active()) {
+        NanoVis::licRenderer->reset();
+    }
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Flow *flow = itr->second;
+        if (flow->isDataLoaded() && flow->visible()) {
+            flow->resetParticles();
+        }
+    }
+}    
+
+void
+NanoVis::advectFlows()
+{
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Flow *flow = itr->second;
+        if (flow->isDataLoaded() && flow->visible()) {
+            flow->advect();
+        }
+    }
+}
+
 void
 NanoVis::render()
 {
@@ -1651,9 +1791,9 @@ NanoVis::render()
     // Need to reset fbo since it may have been changed to default (0)
     bindOffscreenBuffer();
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
+    //clear screen
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //3D rendering mode
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_COLOR_MATERIAL);
 
@@ -1700,11 +1840,6 @@ NanoVis::render()
     if ((velocityArrowsSlice != NULL) && (velocityArrowsSlice->enabled())) {
         velocityArrowsSlice->render();
     }
-#ifdef notdef
-    if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
-        flowVisRenderer->render();
-    }
-#endif
     if (!flowTable.empty()) {
         renderFlows();
     }
@@ -1825,16 +1960,9 @@ NanoVis::processCommands()
     if (feof(NanoVis::stdin)) {
         exitService(90);
     }
-#ifdef DO_RLE
-    doRle();
-    int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size };
-    TRACE("Writing %d,%d", sizes[0], sizes[1]); 
-    write(1, &sizes, sizeof(sizes));
-    write(1, offsets, offsets_size*sizeof(offsets[0]));
-    write(1, rle, rle_size);    //unsigned byte
-#else
+
     ppmWrite("nv>image -type image -bytes");
-#endif
+
     TRACE("Leave");
 }
 

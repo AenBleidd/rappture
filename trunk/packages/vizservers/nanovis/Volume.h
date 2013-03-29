@@ -276,12 +276,12 @@ public:
 
     TransferFunction *transferFunction()
     {
-        return _tfPtr;
+        return _transferFunc;
     }
 
-    void transferFunction(TransferFunction *tfPtr)
+    void transferFunction(TransferFunction *transferFunc)
     {
-        _tfPtr = tfPtr;
+        _transferFunc = transferFunc;
     }
 
     void setOutlineColor(float *rgb);
@@ -365,7 +365,7 @@ protected:
      * This is the designated transfer function to use to
      * render this volume.
      */
-    TransferFunction *_tfPtr;
+    TransferFunction *_transferFunc;
 
     float _ambient;      ///< Ambient material coefficient
     float _diffuse;      ///< Diffuse material coefficient

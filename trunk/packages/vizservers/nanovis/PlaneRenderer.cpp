@@ -36,12 +36,12 @@ PlaneRenderer::~PlaneRenderer()
 }
 
 int 
-PlaneRenderer::addPlane(Texture2D *p, TransferFunction *tfPtr)
+PlaneRenderer::addPlane(Texture2D *planeTexture, TransferFunction *tf)
 {
     int ret = _numPlanes;
 
-    _plane.push_back(p);
-    _tf.push_back(tfPtr);
+    _plane.push_back(planeTexture);
+    _tf.push_back(tf);
 
     if (ret == 0)
         _activePlane = ret;

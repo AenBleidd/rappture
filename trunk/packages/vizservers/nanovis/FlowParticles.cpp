@@ -15,7 +15,7 @@
 
 #include "nanovis.h"        // For NMESH
 #include "FlowParticles.h"
-#include "FlowCmd.h"
+#include "Flow.h"
 #include "Trace.h"
 
 using namespace vrmath;
@@ -47,9 +47,9 @@ FlowParticles::render()
 {
     TRACE("Particles '%s' axis: %d pos: %g rel pos: %g",
           _name.c_str(), _sv.position.axis, _sv.position.value,
-          FlowCmd::getRelativePosition(&_sv.position));
+          Flow::getRelativePosition(&_sv.position));
 
-    _renderer->setPos(FlowCmd::getRelativePosition(&_sv.position));
+    _renderer->setPos(Flow::getRelativePosition(&_sv.position));
     _renderer->setAxis(_sv.position.axis);
     assert(_renderer->active());
     _renderer->render();
@@ -58,7 +58,7 @@ FlowParticles::render()
 void 
 FlowParticles::configure() 
 {
-    _renderer->setPos(FlowCmd::getRelativePosition(&_sv.position));
+    _renderer->setPos(Flow::getRelativePosition(&_sv.position));
     _renderer->setColor(Vector4f(_sv.color.r,
                                  _sv.color.g,
                                  _sv.color.b, 

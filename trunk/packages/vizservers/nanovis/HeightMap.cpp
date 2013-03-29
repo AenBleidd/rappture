@@ -22,18 +22,18 @@ using namespace nv::graphics;
 using namespace vrmath;
 
 HeightMap::HeightMap() : 
-    _vertexBufferObjectID(0), 
-    _texcoordBufferObjectID(0), 
-    _vertexCount(0), 
-    _contour(0), 
-    _tfPtr(0), 
+    _vertexBufferObjectID(0),
+    _texcoordBufferObjectID(0),
+    _vertexCount(0),
+    _contour(NULL),
+    _transferFunc(NULL),
     _opacity(0.5f),
-    _indexBuffer(0), 
-    _indexCount(0), 
-    _contourColor(1.0f, 0.0f, 0.0f), 
-    _contourVisible(false), 
+    _indexBuffer(NULL),
+    _indexCount(0),
+    _contourColor(1.0f, 0.0f, 0.0f),
+    _contourVisible(false),
     _visible(false),
-    _scale(1.0f, 1.0f, 1.0f), 
+    _scale(1.0f, 1.0f, 1.0f),
     _centerPoint(0.0f, 0.0f, 0.0f),
     _heights(NULL)
 {
@@ -92,16 +92,16 @@ HeightMap::render(RenderContext *renderContext)
         glDisableClientState(GL_INDEX_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
 
-        if (_tfPtr) {
+        if (_transferFunc) {
             // PUT vertex program here
             //
             //
             _shader->bind();
-            _shader->setFPTextureParameter("tf", _tfPtr->id());
+            _shader->setFPTextureParameter("tf", _transferFunc->id());
             _shader->setFPParameter1f("opacity", _opacity);
 
             glEnable(GL_TEXTURE_1D);
-            _tfPtr->getTexture()->activate();
+            _transferFunc->getTexture()->activate();
  
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         }
@@ -124,8 +124,8 @@ HeightMap::render(RenderContext *renderContext)
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glDisableClientState(GL_VERTEX_ARRAY);
-        if (_tfPtr != NULL) {
-            _tfPtr->getTexture()->deactivate();
+        if (_transferFunc != NULL) {
+            _transferFunc->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
             _shader->disableFPTextureParameter("tf");
@@ -383,7 +383,7 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
 	_contour = NULL;
     }
     ContourLineFilter lineFilter;
-    //lineFilter.transferFunction(_tfPtr);
+    //lineFilter.transferFunction(_transferFunc);
     _contour = lineFilter.create(0.0f, 1.0f, 10, map, xNum, yNum);
 
     this->createIndexBuffer(xNum, yNum, heights);
@@ -397,8 +397,8 @@ HeightMap::createHeightVertices(float xMin, float yMin, float xMax,
 {
     Vector3f* vertices = new Vector3f[xNum * yNum];
 
-    Vector3f* dstDataPtr = vertices;
-    float* srcDataPtr = height;
+    Vector3f* dstData = vertices;
+    float* srcData = height;
     
     for (int y = 0; y < yNum; ++y) {
         float yCoord;
@@ -408,10 +408,10 @@ HeightMap::createHeightVertices(float xMin, float yMin, float xMax,
             float xCoord;
 
             xCoord = xMin + ((xMax - xMin) * x) / (xNum - 1); 
-            dstDataPtr->set(xCoord, *srcDataPtr, yCoord);
+            dstData->set(xCoord, *srcData, yCoord);
 
-            ++dstDataPtr;
-            ++srcDataPtr;
+            ++dstData;
+            ++srcData;
         }
     }
     return vertices;
@@ -421,7 +421,7 @@ HeightMap::createHeightVertices(float xMin, float yMin, float xMax,
  * \brief Maps the data coordinates of the surface into the grid's axes.
  */
 void 
-HeightMap::mapToGrid(Grid *gridPtr)
+HeightMap::mapToGrid(Grid *grid)
 {
     int count = _xNum * _yNum;
 
@@ -431,11 +431,11 @@ HeightMap::mapToGrid(Grid *gridPtr)
     // smallest and largest major ticks for all surfaces plotted.  Translate
     // this surface's y-values (heights) into the grid's axis coordinates.
 
-    float yScale = 1.0 / (gridPtr->yAxis.max() - gridPtr->yAxis.min());
+    float yScale = 1.0 / (grid->yAxis.max() - grid->yAxis.min());
     float *p, *q, *pend;
     float *normHeights = new float[count];
     for (p = _heights, pend = p + count, q = normHeights; p < pend; p++, q++) {
-	*q = (*p - gridPtr->yAxis.min()) * yScale;
+	*q = (*p - grid->yAxis.min()) * yScale;
     }
     Vector3f *t, *texcoord;
     texcoord = new Vector3f[count];
@@ -449,12 +449,12 @@ HeightMap::mapToGrid(Grid *gridPtr)
     float xScale, zScale;
     float xMin, xMax, zMin, zMax;
 
-    xScale = 1.0 / (gridPtr->xAxis.max() - gridPtr->xAxis.min());
-    xMin = (xAxis.min() - gridPtr->xAxis.min()) * xScale;
-    xMax = (xAxis.max() - gridPtr->xAxis.min()) * xScale;
-    zScale = 1.0 / (gridPtr->zAxis.max() - gridPtr->zAxis.min());
-    zMin = (zAxis.min() - gridPtr->zAxis.min()) * zScale;
-    zMax = (zAxis.max() - gridPtr->zAxis.min()) * zScale;
+    xScale = 1.0 / (grid->xAxis.max() - grid->xAxis.min());
+    xMin = (xAxis.min() - grid->xAxis.min()) * xScale;
+    xMax = (xAxis.max() - grid->xAxis.min()) * xScale;
+    zScale = 1.0 / (grid->zAxis.max() - grid->zAxis.min());
+    zMin = (zAxis.min() - grid->zAxis.min()) * zScale;
+    zMax = (zAxis.max() - grid->zAxis.min()) * zScale;
 
     Vector3f* vertices;
     vertices = createHeightVertices(xMin, zMin, xMax, zMax, _xNum, _yNum, 
@@ -476,7 +476,7 @@ HeightMap::mapToGrid(Grid *gridPtr)
 	_contour = NULL;
     }
     ContourLineFilter lineFilter;
-    //lineFilter.transferFunction(_tfPtr);
+    //lineFilter.transferFunction(_transferFunc);
     _contour = lineFilter.create(0.0f, 1.0f, 10, vertices, _xNum, _yNum);
     
     this->createIndexBuffer(_xNum, _yNum, normHeights);

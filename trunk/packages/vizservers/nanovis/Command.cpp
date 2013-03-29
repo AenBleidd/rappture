@@ -25,14 +25,8 @@
  * TODO:  In no particular order...
  *        o Use Tcl command option parser to reduce size of procedures, remove
  *          lots of extra error checking code. (almost there)
- *        o Convert GetVolumeIndices to GetVolumes.  Goal is to remove
- *          all references of Nanovis::volume[] from this file.  Don't
- *          want to know how volumes are stored. Same for heightmaps.
- *        o Rationalize volume id scheme. Right now it's the index in
- *          the vector. 1) Use a list instead of a vector. 2) carry
- *          an id field that's a number that gets incremented each new volume.
  *        o Add bookkeeping for volumes, heightmaps, flows, etc. to track
- *          1) id #  2) simulation # 3) include/exclude.  The include/exclude
+ *          1) simulation # 2) include/exclude.  The include/exclude
  *          is to indicate whether the item should contribute to the overall
  *          limits of the axes.
  */
@@ -44,8 +38,6 @@
 #include <tcl.h>
 
 #include <RpField1D.h>
-#include <RpFieldRect3D.h>
-#include <RpFieldPrism3D.h>
 #include <RpEncode.h>
 #include <RpOutcome.h>
 #include <RpBuffer.h>
@@ -54,6 +46,7 @@
 
 #include "nanovis.h"
 #include "CmdProc.h"
+#include "FlowCmd.h"
 #include "Trace.h"
 #ifdef USE_POINTSET_RENDERER
 #include "PointSet.h"
@@ -107,19 +100,6 @@ static const char def_transfunc[] =
   0.892153 0.0\n\
   1.000000 0.0\n\
 }";
-
-static Tcl_ObjCmdProc AxisCmd;
-static Tcl_ObjCmdProc CameraCmd;
-static Tcl_ObjCmdProc CutplaneCmd;
-extern Tcl_AppInitProc FlowCmdInitProc;
-static Tcl_ObjCmdProc GridCmd;
-static Tcl_ObjCmdProc LegendCmd;
-static Tcl_ObjCmdProc ScreenCmd;
-static Tcl_ObjCmdProc SnapshotCmd;
-static Tcl_ObjCmdProc TransfuncCmd;
-static Tcl_ObjCmdProc Unirect2dCmd;
-static Tcl_ObjCmdProc UpCmd;
-static Tcl_ObjCmdProc VolumeCmd;
 
 bool
 GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
@@ -2227,5 +2207,3 @@ initTcl()
     }
     return interp;
 }
-
-

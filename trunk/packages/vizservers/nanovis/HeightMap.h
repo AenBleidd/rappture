@@ -48,14 +48,14 @@ public:
      */
     void setHeight(int xCount, int yCount, vrmath::Vector3f *heights);
 #endif
-    void mapToGrid(Grid *gridPtr);
+    void mapToGrid(Grid *grid);
 
     /**
      *@brief Define a color map for color shading of heightmap
      */
-    void transferFunction(TransferFunction *tfPtr)
+    void transferFunction(TransferFunction *transferFunc)
     {
-        _tfPtr = tfPtr;
+        _transferFunc = transferFunc;
     }
 
     /**
@@ -63,7 +63,7 @@ public:
      */
     TransferFunction *transferFunction()
     {
-        return _tfPtr;
+        return _transferFunc;
     }
 
     /**
@@ -127,7 +127,7 @@ private:
     unsigned int _texcoordBufferObjectID;
     int _vertexCount;
     nv::graphics::Geometry *_contour;
-    TransferFunction *_tfPtr;
+    TransferFunction *_transferFunc;
     float _opacity;
     NvShader *_shader;
     int *_indexBuffer;
