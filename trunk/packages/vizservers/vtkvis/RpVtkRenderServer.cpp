@@ -404,6 +404,8 @@ serverStats(int code)
 static void
 initService()
 {
+    TRACE("Enter");
+
     const char *user = getenv("USER");
     char *logName = NULL;
     int logNameLen = 0;
@@ -432,11 +434,15 @@ initService()
     if (logName != NULL) {
         free(logName);
     }
+
+    TRACE("Leave");
 }
 
 static void
 exitService()
 {
+    TRACE("Enter");
+
     serverStats(0);
 
     // close log file
@@ -447,36 +453,6 @@ exitService()
 }
 
 #ifdef USE_THREADS
-static void *
-readerThread(void *clientData)
-{
-    ResponseQueue *queue = (ResponseQueue *)clientData;
-    Tcl_Interp *interp;
-
-    TRACE("Starting reader thread");
-    interp = (Tcl_Interp *)queue->clientData();
-    vtkSmartPointer<vtkUnsignedCharArray> imgData = 
-        vtkSmartPointer<vtkUnsignedCharArray>::New();
-    for (;;) {
-        if (processCommands(interp, (ClientData)clientData, g_inBufPtr, g_fdOut) < 0)
-            break;
-
-        if (g_renderer->render()) {
-            TRACE("Rendering new frame");
-            g_renderer->getRenderedFrame(imgData);
-            queueFrame(queue, imgData);
-            g_stats.nFrames++;
-            g_stats.nFrameBytes += imgData->GetDataSize() * imgData->GetDataTypeSize();
-        } else {
-            TRACE("No render required");
-            sendAck((ClientData)clientData, g_fdOut);
-        }
-
-        if (g_inBufPtr->status() == ReadBuffer::ENDFILE)
-            break;
-    }    
-    return NULL;
-}
 
 static void *
 writerThread(void *clientData)
@@ -529,22 +505,47 @@ main(int argc, char *argv[])
 
     Tcl_Interp *interp = Tcl_CreateInterp();
 
+    ClientData clientData = NULL;
 #ifdef USE_THREADS
     ResponseQueue *queue = new ResponseQueue((void *)interp);
-    initTcl(interp, (ClientData)queue);
+    clientData = (ClientData)queue;
+    initTcl(interp, clientData);
 
-    pthread_t readerThreadId, writerThreadId;
-    if (pthread_create(&readerThreadId, NULL, &readerThread, queue) < 0) {
-        ERROR("Can't create reader thread: %s", strerror(errno));
-    }
+    pthread_t writerThreadId;
     if (pthread_create(&writerThreadId, NULL, &writerThread, queue) < 0) {
         ERROR("Can't create writer thread: %s", strerror(errno));
     }
-    if (pthread_join(readerThreadId, NULL) < 0) {
-        ERROR("Can't join reader thread: %s", strerror(errno));
-    } else {
-        TRACE("Reader thread exited");
+#else 
+    initTcl(interp, clientData);
+#endif
+
+    vtkSmartPointer<vtkUnsignedCharArray> imgData = 
+        vtkSmartPointer<vtkUnsignedCharArray>::New();
+
+    // Start main server loop
+    for (;;) {
+        if (processCommands(interp, clientData, g_inBufPtr, g_fdOut) < 0)
+            break;
+
+        if (g_renderer->render()) {
+            TRACE("Rendering new frame");
+            g_renderer->getRenderedFrame(imgData);
+#ifdef USE_THREADS
+            queueFrame(queue, imgData);
+#else
+            writeFrame(g_fdOut, imgData);
+#endif
+            g_stats.nFrames++;
+            g_stats.nFrameBytes += imgData->GetDataSize() * imgData->GetDataTypeSize();
+        } else {
+            TRACE("No render required");
+            sendAck(clientData, g_fdOut);
+        }
+
+        if (g_inBufPtr->status() == ReadBuffer::ENDFILE)
+            break;
     }
+#ifdef USE_THREADS
     // Writer thread is probably blocked on sem_wait, so cancel instead
     // of joining
     if (pthread_cancel(writerThreadId) < 0) {
@@ -556,28 +557,6 @@ main(int argc, char *argv[])
     TRACE("Deleting ResponseQueue");
     delete queue;
     queue = NULL;
-#else 
-    initTcl(interp, (ClientData)NULL);
-
-    vtkSmartPointer<vtkUnsignedCharArray> imgData = 
-        vtkSmartPointer<vtkUnsignedCharArray>::New();
-    for (;;) {
-        if (processCommands(interp, (ClientData)NULL, g_inBufPtr, g_fdOut) < 0)
-            break;
-
-        if (g_renderer->render()) {
-            TRACE("Rendering new frame");
-            g_renderer->getRenderedFrame(imgData);
-            writeFrame(g_fdOut, imgData);
-            g_stats.nFrames++;
-            g_stats.nFrameBytes += imgData->GetDataSize() * imgData->GetDataTypeSize();
-        } else {
-            TRACE("No render required");
-        }
-
-        if (g_inBufPtr->status() == ReadBuffer::ENDFILE)
-            break;
-    }
 #endif
 
     TRACE("Stopping Tcl interpreter");
