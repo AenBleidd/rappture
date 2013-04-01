@@ -206,37 +206,7 @@ RP_LANG_PERL
 RP_LANG_PYTHON
 RP_LANG_JAVA
 RP_LANG_R
-
-RUBY=""
-RUBY_DEV_PKG="no"
-
-AC_ARG_WITH(
-    [ruby],
-    [AS_HELP_STRING([--with-ruby=DIR], [location of ruby @<:@default=yes@:>@])],
-    [],
-    [with_ruby="yes"])
-
-if test "${with_ruby}" != "no" ; then
-  if test "${with_ruby}" = "yes" ; then
-    AC_PATH_PROG(RUBY, ruby)
-  else
-    AC_PATH_PROG(RUBY, ruby, [], [${with_ruby}/bin:${with_ruby}])
-  fi
-fi
-
-RUBY_VERSION_RV=
-RUBY_PLATFORM=
-if test "x${RUBY}" != "x" ; then
-  AX_PROG_RUBY_VERSION
-  RUBY_VERSION_RV=`echo ${RUBY_VERSION} | cut -d'.' -f1-2`
-  RUBY_PLATFORM=`ruby -e 'puts RUBY_PLATFORM'`
-  ac_mkmf_result=`${RUBY} -r mkmf -e ";" 2>&1`
-  if test -z "$ac_mkmf_result"; then
-    HAVE_RUBY_DEVEL="yes"
-    AX_RUBY_DEV_FLAGS([${RUBY}])
-  fi
-fi
-
+RP_LANG_RUBY
 
 RP_BASE=`pwd`
 
