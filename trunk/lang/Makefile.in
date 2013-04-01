@@ -33,7 +33,7 @@ endif
 ifeq ($(PYTHON),yes)
   LANGS += python
 endif
-ifeq ($(RUBY),yes)
+ifneq ($(RUBY),)
   ifeq ($(HAVE_RUBY_H),yes)
     LANGS += ruby
   endif
