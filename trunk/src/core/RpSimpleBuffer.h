@@ -244,7 +244,6 @@ SimpleBuffer<T>::SimpleBuffer(size_t numElems)
     if (set(numElems) != numElems) {
         return;
     }
-    _numElemsUsed = numElems;
 }
 
 
