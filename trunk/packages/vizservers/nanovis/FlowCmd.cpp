@@ -1069,9 +1069,10 @@ static Rappture::SwitchSpec flowVideoSwitches[] = {
     {Rappture::SWITCH_END}
 };
 
-static int
-MakeImageFiles(Tcl_Interp *interp, char *tmpFileName, 
-               FlowVideoSwitches *switchesPtr, bool *cancelPtr)
+static bool
+MakeImageFiles(char *tmpFileName,
+               int width, int height, int numFrames,
+               bool *cancelPtr)
 {
     struct pollfd pollResults;
     pollResults.fd = fileno(nv::g_fIn);
@@ -1083,16 +1084,16 @@ MakeImageFiles(Tcl_Interp *interp, char *tmpFileName,
     oldWidth = NanoVis::winWidth;
     oldHeight = NanoVis::winHeight;
 
-    if ((switchesPtr->width != oldWidth) || 
-        (switchesPtr->height != oldHeight)) {
+    if (width != oldWidth ||
+        height != oldHeight) {
         // Resize to the requested size.
-        NanoVis::resizeOffscreenBuffer(switchesPtr->width, switchesPtr->height);
+        NanoVis::resizeOffscreenBuffer(width, height);
     }
     NanoVis::resetFlows();
     *cancelPtr = false;
-    int result = TCL_OK;
+    bool result = true;
     size_t length = strlen(tmpFileName);
-    for (int i = 1; i <= switchesPtr->numFrames; i++) {
+    for (int i = 1; i <= numFrames; i++) {
         if (((i & 0xF) == 0) && (poll(&pollResults, 1, timeout) > 0)) {
             /* If there's another command on stdin, that means the client is
              * trying to cancel this operation. */
@@ -1115,13 +1116,13 @@ MakeImageFiles(Tcl_Interp *interp, char *tmpFileName,
 
         sprintf(tmpFileName + length, "/image%d.ppm", i);
         result = nv::writePPMFile(tmpFileName, NanoVis::screenBuffer,
-                                  switchesPtr->width, switchesPtr->height);
-        if (result != TCL_OK) {
+                                  width, height);
+        if (!result) {
             break;
         }
     }
-    if ((switchesPtr->width != oldWidth) || 
-        (switchesPtr->height != oldHeight)) {
+    if (width != oldWidth || 
+        height != oldHeight) {
         NanoVis::resizeOffscreenBuffer(oldWidth, oldHeight);
     }
     tmpFileName[length] = '\0';
@@ -1240,7 +1241,13 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     size_t length = strlen(tmpFileName);
     bool canceled = false;
-    result = MakeImageFiles(interp, tmpFileName, &switches, &canceled);
+    if (MakeImageFiles(tmpFileName,
+                       switches.width, switches.height, switches.numFrames,
+                       &canceled)) {
+        result = TCL_OK;
+    } else {
+        result = TCL_ERROR;
+    }
     if ((result == TCL_OK) && (!canceled)) {
         result = MakeMovie(interp, tmpFileName, token, &switches);
     }

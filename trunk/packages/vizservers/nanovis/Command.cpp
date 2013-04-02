@@ -1332,10 +1332,9 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 #ifdef USE_THREADS
         queueResponse(info, cmdLength, Response::VOLATILE);
 #else
-        ssize_t nWritten  = SocketWrite(info, (size_t)cmdLength);
-        if (nWritten != (ssize_t)cmdLength) {
+        if (SocketWrite(info, (size_t)cmdLength) != (ssize_t)cmdLength) {
             ERROR("Short write");
-             return TCL_ERROR;
+            return TCL_ERROR;
         }
 #endif
     }
