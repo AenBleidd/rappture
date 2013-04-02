@@ -51,7 +51,7 @@ extern void initTcl(Tcl_Interp *interp, ClientData clientData);
 extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
                           int *axisVal);
 
-extern bool GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
+extern int GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
                              bool *boolVal);
 
 extern int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes);

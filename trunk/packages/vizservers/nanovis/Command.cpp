@@ -183,7 +183,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     return result;
 }
 
-bool
+int
 GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
 {
     int value;
