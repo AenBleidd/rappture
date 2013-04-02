@@ -1410,18 +1410,18 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     append out "    preview configure" 
     foreach opt { -width -height -leftmargin -rightmargin -topmargin 
         -bottommargin -plotpadx -plotpady } {
-        set value [list [$_clone cget $opt]]
-        append out " $opt $value"
+        set value [$_clone cget $opt]
+        append out " $opt [list $value]"
     }
     append out "\n"
 
     # Legend settings
     append out "    preview legend configure" 
     foreach opt { -position -anchor -borderwidth -hide } { 
-        set value [list [$_clone legend cget $opt]]
-        append out " $opt $value"
+        set value [$_clone legend cget $opt]
+        append out " $opt [list $value]"
     }
-    append out " -font \"$legendfont\"\n"
+    append out " -font [list $legendfont]\n"
 
     # Element settings
     foreach elem [$_clone element show] {
@@ -1429,16 +1429,17 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
         if { $label == "" } {
             continue
         }
-        append out "    if \{ \[preview element exists \"$label\"\] \} \{\n"
-        append out "        preview element configure \"$label\""
+        set label [list $label]
+        append out "    if \{ \[preview element exists $label] \} \{\n"
+        append out "        preview element configure $label"
         if { [$_clone element type $elem] != "bar" } {
             set options { -symbol -color -dashes -label } 
         } else {
             set options { -color -label } 
         }
         foreach opt $options { 
-            set value [list [$_clone element cget $elem $opt]]
-            append out " $opt $value"
+            set value [$_clone element cget $elem $opt]
+            append out " $opt [list $value]"
         }
         append out "    \}\n"
     }
@@ -1448,16 +1449,17 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
         if { [$_clone axis cget $axis -hide] } {
             continue
         }
-        append out "    if \{ \[preview axis names \"$axis\"\] == \"$axis\" \} \{\n"
-        append out "        preview axis configure \"$axis\""
+        set axis [list $axis]
+        append out "    if \{ \[preview axis names $axis] == $axis \} \{\n"
+        append out "        preview axis configure $axis"
         foreach opt { -hide -min -max -loose -title -stepsize -subdivisions } {
-            set value [list [$_clone axis cget $axis $opt]]
-            append out " $opt $value"
+            set value [$_clone axis cget $axis $opt]
+            append out " $opt [list $value]"
         }
-        append out " -tickfont \"$axistickfont\""
-        append out " -titlefont \"$axistitlefont\"\n"
+        append out " -tickfont [list $axistickfont]"
+        append out " -titlefont [list $axistitlefont]\n"
         set hide [$_clone marker cget ${axis}-zero -hide]
-        append out "        preview marker configure \"${axis}-zero\" -hide $hide\n"
+        append out "        preview marker configure ${axis}-zero -hide $hide\n"
         append out "    \}\n"
     }   
 
