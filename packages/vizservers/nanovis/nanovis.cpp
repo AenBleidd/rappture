@@ -15,35 +15,12 @@
  * ======================================================================
  */
 
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <memory.h>
-#include <signal.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/times.h>
-#include <sys/types.h>
-#include <sys/uio.h> // for readv/writev
-#include <time.h>
-#include <unistd.h>
-
-#include <cstdlib>
+#include <cassert>
 #include <cstdio>
-#include <cstring>
-#include <cmath>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
 
 #include <GL/glew.h>
 #include <GL/glut.h>
-
-#include <RpEncode.h>
 
 #include <graphics/RenderContext.h>
 #include <vrmath/Vector3f.h>
@@ -56,71 +33,44 @@
 
 #include "config.h"
 #include "nanovis.h"
+#include "nanovisServer.h"
 #include "define.h"
 
-#include "Command.h"
 #include "Flow.h"
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
-#include "NvShader.h"
 #include "NvLIC.h"
-#include "NvZincBlendeReconstructor.h"
+#include "NvShader.h"
+#include "OrientationIndicator.h"
 #include "PlaneRenderer.h"
-#ifdef USE_POINTSET_RENDERER
-#include "PointSetRenderer.h"
-#include "PointSet.h"
-#endif
-#include "Switch.h"
+#include "PPMWriter.h"
+#include "Texture2D.h"
 #include "Trace.h"
+#include "TransferFunction.h"
 #include "Unirect.h"
 #include "VelocityArrowsSlice.h"
+#include "Volume.h"
 #include "VolumeInterpolator.h"
 #include "VolumeRenderer.h"
-#include "ZincBlendeVolume.h"
 
+using namespace nv;
 using namespace nv::graphics;
 using namespace nv::util;
 using namespace vrmath;
 
-#define SIZEOF_BMP_HEADER   54
-
-#define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
-
-#define TRUE	1
-#define FALSE	0
-
-typedef struct {
-    pid_t pid;
-    size_t nFrames;            /**< # of frames sent to client. */
-    size_t nBytes;             /**< # of bytes for all frames. */
-    size_t nCommands;          /**< # of commands executed */
-    double cmdTime;            /**< Elasped time spend executing
-                                * commands. */
-    struct timeval start;      /**< Start of elapsed time. */
-} Stats;
-
-static Stats stats;
-
 // STATIC MEMBER DATA
 
-FILE *NanoVis::stdin = NULL;
-FILE *NanoVis::logfile = NULL;
-FILE *NanoVis::recfile = NULL;
-
-int NanoVis::statsFile = -1;
+Tcl_Interp *NanoVis::interp = NULL;
 
 unsigned int NanoVis::flags = 0;
 bool NanoVis::debugFlag = false;
-bool NanoVis::axisOn = true;
-struct timeval NanoVis::startTime;
 
 int NanoVis::winWidth = NPIX;
 int NanoVis::winHeight = NPIX;
 int NanoVis::renderWindow = 0;
 unsigned char *NanoVis::screenBuffer = NULL;
 Texture2D *NanoVis::legendTexture = NULL;
-Grid *NanoVis::grid = NULL;
 Fonts *NanoVis::fonts;
 int NanoVis::updir = Y_POS;
 NvCamera *NanoVis::cam = NULL;
@@ -147,12 +97,8 @@ VolumeRenderer *NanoVis::volRenderer = NULL;
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 NvLIC *NanoVis::licRenderer = NULL;
 PlaneRenderer *NanoVis::planeRenderer = NULL;
-#ifdef USE_POINTSET_RENDERER
-PointSetRenderer *NanoVis::pointSetRenderer = NULL;
-std::vector<PointSet *> NanoVis::pointSet;
-#endif
-
-Tcl_Interp *NanoVis::interp;
+OrientationIndicator *NanoVis::orientationIndicator = NULL;
+Grid *NanoVis::grid = NULL;
 
 // Image based flow visualization slice location
 // FLOW
@@ -212,17 +158,6 @@ NanoVis::removeAllData()
         delete [] screenBuffer;
         screenBuffer = NULL;
     }
-#ifdef USE_POINTSET_RENDERER
-    if (pointSetRenderer != NULL) {
-        TRACE("Deleting pointSetRenderer");
-        delete pointSetRenderer;
-    }
-    for (std::vector<PointSet *>::iterator itr = pointSet.begin();
-         itr != pointSet.end(); ++itr) {
-        TRACE("Deleting pointSet: %p", *itr);
-        delete (*itr);
-    }
-#endif
     if (fonts != NULL) {
         TRACE("Deleting fonts");
         delete fonts;
@@ -240,280 +175,6 @@ NanoVis::eventuallyRedraw(unsigned int flag)
         glutPostRedisplay();
         flags |= REDRAW_PENDING;
     }
-}
-
-#ifdef KEEPSTATS
-
-#ifndef STATSDIR
-#define STATSDIR	"/var/tmp/visservers"
-#endif  /*STATSDIR*/
-
-int
-NanoVis::getStatsFile(Tcl_Obj *objPtr)
-{
-    Tcl_DString ds;
-    Tcl_Obj **objv;
-    int objc;
-    int i;
-    char fileName[33];
-    const char *path;
-    md5_state_t state;
-    md5_byte_t digest[16];
-    char *string;
-    int length;
-
-    if ((objPtr == NULL) || (statsFile >= 0)) {
-        return statsFile;
-    }
-    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
-        return -1;
-    }
-    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("pid", 3));
-    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewIntObj(getpid()));
-    string = Tcl_GetStringFromObj(objPtr, &length);
-
-    md5_init(&state);
-    md5_append(&state, (const md5_byte_t *)string, length);
-    md5_finish(&state, digest);
-    for (i = 0; i < 16; i++) {
-        sprintf(fileName + i * 2, "%02x", digest[i]);
-    }
-    Tcl_DStringInit(&ds);
-    Tcl_DStringAppend(&ds, STATSDIR, -1);
-    Tcl_DStringAppend(&ds, "/", 1);
-    Tcl_DStringAppend(&ds, fileName, 32);
-    path = Tcl_DStringValue(&ds);
-
-    statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
-    Tcl_DStringFree(&ds);
-    if (statsFile < 0) {
-        ERROR("can't open \"%s\": %s", fileName, strerror(errno));
-        return -1;
-    }
-    return statsFile;
-}
-
-int
-NanoVis::writeToStatsFile(int f, const char *s, size_t length)
-{
-    if (f >= 0) {
-        ssize_t numWritten;
-
-        numWritten = write(f, s, length);
-        if (numWritten == (ssize_t)length) {
-            close(dup(f));
-        }
-    }
-    return 0;
-}
-
-static int
-serverStats(int code) 
-{
-    double start, finish;
-    char buf[BUFSIZ];
-    Tcl_DString ds;
-    int result;
-    int f;
-
-    {
-        struct timeval tv;
-
-        /* Get ending time.  */
-        gettimeofday(&tv, NULL);
-        finish = CVT2SECS(tv);
-        tv = stats.start;
-        start = CVT2SECS(tv);
-    }
-    /* 
-     * Session information:
-     *   - Name of render server
-     *   - Process ID
-     *   - Hostname where server is running
-     *   - Start date of session
-     *   - Start date of session in seconds
-     *   - Number of frames returned
-     *   - Number of bytes total returned (in frames)
-     *   - Number of commands received
-     *   - Total elapsed time of all commands
-     *   - Total elapsed time of session
-     *   - Exit code of vizserver
-     *   - User time 
-     *   - System time
-     *   - User time of children 
-     *   - System time of children
-     */ 
-
-    Tcl_DStringInit(&ds);
-    
-    Tcl_DStringAppendElement(&ds, "render_stop");
-    /* renderer */
-    Tcl_DStringAppendElement(&ds, "renderer");
-    Tcl_DStringAppendElement(&ds, "nanovis");
-    /* pid */
-    Tcl_DStringAppendElement(&ds, "pid");
-    sprintf(buf, "%d", getpid());
-    Tcl_DStringAppendElement(&ds, buf);
-    /* host */
-    Tcl_DStringAppendElement(&ds, "host");
-    gethostname(buf, BUFSIZ-1);
-    buf[BUFSIZ-1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
-    /* date */
-    Tcl_DStringAppendElement(&ds, "date");
-    strcpy(buf, ctime(&stats.start.tv_sec));
-    buf[strlen(buf) - 1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
-    /* date_secs */
-    Tcl_DStringAppendElement(&ds, "date_secs");
-    sprintf(buf, "%ld", stats.start.tv_sec);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* num_frames */
-    Tcl_DStringAppendElement(&ds, "num_frames");
-    sprintf(buf, "%lu", (unsigned long int)stats.nFrames);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* frame_bytes */
-    Tcl_DStringAppendElement(&ds, "frame_bytes");
-    sprintf(buf, "%lu", (unsigned long int)stats.nBytes);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* num_commands */
-    Tcl_DStringAppendElement(&ds, "num_commands");
-    sprintf(buf, "%lu", (unsigned long int)stats.nCommands);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* cmd_time */
-    Tcl_DStringAppendElement(&ds, "cmd_time");
-    sprintf(buf, "%g", stats.cmdTime);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* session_time */
-    Tcl_DStringAppendElement(&ds, "session_time");
-    sprintf(buf, "%g", finish - start);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* status */
-    Tcl_DStringAppendElement(&ds, "status");
-    sprintf(buf, "%d", code);
-    Tcl_DStringAppendElement(&ds, buf);
-    {
-        long clocksPerSec = sysconf(_SC_CLK_TCK);
-        double clockRes = 1.0 / clocksPerSec;
-        struct tms tms;
-
-        memset(&tms, 0, sizeof(tms));
-        times(&tms);
-        /* utime */
-        Tcl_DStringAppendElement(&ds, "utime");
-        sprintf(buf, "%g", tms.tms_utime * clockRes);
-        Tcl_DStringAppendElement(&ds, buf);
-        /* stime */
-        Tcl_DStringAppendElement(&ds, "stime");
-        sprintf(buf, "%g", tms.tms_stime * clockRes);
-        Tcl_DStringAppendElement(&ds, buf);
-        /* cutime */
-        Tcl_DStringAppendElement(&ds, "cutime");
-        sprintf(buf, "%g", tms.tms_cutime * clockRes);
-        Tcl_DStringAppendElement(&ds, buf);
-        /* cstime */
-        Tcl_DStringAppendElement(&ds, "cstime");
-        sprintf(buf, "%g", tms.tms_cstime * clockRes);
-        Tcl_DStringAppendElement(&ds, buf);
-    }
-    Tcl_DStringAppend(&ds, "\n", -1);
-    f = NanoVis::getStatsFile(NULL);
-    result = NanoVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
-                                       Tcl_DStringLength(&ds));
-    close(f);
-    Tcl_DStringFree(&ds);
-    return result;
-}
-
-#endif
-
-static void
-initService()
-{
-    TRACE("Enter");
-
-    const char* user = getenv("USER");
-    char* logName = NULL;
-    int logNameLen = 0;
-
-    if (user == NULL) {
-        logNameLen = 20+1;
-        logName = (char *)calloc(logNameLen, sizeof(char));
-        strncpy(logName, "/tmp/nanovis_log.txt", logNameLen);
-    } else {
-        logNameLen = 17+1+strlen(user);
-        logName = (char *)calloc(logNameLen, sizeof(char));
-        strncpy(logName, "/tmp/nanovis_log_", logNameLen);
-        strncat(logName, user, strlen(user));
-    }
-
-    //open log and map stderr to log file
-    NanoVis::logfile = fopen(logName, "w");
-    dup2(fileno(NanoVis::logfile), 2);
-    /* dup2(2,1); */
-
-    // clean up malloc'd memory
-    if (logName != NULL) {
-        free(logName);
-    }
-
-    TRACE("Leave");
-}
-
-static void
-exitService(int code)
-{
-    TRACE("Enter: %d", code);
-
-    NanoVis::removeAllData();
-
-    NvShader::exitCg();
-
-    //close log file
-    if (NanoVis::logfile != NULL) {
-        fclose(NanoVis::logfile);
-        NanoVis::logfile = NULL;
-    }
-
-#ifdef KEEPSTATS
-    serverStats(code);
-#endif
-    closelog();
-
-    exit(code);
-}
-
-static int
-executeCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
-{
-    struct timeval tv;
-    double start, finish;
-    int result;
-
-#ifdef WANT_TRACE
-    char *str = Tcl_DStringValue(dsPtr);
-    std::string cmd(str);
-    cmd.erase(cmd.find_last_not_of(" \n\r\t")+1);
-    TRACE("command %lu: '%s'", stats.nCommands+1, cmd.c_str());
-#endif
-
-    gettimeofday(&tv, NULL);
-    start = CVT2SECS(tv);
-
-    if (NanoVis::recfile != NULL) {
-        fprintf(NanoVis::recfile, "%s", Tcl_DStringValue(dsPtr));
-        fflush(NanoVis::recfile);
-    }
-    result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
-    Tcl_DStringSetLength(dsPtr, 0);
-
-    gettimeofday(&tv, NULL);
-    finish = CVT2SECS(tv);
-
-    stats.cmdTime += finish - start;
-    stats.nCommands++;
-    TRACE("Leave status=%d", result);
-    return result;
 }
 
 void
@@ -648,19 +309,18 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     planeRenderer->render();
 
-    // INSOO
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screenBuffer);
-    //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screenBuffer); // INSOO's
-
     {
         char prefix[200];
-        ssize_t nWritten;
 
         TRACE("Sending ppm legend image %s min:%g max:%g", volArg, min, max);
         sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
-        ppmWrite(prefix);
-        nWritten = write(1, "\n", 1);
-        assert(nWritten == 1);
+#ifdef USE_THREADS
+        queuePPM(nv::g_queue, prefix, screenBuffer, width, height);
+#else
+        writePPM(nv::g_fdOut, prefix, screenBuffer, width, height);
+#endif
     }
     planeRenderer->removePlane(index);
     resizeOffscreenBuffer(old_width, old_height);
@@ -672,7 +332,7 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
 }
 
 //initialize frame buffer objects for offscreen rendering
-void
+bool
 NanoVis::initOffscreenBuffer()
 {
     TRACE("Enter");
@@ -711,19 +371,20 @@ NanoVis::initOffscreenBuffer()
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "finalFbo");
-        exitService(3);
+        return false;
     }
 
     TRACE("Leave");
+    return true;
 }
 
 //resize the offscreen buffer 
-void 
+bool
 NanoVis::resizeOffscreenBuffer(int w, int h)
 {
     TRACE("Enter (%d, %d)", w, h);
     if ((w == winWidth) && (h == winHeight)) {
-        return;
+        return true;
     }
     winWidth = w;
     winHeight = h;
@@ -738,9 +399,9 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
         screenBuffer = NULL;
     }
 
-    screenBuffer = new unsigned char[4*winWidth*winHeight];
+    screenBuffer = new unsigned char[3*winWidth*winHeight];
     assert(screenBuffer != NULL);
-    
+
     //delete the current render buffer resources
     glDeleteTextures(1, &_finalColorTex);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _finalDepthRb);
@@ -784,7 +445,7 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "finalFbo");
-        exitService(3);
+        return false;
     }
 
     TRACE("change camera");
@@ -793,6 +454,7 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     planeRenderer->setScreenSize(winWidth, winHeight);
 
     TRACE("Leave (%d, %d)", w, h);
+    return true;
 }
 
 static
@@ -800,11 +462,11 @@ void cgErrorCallback(void)
 {
     if (!NvShader::printErrorInfo()) {
         TRACE("Cg error, exiting...");
-        exitService(-1);
+        exit(1);
     }
 }
 
-void NanoVis::init(const char* path)
+bool NanoVis::init(const char* path)
 {
     // print OpenGL driver information
     TRACE("-----------------------------------------------------------");
@@ -815,12 +477,12 @@ void NanoVis::init(const char* path)
 
     if (path == NULL) {
         ERROR("No path defined for shaders or resources");
-        exitService(1);
+        return false;
     }
     GLenum err = glewInit();
     if (GLEW_OK != err) {
         ERROR("Can't init GLEW: %s", glewGetErrorString(err));
-        exitService(1);
+        return false;
     }
     TRACE("Using GLEW %s", glewGetString(GLEW_VERSION));
 
@@ -828,14 +490,14 @@ void NanoVis::init(const char* path)
     // GLSL 1.2, and occlusion queries.
     if (!GLEW_VERSION_2_1) {
         ERROR("OpenGL version 2.1 or greater is required");
-        exitService(1);
+        return false;
     }
 
     // NVIDIA driver may report OpenGL 2.1, but not support PBOs in 
     // indirect GLX contexts
     if (!GLEW_ARB_pixel_buffer_object) {
         ERROR("Pixel buffer objects are not supported by driver, please check that the user running nanovis has permissions to create a direct rendering context (e.g. user has read/write access to /dev/nvidia* device nodes in Linux).");
-        exitService(1);
+        return false;
     }
 
     // Additional extensions not in 2.1 core
@@ -843,32 +505,32 @@ void NanoVis::init(const char* path)
     // Framebuffer objects were promoted in 3.0
     if (!GLEW_EXT_framebuffer_object) {
         ERROR("EXT_framebuffer_oject extension is required");
-        exitService(1);
+        return false;
     }
     // Rectangle textures were promoted in 3.1
     // FIXME: can use NPOT in place of rectangle textures
     if (!GLEW_ARB_texture_rectangle) {
         ERROR("ARB_texture_rectangle extension is required");
-        exitService(1);
+        return false;
     }
 #ifdef HAVE_FLOAT_TEXTURES
     // Float color buffers and textures were promoted in 3.0
     if (!GLEW_ARB_texture_float ||
         !GLEW_ARB_color_buffer_float) {
         ERROR("ARB_texture_float and ARB_color_buffer_float extensions are required");
-        exitService(1);
+        return false;
     }
 #endif
     // FIXME: should use ARB programs or (preferably) a GLSL profile for portability
     if (!GLEW_NV_vertex_program3 ||
         !GLEW_NV_fragment_program2) {
         ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required");
-        exitService(1);
+        return false;
     }
 
     if (!FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s", path);
-        exitService(1);
+        return false;
     }
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
@@ -885,13 +547,10 @@ void NanoVis::init(const char* path)
 
     grid = new Grid();
     grid->setFont(fonts);
-
-#ifdef USE_POINTSET_RENDERER
-    pointSetRenderer = new PointSetRenderer();
-#endif
+    return true;
 }
 
-void
+bool
 NanoVis::initGL()
 {
     TRACE("in initGL");
@@ -900,7 +559,7 @@ NanoVis::initGL()
         delete[] screenBuffer;
         screenBuffer = NULL;
     }
-    screenBuffer = new unsigned char[4*winWidth*winHeight];
+    screenBuffer = new unsigned char[3*winWidth*winHeight];
     assert(screenBuffer != NULL);
 
     //create the camera with default setting
@@ -926,398 +585,23 @@ NanoVis::initGL()
     glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
     glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);
 
-    initOffscreenBuffer();    //frame buffer object for offscreen rendering
+    //frame buffer object for offscreen rendering
+    if (!initOffscreenBuffer()) {
+        return false;
+    }
 
-    //create volume renderer
     volRenderer = new VolumeRenderer();
 
-    // create
     renderContext = new RenderContext();
 
-    //create a 2D plane renderer
     planeRenderer = new PlaneRenderer(winWidth, winHeight);
+
+    orientationIndicator = new OrientationIndicator();
 
     //assert(glGetError()==0);
 
     TRACE("leaving initGL");
-}
-
-// used internally to build up the BMP file header
-// Writes an integer value into the header data structure at pos
-static inline void
-bmpHeaderAddInt(unsigned char* header, int& pos, int data)
-{
-#ifdef WORDS_BIGENDIAN
-    header[pos++] = (data >> 24) & 0xFF;
-    header[pos++] = (data >> 16) & 0xFF;
-    header[pos++] = (data >> 8)  & 0xFF;
-    header[pos++] = (data)       & 0xFF;
-#else
-    header[pos++] = data & 0xff;
-    header[pos++] = (data >> 8) & 0xff;
-    header[pos++] = (data >> 16) & 0xff;
-    header[pos++] = (data >> 24) & 0xff;
-#endif
-}
-
-// INSOO
-// FOR DEBUGGING
-void
-NanoVis::bmpWriteToFile(int frame_number, const char *directory_name)
-{
-    unsigned char header[SIZEOF_BMP_HEADER];
-    int pos = 0;
-    header[pos++] = 'B';
-    header[pos++] = 'M';
-
-    // BE CAREFUL:  BMP files must have an even multiple of 4 bytes
-    // on each scan line.  If need be, we add padding to each line.
-    int pad = 0;
-    if ((3*winWidth) % 4 > 0) {
-        pad = 4 - ((3*winWidth) % 4);
-    }
-
-    // file size in bytes
-    int fsize = (3*winWidth+pad)*winHeight + SIZEOF_BMP_HEADER;
-    bmpHeaderAddInt(header, pos, fsize);
-
-    // reserved value (must be 0)
-    bmpHeaderAddInt(header, pos, 0);
-
-    // offset in bytes to start of bitmap data
-    bmpHeaderAddInt(header, pos, SIZEOF_BMP_HEADER);
-
-    // size of the BITMAPINFOHEADER
-    bmpHeaderAddInt(header, pos, 40);
-
-    // width of the image in pixels
-    bmpHeaderAddInt(header, pos, winWidth);
-
-    // height of the image in pixels
-    bmpHeaderAddInt(header, pos, winHeight);
-
-    // 1 plane + (24 bits/pixel << 16)
-    bmpHeaderAddInt(header, pos, 1572865);
-
-    // no compression
-    // size of image for compression
-    bmpHeaderAddInt(header, pos, 0);
-    bmpHeaderAddInt(header, pos, 0);
-
-    // x pixels per meter
-    // y pixels per meter
-    bmpHeaderAddInt(header, pos, 0);
-    bmpHeaderAddInt(header, pos, 0);
-
-    // number of colors used (0 = compute from bits/pixel)
-    // number of important colors (0 = all colors important)
-    bmpHeaderAddInt(header, pos, 0);
-    bmpHeaderAddInt(header, pos, 0);
-
-    // BE CAREFUL: BMP format wants BGR ordering for screen data
-    unsigned char* scr = screenBuffer;
-    for (int row=0; row < winHeight; row++) {
-        for (int col=0; col < winWidth; col++) {
-            unsigned char tmp = scr[2];
-            scr[2] = scr[0];  // B
-            scr[0] = tmp;     // R
-            scr += 3;
-        }
-        scr += pad;  // skip over padding already in screen data
-    }
-
-    FILE* f;
-    char filename[100];
-    if (frame_number >= 0) {
-        if (directory_name)
-            sprintf(filename, "%s/image%03d.bmp", directory_name, frame_number);
-        else
-            sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
-
-        TRACE("Writing %s", filename);
-        f = fopen(filename, "wb");
-        if (f == 0) {
-            ERROR("cannot create file");
-        }
-    } else {
-        f = fopen("/tmp/image.bmp", "wb");
-        if (f == 0) {
-            ERROR("cannot create file");
-        }
-    }
-    if (fwrite(header, SIZEOF_BMP_HEADER, 1, f) != 1) {
-        ERROR("can't write header: short write");
-    }
-    if (fwrite(screenBuffer, (3*winWidth+pad)*winHeight, 1, f) != 1) {
-        ERROR("can't write data: short write");
-    }
-    fclose(f);
-}
-
-void
-NanoVis::bmpWrite(const char *prefix)
-{
-    unsigned char header[SIZEOF_BMP_HEADER];
-    ssize_t nWritten;
-    int pos = 0;
-
-    // BE CAREFUL:  BMP files must have an even multiple of 4 bytes
-    // on each scan line.  If need be, we add padding to each line.
-    int pad = 0;
-    if ((3*winWidth) % 4 > 0) {
-        pad = 4 - ((3*winWidth) % 4);
-    }
-    pad = 0;
-    int fsize = (3*winWidth+pad)*winHeight + sizeof(header);
-
-    char string[200];
-    sprintf(string, "%s %d\n", prefix, fsize);
-    nWritten = write(1, string, strlen(string));
-    assert(nWritten == (ssize_t)strlen(string));
-    header[pos++] = 'B';
-    header[pos++] = 'M';
-
-    // file size in bytes
-    bmpHeaderAddInt(header, pos, fsize);
-
-    // reserved value (must be 0)
-    bmpHeaderAddInt(header, pos, 0);
-
-    // offset in bytes to start of bitmap data
-    bmpHeaderAddInt(header, pos, SIZEOF_BMP_HEADER);
-
-    // size of the BITMAPINFOHEADER
-    bmpHeaderAddInt(header, pos, 40);
-
-    // width of the image in pixels
-    bmpHeaderAddInt(header, pos, winWidth);
-
-    // height of the image in pixels
-    bmpHeaderAddInt(header, pos, winHeight);
-
-    // 1 plane + (24 bits/pixel << 16)
-    bmpHeaderAddInt(header, pos, 1572865);
-
-    // no compression
-    // size of image for compression
-    bmpHeaderAddInt(header, pos, 0);
-    bmpHeaderAddInt(header, pos, 0);
-
-    // x pixels per meter
-    // y pixels per meter
-    bmpHeaderAddInt(header, pos, 0);
-    bmpHeaderAddInt(header, pos, 0);
-
-    // number of colors used (0 = compute from bits/pixel)
-    // number of important colors (0 = all colors important)
-    bmpHeaderAddInt(header, pos, 0);
-    bmpHeaderAddInt(header, pos, 0);
-
-    // BE CAREFUL: BMP format wants BGR ordering for screen data
-    unsigned char* scr = screenBuffer;
-    for (int row=0; row < winHeight; row++) {
-        for (int col=0; col < winWidth; col++) {
-            unsigned char tmp = scr[2];
-            scr[2] = scr[0];  // B
-            scr[0] = tmp;     // R
-            scr += 3;
-        }
-        scr += pad;  // skip over padding already in screen data
-    }
-
-    nWritten = write(1, header, SIZEOF_BMP_HEADER);
-    assert(nWritten == SIZEOF_BMP_HEADER);
-    nWritten = write(1, screenBuffer, (3*winWidth+pad)*winHeight);
-    assert(nWritten == (3*winWidth+pad)*winHeight);
-    stats.nFrames++;
-    stats.nBytes += (3*winWidth+pad)*winHeight;
-}
-
-/*
- * ppmWrite --
- *
- *  Writes the screen image as PPM binary data to the nanovisviewer
- *  client.  The PPM binary format is very simple.
- *
- *      P6 w h 255\n
- *      3-byte RGB pixel data.
- *
- *  The nanovisviewer client (using the TkImg library) will do less work
- *  to unpack this format, as opposed to BMP or PNG.  (This doesn't
- *  eliminate the need to look into DXT compression performed on the GPU).
- *
- *      Note that currently the image data from the screen is both row-padded
- *      and the scan lines are reversed.  This routine could be made even
- *      simpler (faster) if the screen buffer is an array of packed 3-bytes
- *      per pixels (no padding) and where the origin is the top-left corner.
- */
-void
-NanoVis::ppmWrite(const char *prefix)
-{
-#define PPM_MAXVAL 255
-    char header[200];
-
-    TRACE("Enter (%dx%d)", winWidth, winHeight);
-    // Generate the PPM binary file header
-    sprintf(header, "P6 %d %d %d\n", winWidth, winHeight, PPM_MAXVAL);
-
-    size_t header_length = strlen(header);
-    size_t data_length = winWidth * winHeight * 3;
-
-    char command[200];
-    sprintf(command, "%s %lu\n", prefix, 
-            (unsigned long)header_length + data_length);
-
-    size_t wordsPerRow = (winWidth * 24 + 31) / 32;
-    size_t bytesPerRow = wordsPerRow * 4;
-    size_t rowLength = winWidth * 3;
-    size_t nRecs = winHeight + 2;
-
-    struct iovec *iov;
-    iov = (struct iovec *)malloc(sizeof(struct iovec) * nRecs);
-
-    // Write the nanovisviewer command, then the image header and data.
-    // Command
-    iov[0].iov_base = command;
-    iov[0].iov_len = strlen(command);
-    // Header of image data
-    iov[1].iov_base = header;
-    iov[1].iov_len = header_length;
-    // Image data.
-    int y;
-    unsigned char *srcRowPtr = screenBuffer;
-    for (y = winHeight + 1; y >= 2; y--) {
-        iov[y].iov_base = srcRowPtr;
-        iov[y].iov_len = rowLength;
-        srcRowPtr += bytesPerRow;
-    }
-    if (writev(1, iov, nRecs) < 0) {
-        ERROR("write failed: %s", strerror(errno));
-    }
-    free(iov);
-    stats.nFrames++;
-    stats.nBytes += (bytesPerRow * winHeight);
-    TRACE("Leave (%dx%d)", winWidth, winHeight);
-}
-
-void
-NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
-{
-    size_t numRecords = 2;
-
-    struct iovec *iov = new iovec[numRecords];
-
-    // Write the nanovisviewer command, then the image header and data.
-    // Command
-    // FIXME: shouldn't have to cast this
-    iov[0].iov_base = (char *)command;
-    iov[0].iov_len = strlen(command);
-    // Data
-    // FIXME: shouldn't have to cast this
-    iov[1].iov_base = (char *)data;
-    iov[1].iov_len = dlen;
-    if (writev(1, iov, numRecords) < 0) {
-        ERROR("write failed: %s", strerror(errno));
-    }
-    delete [] iov;
-}
-
-void
-NanoVis::idle()
-{
-    TRACE("Enter");
-
-    glutSetWindow(renderWindow);
-
-    processCommands();
-
-    TRACE("Leave");
-}
-
-void 
-NanoVis::draw3dAxis()
-{
-    glPushAttrib(GL_ENABLE_BIT);
-
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_COLOR_MATERIAL);
-    glDisable(GL_BLEND);
-
-    //draw axes
-    GLUquadric *obj;
-
-    obj = gluNewQuadric();
-
-    int segments = 50;
-
-    glColor3f(0.8, 0.8, 0.8);
-    glPushMatrix();
-    glTranslatef(0.4, 0., 0.);
-    glRotatef(90, 1, 0, 0);
-    glRotatef(180, 0, 1, 0);
-    glScalef(0.0005, 0.0005, 0.0005);
-    glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0., 0.4, 0.);
-    glRotatef(90, 1, 0, 0);
-    glRotatef(180, 0, 1, 0);
-    glScalef(0.0005, 0.0005, 0.0005);
-    glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0., 0., 0.4);
-    glRotatef(90, 1, 0, 0);
-    glRotatef(180, 0, 1, 0);
-    glScalef(0.0005, 0.0005, 0.0005);
-    glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
-    glPopMatrix();
-
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-
-    //glColor3f(0.2, 0.2, 0.8);
-    glPushMatrix();
-    glutSolidSphere(0.02, segments, segments );
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(-90, 1, 0, 0);
-    gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0., 0.3, 0.);
-    glRotatef(-90, 1, 0, 0);
-    gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-    glPopMatrix();
-
-    glPushMatrix();
-    glRotatef(90, 0, 1, 0);
-    gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0.3, 0., 0.);
-    glRotatef(90, 0, 1, 0);
-    gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-    glPopMatrix();
-
-    glPushMatrix();
-    gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0., 0., 0.3);
-    gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-    glPopMatrix();
-
-    gluDeleteQuadric(obj);
-
-    glPopAttrib();
+    return true;
 }
 
 void NanoVis::update()
@@ -1578,6 +862,16 @@ NanoVis::setBgColor(float color[3])
     glClearColor(color[0], color[1], color[2], 1);
 }
 
+void 
+NanoVis::removeVolume(Volume *volume)
+{
+    VolumeHashmap::iterator itr = volumeTable.find(volume->name());
+    if (itr != volumeTable.end()) {
+        volumeTable.erase(itr);
+    }
+    delete volume;
+}
+
 Flow *
 NanoVis::getFlow(const char *name)
 {
@@ -1828,25 +1122,18 @@ NanoVis::render()
     }
 
     //now render things in the scene
-    if (axisOn) {
-        draw3dAxis();
-    }
-    if (grid->isVisible()) {
-        grid->render();
-    }
+
+    orientationIndicator->render();
+    grid->render();
     if ((licRenderer != NULL) && (licRenderer->active())) {
         licRenderer->render();
     }
     if ((velocityArrowsSlice != NULL) && (velocityArrowsSlice->enabled())) {
         velocityArrowsSlice->render();
     }
-    if (!flowTable.empty()) {
-        renderFlows();
-    }
-
+    renderFlows();
     volRenderer->renderAll();
 
-    TRACE("Render heightmaps");
     HeightMapHashmap::iterator itr;
     for (itr = heightMapTable.begin();
          itr != heightMapTable.end(); ++itr) {
@@ -1859,254 +1146,4 @@ NanoVis::render()
 
     CHECK_FRAMEBUFFER_STATUS();
     TRACE("Leave");
-}
-
-void 
-NanoVis::processCommands()
-{
-    flags &= ~REDRAW_PENDING;
-
-    TRACE("Enter");
-
-    int flags = fcntl(0, F_GETFL, 0);
-    fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
-
-    int status = TCL_OK;
-
-    //  Read and execute as many commands as we can from stdin...
-    Tcl_DString cmdbuffer;
-    Tcl_DStringInit(&cmdbuffer);
-    int nCommands = 0;
-    bool isComplete = false;
-    while ((!feof(NanoVis::stdin)) && (status == TCL_OK)) {
-        //
-        //  Read the next command from the buffer.  First time through we
-        //  block here and wait if necessary until a command comes in.
-        //
-        //  BE CAREFUL: Read only one command, up to a newline.  The "volume
-        //  data follows" command needs to be able to read the data
-        //  immediately following the command, and we shouldn't consume it
-        //  here.
-        //
-        while (!feof(NanoVis::stdin)) {
-            int c = fgetc(NanoVis::stdin);
-            char ch;
-            if (c <= 0) {
-                if (errno == EWOULDBLOCK) {
-                    break;
-                }
-                exitService(100);
-            }
-            ch = (char)c;
-            Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-            if (ch == '\n') {
-                isComplete = Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer));
-                if (isComplete) {
-                    break;
-                }
-            }
-        }
-        // no command? then we're done for now
-        if (Tcl_DStringLength(&cmdbuffer) == 0) {
-            break;
-        }
-        if (isComplete) {
-            // back to original flags during command evaluation...
-            fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
-            status = executeCommand(interp, &cmdbuffer);
-            // non-blocking for next read -- we might not get anything
-            fcntl(0, F_SETFL, flags | O_NONBLOCK);
-            isComplete = false;
-            nCommands++;
-            CHECK_FRAMEBUFFER_STATUS();
-        }
-    }
-    fcntl(0, F_SETFL, flags);
-
-    if (status != TCL_OK) {
-        char *msg;
-        char hdr[200];
-        int msgSize, hdrSize;
-        Tcl_Obj *objPtr;
-
-        objPtr = Tcl_GetObjResult(interp);
-        msg = Tcl_GetStringFromObj(objPtr, &msgSize);
-        hdrSize = sprintf(hdr, "nv>viserror -type internal_error -bytes %d\n", msgSize);
-        {
-            struct iovec iov[2];
-
-            iov[0].iov_base = hdr;
-            iov[0].iov_len = hdrSize;
-            iov[1].iov_base = msg;
-            iov[1].iov_len = msgSize;
-            if (writev(1, iov, 2) < 0) {
-                ERROR("write failed: %s", strerror(errno));
-            }
-        }
-        TRACE("Leaving on ERROR");
-        return;
-    }
-    if (feof(NanoVis::stdin)) {
-        TRACE("Exiting server on EOF from client");
-        exitService(90);
-    }
-
-    update();
-
-    bindOffscreenBuffer();  //enable offscreen render
-    render();
-    readScreen();
-
-    if (feof(NanoVis::stdin)) {
-        exitService(90);
-    }
-
-    ppmWrite("nv>image -type image -bytes");
-
-    TRACE("Leave");
-}
-
-int 
-main(int argc, char **argv)
-{
-    const char *path;
-    char *newPath;
-
-    newPath = NULL;
-    path = NULL;
-    NanoVis::stdin = stdin;
-
-    fprintf(stdout, "NanoVis %s (build %s)\n", NANOVIS_VERSION, SVN_VERSION);
-    fflush(stdout);
-
-    openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID, LOG_USER);
-    gettimeofday(&NanoVis::startTime, NULL);
-    stats.start = NanoVis::startTime;
-
-    /* Initialize GLUT here so it can parse and remove GLUT-specific 
-     * command-line options before we parse the command-line below. */
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(NanoVis::winWidth, NanoVis::winHeight);
-    glutInitWindowPosition(10, 10);
-    NanoVis::renderWindow = glutCreateWindow("nanovis");
-    glutIdleFunc(NanoVis::idle);
-
-    glutDisplayFunc(NanoVis::render);
-    glutReshapeFunc(NanoVis::resizeOffscreenBuffer);
-
-    while (1) {
-        static struct option long_options[] = {
-            {"infile",  required_argument, NULL, 0},
-            {"path",    required_argument, NULL, 2},
-            {"debug",   no_argument,       NULL, 3},
-            {"record",  required_argument, NULL, 4},
-            {0, 0, 0, 0}
-        };
-        int option_index = 0;
-        int c;
-
-        c = getopt_long(argc, argv, ":dp:i:l:r:", long_options, &option_index);
-        if (c == -1) {
-            break;
-        }
-        switch (c) {
-        case '?':
-            fprintf(stderr, "unknown option -%c\n", optopt);
-            return 1;
-        case ':':
-            if (optopt < 4) {
-                fprintf(stderr, "argument missing for --%s option\n", 
-                        long_options[optopt].name);
-            } else {
-                fprintf(stderr, "argument missing for -%c option\n", optopt);
-            }
-            return 1;
-        case 2:
-        case 'p':
-            path = optarg;
-            break;
-        case 3:
-        case 'd':
-            NanoVis::debugFlag = true;
-            break;
-        case 0:
-        case 'i':
-            NanoVis::stdin = fopen(optarg, "r");
-            if (NanoVis::stdin == NULL) {
-                perror(optarg);
-                return 2;
-            }
-            break;
-        case 4:
-        case 'r':
-            Tcl_DString ds;
-            char buf[200];
-
-            Tcl_DStringInit(&ds);
-            Tcl_DStringAppend(&ds, optarg, -1);
-            sprintf(buf, ".%d", getpid());
-            Tcl_DStringAppend(&ds, buf, -1);
-            NanoVis::recfile = fopen(Tcl_DStringValue(&ds), "w");
-            if (NanoVis::recfile == NULL) {
-                perror(optarg);
-                return 2;
-            }
-            break;
-        default:
-            fprintf(stderr,"unknown option '%c'.\n", c);
-            return 1;
-        }
-    }     
-    if (path == NULL) {
-        char *p;
-
-        // See if we can derive the path from the location of the program.
-        // Assume program is in the form <path>/bin/nanovis.
-        path = argv[0];
-        p = strrchr((char *)path, '/');
-        if (p != NULL) {
-            *p = '\0';
-            p = strrchr((char *)path, '/');
-        }
-        if (p == NULL) {
-            TRACE("path not specified");
-            return 1;
-        }
-        *p = '\0';
-        newPath = new char[(strlen(path) + 15) * 2 + 1];
-        sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
-        path = newPath;
-    }
-
-    FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
-
-#ifdef notdef
-    signal(SIGPIPE, SIG_IGN);
-#endif
-    initService();
-
-    NanoVis::init(path);
-    if (newPath != NULL) {
-        delete [] newPath;
-    }
-    NanoVis::initGL();
-
-    NanoVis::interp = initTcl();
-
-    NanoVis::resizeOffscreenBuffer(NanoVis::winWidth, NanoVis::winHeight);
-
-    glutMainLoop();
-
-    exitService(80);
-}
-
-void 
-NanoVis::removeVolume(Volume *volume)
-{
-    VolumeHashmap::iterator itr = volumeTable.find(volume->name());
-    if (itr != volumeTable.end()) {
-        volumeTable.erase(itr);
-    }
-    delete volume;
 }

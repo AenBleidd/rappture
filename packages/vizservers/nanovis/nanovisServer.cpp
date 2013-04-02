@@ -1,0 +1,731 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ */
+
+#include <cassert>
+#include <cstdio>
+#include <cerrno>
+#include <cstring>
+#include <csignal>
+
+#include <fcntl.h>
+#include <getopt.h>
+#include <sys/time.h>
+#include <sys/times.h>
+#include <sys/uio.h> // for readv/writev
+#include <unistd.h>
+
+#include <sstream>
+
+#include <tcl.h>
+
+#include <GL/glew.h>
+#include <GL/glut.h>
+
+#include <util/FilePath.h>
+
+#include "nanovis.h"
+#include "nanovisServer.h"
+#include "define.h"
+#include "Command.h"
+#include "PPMWriter.h"
+#include "ReadBuffer.h"
+#include "NvShader.h"
+#ifdef USE_THREADS
+#include <pthread.h>
+#include "ResponseQueue.h"
+#endif
+#include "Trace.h"
+
+using namespace nv;
+using namespace nv::util;
+
+Stats nv::g_stats;
+int nv::g_statsFile = -1; ///< Stats output file descriptor.
+
+int nv::g_fdIn = STDIN_FILENO;     ///< Input file descriptor
+int nv::g_fdOut = STDOUT_FILENO;   ///< Output file descriptor
+FILE *nv::g_fIn = stdin;           ///< Input file handle
+FILE *nv::g_fOut = stdout;         ///< Output file handle
+FILE *nv::g_fLog = NULL;           ///< Trace logging file handle
+ReadBuffer *nv::g_inBufPtr = NULL; ///< Socket read buffer
+#ifdef USE_THREADS
+ResponseQueue *nv::g_queue = NULL;
+#endif
+
+#ifdef USE_THREADS
+
+static void
+queueFrame(ResponseQueue *queue, unsigned char *imgData)
+{
+    queuePPM(queue, "nv>image -type image -bytes",
+             imgData,
+             NanoVis::winWidth,
+             NanoVis::winHeight);
+}
+
+#else
+
+static void
+writeFrame(int fd, unsigned char *imgData)
+{
+    writePPM(fd, "nv>image -type image -bytes",
+             imgData,
+             NanoVis::winWidth,
+             NanoVis::winHeight);
+}
+
+#endif /*USE_THREADS*/
+
+static int
+sendAck()
+{
+    std::ostringstream oss;
+    oss << "nv>ok -token " << g_stats.nCommands <<  "\n";
+    int nBytes = oss.str().length();
+
+    TRACE("Sending OK for commands through %lu", g_stats.nCommands);
+#ifdef USE_THREADS
+    queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::OK);
+#else
+    if (write(g_fdOut, oss.str().c_str(), nBytes) < 0) {
+        ERROR("write failed: %s", strerror(errno));
+        return -1;
+    }
+#endif
+    return 0;
+}
+
+#ifdef KEEPSTATS
+
+#ifndef STATSDIR
+#define STATSDIR	"/var/tmp/visservers"
+#endif  /*STATSDIR*/
+
+int
+nv::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
+{
+    Tcl_DString ds;
+    Tcl_Obj **objv;
+    int objc;
+    int i;
+    char fileName[33];
+    const char *path;
+    md5_state_t state;
+    md5_byte_t digest[16];
+    char *string;
+    int length;
+
+    if ((objPtr == NULL) || (g_statsFile >= 0)) {
+        return g_statsFile;
+    }
+    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
+        return -1;
+    }
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("pid", 3));
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewIntObj(getpid()));
+    string = Tcl_GetStringFromObj(objPtr, &length);
+
+    md5_init(&state);
+    md5_append(&state, (const md5_byte_t *)string, length);
+    md5_finish(&state, digest);
+    for (i = 0; i < 16; i++) {
+        sprintf(fileName + i * 2, "%02x", digest[i]);
+    }
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppend(&ds, STATSDIR, -1);
+    Tcl_DStringAppend(&ds, "/", 1);
+    Tcl_DStringAppend(&ds, fileName, 32);
+    path = Tcl_DStringValue(&ds);
+
+    g_statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
+    Tcl_DStringFree(&ds);
+    if (g_statsFile < 0) {
+        ERROR("can't open \"%s\": %s", fileName, strerror(errno));
+        return -1;
+    }
+    return g_statsFile;
+}
+
+int
+nv::writeToStatsFile(int f, const char *s, size_t length)
+{
+    if (f >= 0) {
+        ssize_t numWritten;
+
+        numWritten = write(f, s, length);
+        if (numWritten == (ssize_t)length) {
+            close(dup(f));
+        }
+    }
+    return 0;
+}
+
+static int
+serverStats(int code) 
+{
+    double start, finish;
+    char buf[BUFSIZ];
+    Tcl_DString ds;
+    int result;
+    int f;
+
+    {
+        struct timeval tv;
+
+        /* Get ending time.  */
+        gettimeofday(&tv, NULL);
+        finish = CVT2SECS(tv);
+        tv = g_stats.start;
+        start = CVT2SECS(tv);
+    }
+    /* 
+     * Session information:
+     *   - Name of render server
+     *   - Process ID
+     *   - Hostname where server is running
+     *   - Start date of session
+     *   - Start date of session in seconds
+     *   - Number of frames returned
+     *   - Number of bytes total returned (in frames)
+     *   - Number of commands received
+     *   - Total elapsed time of all commands
+     *   - Total elapsed time of session
+     *   - Exit code of vizserver
+     *   - User time 
+     *   - System time
+     *   - User time of children 
+     *   - System time of children
+     */ 
+
+    Tcl_DStringInit(&ds);
+    
+    Tcl_DStringAppendElement(&ds, "render_stop");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "nanovis");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
+    strcpy(buf, ctime(&g_stats.start.tv_sec));
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", g_stats.start.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_frames */
+    Tcl_DStringAppendElement(&ds, "num_frames");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nFrames);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* frame_bytes */
+    Tcl_DStringAppendElement(&ds, "frame_bytes");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nFrameBytes);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_commands */
+    Tcl_DStringAppendElement(&ds, "num_commands");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nCommands);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* cmd_time */
+    Tcl_DStringAppendElement(&ds, "cmd_time");
+    sprintf(buf, "%g", g_stats.cmdTime);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* session_time */
+    Tcl_DStringAppendElement(&ds, "session_time");
+    sprintf(buf, "%g", finish - start);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* status */
+    Tcl_DStringAppendElement(&ds, "status");
+    sprintf(buf, "%d", code);
+    Tcl_DStringAppendElement(&ds, buf);
+    {
+        long clocksPerSec = sysconf(_SC_CLK_TCK);
+        double clockRes = 1.0 / clocksPerSec;
+        struct tms tms;
+
+        memset(&tms, 0, sizeof(tms));
+        times(&tms);
+        /* utime */
+        Tcl_DStringAppendElement(&ds, "utime");
+        sprintf(buf, "%g", tms.tms_utime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+        /* stime */
+        Tcl_DStringAppendElement(&ds, "stime");
+        sprintf(buf, "%g", tms.tms_stime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+        /* cutime */
+        Tcl_DStringAppendElement(&ds, "cutime");
+        sprintf(buf, "%g", tms.tms_cutime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+        /* cstime */
+        Tcl_DStringAppendElement(&ds, "cstime");
+        sprintf(buf, "%g", tms.tms_cstime * clockRes);
+        Tcl_DStringAppendElement(&ds, buf);
+    }
+    Tcl_DStringAppend(&ds, "\n", -1);
+    f = getStatsFile(NULL, NULL);
+    result = writeToStatsFile(f, Tcl_DStringValue(&ds), 
+                              Tcl_DStringLength(&ds));
+    close(f);
+    Tcl_DStringFree(&ds);
+    return result;
+}
+
+#endif
+
+void
+nv::sendDataToClient(const char *command, const char *data, size_t dlen)
+{
+#ifdef USE_THREADS
+    char *buf = (char *)malloc(strlen(command) + dlen);
+    memcpy(buf, command, strlen(command));
+    memcpy(buf + strlen(command), data, dlen);
+    queueResponse(buf, strlen(command) + dlen, Response::DYNAMIC);
+#else
+    size_t numRecords = 2;
+    struct iovec *iov = new iovec[numRecords];
+
+    // Write the nanovisviewer command, then the image header and data.
+    // Command
+    iov[0].iov_base = const_cast<char *>(command);
+    iov[0].iov_len = strlen(command);
+    // Data
+    iov[1].iov_base = const_cast<char *>(data);
+    iov[1].iov_len = dlen;
+    if (writev(nv::g_fdOut, iov, numRecords) < 0) {
+        ERROR("write failed: %s", strerror(errno));
+    }
+    delete [] iov;
+#endif
+}
+
+static void
+initService()
+{
+    TRACE("Enter");
+
+    const char* user = getenv("USER");
+    char* logName = NULL;
+    int logNameLen = 0;
+
+    if (user == NULL) {
+        logNameLen = 20+1;
+        logName = (char *)calloc(logNameLen, sizeof(char));
+        strncpy(logName, "/tmp/nanovis_log.txt", logNameLen);
+    } else {
+        logNameLen = 17+1+strlen(user);
+        logName = (char *)calloc(logNameLen, sizeof(char));
+        strncpy(logName, "/tmp/nanovis_log_", logNameLen);
+        strncat(logName, user, strlen(user));
+    }
+
+    // open log and map stderr to log file
+    g_fLog = fopen(logName, "w");
+    close(STDERR_FILENO);
+    dup2(fileno(g_fLog), STDERR_FILENO);
+    // flush junk
+    fflush(stderr);
+
+    // clean up malloc'd memory
+    if (logName != NULL) {
+        free(logName);
+    }
+
+    TRACE("Leave");
+}
+
+static void
+exitService(int code)
+{
+    TRACE("Enter: %d", code);
+
+    NanoVis::removeAllData();
+
+    NvShader::exitCg();
+
+    //close log file
+    if (g_fLog != NULL) {
+        fclose(g_fLog);
+        g_fLog = NULL;
+    }
+
+#ifdef KEEPSTATS
+    serverStats(code);
+#endif
+    closelog();
+
+    exit(code);
+}
+
+#if 0
+static int
+executeCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
+{
+    struct timeval tv;
+    double start, finish;
+    int result;
+
+#ifdef WANT_TRACE
+    char *str = Tcl_DStringValue(dsPtr);
+    std::string cmd(str);
+    cmd.erase(cmd.find_last_not_of(" \n\r\t")+1);
+    TRACE("command %lu: '%s'", g_stats.nCommands+1, cmd.c_str());
+#endif
+
+    gettimeofday(&tv, NULL);
+    start = CVT2SECS(tv);
+
+    result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
+    Tcl_DStringSetLength(dsPtr, 0);
+
+    gettimeofday(&tv, NULL);
+    finish = CVT2SECS(tv);
+
+    g_stats.cmdTime += finish - start;
+    g_stats.nCommands++;
+    TRACE("Leave status=%d", result);
+    return result;
+}
+
+static void 
+processCommands()
+{
+    flags &= ~REDRAW_PENDING;
+
+    TRACE("Enter");
+
+    int flags = fcntl(0, F_GETFL, 0);
+    fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
+
+    int status = TCL_OK;
+
+    //  Read and execute as many commands as we can from stdin...
+    Tcl_DString cmdbuffer;
+    Tcl_DStringInit(&cmdbuffer);
+    int nCommands = 0;
+    bool isComplete = false;
+    while ((!feof(g_fIn)) && (status == TCL_OK)) {
+        //
+        //  Read the next command from the buffer.  First time through we
+        //  block here and wait if necessary until a command comes in.
+        //
+        //  BE CAREFUL: Read only one command, up to a newline.  The "volume
+        //  data follows" command needs to be able to read the data
+        //  immediately following the command, and we shouldn't consume it
+        //  here.
+        //
+        while (!feof(g_fIn)) {
+            int c = fgetc(g_fIn);
+            char ch;
+            if (c <= 0) {
+                if (errno == EWOULDBLOCK) {
+                    break;
+                }
+                exitService(100);
+            }
+            ch = (char)c;
+            Tcl_DStringAppend(&cmdbuffer, &ch, 1);
+            if (ch == '\n') {
+                isComplete = Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer));
+                if (isComplete) {
+                    break;
+                }
+            }
+        }
+        // no command? then we're done for now
+        if (Tcl_DStringLength(&cmdbuffer) == 0) {
+            break;
+        }
+        if (isComplete) {
+            // back to original flags during command evaluation...
+            fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
+            status = executeCommand(interp, &cmdbuffer);
+            // non-blocking for next read -- we might not get anything
+            fcntl(0, F_SETFL, flags | O_NONBLOCK);
+            isComplete = false;
+            nCommands++;
+            CHECK_FRAMEBUFFER_STATUS();
+        }
+    }
+    fcntl(0, F_SETFL, flags);
+
+    if (status != TCL_OK) {
+        char *msg;
+        char hdr[200];
+        int msgSize, hdrSize;
+        Tcl_Obj *objPtr;
+
+        objPtr = Tcl_GetObjResult(interp);
+        msg = Tcl_GetStringFromObj(objPtr, &msgSize);
+        hdrSize = sprintf(hdr, "nv>viserror -type internal_error -bytes %d\n", msgSize);
+        {
+            struct iovec iov[2];
+
+            iov[0].iov_base = hdr;
+            iov[0].iov_len = hdrSize;
+            iov[1].iov_base = msg;
+            iov[1].iov_len = msgSize;
+            if (writev(1, iov, 2) < 0) {
+                ERROR("write failed: %s", strerror(errno));
+            }
+        }
+        TRACE("Leaving on ERROR");
+        return;
+    }
+    if (feof(g_fIn)) {
+        TRACE("Exiting server on EOF from client");
+        exitService(90);
+    }
+
+    update();
+
+    bindOffscreenBuffer();  //enable offscreen render
+    render();
+    readScreen();
+
+    if (feof(g_fIn)) {
+        exitService(90);
+    }
+
+    ppmWrite("nv>image -type image -bytes");
+
+    TRACE("Leave");
+}
+#endif
+
+static void
+idle()
+{
+    TRACE("Enter");
+
+    glutSetWindow(NanoVis::renderWindow);
+
+    if (processCommands(NanoVis::interp, g_inBufPtr, g_fdOut) < 0) {
+        exitService(1);
+    }
+
+    NanoVis::update();
+    NanoVis::bindOffscreenBuffer();
+    NanoVis::render();
+    bool renderedSomething = true;
+    if (renderedSomething) {
+        TRACE("Rendering new frame");
+        NanoVis::readScreen();
+#ifdef USE_THREADS
+        queueFrame(g_queue, NanoVis::screenBuffer);
+#else
+        writeFrame(g_fdOut, NanoVis::screenBuffer);
+#endif
+        g_stats.nFrames++;
+        g_stats.nFrameBytes += NanoVis::winWidth * NanoVis::winHeight * 3;
+    } else {
+        TRACE("No render required");
+        sendAck();
+    }
+
+    if (g_inBufPtr->status() == ReadBuffer::ENDFILE) {
+        exitService(0);
+    }
+
+    TRACE("Leave");
+}
+
+#ifdef USE_THREADS
+
+static void *
+writerThread(void *clientData)
+{
+    ResponseQueue *queue = (ResponseQueue *)clientData;
+
+    TRACE("Starting writer thread");
+    for (;;) {
+        Response *response = queue->dequeue();
+        if (response == NULL)
+            continue;
+        if (fwrite(response->message(), sizeof(char), response->length(),
+                   g_fOut) != response->length()) {
+            ERROR("short write while trying to write %ld bytes", 
+                  response->length());
+        }
+        fflush(g_fOut);
+        TRACE("Wrote response of type %d", response->type());
+        delete response;
+        if (feof(g_fOut))
+            break;
+    }    
+    return NULL;
+}
+
+#endif  /*USE_THREADS*/
+
+static
+void cgErrorCallback(void)
+{
+    if (!NvShader::printErrorInfo()) {
+        TRACE("Cg error, exiting...");
+        exitService(1);
+    }
+}
+
+static
+void reshape(int width, int height)
+{
+    NanoVis::resizeOffscreenBuffer(width, height);
+}
+
+int 
+main(int argc, char **argv)
+{
+    // Ignore SIGPIPE.  **Is this needed? **
+    signal(SIGPIPE, SIG_IGN);
+    initLog();
+
+    memset(&g_stats, 0, sizeof(g_stats));
+    gettimeofday(&g_stats.start, NULL);
+
+    TRACE("Starting NanoVis Server");
+
+    /* This synchronizes the client with the server, so that the client 
+     * doesn't start writing commands before the server is ready. It could
+     * also be used to supply information about the server (version, memory
+     * size, etc). */
+    fprintf(stdout, "NanoVis %s (build %s)\n", NANOVIS_VERSION, SVN_VERSION);
+    fflush(stdout);
+
+    g_inBufPtr = new ReadBuffer(g_fdIn, 1<<12);
+
+    Tcl_Interp *interp = Tcl_CreateInterp();
+    ClientData clientData = NULL;
+#ifdef USE_THREADS
+    g_queue = new ResponseQueue();
+    clientData = (ClientData)g_queue;
+    initTcl(interp, clientData);
+
+    pthread_t writerThreadId;
+    if (pthread_create(&writerThreadId, NULL, &writerThread, g_queue) < 0) {
+        ERROR("Can't create writer thread: %s", strerror(errno));
+    }
+#else
+    initTcl(interp, clientData);
+#endif
+    NanoVis::interp = interp;
+
+    /* Initialize GLUT here so it can parse and remove GLUT-specific 
+     * command-line options before we parse the command-line below. */
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitWindowSize(NanoVis::winWidth, NanoVis::winHeight);
+    glutInitWindowPosition(10, 10);
+    NanoVis::renderWindow = glutCreateWindow("nanovis");
+
+    glutIdleFunc(idle);
+    glutDisplayFunc(NanoVis::render);
+    glutReshapeFunc(reshape);
+
+    const char *path = NULL;
+    char *newPath = NULL;
+
+    while (1) {
+        static struct option long_options[] = {
+            {"infile",  required_argument, NULL, 0},
+            {"path",    required_argument, NULL, 2},
+            {"debug",   no_argument,       NULL, 3},
+            {0, 0, 0, 0}
+        };
+        int option_index = 0;
+        int c;
+
+        c = getopt_long(argc, argv, ":dp:i:l:r:", long_options, &option_index);
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+        case '?':
+            fprintf(stderr, "unknown option -%c\n", optopt);
+            return 1;
+        case ':':
+            if (optopt < 4) {
+                fprintf(stderr, "argument missing for --%s option\n", 
+                        long_options[optopt].name);
+            } else {
+                fprintf(stderr, "argument missing for -%c option\n", optopt);
+            }
+            return 1;
+        case 2:
+        case 'p':
+            path = optarg;
+            break;
+        case 3:
+        case 'd':
+            NanoVis::debugFlag = true;
+            break;
+        case 0:
+        case 'i':
+            g_fIn = fopen(optarg, "r");
+            if (g_fIn == NULL) {
+                perror(optarg);
+                return 2;
+            }
+            break;
+        default:
+            fprintf(stderr,"unknown option '%c'.\n", c);
+            return 1;
+        }
+    }     
+    if (path == NULL) {
+        char *p;
+
+        // See if we can derive the path from the location of the program.
+        // Assume program is in the form <path>/bin/nanovis.
+        path = argv[0];
+        p = strrchr((char *)path, '/');
+        if (p != NULL) {
+            *p = '\0';
+            p = strrchr((char *)path, '/');
+        }
+        if (p == NULL) {
+            TRACE("path not specified");
+            return 1;
+        }
+        *p = '\0';
+        newPath = new char[(strlen(path) + 15) * 2 + 1];
+        sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
+        path = newPath;
+    }
+
+    FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
+
+    initService();
+
+    if (!NanoVis::init(path)) {
+        exitService(1);
+    }
+    if (newPath != NULL) {
+        delete [] newPath;
+    }
+
+    // Override callback with one that cleans up server on exit
+    NvShader::setErrorCallback(cgErrorCallback);
+
+    if (!NanoVis::initGL()) {
+        exitService(1);
+    }
+
+    if (!NanoVis::resizeOffscreenBuffer(NanoVis::winWidth, NanoVis::winHeight)) {
+        exitService(1);
+    }
+
+    glutMainLoop();
+
+    exitService(0);
+}

@@ -9,6 +9,8 @@
 
 #include <float.h>
 
+#include <tcl.h>
+
 #include <rappture.h>
 
 #include "Trace.h"

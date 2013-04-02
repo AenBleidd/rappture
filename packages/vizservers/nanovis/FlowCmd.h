@@ -26,7 +26,8 @@
 
 #include <tcl.h>
 
-extern Tcl_AppInitProc FlowCmdInitProc;
+extern void FlowCmdInitProc(Tcl_Interp *interp, ClientData clientData);
+
 extern Tcl_ObjCmdProc FlowInstObjCmd;
 extern Tcl_CmdDeleteProc FlowInstDeleteProc;
 

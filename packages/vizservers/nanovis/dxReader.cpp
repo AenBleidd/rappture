@@ -42,9 +42,6 @@
 #include "Volume.h"
 #include "ZincBlendeVolume.h"
 #include "NvZincBlendeReconstructor.h"
-#ifdef USE_POINTSET_RENDERER
-#include "PointSet.h"
-#endif
 
 /**
  * \brief Load a 3D volume from a dx-format file
@@ -487,15 +484,6 @@ load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
     volume->zAxis.setRange(z0, z0 + lz);
     volume->updatePending = true;
 
-    // TBD..
-#if 0 && defined(USE_POINTSET_RENDERER)
-    PointSet *pset = new PointSet();
-    pset->initialize(volume, (float*)data);
-    pset->setVisible(true);
-    NanoVis::pointSet.push_back(pset);
-    updateColor(pset);
-    volume->pointsetIndex = NanoVis::pointSet.size() - 1;
-#endif
     delete [] data;
 
     //

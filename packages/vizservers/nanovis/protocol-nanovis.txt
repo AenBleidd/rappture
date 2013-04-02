@@ -37,12 +37,7 @@ that indicates incoming data including a byte count argument.
 ================================================================================
 Requests:
 ================================================================================
-axis visible <false|true> 
-
-grid axiscolor <red> <green> <blue> <?alpha?>
-grid axisname <x|y|z> <name> 
-grid linecolor <red> <green> <blue> <?alpha?>
-grid visible <false|true>
+axis visible <bool> 
 
 camera angle <xAngle> <yAngle> <zAngle>
        ** Deprecated, use camera orient **
@@ -52,29 +47,15 @@ camera pos <x> <y> <z>
 camera reset <?all?>
 camera zoom <factor>
 
-screen bgcolor <r> <g> <b>
-       Set screen background color
-screen size <width> <height>
-       Set size of rendered images
+clientinfo <list>
 
-snapshot
-         Render a 2k x 2k image (offscreen buffer)
-
-transfunc define <name> {colors} {alpha}
-          colors => 1 line each of "value r g b"
-          alpha => 1 line each of "value alpha"
-          value => [0,1]
-
-legend <transferfunc name> <width> <height>
-       Request render of transfer function
-
-heightmap data visible <true|false> <volume IDs>
-heightmap data follows <nbytes> <data>
-heightmap linecontour visible <true|false> <volume IDs>
-heightmap linecontour color <red> <green> <blue> <volume IDs>
-heightmap tranfunc <transfer function name> <volume IDs>
-heightmap cull <no/back/front>
-heightmap polygon <wireframe/fill> 
+cutplane position <relval> <x|y|z> <?names?>
+         Set the position of a volume cutplane.  Names is
+         an optional list of volume names.
+         relval = [0,1]
+cutplane state <bool> <x|y|z> <?names?>
+         Set the axis (normal) of a volume cutplane.  Names is
+         an optional list of volume names.
 
 flow add <name> <?option value...?>
          <name> is an object name to use in <flowObj> commands
@@ -83,8 +64,12 @@ flow add <name> <?option value...?>
          see '<flowObj> configure' for switch options
 flow delete <names>
 flow exists <name>
+     This doesn't currently produce a response, it only returns a boolean
+     within the server's interpreter
 flow goto <nSteps>
 flow names
+     This doesn't currently produce a response, it only returns a Tcl list
+     within the server's interpreter
 flow next
 flow reset
 flow video <token> <?switches...?>
@@ -105,6 +90,8 @@ flow video <token> <?switches...?>
          -linewidth <val>
 <flowObj> box delete <names>
 <flowObj> box names
+          This doesn't currently produce a response, it only returns a Tcl list
+          within the server's interpreter
 
 <flowObj> configure <?option value...?>
           -ambient <val>
@@ -112,6 +99,7 @@ flow video <token> <?switches...?>
           -axis <x|y|z>
           -diffuse <val>
           -hide <bool>
+          -light2side <bool>
           -opacity <val>
           -outline <bool>
           -position <val|%val>
@@ -138,51 +126,90 @@ flow video <token> <?switches...?>
           -size <val>
 <flowObj> particles delete <names>
 <flowObj> particles names
+          This doesn't currently produce a response, it only returns a Tcl list
+          within the server's interpreter
 
-volume data state <on|off> <?names?>
-volume data follows <size> <tag>
-volume delete <?names?>
+grid axiscolor <red> <green> <blue> <?alpha?>
+grid axisname <x|y|z> <name> <units>
+grid linecolor <red> <green> <blue> <?alpha?>
+grid visible <bool>
+
+heightmap create <heightmapName> <xMin> <yMin> <xMax> <yMax> <xNum> <yNum> <valueList>
+heightmap cull <none|back|front>
+heightmap data follows <nBytes> <heightmapName>
+          After newline following command, nBytes of data are sent
+heightmap data visible <bool> <?heightmapNames?>
+heightmap legend <heightmapName> <width> <height>
+heightmap linecontour color <red> <green> <blue> <?heightmapNames?>
+heightmap linecontour visible <bool> <?heightmapNames?>
+heightmap opacity <value> <?heightmapNames?>
+heightmap polygon <wireframe|fill> 
+          **Warning: This is a global setting**
+heightmap shading <flat|smooth>
+          **Warning: This is a global setting**
+heightmap transfunc <transferFunctionName> <?heightmapNames?>
+
+legend <transferfunc name> <width> <height>
+       Request render of transfer function
+
+screen bgcolor <r> <g> <b>
+       Set screen background color
+screen size <width> <height>
+       Set size of rendered images
+
+snapshot
+         Render a 2k x 2k image (offscreen buffer). Response image data is tagged
+         as '-type print'
+
+transfunc define <name> {colors} {alpha}
+          colors => 1 line each of "value r g b"
+          alpha => 1 line each of "value alpha"
+          value => [0,1]
+
+up <x|y|z|-x|-y|-z>
+   Set orientation of volumes
+
+volume animation capture <numframes> <?filename?>
+       This is not fully implemented.  Rendered frames are not returned
+       to the client.
+volume animation clear
+volume animation start
+volume animation stop
+volume animation volumes <?names?>
+
+volume data follows <nbytes> <name>
+volume data state <bool> <?names?>
+volume delete <names>
 volume exists <name>
-volume names <?pattern?>
+       This doesn't currently produce a response, it only returns a boolean
+       within the server's interpreter
+volume names
+       This doesn't currently produce a response, it only returns a Tcl list
+       within the server's interpreter
 volume outline color <r> <g> <b> <?names?>
-volume outline state|visible <bool> <?names?>
+volume outline state <bool> <?names?>
+volume outline visible <bool> <?names?>
 volume shading ambient <value> <?names?>
 volume shading diffuse <value> <?names?>
 volume shading isosurface <bool> <?names?>
+volume shading light2side <bool> <?names?>
 volume shading opacity <value> <?names?>
 volume shading specularExp <value> <?names?>
 volume shading specularLevel <value> <?names?>
 volume shading transfunc <tfName> <?names?>
 volume state <bool> <?names?>
 
-volume animation volumes <volume IDs>
-volume animation start
-volume animation stop
-volume animation clear
-volume animation capture numframes <filename>
-
-cutplane position <relval> <x|y|z> <?names?>
-         Set the position of a volume cutplane.  Names is
-         an optional list of volume names.
-         relval = [0,1]
-cutplane state <bool> <x|y|z> <?names?>
-         Set the axis (normal) of a volume cutplane.  Names is
-         an optional list of volume names.
-
-up <x|y|z|-x|-y|-z>
-   Set orientation of volumes
-
 ================================================================================
 Replies:
 ================================================================================
 nv>legend <volume> <min> <max> <nbytes>
-  (followed by bytes and newline)
+  (followed by bytes)
 
 nv>image -type image -bytes <nbytes>
-  (followed by bytes -- command _preceded_ by newline)
+  (followed by bytes)
 
 nv>image -type print -bytes <nbytes>
-  (followed by bytes -- command _preceded_ by newline)
+  (followed by bytes)
 
 nv>image -type movie -token <token> -bytes <nbytes>
   (followed by bytes)
@@ -190,6 +217,10 @@ nv>image -type movie -token <token> -bytes <nbytes>
 nv>data tag <dataobj-tag> min <val> max <val> vmin <val> vmax <val>
    The min,max data values for the data object and the cumulative volume data
    min,max over all volumes
+
+nv>data tag <flow-tag> min <val> max <val>
+   Sent after a "<flowObj> data follows...".  Min,max values are for the 
+   magnitude of the vector field.
 
 ================================================================================
 Error Replies:

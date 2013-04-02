@@ -56,6 +56,9 @@ HeightMap::~HeightMap()
 void 
 HeightMap::render(RenderContext *renderContext)
 {
+    if (!isVisible())
+        return;
+
     glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
 
     if (renderContext->getCullMode() == RenderContext::NO_CULL) {
