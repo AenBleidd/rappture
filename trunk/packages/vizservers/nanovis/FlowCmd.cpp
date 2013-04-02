@@ -24,9 +24,11 @@
 
 #include "nvconf.h"
 
+#include "nanovisServer.h"
 #include "nanovis.h"
 #include "CmdProc.h"
 #include "Command.h"
+#include "PPMWriter.h"
 #include "FlowCmd.h"
 #include "FlowTypes.h"
 #include "Flow.h"
@@ -40,6 +42,7 @@
 #include "Volume.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 static Rappture::SwitchParseProc AxisSwitchProc;
@@ -230,17 +233,18 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         ERROR("Bad # of components %d", nComponents);
         return TCL_ERROR;
     }
-    Rappture::Buffer buf;
+    Rappture::Buffer buf(nBytes);
     TRACE("Flow data loading bytes: %d components: %d", nBytes, nComponents);
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
+    char *bytes = (char *)buf.bytes();
+    size_t length = buf.size();
+
     Rappture::Unirect3d *dataPtr;
     dataPtr = new Rappture::Unirect3d(nComponents);
 
     Flow *flow = (Flow *)clientData;
-    size_t length = buf.size();
-    char *bytes = (char *)buf.bytes();
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
         if (!dataPtr->importDx(result, nComponents, length - 4, bytes + 4)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
@@ -291,13 +295,16 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     flow->data(dataPtr);
     {
         char info[1024];
-        ssize_t nWritten;
-        size_t length;
-
-        length = sprintf(info, "nv>data tag %s min %g max %g\n",
-                         flow->name(), dataPtr->magMin(), dataPtr->magMax());
-        nWritten  = write(1, info, length);
-        assert(nWritten == (ssize_t)strlen(info));
+        int length = 
+            sprintf(info, "nv>data tag %s min %g max %g\n",
+                    flow->name(), dataPtr->magMin(), dataPtr->magMax());
+#ifdef USE_THREADS
+        queueResponse(info, (size_t)length, Response::VOLATILE);
+#else
+        if (SocketWrite(info, (size_t)length) < 0) {
+            return TCL_ERROR;
+        }
+#endif
     }
     NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
@@ -1063,63 +1070,11 @@ static Rappture::SwitchSpec flowVideoSwitches[] = {
 };
 
 static int
-ppmWriteToFile(Tcl_Interp *interp, const char *path, FlowVideoSwitches *switchesPtr)
-{
-    int f;
-    
-    /* Open the named file for writing. */
-    f = creat(path, 0600);
-    if (f < 0) {
-        Tcl_AppendResult(interp, "can't open temporary image file \"", path,
-                         "\": ", Tcl_PosixError(interp), (char *)NULL);
-        return TCL_ERROR;
-    }
-    // Generate the PPM binary file header
-    char header[200];
-#define PPM_MAXVAL 255
-    sprintf(header, "P6 %d %d %d\n", switchesPtr->width, switchesPtr->height, 
-        PPM_MAXVAL);
-
-    size_t header_length = strlen(header);
-    size_t wordsPerRow = (switchesPtr->width * 24 + 31) / 32;
-    size_t bytesPerRow = wordsPerRow * 4;
-    size_t rowLength = switchesPtr->width * 3;
-    size_t numRecords = switchesPtr->height + 1;
-
-    struct iovec *iov;
-    iov = (struct iovec *)malloc(sizeof(struct iovec) * numRecords);
-
-    // Add the PPM image header.
-    iov[0].iov_base = header;
-    iov[0].iov_len = header_length;
-
-    // Now add the image data, reversing the order of the rows.
-    int y;
-    unsigned char *srcRowPtr = NanoVis::screenBuffer;
-    /* Reversing the pointers for the image rows.  PPM is top-to-bottom. */
-    for (y = switchesPtr->height; y >= 1; y--) {
-        iov[y].iov_base = srcRowPtr;
-        iov[y].iov_len = rowLength;
-        srcRowPtr += bytesPerRow;
-    }
-    if (writev(f, iov, numRecords) < 0) {
-        Tcl_AppendResult(interp, "writing image to \"", path, "\" failed: ", 
-                         Tcl_PosixError(interp), (char *)NULL);
-        free(iov);
-        close(f);
-        return TCL_ERROR;
-    }
-    close(f);
-    free(iov);
-    return TCL_OK;
-}
-
-static int
 MakeImageFiles(Tcl_Interp *interp, char *tmpFileName, 
                FlowVideoSwitches *switchesPtr, bool *cancelPtr)
 {
     struct pollfd pollResults;
-    pollResults.fd = fileno(NanoVis::stdin);
+    pollResults.fd = fileno(nv::g_fIn);
     pollResults.events = POLLIN;
 #define PENDING_TIMEOUT          10  /* milliseconds. */
     int timeout = PENDING_TIMEOUT;
@@ -1159,7 +1114,8 @@ MakeImageFiles(Tcl_Interp *interp, char *tmpFileName,
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
         sprintf(tmpFileName + length, "/image%d.ppm", i);
-        result = ppmWriteToFile(interp, tmpFileName, switchesPtr);
+        result = nv::writePPMFile(tmpFileName, NanoVis::screenBuffer,
+                                  switchesPtr->width, switchesPtr->height);
         if (result != TCL_OK) {
             break;
         }
@@ -1229,7 +1185,7 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
     // Send zero length to client so it can deal with error
     sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
             token, (unsigned long)data.size());
-    NanoVis::sendDataToClient(cmd, data.bytes(), data.size());
+    nv::sendDataToClient(cmd, data.bytes(), data.size());
     return TCL_OK;
 }
 
@@ -1291,7 +1247,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (int i = 1; i <= switches.numFrames; i++) {
         sprintf(tmpFileName + length, "/image%d.ppm", i);
         unlink(tmpFileName);
-    }        
+    }
     tmpFileName[length] = '\0';
     rmdir(tmpFileName);
     Rappture::FreeSwitches(flowVideoSwitches, &switches, 0);
@@ -1342,9 +1298,8 @@ FlowCmdProc(ClientData clientData, Tcl_Interp *interp, int objc,
  *    Creates the new command and adds a new entry into a global Tcl
  *    associative array.
  */
-int
-FlowCmdInitProc(Tcl_Interp *interp)
+void
+FlowCmdInitProc(Tcl_Interp *interp, ClientData clientData)
 {
-    Tcl_CreateObjCommand(interp, "flow", FlowCmdProc, NULL, NULL);
-    return TCL_OK;
+    Tcl_CreateObjCommand(interp, "flow", FlowCmdProc, clientData, NULL);
 }

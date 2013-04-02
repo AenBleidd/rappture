@@ -44,15 +44,13 @@ getline(char **stringPtr, char *endPtr)
 int
 Rappture::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 {
-    Tcl_Obj *objPtr;
-    objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+    Tcl_Obj *objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
     Tcl_Obj **objv;
     int objc;
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
         return TCL_ERROR;
     }
-    int result;
-    result = loadData(interp, objc, objv);
+    int result = loadData(interp, objc, objv);
     Tcl_DecrRefCount(objPtr);
     if ((result != TCL_OK) || (!isInitialized())) {
         return TCL_ERROR;

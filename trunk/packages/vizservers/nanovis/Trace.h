@@ -17,19 +17,36 @@
 #define NEWSTRING(x) MAKE_STRING(x)
 #define AT __FILE__ ":" NEWSTRING(__LINE__)
 
+namespace nv {
+
+extern void logUserMessage(const char* format, ...);
+
+extern const char *getUserMessages();
+
+extern void clearUserMessages();
+
+extern void initLog();
+
+extern void closeLog();
+
 extern void LogMessage(int priority, const char *funcname, const char *fileName,
                        int lineNum, const char* format, ...);
 
-#define ERROR(...)	LogMessage(LOG_ERR, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define ERROR(...)	nv::LogMessage(LOG_ERR, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 #ifdef WANT_TRACE
-#define TRACE(...)	LogMessage(LOG_DEBUG, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define TRACE(...)	nv::LogMessage(LOG_DEBUG, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 #else 
 #define TRACE(...) 
 #endif
-#define WARN(...)	LogMessage(LOG_WARNING, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
-#define INFO(...)	LogMessage(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define WARN(...)	nv::LogMessage(LOG_WARNING, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define INFO(...)	nv::LogMessage(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+
+#define USER_ERROR(...) nv::logUserMessage(__VA_ARGS__)
+
+}
 
 extern bool CheckFBO(GLenum *status);
 extern void PrintFBOStatus(GLenum status, const char *prefix);
 extern bool CheckGL(const char *prefix);
+
 #endif

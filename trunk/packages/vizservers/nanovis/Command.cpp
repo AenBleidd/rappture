@@ -44,23 +44,30 @@
 
 #include <vrmath/Vector3f.h>
 
+#include "nanovisServer.h"
 #include "nanovis.h"
+#include "ReadBuffer.h"
+#ifdef USE_THREADS
+#include "ResponseQueue.h"
+#endif
+#include "Command.h"
 #include "CmdProc.h"
 #include "FlowCmd.h"
-#include "Trace.h"
-#ifdef USE_POINTSET_RENDERER
-#include "PointSet.h"
-#endif
 #include "dxReader.h"
 #include "VtkReader.h"
+#include "BMPWriter.h"
+#include "PPMWriter.h"
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
 #include "NvZincBlendeReconstructor.h"
+#include "OrientationIndicator.h"
 #include "Unirect.h"
 #include "Volume.h"
 #include "VolumeRenderer.h"
+#include "Trace.h"
 
+using namespace nv;
 using namespace nv::graphics;
 using namespace vrmath;
 
@@ -100,6 +107,81 @@ static const char def_transfunc[] =
   0.892153 0.0\n\
   1.000000 0.0\n\
 }";
+
+static int lastCmdStatus;
+
+#ifdef USE_THREADS
+void
+nv::queueResponse(const void *bytes, size_t len, 
+                  Response::AllocationType allocType,
+                  Response::ResponseType type)
+{
+    Response *response = new Response(type);
+    response->setMessage((unsigned char *)bytes, len, allocType);
+    g_queue->enqueue(response);
+}
+#else
+
+ssize_t
+nv::SocketWrite(const void *bytes, size_t len)
+{
+    size_t ofs = 0;
+    ssize_t bytesWritten;
+    while ((bytesWritten = write(g_fdOut, (const char *)bytes + ofs, len - ofs)) > 0) {
+        ofs += bytesWritten;
+        if (ofs == len)
+            break;
+    }
+    if (bytesWritten < 0) {
+        ERROR("write: %s", strerror(errno));
+    }
+    return bytesWritten;
+}
+
+#endif  /*USE_THREADS*/
+
+bool
+nv::SocketRead(char *bytes, size_t len)
+{
+    ReadBuffer::BufferStatus status;
+    status = g_inBufPtr->followingData((unsigned char *)bytes, len);
+    TRACE("followingData status: %d", status);
+    return (status == ReadBuffer::OK);
+}
+
+bool
+nv::SocketRead(Rappture::Buffer &buf, size_t len)
+{
+    ReadBuffer::BufferStatus status;
+    status = g_inBufPtr->followingData(buf, len);
+    TRACE("followingData status: %d", status);
+    return (status == ReadBuffer::OK);
+}
+
+static int
+ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
+{
+    int result;
+#ifdef WANT_TRACE
+    char *str = Tcl_DStringValue(dsPtr);
+    std::string cmd(str);
+    cmd.erase(cmd.find_last_not_of(" \n\r\t")+1);
+    TRACE("command %lu: '%s'", g_stats.nCommands+1, cmd.c_str());
+#endif
+    lastCmdStatus = TCL_OK;
+    result = Tcl_EvalEx(interp, Tcl_DStringValue(dsPtr), 
+                        Tcl_DStringLength(dsPtr), 
+                        TCL_EVAL_DIRECT | TCL_EVAL_GLOBAL);
+    Tcl_DStringSetLength(dsPtr, 0);
+    if (lastCmdStatus == TCL_BREAK) {
+        return TCL_BREAK;
+    }
+    lastCmdStatus = result;
+    if (result != TCL_OK) {
+        TRACE("Error: %d", result);
+    }
+    return result;
+}
 
 bool
 GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
@@ -275,7 +357,7 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
  * Updates pushes index values into the vector.  Returns TCL_OK or
  * TCL_ERROR to indicate an error.
  */
-static int
+int
 GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
 {
     const char *string = Tcl_GetString(objPtr);
@@ -453,36 +535,8 @@ GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
 int
 GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 {
-    char buffer[8096];
-
-    clearerr(NanoVis::stdin);
-    while (nBytes > 0) {
-        unsigned int chunk;
-        int nRead;
-
-        chunk = (sizeof(buffer) < (unsigned int) nBytes) ?
-            sizeof(buffer) : nBytes;
-        nRead = fread(buffer, sizeof(char), chunk, NanoVis::stdin);
-        if (ferror(NanoVis::stdin)) {
-            Tcl_AppendResult(interp, "while reading data stream: ",
-                             Tcl_PosixError(interp), (char*)NULL);
-            return TCL_ERROR;
-        }
-        if (feof(NanoVis::stdin)) {
-            Tcl_AppendResult(interp, "premature EOF while reading data stream",
-                             (char*)NULL);
-            return TCL_ERROR;
-        }
-        buf.append(buffer, nRead);
-        nBytes -= nRead;
-    }
-    if (NanoVis::recfile != NULL) {
-        ssize_t nWritten;
-
-        nWritten = fwrite(buf.bytes(), sizeof(char), buf.size(), 
-                          NanoVis::recfile);
-        assert(nWritten == (ssize_t)buf.size());
-        fflush(NanoVis::recfile);
+    if (!SocketRead(buf, nBytes)) {
+        return TCL_ERROR;
     }
     Rappture::Outcome err;
     TRACE("Checking header[%.13s]", buf.bytes());
@@ -620,21 +674,25 @@ static int
 SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
-    int w, h;
+    int origWidth, origHeight, width, height;
 
-    w = NanoVis::winWidth, h = NanoVis::winHeight;
+    origWidth = NanoVis::winWidth;
+    origHeight = NanoVis::winHeight;
+    width = 2048;
+    height = 2048;
 
-    NanoVis::resizeOffscreenBuffer(2048, 2048);
-#ifdef notdef
-    NanoVis::cam->setScreenSize(0, 0, NanoVis::winWidth, NanoVis::winHeight);
-    NanoVis::cam->setScreenSize(30, 90, 2048 - 60, 2048 - 120);
-#endif
-    NanoVis::bindOffscreenBuffer();  //enable offscreen render
+    NanoVis::resizeOffscreenBuffer(width, height);
+    NanoVis::bindOffscreenBuffer();
     NanoVis::render();
     NanoVis::readScreen();
-
-    NanoVis::ppmWrite("nv>image -type print -bytes %d");
-    NanoVis::resizeOffscreenBuffer(w, h);
+#ifdef USE_THREADS
+    queuePPM(g_queue, "nv>image -type print -bytes",
+             NanoVis::screenBuffer, width, height);
+#else
+    writePPM(g_fdOut, "nv>image -type print -bytes",
+             NanoVis::screenBuffer, width, height);
+#endif
+    NanoVis::resizeOffscreenBuffer(origWidth, origHeight);
 
     return TCL_OK;
 }
@@ -752,7 +810,7 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  */
 static int
 ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-        Tcl_Obj *const *objv)
+              Tcl_Obj *const *objv)
 {
     Tcl_DString ds;
     Tcl_Obj *objPtr, *listObjPtr, **items;
@@ -768,11 +826,9 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 #ifdef KEEPSTATS
-    int f;
-
     /* Use the initial client key value pairs as the parts for a generating
      * a unique file name. */
-    f = NanoVis::getStatsFile(objv[1]);
+    int f = nv::getStatsFile(interp, objv[1]);
     if (f < 0) {
         Tcl_AppendResult(interp, "can't open stats file: ", 
                          Tcl_PosixError(interp), (char *)NULL);
@@ -808,14 +864,14 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DStringInit(&ds);
     /* date */
     Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj("date", 4));
-    strcpy(buf, ctime(&NanoVis::startTime.tv_sec));
+    strcpy(buf, ctime(&nv::g_stats.start.tv_sec));
     buf[strlen(buf) - 1] = '\0';
     Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj(buf, -1));
     /* date_secs */
     Tcl_ListObjAppendElement(interp, listObjPtr, 
                 Tcl_NewStringObj("date_secs", 9));
     Tcl_ListObjAppendElement(interp, listObjPtr, 
-                Tcl_NewLongObj(NanoVis::startTime.tv_sec));
+                Tcl_NewLongObj(nv::g_stats.start.tv_sec));
     /* Client arguments. */
     if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
         return TCL_ERROR;
@@ -828,8 +884,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DStringAppend(&ds, string, length);
     Tcl_DStringAppend(&ds, "\n", 1);
 #ifdef KEEPSTATS
-    result = NanoVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
-                                       Tcl_DStringLength(&ds));
+    result = nv::writeToStatsFile(f, Tcl_DStringValue(&ds), 
+                                  Tcl_DStringLength(&ds));
 #else
     TRACE("clientinfo: %s", Tcl_DStringValue(&ds));
 #endif
@@ -859,11 +915,10 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    const char *name;
-    name = Tcl_GetString(objv[1]);
-    TransferFunction *tf = NanoVis::getTransferFunction(name);
+    const char *tfName = Tcl_GetString(objv[1]);
+    TransferFunction *tf = NanoVis::getTransferFunction(tfName);
     if (tf == NULL) {
-        Tcl_AppendResult(interp, "unknown transfer function \"", name, "\"",
+        Tcl_AppendResult(interp, "unknown transfer function \"", tfName, "\"",
                              (char*)NULL);
         return TCL_ERROR;
     }
@@ -875,7 +930,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Volume::updatePending) {
         NanoVis::setVolumeRanges();
     }
-    NanoVis::renderLegend(tf, Volume::valueMin, Volume::valueMax, w, h, name);
+    NanoVis::renderLegend(tf, Volume::valueMin, Volume::valueMax, w, h, tfName);
     return TCL_OK;
 }
 
@@ -1079,17 +1134,16 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[3], &total) != TCL_OK) {
         return TCL_ERROR;
     }
-    VolumeInterpolator* interpolator;
-    interpolator = NanoVis::volRenderer->getVolumeInterpolator();
+    VolumeInterpolator *interpolator =
+        NanoVis::volRenderer->getVolumeInterpolator();
     interpolator->start();
     if (interpolator->isStarted()) {
-        const char *fileName = (objc < 5) ? NULL : Tcl_GetString(objv[4]);
-        for (int frame_num = 0; frame_num < total; ++frame_num) {
+        const char *dirName = (objc < 5) ? NULL : Tcl_GetString(objv[4]);
+        for (int frameNum = 0; frameNum < total; ++frameNum) {
             float fraction;
 
-            fraction = ((float)frame_num) / (total - 1);
+            fraction = ((float)frameNum) / (total - 1);
             TRACE("fraction : %f", fraction);
-            //interpolator->update(((float)frame_num) / (total - 1));
             interpolator->update(fraction);
 
             int fboOrig;
@@ -1102,7 +1156,12 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
-            NanoVis::bmpWriteToFile(frame_num, fileName);
+            /* FIXME: this function requires 4-byte aligned RGB rows,
+             * but screen buffer is now 1 byte aligned for PPM images.
+             */
+            nv::writeBMPFile(frameNum, dirName,
+                             NanoVis::screenBuffer,
+                             NanoVis::winWidth, NanoVis::winHeight);
         }
     }
     return TCL_OK;
@@ -1184,15 +1243,13 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     const char *tag = Tcl_GetString(objv[4]);
-    Rappture::Buffer buf;
+
+    Rappture::Buffer buf(nbytes);
     if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *bytes;
-    size_t nBytes;
-
-    bytes = buf.bytes();
-    nBytes = buf.size();
+    const char *bytes = buf.bytes();
+    size_t nBytes = buf.size();
 
     TRACE("Checking header[%.20s]", bytes);
 
@@ -1200,11 +1257,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
         TRACE("ZincBlende Stream loading...");
-         //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
-        //fdata.write(buf.bytes(),buf.size());
-        //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
-
-        volume = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
+        volume = NvZincBlendeReconstructor::getInstance()->loadFromMemory(const_cast<char *>(bytes));
         if (volume == NULL) {
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;
@@ -1266,20 +1319,27 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         volume->transferFunction(NanoVis::getTransferFunction("default"));
         volume->visible(true);
 
-        char info[1024];
-        ssize_t nWritten;
-
         if (Volume::updatePending) {
             NanoVis::setVolumeRanges();
         }
 
+        char info[1024];
         // FIXME: strlen(info) is the return value of sprintf
-        sprintf(info, "nv>data tag %s min %g max %g vmin %g vmax %g\n", tag, 
-                volume->wAxis.min(), volume->wAxis.max(),
-                Volume::valueMin, Volume::valueMax);
-        nWritten  = write(1, info, strlen(info));
-        assert(nWritten == (ssize_t)strlen(info));
+        int cmdLength = 
+            sprintf(info, "nv>data tag %s min %g max %g vmin %g vmax %g\n", tag, 
+                    volume->wAxis.min(), volume->wAxis.max(),
+                    Volume::valueMin, Volume::valueMax);
+#ifdef USE_THREADS
+        queueResponse(info, cmdLength, Response::VOLATILE);
+#else
+        ssize_t nWritten  = SocketWrite(info, (size_t)cmdLength);
+        if (nWritten != (ssize_t)cmdLength) {
+            ERROR("Short write");
+             return TCL_ERROR;
+        }
+#endif
     }
+
     return TCL_OK;
 }
 
@@ -1303,7 +1363,7 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeDataOps[] = {
-    {"follows",   1, VolumeDataFollowsOp, 5, 5, "size tag",},
+    {"follows",   1, VolumeDataFollowsOp, 5, 5, "nbytes tag",},
     {"state",     1, VolumeDataStateOp,   4, 0, "bool ?indices?",},
 };
 static int nVolumeDataOps = NumCmdSpecs(volumeDataOps);
@@ -1405,7 +1465,6 @@ VolumeOutlineStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
 }
-
 
 static Rappture::CmdSpec volumeOutlineOps[] = {
     {"color",     1, VolumeOutlineColorOp,  6, 0, "r g b ?indices?",},
@@ -1595,12 +1654,6 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
         TRACE("setting %s with transfer function %s", (*iter)->name(),
                tf->name());
         (*iter)->transferFunction(tf);
-#ifdef USE_POINTSET_RENDERER
-        // TBD..
-        if ((*iter)->pointsetIndex != -1) {
-            NanoVis::pointSet[(*iter)->pointsetIndex]->updateColor(tf->getData(), 256);
-        }
-#endif
     }
     return TCL_OK;
 }
@@ -1655,28 +1708,13 @@ static Rappture::CmdSpec volumeOps[] = {
     {"data",      2, VolumeDataOp,        3, 0, "oper ?args?",},
     {"delete",    2, VolumeDeleteOp,      3, 0, "?name...?",},
     {"exists",    1, VolumeExistsOp,      3, 3, "name",},
-    {"names",     1, VolumeNamesOp,       2, 3, "?pattern?",},
+    {"names",     1, VolumeNamesOp,       2, 2, "",},
     {"outline",   1, VolumeOutlineOp,     3, 0, "oper ?args?",},
     {"shading",   2, VolumeShadingOp,     3, 0, "oper ?args?",},
     {"state",     2, VolumeStateOp,       3, 0, "bool ?indices?",},
 };
 static int nVolumeOps = NumCmdSpecs(volumeOps);
 
-/*
- * ----------------------------------------------------------------------
- * CLIENT COMMAND:
- *   volume data state on|off ?<volumeId> ...?
- *   volume outline state on|off ?<volumeId> ...?
- *   volume outline color on|off ?<volumeId> ...?
- *   volume shading transfunc <name> ?<volumeId> ...?
- *   volume shading diffuse <value> ?<volumeId> ...?
- *   volume shading specular <value> ?<volumeId> ...?
- *   volume shading opacity <value> ?<volumeId> ...?
- *   volume state on|off ?<volumeId> ...?
- *
- * Clients send these commands to manipulate the volumes.
- * ----------------------------------------------------------------------
- */
 static int
 VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
@@ -1701,7 +1739,7 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     const char *tag = Tcl_GetString(objv[4]);
 
-    Rappture::Buffer buf;
+    Rappture::Buffer buf(nBytes);
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -1760,8 +1798,8 @@ HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightMapDataOps[] = {
-    {"follows",  1, HeightMapDataFollowsOp, 5, 5, "size tag",},
-    {"visible",  1, HeightMapDataVisibleOp, 4, 0, "bool ?indices?",},
+    {"follows",  1, HeightMapDataFollowsOp, 5, 5, "size heightmapName",},
+    {"visible",  1, HeightMapDataVisibleOp, 4, 0, "bool ?heightmapNames...?",},
 };
 static int nHeightMapDataOps = NumCmdSpecs(heightMapDataOps);
 
@@ -1821,8 +1859,8 @@ HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp,
 }
 
 static Rappture::CmdSpec heightMapLineContourOps[] = {
-    {"color",   1, HeightMapLineContourColorOp,   4, 4, "length",},
-    {"visible", 1, HeightMapLineContourVisibleOp, 4, 0, "bool ?indices?",},
+    {"color",   1, HeightMapLineContourColorOp,   6, 0, "r g b ?heightmapNames...?",},
+    {"visible", 1, HeightMapLineContourVisibleOp, 4, 0, "bool ?heightmapNames...?",},
 };
 static int nHeightMapLineContourOps = NumCmdSpecs(heightMapLineContourOps);
 
@@ -1955,7 +1993,6 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-
 static int
 HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
                    Tcl_Obj *const *objv)
@@ -1977,15 +2014,15 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightMapOps[] = {
-    {"create",       2, HeightMapCreateOp,      10, 10, "tag xmin ymin xmax ymax xnum ynum values",},
+    {"create",       2, HeightMapCreateOp,      10, 10, "heightmapName xmin ymin xmax ymax xnum ynum values",},
     {"cull",         2, HeightMapCullOp,        3, 3, "mode",},
     {"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
-    {"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
+    {"legend",       2, HeightMapLegendOp,      5, 5, "heightmapName width height",},
     {"linecontour",  2, HeightMapLineContourOp, 2, 0, "oper ?args?",},
-    {"opacity",      1, HeightMapOpacityOp,     3, 0, "value ?heightmap...? ",},
+    {"opacity",      1, HeightMapOpacityOp,     3, 0, "value ?heightmapNames...? ",},
     {"polygon",      1, HeightMapPolygonOp,     3, 3, "mode",},
     {"shading",      1, HeightMapShadingOp,     3, 3, "model",},
-    {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?heightmap...?",},
+    {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?heightmapNames...?",},
 };
 static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 
@@ -2117,7 +2154,7 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         if (GetBooleanFromObj(interp, objv[2], &visible) != TCL_OK) {
             return TCL_ERROR;
         }
-        NanoVis::axisOn = visible;
+        NanoVis::orientationIndicator->setVisible(visible);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be visible", (char*)NULL);
@@ -2126,49 +2163,147 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-/*
- * This command should be Tcl procedure instead of a C command.  The reason
- * for this that 1) we are using a safe interpreter so we would need a master
- * interpreter to load the Tcl environment properly (including our "unirect2d"
- * procedure). And 2) the way nanovis is currently deployed doesn't make it
- * easy to add new directories for procedures, since it's loaded into /tmp.
- *
- * Ideally, the "unirect2d" proc would do a rundimentary parsing of the data
- * to verify the structure and then pass it to the appropiate Tcl command
- * (heightmap, volume, etc). Our C command always creates a heightmap.
- */
 static int
-Unirect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
 {
-    Rappture::Unirect2d *dataPtr = (Rappture::Unirect2d *)clientData;
-
-    return dataPtr->loadData(interp, objc, objv);
+    lastCmdStatus = TCL_BREAK;
+    return TCL_OK;
 }
 
-/*
- * This command should be Tcl procedure instead of a C command.  The reason
- * for this that 1) we are using a safe interpreter so we would need a master
- * interpreter to load the Tcl environment properly (including our "unirect2d"
- * procedure). And 2) the way nanovis is currently deployed doesn't make it
- * easy to add new directories for procedures, since it's loaded into /tmp.
- *
- * Ideally, the "unirect2d" proc would do a rundimentary parsing of the data
- * to verify the structure and then pass it to the appropiate Tcl command
- * (heightmap, volume, etc). Our C command always creates a heightmap.
+/**
+ * \brief Execute commands from client in Tcl interpreter
+ * 
+ * In this threaded model, the select call is for event compression.  We
+ * want to execute render server commands as long as they keep coming.  
+ * This lets us execute a stream of many commands but render once.  This 
+ * benefits camera movements, screen resizing, and opacity changes 
+ * (using a slider on the client).  The down side is you don't render
+ * until there's a lull in the command stream.  If the client needs an
+ * image, it can issue an "imgflush" command.  That breaks us out of the
+ * read loop.
  */
-
-static int
-Unirect3dCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-             Tcl_Obj *const *objv)
+int
+nv::processCommands(Tcl_Interp *interp,
+                    ReadBuffer *inBufPtr, int fdOut)
 {
-    Rappture::Unirect3d *dataPtr = (Rappture::Unirect3d *)clientData;
+    int ret = 1;
+    int status = TCL_OK;
 
-    return dataPtr->loadData(interp, objc, objv);
+    Tcl_DString command;
+    Tcl_DStringInit(&command);
+    fd_set readFds;
+    struct timeval tv, *tvPtr;
+
+    FD_ZERO(&readFds);
+    FD_SET(inBufPtr->file(), &readFds);
+    tvPtr = NULL;                       /* Wait for the first read. This is so
+                                         * that we don't spin when no data is
+                                         * available. */
+    while (inBufPtr->isLineAvailable() || 
+           (select(1, &readFds, NULL, NULL, tvPtr) > 0)) {
+        size_t numBytes;
+        unsigned char *buffer;
+
+        /* A short read is treated as an error here because we assume that we
+         * will always get commands line by line. */
+        if (inBufPtr->getLine(&numBytes, &buffer) != ReadBuffer::OK) {
+            /* Terminate the server if we can't communicate with the client
+             * anymore. */
+            if (inBufPtr->status() == ReadBuffer::ENDFILE) {
+                TRACE("Exiting server on EOF from client");
+                return -1;
+            } else {
+                ERROR("Exiting server, failed to read from client: %s",
+                      strerror(errno));
+                return -1;
+            }
+        }
+        Tcl_DStringAppend(&command, (char *)buffer, numBytes);
+        if (Tcl_CommandComplete(Tcl_DStringValue(&command))) {
+            struct timeval start, finish;
+            gettimeofday(&start, NULL);
+            status = ExecuteCommand(interp, &command);
+            gettimeofday(&finish, NULL);
+            g_stats.cmdTime += (MSECS_ELAPSED(start, finish) / 1.0e+3);
+            g_stats.nCommands++;
+            if (status == TCL_BREAK) {
+                return 1;               /* This was caused by a "imgflush"
+                                         * command. Break out of the read loop
+                                         * and allow a new image to be
+                                         * rendered. */
+            } else { //if (status != TCL_OK) {
+                ret = 0;
+                if (handleError(interp, status, fdOut) < 0) {
+                    return -1;
+                }
+            }
+        }
+
+        tv.tv_sec = tv.tv_usec = 0L;    /* On successive reads, we break out
+                                         * if no data is available. */
+        FD_SET(inBufPtr->file(), &readFds);
+        tvPtr = &tv;
+    }
+
+    return ret;
 }
 
-Tcl_Interp *
-initTcl()
+/**
+ * \brief Send error message to client socket
+ */
+int
+nv::handleError(Tcl_Interp *interp, int status, int fdOut)
+{
+    const char *string;
+    int nBytes;
+
+    if (status != TCL_OK) {
+        string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
+        nBytes = strlen(string);
+        if (nBytes > 0) {
+            TRACE("status=%d errorInfo=(%s)", status, string);
+
+            std::ostringstream oss;
+            oss << "nv>viserror -type internal_error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
+            nBytes = oss.str().length();
+
+#ifdef USE_THREADS
+            queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+#else
+            if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+                ERROR("write failed: %s", strerror(errno));
+                return -1;
+            }
+#endif
+        }
+    }
+
+    string = getUserMessages();
+    nBytes = strlen(string);
+    if (nBytes > 0) {
+        TRACE("userError=(%s)", string);
+
+        std::ostringstream oss;
+        oss << "nv>viserror -type error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
+        nBytes = oss.str().length();
+
+#ifdef USE_THREADS
+        queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+#else
+        if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+            ERROR("write failed: %s", strerror(errno));
+            return -1;
+        }
+#endif
+        clearUserMessages();
+    }
+
+    return 0;
+}
+
+void
+nv::initTcl(Tcl_Interp *interp, ClientData clientData)
 {
     /*
      * Ideally the connection is authenticated by nanoscale.  I still like the
@@ -2177,33 +2312,27 @@ initTcl()
      * can still run Tcl code within nanovis.  The eventual goal is to create
      * a test harness through the interpreter for nanovis.
      */
-    Tcl_Interp *interp;
-    interp = Tcl_CreateInterp();
-    /*
+
     Tcl_MakeSafe(interp);
-    */
-    Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        NULL, NULL);
-    Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "clientinfo",  ClientInfoCmd,  NULL, NULL);
-    Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    NULL, NULL);
-    if (FlowCmdInitProc(interp) != TCL_OK) {
-        return NULL;
-    }
-    Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
-    Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "snapshot",    SnapshotCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "transfunc",   TransfuncCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "unirect2d",   Unirect2dCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "unirect3d",   Unirect3dCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "up",          UpCmd,          NULL, NULL);
-    Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
+
+    Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "clientinfo",  ClientInfoCmd,  clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    clientData, NULL);
+    FlowCmdInitProc(interp, clientData);
+    Tcl_CreateObjCommand(interp, "grid",        GridCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "imgflush",    ImageFlushCmd,  clientData, NULL);
+    Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "snapshot",    SnapshotCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "transfunc",   TransfuncCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "up",          UpCmd,          clientData, NULL);
+    Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      clientData, NULL);
 
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
         WARN("bad default transfer function:\n%s", 
              Tcl_GetStringResult(interp));
     }
-    return interp;
 }

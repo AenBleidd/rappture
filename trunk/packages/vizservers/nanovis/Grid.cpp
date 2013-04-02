@@ -35,6 +35,9 @@ Grid::~Grid()
 
 void Grid::render()
 {
+    if (!isVisible())
+        return;
+
     glPushAttrib(GL_ENABLE_BIT);
 
     glEnable(GL_DEPTH_TEST);

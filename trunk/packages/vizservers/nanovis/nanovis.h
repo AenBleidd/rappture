@@ -16,13 +16,15 @@
 #ifndef NANOVIS_H
 #define NANOVIS_H
 
-#include <tcl.h>
-#include <md5.h>
-#include <GL/glew.h>
-
 #include <math.h>
 #include <stddef.h> // For size_t
 #include <stdio.h>
+#include <sys/time.h>
+#include <sys/types.h> // For pid_t
+
+#include <tcl.h>
+
+#include <GL/glew.h>
 
 #include <vector>
 #include <iostream>
@@ -31,8 +33,9 @@
 #include <vrmath/Vector3f.h>
 
 #include "config.h"
+#include "md5.h"
 
-#define NANOVIS_VERSION		"1.1"
+#define NANOVIS_VERSION		"1.2"
 
 //defines for the image based flow visualization
 #define NMESH 256	//resolution of flow mesh
@@ -45,15 +48,14 @@ namespace graphics {
 namespace util {
     class Fonts;
 }
+class OrientationIndicator;
 }
 
 class VolumeRenderer;
-class PointSetRenderer;
 class NvParticleRenderer;
-class PlaneRenderer;
 class VelocityArrowsSlice;
 class NvLIC;
-class PointSet;
+class PlaneRenderer;
 class Texture2D;
 class HeightMap;
 class Grid;
@@ -88,15 +90,13 @@ public:
     typedef std::tr1::unordered_map<FlowId, Flow *> FlowHashmap;
     typedef std::tr1::unordered_map<HeightMapId, HeightMap *> HeightMapHashmap;
 
-    static void processCommands();
-    static void init(const char *path);
-    static void initGL();
-    static void initOffscreenBuffer();
-    static void resizeOffscreenBuffer(int w, int h);
+    static bool init(const char *path);
+    static bool initGL();
+    static bool initOffscreenBuffer();
+    static bool resizeOffscreenBuffer(int w, int h);
     static void setBgColor(float color[3]);
     static void render();
     static void draw3dAxis();
-    static void idle();
     static void update();
     static void removeAllData();
 
@@ -112,16 +112,6 @@ public:
 
     static void setVolumeRanges();
     static void setHeightmapRanges();
-
-#ifdef KEEPSTATS
-    static int getStatsFile(Tcl_Obj *objPtr);
-    static int writeToStatsFile(int f, const char *s, size_t length);
-#endif
-    static void ppmWrite(const char *prefix);
-    static void sendDataToClient(const char *command, const char *data,
-                                 size_t dlen);
-    static void bmpWrite(const char *prefix);
-    static void bmpWriteToFile(int frame_number, const char* directory_name);
  
     static TransferFunction *getTransferFunction(const TransferFunctionId& id);
     static TransferFunction *defineTransferFunction(const TransferFunctionId& id, 
@@ -138,6 +128,7 @@ public:
 
     static void readScreen()
     {
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, winWidth, winHeight, GL_RGB, GL_UNSIGNED_BYTE, 
                      screenBuffer);
     }
@@ -148,8 +139,8 @@ public:
 
     static Flow *getFlow(const char *name);
     static Flow *createFlow(Tcl_Interp *interp, const char *name);
-    static void deleteFlow(const char *name);
     static void deleteFlows(Tcl_Interp *interp);
+    static void deleteFlow(const char *name);
     static bool mapFlows();
     static void getFlowBounds(vrmath::Vector3f& min,
                               vrmath::Vector3f& max,
@@ -159,19 +150,16 @@ public:
     static bool updateFlows();
     static void advectFlows();
 
-    static FILE *stdin, *logfile, *recfile;
-    static int statsFile;
+    static Tcl_Interp *interp;
+
     static unsigned int flags;
     static bool debugFlag;
-    static bool axisOn;
-    static struct timeval startTime;       ///< Start of elapsed time.
 
     static int winWidth;	///< Width of the render window
     static int winHeight;	///< Height of the render window
     static int renderWindow;    //< GLUT handle for the render window
     static unsigned char *screenBuffer;
     static Texture2D *legendTexture;
-    static Grid *grid;
     static nv::util::Fonts *fonts;
     static int updir;
     static NvCamera *cam;
@@ -190,13 +178,8 @@ public:
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
     static PlaneRenderer *planeRenderer;
-
-#ifdef USE_POINTSET_RENDERER
-    static PointSetRenderer *pointSetRenderer;
-    static std::vector<PointSet *> pointSet;
-#endif
-
-    static Tcl_Interp *interp;
+    static nv::OrientationIndicator *orientationIndicator;
+    static Grid *grid;
 
 private:
     static void collectBounds(bool onlyVisible = false);
