@@ -2550,17 +2550,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
     set _view(zoom) 1.0
 }
 
-
 itcl::body Rappture::VtkIsosurfaceViewer::UpdateContourList {} { 
     if { ![info exists _limits($_curFldName)] } {
         return
     }
     foreach { vmin vmax } $_limits($_curFldName) break
-    set v [blt::vector create \#auto] 
-    $v seq $vmin $vmax [expr $_currentNumContours+1]
-    set slice [expr ($vmax - $vmin) / double($_currentNumContours)]
-    $v expr {$v + ($slice * 0.5)}
-    $v delete end 
+    set v [blt::vector create \#auto]
+    $v seq $vmin $vmax [expr $_currentNumContours+2]
+    $v delete end 0
     set _contourList [$v range 0 end]
     blt::vector destroy $v
 }
