@@ -27,14 +27,14 @@
 
 #include "ColorMap.h"
 #include "Types.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
 /**
  * \brief Color-mapped plot of data set
  */
-class HeightMap : public VtkGraphicsObject {
+class HeightMap : public GraphicsObject {
 public:
     enum ColorMode {
         COLOR_BY_SCALAR,

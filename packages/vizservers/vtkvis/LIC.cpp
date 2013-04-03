@@ -27,7 +27,7 @@
 using namespace VtkVis;
 
 LIC::LIC() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _sliceAxis(Z_AXIS),
     _colorMap(NULL)
 {
@@ -440,7 +440,7 @@ void LIC::setColorMap(ColorMap *cmap)
 
 void LIC::updateRanges(Renderer *renderer)
 {
-    VtkGraphicsObject::updateRanges(renderer);
+    GraphicsObject::updateRanges(renderer);
 
     if (_lut != NULL) {
         _lut->SetRange(_dataRange);

@@ -21,7 +21,7 @@
 #include <vtkLabelPlacementMapper.h>
 
 #include "ColorMap.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
@@ -36,7 +36,7 @@ namespace VtkVis {
  * and scaling atoms.  If the scalar array is not named 
  * "element," it will be color-mapped as a standard scalar field.
  */
-class Molecule : public VtkGraphicsObject {
+class Molecule : public GraphicsObject {
 public:
     enum AtomScaling {
         NO_ATOM_SCALING,

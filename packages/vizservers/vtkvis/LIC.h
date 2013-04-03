@@ -21,7 +21,7 @@
 
 #include "ColorMap.h"
 #include "Types.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
@@ -30,7 +30,7 @@ namespace VtkVis {
  *
  *  The DataSet must contain vectors
  */
-class LIC : public VtkGraphicsObject {
+class LIC : public GraphicsObject {
 public:
     LIC();
     virtual ~LIC();

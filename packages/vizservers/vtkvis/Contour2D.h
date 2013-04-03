@@ -18,14 +18,14 @@
 #include <vector>
 
 #include "ColorMap.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
 /**
  * \brief 2D Contour lines (isolines)
  */
-class Contour2D : public VtkGraphicsObject {
+class Contour2D : public GraphicsObject {
 public:
     enum ColorMode {
         COLOR_BY_SCALAR,
@@ -86,8 +86,8 @@ public:
 
     virtual void setColor(float color[3])
     {
-        VtkGraphicsObject::setColor(color);
-        VtkGraphicsObject::setEdgeColor(color);
+        GraphicsObject::setColor(color);
+        GraphicsObject::setEdgeColor(color);
     }
 
     virtual void setEdgeColor(float color[3])

@@ -20,7 +20,7 @@
 using namespace VtkVis;
 
 Shape::Shape() :
-    VtkGraphicsObject()
+    GraphicsObject()
 {
 }
 

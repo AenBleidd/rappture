@@ -21,7 +21,7 @@
 
 #include "ColorMap.h"
 #include "Types.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
@@ -32,7 +32,7 @@ namespace VtkVis {
  * 
  * Currently the DataSet must be image data (2D uniform grid)
  */
-class Cutplane : public VtkGraphicsObject {
+class Cutplane : public GraphicsObject {
 public:
     enum ColorMode {
         COLOR_BY_SCALAR,

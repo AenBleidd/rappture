@@ -37,24 +37,24 @@ do {                                                                         \
 #define GO_ERROR(go, format, ...) ERROR("%s " format, typeid(go).name(), __VA_ARGS__);
 #endif
 
-#include "VtkRenderer.h"
+#include "Renderer.h"
 
 namespace VtkVis {
 
 /**
  * \brief Look up graphics object by name
  */
-template<class GraphicsObject>
-GraphicsObject *Renderer::getGraphicsObject(const DataSetId& id)
+template<class T>
+T *Renderer::getGraphicsObject(const DataSetId& id)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap =
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator
+    std::tr1::unordered_map<DataSetId, T *>& hashmap =
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator
         itr = hashmap.find(id);
 
     if (itr == hashmap.end()) {
 #ifdef DEBUG
-        GO_TRACE(GraphicsObject, "not found: %s", id.c_str());
+        GO_TRACE(T, "not found: %s", id.c_str());
 #endif
         return NULL;
     } else
@@ -64,12 +64,12 @@ GraphicsObject *Renderer::getGraphicsObject(const DataSetId& id)
 /**
  * \brief Delete graphics object by name
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::deleteGraphicsObject(const DataSetId& id)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap =
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap =
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -80,14 +80,14 @@ void Renderer::deleteGraphicsObject(const DataSetId& id)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
     TRACE("Deleting %s for %s", itr->second->getClassName(), id.c_str());
 
     do {
-        GraphicsObject *gobj = itr->second;
+        T *gobj = itr->second;
         if (gobj->getProp())
             _renderer->RemoveViewProp(gobj->getProp());
         if (gobj->getOverlayProp())
@@ -104,12 +104,12 @@ void Renderer::deleteGraphicsObject(const DataSetId& id)
 /**
  * \brief Delete all graphics objects from renderer
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::deleteAllGraphicsObjects()
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap =
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap =
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     itr = hashmap.begin();
     if (itr == hashmap.end())
@@ -126,7 +126,7 @@ void Renderer::deleteAllGraphicsObjects()
 /**
  * \brief Add a graphics objects to the renderer's scene
  */
-template<class GraphicsObject>
+template<class T>
 bool Renderer::addGraphicsObject(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
@@ -147,13 +147,13 @@ bool Renderer::addGraphicsObject(const DataSetId& id)
         DataSet *ds = itr->second;
         const DataSetId& dsID = ds->getName();
 
-        GraphicsObject *gobj;
-        if ((gobj = getGraphicsObject<GraphicsObject>(dsID)) != NULL) {
+        T *gobj;
+        if ((gobj = getGraphicsObject<T>(dsID)) != NULL) {
             WARN("Replacing existing %s %s", gobj->getClassName(), dsID.c_str());
-            deleteGraphicsObject<GraphicsObject>(dsID);
+            deleteGraphicsObject<T>(dsID);
         }
 
-        gobj = new GraphicsObject();
+        gobj = new T();
  
         gobj->setDataSet(ds, this);
 
@@ -168,7 +168,7 @@ bool Renderer::addGraphicsObject(const DataSetId& id)
                 _renderer->AddViewProp(gobj->getOverlayProp());
         }
 
-        getGraphicsObjectHashmap<GraphicsObject>()[dsID] = gobj;
+        getGraphicsObjectHashmap<T>()[dsID] = gobj;
     } while (doAll && ++itr != _dataSets.end());
 
     sceneBoundsChanged();
@@ -179,12 +179,12 @@ bool Renderer::addGraphicsObject(const DataSetId& id)
 /**
  * \brief Set the prop orientation with a quaternion
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *trans)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -197,7 +197,7 @@ void Renderer::setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *tra
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -212,12 +212,12 @@ void Renderer::setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *tra
 /**
  * \brief Set the prop orientation with a quaternion
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double quat[4])
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -230,7 +230,7 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double quat[4])
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -245,12 +245,12 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double quat[4])
 /**
  * \brief Set the prop orientation with a rotation about an axis
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double angle, double axis[3])
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -263,7 +263,7 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double angle, d
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -278,12 +278,12 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double angle, d
 /**
  * \brief Set the prop position in world coords
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -296,7 +296,7 @@ void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -314,12 +314,12 @@ void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
  * \param id The name of the DataSet
  * \param aspect The aspect ratio (width/height), zero means native aspect
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -332,7 +332,7 @@ void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -347,12 +347,12 @@ void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
 /**
  * \brief Set the prop scaling
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectScale(const DataSetId& id, double scale[3])
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -365,7 +365,7 @@ void Renderer::setGraphicsObjectScale(const DataSetId& id, double scale[3])
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -378,14 +378,14 @@ void Renderer::setGraphicsObjectScale(const DataSetId& id, double scale[3])
 }
 
 /**
- * \brief Set visibility of VtkGraphicsObject for the given DataSet
+ * \brief Set visibility of GraphicsObject for the given DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectVisibility(const DataSetId& id, bool state)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap =
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap =
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -398,7 +398,7 @@ void Renderer::setGraphicsObjectVisibility(const DataSetId& id, bool state)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -413,12 +413,12 @@ void Renderer::setGraphicsObjectVisibility(const DataSetId& id, bool state)
 /**
  * \brief Set the volume slice
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, double ratio)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -432,7 +432,7 @@ void Renderer::setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, doub
     }
 
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -448,12 +448,12 @@ void Renderer::setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, doub
 /**
  * \brief Set the RGB actor color for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectColor(const DataSetId& id, float color[3])
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -466,7 +466,7 @@ void Renderer::setGraphicsObjectColor(const DataSetId& id, float color[3])
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -480,12 +480,12 @@ void Renderer::setGraphicsObjectColor(const DataSetId& id, float color[3])
 /**
  * \brief Turn on/off edges for the given DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -498,7 +498,7 @@ void Renderer::setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -513,12 +513,12 @@ void Renderer::setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state)
 /**
  * \brief Set the RGB isosurface edge color for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectEdgeColor(const DataSetId& id, float color[3])
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -531,7 +531,7 @@ void Renderer::setGraphicsObjectEdgeColor(const DataSetId& id, float color[3])
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -548,12 +548,12 @@ void Renderer::setGraphicsObjectEdgeColor(const DataSetId& id, float color[3])
  * If the OpenGL implementation/hardware does not support wide lines, 
  * this function may not have an effect.
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -566,7 +566,7 @@ void Renderer::setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -581,12 +581,12 @@ void Renderer::setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth)
 /**
  * \brief Set ambient lighting/shading coefficient for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectAmbient(const DataSetId& id, double coeff)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -599,7 +599,7 @@ void Renderer::setGraphicsObjectAmbient(const DataSetId& id, double coeff)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -613,12 +613,12 @@ void Renderer::setGraphicsObjectAmbient(const DataSetId& id, double coeff)
 /**
  * \brief Set diffuse lighting/shading coefficient for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectDiffuse(const DataSetId& id, double coeff)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -631,7 +631,7 @@ void Renderer::setGraphicsObjectDiffuse(const DataSetId& id, double coeff)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -645,12 +645,12 @@ void Renderer::setGraphicsObjectDiffuse(const DataSetId& id, double coeff)
 /**
  * \brief Set specular lighting/shading coefficient and power for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectSpecular(const DataSetId& id, double coeff, double power)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -663,7 +663,7 @@ void Renderer::setGraphicsObjectSpecular(const DataSetId& id, double coeff, doub
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -677,12 +677,12 @@ void Renderer::setGraphicsObjectSpecular(const DataSetId& id, double coeff, doub
 /**
  * \brief Turn actor lighting on/off for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectLighting(const DataSetId& id, bool state)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -695,7 +695,7 @@ void Renderer::setGraphicsObjectLighting(const DataSetId& id, bool state)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -707,14 +707,14 @@ void Renderer::setGraphicsObjectLighting(const DataSetId& id, bool state)
 }
 
 /**
- * \brief Set opacity of VtkGraphicsObject for the given DataSet
+ * \brief Set opacity of GraphicsObject for the given DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectOpacity(const DataSetId& id, double opacity)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -727,7 +727,7 @@ void Renderer::setGraphicsObjectOpacity(const DataSetId& id, double opacity)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -744,12 +744,12 @@ void Renderer::setGraphicsObjectOpacity(const DataSetId& id, double opacity)
  * If the OpenGL implementation/hardware does not support wide points, 
  * this function may not have an effect.
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectPointSize(const DataSetId& id, float size)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -762,7 +762,7 @@ void Renderer::setGraphicsObjectPointSize(const DataSetId& id, float size)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -777,12 +777,12 @@ void Renderer::setGraphicsObjectPointSize(const DataSetId& id, float size)
 /**
  * \brief Set wireframe actor rendering for the specified DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectWireframe(const DataSetId& id, bool state)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -795,7 +795,7 @@ void Renderer::setGraphicsObjectWireframe(const DataSetId& id, bool state)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -809,12 +809,12 @@ void Renderer::setGraphicsObjectWireframe(const DataSetId& id, bool state)
 /**
  * \brief Associate an existing named color map with a graphics object for the given DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectInterpolateBeforeMapping(const DataSetId& id, bool state)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -828,7 +828,7 @@ void Renderer::setGraphicsObjectInterpolateBeforeMapping(const DataSetId& id, bo
     }
 
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -842,12 +842,12 @@ void Renderer::setGraphicsObjectInterpolateBeforeMapping(const DataSetId& id, bo
 /**
  * \brief Associate an existing named color map with a graphics object for the given DataSet
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& colorMapId)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     bool doAll = false;
 
@@ -861,7 +861,7 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
     }
 
     if (itr == hashmap.end()) {
-        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
+        GO_ERROR(T, "not found: %s", id.c_str());
         return;
     }
 
@@ -872,7 +872,7 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
     }
 
     do {
-        GO_TRACE(GraphicsObject, "Set color map: %s for dataset %s",
+        GO_TRACE(T, "Set color map: %s for dataset %s",
                  colorMapId.c_str(),
                  itr->second->getDataSet()->getName().c_str());
 
@@ -885,12 +885,12 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
 /**
  * \brief Notify graphics object that color map has changed
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::updateGraphicsObjectColorMap(ColorMap *cmap)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         if (itr->second->getColorMap() == cmap) {
@@ -903,12 +903,12 @@ void Renderer::updateGraphicsObjectColorMap(ColorMap *cmap)
 /**
  * \brief Check if a color map is in use by a graphics object
  */
-template<class GraphicsObject>
+template<class T>
 bool Renderer::graphicsObjectColorMapUsed(ColorMap *cmap)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         if (itr->second->getColorMap() == cmap)
@@ -920,12 +920,12 @@ bool Renderer::graphicsObjectColorMapUsed(ColorMap *cmap)
 /**
  * \brief Compute union of bounds and GO's bounds
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
@@ -934,7 +934,7 @@ void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
 #ifdef DEBUG
         double *bPtr = itr->second->getBounds();
         assert(bPtr != NULL);
-        GO_TRACE(GraphicsObject,
+        GO_TRACE(T,
                  "%s bounds: %g %g %g %g %g %g",
                  itr->first.c_str(),
                  bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
@@ -948,12 +948,12 @@ void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
  * Unscaled bounds are the bounds of the object before any actor scaling is
  * applied
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisible)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
@@ -962,7 +962,7 @@ void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisibl
 #ifdef DEBUG
         double *bPtr = itr->second->getUnscaledBounds();
         assert(bPtr != NULL);
-        GO_TRACE(GraphicsObject,
+        GO_TRACE(T,
                  "%s bounds: %g %g %g %g %g %g",
                  itr->first.c_str(),
                  bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
@@ -973,12 +973,12 @@ void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisibl
 /**
  * \brief Notify object that field value ranges have changed
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::updateGraphicsObjectFieldRanges()
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         itr->second->updateRanges(this);
@@ -988,12 +988,12 @@ void Renderer::updateGraphicsObjectFieldRanges()
 /**
  * \brief Pass global clip planes to graphics object
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         itr->second->setClippingPlanes(planes);
@@ -1007,12 +1007,12 @@ void Renderer::setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes)
  *
  * \param aspectRatio The aspect ratio (width/height), zero means native aspect
  */
-template<class GraphicsObject>
+template<class T>
 void Renderer::setGraphicsObjectAspect(double aspectRatio)
 {
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
-        getGraphicsObjectHashmap<GraphicsObject>();
-    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         itr->second->setAspect(aspectRatio);

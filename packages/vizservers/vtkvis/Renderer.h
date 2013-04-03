@@ -26,7 +26,7 @@
 
 #include "ColorMap.h"
 #include "Types.h"
-#include "VtkDataSet.h"
+#include "DataSet.h"
 #include "Arc.h"
 #include "Arrow.h"
 #include "Box.h"
@@ -445,106 +445,106 @@ public:
                         int numLabels,
                         vtkUnsignedCharArray *imgData);
 
-    // Generic VtkGraphicsObject methods
+    // Generic GraphicsObject methods
 
-    template<class GraphicsObject>
-    GraphicsObject *getGraphicsObject(const DataSetId& id);
+    template<class T>
+    T *getGraphicsObject(const DataSetId& id);
 
-    template<class GraphicsObject>
+    template<class T>
     bool addGraphicsObject(const DataSetId& id);
 
-    template<class GraphicsObject>
+    template<class T>
     void deleteGraphicsObject(const DataSetId& id);
 
-    template<class GraphicsObject>
+    template<class T>
     void deleteAllGraphicsObjects();
 
-    template<class GraphicsObject>
+    template<class T>
     void mergeGraphicsObjectBounds(double *bounds, bool onlyVisible);
 
-    template<class GraphicsObject>
+    template<class T>
     void mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisible);
 
-    template<class GraphicsObject>
+    template<class T>
     void updateGraphicsObjectFieldRanges();
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectAspect(double aspectRatio);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectInterpolateBeforeMapping(const DataSetId& id, bool state);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
-    template<class GraphicsObject>
+    template<class T>
     void updateGraphicsObjectColorMap(ColorMap *cmap);
 
-    template<class GraphicsObject>
+    template<class T>
     bool graphicsObjectColorMapUsed(ColorMap *cmap);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, double ratio);
 
     //   Prop/Prop3D properties
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectOrientation(const DataSetId& id, double quat[4]);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectOrientation(const DataSetId& id, double angle, double axis[3]);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectPosition(const DataSetId& id, double pos[3]);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectAspect(const DataSetId& id, double aspect);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectScale(const DataSetId& id, double scale[3]);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *trans);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectVisibility(const DataSetId& id, bool state);
 
     //   Actor properties
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectColor(const DataSetId& id, float color[3]);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectEdgeColor(const DataSetId& id, float color[3]);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectAmbient(const DataSetId& id, double coeff);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectDiffuse(const DataSetId& id, double coeff);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectSpecular(const DataSetId& id, double coeff, double power);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectLighting(const DataSetId& id, bool state);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectOpacity(const DataSetId& id, double opacity);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectPointSize(const DataSetId& id, float size);
 
-    template<class GraphicsObject>
+    template<class T>
     void setGraphicsObjectWireframe(const DataSetId& id, bool state);
 
     // Arcs
@@ -855,8 +855,8 @@ private:
 
     static void mergeBounds(double *boundsDest, const double *bounds1, const double *bounds2);
 
-    template<class GraphicsObject>
-    std::tr1::unordered_map<DataSetId, GraphicsObject *>&getGraphicsObjectHashmap();
+    template<class T>
+    std::tr1::unordered_map<DataSetId, T *>& getGraphicsObjectHashmap();
 
     void setObjectAspects(double aspectRatio);
 

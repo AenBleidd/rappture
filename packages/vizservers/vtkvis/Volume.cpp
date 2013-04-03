@@ -28,7 +28,7 @@
 using namespace VtkVis;
 
 Volume::Volume() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _colorMap(NULL)
 {
 }
@@ -199,7 +199,7 @@ void Volume::update()
 
 void Volume::updateRanges(Renderer *renderer)
 {
-    VtkGraphicsObject::updateRanges(renderer);
+    GraphicsObject::updateRanges(renderer);
 
     if (getVolume() != NULL) {
         getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(_dataRange));

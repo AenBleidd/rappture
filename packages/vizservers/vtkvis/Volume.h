@@ -14,7 +14,7 @@
 #include <vtkAbstractVolumeMapper.h>
 #include <vtkPlaneCollection.h>
 
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 #include "ColorMap.h"
 
 namespace VtkVis {
@@ -25,7 +25,7 @@ namespace VtkVis {
  * Currently the DataSet must be image data (3D uniform grid),
  * or an UnstructuredGrid
  */
-class Volume : public VtkGraphicsObject {
+class Volume : public GraphicsObject {
 public:
     enum BlendMode {
         COMPOSITE = 0,

@@ -31,13 +31,13 @@
 
 #include "Molecule.h"
 #include "MoleculeData.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 using namespace VtkVis;
 
 Molecule::Molecule() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _radiusScale(0.3),
     _atomScaling(COVALENT_RADIUS),
     _labelsOn(false),
@@ -623,7 +623,7 @@ void Molecule::setBondVisibility(bool state)
  */
 void Molecule::setVisibility(bool state)
 {
-    VtkGraphicsObject::setVisibility(state);
+    GraphicsObject::setVisibility(state);
     if (_labelProp != NULL) {
         if (!state)
             _labelProp->SetVisibility(0);
@@ -637,7 +637,7 @@ void Molecule::setVisibility(bool state)
  */
 void Molecule::setOpacity(double opacity)
 {
-    VtkGraphicsObject::setOpacity(opacity);
+    GraphicsObject::setOpacity(opacity);
     if (_labelMapper != NULL) {
         _labelMapper->SetBackgroundOpacity(opacity);
     }

@@ -12,8 +12,8 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 
-#include "VtkGraphicsObject.h"
-#include "VtkDataSet.h"
+#include "GraphicsObject.h"
+#include "DataSet.h"
 
 namespace VtkVis {
 
@@ -22,7 +22,7 @@ namespace VtkVis {
  *
  * This class creates a boundary mesh of a DataSet
  */
-class PolyData : public VtkGraphicsObject {
+class PolyData : public GraphicsObject {
 public:
     PolyData();
     virtual ~PolyData();

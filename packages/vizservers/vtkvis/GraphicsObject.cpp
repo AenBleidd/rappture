@@ -5,13 +5,13 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#include "VtkGraphicsObject.h"
-#include "VtkRenderer.h"
+#include "GraphicsObject.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 using namespace VtkVis;
 
-void VtkGraphicsObject::setDataSet(DataSet *dataSet,
+void GraphicsObject::setDataSet(DataSet *dataSet,
                                    Renderer *renderer)
 {
     if (_dataSet != dataSet) {
@@ -31,7 +31,7 @@ void VtkGraphicsObject::setDataSet(DataSet *dataSet,
     }
 }
 
-void VtkGraphicsObject::updateRanges(Renderer *renderer)
+void GraphicsObject::updateRanges(Renderer *renderer)
 {
     if (_dataSet == NULL) {
         ERROR("called before setDataSet");

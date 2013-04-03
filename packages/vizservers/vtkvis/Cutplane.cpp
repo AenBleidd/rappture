@@ -26,7 +26,7 @@
 #include <vtkDataSetSurfaceFilter.h>
 
 #include "Cutplane.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 #define MESH_POINT_CLOUDS
@@ -34,7 +34,7 @@
 using namespace VtkVis;
 
 Cutplane::Cutplane() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _pipelineInitialized(false),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),

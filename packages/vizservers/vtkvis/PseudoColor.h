@@ -15,14 +15,14 @@
 #include <vtkPlaneCollection.h>
 
 #include "ColorMap.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
 /**
  * \brief Color-mapped plot of data set
  */
-class PseudoColor : public VtkGraphicsObject {
+class PseudoColor : public GraphicsObject {
 public:
     enum ColorMode {
         COLOR_BY_SCALAR,

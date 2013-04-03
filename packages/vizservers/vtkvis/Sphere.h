@@ -14,7 +14,7 @@
 #include <vtkSphereSource.h>
 
 #include "Shape.h"
-#include "VtkDataSet.h"
+#include "DataSet.h"
 
 namespace VtkVis {
 

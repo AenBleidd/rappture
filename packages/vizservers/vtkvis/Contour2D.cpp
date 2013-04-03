@@ -23,13 +23,13 @@
 #include <vtkDataSetSurfaceFilter.h>
 
 #include "Contour2D.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 using namespace VtkVis;
 
 Contour2D::Contour2D(int numContours) :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _numContours(numContours),
     _pipelineInitialized(false),
     _colorMap(NULL),
@@ -46,7 +46,7 @@ Contour2D::Contour2D(int numContours) :
 }
 
 Contour2D::Contour2D(const std::vector<double>& contours) :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _numContours(contours.size()),
     _contours(contours),
     _pipelineInitialized(false),

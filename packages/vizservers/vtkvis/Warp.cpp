@@ -26,7 +26,7 @@
 #include <vtkDataSetSurfaceFilter.h>
 
 #include "Warp.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 #define MESH_POINT_CLOUDS
@@ -34,7 +34,7 @@
 using namespace VtkVis;
 
 Warp::Warp() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _warpScale(1.0),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
