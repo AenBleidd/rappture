@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef POINT_SET_RENDERER_H
-#define POINT_SET_RENDERER_H
+#ifndef NV_POINT_SET_RENDERER_H
+#define NV_POINT_SET_RENDERER_H
 
 #include <vrmath/Vector3f.h>
 #include <vrmath/Matrix4x4d.h>

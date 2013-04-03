@@ -4,15 +4,14 @@
  *
  * Author: George A. Howlett <gah@purdue.edu>
  */
+#ifndef NV_RESPONSE_QUEUE_H
+#define NV_RESPONSE_QUEUE_H
 
 #include <pthread.h>
 #include <semaphore.h>
 #include <cstdlib>
 #include <cstring>
 #include <list>
-
-#ifndef NV_RESPONSE_QUEUE_H
-#define NV_RESPONSE_QUEUE_H
 
 namespace nv {
 

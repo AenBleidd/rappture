@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef NV_PARTICLE_ADV_SHADER_H
-#define NV_PARTICLE_ADV_SHADER_H
+#ifndef NV_PARTICLE_ADVECTION_SHADER_H
+#define NV_PARTICLE_ADVECTION_SHADER_H
 
 #include <vrmath/Vector3f.h>
 

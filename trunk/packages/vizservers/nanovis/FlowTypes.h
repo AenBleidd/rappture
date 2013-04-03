@@ -8,8 +8,8 @@
  *   George A. Howlett <gah@purdue.edu>
  *   Leif Delgass <ldelgass@purdue.edu>
  */
-#ifndef FLOWTYPES_H
-#define FLOWTYPES_H
+#ifndef NV_FLOWTYPES_H
+#define NV_FLOWTYPES_H
 
 namespace nv {
 

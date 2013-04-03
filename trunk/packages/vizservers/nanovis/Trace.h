@@ -5,8 +5,8 @@
  * Author: George A. Howlett <gah@purdue.edu>
  */
 
-#ifndef __TRACE_H__
-#define __TRACE_H__
+#ifndef NV_TRACE_H
+#define NV_TRACE_H
 
 #include <GL/glew.h>
 #include <syslog.h>

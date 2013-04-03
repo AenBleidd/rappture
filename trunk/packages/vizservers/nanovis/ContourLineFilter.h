@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef CONTOURLINEFILTER_H
-#define CONTOURLINEFILTER_H
+#ifndef NV_CONTOURLINEFILTER_H
+#define NV_CONTOURLINEFILTER_H
 
 #include <list>
 #include <vector>

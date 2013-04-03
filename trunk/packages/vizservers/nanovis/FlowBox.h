@@ -8,8 +8,8 @@
  *   George A. Howlett <gah@purdue.edu>
  *   Leif Delgass <ldelgass@purdue.edu>
  */
-#ifndef FLOWBOX_H
-#define FLOWBOX_H
+#ifndef NV_FLOWBOX_H
+#define NV_FLOWBOX_H
 
 #include <string>
 

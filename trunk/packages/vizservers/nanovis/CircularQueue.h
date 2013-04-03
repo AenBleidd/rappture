@@ -13,8 +13,8 @@
 * 2009-11-02
 * @author Kjell Hedström, hedstrom@kjellkod.cc */
 
-#ifndef CIRCULARFIFO_H_
-#define CIRCULARFIFO_H_
+#ifndef CIRCULARFIFO_H
+#define CIRCULARFIFO_H
 
 /** Circular Fifo (a.k.a. Circular Buffer) 
 * Thread safe for one reader, and one writer */
@@ -180,4 +180,4 @@ bool CircularFifo<Element, Size>::push()
    return false;
 }
 
-#endif /* CIRCULARFIFO_H_ */
+#endif

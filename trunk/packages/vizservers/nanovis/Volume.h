@@ -1,20 +1,12 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * Volume.h: 3d volume class
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
- *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ * Author:
+ *   Wei Qiao <qiaow@purdue.edu>
  */
-#ifndef VOLUME_H
-#define VOLUME_H
+#ifndef NV_VOLUME_H
+#define NV_VOLUME_H
 
 #include <cstring>
 #include <string>

@@ -8,8 +8,8 @@
  *   George A. Howlett <gah@purdue.edu>
  *   Leif Delgass <ldelgass@purdue.edu>
  */
-#ifndef COMMAND_H
-#define COMMAND_H
+#ifndef NV_COMMAND_H
+#define NV_COMMAND_H
 
 #include <tcl.h>
 

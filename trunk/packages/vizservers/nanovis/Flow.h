@@ -8,9 +8,8 @@
  *   George A. Howlett <gah@purdue.edu>
  *   Leif Delgass <ldelgass@purdue.edu>
  */
-
-#ifndef FLOW_H
-#define FLOW_H
+#ifndef NV_FLOW_H
+#define NV_FLOW_H
 
 #include <tr1/unordered_map>
 #include <vector>

@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef PLANE_H
-#define PLANE_H
+#ifndef NV_PLANE_H
+#define NV_PLANE_H
 
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>

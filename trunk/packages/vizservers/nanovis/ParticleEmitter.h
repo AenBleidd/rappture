@@ -3,12 +3,14 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef PARTICLEEMITTER_H
-#define PARTICLEEMITTER_H
+#ifndef NV_PARTICLEEMITTER_H
+#define NV_PARTICLEEMITTER_H
 
 #include <string>
 
 #include <vrmath/Vector3f.h>
+
+namespace nv {
 
 class ParticleEmitter
 {
@@ -81,6 +83,8 @@ inline void ParticleEmitter::setEnabled(bool enabled)
 inline bool ParticleEmitter::isEnabled() const
 {
     return _enabled;
+}
+
 }
 
 #endif

@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef GRID_H
-#define GRID_H
+#ifndef NV_GRID_H
+#define NV_GRID_H
 
 #include <util/Fonts.h>
 

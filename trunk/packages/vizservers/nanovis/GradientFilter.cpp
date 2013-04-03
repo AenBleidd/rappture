@@ -13,6 +13,8 @@
 #include "Trace.h"
 #include "GradientFilter.h"
 
+using namespace nv;
+
 #ifndef SQR
 #define SQR(a) ((a) * (a))
 #endif
@@ -94,64 +96,55 @@ saveGradients(void *gradients, int *sizes, DataType dataType)
 }
 #endif
 
-int 
-getNextPowerOfTwo(int n)
-{
-    int i;
-
-    i = 1;
-    while (i < n) {
-        i *= 2;
-    }
-
-    return i;
-}
-
-static unsigned char getVoxel8(int x, int y, int z)
+static unsigned char
+getVoxel8(int x, int y, int z)
 {
     return ((unsigned char*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
                                        y * g_numOfSlices[0] +
                                        x];
 }
 
-static unsigned short getVoxel16(int x, int y, int z)
+static unsigned short
+getVoxel16(int x, int y, int z)
 {
     return ((unsigned short*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
                                         y * g_numOfSlices[0] +
                                         x];
 }
 
-static float getVoxelFloat(int x, int y, int z)
+static float
+getVoxelFloat(int x, int y, int z)
 {
     return ((float*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
                                y * g_numOfSlices[0] +
                                x];
 }
 
-static float getVoxel(int x, int y, int z, DataType dataType)
+static float
+getVoxel(int x, int y, int z, nv::DataType dataType)
 {
     switch (dataType) {
-        case DATRAW_UCHAR:
-            return (float)getVoxel8(x, y, z);
-            break;
-        case DATRAW_USHORT:
-            return (float)getVoxel16(x, y, z);
-            break;
-        case DATRAW_FLOAT :
-            return (float)getVoxelFloat(x, y, z);
-            break;
-        default:
-            ERROR("Unsupported data type");
-            exit(1);
-            break;
+    case nv::DATRAW_UCHAR:
+        return (float)getVoxel8(x, y, z);
+        break;
+    case nv::DATRAW_USHORT:
+        return (float)getVoxel16(x, y, z);
+        break;
+    case nv::DATRAW_FLOAT:
+        return (float)getVoxelFloat(x, y, z);
+        break;
+    default:
+        ERROR("Unsupported data type");
+        exit(1);
     }
     return 0.0;
 }
 
-void computeGradients(float *gradients, void *volData, int *sizes, 
-                      float *spacing, DataType dataType)
+void
+nv::computeGradients(float *gradients, void *volData, int *sizes, 
+                     float *spacing, DataType dataType)
 {
-    ::g_volData = volData;
+    g_volData = volData;
     g_numOfSlices[0] = sizes[0];
     g_numOfSlices[1] = sizes[1];
     g_numOfSlices[2] = sizes[2];
@@ -308,7 +301,8 @@ void computeGradients(float *gradients, void *volData, int *sizes,
     }
 }
 
-void filterGradients(float *gradients, int *sizes)
+void
+nv::filterGradients(float *gradients, int *sizes)
 {
     int i, j, k, idz, idy, idx, gi, ogi, filterWidth, n, borderDist[3];
     float sum, *filteredGradients, ****filter;
@@ -443,7 +437,8 @@ void filterGradients(float *gradients, int *sizes)
     free(filter);
 }
 
-void quantize8(float *grad, unsigned char *data)
+static void
+quantize8(float *grad, unsigned char *data)
 {
     float len;
     int i;
@@ -463,7 +458,8 @@ void quantize8(float *grad, unsigned char *data)
     }
 }
 
-void quantize16(float *grad, unsigned short *data)
+static void
+quantize16(float *grad, unsigned short *data)
 {
     float len;
     int i;
@@ -483,7 +479,8 @@ void quantize16(float *grad, unsigned short *data)
     }
 }
 
-void quantizeFloat(float *grad, float *data)
+static void
+quantizeFloat(float *grad, float *data)
 {
     float len;
     int i;
@@ -503,8 +500,9 @@ void quantizeFloat(float *grad, float *data)
     }
 }
 
-void quantizeGradients(float *gradientsIn, void *gradientsOut,
-                       int *sizes, DataType dataType)
+void
+nv::quantizeGradients(float *gradientsIn, void *gradientsOut,
+                      int *sizes, DataType dataType)
 {
     int idx, idy, idz, di;
 

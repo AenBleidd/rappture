@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef TEXTURE1D_H
-#define TEXTURE1D_H
+#ifndef NV_TEXTURE1D_H
+#define NV_TEXTURE1D_H
 
 #include <GL/glew.h>
 

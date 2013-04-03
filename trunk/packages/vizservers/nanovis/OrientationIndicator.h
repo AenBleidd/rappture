@@ -4,10 +4,11 @@
  *
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
-#ifndef ORIENTATION_INDICATOR_H
-#define ORIENTATION_INDICATOR_H
+#ifndef NV_ORIENTATION_INDICATOR_H
+#define NV_ORIENTATION_INDICATOR_H
 
 namespace nv {
+
 class OrientationIndicator
 {
 public:
@@ -39,6 +40,7 @@ private:
     float _lineWidth;
     void *_quadric;
 };
+
 }
 
 #endif

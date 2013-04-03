@@ -3,8 +3,8 @@
  * Copyright (C) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef DX_READER_COMMON_H
-#define DX_READER_COMMON_H
+#ifndef NV_READER_COMMON_H
+#define NV_READER_COMMON_H
 
 namespace nv {
 

@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef BUCKETSORT_H
-#define BUCKETSORT_H
+#ifndef PCA_BUCKETSORT_H
+#define PCA_BUCKETSORT_H
 
 #include <vector>
 #include <list>
