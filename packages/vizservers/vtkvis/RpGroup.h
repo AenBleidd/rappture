@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_GROUP_H__
-#define __RAPPTURE_VTKVIS_GROUP_H__
+#ifndef VTKVIS_GROUP_H
+#define VTKVIS_GROUP_H
 
 #include <tr1/unordered_map>
 
@@ -14,7 +14,6 @@
 
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -64,7 +63,6 @@ private:
     NodeHashmap _nodes;
 };
 
-}
 }
 
 #endif

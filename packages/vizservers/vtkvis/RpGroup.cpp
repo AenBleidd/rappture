@@ -8,7 +8,7 @@
 #include "RpGroup.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Group::Group()
 {

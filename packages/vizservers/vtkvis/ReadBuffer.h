@@ -7,10 +7,9 @@
 
 #include <cstdlib>
 
-#ifndef _READBUFFER_H
-#define _READBUFFER_H
+#ifndef VTKVIS_READBUFFER_H
+#define VTKVIS_READBUFFER_H
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -81,6 +80,5 @@ private:
 };
 
 }
-}
 
-#endif /* _READBUFFER_H */
+#endif

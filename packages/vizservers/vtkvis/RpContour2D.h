@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_CONTOUR2D_H__
-#define __RAPPTURE_VTKVIS_CONTOUR2D_H__
+#ifndef VTKVIS_CONTOUR2D_H
+#define VTKVIS_CONTOUR2D_H
 
 #include <vtkSmartPointer.h>
 #include <vtkContourFilter.h>
@@ -20,7 +20,6 @@
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -52,6 +51,8 @@ public:
                             Renderer *renderer);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setContourField(const char *name);
 
     void setNumContours(int numContours);
 
@@ -118,7 +119,6 @@ private:
     vtkSmartPointer<vtkPolyDataMapper> _dsMapper;
 };
 
-}
 }
 
 #endif

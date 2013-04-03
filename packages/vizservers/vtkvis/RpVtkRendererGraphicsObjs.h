@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_RENDERER_GRAPHICS_OBJS_H__
-#define __RAPPTURE_VTKVIS_RENDERER_GRAPHICS_OBJS_H__
+#ifndef VTKVIS_RENDERER_GRAPHICS_OBJS_H
+#define VTKVIS_RENDERER_GRAPHICS_OBJS_H
 
 #include <tr1/unordered_map>
 #include <typeinfo>
@@ -39,7 +39,6 @@ do {                                                                         \
 
 #include "RpVtkRenderer.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -1023,7 +1022,6 @@ void Renderer::setGraphicsObjectAspect(double aspectRatio)
     _needsRedraw = true;
 }
 
-}
 }
 
 #endif

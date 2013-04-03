@@ -14,6 +14,7 @@
 #include <vtkGPUVolumeRayCastMapper.h>
 #include <vtkVolumeTextureMapper3D.h>
 #include <vtkUnstructuredGrid.h>
+#include <vtkPolyData.h>
 #include <vtkCellType.h>
 #include <vtkUnstructuredGridVolumeMapper.h>
 #include <vtkUnstructuredGridVolumeRayCastMapper.h>
@@ -24,7 +25,7 @@
 #include "RpVolume.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Volume::Volume() :
     VtkGraphicsObject(),

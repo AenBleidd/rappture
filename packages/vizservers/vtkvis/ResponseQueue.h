@@ -4,16 +4,15 @@
  *
  * Author: George A. Howlett <gah@purdue.edu>
  */
+#ifndef VTKVIS_RESPONSE_QUEUE_H
+#define VTKVIS_RESPONSE_QUEUE_H
 
 #include <pthread.h>
 #include <semaphore.h>
 #include <cstdlib>
+#include <cstring>
 #include <list>
 
-#ifndef _RESPONSE_QUEUE_H
-#define _RESPONSE_QUEUE_H
-
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -110,16 +109,9 @@ private:
 class ResponseQueue
 {
 public:
-    ResponseQueue(void *clientData);
+    ResponseQueue();
 
     virtual ~ResponseQueue();
-
-    /// A place to store a data pointer.  Not used internally.
-    /* XXX: This probably doesn't belong here */
-    void *clientData()
-    {
-	return _clientData;
-    }
 
     /// Add a response to the end of the queue
     void enqueue(Response *response);
@@ -131,10 +123,8 @@ private:
     pthread_mutex_t _idle;
     sem_t _ready; /**< Semaphore indicating that a response has been queued. */
     std::list<Response *> _list;
-    void *_clientData;
 };
 
-}
 }
 
 #endif

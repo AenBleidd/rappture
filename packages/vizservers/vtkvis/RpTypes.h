@@ -5,10 +5,9 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_TYPES_H__
-#define __RAPPTURE_VTKVIS_TYPES_H__
+#ifndef VTKVIS_TYPES_H
+#define VTKVIS_TYPES_H
 
-namespace Rappture {
 namespace VtkVis {
 
     enum Axis {
@@ -23,7 +22,6 @@ namespace VtkVis {
         PLANE_XZ
     };
 
-}
 }
 
 #endif

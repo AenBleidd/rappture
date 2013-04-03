@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_MATH_H__
-#define __RAPPTURE_VTKVIS_MATH_H__
+#ifndef VTKVIS_MATH_H
+#define VTKVIS_MATH_H
 
 #include <cmath>
 #include <cstring>
@@ -14,7 +14,6 @@
 #include <vtkMath.h>
 #include <vtkMatrix4x4.h>
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -184,7 +183,7 @@ inline double *quatReciprocal(const double quat[4], double result[4])
         quat[1]*quat[1] + 
         quat[2]*quat[2] + 
         quat[3]*quat[3];
-    Rappture::VtkVis::quatConjugate(quat, result);
+    VtkVis::quatConjugate(quat, result);
     for (int i = 0; i < 4; i++) {
         result[i] /= denom;
     }
@@ -196,7 +195,7 @@ inline double *quatReciprocal(const double quat[4], double result[4])
  */
 inline double *quatReciprocal(double quat[4])
 {
-    return Rappture::VtkVis::quatReciprocal(quat, quat);
+    return VtkVis::quatReciprocal(quat, quat);
 }
 
 /**
@@ -217,7 +216,6 @@ inline double max2(double a, double b)
     return ((a > b) ? a : b);
 }
 
-}
 }
 
 #endif

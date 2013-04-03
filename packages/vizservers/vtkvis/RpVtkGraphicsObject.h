@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_VTKGRAPHICSOBJECT_H__
-#define __RAPPTURE_VTKVIS_VTKGRAPHICSOBJECT_H__
+#ifndef VTKVIS_VTKGRAPHICSOBJECT_H
+#define VTKVIS_VTKGRAPHICSOBJECT_H
 
 #include <cmath>
 #include <string>
@@ -27,7 +27,6 @@
 #include "RpVtkDataSet.h"
 #include "Trace.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 class Renderer;
@@ -929,7 +928,6 @@ protected:
     vtkSmartPointer<vtkProp> _prop;
 };
 
-}
 }
 
 #endif

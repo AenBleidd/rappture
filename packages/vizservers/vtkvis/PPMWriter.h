@@ -5,14 +5,13 @@
  * Author: George A. Howlett <gah@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_PPMWRITER_H__
-#define __RAPPTURE_VTKVIS_PPMWRITER_H__
+#ifndef VTKVIS_PPMWRITER_H
+#define VTKVIS_PPMWRITER_H
 
 #ifdef USE_THREADS
 #include "ResponseQueue.h"
 #endif
 
-namespace Rappture {
 namespace VtkVis {
 #ifdef USE_THREADS
 extern
@@ -23,6 +22,5 @@ extern
 void writePPM(int fd, const char *cmdName, 
               const unsigned char *data, int width, int height);
 #endif
-}
 }
 #endif

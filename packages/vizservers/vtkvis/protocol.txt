@@ -185,6 +185,8 @@ camera zoom <z>
        Specify zoom ratio.  z > 1 is a zoom in, z < 1 is zoom out. z = 1
        resets to default.
 
+clientinfo <list>
+
 colormap add <colorMapName> <colorMap> <opacityMap>
 	 colorMap = Tcl list of {value r g b} control points
          opacityMap = Tcl list of {value alpha} control points
@@ -194,8 +196,6 @@ colormap res <numberOfTableEntries>
          <numberOfTableEntries> = integer or "default"
 
 dataset add <datasetName> data follows <nbytes>
-dataset color <r> <g> <b> <?datasetName?>
-        Set color of outline bounding box
 dataset delete <?datasetName?>
 dataset getscalar world <x> <y> <z> <datasetName>
 dataset getscalar pixel <x> <y> <datasetName>
@@ -221,8 +221,6 @@ dataset maprange <val> <?min?> <?max?> <?fieldName?> <?fieldType?> <?numComp?> <
 dataset names
         Returns a list of the loaded data sets
 dataset opacity <val> <?datasetName?>
-dataset outline <bool> <?datasetName?>
-        Toggle wireframe outline of dataset's bounding box
 dataset scalar <scalarName> <?datasetName?>
         Set the active scalar field to plot
 dataset vector <vectorName> <?datasetName?>

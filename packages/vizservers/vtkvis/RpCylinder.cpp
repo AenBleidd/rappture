@@ -12,7 +12,7 @@
 #include "RpCylinder.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Cylinder::Cylinder() :
     Shape()

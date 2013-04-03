@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_BOX_H__
-#define __RAPPTURE_VTKVIS_BOX_H__
+#ifndef VTKVIS_BOX_H
+#define VTKVIS_BOX_H
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataMapper.h>
@@ -16,7 +16,6 @@
 #include "RpShape.h"
 #include "RpVtkDataSet.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -50,7 +49,6 @@ private:
     vtkSmartPointer<vtkCubeSource> _box;
 };
 
-}
 }
 
 #endif

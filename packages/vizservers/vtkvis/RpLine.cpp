@@ -12,7 +12,7 @@
 #include "RpLine.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Line::Line() :
     Shape()

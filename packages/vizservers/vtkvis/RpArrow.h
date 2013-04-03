@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_ARROW_H__
-#define __RAPPTURE_VTKVIS_ARROW_H__
+#ifndef VTKVIS_ARROW_H
+#define VTKVIS_ARROW_H
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataMapper.h>
@@ -16,7 +16,6 @@
 #include "RpShape.h"
 #include "RpVtkDataSet.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -71,7 +70,6 @@ private:
     vtkSmartPointer<vtkArrowSource> _arrow;
 };
 
-}
 }
 
 #endif

@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_VOLUME_H__
-#define __RAPPTURE_VTKVIS_VOLUME_H__
+#ifndef VTKVIS_VOLUME_H
+#define VTKVIS_VOLUME_H
 
 #include <vtkSmartPointer.h>
 #include <vtkProp.h>
@@ -17,7 +17,6 @@
 #include "RpVtkGraphicsObject.h"
 #include "ColorMap.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -68,7 +67,6 @@ private:
     vtkSmartPointer<vtkAbstractVolumeMapper> _volumeMapper;
 };
 
-}
 }
 
 #endif

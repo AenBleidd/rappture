@@ -5,8 +5,8 @@
  * Author: George A. Howlett <gah@purdue.edu>
  */
 
-#ifndef __CMDPROC_H__
-#define __CMDPROC_H__
+#ifndef RAPPTURE_CMDPROC_H
+#define RAPPTURE_CMDPROC_H
 
 #include <tcl.h>
 

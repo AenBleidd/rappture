@@ -28,6 +28,8 @@
 #include "vtkTextProperty.h"
 #include "vtkViewport.h"
 
+#include "Trace.h"
+
 vtkStandardNewMacro(vtkRpCubeAxesActor);
 vtkCxxSetObjectMacro(vtkRpCubeAxesActor, Camera,vtkCamera);
 // *************************************************************************
@@ -2003,6 +2005,8 @@ void vtkRpCubeAxesActor::AdjustTicksComputeRange(vtkRpAxisActor *axes[NUMBER_OF_
   }
   customizedLabels = this->AxisLabels[axis];
 
+  //TRACE("sortedRange[0]: %g %g", sortedRange[0], this->FFix(sortedRange[0]*(1./major)) - sortedRange[0]*(1./major));
+
   if (customizedLabels == NULL)
     {
     // Figure out the first major tick locations, relative to the
@@ -2057,6 +2061,8 @@ void vtkRpCubeAxesActor::AdjustTicksComputeRange(vtkRpAxisActor *axes[NUMBER_OF_
     axes[i]->SetDeltaRangeMajor(major);
     }
 
+  //TRACE("range majorStart: %g major: %g", majorStart, major);
+
   double t;
   t = (minorStart - sortedRange[0])/range;
   minorStart = t * boundsMax + (1-t) * boundsMin;
@@ -2065,6 +2071,8 @@ void vtkRpCubeAxesActor::AdjustTicksComputeRange(vtkRpAxisActor *axes[NUMBER_OF_
   const double scale = (boundsMax - boundsMin) / range;
   minor *= scale;
   major *= scale;
+
+  //TRACE("bounds majorStart: %g major: %g", majorStart, major);
 
   // Set major start and delta for the corresponding cube axis
   switch(axes[0]->GetAxisType())

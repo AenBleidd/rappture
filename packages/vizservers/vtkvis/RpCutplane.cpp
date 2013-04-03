@@ -31,7 +31,7 @@
 
 #define MESH_POINT_CLOUDS
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Cutplane::Cutplane() :
     VtkGraphicsObject(),

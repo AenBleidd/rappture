@@ -17,7 +17,7 @@
 #include "RpMolecule.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 ColorMap *ColorMap::_default = NULL;
 ColorMap *ColorMap::_grayDefault = NULL;

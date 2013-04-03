@@ -34,9 +34,10 @@
 #include "RpVtkRenderer.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 #define MESH_POINT_CLOUDS
+#define TRANSLATE_TO_ZORIGIN
 
 HeightMap::HeightMap(int numContours, double heightScale) :
     VtkGraphicsObject(),
@@ -515,7 +516,14 @@ void HeightMap::update()
     if (_warp != NULL) {
         _warp->SetScaleFactor(_warpScale * _dataScale);
     }
-
+#ifdef TRANSLATE_TO_ZORIGIN
+    double pos[3];
+    pos[0] = 0;
+    pos[1] = 0;
+    pos[2] = - _warpScale * _dataScale * _dataRange[0];
+    setPosition(pos);
+    TRACE("Z_POS: %g", pos[2]);
+#endif
     _dsActor->SetMapper(_dsMapper);
 
     _dsMapper->Update();
@@ -669,7 +677,6 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
         _normalsGenerator->AutoOrientNormalsOff();
         _normalsGenerator->ComputePointNormalsOn();
         return _normalsGenerator->GetOutputPort();
-        //return _warp->GetOutputPort();
     }
 }
 
@@ -710,7 +717,6 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
         _normalsGenerator->AutoOrientNormalsOff();
         _normalsGenerator->ComputePointNormalsOn();
         return _normalsGenerator->GetOutputPort();
-        //return _warp->GetOutputPort();
     }
 }
 
@@ -735,7 +741,14 @@ void HeightMap::setHeightScale(double scale)
     } else {
         _warp->SetScaleFactor(_warpScale * _dataScale);
     }
-
+#ifdef TRANSLATE_TO_ZORIGIN
+    double pos[3];
+    pos[0] = 0;
+    pos[1] = 0;
+    pos[2] = - _warpScale * _dataScale * _dataRange[0];
+    setPosition(pos);
+    TRACE("Z_POS: %g", pos[2]);
+#endif
     if (_dsMapper != NULL)
         _dsMapper->Update();
     if (_contourMapper != NULL)

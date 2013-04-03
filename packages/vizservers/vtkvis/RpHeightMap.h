@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_HEIGHTMAP_H__
-#define __RAPPTURE_VTKVIS_HEIGHTMAP_H__
+#ifndef VTKVIS_HEIGHTMAP_H
+#define VTKVIS_HEIGHTMAP_H
 
 #include <vtkSmartPointer.h>
 #include <vtkAlgorithmOutput.h>
@@ -29,7 +29,6 @@
 #include "RpTypes.h"
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -169,7 +168,6 @@ private:
     vtkSmartPointer<vtkActor> _contourActor;
 };
 
-}
 }
 
 #endif

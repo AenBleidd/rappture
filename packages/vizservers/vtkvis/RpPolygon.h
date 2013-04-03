@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_POLYGON_H__
-#define __RAPPTURE_VTKVIS_POLYGON_H__
+#ifndef VTKVIS_POLYGON_H
+#define VTKVIS_POLYGON_H_
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataMapper.h>
@@ -16,7 +16,6 @@
 #include "RpShape.h"
 #include "RpVtkDataSet.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -69,7 +68,6 @@ private:
     vtkSmartPointer<vtkRegularPolygonSource> _polygon;
 };
 
-}
 }
 
 #endif

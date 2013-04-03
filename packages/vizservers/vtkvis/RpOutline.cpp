@@ -16,7 +16,7 @@
 #include "RpOutline.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Outline::Outline() :
     VtkGraphicsObject()

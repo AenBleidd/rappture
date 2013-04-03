@@ -18,7 +18,7 @@
 #include "RpBox.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Box::Box() :
     Shape()

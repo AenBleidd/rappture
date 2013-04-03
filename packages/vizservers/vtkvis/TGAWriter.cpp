@@ -36,10 +36,10 @@
  * \param[in] bytesPerPixel Should be 3 or 4, depending on alpha
  */
 void
-Rappture::VtkVis::queueTGA(ResponseQueue *queue, const char *cmdName, 
-                           const unsigned char *data,
-                           int width, int height,
-                           int bytesPerPixel)
+VtkVis::queueTGA(ResponseQueue *queue, const char *cmdName, 
+                 const unsigned char *data,
+                 int width, int height,
+                 int bytesPerPixel)
 {
     TRACE("(%dx%d)\n", width, height);
 
@@ -101,10 +101,10 @@ Rappture::VtkVis::queueTGA(ResponseQueue *queue, const char *cmdName,
  * \param[in] bytesPerPixel Should be 3 or 4, depending on alpha
  */
 void
-Rappture::VtkVis::writeTGA(int fd, const char *cmdName,
-                           const unsigned char *data,
-                           int width, int height,
-                           int bytesPerPixel)
+VtkVis::writeTGA(int fd, const char *cmdName,
+                 const unsigned char *data,
+                 int width, int height,
+                 int bytesPerPixel)
 {
     TRACE("(%dx%d)\n", width, height);
 
@@ -168,11 +168,11 @@ Rappture::VtkVis::writeTGA(int fd, const char *cmdName,
  * \param[in] srcIsRGB If true source data will be re-ordered
  */
 void
-Rappture::VtkVis::writeTGAFile(const char *filename,
-                               const unsigned char *imgData,
-                               int width, int height,
-                               int bytesPerPixel,
-                               bool srcIsRGB)
+VtkVis::writeTGAFile(const char *filename,
+                     const unsigned char *imgData,
+                     int width, int height,
+                     int bytesPerPixel,
+                     bool srcIsRGB)
 {
     TRACE("%s (%dx%d)\n", filename, width, height);
 

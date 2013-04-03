@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_RENDERERCMD_H__
-#define __RAPPTURE_VTKVIS_RENDERERCMD_H__
+#ifndef VTKVIS_RENDERERCMD_H
+#define VTKVIS_RENDERERCMD_H
 
 #include <cstdio>
 #include <tcl.h>
@@ -16,7 +16,6 @@
 #include "ResponseQueue.h"
 #endif
 
-namespace Rappture {
 namespace VtkVis {
 
 #ifdef USE_THREADS
@@ -40,7 +39,6 @@ extern void initTcl(Tcl_Interp *interp,
 
 extern void exitTcl(Tcl_Interp *interp);
 
-}
 }
 
 #endif

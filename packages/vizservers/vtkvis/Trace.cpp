@@ -15,7 +15,7 @@
 
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 static std::ostringstream g_UserErrorString;
 
@@ -25,7 +25,7 @@ static std::ostringstream g_UserErrorString;
  * \brief Open syslog for writing
  */
 void
-Rappture::VtkVis::initLog()
+VtkVis::initLog()
 {
     openlog("vtkvis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER);
 }
@@ -34,7 +34,7 @@ Rappture::VtkVis::initLog()
  * \brief Close syslog
  */
 void
-Rappture::VtkVis::closeLog()
+VtkVis::closeLog()
 {
     closelog();
 }
@@ -43,8 +43,8 @@ Rappture::VtkVis::closeLog()
  * \brief Write a message to syslog
  */
 void 
-Rappture::VtkVis::logMessage(int priority, const char *funcname,
-                             const char *path, int lineNum, const char* fmt, ...)
+VtkVis::logMessage(int priority, const char *funcname,
+                   const char *path, int lineNum, const char* fmt, ...)
 {
     char message[MSG_LEN + 1];
     const char *s;
@@ -73,7 +73,7 @@ Rappture::VtkVis::logMessage(int priority, const char *funcname,
  * \brief Write a user message to buffer
  */
 void 
-Rappture::VtkVis::logUserMessage(const char* fmt, ...)
+VtkVis::logUserMessage(const char* fmt, ...)
 {
     char message[MSG_LEN + 1];
     int length = 0;
@@ -88,13 +88,13 @@ Rappture::VtkVis::logUserMessage(const char* fmt, ...)
 }
 
 const char *
-Rappture::VtkVis::getUserMessages()
+VtkVis::getUserMessages()
 {
     return g_UserErrorString.str().c_str();
 }
 
 void 
-Rappture::VtkVis::clearUserMessages()
+VtkVis::clearUserMessages()
 {
     g_UserErrorString.str(std::string());
 }

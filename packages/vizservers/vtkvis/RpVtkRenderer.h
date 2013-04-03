@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_RENDERER_H__
-#define __RAPPTURE_VTKVIS_RENDERER_H__
+#ifndef VTKVIS_RENDERER_H
+#define VTKVIS_RENDERER_H
 
 #include <string>
 #include <vector>
@@ -56,7 +56,6 @@
 //#define RENDER_TARGA
 #define TARGA_BYTES_PER_PIXEL 3
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -137,10 +136,6 @@ public:
     bool getVectorValueAtPixel(const DataSetId& id, int x, int y, double vector[3]);
 
     bool getVectorValue(const DataSetId& id, double x, double y, double z, double vector[3]);
-
-    void setDataSetShowBounds(const DataSetId& id, bool state);
-
-    void setDataSetOutlineColor(const DataSetId& id, float color[3]);
 
     void setDataSetOpacity(const DataSetId& id, double opacity);
 
@@ -576,6 +571,8 @@ public:
 
     bool addContour2D(const DataSetId& id, const std::vector<double>& contours);
 
+    void setContour2DContourField(const DataSetId& id, const char *fieldName);
+
     void setContour2DNumContours(const DataSetId& id, int numContours);
 
     void setContour2DContourList(const DataSetId& id, const std::vector<double>& contours);
@@ -594,6 +591,8 @@ public:
     bool addContour3D(const DataSetId& id, int numContours);
 
     bool addContour3D(const DataSetId& id, const std::vector<double>& contours);
+
+    void setContour3DContourField(const DataSetId& id, const char *fieldName);
 
     void setContour3DNumContours(const DataSetId& id, int numContours);
 
@@ -850,7 +849,7 @@ private:
 
     void _setCameraZoomRegion(double x, double y, double width, double height);
 
-    static void printCameraInfo(vtkCamera *camera);
+    //static void printCameraInfo(vtkCamera *camera);
 
     static void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
 
@@ -992,7 +991,6 @@ private:
     vtkSmartPointer<vtkRenderWindow> _legendRenderWindow;
 };
 
-}
 }
 
 #endif

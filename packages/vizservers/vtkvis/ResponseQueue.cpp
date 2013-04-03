@@ -15,10 +15,9 @@
 #include "Trace.h"
 #include "ResponseQueue.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
-ResponseQueue::ResponseQueue(void *clientData)  :
-    _clientData(clientData)
+ResponseQueue::ResponseQueue()
 {
     pthread_mutex_init(&_idle, NULL);
     if (sem_init(&_ready, 0, 0) < 0) {

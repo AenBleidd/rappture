@@ -12,7 +12,7 @@
 #include "RpCone.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Cone::Cone() :
     Shape()

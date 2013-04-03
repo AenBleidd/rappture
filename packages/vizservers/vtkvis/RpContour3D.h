@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_CONTOUR3D_H__
-#define __RAPPTURE_VTKVIS_CONTOUR3D_H__
+#ifndef VTKVIS_CONTOUR3D_H
+#define VTKVIS_CONTOUR3D_H
 
 #include <vtkSmartPointer.h>
 #include <vtkContourFilter.h>
@@ -21,7 +21,6 @@
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -61,6 +60,8 @@ public:
     int getNumContours() const;
 
     const std::vector<double>& getContourList() const;
+
+    void setContourField(const char *name);
 
     void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
                       const char *name, double range[2] = NULL);
@@ -109,7 +110,6 @@ private:
     vtkSmartPointer<vtkPolyDataMapper> _dsMapper;
 };
 
-}
 }
 
 #endif

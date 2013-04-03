@@ -12,7 +12,7 @@
 #include "RpArrow.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Arrow::Arrow() :
     Shape()
