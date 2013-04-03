@@ -13,19 +13,22 @@ INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL} -m 644
 
-F77 =        @F77@
-CC =         @CC@
-CXX =        @CXX@
-RUBY =       @RUBY@
-PERL =       @PERL@
-TCLSH =      @TCLSH@
-PYTHON =     @PYTHON@
-MEX =        @MEX@
-MKOCTFILE2 = @MKOCTFILE2@
-MKOCTFILE3 = @MKOCTFILE3@
-OCTAVE =     $(MKOCTFILE2) $(MKOCTFILE3)
-JAVAC =      @JAVAC@
-R =          @R@
+CC		= @CC@
+CXX		= @CXX@
+F77		= @F77@
+HAVE_RUBY_H     = @HAVE_RUBY_H@
+JAVAC		= @JAVAC@
+JAVA_INC_DIR    = @JAVA_INC_DIR@
+MEX             = @MEX@
+MKOCTFILE2	= @MKOCTFILE2@
+MKOCTFILE3	= @MKOCTFILE3@
+OCTAVE		= $(MKOCTFILE2) $(MKOCTFILE3)
+PERL            = @PERL@
+PYTHON          = @PYTHON_DISTUTILS@
+PYTHON		= @PYTHON@
+R		= @R@
+RUBY		= @RUBY@
+TCLSH           = @TCLSH@
 
 .PHONY: all install clean distclean tcl cee fortran octave matlab perl python ruby java 2.0 wrapper
 
@@ -46,9 +49,11 @@ ifneq ($(PYTHON),)
     LANGS += python
 endif
 ifneq ($(RUBY),)
+  ifeq ($(HAVE_RUBY_H),yes)
     LANGS += ruby
+  endif
 endif
-ifneq ($(JAVAC),)
+ifneq ($(JAVA_INC_DIR),)
     LANGS += java
 endif
 ifneq ($(R),)
