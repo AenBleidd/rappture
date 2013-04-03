@@ -118,9 +118,9 @@ itcl::class Rappture::VtkIsosurfaceViewer {
                                    ;    # in the server.
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
-    private variable _currentColormap "" ;    
-    private variable _currentNumContours -1;    
-    private variable _currentOpacity "" ;    
+    private variable _currentColormap ""
+    private variable _currentNumContours -1
+    private variable _currentOpacity ""
 
     private variable _dataset2style    ;# maps dataobj-component to transfunc
 
@@ -1411,7 +1411,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         "numContours" {
             set _settings(numContours) [$itk_component(numcontours) value]
             set _currentNumContours $_settings(numContours)
-            UpdateContourList 
+            UpdateContourList
             set _changed(numContours) 1
             SendCmd "contour3d contourlist [list $_contourList]"
             DrawLegend
@@ -2170,7 +2170,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         set _currentNumContours $style(-levels)
         set _settings(numContours) $_currentNumContours
         $itk_component(numcontours) value $_currentNumContours
-        UpdateContourList 
+        UpdateContourList
         DrawLegend
     }
     SendCmd [list contour3d add contourlist $_contourList $tag]

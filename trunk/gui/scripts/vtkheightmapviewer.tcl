@@ -106,6 +106,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method GetHeightmapScale {} 
     private method ResetAxes {}
     private method SetOrientation { side }
+    private method UpdateContourList {}
 
     private variable _arcball ""
     private variable _dlist ""     ;    # list of data objects
@@ -119,9 +120,9 @@ itcl::class Rappture::VtkHeightmapViewer {
 
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
-    private variable _currentColormap "" ;    
-    private variable _currentNumIsolines "" ;    
-    private variable _currentOpacity "" ;    
+    private variable _currentColormap ""
+    private variable _currentNumIsolines -1
+    private variable _currentOpacity ""
 
     private variable _click        ;    # info used for rotate operations
     private variable _limits       ;    # Holds overall limits for all dataobjs 
@@ -138,6 +139,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
     private variable _isolines
+    private variable _contourList ""
 
     common _downloadPopup;              # download options from popup
     private common _hardcopy
@@ -1056,8 +1058,8 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         }
 	PanCamera
 	InitSettings axisXGrid axisYGrid axisZGrid \
-	    axisVisible axisLabels 
-        InitSettings heightmapScale field isHeightmap
+	    axisVisible axisLabels heightmapScale field isHeightmap \
+            numIsolines
         if { [array size _fields] < 2 } {
             blt::table forget $itk_component(field) $itk_component(field_l)
         }
@@ -1366,7 +1368,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		}
 		SetCurrentColormap $color
                 if {$_settings(colormapDiscrete)} {
-                    set numColors [expr $_settings(numIsolines) - 1]
+                    set numColors [expr $_settings(numIsolines) + 1]
                     SendCmd "colormap res $numColors $color"
                 }
 	    }
@@ -1379,7 +1381,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "colormapDiscrete" {
             set bool $_settings($what)
-            set numColors [expr $_settings(numIsolines) - 1]
+            set numColors [expr $_settings(numIsolines) + 1]
             StartBufferingCommands
             if {$bool} {
                 SendCmd "colormap res $numColors"
@@ -1439,6 +1441,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             SendCmd "dataset scalar $_curFldName"
             SendCmd "heightmap colormode scalar $_curFldName"
             SendCmd "camera reset"
+            UpdateContourList
             DrawLegend
         }
         "heightmapScale" {
@@ -1568,12 +1571,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    }
         }
         "numIsolines" {
-            set _changed(numIsolines) 1
             set _settings(numIsolines) [$itk_component(numisolines) value]
             set _currentNumIsolines $_settings(numIsolines)
-            SendCmd "heightmap numcontours $_settings(numIsolines)"
+            UpdateContourList
+            set _changed(numIsolines) 1
+            SendCmd "heightmap contourlist [list $_contourList]"
             if {$_settings(colormapDiscrete)} {
-                set numColors [expr $_settings(numIsolines) - 1]
+                set numColors [expr $_settings(numIsolines) + 1]
                 SendCmd "colormap res $numColors"
                 EventuallyRequestLegend
             } else {
@@ -1960,7 +1964,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
     label $inner.numisolines_l -text "Number of Isolines" -font "Arial 9"
     itk_component add numisolines {
         Rappture::Spinint $inner.numisolines \
-            -min 2 -max 50 -font "arial 9"
+            -min 1 -max 50 -font "arial 9"
     }
     $itk_component(numisolines) value $_settings(numIsolines)
     bind $itk_component(numisolines) <<Value>> \
@@ -2272,13 +2276,14 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         set _currentNumIsolines $style(-levels)
         set _settings(numIsolines) $_currentNumIsolines
         $itk_component(numisolines) value $_currentNumIsolines
+        UpdateContourList
         DrawLegend
     }
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $_settings(outline) $tag"
     set scale [GetHeightmapScale]
-    SendCmd "heightmap add numcontours $_currentNumIsolines $scale $tag"
+    SendCmd "[list heightmap add contourlist $_contourList $scale $tag]"
     set _comp2scale($tag) $_settings(heightmapScale)
     SendCmd "heightmap edges $_settings(edges) $tag"
     SendCmd "heightmap wireframe $_settings(wireframe) $tag"
@@ -2383,32 +2388,26 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     # Draw the isolines on the legend.
     if { $color != "none"  && [info exists _limits($_curFldName)] && 
          $_settings(isolinesVisible) && $_currentNumIsolines > 0 } {
-	set pixels [blt::vector create \#auto]
-	set values [blt::vector create \#auto]
-	set range [image height $_image(legend)]
-	# Order of pixels is max to min (max is at top of legend).
-	$pixels seq $ih 0 $_currentNumIsolines
 
+        foreach { vmin vmax } $_limits($_curFldName) break
+        set range [expr double($vmax - $vmin)]
+        if { $range <= 0.0 } {
+            set range 1.0;              # Min is greater or equal to max.
+        }
+        set tags "isoline legend"
 	set offset [expr 2 + $lineht]
-	# If there's a legend title, increase the offset by the line height.
 	if { $title != "" } {
 	    incr offset $lineht
 	}
-	$pixels expr {round($pixels + $offset)}
-	# Order of values is min to max.
-        foreach { vmin vmax } $_limits($_curFldName) break
-	$values seq $vmin $vmax $_currentNumIsolines
-	set tags "isoline legend"
-        array unset _isolines
-	foreach pos [$pixels range 0 end] value [$values range end 0] {
-	    set y1 [expr int($pos)]
+        foreach value $_contourList {
+            set norm [expr 1.0 - (($value - $vmin) / $range)]
+            set y1 [expr int(round(($norm * $ih) + $offset))]
             for { set off 0 } { $off < 3 } { incr off } {
                 set _isolines([expr $y1 + $off]) $value
                 set _isolines([expr $y1 - $off]) $value
             }
-	    set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
+	    $c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags
 	}
-	blt::vector destroy $pixels $values
     }
 
     $c bind title <ButtonPress> [itcl::code $this Combo post]
@@ -2593,4 +2592,16 @@ itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } {
     set _view(xpan) 0
     set _view(ypan) 0
     set _view(zoom) 1.0
+}
+
+itcl::body Rappture::VtkHeightmapViewer::UpdateContourList {} { 
+    if { ![info exists _limits($_curFldName)] } {
+        return
+    }
+    foreach { vmin vmax } $_limits($_curFldName) break
+    set v [blt::vector create \#auto]
+    $v seq $vmin $vmax [expr $_currentNumIsolines+2]
+    $v delete end 0
+    set _contourList [$v range 0 end]
+    blt::vector destroy $v
 }
