@@ -15,7 +15,7 @@ namespace nv {
 class ParticleEmitter
 {
 public:
-   ParticleEmitter();
+    ParticleEmitter();
 
     void setName(const std::string& name);
     void setPosition(float x, float y, float z);

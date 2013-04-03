@@ -47,7 +47,7 @@ public:
 
     Vector3f normalize() const;
 
-    Vector3f scale(Vector3f& sc) const;
+    Vector3f scale(const Vector3f& sc) const;
 
     Vector3f scale(float scale) const;
 
@@ -235,7 +235,7 @@ inline Vector3f Vector3f::scale(float scale) const
     return Vector3f(x * scale, y * scale, z * scale);
 }
 
-inline Vector3f Vector3f::scale(Vector3f& sc) const
+inline Vector3f Vector3f::scale(const Vector3f& sc) const
 {
     return Vector3f(x * sc.x, y * sc.y, z * sc.z);
 }

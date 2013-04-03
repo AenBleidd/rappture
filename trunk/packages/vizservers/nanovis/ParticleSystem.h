@@ -48,16 +48,12 @@ struct ActiveParticle {
     int index;
 };
 
-namespace std
-{
-    template <>
-    struct greater<ActiveParticle> {
-        bool operator() (const ActiveParticle& left, const ActiveParticle& right)
-        {
-            return left.timeOfDeath > right.timeOfDeath;
-        }
-    };
-}
+struct particle_greater {
+    bool operator() (const ActiveParticle& left, const ActiveParticle& right)
+    {
+        return (left.timeOfDeath > right.timeOfDeath);
+    }
+};
 
 struct color4 {
     float r, g, b, a;
@@ -172,7 +168,7 @@ public:
     float _currentTime;
 
     priority_queue_vector<int, std::greater<int> > _availableIndices;
-    priority_queue_vector<ActiveParticle, std::greater<ActiveParticle> > _activeParticles;
+    priority_queue_vector<ActiveParticle, particle_greater > _activeParticles;
     std::vector<NewParticle> _newParticles;
 
     /**

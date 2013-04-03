@@ -26,12 +26,12 @@
 
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
-#include "DataLoader.h"
 #include "Texture2D.h"
 #include "Texture3D.h"
 #include "Shader.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace nv::util;
 
 #define USE_RGBA_ARROW
@@ -986,7 +986,7 @@ void ParticleSystem::advectStreamlines()
         glDisable(ATLAS_TEXTURE_TARGET);
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _atlas_fbo);
-        _streamVertices->Read(_atlasWidth, _atlasHeight);
+        _streamVertices->read(_atlasWidth, _atlasHeight);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         _currentStreamlineIndex++;
 
@@ -1095,11 +1095,11 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
             sort();
 
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
-            _vertices->Read(_width, _height);
+            _vertices->read(_width, _height);
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         } else {
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_currentPosIndex]);
-            _vertices->Read(_width, _height);
+            _vertices->read(_width, _height);
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         }
 
@@ -1109,9 +1109,10 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
             unsigned int numOfNewParticles = (unsigned int)(randomRange(_emitters[i]->_minNumOfNewParticles, _emitters[i]->_maxNumOfNewParticles) * deltaT);
             for (unsigned int k = 0; k < numOfNewParticles; ++k) {
                 vrmath::Vector3f position = _emitters[i]->_position;
-                position += _emitters[i]->_maxPositionOffset * 
-                    vrmath::Vector3f(randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f));
-
+                position +=
+                    _emitters[i]->_maxPositionOffset.scale(vrmath::Vector3f(randomRange(-1.0f, 1.0f),
+                                                                            randomRange(-1.0f, 1.0f),
+                                                                            randomRange(-1.0f, 1.0f)));
                 float lifetime = randomRange(_emitters[i]->_minLifeTime, _emitters[i]->_maxLifeTime);
 
                 // TBD..
@@ -1580,7 +1581,7 @@ void ParticleSystem::renderStreamlines()
         glEnableClientState(GL_VERTEX_ARRAY);
         //glEnableClientState(GL_COLOR_ARRAY);
 
-        _streamVertices->SetPointer(0);
+        _streamVertices->setPointer(0);
         //glColorPointer(4, GL_FLOAT, 0, 0);
 
         ::glDrawElements(GL_LINES, _particleCount * 2 * (_currentStreamlineIndex - 1),
@@ -1652,7 +1653,7 @@ void ParticleSystem::render()
             glEnableVertexAttribArrayARB(8);
             glEnableClientState(GL_VERTEX_ARRAY);
             //glEnableClientState(GL_COLOR_ARRAY);
-            _vertices->SetPointer(0);
+            _vertices->setPointer(0);
             //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
             //glColorPointer(4, GL_FLOAT, 0, 0);
             //glBindBufferARB(GL_ARRAY_BUFFER, 0);
@@ -1690,7 +1691,7 @@ void ParticleSystem::render()
 
             glEnableClientState(GL_VERTEX_ARRAY);
             //glEnableClientState(GL_COLOR_ARRAY);
-            _vertices->SetPointer(0);
+            _vertices->setPointer(0);
             //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
             //glColorPointer(4, GL_FLOAT, 0, 0);
             //glBindBufferARB(GL_ARRAY_BUFFER, 0);
@@ -1717,14 +1718,14 @@ void ParticleSystem::render()
             glEnableClientState(GL_VERTEX_ARRAY);
             //glEnableClientState(GL_COLOR_ARRAY);
             glPointSize(10);
-            _vertices->SetPointer(0);
+            _vertices->setPointer(0);
             //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
             //glColorPointer(4, GL_FLOAT, 0, 0);
             //glBindBufferARB(GL_ARRAY_BUFFER, 0);
             glDrawArrays(GL_POINTS, 0, _particleMaxCount);
 
             glPointSize(1);
-            _vertices->SetPointer(0);
+            _vertices->setPointer(0);
             //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
             //glColorPointer(4, GL_FLOAT, 0, 0);
             //glBindBufferARB(GL_ARRAY_BUFFER, 0);

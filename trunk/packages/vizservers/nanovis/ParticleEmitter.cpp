@@ -5,6 +5,8 @@
  */
 #include "ParticleEmitter.h"
 
+using namespace nv;
+
 ParticleEmitter::ParticleEmitter() :
     _minLifeTime(30.0f), _maxLifeTime(100.0f),
     _maxPositionOffset(1, 1, 1),

@@ -14,6 +14,7 @@
 #include "ParticleSystem.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace nv::util;
 
 #define BUFSIZE 4096
