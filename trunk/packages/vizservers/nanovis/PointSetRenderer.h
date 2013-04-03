@@ -14,6 +14,8 @@
 #include "PointShader.h"
 #include "Texture2D.h"
 
+namespace nv {
+
 class PointSetRenderer
 {
 public:
@@ -32,5 +34,7 @@ private:
     PointShader *_shader;
     Texture2D *_pointTexture;
 };
+
+}
 
 #endif

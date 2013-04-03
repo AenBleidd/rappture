@@ -3,25 +3,25 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#include "NvRegularVolumeShader.h"
+#include "RegularVolumeShader.h"
 
 using namespace nv;
 
-NvRegularVolumeShader::NvRegularVolumeShader()
+RegularVolumeShader::RegularVolumeShader()
 {
     init();
 }
 
-NvRegularVolumeShader::~NvRegularVolumeShader()
+RegularVolumeShader::~RegularVolumeShader()
 {
 }
 
-void NvRegularVolumeShader::init()
+void RegularVolumeShader::init()
 {
     loadFragmentProgram("one_volume.cg", "main");
 }
 
-void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume,
+void RegularVolumeShader::bind(unsigned int tfID, Volume *volume,
                                  int sliceMode, float sampleRatio)
 {
     //regular cubic volume
@@ -45,13 +45,13 @@ void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume,
                      volume->opacityScale(),
                      (volume->twoSidedLighting() ? 1.0f : 0.0f));
 
-    NvShader:: bind();
+    Shader:: bind();
 }
 
-void NvRegularVolumeShader::unbind()
+void RegularVolumeShader::unbind()
 {
     disableFPTextureParameter("volume");
     disableFPTextureParameter("tf");
 
-    NvShader::unbind();
+    Shader::unbind();
 }

@@ -18,7 +18,7 @@
 
 #include "nanovis.h"
 #include "VelocityArrowsSlice.h"
-#include "NvShader.h"
+#include "Shader.h"
 #include "Camera.h"
 
 using namespace nv;
@@ -423,11 +423,11 @@ void VelocityArrowsSlice::render()
         _particleShader.setVPParameter1f("tanHalfFOV",
                                          tan(NanoVis::getCamera()->fov() * 0.5) * NanoVis::winHeight * 0.5);
         _particleShader.setGLStateMatrixVPParameter("modelview",
-                                                    NvShader::MODELVIEW_MATRIX,
-                                                    NvShader::MATRIX_IDENTITY);
+                                                    Shader::MODELVIEW_MATRIX,
+                                                    Shader::MATRIX_IDENTITY);
         _particleShader.setGLStateMatrixVPParameter("mvp",
-                                                    NvShader::MODELVIEW_PROJECTION_MATRIX,
-                                                    NvShader::MATRIX_IDENTITY);
+                                                    Shader::MODELVIEW_PROJECTION_MATRIX,
+                                                    Shader::MATRIX_IDENTITY);
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);

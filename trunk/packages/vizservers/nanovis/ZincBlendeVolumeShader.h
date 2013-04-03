@@ -3,21 +3,19 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef NV_REGULAR_SHADER_H
-#define NV_REGULAR_SHADER_H
+#ifndef NV_ZINCBLENDE_SHADER_H
+#define NV_ZINCBLENDE_SHADER_H
 
-#include "Volume.h"
-#include "NvVolumeShader.h"
+#include "VolumeShader.h"
 
 namespace nv {
 
-/// Shader for regular volume (uniform grid)
-class NvRegularVolumeShader : public NvVolumeShader
+class ZincBlendeVolumeShader : public VolumeShader
 {
 public:
-    NvRegularVolumeShader();
+    ZincBlendeVolumeShader();
 
-    virtual ~NvRegularVolumeShader();
+    virtual ~ZincBlendeVolumeShader();
 
     virtual void bind(unsigned int tfID, Volume *volume,
                       int sliceMode, float sampleRatio);
@@ -30,4 +28,4 @@ private:
 
 }
 
-#endif
+#endif 

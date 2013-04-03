@@ -5,8 +5,10 @@
  */
 #include "PointShader.h"
 
+using namespace nv;
+
 PointShader::PointShader() : 
-    NvShader(),
+    Shader(),
     _scale(1.0f),
     _normal(NULL)
 {
@@ -28,12 +30,12 @@ void PointShader::bind()
     setVPParameter4f("scale", _scale, 1.0f, 1.0f, 1.0f);
     //setVPTextureParameter("normal", _normal->getGraphicsObjectID());
 
-    NvShader::bind();
+    Shader::bind();
 }
 
 void PointShader::unbind()
 {
     //disableVPTextureParameter("normal");
 
-    NvShader::unbind();
+    Shader::unbind();
 }

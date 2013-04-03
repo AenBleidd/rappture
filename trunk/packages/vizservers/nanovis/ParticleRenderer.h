@@ -13,7 +13,7 @@
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
 
-#include "NvParticleAdvectionShader.h"
+#include "ParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
 
 namespace nv {
@@ -83,7 +83,7 @@ public:
         return _particleSize;
     }
 
-   static NvParticleAdvectionShader *_advectionShader;
+   static ParticleAdvectionShader *_advectionShader;
 
 private:
     /// frame buffer objects: two are defined, flip them as input output every step

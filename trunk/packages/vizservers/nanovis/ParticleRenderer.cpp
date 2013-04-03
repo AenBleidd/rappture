@@ -18,7 +18,7 @@
 
 using namespace nv;
 
-NvParticleAdvectionShader *ParticleRenderer::_advectionShader = NULL;
+ParticleAdvectionShader *ParticleRenderer::_advectionShader = NULL;
 ParticleAdvectionShaderInstance shaderInstance;
 
 ParticleRenderer::ParticleRenderer(int w, int h) :
@@ -102,7 +102,7 @@ ParticleRenderer::ParticleRenderer(int w, int h) :
 #endif
 
     if (_advectionShader == NULL) {
-        _advectionShader = new NvParticleAdvectionShader();
+        _advectionShader = new ParticleAdvectionShader();
     }
 }
 

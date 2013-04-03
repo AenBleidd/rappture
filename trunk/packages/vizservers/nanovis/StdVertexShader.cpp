@@ -3,25 +3,25 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#include "NvStdVertexShader.h"
+#include "StdVertexShader.h"
 
 using namespace nv;
 
-NvStdVertexShader::NvStdVertexShader()
+StdVertexShader::StdVertexShader()
 {
     init();
 }
 
-NvStdVertexShader::~NvStdVertexShader()
+StdVertexShader::~StdVertexShader()
 {
 }
 
-void NvStdVertexShader::init()
+void StdVertexShader::init()
 {
     loadVertexProgram("vertex_std.cg", "main");
 }
 
-void NvStdVertexShader::bind(float *mvp, float *mvInv)
+void StdVertexShader::bind(float *mvp, float *mvInv)
 {
     if (mvp != NULL) {
         setVPMatrixParameterf("modelViewProjMatrix", mvp);
@@ -34,5 +34,5 @@ void NvStdVertexShader::bind(float *mvp, float *mvInv)
         setGLStateMatrixVPParameter("modelViewInv", MODELVIEW_MATRIX, MATRIX_INVERSE);
     }
 
-    NvShader::bind();
+    Shader::bind();
 }

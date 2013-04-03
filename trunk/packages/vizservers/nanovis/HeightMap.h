@@ -11,7 +11,7 @@
 #include <vrmath/Vector3f.h>
 
 #include "TransferFunction.h"
-#include "NvShader.h"
+#include "Shader.h"
 #include "AxisRange.h"
 
 namespace nv {
@@ -131,7 +131,7 @@ private:
     nv::graphics::Geometry *_contour;
     TransferFunction *_transferFunc;
     float _opacity;
-    NvShader *_shader;
+    Shader *_shader;
     int *_indexBuffer;
     int _indexCount;
     vrmath::Vector3f _contourColor;

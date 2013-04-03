@@ -3,11 +3,11 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#include "NvParticleAdvectionShader.h"
+#include "ParticleAdvectionShader.h"
 
 using namespace nv;
 
-NvParticleAdvectionShader::NvParticleAdvectionShader() : 
+ParticleAdvectionShader::ParticleAdvectionShader() : 
     _velocityVolumeID(0), 
     _scale(1.0f, 1.0f, 1.0f), 
     _max(1.0f), 
@@ -17,17 +17,17 @@ NvParticleAdvectionShader::NvParticleAdvectionShader() :
     init();
 }
 
-NvParticleAdvectionShader::~NvParticleAdvectionShader()
+ParticleAdvectionShader::~ParticleAdvectionShader()
 {
 }
 
-void NvParticleAdvectionShader::init()
+void ParticleAdvectionShader::init()
 {
     loadFragmentProgram("update_pos.cg", "main");
 }
 
 void 
-NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
+ParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
 {
     setFPTextureParameter("pos_tex", texID);
     setFPTextureParameter("init_pos_tex", initPosTexID);
@@ -38,15 +38,15 @@ NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
     setFPParameter1f("mode", _mode);
     setFPParameter3f("scale", _scale.x, _scale.y, _scale.z);
 
-    NvShader::bind();
+    Shader::bind();
 }
 
 void
-NvParticleAdvectionShader::unbind()
+ParticleAdvectionShader::unbind()
 {
      disableFPTextureParameter("pos_tex");
      disableFPTextureParameter("init_pos_tex");
      disableFPTextureParameter("vel_tex");
 
-     NvShader::unbind();
+     Shader::unbind();
 }

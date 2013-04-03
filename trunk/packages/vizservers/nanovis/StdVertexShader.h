@@ -6,22 +6,22 @@
 #ifndef NV_STD_VERTEX_SHADER_H
 #define NV_STD_VERTEX_SHADER_H
 
-#include "NvShader.h"
+#include "Shader.h"
 
 namespace nv {
 
-class NvStdVertexShader : public NvShader
+class StdVertexShader : public Shader
 {
 public:
-    NvStdVertexShader();
+    StdVertexShader();
 
-    virtual ~NvStdVertexShader();
+    virtual ~StdVertexShader();
 
     virtual void bind(float *mvp = NULL, float *mvInv = NULL);
 
     virtual void unbind()
     {
-        NvShader::unbind();
+        Shader::unbind();
     }
 
 private:

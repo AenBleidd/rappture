@@ -4,26 +4,26 @@
  *
  */
 
-#include "NvZincBlendeVolumeShader.h"
+#include "ZincBlendeVolumeShader.h"
 #include "ZincBlendeVolume.h"
 
 using namespace nv;
 
-NvZincBlendeVolumeShader::NvZincBlendeVolumeShader()
+ZincBlendeVolumeShader::ZincBlendeVolumeShader()
 {
     init();
 }
 
-NvZincBlendeVolumeShader::~NvZincBlendeVolumeShader()
+ZincBlendeVolumeShader::~ZincBlendeVolumeShader()
 {
 }
 
-void NvZincBlendeVolumeShader::init()
+void ZincBlendeVolumeShader::init()
 {
     loadFragmentProgram("zincblende_volume.cg", "main");
 }
 
-void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume,
+void ZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume,
                                     int sliceMode, float sampleRatio)
 {
     ZincBlendeVolume *vol = (ZincBlendeVolume *)volume;
@@ -45,14 +45,14 @@ void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume,
                      volume->opacityScale(),
                      0.0f);
 
-    NvShader::bind();
+    Shader::bind();
 }
 
-void NvZincBlendeVolumeShader::unbind() 
+void ZincBlendeVolumeShader::unbind() 
 {
     disableFPTextureParameter("tf");
     disableFPTextureParameter("volumeA");
     disableFPTextureParameter("volumeB");
 
-    NvShader::unbind();
+    Shader::unbind();
 }

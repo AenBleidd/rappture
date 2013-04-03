@@ -1,17 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * NvLIC.h: line integral convolution class
- *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
  *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
 #ifndef NV_LIC_H
 #define NV_LIC_H
@@ -21,7 +13,7 @@
 #include <vrmath/Vector3f.h>
 
 #include "Volume.h"
-#include "NvShader.h"
+#include "Shader.h"
 
 namespace nv {
 
@@ -83,7 +75,7 @@ public:
 
 private:
     /**
-     * @brief the normal vector of the NvLIC plane, 
+     * @brief the normal vector of the LIC plane, 
      * the inherited Vector3 location is its center
      */
     vrmath::Vector3f _normal;
@@ -110,7 +102,7 @@ private:
 
     GLuint _disListID;
 
-    NvShader *_renderVelShader;
+    Shader *_renderVelShader;
 
     GLuint _colorTex, _patternTex, _magTex;
     GLuint _fbo, _velFbo, _sliceVectorTex;  // For projecting 3d vector to 2d

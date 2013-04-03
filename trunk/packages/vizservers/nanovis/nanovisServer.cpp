@@ -32,7 +32,7 @@
 #include "Command.h"
 #include "PPMWriter.h"
 #include "ReadBuffer.h"
-#include "NvShader.h"
+#include "Shader.h"
 #ifdef USE_THREADS
 #include <pthread.h>
 #include "ResponseQueue.h"
@@ -351,7 +351,7 @@ exitService(int code)
 
     NanoVis::removeAllData();
 
-    NvShader::exitCg();
+    Shader::exitCg();
 
     //close log file
     if (g_fLog != NULL) {
@@ -435,7 +435,7 @@ writerThread(void *clientData)
 static
 void cgErrorCallback(void)
 {
-    if (!NvShader::printErrorInfo()) {
+    if (!Shader::printErrorInfo()) {
         TRACE("Cg error, exiting...");
         exitService(1);
     }
@@ -579,7 +579,7 @@ main(int argc, char **argv)
     }
 
     // Override callback with one that cleans up server on exit
-    NvShader::setErrorCallback(cgErrorCallback);
+    Shader::setErrorCallback(cgErrorCallback);
 
     if (!NanoVis::initGL()) {
         exitService(1);

@@ -27,7 +27,7 @@
 #include "VolumeRenderer.h"
 #include "Plane.h"
 #include "ConvexPolygon.h"
-#include "NvStdVertexShader.h"
+#include "StdVertexShader.h"
 #include "Trace.h"
 
 using namespace nv;
@@ -52,15 +52,15 @@ VolumeRenderer::~VolumeRenderer()
 //initialize the volume shaders
 void VolumeRenderer::initShaders()
 {
-    _cutplaneShader = new NvShader();
+    _cutplaneShader = new Shader();
     _cutplaneShader->loadVertexProgram("cutplane_vp.cg", "main");
     _cutplaneShader->loadFragmentProgram("cutplane_fp.cg", "main");
 
     //standard vertex program
-    _stdVertexShader = new NvStdVertexShader();
+    _stdVertexShader = new StdVertexShader();
 
     //volume rendering shader: one cubic volume
-    _regularVolumeShader = new NvRegularVolumeShader();
+    _regularVolumeShader = new RegularVolumeShader();
 
     //volume rendering shader: one zincblende orbital volume.
     //This shader renders one orbital of the simulation.
@@ -70,7 +70,7 @@ void VolumeRenderer::initShaders()
     //
     //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
     //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
-    _zincBlendeShader = new NvZincBlendeVolumeShader();
+    _zincBlendeShader = new ZincBlendeVolumeShader();
 }
 
 struct SortElement {
@@ -286,7 +286,7 @@ VolumeRenderer::renderAll()
             glTranslatef(volPos.x, volPos.y, volPos.z);
             glScalef(volScaling.x, volScaling.y, volScaling.z);
             _cutplaneShader->setGLStateMatrixVPParameter("modelViewProjMatrix",
-                                                         NvShader::MODELVIEW_PROJECTION_MATRIX);
+                                                         Shader::MODELVIEW_PROJECTION_MATRIX);
             glPopMatrix();
 
             glEnable(GL_DEPTH_TEST);

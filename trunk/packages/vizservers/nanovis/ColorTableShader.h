@@ -6,18 +6,18 @@
 #ifndef NV_COLORTABLE_SHADER_H
 #define NV_COLORTABLE_SHADER_H
 
-#include "NvShader.h"
+#include "Shader.h"
 #include "Texture2D.h"
 #include "TransferFunction.h"
 
 namespace nv {
 
-class NvColorTableShader : public NvShader
+class ColorTableShader : public Shader
 {
 public:
-    NvColorTableShader();
+    ColorTableShader();
 
-    virtual ~NvColorTableShader();
+    virtual ~ColorTableShader();
 
     virtual void bind(Texture2D *plane, TransferFunction *tf);
 

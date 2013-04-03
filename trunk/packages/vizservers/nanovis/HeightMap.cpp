@@ -38,7 +38,7 @@ HeightMap::HeightMap() :
     _centerPoint(0.0f, 0.0f, 0.0f),
     _heights(NULL)
 {
-    _shader = new NvShader();
+    _shader = new Shader();
     _shader->loadFragmentProgram("heightcolor.cg", "main");
 }
 

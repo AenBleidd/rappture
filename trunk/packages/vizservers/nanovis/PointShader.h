@@ -6,10 +6,12 @@
 #ifndef POINTSHADER_H
 #define POINTSHADER_H
 
-#include "NvShader.h"
+#include "Shader.h"
 #include "Texture3D.h"
 
-class PointShader : public NvShader
+namespace nv {
+
+class PointShader : public Shader
 {
 public:
     PointShader();
@@ -35,5 +37,7 @@ private:
     float _scale;
     Texture3D *_normal;
 };
+
+}
 
 #endif

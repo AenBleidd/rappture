@@ -13,6 +13,7 @@
 #include "PointSetRenderer.h"
 #include "PCASplit.h"
 
+using namespace nv;
 using namespace nv::util;
 
 #define USE_TEXTURE 
