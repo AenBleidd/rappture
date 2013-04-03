@@ -1,6 +1,7 @@
 TRACE			= #yes
 USE_THREADS		= yes
 USE_POINTSET_RENDERER	= #yes
+USE_PARTICLE_SYSTEM	= #yes
 
 SHELL = /bin/sh
 
@@ -179,7 +180,7 @@ shaders		= \
 		$(srcdir)/shaders/vertex_std.cg \
 		$(srcdir)/shaders/zincblende_volume.cg
 
-ifdef NOTDEF
+ifdef USE_PARTICLE_SYSTEM
 OBJS +=		ParticleEmitter.o \
 		ParticleSystem.o \
 		ParticleSystemFactory.o
@@ -297,7 +298,7 @@ OrientationIndicator.o: OrientationIndicator.cpp OrientationIndicator.h
 ParticleAdvectionShader.o: ParticleAdvectionShader.cpp ParticleAdvectionShader.h Shader.h
 ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
 ParticleRenderer.o: ParticleRenderer.cpp ParticleRenderer.h
-ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h DataLoader.h
+ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
 PCASplit.o: PCASplit.cpp PCASplit.h
 PerfQuery.o: PerfQuery.cpp PerfQuery.h
