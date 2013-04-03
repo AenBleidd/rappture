@@ -15,6 +15,8 @@
 
 #include "config.h"
 
+#define NANOVIS_VERSION_STRING "1.2"
+
 #define MSECS_ELAPSED(t1, t2) \
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
      (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)

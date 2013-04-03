@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef NANOVIS_H
-#define NANOVIS_H
+#ifndef NV_NANOVIS_H
+#define NV_NANOVIS_H
 
 #include <math.h>
 #include <stddef.h> // For size_t
@@ -34,8 +34,6 @@
 
 #include "config.h"
 #include "md5.h"
-
-#define NANOVIS_VERSION		"1.2"
 
 //defines for the image based flow visualization
 #define NMESH 256	//resolution of flow mesh
