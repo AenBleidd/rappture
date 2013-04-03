@@ -11,7 +11,7 @@
 #include <vrmath/Vector3f.h>
 
 #include "Texture2D.h"
-#include "NvShader.h"
+#include "Shader.h"
 
 namespace nv {
 
@@ -104,9 +104,8 @@ private:
     unsigned int _tex;
     float _maxPointSize;
 
-    NvShader _queryVelocityFP;
-
-    NvShader _particleShader;
+    Shader _queryVelocityFP;
+    Shader _particleShader;
 
     int _renderTargetWidth;
     int _renderTargetHeight;

@@ -12,6 +12,8 @@
 #include "PointSet.h"
 #include "PCASplit.h"
 
+using namespace nv;
+
 void 
 PointSet::initialize(vrmath::Vector4f *values, const unsigned int count, 
 		     const vrmath::Vector3f& scale, const vrmath::Vector3f& origin, 

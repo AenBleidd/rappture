@@ -3,15 +3,15 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#include "NvVolumeShader.h"
+#include "VolumeShader.h"
 
 using namespace nv;
 
-NvVolumeShader::NvVolumeShader()
+VolumeShader::VolumeShader()
 {
 }
 
-NvVolumeShader::~NvVolumeShader()
+VolumeShader::~VolumeShader()
 {
 }
 

@@ -17,24 +17,24 @@
 
 namespace nv {
 
-class NvShader
+class Shader
 {
 public:
-    enum NvGLMatrix {
+    enum GLMatrix {
         MODELVIEW_MATRIX = CG_GL_MODELVIEW_MATRIX,
         PROJECTION_MATRIX = CG_GL_PROJECTION_MATRIX,
         MODELVIEW_PROJECTION_MATRIX = CG_GL_MODELVIEW_PROJECTION_MATRIX
     };
-    enum NvGLMatrixType {
+    enum GLMatrixType {
         MATRIX_IDENTITY = CG_GL_MATRIX_IDENTITY,
         MATRIX_INVERSE = CG_GL_MATRIX_INVERSE
     };
 
-    typedef void NvCgCallbackFunction(void);
+    typedef void CgCallbackFunction(void);
 
-    NvShader();
+    Shader();
 
-    virtual ~NvShader();
+    virtual ~Shader();
 
     /**
      * @brief create a Cg vertex program and load it
@@ -200,8 +200,8 @@ public:
         cgGLDisableTextureParameter(param);
     }
 
-    void setGLStateMatrixVPParameter(const char *name, NvGLMatrix matrix,
-                                     NvGLMatrixType type = MATRIX_IDENTITY)
+    void setGLStateMatrixVPParameter(const char *name, GLMatrix matrix,
+                                     GLMatrixType type = MATRIX_IDENTITY)
     {
         CGparameter param = getVPParam(name);
         if (param == NULL)
@@ -209,8 +209,8 @@ public:
         cgGLSetStateMatrixParameter(param, (CGGLenum)matrix, (CGGLenum)type);
     }
 
-    void setGLStateMatrixFPParameter(const char *name, NvGLMatrix matrix,
-                                     NvGLMatrixType type = MATRIX_IDENTITY)
+    void setGLStateMatrixFPParameter(const char *name, GLMatrix matrix,
+                                     GLMatrixType type = MATRIX_IDENTITY)
     {
         CGparameter param = getFPParam(name);
         if (param == NULL)
@@ -265,7 +265,7 @@ public:
 
     static bool printErrorInfo();
 
-    static void setErrorCallback(NvCgCallbackFunction callback);
+    static void setErrorCallback(CgCallbackFunction callback);
 
     static CGcontext getCgContext()
     {

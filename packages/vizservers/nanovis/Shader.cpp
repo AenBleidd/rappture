@@ -11,25 +11,25 @@
 
 #include <util/FilePath.h>
 
-#include "NvShader.h"
+#include "Shader.h"
 #include "Trace.h"
 
 using namespace nv;
 using namespace nv::util;
 
-CGprofile NvShader::_defaultVertexProfile = CG_PROFILE_VP40;
-CGprofile NvShader::_defaultFragmentProfile = CG_PROFILE_FP40;
-CGcontext NvShader::_cgContext = NULL;
+CGprofile Shader::_defaultVertexProfile = CG_PROFILE_VP40;
+CGprofile Shader::_defaultFragmentProfile = CG_PROFILE_FP40;
+CGcontext Shader::_cgContext = NULL;
 
-void NvShader::initCg(CGprofile defaultVertexProfile,
-                      CGprofile defaultFragmentProfile)
+void Shader::initCg(CGprofile defaultVertexProfile,
+                    CGprofile defaultFragmentProfile)
 {
     _defaultVertexProfile = defaultVertexProfile;
     _defaultFragmentProfile = defaultFragmentProfile;
     _cgContext = cgCreateContext();
 }
 
-void NvShader::exitCg()
+void Shader::exitCg()
 {
     setErrorCallback(NULL);
     printErrorInfo();
@@ -41,7 +41,7 @@ void NvShader::exitCg()
     }
 }
 
-bool NvShader::printErrorInfo()
+bool Shader::printErrorInfo()
 {
     CGerror lastError = cgGetError();
 
@@ -55,8 +55,8 @@ bool NvShader::printErrorInfo()
 }
 
 CGprogram
-NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
-                              CGprofile profile, const char *entryPoint)
+Shader::loadCgSourceProgram(CGcontext context, const char *fileName,
+                            CGprofile profile, const char *entryPoint)
 {
     std::string path = FilePath::getInstance()->getPath(fileName);
     if (path.empty()) {
@@ -75,7 +75,7 @@ NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
     return program;
 }
 
-NvShader::NvShader():
+Shader::Shader():
     _vertexProfile(_defaultVertexProfile),
     _fragmentProfile(_defaultFragmentProfile),
     _cgVP(NULL),
@@ -83,9 +83,9 @@ NvShader::NvShader():
 {
 }
 
-NvShader::~NvShader()
+Shader::~Shader()
 {
-    TRACE("In ~NvShader");
+    TRACE("Enter");
     if (_cgContext == NULL) {
         TRACE("Lost Cg context: vp: %s, fp: %s", _vpFile.c_str(), _fpFile.c_str());
     } else {
@@ -93,7 +93,7 @@ NvShader::~NvShader()
     }
 }
 
-void NvShader::loadVertexProgram(const char *fileName, const char *entryPoint)
+void Shader::loadVertexProgram(const char *fileName, const char *entryPoint)
 {
     if (_cgVP != NULL) {
         cgDestroyProgram(_cgVP);
@@ -103,7 +103,7 @@ void NvShader::loadVertexProgram(const char *fileName, const char *entryPoint)
     _vpFile = fileName;
 }
 
-void NvShader::loadFragmentProgram(const char *fileName, const char *entryPoint)
+void Shader::loadFragmentProgram(const char *fileName, const char *entryPoint)
 {
     if (_cgFP != NULL) {
         cgDestroyProgram(_cgFP);
@@ -113,7 +113,7 @@ void NvShader::loadFragmentProgram(const char *fileName, const char *entryPoint)
     _fpFile = fileName;
 }
 
-void NvShader::resetPrograms()
+void Shader::resetPrograms()
 {
     if (_cgVP != NULL) {
         TRACE("Destroying vertex program: %s", _vpFile.c_str());
@@ -126,8 +126,8 @@ void NvShader::resetPrograms()
     }
 }
 
-void NvShader::setErrorCallback(NvCgCallbackFunction callback)
+void Shader::setErrorCallback(CgCallbackFunction callback)
 {
-    TRACE("NvShader setting error callback to: %p", callback);
+    TRACE("Shader setting error callback to: %p", callback);
     cgSetErrorCallback(callback);
 }

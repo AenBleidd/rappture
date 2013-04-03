@@ -20,9 +20,9 @@
 
 #include "Volume.h"
 #include "VolumeInterpolator.h"
-#include "NvRegularVolumeShader.h"
-#include "NvZincBlendeVolumeShader.h"
-#include "NvStdVertexShader.h"
+#include "RegularVolumeShader.h"
+#include "ZincBlendeVolumeShader.h"
+#include "StdVertexShader.h"
 
 namespace nv {
 
@@ -86,12 +86,12 @@ private:
     /**
      * Shader for single slice cutplane render
      */
-    NvShader *_cutplaneShader;
+    Shader *_cutplaneShader;
 
     /**
      * Shader for rendering a single cubic volume
      */
-    NvRegularVolumeShader *_regularVolumeShader;
+    RegularVolumeShader *_regularVolumeShader;
 
     /**
      * Shader for rendering a single zincblende orbital.  A
@@ -107,12 +107,12 @@ private:
      * This is equivalent to rendering 4 unrelated data sets occupying the
      * same space.
      */
-    NvZincBlendeVolumeShader *_zincBlendeShader;
+    ZincBlendeVolumeShader *_zincBlendeShader;
 
     /**
      * standard vertex shader 
      */
-    NvStdVertexShader *_stdVertexShader;
+    StdVertexShader *_stdVertexShader;
 };
 
 }

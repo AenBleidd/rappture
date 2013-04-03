@@ -1,17 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * PlaneRenderer.cpp : PlaneRenderer class for volume visualization
- *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
  *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
 
 #include <GL/glew.h>
@@ -26,7 +18,7 @@ PlaneRenderer::PlaneRenderer(int width, int height) :
     _numPlanes(0),
     _renderWidth(width),
     _renderHeight(height),
-    _shader(new NvColorTableShader())
+    _shader(new ColorTableShader())
 {
     _plane.clear();
     _tf.clear();

@@ -8,16 +8,16 @@
 
 #include <vrmath/Vector3f.h>
 
-#include "NvShader.h"
+#include "Shader.h"
 
 namespace nv {
 
-class NvParticleAdvectionShader : public NvShader
+class ParticleAdvectionShader : public Shader
 {
 public:
-    NvParticleAdvectionShader();
+    ParticleAdvectionShader();
 
-    virtual ~NvParticleAdvectionShader();
+    virtual ~ParticleAdvectionShader();
 
     virtual void bind(unsigned int texID, unsigned int initPosTexID);
 

@@ -6,27 +6,27 @@
 #ifndef NV_VOLUME_SHADER_H
 #define NV_VOLUME_SHADER_H
 
-#include "NvShader.h"
+#include "Shader.h"
 
 namespace nv {
 
 class Volume;
 
-class NvVolumeShader : public NvShader
+class VolumeShader : public Shader
 {
 public :
-    virtual ~NvVolumeShader();
+    virtual ~VolumeShader();
 
     virtual void bind(unsigned int tfID, Volume *volume,
                       int sliceMode, float sampleRatio) = 0;
 
     virtual void unbind()
     {
-        NvShader::unbind();
+        Shader::unbind();
     }
 
 protected :
-    NvVolumeShader();
+    VolumeShader();
 };
 
 }

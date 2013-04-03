@@ -41,7 +41,7 @@
 #include "HeightMap.h"
 #include "Camera.h"
 #include "LIC.h"
-#include "NvShader.h"
+#include "Shader.h"
 #include "OrientationIndicator.h"
 #include "PlaneRenderer.h"
 #include "PPMWriter.h"
@@ -460,7 +460,7 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
 static
 void cgErrorCallback(void)
 {
-    if (!NvShader::printErrorInfo()) {
+    if (!Shader::printErrorInfo()) {
         TRACE("Cg error, exiting...");
         exit(1);
     }
@@ -535,8 +535,8 @@ bool NanoVis::init(const char* path)
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
-    NvShader::initCg();
-    NvShader::setErrorCallback(cgErrorCallback);
+    Shader::initCg();
+    Shader::setErrorCallback(cgErrorCallback);
 
     fonts = new Fonts();
     fonts->addFont("verdana", "verdana.fnt");

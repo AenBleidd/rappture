@@ -11,6 +11,8 @@
 
 #include "PCASplit.h"
 
+namespace nv {
+
 class PointSet
 {
 public :
@@ -85,5 +87,7 @@ private:
     float _min;
     bool _visible;
 };
+
+}
 
 #endif

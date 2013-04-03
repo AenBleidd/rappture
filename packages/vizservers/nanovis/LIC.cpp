@@ -1,17 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * NvLIC.h: line integral convolution class
- *
- * ======================================================================
- *  AUTHOR:  Insoo Woo <iwoo@purdue.edu, Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
  *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
 #include <stdlib.h>
 #include <math.h>
@@ -21,7 +13,7 @@
 #include "define.h"
 
 #include "LIC.h"
-#include "NvShader.h"
+#include "Shader.h"
 #include "Trace.h"
 
 #define NPN 256   //resolution of background pattern
@@ -110,7 +102,7 @@ LIC::LIC(int size, int width, int height, int axis,
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
-    _renderVelShader = new NvShader();
+    _renderVelShader = new Shader();
     _renderVelShader->loadFragmentProgram("render_vel.cg", "main");
 
     makePatterns();

@@ -29,7 +29,7 @@
 #include "DataLoader.h"
 #include "Texture2D.h"
 #include "Texture3D.h"
-#include "NvShader.h"
+#include "Shader.h"
 #include "Trace.h"
 
 using namespace nv::util;
@@ -422,7 +422,7 @@ void ParticleSystem::initStreamlines(int width, int height)
 void ParticleSystem::initShaders()
 {
     // TBD...
-    _context = NvShader::getCgContext();
+    _context = Shader::getCgContext();
 
     std::string path = FilePath::getInstance()->getPath("distance.cg");
     _distanceInitFP =  
