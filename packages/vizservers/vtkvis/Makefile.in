@@ -136,42 +136,42 @@ CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(DEFINES) $(INCLUDES)
 CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 SERVER_SRCS	= \
+		Arc.cpp \
+		Arrow.cpp \
+		Box.cpp \
 		CmdProc.cpp \
 		ColorMap.cpp \
+		Cone.cpp \
+		Contour2D.cpp \
+		Contour3D.cpp \
+		Cutplane.cpp \
+		Cylinder.cpp \
+		Disk.cpp \
+		Glyphs.cpp \
+		Group.cpp \
+		HeightMap.cpp \
+		LIC.cpp \
+		Line.cpp \
+		Molecule.cpp \
+		Outline.cpp \
+		PolyData.cpp \
+		Polygon.cpp \
 		PPMWriter.cpp \
+		PseudoColor.cpp \
 		ReadBuffer.cpp \
-		RpArc.cpp \
-		RpArrow.cpp \
-		RpBox.cpp \
-		RpCone.cpp \
-		RpContour2D.cpp \
-		RpContour3D.cpp \
-		RpCutplane.cpp \
-		RpCylinder.cpp \
-		RpDisk.cpp \
-		RpGlyphs.cpp \
-		RpGroup.cpp \
-		RpHeightMap.cpp \
-		RpLine.cpp \
-		RpLIC.cpp \
-		RpMolecule.cpp \
-		RpOutline.cpp \
-		RpPolyData.cpp \
-		RpPolygon.cpp \
-		RpPseudoColor.cpp \
-		RpShape.cpp \
-		RpSphere.cpp \
-		RpStreamlines.cpp \
-		RpVolume.cpp \
-		RpVtkDataSet.cpp \
-		RpVtkGraphicsObject.cpp \
-		RpVtkRenderer.cpp \
-		RpVtkRendererCmd.cpp \
-		RpVtkRendererGraphicsObjs.cpp \
-		RpVtkRenderServer.cpp \
-		RpWarp.cpp \
+		Shape.cpp \
+		Sphere.cpp \
+		Streamlines.cpp \
 		TGAWriter.cpp \
-		Trace.cpp 
+		Trace.cpp \
+		Volume.cpp \
+		VtkDataSet.cpp \
+		VtkGraphicsObject.cpp \
+		VtkRenderer.cpp \
+		VtkRendererCmd.cpp \
+		VtkRendererGraphicsObjs.cpp \
+		VtkRenderServer.cpp \
+		Warp.cpp
 
 ifdef USE_CUSTOM_AXES
 SERVER_SRCS+= \
@@ -216,45 +216,44 @@ clean-docs:
 distclean: clean clean-docs
 	$(RM) Makefile Doxyfile
 
+Arc.o: Arc.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Arrow.o: Arrow.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Box.o: Box.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
 CmdProc.o: CmdProc.h
-ColorMap.o: ColorMap.h RpMolecule.h Trace.h
+ColorMap.o: ColorMap.h Molecule.h Trace.h
+Cone.o: Cone.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Contour2D.o: Contour2D.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Contour3D.o: Contour3D.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
+Cutplane.o: Cutplane.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
+Cylinder.o: Cylinder.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Disk.o: Disk.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Glyphs.o: Glyphs.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
+Group.o: Group.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+HeightMap.o: HeightMap.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
+LIC.o: LIC.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h VtkRenderServer.h
+Line.o: Line.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+md5.o: md5.h
+Molecule.o: Molecule.h MoleculeData.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
+Outline.o: Outline.h VtkGraphicsObject.h VtkDataSet.h Trace.h
+PolyData.o: PolyData.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Polygon.o: Polygon.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
 PPMWriter.o: PPMWriter.h ResponseQueue.h Trace.h
+PseudoColor.o: PseudoColor.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
 ReadBuffer.o: ReadBuffer.h Trace.h
 ResponseQueue.o: ResponseQueue.h Trace.h
-RpArc.o: RpArc.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpArrow.o: RpArrow.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpBox.o: RpBox.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpCone.o: RpCone.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpContour2D.o: RpContour2D.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpContour3D.o: RpContour3D.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpCutplane.o: RpCutplane.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpCylinder.o: RpCylinder.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpDisk.o: RpDisk.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpGlyphs.o: RpGlyphs.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpGroup.o: RpGroup.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpHeightMap.o: RpHeightMap.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpLine.o: RpLine.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpLIC.o: RpLIC.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h RpVtkRenderServer.h
-RpMolecule.o: RpMolecule.h RpMoleculeData.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpMolecule2.o: RpMolecule2.h RpMoleculeData.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpOutline.o: RpOutline.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
-RpPolyData.o: RpPolyData.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpPolygon.o: RpPolygon.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpPseudoColor.o: RpPseudoColor.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpShape.o: RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpSphere.o: RpSphere.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
-RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpVolume.o: RpVolume.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-RpVtkDataSet.o: RpVtkDataSet.h Trace.h
-RpVtkGraphicsObject.o: RpVtkGraphicsObject.h RpVtkRenderer.h RpVtkDataSet.h ColorMap.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h RpMath.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpOutline.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpOutline.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
-RpVtkRendererGraphicsObjs.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpOutline.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
-RpWarp.o: RpWarp.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
-Trace.o: Trace.h
+Shape.o: Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Sphere.o: Sphere.h Shape.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h Trace.h
+Streamlines.o: Streamlines.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
 TGAWriter.o: TGAWriter.h ResponseQueue.h Trace.h
+Trace.o: Trace.h
+Volume.o: Volume.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
+VtkDataSet.o: VtkDataSet.h Trace.h
+VtkGraphicsObject.o: VtkGraphicsObject.h VtkRenderer.h VtkDataSet.h ColorMap.h Trace.h
+VtkRenderer.o: VtkRenderer.h VtkRendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h Math.h VtkDataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h LIC.h Line.h Molecule.h Outline.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Volume.h ColorMap.h Trace.h
+VtkRendererCmd.o: VtkRenderer.h VtkRendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h VtkDataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h LIC.h Line.h Molecule.h Outline.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Volume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+VtkRendererGraphicsObjs.o: VtkRenderer.h VtkRendererGraphicsObjs.h VtkDataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h LIC.h Line.h Molecule.h Outline.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Volume.h ColorMap.h Trace.h
+VtkRenderServer.o: VtkRenderServer.h VtkRendererCmd.h VtkRenderer.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
 vtkRpAxisActor.o: vtkRpAxisActor.h
 vtkRpAxisFollower.o: vtkRpAxisFollower.h vtkRpAxisActor.h
 vtkRpCubeAxesActor.o: vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h
-md5.o: md5.h
+Warp.o: Warp.h VtkGraphicsObject.h VtkDataSet.h VtkRenderer.h ColorMap.h Trace.h
