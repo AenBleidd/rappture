@@ -34,7 +34,6 @@ public:
 
 private:
     float _scale;
-    float _scale;
     Texture3D *_normal;
 };
 
