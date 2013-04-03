@@ -24,6 +24,8 @@
 #include "NvZincBlendeVolumeShader.h"
 #include "NvStdVertexShader.h"
 
+namespace nv {
+
 class VolumeRenderer
 {
 public:
@@ -112,5 +114,7 @@ private:
      */
     NvStdVertexShader *_stdVertexShader;
 };
+
+}
 
 #endif

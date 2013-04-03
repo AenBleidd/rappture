@@ -5,6 +5,8 @@
  */
 #include "NvRegularVolumeShader.h"
 
+using namespace nv;
+
 NvRegularVolumeShader::NvRegularVolumeShader()
 {
     init();

@@ -1,17 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /**
- * ----------------------------------------------------------------------
- * @class NvZincBlendeReconstructor 
- * 
- * ======================================================================
- * @author Insoo Woo (iwoo@purdue.edu)
- * @author Purdue Rendering and Perceptualization Lab (PURPL)
- * 
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  * 
- * See the file "license.terms" for information on usage and
- * redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ * Authors:
+ *   Insoo Woo <iwoo@purdue.edu>
  */
 #ifndef NV_ZINC_BLENDE_RECONSTRUCTOR_H
 #define NV_ZINC_BLENDE_RECONSTRUCTOR_H
@@ -23,9 +15,11 @@
 
 #include <vrmath/Vector3f.h>
 
+namespace nv {
+
 class ZincBlendeVolume;
 
-class NvZincBlendeReconstructor
+class ZincBlendeReconstructor
 {
 public:
     /**
@@ -61,12 +55,12 @@ public:
     /**
      * @brief Return a singleton instance
      */
-    static NvZincBlendeReconstructor *getInstance();
+    static ZincBlendeReconstructor *getInstance();
 
 private:
-    NvZincBlendeReconstructor();
+    ZincBlendeReconstructor();
 
-    ~NvZincBlendeReconstructor();
+    ~ZincBlendeReconstructor();
 
     /**
      * @brief Get a line from file. It is used for reading header because header is written in ascii.
@@ -77,7 +71,9 @@ private:
     char buff[255];
 
     /// A ZincBlendeReconstructor Singleton instance
-    static NvZincBlendeReconstructor *_instance;
+    static ZincBlendeReconstructor *_instance;
 };
+
+}
 
 #endif

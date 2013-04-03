@@ -19,6 +19,8 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+namespace nv {
+
 class RenderVertexArray
 {
 public:
@@ -42,5 +44,7 @@ private:
     GLenum _type;      // FLOAT or HALF_FLOAT
     int _bytesPerComponent;
 };
+
+}
 
 #endif

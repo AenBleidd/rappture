@@ -6,8 +6,9 @@
 #ifndef NV_ZINCBLENDE_SHADER_H
 #define NV_ZINCBLENDE_SHADER_H
 
-#include "ZincBlendeVolume.h"
 #include "NvVolumeShader.h"
+
+namespace nv {
 
 class NvZincBlendeVolumeShader : public NvVolumeShader
 {
@@ -24,5 +25,7 @@ public:
 private:
     void init();
 };
+
+}
 
 #endif 

@@ -24,6 +24,8 @@
 
 #include "Trace.h"
 
+namespace nv {
+
 class PerfQuery
 {
 public:
@@ -67,5 +69,8 @@ inline bool PerfQuery::checkQuerySupport()
         return true;
     }
 }
+
+}
+
 #endif
 

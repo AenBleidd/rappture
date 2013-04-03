@@ -14,12 +14,13 @@
 #include "ContourLineFilter.h"
 #include "Texture1D.h"
 
+using namespace nv;
+using namespace nv::graphics;
+using namespace vrmath;
+
 bool HeightMap::updatePending = false;
 double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
-
-using namespace nv::graphics;
-using namespace vrmath;
 
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0),

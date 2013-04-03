@@ -1,17 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * NvParticleRenderer.cpp: particle system class
- *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
+/* 
  *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
 
 #include <assert.h>
@@ -20,29 +12,16 @@
 
 #include <GL/glew.h>
 
-#include "NvParticleRenderer.h"
+#include "ParticleRenderer.h"
 #include "define.h"
 #include "Trace.h"
 
-NvParticleAdvectionShader *NvParticleRenderer::_advectionShader = NULL;
+using namespace nv;
 
-class NvParticleAdvectionShaderInstance
-{
-public :
-    NvParticleAdvectionShaderInstance()
-    {}
+NvParticleAdvectionShader *ParticleRenderer::_advectionShader = NULL;
+ParticleAdvectionShaderInstance shaderInstance;
 
-    ~NvParticleAdvectionShaderInstance()
-    {
-        if (NvParticleRenderer::_advectionShader) {
-            delete NvParticleRenderer::_advectionShader;
-        }
-    }
-};
-
-NvParticleAdvectionShaderInstance shaderInstance;
-
-NvParticleRenderer::NvParticleRenderer(int w, int h) :
+ParticleRenderer::ParticleRenderer(int w, int h) :
     _initPosTex(0),
     _data(NULL),
     _psysFrame(0),
@@ -127,7 +106,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
     }
 }
 
-NvParticleRenderer::~NvParticleRenderer()
+ParticleRenderer::~ParticleRenderer()
 {
     glDeleteTextures(1, &_initPosTex);
 
@@ -143,7 +122,8 @@ NvParticleRenderer::~NvParticleRenderer()
     delete [] _data;
 }
 
-void NvParticleRenderer::initializeDataArray()
+void
+ParticleRenderer::initializeDataArray()
 {
     size_t n = _psysWidth * _psysHeight * 4;
     memset(_data, 0, sizeof(float)* n);
@@ -192,7 +172,8 @@ void NvParticleRenderer::initializeDataArray()
     }
 }
 
-void NvParticleRenderer::initialize()
+void
+ParticleRenderer::initialize()
 {
     initializeDataArray();
 
@@ -222,7 +203,8 @@ void NvParticleRenderer::initialize()
     TRACE("Leave");
 }
 
-void NvParticleRenderer::reset()
+void
+ParticleRenderer::reset()
 {
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
 #ifdef HAVE_FLOAT_TEXTURES
@@ -238,8 +220,8 @@ void NvParticleRenderer::reset()
     _psysFrame = 0;
 }
 
-void 
-NvParticleRenderer::advect()
+void
+ParticleRenderer::advect()
 {
     if (_reborn) 
         reset();
@@ -306,7 +288,7 @@ NvParticleRenderer::advect()
 }
 
 void
-NvParticleRenderer::updateVertexBuffer()
+ParticleRenderer::updateVertexBuffer()
 {
     _vertexArray->read(_psysWidth, _psysHeight);
 
@@ -314,8 +296,8 @@ NvParticleRenderer::updateVertexBuffer()
     //assert(glGetError()==0);
 }
 
-void
-NvParticleRenderer::render()
+void 
+ParticleRenderer::render()
 {
     glPushAttrib(GL_ENABLE_BIT);
     glDisable(GL_TEXTURE_2D);
@@ -343,9 +325,9 @@ NvParticleRenderer::render()
 }
 
 void 
-NvParticleRenderer::setVectorField(unsigned int texID, const vrmath::Vector3f& origin, 
-                                   float scaleX, float scaleY, float scaleZ, 
-                                   float max)
+ParticleRenderer::setVectorField(unsigned int texID, const vrmath::Vector3f& origin, 
+                                 float scaleX, float scaleY, float scaleZ, 
+                                 float max)
 {
     _origin = origin;
     _scale.set(scaleX, scaleY, scaleZ);
@@ -353,13 +335,15 @@ NvParticleRenderer::setVectorField(unsigned int texID, const vrmath::Vector3f& o
     _advectionShader->setVelocityVolume(texID, max);
 }
 
-void NvParticleRenderer::setAxis(int axis)
+void
+ParticleRenderer::setAxis(int axis)
 {
     _sliceAxis = axis;
     initializeDataArray();
 }
 
-void NvParticleRenderer::setPos(float pos)
+void
+ParticleRenderer::setPos(float pos)
 {
     _slicePos = pos;
     initializeDataArray();

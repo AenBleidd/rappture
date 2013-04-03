@@ -39,8 +39,8 @@
 #include "Flow.h"
 #include "Grid.h"
 #include "HeightMap.h"
-#include "NvCamera.h"
-#include "NvLIC.h"
+#include "Camera.h"
+#include "LIC.h"
 #include "NvShader.h"
 #include "OrientationIndicator.h"
 #include "PlaneRenderer.h"
@@ -73,7 +73,7 @@ unsigned char *NanoVis::screenBuffer = NULL;
 Texture2D *NanoVis::legendTexture = NULL;
 Fonts *NanoVis::fonts;
 int NanoVis::updir = Y_POS;
-NvCamera *NanoVis::cam = NULL;
+Camera *NanoVis::cam = NULL;
 RenderContext *NanoVis::renderContext = NULL;
 
 NanoVis::TransferFunctionHashmap NanoVis::tfTable;
@@ -95,7 +95,7 @@ Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
 
 VolumeRenderer *NanoVis::volRenderer = NULL;
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
-NvLIC *NanoVis::licRenderer = NULL;
+LIC *NanoVis::licRenderer = NULL;
 PlaneRenderer *NanoVis::planeRenderer = NULL;
 OrientationIndicator *NanoVis::orientationIndicator = NULL;
 Grid *NanoVis::grid = NULL;
@@ -317,9 +317,9 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
         TRACE("Sending ppm legend image %s min:%g max:%g", volArg, min, max);
         sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
 #ifdef USE_THREADS
-        queuePPM(nv::g_queue, prefix, screenBuffer, width, height);
+        queuePPM(g_queue, prefix, screenBuffer, width, height);
 #else
-        writePPM(nv::g_fdOut, prefix, screenBuffer, width, height);
+        writePPM(g_fdOut, prefix, screenBuffer, width, height);
 #endif
     }
     planeRenderer->removePlane(index);
@@ -543,7 +543,7 @@ bool NanoVis::init(const char* path)
     fonts->setFont("verdana");
 
     velocityArrowsSlice = new VelocityArrowsSlice;
-    licRenderer = new NvLIC(NMESH, NPIX, NPIX, _licAxis, _licSlice);
+    licRenderer = new LIC(NMESH, NPIX, NPIX, _licAxis, _licSlice);
 
     grid = new Grid();
     grid->setFont(fonts);
@@ -563,8 +563,8 @@ NanoVis::initGL()
     assert(screenBuffer != NULL);
 
     //create the camera with default setting
-    cam = new NvCamera(0, 0, winWidth, winHeight,
-                       def_eye_x, def_eye_y, def_eye_z);
+    cam = new Camera(0, 0, winWidth, winHeight,
+                     def_eye_x, def_eye_y, def_eye_z);
 
     glEnable(GL_TEXTURE_2D);
     glShadeModel(GL_FLAT);

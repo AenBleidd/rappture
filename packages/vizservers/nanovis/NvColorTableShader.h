@@ -10,6 +10,8 @@
 #include "Texture2D.h"
 #include "TransferFunction.h"
 
+namespace nv {
+
 class NvColorTableShader : public NvShader
 {
 public:
@@ -24,5 +26,7 @@ public:
 private :
     void init();
 };
+
+}
 
 #endif 

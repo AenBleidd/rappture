@@ -20,6 +20,7 @@
 
 #include "ZincBlendeVolume.h"
 
+using namespace nv;
 using namespace vrmath;
 
 ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,

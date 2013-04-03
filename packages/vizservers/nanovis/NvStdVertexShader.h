@@ -8,6 +8,8 @@
 
 #include "NvShader.h"
 
+namespace nv {
+
 class NvStdVertexShader : public NvShader
 {
 public:
@@ -25,6 +27,8 @@ public:
 private:
     void init();
 };
+
+}
 
 #endif 
 

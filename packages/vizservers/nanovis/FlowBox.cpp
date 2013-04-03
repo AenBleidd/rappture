@@ -20,6 +20,7 @@
 #include "Volume.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 FlowBox::FlowBox(const char *name) :

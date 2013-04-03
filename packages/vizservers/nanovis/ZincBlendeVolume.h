@@ -14,12 +14,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _ZINCBLENDE_VOLUME_H_
-#define _ZINCBLENDE_VOLUME_H_
+#ifndef NV_ZINCBLENDE_VOLUME_H
+#define NV_ZINCBLENDE_VOLUME_H
 
 #include <vrmath/Vector3f.h>
 
 #include "Volume.h"
+
+namespace nv {
 
 class ZincBlendeVolume : public Volume
 {
@@ -34,5 +36,7 @@ public:
     Texture3D *zincblendeTex[2]; //the textures of two cubic volumes
     vrmath::Vector3f cellSize;	//the cell size in texture space
 };
+
+}
 
 #endif

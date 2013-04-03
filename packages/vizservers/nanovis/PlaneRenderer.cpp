@@ -19,6 +19,8 @@
 #include "PlaneRenderer.h"
 #include "Trace.h"
 
+using namespace nv;
+
 PlaneRenderer::PlaneRenderer(int width, int height) :
     _activePlane(-1),
     _numPlanes(0),

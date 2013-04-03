@@ -8,8 +8,8 @@
  *   George A. Howlett <gah@purdue.edu>
  *   Leif Delgass <ldelgass@purdue.edu>
  */
-#ifndef FLOWPARTICLES_H
-#define FLOWPARTICLES_H
+#ifndef _FLOWPARTICLES_H
+#define _FLOWPARTICLES_H
 
 #include <cassert>
 #include <string>
@@ -20,8 +20,10 @@
 
 #include "FlowTypes.h"
 #include "Switch.h"
-#include "NvParticleRenderer.h"
+#include "ParticleRenderer.h"
 #include "Volume.h"
+
+namespace nv {
 
 struct FlowParticlesValues {
     FlowPosition position;   ///< Position on axis of particle plane
@@ -95,10 +97,12 @@ private:
      * stored in hash table.
      */
     std::string _name;
-    NvParticleRenderer *_renderer;        ///< Particle renderer
+    nv::ParticleRenderer *_renderer;        ///< Particle renderer
     FlowParticlesValues _sv;
 
     static Rappture::SwitchSpec _switches[];
 };
+
+}
 
 #endif

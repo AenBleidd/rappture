@@ -16,6 +16,7 @@
 #include "Volume.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 VolumeInterpolator::VolumeInterpolator() : 

@@ -27,6 +27,8 @@
 
 #include "Chain.h"
 
+using namespace nv;
+
 typedef int (QSortCompareProc) (const void *, const void *);
 
 /**

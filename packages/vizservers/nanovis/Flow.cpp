@@ -19,15 +19,15 @@
 #include "FlowTypes.h"
 #include "FlowParticles.h"
 #include "FlowBox.h"
-#include "NvLIC.h"
+#include "LIC.h"
 #include "VelocityArrowsSlice.h"
-#include "NvParticleRenderer.h"
 #include "Switch.h"
 #include "Unirect.h"
 #include "Volume.h"
 #include "Trace.h"
 #include "TransferFunction.h"
 
+using namespace nv;
 using namespace vrmath;
 
 Flow::Flow(Tcl_Interp *interp, const char *name) :

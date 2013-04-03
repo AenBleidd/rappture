@@ -18,6 +18,8 @@
 
 #include <GL/glew.h>
 
+namespace nv {
+
 class Texture1D
 {
 public:
@@ -66,5 +68,7 @@ private:
     GLuint _interpType;
     GLuint _wrapS;
 };
+
+}
 
 #endif

@@ -13,6 +13,7 @@
 
 #include "ContourLineFilter.h"
 
+using namespace nv;
 using namespace nv::graphics;
 using namespace vrmath;
 

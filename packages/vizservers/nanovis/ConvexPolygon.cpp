@@ -20,6 +20,7 @@
 #include "ConvexPolygon.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 ConvexPolygon::ConvexPolygon(VertexVector newvertices)

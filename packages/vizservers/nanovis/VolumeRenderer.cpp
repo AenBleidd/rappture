@@ -30,6 +30,7 @@
 #include "NvStdVertexShader.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 VolumeRenderer::VolumeRenderer()

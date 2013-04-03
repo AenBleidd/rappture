@@ -24,11 +24,12 @@
 #include "FlowTypes.h"
 #include "FlowParticles.h"
 #include "FlowBox.h"
-#include "NvLIC.h"
-#include "NvParticleRenderer.h"
+#include "LIC.h"
 #include "Unirect.h"
 #include "Volume.h"
 #include "TransferFunction.h"
+
+namespace nv {
 
 struct FlowValues {
     TransferFunction *transferFunction;
@@ -251,5 +252,7 @@ private:
 
     static Rappture::SwitchSpec _switches[];
 };
+
+}
 
 #endif

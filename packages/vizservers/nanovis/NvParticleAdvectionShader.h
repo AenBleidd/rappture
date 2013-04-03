@@ -10,6 +10,8 @@
 
 #include "NvShader.h"
 
+namespace nv {
+
 class NvParticleAdvectionShader : public NvShader
 {
 public:
@@ -54,5 +56,7 @@ private:
     float _timeStep;
     int _mode;
 };
+
+}
 
 #endif

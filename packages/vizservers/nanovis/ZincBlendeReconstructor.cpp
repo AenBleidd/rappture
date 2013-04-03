@@ -1,7 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
- *
+ * 
+ * Authors:
+ *   Insoo Woo <iwoo@purdue.edu>
  */
 #include <stdio.h>
 #include <string.h>
@@ -9,32 +11,33 @@
 
 #include <vrmath/Vector3f.h>
 
-#include "NvZincBlendeReconstructor.h"
+#include "ZincBlendeReconstructor.h"
 #include "ZincBlendeVolume.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
-NvZincBlendeReconstructor *NvZincBlendeReconstructor::_instance = NULL;
+ZincBlendeReconstructor *ZincBlendeReconstructor::_instance = NULL;
 
-NvZincBlendeReconstructor::NvZincBlendeReconstructor()
+ZincBlendeReconstructor::ZincBlendeReconstructor()
 {
 }
 
-NvZincBlendeReconstructor::~NvZincBlendeReconstructor()
+ZincBlendeReconstructor::~ZincBlendeReconstructor()
 {
 }
 
-NvZincBlendeReconstructor *NvZincBlendeReconstructor::getInstance()
+ZincBlendeReconstructor *ZincBlendeReconstructor::getInstance()
 {
     if (_instance == NULL) {
-        return (_instance = new NvZincBlendeReconstructor());
+        return (_instance = new ZincBlendeReconstructor());
     }
 
     return _instance;
 }
 
-ZincBlendeVolume *NvZincBlendeReconstructor::loadFromFile(const char *fileName)
+ZincBlendeVolume *ZincBlendeReconstructor::loadFromFile(const char *fileName)
 {
     std::ifstream stream;
     stream.open(fileName, std::ios::binary);
@@ -46,7 +49,7 @@ ZincBlendeVolume *NvZincBlendeReconstructor::loadFromFile(const char *fileName)
     return volume;
 }
 
-ZincBlendeVolume *NvZincBlendeReconstructor::loadFromStream(std::istream& stream)
+ZincBlendeVolume *ZincBlendeReconstructor::loadFromStream(std::istream& stream)
 {
     ZincBlendeVolume *volume = NULL;
     Vector3f origin, delta;
@@ -200,7 +203,7 @@ inline T _NvMin4(T* a)
 { return _NvMin2(_NvMin2(a[0], a[1]), _NvMin2(a[2], a[3])); }
 
 ZincBlendeVolume * 
-NvZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
+ZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
                                    int width, int height, int depth, void *data)
 {
     ZincBlendeVolume *zincBlendeVolume = NULL;
@@ -269,7 +272,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta
 }
 
 ZincBlendeVolume *
-NvZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
+ZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
                                    int width, int height, int depth,
                                    int datacount, double emptyvalue, void* data)
 {
@@ -346,7 +349,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta
     return zincBlendeVolume;
 }
 
-void NvZincBlendeReconstructor::getLine(std::istream& sin)
+void ZincBlendeReconstructor::getLine(std::istream& sin)
 {
     char ch;
     int index = 0;
@@ -368,7 +371,7 @@ void NvZincBlendeReconstructor::getLine(std::istream& sin)
 }
 
 ZincBlendeVolume *
-NvZincBlendeReconstructor::loadFromMemory(void *dataBlock)
+ZincBlendeReconstructor::loadFromMemory(void *dataBlock)
 {
     ZincBlendeVolume *volume = NULL;
     Vector3f origin, delta;
@@ -468,7 +471,7 @@ NvZincBlendeReconstructor::loadFromMemory(void *dataBlock)
     return volume;
 }
 
-void NvZincBlendeReconstructor::getLine(unsigned char*& stream)
+void ZincBlendeReconstructor::getLine(unsigned char*& stream)
 {
     char ch;
     int index = 0;

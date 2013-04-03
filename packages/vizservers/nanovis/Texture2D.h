@@ -18,6 +18,8 @@
 
 #include <GL/glew.h>
 
+namespace nv {
+
 class Texture2D
 {
 public:
@@ -75,5 +77,7 @@ private:
     GLuint _wrapS;
     GLuint _wrapT;
 };
+
+}
 
 #endif

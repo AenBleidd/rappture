@@ -20,10 +20,11 @@
 namespace Rappture {
 class Buffer;
 }
-class Volume;
 
 namespace nv {
+
 class ReadBuffer;
+class Volume;
 
 #ifdef USE_THREADS
 extern void queueResponse(const void *bytes, size_t len, 
@@ -46,7 +47,6 @@ extern int handleError(Tcl_Interp *interp,
                        int fdOut);
 
 extern void initTcl(Tcl_Interp *interp, ClientData clientData);
-}
 
 extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
                           int *axisVal);
@@ -61,5 +61,7 @@ extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
 
 extern int GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
                             Volume **volume);
+
+}
 
 #endif

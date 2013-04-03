@@ -14,6 +14,7 @@
 #include "NvShader.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace nv::util;
 
 CGprofile NvShader::_defaultVertexProfile = CG_PROFILE_VP40;

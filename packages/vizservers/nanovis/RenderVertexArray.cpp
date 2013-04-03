@@ -42,6 +42,8 @@
 #include "RenderVertexArray.h"
 #include "Trace.h"
 
+using namespace nv;
+
 RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
     _usage(GL_STREAM_COPY_ARB),
     _nverts(nverts), 

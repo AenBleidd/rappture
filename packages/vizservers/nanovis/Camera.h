@@ -1,33 +1,27 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * NvCamera.h : NvCamera class
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
- *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef NV_CAMERA_H
+#define NV_CAMERA_H
 
 #include <vrmath/Matrix4x4d.h>
 #include <vrmath/Vector3f.h>
 
 #include "config.h"
 
-class NvCamera
+namespace nv {
+
+class Camera
 {
 public:
-    NvCamera(int startx, int starty, int w, int h,
+    Camera(int startx, int starty, int w, int h,
              float loc_x, float loc_y, float loc_z);
 
-    ~NvCamera()
+    ~Camera()
     {}
 
     //move location of camera
@@ -123,5 +117,7 @@ private:
     int _startX;
     int _startY;
 };
+
+}
 
 #endif

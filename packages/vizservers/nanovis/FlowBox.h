@@ -21,6 +21,8 @@
 #include "Switch.h"
 #include "Volume.h"
 
+namespace nv {
+
 struct FlowBoxValues {
     FlowPoint corner1, corner2;    ///< Coordinates of the box.
     FlowColor color;               ///< Color of box
@@ -69,5 +71,7 @@ private:
     FlowBoxValues _sv;
     static Rappture::SwitchSpec _switches[];
 };
+
+}
 
 #endif

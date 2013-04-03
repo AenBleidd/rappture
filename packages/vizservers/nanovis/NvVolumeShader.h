@@ -8,6 +8,8 @@
 
 #include "NvShader.h"
 
+namespace nv {
+
 class Volume;
 
 class NvVolumeShader : public NvShader
@@ -27,6 +29,7 @@ protected :
     NvVolumeShader();
 };
 
+}
 
 #endif // 
 

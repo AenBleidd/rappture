@@ -3,17 +3,19 @@
  * Copyright (C) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#include "ReaderCommon.h"
-#include "GradientFilter.h"
+
+#include <cstdlib>
 
 #include <vrmath/Vector3f.h>
 
-#include "stdlib.h"
+#include "ReaderCommon.h"
+#include "GradientFilter.h"
 
+using namespace nv;
 using namespace vrmath;
 
 float *
-merge(float *scalar, float *gradient, int size)
+nv::merge(float *scalar, float *gradient, int size)
 {
     float *data = (float *)malloc(sizeof(float) * 4 * size);
 
@@ -42,7 +44,7 @@ merge(float *scalar, float *gradient, int size)
  * \param vmax Maximum value in data array
  */
 void
-normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
+nv::normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
 {
     double dv = vmax - vmin;
     dv = (dv == 0.0) ? 1.0 : dv;
@@ -81,10 +83,10 @@ normalizeScalar(float *data, int count, int stride, double vmin, double vmax)
  * the (normalized) gradient vector
  */
 float *
-computeGradient(float *data,
-                int nx, int ny, int nz,
-                float dx, float dy, float dz,
-                float min, float max)
+nv::computeGradient(float *data,
+                    int nx, int ny, int nz,
+                    float dx, float dy, float dz,
+                    float min, float max)
 {
     int npts = nx * ny * nz;
     float *gradients = (float *)malloc(npts * 3 * sizeof(float));
@@ -122,9 +124,9 @@ computeGradient(float *data,
  * \param dz The spacing (cell length) in the Z direction
  */
 void
-computeSimpleGradient(float *data,
-                      int nx, int ny, int nz,
-                      float dx, float dy, float dz)
+nv::computeSimpleGradient(float *data,
+                          int nx, int ny, int nz,
+                          float dx, float dy, float dz)
 {
     bool clampToEdge = true;
     double borderVal = 0.0;

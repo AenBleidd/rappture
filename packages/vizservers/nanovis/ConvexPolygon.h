@@ -25,6 +25,8 @@
 
 #include "Plane.h"
 
+namespace nv {
+
 typedef std::vector<vrmath::Vector4f> VertexVector;
 typedef std::vector<vrmath::Vector4f> TexVector;
 
@@ -69,5 +71,7 @@ public:
     TexVector texcoords;
     int volumeId;	//which volume this polygon slice belongs to
 };
+
+}
 
 #endif

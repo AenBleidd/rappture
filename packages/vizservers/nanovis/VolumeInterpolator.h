@@ -10,6 +10,8 @@
 
 #include "Volume.h"
 
+namespace nv {
+
 class VolumeInterpolator
 {
 public :
@@ -61,6 +63,8 @@ inline double VolumeInterpolator::getStartTime() const
 inline double VolumeInterpolator::getInterval() const
 {
     return _interval;
+}
+
 }
 
 #endif

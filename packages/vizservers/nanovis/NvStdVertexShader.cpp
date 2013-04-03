@@ -5,6 +5,8 @@
  */
 #include "NvStdVertexShader.h"
 
+using namespace nv;
+
 NvStdVertexShader::NvStdVertexShader()
 {
     init();
