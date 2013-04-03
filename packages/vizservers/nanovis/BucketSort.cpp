@@ -4,12 +4,13 @@
  *
  */
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Matrix4x4d.h>
+
 #include "BucketSort.h"
 
 using namespace PCA;
-
-#include <vrmath/Vector3f.h>
-#include <vrmath/Matrix4x4d.h>
+using namespace vrmath;
 
 void 
 BucketSort::init()
@@ -22,16 +23,16 @@ void
 BucketSort::sort(ClusterAccel* clusterAccel, const Matrix4x4d& cameraMat, int level)
 {
     if (clusterAccel == 0) {
-	return;
+        return;
     }
     Cluster* cluster = clusterAccel->startPointerCluster[level - 1];
     Cluster* c = &(cluster[0]);
     Cluster* end = &(cluster[clusterAccel->numOfClusters[level - 1] - 1]);
 
-    Vector3f pos;
     for (; c <= end; c = (Cluster*) ((char *)c + sizeof(Cluster))) {
-	pos = cameraMat.transform(c->centroid);
-	addBucket(c, pos.length()*_invMaxLength);
+        Vector4f pt = cameraMat.transform(Vector4f(c->centroid, 1));
+        Vector3f pos(pt.x, pt.y, pt.z);
+        addBucket(c, pos.length()*_invMaxLength);
     }
 }       
 

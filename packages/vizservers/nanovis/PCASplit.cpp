@@ -11,15 +11,14 @@
 #include <newmatap.h>                // need matrix applications
 #include <newmatio.h>                // need matrix output routines
 #include <newmatrc.h>
-
-#include "PCASplit.h"
-
-using namespace vrmath;
-
 #ifdef use_namespace
 using namespace NEWMAT;              // access NEWMAT namespace
 #endif
 
+#include "PCASplit.h"
+#include "Trace.h"
+
+using namespace vrmath;
 using namespace PCA;
 
 PCASplit::PCASplit() : 

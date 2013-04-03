@@ -15,6 +15,8 @@
 
 using namespace nv;
 using namespace nv::util;
+using namespace vrmath;
+using namespace PCA;
 
 #define USE_TEXTURE 
 //#define USE_SHADER 
@@ -50,23 +52,23 @@ PointSetRenderer::PointSetRenderer()
 
     delete loader;
     delete image;
-    _bucketSort = new PCA::BucketSort(1024);
+    _bucketSort = new BucketSort(1024);
 }
 
 PointSetRenderer::~PointSetRenderer()
 {
 }
 
-void PointSetRenderer::renderPoints(PCA::Point *points, int length)
+void PointSetRenderer::renderPoints(Point *points, int length)
 {
-    PCA::Point *p = points;
+    Point *p = points;
     for (int i = 0; i < length; ++i, ++p) {
         glColor4f(p->color.x, p->color.y, p->color.z, p->color.w);
         glVertex3f(p->position.x, p->position.y, p->position.z);
     }
 }
 
-void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int level)
+void PointSetRenderer::renderCluster(ClusterList** bucket, int size, int level)
 {
     float quadratic[] = { 1.0f, 0.0f, 0.01f };
 
@@ -82,7 +84,7 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
     bool setSize = false;
     glBegin(GL_POINTS);
 
-    PCA::ClusterList *p;
+    ClusterList *p;
     for (int i = size - 1; i >= 0; --i) {
         p = bucket[i];
         if (p) {
@@ -107,7 +109,7 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
     glPointSize(1);
 }
 
-void PointSetRenderer::render(PCA::ClusterAccel *cluster, const Matrix4x4d& mat,
+void PointSetRenderer::render(ClusterAccel *cluster, const Matrix4x4d& mat,
                               int sortLevel, const Vector3f& scale, const Vector3f& origin)
 {
     _bucketSort->init();
@@ -130,7 +132,7 @@ void PointSetRenderer::render(PCA::ClusterAccel *cluster, const Matrix4x4d& mat,
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     glPushMatrix();
     float s = 1.0f / scale.x;
-    Vector3 shift(origin.x + scale.x * 0.5, origin.x + scale.x * 0.5, origin.x + scale.x * 0.5);
+    Vector3f shift(origin.x + scale.x * 0.5, origin.x + scale.x * 0.5, origin.x + scale.x * 0.5);
     glScalef(s, scale.y / scale.x * s, scale.z / scale.x * s);
 
     //glTranslatef(-shift.x, -shift.y, -shift.z);
