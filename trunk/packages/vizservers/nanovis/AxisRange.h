@@ -9,6 +9,8 @@
 
 #include <string.h>
 
+namespace nv {
+
 class AxisRange
 {
 public:
@@ -79,5 +81,7 @@ private:
     double _min, _max;
     char *_units;
 };
+
+}
 
 #endif

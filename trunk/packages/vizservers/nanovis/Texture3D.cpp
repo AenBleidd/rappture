@@ -22,6 +22,8 @@
 #include "Texture3D.h"
 #include "Trace.h"
 
+using namespace nv;
+
 Texture3D::Texture3D() :
     _width(0),
     _height(0),

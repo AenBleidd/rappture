@@ -3,7 +3,11 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
+
 #include "NvZincBlendeVolumeShader.h"
+#include "ZincBlendeVolume.h"
+
+using namespace nv;
 
 NvZincBlendeVolumeShader::NvZincBlendeVolumeShader()
 {

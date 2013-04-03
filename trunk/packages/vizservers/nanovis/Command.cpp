@@ -59,8 +59,8 @@
 #include "PPMWriter.h"
 #include "Grid.h"
 #include "HeightMap.h"
-#include "NvCamera.h"
-#include "NvZincBlendeReconstructor.h"
+#include "Camera.h"
+#include "ZincBlendeReconstructor.h"
 #include "OrientationIndicator.h"
 #include "Unirect.h"
 #include "Volume.h"
@@ -113,8 +113,8 @@ static int lastCmdStatus;
 #ifdef USE_THREADS
 void
 nv::queueResponse(const void *bytes, size_t len, 
-                  Response::AllocationType allocType,
-                  Response::ResponseType type)
+              Response::AllocationType allocType,
+              Response::ResponseType type)
 {
     Response *response = new Response(type);
     response->setMessage((unsigned char *)bytes, len, allocType);
@@ -184,7 +184,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 }
 
 int
-GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
+nv::GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
 {
     int value;
 
@@ -196,7 +196,7 @@ GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
 }
 
 int
-GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
+nv::GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 {
     double value;
 
@@ -284,10 +284,10 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
         (char *)NULL);
         return NULL;
     }
-    if ((GetFloatFromObj(interp, objv[0], &xMin) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[1], &yMin) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[2], &xMax) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[3], &yMax) != TCL_OK) ||
+    if ((nv::GetFloatFromObj(interp, objv[0], &xMin) != TCL_OK) ||
+        (nv::GetFloatFromObj(interp, objv[1], &yMin) != TCL_OK) ||
+        (nv::GetFloatFromObj(interp, objv[2], &xMax) != TCL_OK) ||
+        (nv::GetFloatFromObj(interp, objv[3], &yMax) != TCL_OK) ||
         (Tcl_GetIntFromObj(interp, objv[4], &xNum) != TCL_OK) ||
         (Tcl_GetIntFromObj(interp, objv[5], &yNum) != TCL_OK)) {
         return NULL;
@@ -316,7 +316,7 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
 
     int i;
     for (i = 0; i < nValues; i++) {
-        if (GetFloatFromObj(interp, elem[i], heights + i) != TCL_OK) {
+        if (nv::GetFloatFromObj(interp, elem[i], heights + i) != TCL_OK) {
             delete [] heights;
             return NULL;
         }
@@ -358,7 +358,7 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
  * TCL_ERROR to indicate an error.
  */
 int
-GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
+nv::GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
 {
     const char *string = Tcl_GetString(objPtr);
 
@@ -476,7 +476,7 @@ GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
  * and an error message in the interpreter.
  */
 int
-GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr)
+nv::GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr)
 {
     return GetAxis(interp, Tcl_GetString(objPtr), indexPtr);
 }
@@ -533,7 +533,7 @@ GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
  * buffer.  The buffer is then decompressed and decoded.
  */
 int
-GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
+nv::GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 {
     if (!SocketRead(buf, nBytes)) {
         return TCL_ERROR;
@@ -1257,7 +1257,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
         TRACE("ZincBlende Stream loading...");
-        volume = NvZincBlendeReconstructor::getInstance()->loadFromMemory(const_cast<char *>(bytes));
+        volume = (Volume *)ZincBlendeReconstructor::getInstance()->loadFromMemory(const_cast<char *>(bytes));
         if (volume == NULL) {
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;

@@ -9,6 +9,8 @@
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
 
+namespace nv {
+
 class ContourLineFilter
 {
 public:
@@ -58,5 +60,7 @@ private:
     Vector3fArray *_colorMap;
     bool _top;
 };
+
+}
 
 #endif 

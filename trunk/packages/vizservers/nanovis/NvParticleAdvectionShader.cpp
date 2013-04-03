@@ -5,6 +5,8 @@
  */
 #include "NvParticleAdvectionShader.h"
 
+using namespace nv;
+
 NvParticleAdvectionShader::NvParticleAdvectionShader() : 
     _velocityVolumeID(0), 
     _scale(1.0f, 1.0f, 1.0f), 

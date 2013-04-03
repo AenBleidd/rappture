@@ -12,6 +12,8 @@
 
 #include "Axis.h"
 
+using namespace nv;
+
 inline bool DEFINED(double x) {
     return !isnan(x);
 }

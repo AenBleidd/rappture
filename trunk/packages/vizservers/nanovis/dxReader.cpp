@@ -38,10 +38,11 @@
 
 #include "config.h"
 #include "nanovis.h"
+#include "dxReader.h"
 #include "Unirect.h"
 #include "Volume.h"
-#include "ZincBlendeVolume.h"
-#include "NvZincBlendeReconstructor.h"
+
+using namespace nv;
 
 /**
  * \brief Load a 3D volume from a dx-format file
@@ -56,8 +57,8 @@
  *  e.g. rank 1 shape 3 means a 3-component vector field
  */
 Volume *
-load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
-                      std::iostream& fin)
+nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
+                          std::iostream& fin)
 {
     TRACE("Enter tag:%s", tag);
 

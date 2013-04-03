@@ -36,7 +36,7 @@
 #include "FlowParticles.h"
 #include "Switch.h"
 #include "TransferFunction.h"
-#include "NvLIC.h"
+#include "LIC.h"
 #include "Unirect.h"
 #include "VelocityArrowsSlice.h"
 #include "Volume.h"
@@ -839,8 +839,8 @@ static int nFlowInstOps = NumCmdSpecs(flowInstOps);
  * \return A standard Tcl result.
  */
 int
-FlowInstObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-               Tcl_Obj *const *objv)
+nv::FlowInstObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
     proc = Rappture::GetOpFromObj(interp, nFlowInstOps, flowInstOps, 
@@ -862,7 +862,7 @@ FlowInstObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  * This is called only when the command associated with the flow is destroyed.
  */
 void
-FlowInstDeleteProc(ClientData clientData)
+nv::FlowInstDeleteProc(ClientData clientData)
 {
     Flow *flow = (Flow *)clientData;
     NanoVis::deleteFlow(flow->name());
@@ -1306,7 +1306,7 @@ FlowCmdProc(ClientData clientData, Tcl_Interp *interp, int objc,
  *    associative array.
  */
 void
-FlowCmdInitProc(Tcl_Interp *interp, ClientData clientData)
+nv::FlowCmdInitProc(Tcl_Interp *interp, ClientData clientData)
 {
     Tcl_CreateObjCommand(interp, "flow", FlowCmdProc, clientData, NULL);
 }

@@ -1,17 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * NvCamera.cpp : NvCamera class
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
- *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
 #include <stdio.h>
 #include <math.h>
@@ -27,9 +19,10 @@
 #include <vrmath/Vector4f.h>
 
 #include "nanovis.h"
-#include "NvCamera.h"
+#include "Camera.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 static inline double deg2rad(double deg)
@@ -42,8 +35,8 @@ static inline double rad2deg(double rad)
     return ((rad * 180.) / M_PI);
 }
 
-NvCamera::NvCamera(int startx, int starty, int w, int h,
-                   float loc_x, float loc_y, float loc_z) :
+Camera::Camera(int startx, int starty, int w, int h,
+               float loc_x, float loc_y, float loc_z) :
     _location(loc_x, loc_y, loc_z),
     _fov(30.0),
     _near(0.1),
@@ -56,7 +49,7 @@ NvCamera::NvCamera(int startx, int starty, int w, int h,
 }
 
 void
-NvCamera::getUpDirMatrix(Matrix4x4d& upMat)
+Camera::getUpDirMatrix(Matrix4x4d& upMat)
 {
     switch (NanoVis::updir) {
     case NanoVis::X_POS: {
@@ -96,9 +89,9 @@ NvCamera::getUpDirMatrix(Matrix4x4d& upMat)
  * \brief Reset zoom to include extents
  */
 void
-NvCamera::reset(const Vector3f& bboxMin,
-                const Vector3f& bboxMax,
-                bool resetOrientation)
+Camera::reset(const Vector3f& bboxMin,
+              const Vector3f& bboxMax,
+              bool resetOrientation)
 {
     TRACE("Enter");
 
@@ -178,7 +171,7 @@ NvCamera::reset(const Vector3f& bboxMin,
 }
 
 void
-NvCamera::resetClippingRange(const Vector3f& bboxMin, const Vector3f& bboxMax)
+Camera::resetClippingRange(const Vector3f& bboxMin, const Vector3f& bboxMax)
 {
     Vector3f emin(bboxMin.x, bboxMin.y, bboxMin.z), emax(bboxMax.x, bboxMax.y, bboxMax.z);
 
@@ -218,7 +211,7 @@ NvCamera::resetClippingRange(const Vector3f& bboxMin, const Vector3f& bboxMax)
 }
 
 void 
-NvCamera::initialize()
+Camera::initialize()
 {
     TRACE("Enter");
     print();
@@ -237,7 +230,7 @@ NvCamera::initialize()
     glMultMatrixd((const GLdouble *)_cameraMatrix.get());
 }
 
-void NvCamera::rotate(double *quat)
+void Camera::rotate(double *quat)
 {
     Quaternion q(quat[0], quat[1], quat[2], quat[3]);
     Rotation rot;
@@ -248,7 +241,7 @@ void NvCamera::rotate(double *quat)
           quat[0], quat[1], quat[2], quat[3]);
 }
 
-void NvCamera::rotate(float angleX, float angleY, float angleZ)
+void Camera::rotate(float angleX, float angleY, float angleZ)
 {
     angleX = -angleX;
     angleY = angleY - 180.;
@@ -265,7 +258,7 @@ void NvCamera::rotate(float angleX, float angleY, float angleZ)
           angleX, angleY, angleZ);
 }
 
-void NvCamera::print() const
+void Camera::print() const
 {
     TRACE("x: %d y: %d w: %d h: %d", _startX, _startY, _width, _height);
     TRACE("loc: %g %g %g",

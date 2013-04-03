@@ -23,11 +23,13 @@
 #include "Volume.h"
 #include "NvShader.h"
 
-class NvLIC
+namespace nv {
+
+class LIC
 { 
 public:
-    NvLIC(int size, int width, int height, int axis, float offset);
-    ~NvLIC();
+    LIC(int size, int width, int height, int axis, float offset);
+    ~LIC();
 
     /// project 3D vectors to a 2D slice for line integral convolution
     void convolve();
@@ -122,5 +124,7 @@ private:
     bool _activate;
     bool _isHidden;			// Indicates if LIC plane is displayed.
 };
+
+}
 
 #endif

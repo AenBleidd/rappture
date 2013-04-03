@@ -15,6 +15,8 @@
 
 #include "Trace.h"
 
+namespace nv {
+
 class NvShader
 {
 public:
@@ -335,5 +337,7 @@ private:
     loadCgSourceProgram(CGcontext context, const char *filename, 
                         CGprofile profile, const char *entryPoint);
 };
+
+}
 
 #endif

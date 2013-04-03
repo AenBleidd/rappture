@@ -20,6 +20,8 @@
 #include "Volume.h"
 #include "Trace.h"
 
+using namespace nv;
+
 enum FieldType {
     FLOAT,
     DOUBLE,
@@ -180,7 +182,7 @@ static inline void deleteFieldData(void *data, FieldType type)
 }
 
 Volume *
-load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream& fin)
+nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream& fin)
 {
     TRACE("Enter tag:%s", tag);
 

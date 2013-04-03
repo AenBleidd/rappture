@@ -26,6 +26,8 @@
 #include "AxisRange.h"
 #include "TransferFunction.h"
 
+namespace nv {
+
 struct CutPlane {
     /// orientation - 1: xy slice, 2: yz slice, 3: xz slice
     int orient;
@@ -465,6 +467,8 @@ inline void
 Volume::getOutlineColor(float *rgb) 
 {
     memcpy(rgb, _outlineColor, sizeof(float)*3);
+}
+
 }
 
 #endif

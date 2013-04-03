@@ -19,6 +19,8 @@
 #define NAN (std::numeric_limits<double>::quiet_NaN())
 #endif
 
+namespace nv {
+
 class Axis;
 
 class TickIter
@@ -407,5 +409,7 @@ private:
 
     Ticks _major, _minor;
 };
+
+}
 
 #endif

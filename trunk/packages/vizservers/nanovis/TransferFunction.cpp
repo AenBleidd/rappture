@@ -21,6 +21,7 @@
 
 #include "TransferFunction.h"
 
+using namespace nv;
 using namespace vrmath;
 
 TransferFunction::TransferFunction(const char *name, int size, float *data) :

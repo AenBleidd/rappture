@@ -15,6 +15,8 @@
 #include "Unirect.h"
 #include "Trace.h"
 
+using namespace nv;
+
 static inline char *
 skipspaces(char *string) 
 {

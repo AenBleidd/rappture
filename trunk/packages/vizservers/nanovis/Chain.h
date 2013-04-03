@@ -24,6 +24,8 @@
 #ifndef CHAIN_H
 #define CHAIN_H
 
+namespace nv {
+
 /**
  * \brief A ChainLink is the container structure for the Chain.
  */
@@ -141,5 +143,7 @@ private:
     ChainLink *_tail; ///< Pointer to last element in chain
     long _nLinks;     ///< Number of elements in chain
 };
+
+}
 
 #endif

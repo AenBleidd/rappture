@@ -19,8 +19,9 @@
 #include "nanovis.h"
 #include "VelocityArrowsSlice.h"
 #include "NvShader.h"
-#include "NvCamera.h"
+#include "Camera.h"
 
+using namespace nv;
 using namespace nv::util;
 using namespace vrmath;
 

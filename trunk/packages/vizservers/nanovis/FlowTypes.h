@@ -11,6 +11,8 @@
 #ifndef FLOWTYPES_H
 #define FLOWTYPES_H
 
+namespace nv {
+
 struct FlowColor {
     float r, g, b, a;
 };
@@ -28,5 +30,7 @@ struct FlowPosition {
 // FlowPosition flag values
 #define RELPOS 0
 #define ABSPOS 1
+
+}
 
 #endif

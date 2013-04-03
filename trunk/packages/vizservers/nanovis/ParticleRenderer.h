@@ -1,20 +1,12 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * NvParticleRenderer.h: particle system class
- *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
  *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ *  Authors:
+ *    Wei Qiao <qiaow@purdue.edu>
  */
-#ifndef NVPARTICLERENDERER_H
-#define NVPARTICLERENDERER_H
+#ifndef NV_PARTICLE_RENDERER_H
+#define NV_PARTICLE_RENDERER_H
 
 #include <GL/glew.h>
 
@@ -23,6 +15,8 @@
 
 #include "NvParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
+
+namespace nv {
 
 struct Particle {
     float x;
@@ -38,12 +32,12 @@ struct Particle {
     {}
 };
 
-class NvParticleRenderer
+class ParticleRenderer
 {
 public:
-    NvParticleRenderer(int w, int h);
+    ParticleRenderer(int w, int h);
 
-    ~NvParticleRenderer();
+    ~ParticleRenderer();
 
     void setVectorField(unsigned int texID, const vrmath::Vector3f& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
@@ -133,5 +127,21 @@ private:
     int _psysWidth;
     int _psysHeight;
 };
+
+class ParticleAdvectionShaderInstance
+{
+public :
+    ParticleAdvectionShaderInstance()
+    {}
+
+    ~ParticleAdvectionShaderInstance()
+    {
+        if (ParticleRenderer::_advectionShader) {
+            delete ParticleRenderer::_advectionShader;
+        }
+    }
+};
+
+}
 
 #endif

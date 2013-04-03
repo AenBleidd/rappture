@@ -22,6 +22,8 @@
 #include "TransferFunction.h"
 #include "Texture2D.h"
 
+namespace nv {
+
 class PlaneRenderer
 {
 public:
@@ -53,5 +55,7 @@ private:
 
     NvColorTableShader *_shader;
 };
+
+}
 
 #endif

@@ -21,6 +21,8 @@
 #include "Texture1D.h"
 #include "Trace.h"
 
+using namespace nv;
+
 Texture1D::Texture1D() :
     _width(0),
     _numComponents(3),

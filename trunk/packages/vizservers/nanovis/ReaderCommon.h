@@ -6,6 +6,8 @@
 #ifndef DX_READER_COMMON_H
 #define DX_READER_COMMON_H
 
+namespace nv {
+
 extern float *
 merge(float *scalar, float *gradient, int size);
 
@@ -22,5 +24,7 @@ extern void
 computeSimpleGradient(float *data,
                       int nx, int ny, int nz,
                       float dx = 1.0f, float dy = 1.0f, float dz = 1.0f);
+
+}
 
 #endif

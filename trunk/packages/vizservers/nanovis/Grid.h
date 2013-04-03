@@ -11,6 +11,8 @@
 #include "Axis.h"
 #include "AxisRange.h"
 
+namespace nv {
+
 class RGBA
 {
 public:
@@ -73,5 +75,6 @@ private:
     bool _visible;
 };
 
+}
 
 #endif 

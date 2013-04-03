@@ -18,11 +18,12 @@
 #include "Flow.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 FlowParticles::FlowParticles(const char *name) :
     _name(name),
-    _renderer(new NvParticleRenderer(NMESH, NMESH))
+    _renderer(new ParticleRenderer(NMESH, NMESH))
 {
     _sv.position.value = 0.0f;
     _sv.position.flags = RELPOS;

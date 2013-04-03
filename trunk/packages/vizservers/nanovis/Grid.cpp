@@ -12,6 +12,7 @@
 #include "Grid.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace nv::util;
 
 #define NUMDIGITS	6

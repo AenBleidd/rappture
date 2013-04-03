@@ -17,6 +17,8 @@
 
 #include "PerfQuery.h"
 
+using namespace nv;
+
 PerfQuery::PerfQuery()
 {
     glGenQueriesARB(1, &id);

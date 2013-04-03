@@ -22,6 +22,8 @@
 
 #include "Texture1D.h"
 
+namespace nv {
+
 class TransferFunction
 {
 public:
@@ -76,5 +78,7 @@ private:
     std::string _name;
     GLuint _id;		///< OpenGL texture identifier
 };
+
+}
 
 #endif

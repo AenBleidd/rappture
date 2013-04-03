@@ -9,12 +9,17 @@
 #include <iostream>
 
 namespace Rappture {
-    class Outcome;
+class Outcome;
 }
+
+namespace nv {
+
 class Volume;
 
 extern Volume *
 load_dx_volume_stream(Rappture::Outcome& status, const char *tag, 
                       std::iostream& fin);
+
+}
 
 #endif

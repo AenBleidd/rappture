@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef HEIGHTMAP_H
-#define HEIGHTMAP_H
+#ifndef NV_HEIGHTMAP_H
+#define NV_HEIGHTMAP_H
 
 #include <graphics/Geometry.h>
 #include <graphics/RenderContext.h>
@@ -13,6 +13,8 @@
 #include "TransferFunction.h"
 #include "NvShader.h"
 #include "AxisRange.h"
+
+namespace nv {
 
 class Grid;
 
@@ -143,5 +145,7 @@ private:
     float *_heights;		// Array of original (unscaled) heights
 				// (y-values)
 };
+
+}
 
 #endif

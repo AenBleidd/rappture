@@ -23,6 +23,7 @@
 #include "Volume.h"
 #include "Trace.h"
 
+using namespace nv;
 using namespace vrmath;
 
 bool Volume::updatePending = false;

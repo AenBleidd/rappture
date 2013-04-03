@@ -48,21 +48,19 @@ namespace graphics {
 namespace util {
     class Fonts;
 }
-class OrientationIndicator;
-}
 
-class VolumeRenderer;
-class NvParticleRenderer;
-class VelocityArrowsSlice;
-class NvLIC;
+class Camera;
+class Flow;
+class Grid;
+class HeightMap;
+class LIC;
+class OrientationIndicator;
 class PlaneRenderer;
 class Texture2D;
-class HeightMap;
-class Grid;
-class NvCamera;
 class TransferFunction;
+class VelocityArrowsSlice;
 class Volume;
-class Flow;
+class VolumeRenderer;
 
 class NanoVis
 {
@@ -100,7 +98,7 @@ public:
     static void update();
     static void removeAllData();
 
-    static const NvCamera *getCamera()
+    static const Camera *getCamera()
     {
         return cam;
     }
@@ -160,10 +158,10 @@ public:
     static int renderWindow;    //< GLUT handle for the render window
     static unsigned char *screenBuffer;
     static Texture2D *legendTexture;
-    static nv::util::Fonts *fonts;
+    static util::Fonts *fonts;
     static int updir;
-    static NvCamera *cam;
-    static nv::graphics::RenderContext *renderContext;
+    static Camera *cam;
+    static graphics::RenderContext *renderContext;
 
     static TransferFunctionHashmap tfTable; ///< maps transfunc name to TransferFunction object
     static VolumeHashmap volumeTable;
@@ -176,9 +174,9 @@ public:
 
     static VolumeRenderer *volRenderer;
     static VelocityArrowsSlice *velocityArrowsSlice;
-    static NvLIC *licRenderer;
+    static LIC *licRenderer;
     static PlaneRenderer *planeRenderer;
-    static nv::OrientationIndicator *orientationIndicator;
+    static OrientationIndicator *orientationIndicator;
     static Grid *grid;
 
 private:
@@ -190,5 +188,7 @@ private:
     //frame buffer for final rendering
     static GLuint _finalFbo, _finalColorTex, _finalDepthRb;
 };
+
+}
 
 #endif

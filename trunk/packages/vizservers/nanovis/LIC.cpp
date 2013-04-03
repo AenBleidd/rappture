@@ -20,7 +20,7 @@
 #include "nanovis.h"
 #include "define.h"
 
-#include "NvLIC.h"
+#include "LIC.h"
 #include "NvShader.h"
 #include "Trace.h"
 
@@ -28,10 +28,11 @@
 #define DM ((float) (1.0/(NMESH-1.0))) //distance in world coords between mesh lines
 #define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
+using namespace nv;
 using namespace vrmath;
 
-NvLIC::NvLIC(int size, int width, int height, int axis, 
-             float offset) :
+LIC::LIC(int size, int width, int height, int axis, 
+         float offset) :
     _width(width),
     _height(height),
     _size(size),
@@ -115,7 +116,7 @@ NvLIC::NvLIC(int size, int width, int height, int axis,
     makePatterns();
 }
 
-NvLIC::~NvLIC()
+LIC::~LIC()
 {
     glDeleteTextures(1, &_patternTex);
     glDeleteTextures(1, &_magTex);
@@ -137,7 +138,7 @@ NvLIC::~NvLIC()
 }
 
 void 
-NvLIC::makePatterns() 
+LIC::makePatterns() 
 { 
     TRACE("Enter");
 
@@ -184,7 +185,7 @@ NvLIC::makePatterns()
     TRACE("Leave");
 }
 
-void NvLIC::makeMagnitudes()
+void LIC::makeMagnitudes()
 {
     GLubyte mag[NMESH][NMESH][4];
 
@@ -221,7 +222,7 @@ void NvLIC::makeMagnitudes()
 }
 
 void 
-NvLIC::getSlice()
+LIC::getSlice()
 {
     int fboOrig;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
@@ -319,7 +320,7 @@ NvLIC::getSlice()
 
 //line integral convolution
 void 
-NvLIC::convolve()
+LIC::convolve()
 {
     if (_vectorFieldId == 0) {
         return;
@@ -432,7 +433,7 @@ NvLIC::convolve()
 }
 
 void 
-NvLIC::render()
+LIC::render()
 {
     if (_vectorFieldId == 0) {
         return;
@@ -489,10 +490,10 @@ NvLIC::render()
 }
 
 void 
-NvLIC::setVectorField(unsigned int texID, const Vector3f& origin, 
+LIC::setVectorField(unsigned int texID, const Vector3f& origin, 
                       float scaleX, float scaleY, float scaleZ, float max)
 {
-    TRACE("NvLIC: vector field is assigned [%d]", texID);
+    TRACE("LIC: vector field is assigned [%d]", texID);
     _vectorFieldId = texID;
     _origin = origin;
     _scale = Vector3f(scaleX, scaleY, scaleZ);
@@ -504,7 +505,7 @@ NvLIC::setVectorField(unsigned int texID, const Vector3f& origin,
 }
 
 void 
-NvLIC::getVelocity(float x, float y, float *px, float *py) 
+LIC::getVelocity(float x, float y, float *px, float *py) 
 {
    float vx, vy, r;
 
@@ -543,18 +544,18 @@ NvLIC::getVelocity(float x, float y, float *px, float *py)
 }
 
 void 
-NvLIC::setOffset(float offset)
+LIC::setOffset(float offset)
 {
     _offset = offset;
     getSlice();
 }
 
-void NvLIC::setAxis(int axis)
+void LIC::setAxis(int axis)
 {
     _axis = axis;
 }
 
-void NvLIC::reset()
+void LIC::reset()
 {
     makePatterns();
 }

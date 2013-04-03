@@ -13,6 +13,8 @@
 #include "Texture2D.h"
 #include "NvShader.h"
 
+namespace nv {
+
 class VelocityArrowsSlice
 {
 public:
@@ -133,5 +135,7 @@ private:
 
     RenderMode _renderMode;
 };
+
+}
 
 #endif

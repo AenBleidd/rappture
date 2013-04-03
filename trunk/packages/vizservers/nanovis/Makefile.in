@@ -107,6 +107,7 @@ CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 OBJS		= \
 		Axis.o \
 		BMPWriter.o \
+		Camera.o \
 		Chain.o \
 		CmdProc.o \
 		Command.o \
@@ -119,18 +120,16 @@ OBJS		= \
 		GradientFilter.o \
 		Grid.o \
 		HeightMap.o \
-		NvCamera.o \
+		LIC.o \
 		NvColorTableShader.o \
-		NvLIC.o \
 		NvParticleAdvectionShader.o \
-		NvParticleRenderer.o \
 		NvRegularVolumeShader.o \
 		NvShader.o \
 		NvStdVertexShader.o \
 		NvVolumeShader.o \
-		NvZincBlendeReconstructor.o \
 		NvZincBlendeVolumeShader.o \
 		OrientationIndicator.o \
+		ParticleRenderer.o \
 		PerfQuery.o \
 		Plane.o \
 		PlaneRenderer.o \
@@ -151,6 +150,7 @@ OBJS		= \
 		VolumeInterpolator.o \
 		VolumeRenderer.o \
 		VtkReader.o \
+		ZincBlendeReconstructor.o \
 		ZincBlendeVolume.o \
 		dxReader.o \
 		md5.o \
@@ -278,31 +278,30 @@ distclean: clean clean-docs
 Axis.o: Axis.cpp Axis.h Chain.h
 BMPWriter.o: BMPWriter.cpp nanovis.h
 BucketSort.o: BucketSort.cpp BucketSort.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h PCASplit.h
+Camera.o: Camera.cpp Camera.h config.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 Chain.o: Chain.cpp Chain.h
 CmdProc.o: CmdProc.cpp CmdProc.h
-Command.o: Command.cpp nanovis.h config.h define.h FlowCmd.h CmdProc.h Trace.h PlaneRenderer.h PPMWriter.h BMPWriter.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h OrientationIndicator.h Unirect.h Volume.h VolumeRenderer.h
+Command.o: Command.cpp nanovis.h config.h define.h FlowCmd.h CmdProc.h Trace.h PlaneRenderer.h PPMWriter.h BMPWriter.h dxReader.h Grid.h HeightMap.h Camera.h ZincBlendeReconstructor.h OrientationIndicator.h Unirect.h Volume.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h Plane.h
 Flow.o: Flow.cpp Flow.h FlowCmd.h FlowTypes.h FlowBox.h FlowParticles.h Switch.h Trace.h
 FlowBox.o: FlowBox.cpp FlowBox.h FlowTypes.h Switch.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
-FlowCmd.o: FlowCmd.cpp FlowCmd.h FlowParticles.h FlowBox.h FlowTypes.h Command.h PPMWriter.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h Volume.h VelocityArrowsSlice.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
-FlowParticles.o: FlowParticles.cpp FlowParticles.h FlowTypes.h FlowCmd.h Switch.h Trace.h NvParticleRenderer.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
+FlowCmd.o: FlowCmd.cpp FlowCmd.h FlowParticles.h FlowBox.h FlowTypes.h Command.h PPMWriter.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h LIC.h Unirect.h Volume.h VelocityArrowsSlice.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
+FlowParticles.o: FlowParticles.cpp FlowParticles.h FlowTypes.h FlowCmd.h Switch.h Trace.h ParticleRenderer.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
-NvCamera.o: NvCamera.cpp NvCamera.h config.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
+LIC.o: LIC.cpp LIC.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
-NvLIC.o: NvLIC.cpp NvLIC.h
 NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h NvShader.h
-NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
 NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h NvVolumeShader.h NvShader.h
 NvShader.o: NvShader.cpp NvShader.h
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h NvShader.h
 NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h NvShader.h
-NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h NvVolumeShader.h NvShader.h
 OrientationIndicator.o: OrientationIndicator.cpp OrientationIndicator.h
 ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
+ParticleRenderer.o: ParticleRenderer.cpp ParticleRenderer.h
 ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h DataLoader.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
 PCASplit.o: PCASplit.cpp PCASplit.h
@@ -325,10 +324,11 @@ Unirect.o: Unirect.cpp Unirect.h Command.h Trace.h
 VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
 Volume.o: Volume.cpp Volume.h config.h define.h
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h Volume.h
-VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
+VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h ConvexPolygon.h Volume.h nanovis.h Trace.h Plane.h NvStdVertexShader.h NvShader.h
 VtkReader.o: VtkReader.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h ReaderCommon.h nanovis.h
+ZincBlendeReconstructor.o: ZincBlendeReconstructor.cpp ZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h config.h define.h
-dxReader.o: dxReader.cpp ReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
+dxReader.o: dxReader.cpp ReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h ZincBlendeReconstructor.h
 md5.o: md5.h
-nanovis.o: nanovis.cpp nanovis.h config.h define.h Command.h Flow.h Grid.h HeightMap.h NvCamera.h NvLIC.h NvZincBlendeReconstructor.h OrientationIndicator.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
+nanovis.o: nanovis.cpp nanovis.h config.h define.h Command.h Flow.h Grid.h HeightMap.h Camera.h LIC.h ZincBlendeReconstructor.h OrientationIndicator.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
 nanovisServer.o: nanovisServer.cpp nanovisServer.h config.h nanovis.h define.h Command.h PPMWriter.h ReadBuffer.h NvShader.h ResponseQueue.h Trace.h

@@ -5,6 +5,8 @@
  */
 #include "NvColorTableShader.h"
 
+using namespace nv;
+
 NvColorTableShader::NvColorTableShader()
 {
     init();

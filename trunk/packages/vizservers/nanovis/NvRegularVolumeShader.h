@@ -9,6 +9,8 @@
 #include "Volume.h"
 #include "NvVolumeShader.h"
 
+namespace nv {
+
 /// Shader for regular volume (uniform grid)
 class NvRegularVolumeShader : public NvVolumeShader
 {
@@ -25,5 +27,7 @@ public:
 private:
     void init();
 };
+
+}
 
 #endif
