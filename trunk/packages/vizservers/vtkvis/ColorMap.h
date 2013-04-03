@@ -11,6 +11,7 @@
 #include <string>
 #include <list>
 #include <cstring>
+
 #include <vtkSmartPointer.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkPiecewiseFunction.h>

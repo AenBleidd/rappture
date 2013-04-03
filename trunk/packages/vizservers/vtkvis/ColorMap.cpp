@@ -9,12 +9,13 @@
 #include <list>
 #include <cstring>
 #include <cassert>
+
 #include <vtkLookupTable.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkPiecewiseFunction.h>
 
 #include "ColorMap.h"
-#include "RpMolecule.h"
+#include "Molecule.h"
 #include "Trace.h"
 
 using namespace VtkVis;
