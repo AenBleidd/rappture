@@ -3,8 +3,10 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef GRADIENT_FILTER_H
-#define GRADIENT_FILTER_H
+#ifndef NV_GRADIENT_FILTER_H
+#define NV_GRADIENT_FILTER_H
+
+namespace nv {
 
 typedef enum {
     DATRAW_UCHAR,
@@ -19,5 +21,7 @@ extern void filterGradients(float *gradients, int *sizes);
 
 extern void quantizeGradients(float *gradientsIn, void *gradientsOut,
                               int *sizes, DataType dataType);
+
+}
 
 #endif 

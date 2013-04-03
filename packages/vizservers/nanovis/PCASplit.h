@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef PCA_SPLIT_H
-#define PCA_SPLIT_H
+#ifndef PCA_PCASPLIT_H
+#define PCA_PCASPLIT_H
 
 #include <memory.h>
 

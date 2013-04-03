@@ -3,8 +3,8 @@
  * Copyright (C) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef VTKREADER_H
-#define VTKREADER_H
+#ifndef NV_VTKREADER_H
+#define NV_VTKREADER_H
 
 #include <iostream>
 

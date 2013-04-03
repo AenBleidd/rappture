@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef TEXTURE3D_H
-#define TEXTURE3D_H
+#ifndef NV_TEXTURE3D_H
+#define NV_TEXTURE3D_H
 
 #include <GL/glew.h>
 

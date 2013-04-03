@@ -27,8 +27,8 @@
  *	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef SWITCH_H
-#define SWITCH_H
+#ifndef RAPPTURE_SWITCH_H
+#define RAPPTURE_SWITCH_H
 
 #ifdef HAVE_STDDEF_H
 #  include <stddef.h>
@@ -132,4 +132,4 @@ extern int SwitchChanged TCL_VARARGS(SwitchSpec *, specs);
  
 }
 
-#endif /* BLT_SWITCH_H */
+#endif

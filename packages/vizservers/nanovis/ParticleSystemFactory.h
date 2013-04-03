@@ -3,12 +3,14 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef PARTICLESYSTEMFACTORY_H
-#define PARTICLESYSTEMFACTORY_H
+#ifndef NV_PARTICLESYSTEMFACTORY_H
+#define NV_PARTICLESYSTEMFACTORY_H
 
 #include <string>
 
 #include <expat.h>
+
+namespace nv {
 
 class ParticleSystem;
 
@@ -30,5 +32,7 @@ private:
 
     ParticleSystem *_newParticleSystem;
 };
+
+}
 
 #endif

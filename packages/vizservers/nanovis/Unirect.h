@@ -4,8 +4,8 @@
  *
  * Author: George A. Howlett <gah@purdue.edu>
  */
-#ifndef UNIRECT_H
-#define UNIRECT_H
+#ifndef RAPPTURE_UNIRECT_H
+#define RAPPTURE_UNIRECT_H
 
 #include <float.h>
 

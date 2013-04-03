@@ -15,8 +15,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef PERFQUERY_H
-#define PERFQUERY_H
+#ifndef NV_PERFQUERY_H
+#define NV_PERFQUERY_H
 
 #include <stdio.h>
 

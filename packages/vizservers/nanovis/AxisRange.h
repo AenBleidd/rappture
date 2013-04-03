@@ -4,8 +4,8 @@
  *
  * Authors: George A. Howlett <gah@purdue.edu>
  */
-#ifndef AXIS_RANGE_H
-#define AXIS_RANGE_H
+#ifndef NV_AXIS_RANGE_H
+#define NV_AXIS_RANGE_H
 
 #include <string.h>
 

@@ -1,20 +1,12 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * Render to vertex array class
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
- *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ * Author:
+ *   Wei Qiao <qiaow@purdue.edu>
  */
-#ifndef RENDERVERTEXARRAY_H
-#define RENDERVERTEXARRAY_H
+#ifndef NV_RENDERVERTEXARRAY_H
+#define NV_RENDERVERTEXARRAY_H
 
 #include <GL/glew.h>
 #include <GL/gl.h>

@@ -4,8 +4,8 @@
  *
  * Authors: George A. Howlett <gah@purdue.edu>
  */
-#ifndef AXIS_H
-#define AXIS_H
+#ifndef NV_AXIS_H
+#define NV_AXIS_H
 
 #include <stdlib.h>
 #include <string.h>

@@ -8,8 +8,8 @@
  *   George A. Howlett <gah@purdue.edu>
  *   Leif Delgass <ldelgass@purdue.edu>
  */
-#ifndef _FLOWPARTICLES_H
-#define _FLOWPARTICLES_H
+#ifndef NV_FLOWPARTICLES_H
+#define NV_FLOWPARTICLES_H
 
 #include <cassert>
 #include <string>

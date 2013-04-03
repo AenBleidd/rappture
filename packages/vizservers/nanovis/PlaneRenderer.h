@@ -5,8 +5,8 @@
  *  Authors:
  *    Wei Qiao <qiaow@purdue.edu>
  */
-#ifndef PLANE_RENDERER_H
-#define PLANE_RENDERER_H
+#ifndef NV_PLANE_RENDERER_H
+#define NV_PLANE_RENDERER_H
 
 #include <vector>
 

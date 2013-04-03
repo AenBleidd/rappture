@@ -3,8 +3,8 @@
  * Copyright (C) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef VOLUME_INTERPOLATOR_H
-#define VOLUME_INTERPOLATOR_H
+#ifndef NV_VOLUME_INTERPOLATOR_H
+#define NV_VOLUME_INTERPOLATOR_H
 
 #include <vector>
 

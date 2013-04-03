@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef NV_REGULAR_SHADER_H
-#define NV_REGULAR_SHADER_H
+#ifndef NV_REGULAR_VOLUME_SHADER_H
+#define NV_REGULAR_VOLUME_SHADER_H
 
 #include "Volume.h"
 #include "VolumeShader.h"

@@ -1,20 +1,12 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ----------------------------------------------------------------------
- * VolumeRenderer.h : VolumeRenderer class for volume visualization
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
- *
- *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ * Authors:
+ *   Wei Qiao <qiaow@purdue.edu>
  */
-#ifndef _VOLUME_RENDERER_H_
-#define _VOLUME_RENDERER_H_
+#ifndef NV_VOLUME_RENDERER_H
+#define NV_VOLUME_RENDERER_H
 
 #include <vrmath/Matrix4x4d.h>
 

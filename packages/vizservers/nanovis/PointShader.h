@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef POINTSHADER_H
-#define POINTSHADER_H
+#ifndef NV_POINTSHADER_H
+#define NV_POINTSHADER_H
 
 #include "Shader.h"
 #include "Texture3D.h"

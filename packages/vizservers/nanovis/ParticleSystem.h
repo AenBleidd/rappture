@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef PARTICLESYSTEM_H
-#define PARTICLESYSTEM_H
+#ifndef NV_PARTICLESYSTEM_H
+#define NV_PARTICLESYSTEM_H
 
 #include <vector>
 #include <queue>
@@ -22,6 +22,8 @@
 #include "Texture3D.h"
 
 #include "CircularQueue.h"
+
+namespace nv {
 
 struct NewParticle {
     int index;
@@ -406,6 +408,8 @@ inline void ParticleSystem::setDepthCueEnabled(bool enabled)
 inline bool ParticleSystem::getDepthCueEnabled() const
 {
     return _depthCueEnabled;
+}
+
 }
 
 #endif

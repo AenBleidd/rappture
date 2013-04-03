@@ -3,8 +3,8 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef POINT_SET_H
-#define POINT_SET_H
+#ifndef NV_POINT_SET_H
+#define NV_POINT_SET_H
 
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>

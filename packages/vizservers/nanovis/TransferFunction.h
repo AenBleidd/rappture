@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef TRANSFER_FUNCTION_H
-#define TRANSFER_FUNCTION_H
+#ifndef NV_TRANSFER_FUNCTION_H
+#define NV_TRANSFER_FUNCTION_H
 
 #include <string>
 
