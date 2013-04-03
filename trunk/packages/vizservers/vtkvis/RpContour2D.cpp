@@ -26,7 +26,7 @@
 #include "RpVtkRenderer.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Contour2D::Contour2D(int numContours) :
     VtkGraphicsObject(),
@@ -297,6 +297,14 @@ void Contour2D::updateRanges(Renderer *renderer)
 
     if (_contours.empty() && _numContours > 0) {
         // Contour isovalues need to be recomputed
+        update();
+    }
+}
+
+void Contour2D::setContourField(const char *name)
+{
+    if (_contourFilter != NULL) {
+        _contourFilter->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, name);
         update();
     }
 }

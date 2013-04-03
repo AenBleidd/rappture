@@ -31,16 +31,16 @@
 #include "ResponseQueue.h"
 #endif
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 static int lastCmdStatus;
 
 #ifdef USE_THREADS
 void
-Rappture::VtkVis::queueResponse(ClientData clientData,
-                                const void *bytes, size_t len, 
-                                Response::AllocationType allocType,
-                                Response::ResponseType type)
+VtkVis::queueResponse(ClientData clientData,
+                      const void *bytes, size_t len, 
+                      Response::AllocationType allocType,
+                      Response::ResponseType type)
 {
     ResponseQueue *queue = (ResponseQueue *)clientData;
 
@@ -2126,16 +2126,14 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int numItems;
     char buf[BUFSIZ];
     const char *string;
-    int f;
-    int i;
     int length;
     int result;
     static bool first = true;
 
     /* Use the initial client key value pairs as the parts for a generating
      * a unique file name. */
-    f = Rappture::VtkVis::getStatsFile(interp, objv[1]);
-    if (f < 0) {
+    int fd = VtkVis::getStatsFile(interp, objv[1]);
+    if (fd < 0) {
 	Tcl_AppendResult(interp, "can't open stats file: ", 
                          Tcl_PosixError(interp), (char *)NULL);
 	return TCL_ERROR;
@@ -2168,27 +2166,27 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     /* date */
     Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj("date", 4));
-    strcpy(buf, ctime(&Rappture::VtkVis::g_stats.start.tv_sec));
+    strcpy(buf, ctime(&VtkVis::g_stats.start.tv_sec));
     buf[strlen(buf) - 1] = '\0';
     Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj(buf, -1));
     /* date_secs */
     Tcl_ListObjAppendElement(interp, listObjPtr, 
-                Tcl_NewStringObj("date_secs", 9));
+                             Tcl_NewStringObj("date_secs", 9));
     Tcl_ListObjAppendElement(interp, listObjPtr, 
-                Tcl_NewLongObj(Rappture::VtkVis::g_stats.start.tv_sec));
+                             Tcl_NewLongObj(VtkVis::g_stats.start.tv_sec));
     /* Client arguments. */
     if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
 	return TCL_ERROR;
     }
-    for (i = 0; i < numItems; i++) {
+    for (int i = 0; i < numItems; i++) {
         Tcl_ListObjAppendElement(interp, listObjPtr, items[i]);
     }
     Tcl_DStringInit(&ds);
     string = Tcl_GetStringFromObj(listObjPtr, &length);
     Tcl_DStringAppend(&ds, string, length);
     Tcl_DStringAppend(&ds, "\n", 1);
-    result = Rappture::VtkVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
-                                                Tcl_DStringLength(&ds));
+    result = VtkVis::writeToStatsFile(fd, Tcl_DStringValue(&ds), 
+                                      Tcl_DStringLength(&ds));
     Tcl_DStringFree(&ds);
     Tcl_DecrRefCount(listObjPtr);
     return result;
@@ -3160,6 +3158,20 @@ Contour3DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour3DContourFieldOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    const char *fieldName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DContourField(dataSetName, fieldName);
+    } else {
+        g_renderer->setContour3DContourField("all", fieldName);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour3DContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                        Tcl_Obj *const *objv)
 {
@@ -3404,7 +3416,8 @@ static Rappture::CmdSpec contour3dOps[] = {
     {"ccolor",       2, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, Contour3DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"contourlist",  3, Contour3DContourListOp, 3, 4, "contourList ?dataSetName?"},
+    {"contourfield", 8, Contour3DContourFieldOp, 3, 4, "fieldName ?dataSetName?"},
+    {"contourlist",  8, Contour3DContourListOp, 3, 4, "contourList ?dataSetName?"},
     {"delete",       1, Contour3DDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, Contour3DEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",     3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -4534,42 +4547,6 @@ DataSetOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-DataSetOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                 Tcl_Obj *const *objv)
-{
-    bool state;
-    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setDataSetShowBounds(name, state);
-    } else {
-        g_renderer->setDataSetShowBounds("all", state);
-    }
-    return TCL_OK;
-}
-
-static int
-DataSetOutlineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                      Tcl_Obj *const *objv)
-{
-    float color[3];
-    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
-        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
-        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (objc == 6) {
-        const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setDataSetOutlineColor(name, color);
-    } else {
-        g_renderer->setDataSetOutlineColor("all", color);
-    }
-    return TCL_OK;
-}
-
-static int
 DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -4588,14 +4565,12 @@ DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec dataSetOps[] = {
     {"add",       1, DataSetAddOp, 6, 6, "name data follows nBytes"},
-    {"color",     1, DataSetOutlineColorOp, 5, 6, "r g b ?name?"},
     {"delete",    1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getscalar", 4, DataSetGetScalarOp, 6, 7, "oper x y ?z? name"},
     {"getvector", 4, DataSetGetVectorOp, 6, 7, "oper x y ?z? name"},
     {"maprange",  1, DataSetMapRangeOp, 3, 9, "value ?min? ?max? ?fieldName? ?fieldType? ?fieldNumComp? ?compIdx?"},
     {"names",     1, DataSetNamesOp, 2, 2, ""},
     {"opacity",   2, DataSetOpacityOp, 3, 4, "value ?name?"},
-    {"outline",   2, DataSetOutlineOp, 3, 4, "bool ?name?"},
     {"scalar",    1, DataSetActiveScalarsOp, 3, 4, "scalarName ?name?"},
     {"vector",    2, DataSetActiveVectorsOp, 3, 4, "vectorName ?name?"},
     {"visible",   2, DataSetVisibleOp, 3, 4, "bool ?name?"}
@@ -6002,7 +5977,7 @@ HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-             Tcl_Obj *const *objv)
+              Tcl_Obj *const *objv)
 {
     lastCmdStatus = TCL_BREAK;
     return TCL_OK;
@@ -10026,10 +10001,10 @@ WarpCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  * read loop.
  */
 int
-Rappture::VtkVis::processCommands(Tcl_Interp *interp,
-                                  ClientData clientData,
-                                  ReadBuffer *inBufPtr, 
-                                  int fdOut)
+VtkVis::processCommands(Tcl_Interp *interp,
+                        ClientData clientData,
+                        ReadBuffer *inBufPtr, 
+                        int fdOut)
 {
     int ret = 1;
     int status = TCL_OK;
@@ -10097,9 +10072,9 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp,
  * \brief Send error message to client socket
  */
 int
-Rappture::VtkVis::handleError(Tcl_Interp *interp,
-                              ClientData clientData,
-                              int status, int fdOut)
+VtkVis::handleError(Tcl_Interp *interp,
+                    ClientData clientData,
+                    int status, int fdOut)
 {
     const char *string;
     int nBytes;
@@ -10154,7 +10129,7 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
  * \return The initialized Tcl interpreter
  */
 void
-Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
+VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 {
     Tcl_MakeSafe(interp);
     Tcl_CreateObjCommand(interp, "arc",         ArcCmd,         clientData, NULL);
@@ -10193,7 +10168,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 /**
  * \brief Delete Tcl commands and interpreter
  */
-void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
+void VtkVis::exitTcl(Tcl_Interp *interp)
 {
     Tcl_DeleteCommand(interp, "arc");
     Tcl_DeleteCommand(interp, "arrow");

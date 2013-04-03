@@ -5,16 +5,17 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_RENDERSERVER_H__
-#define __RAPPTURE_VTKVIS_RENDERSERVER_H__
+#ifndef VTKVIS_RENDERSERVER_H
+#define VTKVIS_RENDERSERVER_H
 
 #include <sys/types.h>
 #include <sys/time.h>
 
-namespace Rappture {
 namespace VtkVis {
 
 class Renderer;
+
+#define VTKVIS_VERSION_STRING "1.3"
 
 #define MSECS_ELAPSED(t1, t2) \
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
@@ -49,7 +50,6 @@ extern int g_statsFile;
 extern int writeToStatsFile(int f, const char *s, size_t length);
 extern int getStatsFile(Tcl_Interp * interp, Tcl_Obj *objPtr);
 
-}
 }
 
 #endif

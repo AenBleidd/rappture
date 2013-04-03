@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_GLYPHS_H__
-#define __RAPPTURE_VTKVIS_GLYPHS_H__
+#ifndef VTKVIS_GLYPHS_H
+#define VTKVIS_GLYPHS_H
 
 #include <vector>
 
@@ -21,7 +21,6 @@
 #include "RpVtkGraphicsObject.h"
 #include "ColorMap.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -137,7 +136,6 @@ private:
     vtkSmartPointer<vtkGlyph3DMapper> _glyphMapper;
 };
 
-}
 }
 
 #endif

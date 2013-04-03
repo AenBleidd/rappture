@@ -14,7 +14,7 @@
 #include "ReadBuffer.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 /**
  * \param[in] fd File descriptor to read

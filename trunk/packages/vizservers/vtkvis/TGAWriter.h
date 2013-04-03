@@ -5,14 +5,13 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_TGAWRITER_H__
-#define __RAPPTURE_VTKVIS_TGAWRITER_H__
+#ifndef VTKVIS_TGAWRITER_H
+#define VTKVIS_TGAWRITER_H
 
 #ifdef USE_THREADS
 #include "ResponseQueue.h"
 #endif
 
-namespace Rappture {
 namespace VtkVis {
 #ifdef USE_THREADS
 extern
@@ -29,7 +28,6 @@ extern
 void writeTGAFile(const char *filename, 
                   const unsigned char *data, int width, int height, 
                   int bytesPerPixel, bool srcIsRGB = false);
-}
 }
 
 #endif

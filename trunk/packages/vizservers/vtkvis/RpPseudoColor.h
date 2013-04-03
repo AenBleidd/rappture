@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_PSEUDOCOLOR_H__
-#define __RAPPTURE_VTKVIS_PSEUDOCOLOR_H__
+#ifndef VTKVIS_PSEUDOCOLOR_H
+#define VTKVIS_PSEUDOCOLOR_H
 
 #include <vtkSmartPointer.h>
 #include <vtkLookupTable.h>
@@ -17,7 +17,6 @@
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -87,7 +86,6 @@ private:
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;
 };
 
-}
 }
 
 #endif

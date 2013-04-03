@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_DISK_H__
-#define __RAPPTURE_VTKVIS_DISK_H__
+#ifndef VTKVIS_DISK_H
+#define VTKVIS_DISK_H
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataMapper.h>
@@ -16,7 +16,6 @@
 #include "RpShape.h"
 #include "RpVtkDataSet.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -57,7 +56,6 @@ private:
     vtkSmartPointer<vtkDiskSource> _disk;
 };
 
-}
 }
 
 #endif

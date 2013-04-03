@@ -33,7 +33,7 @@
 #include "RpVtkRenderer.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Streamlines::Streamlines() :
     VtkGraphicsObject(),

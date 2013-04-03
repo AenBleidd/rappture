@@ -18,7 +18,7 @@
 #include "RpSphere.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Sphere::Sphere() :
     Shape()

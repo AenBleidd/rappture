@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_WARP_H__
-#define __RAPPTURE_VTKVIS_WARP_H__
+#ifndef VTKVIS_WARP_H
+#define VTKVIS_WARP_H
 
 #include <vtkSmartPointer.h>
 #include <vtkAlgorithmOutput.h>
@@ -20,7 +20,6 @@
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -106,7 +105,6 @@ private:
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;
 };
 
-}
 }
 
 #endif

@@ -30,7 +30,7 @@
 #include "RpVtkRenderer.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Glyphs::Glyphs(GlyphShape shape) :
     VtkGraphicsObject(),

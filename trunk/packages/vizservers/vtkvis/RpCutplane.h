@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_CUTPLANE_H__
-#define __RAPPTURE_VTKVIS_CUTPLANE_H__
+#ifndef VTKVIS_CUTPLANE_H
+#define VTKVIS_CUTPLANE_H
 
 #include <vtkSmartPointer.h>
 #include <vtkLookupTable.h>
@@ -23,7 +23,6 @@
 #include "RpTypes.h"
 #include "RpVtkGraphicsObject.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 //#define CUTPLANE_TIGHT_OUTLINE
@@ -122,7 +121,6 @@ private:
     vtkSmartPointer<vtkGaussianSplatter> _splatter;
 };
 
-}
 }
 
 #endif

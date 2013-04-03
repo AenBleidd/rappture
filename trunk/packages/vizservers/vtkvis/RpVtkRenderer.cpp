@@ -49,7 +49,26 @@
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
      (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)
 
-using namespace Rappture::VtkVis;
+#define printCameraInfo(camera)                                         \
+do {                                                                    \
+    TRACE("pscale: %g, angle: %g, d: %g pos: %g %g %g, fpt: %g %g %g, vup: %g %g %g, clip: %g %g", \
+          (camera)->GetParallelScale(),                                 \
+          (camera)->GetViewAngle(),                                     \
+          (camera)->GetDistance(),                                      \
+          (camera)->GetPosition()[0],                                   \
+          (camera)->GetPosition()[1],                                   \
+          (camera)->GetPosition()[2],                                   \
+          (camera)->GetFocalPoint()[0],                                 \
+          (camera)->GetFocalPoint()[1],                                 \
+          (camera)->GetFocalPoint()[2],                                 \
+          (camera)->GetViewUp()[0],                                     \
+          (camera)->GetViewUp()[1],                                     \
+          (camera)->GetViewUp()[2],                                     \
+          (camera)->GetClippingRange()[0],                              \
+          (camera)->GetClippingRange()[1]);                             \
+} while(0)
+
+using namespace VtkVis;
 
 Renderer::Renderer() :
     _needsRedraw(true),
@@ -249,10 +268,6 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteGraphicsObject<Streamlines>(itr->second->getName());
         deleteGraphicsObject<Volume>(itr->second->getName());
         deleteGraphicsObject<Warp>(itr->second->getName());
- 
-        if (itr->second->getProp() != NULL) {
-            _renderer->RemoveViewProp(itr->second->getProp());
-        }
 
         TRACE("After deleting graphics objects");
 
@@ -666,6 +681,7 @@ void Renderer::setAxesRanges()
     } else {
         _cubeAxesActor->GetXAxisRange(&ranges[0]);
     }
+
     if (_axesRangeMode[Y_AXIS] != RANGE_EXPLICIT) {
         ranges[2] = bounds[2] * _axesScale[Y_AXIS];
         ranges[3] = bounds[3] * _axesScale[Y_AXIS];
@@ -2190,11 +2206,6 @@ void Renderer::setWindowSize(int width, int height)
 
 void Renderer::setObjectAspects(double aspectRatio)
 {
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-         itr != _dataSets.end(); ++itr) {
-        itr->second->setAspect(aspectRatio);
-    }
-
     setGraphicsObjectAspect<Arc>(aspectRatio);
     setGraphicsObjectAspect<Arrow>(aspectRatio);
     setGraphicsObjectAspect<Box>(aspectRatio);
@@ -2395,7 +2406,7 @@ void Renderer::setCameraOrientation(const double quat[4], bool absolute)
     trans->Concatenate(camera->GetViewTransformMatrix());
     setCameraFromMatrix(camera, *trans->GetMatrix());
 
-    _renderer->ResetCameraClippingRange();
+    resetCameraClippingRange();
     printCameraInfo(camera);
     _needsRedraw = true;
 }
@@ -2415,7 +2426,7 @@ void Renderer::setCameraOrientationAndPosition(const double position[3],
     camera->SetPosition(position);
     camera->SetFocalPoint(focalPoint);
     camera->SetViewUp(viewUp);
-    _renderer->ResetCameraClippingRange();
+    resetCameraClippingRange();
     _needsRedraw = true;
 }
 
@@ -2455,6 +2466,7 @@ void Renderer::sceneBoundsChanged()
  */
 void Renderer::resetCamera(bool resetOrientation)
 {
+    TRACE("Enter: %d", resetOrientation ? 1 : 0);
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     if (_cameraMode == IMAGE) {
         initCamera();
@@ -2476,8 +2488,7 @@ void Renderer::resetCamera(bool resetOrientation)
             resetAxes();
             _needsAxesReset = false;
         }
-        _renderer->ResetCamera();
-        _renderer->ResetCameraClippingRange();
+        resetVtkCamera();
         //computeScreenWorldCoords();
     }
 
@@ -2492,10 +2503,12 @@ void Renderer::resetCamera(bool resetOrientation)
 
 void Renderer::resetVtkCamera(double *bounds)
 {
+    TRACE("Enter: bounds: %p", bounds);
     if (bounds != NULL)
         _renderer->ResetCamera(bounds);
     else
         _renderer->ResetCamera();
+    printCameraInfo(_renderer->GetActiveCamera());
 }
 
 /**
@@ -2504,6 +2517,10 @@ void Renderer::resetVtkCamera(double *bounds)
 void Renderer::resetCameraClippingRange()
 {
     _renderer->ResetCameraClippingRange();
+    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+    //double dist = camera->GetClippingRange()[0] + (camera->GetClippingRange()[1] - camera->GetClippingRange()[0])/2.0;
+    //camera->SetDistance(dist);
+    printCameraInfo(camera);
 }
 
 /**
@@ -2521,7 +2538,7 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
     camera->Elevation(pitch); // Rotate about object
     //camera->SetPitch(pitch); // Rotate about camera
     camera->Roll(roll); // Roll about camera view axis
-    _renderer->ResetCameraClippingRange();
+    resetCameraClippingRange();
     //computeScreenWorldCoords();
     _needsRedraw = true;
 }
@@ -2622,7 +2639,7 @@ void Renderer::panCamera(double x, double y, bool absolute)
                                 motionVector[1] + viewPoint[1],
                                 motionVector[2] + viewPoint[2]);
 
-            _renderer->ResetCameraClippingRange();
+            resetCameraClippingRange();
             //computeScreenWorldCoords();
         }
     }
@@ -2676,7 +2693,7 @@ void Renderer::zoomCamera(double z, bool absolute)
         camera->Dolly(z);
         // Change ortho parallel scale
         camera->SetParallelScale(camera->GetParallelScale()/z);
-        _renderer->ResetCameraClippingRange();
+        resetCameraClippingRange();
         //computeScreenWorldCoords();
     }
 
@@ -3107,13 +3124,6 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     bounds[4] = DBL_MAX;
     bounds[5] = -DBL_MAX;
 
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-             itr != _dataSets.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
-    }
-
     mergeGraphicsObjectBounds<Arc>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Arrow>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Box>(bounds, onlyVisible);
@@ -3182,16 +3192,6 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     bounds[3] = -DBL_MAX;
     bounds[4] = DBL_MAX;
     bounds[5] = -DBL_MAX;
-
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-             itr != _dataSets.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL) {
-            double dsBounds[6];
-            itr->second->getBounds(dsBounds);
-            mergeBounds(bounds, bounds, dsBounds);
-        }
-    }
 
     mergeGraphicsObjectUnscaledBounds<Arc>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Arrow>(bounds, onlyVisible);
@@ -3847,16 +3847,14 @@ void Renderer::initCamera(bool initCameraMode)
         _renderer->GetActiveCamera()->ParallelProjectionOn();
         resetAxes(bounds);
         //_renderer->ResetCamera(bounds);
-        _renderer->ResetCamera();
-        _renderer->ResetCameraClippingRange();
+        resetVtkCamera();
         //computeScreenWorldCoords();
         break;
     case PERSPECTIVE:
         _renderer->GetActiveCamera()->ParallelProjectionOff();
         resetAxes(bounds);
         //_renderer->ResetCamera(bounds);
-        _renderer->ResetCamera();
-        _renderer->ResetCameraClippingRange();
+        resetVtkCamera();
         //computeScreenWorldCoords();
         break;
     default:
@@ -3868,6 +3866,7 @@ void Renderer::initCamera(bool initCameraMode)
 #endif
 }
 
+#if 0
 /**
  * \brief Print debugging info about a vtkCamera
  */
@@ -3889,6 +3888,7 @@ void Renderer::printCameraInfo(vtkCamera *camera)
           camera->GetClippingRange()[0],
           camera->GetClippingRange()[1]);
 }
+#endif
 
 /**
  * \brief Set the RGB background color to render into the image
@@ -4015,73 +4015,6 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
 }
 
 /**
- * \brief Toggle rendering of actors' bounding box
- */
-void Renderer::setDataSetShowBounds(const DataSetId& id, bool state)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-        if (itr == _dataSets.end())
-            return;
-        doAll = true;
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return;
-    }
-
-    do {
-        if (!state && itr->second->getProp()) {
-            _renderer->RemoveViewProp(itr->second->getProp());
-        }
-
-        itr->second->showOutline(state);
-
-        if (state && !_renderer->HasViewProp(itr->second->getProp())) {
-            _renderer->AddViewProp(itr->second->getProp());
-        }
-    } while (doAll && ++itr != _dataSets.end());
-
-    sceneBoundsChanged();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set color of outline bounding box
- */
-void Renderer::setDataSetOutlineColor(const DataSetId& id, float color[3])
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-        if (itr == _dataSets.end())
-            return;
-        doAll = true;
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOutlineColor(color);
-    } while (doAll && ++itr != _dataSets.end());
-
-    _needsRedraw = true;
-}
-
-/**
  * \brief Set a user clipping plane
  *
  * TODO: Fix clip plane positions after a change in actor bounds
@@ -4198,12 +4131,6 @@ void Renderer::setCameraClippingPlanes()
      * This will not change the state or timestamp of 
      * Mappers already using the PlaneCollection
      */
-    // First set clip planes for DataSet bounding boxes
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-         itr != _dataSets.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-
     setGraphicsObjectClippingPlanes<Arc>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Arrow>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Box>(_activeClipPlanes);
@@ -4263,6 +4190,8 @@ void Renderer::eventuallyRender()
  */
 bool Renderer::render()
 {
+    TRACE("Enter: redraw: %d axesReset: %d cameraReset: %d clippingRangeReset: %d",
+          _needsRedraw ? 1 : 0, _needsAxesReset ? 1 : 0, _needsCameraReset ? 1 : 0, _needsCameraClippingRangeReset ? 1 : 0);
     if (_needsRedraw) {
          if (_needsAxesReset) {
             resetAxes();

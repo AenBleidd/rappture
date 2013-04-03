@@ -21,7 +21,7 @@
 #include "RpPolyData.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 PolyData::PolyData() :
     VtkGraphicsObject()

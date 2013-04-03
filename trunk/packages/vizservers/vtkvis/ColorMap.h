@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_COLORMAP_H__
-#define __RAPPTURE_VTKVIS_COLORMAP_H__
+#ifndef VTKVIS_COLORMAP_H
+#define VTKVIS_COLORMAP_H
 
 #include <string>
 #include <list>
@@ -16,7 +16,6 @@
 #include <vtkPiecewiseFunction.h>
 #include <vtkLookupTable.h>
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -130,7 +129,6 @@ private:
     vtkSmartPointer<vtkLookupTable> _lookupTable;
 };
 
-}
 }
 
 #endif

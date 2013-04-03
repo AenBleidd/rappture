@@ -17,7 +17,7 @@
 #include "RpShape.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Shape::Shape() :
     VtkGraphicsObject()

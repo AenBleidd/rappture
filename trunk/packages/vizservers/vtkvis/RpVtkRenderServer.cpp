@@ -35,17 +35,17 @@
 #endif 
 #include <md5.h>
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
-Stats Rappture::VtkVis::g_stats;
+Stats VtkVis::g_stats;
 
-int Rappture::VtkVis::g_statsFile = -1; ///< Stats output file descriptor.
-int Rappture::VtkVis::g_fdIn = STDIN_FILENO; ///< Input file descriptor
-int Rappture::VtkVis::g_fdOut = STDOUT_FILENO; ///< Output file descriptor
-FILE *Rappture::VtkVis::g_fOut = stdout; ///< Output file handle
-FILE *Rappture::VtkVis::g_fLog = NULL; ///< Trace logging file handle
-Renderer *Rappture::VtkVis::g_renderer = NULL; ///< Main render worker
-ReadBuffer *Rappture::VtkVis::g_inBufPtr = NULL; ///< Socket read buffer
+int VtkVis::g_statsFile = -1; ///< Stats output file descriptor.
+int VtkVis::g_fdIn = STDIN_FILENO; ///< Input file descriptor
+int VtkVis::g_fdOut = STDOUT_FILENO; ///< Output file descriptor
+FILE *VtkVis::g_fOut = stdout; ///< Output file handle
+FILE *VtkVis::g_fLog = NULL; ///< Trace logging file handle
+Renderer *VtkVis::g_renderer = NULL; ///< Main render worker
+ReadBuffer *VtkVis::g_inBufPtr = NULL; ///< Socket read buffer
 
 #ifdef USE_THREADS
 static void
@@ -215,7 +215,7 @@ sendAck(ClientData clientData, int fdOut)
 }
 
 int
-Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
+VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
     Tcl_DString ds;
     Tcl_Obj **objv;
@@ -260,7 +260,7 @@ Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
 }
 
 int
-Rappture::VtkVis::writeToStatsFile(int f, const char *s, size_t length)
+VtkVis::writeToStatsFile(int f, const char *s, size_t length)
 {
     if (f >= 0) {
         ssize_t numWritten;
@@ -497,17 +497,16 @@ main(int argc, char *argv[])
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    fprintf(g_fOut, "VtkVis 1.2 (build %s)\n", SVN_VERSION);
+    fprintf(g_fOut, "VtkVis %s (build %s)\n", VTKVIS_VERSION_STRING, SVN_VERSION);
     fflush(g_fOut);
 
     g_renderer = new Renderer();
     g_inBufPtr = new ReadBuffer(g_fdIn, 1<<12);
 
     Tcl_Interp *interp = Tcl_CreateInterp();
-
     ClientData clientData = NULL;
 #ifdef USE_THREADS
-    ResponseQueue *queue = new ResponseQueue((void *)interp);
+    ResponseQueue *queue = new ResponseQueue();
     clientData = (ClientData)queue;
     initTcl(interp, clientData);
 

@@ -9,7 +9,7 @@
 #include "RpVtkRenderer.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 void VtkGraphicsObject::setDataSet(DataSet *dataSet,
                                    Renderer *renderer)

@@ -27,7 +27,7 @@
 #include "RpVtkDataSet.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 DataSet::DataSet(const std::string& name) :
     _name(name),
@@ -37,71 +37,10 @@ DataSet::DataSet(const std::string& name) :
 {
     _cellSizeRange[0] = -1;
     _cellSizeRange[1] = -1;
-    initProp();
 }
 
 DataSet::~DataSet()
 {
-}
-
-/**
- * \brief Create and initialize a VTK Prop to render the outline
- */
-void DataSet::initProp()
-{
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkActor>::New();
-        vtkProperty *property = _prop->GetProperty();
-        property->EdgeVisibilityOff();
-        property->SetOpacity(_opacity);
-        property->SetAmbient(.2);
-        property->LightingOff();
-        _prop->SetVisibility((_visible ? 1 : 0));
-    }
-}
-
-/**
- * \brief Create and initialize a wireframe outline
- */
-void DataSet::showOutline(bool state)
-{
-    if (state) {
-        if (_outlineFilter == NULL) {
-            _outlineFilter = vtkSmartPointer<vtkOutlineFilter>::New();
-#ifdef USE_VTK6
-            _outlineFilter->SetInputData(_dataSet);
-#else
-            _outlineFilter->SetInput(_dataSet);
-#endif
-        }
-        if (_outlineMapper == NULL) {
-            _outlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-            _outlineMapper->SetInputConnection(_outlineFilter->GetOutputPort());
-        }
-        initProp();
-        _prop->SetMapper(_outlineMapper);
-    } else {
-        if (_prop != NULL) {
-            _prop->SetMapper(NULL);
-        }
-        if (_outlineMapper != NULL) {
-            _outlineMapper = NULL;
-        }
-        if (_outlineFilter != NULL) {
-            _outlineFilter = NULL;
-        }
-    }
-}
-
-/**
- * \brief Set color of outline bounding box
- */
-void DataSet::setOutlineColor(float color[3])
-{
-    if (_prop == NULL) {
-        initProp();
-    }
-    _prop->GetProperty()->SetColor(color[0], color[1], color[2]);
 }
 
 /**
@@ -114,9 +53,6 @@ void DataSet::setOutlineColor(float color[3])
 void DataSet::setOpacity(double opacity)
 {
     _opacity = opacity;
-    if (_prop != NULL) {
-        _prop->GetProperty()->SetOpacity(opacity);
-    }
 }
 
 /**
@@ -129,9 +65,6 @@ void DataSet::setOpacity(double opacity)
 void DataSet::setVisibility(bool state)
 {
     _visible = state;
-    if (_prop != NULL) {
-        _prop->SetVisibility((state ? 1 : 0));
-    }
 }
 
 /**

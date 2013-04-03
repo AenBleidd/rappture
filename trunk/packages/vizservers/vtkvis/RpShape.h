@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_SHAPE_H__
-#define __RAPPTURE_VTKVIS_SHAPE_H__
+#ifndef VTKVIS_SHAPE_H
+#define VTKVIS_SHAPE_H
 
 #include <cassert>
 
@@ -17,7 +17,6 @@
 #include "RpVtkGraphicsObject.h"
 #include "RpVtkDataSet.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -48,7 +47,6 @@ protected:
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
 };
 
-}
 }
 
 #endif

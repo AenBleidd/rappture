@@ -35,7 +35,6 @@
 #include "Trace.h"
 
 // Template specializations
-namespace Rappture {
 namespace VtkVis {
 
 template<>
@@ -259,9 +258,8 @@ void Renderer::setGraphicsObjectVolumeSlice<HeightMap>(const DataSetId& id, Axis
 }
 
 }
-}
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 /**
  * \brief Create a new Arc and associate it with an ID
@@ -584,6 +582,34 @@ void Renderer::setContour2DNumContours(const DataSetId& id, int numContours)
 }
 
 /**
+ * \brief Set the number of equally spaced isosurfaces for the given DataSet
+ */
+void Renderer::setContour2DContourField(const DataSetId& id, const char *fieldName)
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourField(fieldName);
+     } while (doAll && ++itr != _contour2Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set a list of isovalues for the given DataSet
  */
 void Renderer::setContour2DContourList(const DataSetId& id, const std::vector<double>& contours)
@@ -766,6 +792,34 @@ bool Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
     sceneBoundsChanged();
     _needsRedraw = true;
     return true;
+}
+
+/**
+ * \brief Set the number of equally spaced isosurfaces for the given DataSet
+ */
+void Renderer::setContour3DContourField(const DataSetId& id, const char *fieldName)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourField(fieldName);
+     } while (doAll && ++itr != _contour3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
 }
 
 /**

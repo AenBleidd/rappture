@@ -12,7 +12,7 @@
 #include "RpPolygon.h"
 #include "Trace.h"
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 Polygon::Polygon() :
     Shape()

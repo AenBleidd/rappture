@@ -17,7 +17,7 @@
 #include "ResponseQueue.h"
 #endif
 
-using namespace Rappture::VtkVis;
+using namespace VtkVis;
 
 #ifdef USE_THREADS
 
@@ -43,8 +43,8 @@ using namespace Rappture::VtkVis;
  * \param[in] height Height of image in pixels
  */
 void
-Rappture::VtkVis::queuePPM(ResponseQueue *queue, const char *cmdName, 
-                           const unsigned char *data, int width, int height)
+VtkVis::queuePPM(ResponseQueue *queue, const char *cmdName, 
+                 const unsigned char *data, int width, int height)
 {
 #define PPM_MAXVAL 255
     char header[200];
@@ -120,8 +120,8 @@ Rappture::VtkVis::queuePPM(ResponseQueue *queue, const char *cmdName,
  * \param[in] height Height of image in pixels
  */
 void
-Rappture::VtkVis::writePPM(int fd, const char *cmdName, 
-                           const unsigned char *data, int width, int height)
+VtkVis::writePPM(int fd, const char *cmdName, 
+                 const unsigned char *data, int width, int height)
 {
 #define PPM_MAXVAL 255
     char header[200];

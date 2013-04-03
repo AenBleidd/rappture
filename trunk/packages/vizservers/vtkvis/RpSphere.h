@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_SPHERE_H__
-#define __RAPPTURE_VTKVIS_SPHERE_H__
+#ifndef VTKVIS_SPHERE_H
+#define VTKVIS_SPHERE_H
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataMapper.h>
@@ -16,7 +16,6 @@
 #include "RpShape.h"
 #include "RpVtkDataSet.h"
 
-namespace Rappture {
 namespace VtkVis {
 
 /**
@@ -89,7 +88,6 @@ private:
     vtkSmartPointer<vtkSphereSource> _sphere;
 };
 
-}
 }
 
 #endif
