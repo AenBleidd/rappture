@@ -12,8 +12,8 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 
-#include "VtkGraphicsObject.h"
-#include "VtkDataSet.h"
+#include "GraphicsObject.h"
+#include "DataSet.h"
 
 namespace VtkVis {
 
@@ -22,7 +22,7 @@ namespace VtkVis {
  *
  * This class creates a wireframe box around the DataSet bounds
  */
-class Outline : public VtkGraphicsObject {
+class Outline : public GraphicsObject {
 public:
     Outline();
     virtual ~Outline();

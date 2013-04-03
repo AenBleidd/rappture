@@ -19,14 +19,14 @@
 #include <vector>
 
 #include "ColorMap.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
 /**
  * \brief 3D Contour isosurfaces (geometry)
  */
-class Contour3D : public VtkGraphicsObject {
+class Contour3D : public GraphicsObject {
 public:
     enum ColorMode {
         COLOR_BY_SCALAR,

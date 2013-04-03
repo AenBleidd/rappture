@@ -14,9 +14,9 @@
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
 
-#include "VtkRendererGraphicsObjs.h"
-#include "VtkRenderer.h"
-#include "VtkDataSet.h"
+#include "RendererGraphicsObjs.h"
+#include "Renderer.h"
+#include "DataSet.h"
 #include "Box.h"
 #include "Contour2D.h"
 #include "Contour3D.h"

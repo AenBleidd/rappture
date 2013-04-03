@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef VTKVIS_VTKGRAPHICSOBJECT_H
-#define VTKVIS_VTKGRAPHICSOBJECT_H
+#ifndef VTKVIS_GRAPHICS_OBJECT_H
+#define VTKVIS_GRAPHICS_OBJECT_H
 
 #include <cmath>
 #include <string>
@@ -24,7 +24,7 @@
 #include <vtkMatrix4x4.h>
 #include <vtkPlaneCollection.h>
 
-#include "VtkDataSet.h"
+#include "DataSet.h"
 #include "Trace.h"
 
 namespace VtkVis {
@@ -34,7 +34,7 @@ class Renderer;
 /**
  * \brief Base class for graphics objects
  */
-class VtkGraphicsObject {
+class GraphicsObject {
 public:
     enum CullFace {
         CULL_FRONT,
@@ -42,7 +42,7 @@ public:
         CULL_FRONT_AND_BACK
     };
 
-    VtkGraphicsObject() :
+    GraphicsObject() :
         _dataSet(NULL),
         _opacity(1.0),
         _edgeWidth(1.0f),
@@ -61,11 +61,11 @@ public:
         _edgeColor[2] = 0.0f;
     }
 
-    virtual ~VtkGraphicsObject()
+    virtual ~GraphicsObject()
     {}
 
     /**
-     * \brief Return the name of the sublass of VtkGraphicsObject
+     * \brief Return the name of the sublass of GraphicsObject
      */
     virtual const char *getClassName() const = 0;
 
@@ -893,7 +893,7 @@ protected:
     /**
      * \brief Convenience method to set culling state on a vtkProperty
      *
-     * Note: Does not change the culling state flag of this VtkGraphicsObject
+     * Note: Does not change the culling state flag of this GraphicsObject
      */
     virtual void setCulling(vtkProperty *property, bool state)
     {

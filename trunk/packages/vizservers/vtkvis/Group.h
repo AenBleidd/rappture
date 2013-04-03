@@ -12,17 +12,17 @@
 
 #include <vtkProp3D.h>
 
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
 /**
  * \brief Collection of shapes with grouping
  */
-class Group : public VtkGraphicsObject {
+class Group : public GraphicsObject {
 public:
     typedef std::string NodeId;
-    typedef std::tr1::unordered_map<NodeId, VtkGraphicsObject *> NodeHashmap;
+    typedef std::tr1::unordered_map<NodeId, GraphicsObject *> NodeHashmap;
 
     Group();
     virtual ~Group();
@@ -41,11 +41,11 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
-    void addChild(const NodeId& name, VtkGraphicsObject *obj);
+    void addChild(const NodeId& name, GraphicsObject *obj);
 
-    VtkGraphicsObject *getChild(const NodeId& name);
+    GraphicsObject *getChild(const NodeId& name);
 
-    void getChildren(std::vector<VtkGraphicsObject *>& children)
+    void getChildren(std::vector<GraphicsObject *>& children)
     {
         for (NodeHashmap::iterator itr = _nodes.begin();
              itr != _nodes.end(); ++itr) {

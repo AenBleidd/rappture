@@ -24,7 +24,7 @@
 #include <vtkCell.h>
 #include <vtkLookupTable.h>
 
-#include "VtkDataSet.h"
+#include "DataSet.h"
 #include "Trace.h"
 
 using namespace VtkVis;

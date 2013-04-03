@@ -19,7 +19,7 @@
 using namespace VtkVis;
 
 Outline::Outline() :
-    VtkGraphicsObject()
+    GraphicsObject()
 {
 }
 
@@ -38,7 +38,7 @@ Outline::~Outline()
  */
 void Outline::initProp()
 {
-    VtkGraphicsObject::initProp();
+    GraphicsObject::initProp();
 }
 
 /**

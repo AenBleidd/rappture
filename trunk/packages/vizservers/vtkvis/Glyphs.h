@@ -18,7 +18,7 @@
 #include <vtkLookupTable.h>
 #include <vtkPlaneCollection.h>
 
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 #include "ColorMap.h"
 
 namespace VtkVis {
@@ -28,7 +28,7 @@ namespace VtkVis {
  *
  * The DataSet must have vectors and/or scalars
  */
-class Glyphs : public VtkGraphicsObject {
+class Glyphs : public GraphicsObject {
 public:
     enum GlyphShape {
         ARROW,

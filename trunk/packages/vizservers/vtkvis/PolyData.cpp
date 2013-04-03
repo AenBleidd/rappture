@@ -24,7 +24,7 @@
 using namespace VtkVis;
 
 PolyData::PolyData() :
-    VtkGraphicsObject()
+    GraphicsObject()
 {
 }
 
@@ -43,7 +43,7 @@ PolyData::~PolyData()
  */
 void PolyData::initProp()
 {
-    VtkGraphicsObject::initProp();
+    GraphicsObject::initProp();
 }
 
 /**

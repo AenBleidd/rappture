@@ -30,13 +30,13 @@
 #include <vtkVertexGlyphFilter.h>
 
 #include "Streamlines.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 using namespace VtkVis;
 
 Streamlines::Streamlines() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _lineType(LINES),
     _colorMap(NULL),
     _colorMode(COLOR_BY_VECTOR_MAGNITUDE),

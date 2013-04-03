@@ -24,9 +24,9 @@
 
 #include "Trace.h"
 #include "ReadBuffer.h"
-#include "VtkRenderServer.h"
-#include "VtkRendererCmd.h"
-#include "VtkRenderer.h"
+#include "RenderServer.h"
+#include "RendererCmd.h"
+#include "Renderer.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
 #ifdef USE_THREADS

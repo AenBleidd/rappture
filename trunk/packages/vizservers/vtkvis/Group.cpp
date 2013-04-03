@@ -33,7 +33,7 @@ void Group::update()
     initProp();
 }
 
-void Group::addChild(const NodeId& name, VtkGraphicsObject *obj)
+void Group::addChild(const NodeId& name, GraphicsObject *obj)
 {
     if (obj == NULL)
         return;
@@ -43,7 +43,7 @@ void Group::addChild(const NodeId& name, VtkGraphicsObject *obj)
     _nodes[name] = obj;
 }
 
-VtkGraphicsObject *Group::getChild(const NodeId& name)
+GraphicsObject *Group::getChild(const NodeId& name)
 {
     NodeHashmap::iterator itr = _nodes.find(name);
     if (itr == _nodes.end()) {
@@ -60,7 +60,7 @@ void Group::removeChild(const NodeId& name)
         ERROR("Node not found: '%s'", name.c_str());
         return;
     }
-    VtkGraphicsObject *obj = itr->second;
+    GraphicsObject *obj = itr->second;
     if (obj->getProp3D() != NULL) {
         getAssembly()->RemovePart(obj->getProp3D());
     }

@@ -39,8 +39,8 @@
 #include <vtkOpenGLRenderWindow.h>
 #include <vtkVersion.h>
 
-#include "VtkRenderer.h"
-#include "VtkRendererGraphicsObjs.h"
+#include "Renderer.h"
+#include "RendererGraphicsObjs.h"
 #include "Math.h"
 #include "ColorMap.h"
 #include "Trace.h"

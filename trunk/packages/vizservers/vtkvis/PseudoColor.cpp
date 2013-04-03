@@ -25,7 +25,7 @@
 #include <vtkDataSetSurfaceFilter.h>
 
 #include "PseudoColor.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 #define MESH_POINT_CLOUDS
@@ -33,7 +33,7 @@
 using namespace VtkVis;
 
 PseudoColor::PseudoColor() :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),

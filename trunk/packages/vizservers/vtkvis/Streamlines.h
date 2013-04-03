@@ -18,8 +18,8 @@
 #include <vtkAssembly.h>
 
 #include "ColorMap.h"
-#include "VtkGraphicsObject.h"
-#include "VtkDataSet.h"
+#include "GraphicsObject.h"
+#include "DataSet.h"
 
 namespace VtkVis {
 
@@ -28,7 +28,7 @@ namespace VtkVis {
  *
  * The DataSet must contain vectors
  */
-class Streamlines : public VtkGraphicsObject {
+class Streamlines : public GraphicsObject {
 public:
     enum LineType {
         LINES,

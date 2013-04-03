@@ -18,7 +18,7 @@
 #include <vtkWarpVector.h>
 
 #include "ColorMap.h"
-#include "VtkGraphicsObject.h"
+#include "GraphicsObject.h"
 
 namespace VtkVis {
 
@@ -28,7 +28,7 @@ namespace VtkVis {
  * This class can be used to visualize mechanical deformation or 
  * to create flow profiles/surfaces
  */
-class Warp : public VtkGraphicsObject {
+class Warp : public GraphicsObject {
 public:
     enum ColorMode {
         COLOR_BY_SCALAR,

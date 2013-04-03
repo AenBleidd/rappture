@@ -31,7 +31,7 @@
 #include <vtkPlane.h>
 
 #include "HeightMap.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 using namespace VtkVis;
@@ -40,7 +40,7 @@ using namespace VtkVis;
 #define TRANSLATE_TO_ZORIGIN
 
 HeightMap::HeightMap(int numContours, double heightScale) :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _numContours(numContours),
     _contourColorMap(false),
     _contourEdgeWidth(1.0),
@@ -60,7 +60,7 @@ HeightMap::HeightMap(int numContours, double heightScale) :
 }
 
 HeightMap::HeightMap(const std::vector<double>& contours, double heightScale) :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _numContours(contours.size()),
     _contours(contours),
     _contourColorMap(false),

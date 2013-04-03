@@ -27,13 +27,13 @@
 #include <vtkTransformPolyDataFilter.h>
 
 #include "Glyphs.h"
-#include "VtkRenderer.h"
+#include "Renderer.h"
 #include "Trace.h"
 
 using namespace VtkVis;
 
 Glyphs::Glyphs(GlyphShape shape) :
-    VtkGraphicsObject(),
+    GraphicsObject(),
     _glyphShape(shape),
     _scalingMode(SCALE_BY_VECTOR_MAGNITUDE),
     _dataScale(1.0),
