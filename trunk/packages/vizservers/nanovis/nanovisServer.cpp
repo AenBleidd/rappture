@@ -463,7 +463,7 @@ main(int argc, char **argv)
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    fprintf(stdout, "NanoVis %s (build %s)\n", NANOVIS_VERSION, SVN_VERSION);
+    fprintf(stdout, "NanoVis %s (build %s)\n", NANOVIS_VERSION_STRING, SVN_VERSION);
     fflush(stdout);
 
     g_inBufPtr = new ReadBuffer(g_fdIn, 1<<12);
