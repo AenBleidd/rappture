@@ -38,7 +38,6 @@ package require md5
 package require base64
 
 if {[llength $argv] < 1} {
-    puts stderr "bad option \"$arg\""
     puts stderr "USAGE: rptimes run.xml ?run.xml...?"
     exit 1
 }
@@ -148,6 +147,19 @@ proc normval {libobj path {what "-current"}} {
     return $rlist
 }
 
+# ----------------------------------------------------------------------
+# USAGE: escapeQuotes <string>
+#
+# Escapes single quotes in the given <string> by escaping the quote.
+# In SQLite, this is done by doubling the quote.  This makes it
+# possible to embed the string in another quoted string like
+# 'hello ''world'''.  Returns a string with escaped quotes.
+# ----------------------------------------------------------------------
+proc escapeQuotes {str} {
+    regsub -all {([^\'])\'} $str {\1''} str
+    return $str
+}
+
 #
 # Run through each run.xml file and load params and execution time
 #
@@ -214,7 +226,7 @@ foreach fname $argv {
                     set num [db eval "SELECT COUNT(nickName) from parameters;"]
                     set id [format "x%03d" [incr num]]
 
-                    db eval "INSERT INTO parameters values('$id','$rp','$def','$type')"
+                    db eval "INSERT INTO parameters values('$id','$rp','[escapeQuotes $def]','$type')"
                     db eval "ALTER TABLE jobs ADD COLUMN $id $type;"
                 }
             }
@@ -231,9 +243,11 @@ foreach fname $argv {
                 }
                 lappend cols $id
                 if {$type eq "TEXT"} {
-                    lappend vals '$val'
-                } else {
+                    lappend vals '[escapeQuotes $val]'
+                } elseif {$val ne ""} {
                     lappend vals $val
+                } else {
+                    lappend vals ''
                 }
             }
         }
