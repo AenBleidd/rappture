@@ -92,7 +92,6 @@ public:
     static bool resizeOffscreenBuffer(int w, int h);
     static void setBgColor(float color[3]);
     static void render();
-    static void draw3dAxis();
     static void update();
     static void removeAllData();
 
