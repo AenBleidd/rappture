@@ -8,18 +8,15 @@
 #
 #    USAGE:
 #    % rptimes <run.xml> ?<run.xml>...?
+#    % rptimes -v <sqliteDB>
 #
 #  Exits with status 0 if successful, and non-zero if any run.xml
 #  files cannot be processed.
 #
-#  The SQLite DB created by this command contains the following data:
-#
-#     CREATE TABLE times:
-#       tool ...... tool.id - app name of tool on nanoHUB (text)
-#       version ... tool.version.identifier - tool version (text)
-#       walltime .. execution wall time in seconds (double)
-#       cputime ... execution cpu time in seconds (double)
-#       user ...... output.user - user name (text)
+#  Creates an SQLite DB for each unique tool referenced by a run.xml
+#  file.  Each DB file contains a table of parameters and a table of
+#  "jobs" info.  The jobs table includes CPU time and Wall time
+#  measurements.
 #
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
@@ -39,7 +36,31 @@ package require base64
 
 if {[llength $argv] < 1} {
     puts stderr "USAGE: rptimes run.xml ?run.xml...?"
+    puts stderr "USAGE: rptimes -v tool.sql3"
     exit 1
+}
+
+set op "ingest"
+while {[llength $argv] > 0} {
+    set flag [lindex $argv 0]
+    if {![string match -* $flag]} {
+        break
+    }
+    switch -- $flag {
+        -v {
+            set op "view"
+            if {[llength $argv] < 2} {
+                puts stderr "USAGE: rptimes -v tool.sql3"
+                exit 1
+            }
+            set dbfile [lindex $argv 1]
+            set argv [lrange $argv 2 end]
+        }
+        default {
+            puts stderr "bad flag \"$flag\": should be -v"
+            exit 1
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -158,6 +179,27 @@ proc normval {libobj path {what "-current"}} {
 proc escapeQuotes {str} {
     regsub -all {([^\'])\'} $str {\1''} str
     return $str
+}
+
+#
+# Handle "view" operation
+#
+if {$op eq "view"} {
+    sqlite3 db $dbfile
+
+    puts "PARAMETERS:"
+    db eval {SELECT nickName,rappturePath,type FROM parameters;} data {
+        puts " - $data(nickName) ($data(type)) = $data(rappturePath)"
+    }
+
+    puts "\nJOBS:"
+    set n 0
+    db eval {SELECT runToken,date,cpuTime,wallTime FROM jobs;} data {
+        puts [format " [incr n]) [clock format $data(date)]:  %6.2f CPU, %6.2f Wall" $data(cpuTime) $data(wallTime)]
+    }
+
+    catch {db close}
+    exit 0
 }
 
 #
