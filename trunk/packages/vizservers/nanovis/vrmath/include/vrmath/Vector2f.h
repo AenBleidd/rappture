@@ -27,6 +27,12 @@ public:
         x(x1), y(y1)
     {}
 
+    Vector2f& operator=(const Vector2f& other)
+    {
+        set(other.x, other.y);
+        return *this;
+    }
+
     void set(float x1, float y1);
 
     void set(const Vector2f& v);

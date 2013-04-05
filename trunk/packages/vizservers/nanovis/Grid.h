@@ -6,33 +6,16 @@
 #ifndef NV_GRID_H
 #define NV_GRID_H
 
-#include <util/Fonts.h>
+#include <vrmath/Color4f.h>
 
 #include "Axis.h"
 #include "AxisRange.h"
 
 namespace nv {
 
-class RGBA
-{
-public:
-    RGBA(float r, float g, float b, float a) :
-        red(r),
-        green(g),
-        blue(b),
-        alpha(a)
-    {}
-
-    void set(float r, float g, float b, float a)
-    {
-        red   = r;
-        green = g;
-        blue  = b;
-        alpha = a;
-    }
-
-    float red, green, blue, alpha;
-};
+namespace util {
+class Fonts;
+}
 
 class Grid
 {
@@ -70,7 +53,7 @@ public:
     Axis zAxis;
 
 private:
-    RGBA _axisColor, _majorColor, _minorColor;
+    vrmath::Color4f _axisColor, _majorColor, _minorColor;
     nv::util::Fonts *_font;
     bool _visible;
 };

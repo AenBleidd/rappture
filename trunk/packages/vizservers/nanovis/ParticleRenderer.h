@@ -11,7 +11,7 @@
 #include <GL/glew.h>
 
 #include <vrmath/Vector3f.h>
-#include <vrmath/Vector4f.h>
+#include <vrmath/Color4f.h>
 
 #include "ParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
@@ -62,7 +62,7 @@ public:
         _activate = state;
     }
 
-    void setColor(const vrmath::Vector4f& color)
+    void setColor(const vrmath::Color4f& color)
     {
         _color = color;
     }
@@ -121,7 +121,7 @@ private:
     float _slicePos;
     int _sliceAxis;
 
-    vrmath::Vector4f _color;
+    vrmath::Color4f _color;
 
     //the storage of particles is implemented as a 2D array.
     int _psysWidth;

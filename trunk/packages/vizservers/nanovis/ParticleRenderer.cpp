@@ -12,6 +12,8 @@
 
 #include <GL/glew.h>
 
+#include <vrmath/Color4f.h>
+
 #include "ParticleRenderer.h"
 #include "define.h"
 #include "Trace.h"

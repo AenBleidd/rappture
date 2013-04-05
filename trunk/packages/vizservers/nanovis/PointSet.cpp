@@ -8,6 +8,7 @@
 
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
+#include <vrmath/Color4f.h>
 
 #include "PointSet.h"
 #include "PCASplit.h"
@@ -57,7 +58,7 @@ PointSet::updateColor(float *color, int colorCount)
     vrmath::Vector3f pos;
 
     PCA::Point *points;
-    vrmath::Vector4f *colors = (vrmath::Vector4f *)color;
+    vrmath::Color4f *colors = (vrmath::Color4f *)color;
     int numOfPoints;
     int index;
     float d = _max - _min;
