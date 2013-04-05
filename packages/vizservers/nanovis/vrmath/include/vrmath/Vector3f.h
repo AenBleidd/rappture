@@ -26,6 +26,12 @@ public:
     Vector3f(float x1, float y1, float z1) :
         x(x1), y(y1), z(z1)
     {}
+    
+    Vector3f& operator=(const Vector3f& other)
+    {
+        set(other.x, other.y, other.z);
+        return *this;
+    }
 
     void set(float x1, float y1, float z1);
 

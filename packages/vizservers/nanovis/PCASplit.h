@@ -9,7 +9,7 @@
 #include <memory.h>
 
 #include <vrmath/Vector3f.h>
-#include <vrmath/Vector4f.h>
+#include <vrmath/Color4f.h>
 
 namespace PCA {
 
@@ -22,7 +22,7 @@ public:
     {}
 
     vrmath::Vector3f position;
-    vrmath::Vector4f color;
+    vrmath::Color4f color;
     float size;
     float value;
 };
@@ -56,7 +56,7 @@ public:
     }
 
     vrmath::Vector3f centroid;
-    vrmath::Vector4f color;
+    vrmath::Color4f color;
     float scale;
 
     int numOfChildren;

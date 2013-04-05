@@ -63,7 +63,7 @@ void PointSetRenderer::renderPoints(Point *points, int length)
 {
     Point *p = points;
     for (int i = 0; i < length; ++i, ++p) {
-        glColor4f(p->color.x, p->color.y, p->color.z, p->color.w);
+        glColor4f(p->color.r, p->color.g, p->color.b, p->color.a);
         glVertex3f(p->position.x, p->position.y, p->position.z);
     }
 }

@@ -9,6 +9,9 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+#include <util/Fonts.h>
+#include <vrmath/Color4f.h>
+
 #include "Grid.h"
 #include "Trace.h"
 
@@ -85,8 +88,8 @@ void Grid::render()
     glTranslatef(xoffset, yoffset, zoffset);
 
     glLineWidth(2.0f);
-    glColor4f(_axisColor.red, _axisColor.green, _axisColor.blue, 
-              _axisColor.alpha);
+    glColor4f(_axisColor.r, _axisColor.g, _axisColor.b, 
+              _axisColor.a);
 
     glBegin(GL_LINES);
     {
@@ -100,8 +103,8 @@ void Grid::render()
     glEnd();
 
     glLineWidth(1.0f);
-    glColor4f(_majorColor.red, _majorColor.green, _majorColor.blue, 
-              _majorColor.alpha);
+    glColor4f(_majorColor.r, _majorColor.g, _majorColor.b, 
+              _majorColor.a);
 
     glBegin(GL_LINES);
     {
@@ -136,8 +139,8 @@ void Grid::render()
     glEnd();
 
     // Set minor line color
-    glColor4f(_minorColor.red, _minorColor.green, _minorColor.blue,
-              _minorColor.alpha);
+    glColor4f(_minorColor.r, _minorColor.g, _minorColor.b,
+              _minorColor.a);
 
     glBegin(GL_LINES);
     {

@@ -37,6 +37,12 @@ public:
 
     void set(const Vector4f& v4);
 
+    Vector4f& operator=(const Vector4f& other)
+    {
+        set(other.x, other.y, other.z, other.w);
+        return *this;
+    }
+
     bool operator==(const Vector4f& op2) const
     {
         return (x == op2.x && y == op2.y && z == op2.z && w == op2.w);

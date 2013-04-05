@@ -291,7 +291,7 @@ FlowBox.o: FlowBox.cpp FlowBox.h FlowTypes.h Switch.h Trace.h Volume.h $(VRMATH_
 FlowCmd.o: FlowCmd.cpp FlowCmd.h FlowParticles.h FlowBox.h FlowTypes.h Command.h PPMWriter.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h LIC.h Unirect.h Volume.h VelocityArrowsSlice.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 FlowParticles.o: FlowParticles.cpp FlowParticles.h FlowTypes.h FlowCmd.h Switch.h Trace.h ParticleRenderer.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
-Grid.o: Grid.cpp Grid.h Axis.h Chain.h
+Grid.o: Grid.cpp Grid.h Axis.h Chain.h $(UTIL_DIR)/Fonts.h $(VRMATH_DIR)/include/vrmath/Color4f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
 HeightMap.o: HeightMap.cpp HeightMap.h
 LIC.o: LIC.cpp LIC.h
 OrientationIndicator.o: OrientationIndicator.cpp OrientationIndicator.h
@@ -331,5 +331,5 @@ ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h config.h define.h
 ZincBlendeVolumeShader.o: ZincBlendeVolumeShader.cpp ZincBlendeVolumeShader.h VolumeShader.h Shader.h
 dxReader.o: dxReader.cpp ReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h ZincBlendeReconstructor.h
 md5.o: md5.h
-nanovis.o: nanovis.cpp nanovis.h config.h define.h Command.h Flow.h Grid.h HeightMap.h Camera.h LIC.h ZincBlendeReconstructor.h OrientationIndicator.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
+nanovis.o: nanovis.cpp nanovis.h config.h define.h Command.h Flow.h Grid.h HeightMap.h Camera.h LIC.h ZincBlendeReconstructor.h OrientationIndicator.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h $(UTIL_DIR)/Fonts.h
 nanovisServer.o: nanovisServer.cpp nanovisServer.h config.h nanovis.h define.h Command.h PPMWriter.h ReadBuffer.h Shader.h ResponseQueue.h Trace.h

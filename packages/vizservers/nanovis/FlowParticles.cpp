@@ -11,7 +11,7 @@
 
 #include <assert.h>
 
-#include <vrmath/Vector4f.h>
+#include <vrmath/Color4f.h>
 
 #include "nanovis.h"        // For NMESH
 #include "FlowParticles.h"
@@ -60,10 +60,10 @@ void
 FlowParticles::configure() 
 {
     _renderer->setPos(Flow::getRelativePosition(&_sv.position));
-    _renderer->setColor(Vector4f(_sv.color.r,
-                                 _sv.color.g,
-                                 _sv.color.b, 
-                                 _sv.color.a));
+    _renderer->setColor(Color4f(_sv.color.r,
+                                _sv.color.g,
+                                _sv.color.b, 
+                                _sv.color.a));
     _renderer->particleSize(_sv.particleSize);
     _renderer->setAxis(_sv.position.axis);
     _renderer->active(!_sv.isHidden);
