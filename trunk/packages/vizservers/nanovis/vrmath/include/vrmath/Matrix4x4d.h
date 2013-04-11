@@ -31,6 +31,19 @@ public:
         set(m);
     }
 
+    Matrix4x4d(const Matrix4x4d& other)
+    {
+        set(other.get());
+    }
+
+    Matrix4x4d& operator=(const Matrix4x4d& other)
+    {
+        if (&other != this) {
+            set(other.get());
+        }
+        return *this;
+    }
+
     /**
      * @brief make a identity matrix
      */
@@ -112,9 +125,9 @@ public:
      * @brief set double arrary to this
      * @param m float matrix values
      */
-    void set(double *m);
+    void set(const double *m);
 
-    void setFloat(float *m);
+    void setFloat(const float *m);
 
     void print() const;
 
@@ -135,7 +148,7 @@ inline double *Matrix4x4d::get()
     return _data;
 }
 
-inline void Matrix4x4d::set(double *m)
+inline void Matrix4x4d::set(const double *m)
 {
     memcpy(_data, m, sizeof(double) * 16);
 }

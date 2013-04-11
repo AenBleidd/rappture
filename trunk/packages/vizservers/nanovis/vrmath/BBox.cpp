@@ -19,16 +19,16 @@ BBox::BBox()
     makeEmpty();
 }
 
-BBox::BBox(const BBox& bbox)
+BBox::BBox(const BBox& other) :
+    min(other.min),
+    max(other.max)
 {
-    min = bbox.min;
-    max = bbox.max;	
 }
 
-BBox::BBox(const Vector3f& minv, const Vector3f& maxv)
+BBox::BBox(const Vector3f& minv, const Vector3f& maxv) :
+    min(minv),
+    max(maxv)
 {
-    min = minv;
-    max = maxv;	
 }
 
 void BBox::makeEmpty()
@@ -39,11 +39,22 @@ void BBox::makeEmpty()
 
 bool BBox::isEmpty()
 {
-    if ((min.x > max.x) || (min.y > max.y) || (min.z > max.z)) {
-        return true;
-    }
+    return (isEmptyX() && isEmptyY() && isEmptyZ());
+}
 
-    return false;
+bool BBox::isEmptyX()
+{
+    return (min.x > max.x);
+}
+
+bool BBox::isEmptyY()
+{
+    return (min.y > max.y);
+}
+
+bool BBox::isEmptyZ()
+{
+    return (min.z > max.z);
 }
 
 void BBox::make(const Vector3f& center, const Vector3f& size)
@@ -94,45 +105,36 @@ void BBox::extend(const BBox& box)
 
 void BBox::transform(const BBox& box, const Matrix4x4d& mat)
 {
-    float halfSizeX = (box.max.x - box.min.x) * 0.5f;
-    float halfSizeY = (box.max.y - box.min.y) * 0.5f;
-    float halfSizeZ = (box.max.z - box.min.z) * 0.5f;
-
-    float centerX = (box.max.x + box.min.x) * 0.5f;
-    float centerY = (box.max.y + box.min.y) * 0.5f;
-    float centerZ = (box.max.z + box.min.z) * 0.5f;
+    float x0 = box.min.x;
+    float y0 = box.min.y;
+    float z0 = box.min.z;
+    float x1 = box.max.x;
+    float y1 = box.max.y;
+    float z1 = box.max.z;
 
     Vector4f points[8];
 
-    points[0].set(centerX + halfSizeX, centerY + halfSizeY, centerZ + halfSizeZ, 1);
-    points[1].set(centerX + halfSizeX, centerY + halfSizeY, centerZ - halfSizeZ, 1);
-    points[2].set(centerX - halfSizeX, centerY + halfSizeY, centerZ - halfSizeZ, 1);
-    points[3].set(centerX - halfSizeX, centerY + halfSizeY, centerZ + halfSizeZ, 1);
-    points[4].set(centerX - halfSizeX, centerY - halfSizeY, centerZ + halfSizeZ, 1);
-    points[5].set(centerX - halfSizeX, centerY - halfSizeY, centerZ - halfSizeZ, 1);
-    points[6].set(centerX + halfSizeX, centerY - halfSizeY, centerZ - halfSizeZ, 1);
-    points[7].set(centerX + halfSizeX, centerY - halfSizeY, centerZ + halfSizeZ, 1);
+    points[0].set(x0, y0, z0, 1);
+    points[1].set(x1, y0, z0, 1);
+    points[2].set(x0, y1, z0, 1);
+    points[3].set(x0, y0, z1, 1);
+    points[4].set(x1, y1, z0, 1);
+    points[5].set(x1, y0, z1, 1);
+    points[6].set(x0, y1, z1, 1);
+    points[7].set(x1, y1, z1, 1);
 
-    float minX, minY, minZ;
-    float maxX, maxY, maxZ;
+    float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
+    float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
 
-    points[0] = mat.transform(points[0]);
-
-    minX = maxX = points[0].x;
-    minY = maxY = points[0].y;
-    minZ = maxZ = points[0].z;
-
-    for (int i = 1; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         points[i] = mat.transform(points[i]);
 
         if (points[i].x > maxX) maxX = points[i].x;
-        else if (points[i].x < minX) minX = points[i].x;
-
+        if (points[i].x < minX) minX = points[i].x;
         if (points[i].y > maxY) maxY = points[i].y;
-        else if (points[i].y < minY) minY = points[i].y;
-
+        if (points[i].y < minY) minY = points[i].y;
         if (points[i].z > maxZ) maxZ = points[i].z;
-        else if (points[i].z < minZ) minZ = points[i].z;
+        if (points[i].z < minZ) minZ = points[i].z;
     }
 
     min.set(minX, minY, minZ);
@@ -148,7 +150,7 @@ bool BBox::intersect(const BBox& box)
     return true;
 }
 
-bool BBox::intersect(const Vector3f& point)
+bool BBox::contains(const Vector3f& point)
 {
     if ((point.x < min.x) || (point.x > max.x)) return false;
     if ((point.y < min.y) || (point.y > max.y)) return false;

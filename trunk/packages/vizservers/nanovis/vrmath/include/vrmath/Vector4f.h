@@ -23,23 +23,25 @@ public:
         x(other.x), y(other.y), z(other.z), w(other.w)
     {}
 
-    Vector4f(const Vector3f& v3, float w1) :
-        x(v3.x), y(v3.y), z(v3.z), w(w1)
+    Vector4f(const Vector3f& v, float w1) :
+        x(v.x), y(v.y), z(v.z), w(w1)
     {}
 
     Vector4f(float x1, float y1, float z1, float w1) :
         x(x1), y(y1), z(z1), w(w1)
     {}
 
-    void set(float x1, float y1, float z1, float w1);
+    void set(float x, float y, float z, float w);
  
     void set(const Vector3f& v, float w);
 
-    void set(const Vector4f& v4);
+    void set(const Vector4f& v);
 
     Vector4f& operator=(const Vector4f& other)
     {
-        set(other.x, other.y, other.z, other.w);
+        if (&other != this) {
+            set(other.x, other.y, other.z, other.w);
+        }
         return *this;
     }
 
@@ -95,33 +97,33 @@ inline void Vector4f::divideByW()
     }
 }
 
-inline void Vector4f::set(float x1, float y1, float z1, float w1)
+inline void Vector4f::set(float x, float y, float z, float w)
 {
-    x = x1;
-    y = y1;
-    z = z1;
-    w = w1;
+    this->x = x;
+    this->y = y;
+    this->z = z;
+    this->w = w;
 }
 
-inline void Vector4f::set(const Vector4f& v4)
-{
-    x = v4.x;
-    y = v4.y;
-    z = v4.z;
-    w = v4.w;
-}
-
-inline void Vector4f::set(const Vector3f& v, float w1)
+inline void Vector4f::set(const Vector4f& v)
 {
     x = v.x;
     y = v.y;
     z = v.z;
-    w = w1;
+    w = v.w;
 }
 
-inline float Vector4f::dot(const Vector4f& vec) const
+inline void Vector4f::set(const Vector3f& v, float w)
 {
-    return (x * vec.x + y * vec.y + z * vec.z + w * vec.w);
+    x = v.x;
+    y = v.y;
+    z = v.z;
+    this->w = w;
+}
+
+inline float Vector4f::dot(const Vector4f& v) const
+{
+    return (x * v.x + y * v.y + z * v.z + w * v.w);
 }
 
 /**

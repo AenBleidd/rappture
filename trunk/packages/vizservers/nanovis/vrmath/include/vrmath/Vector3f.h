@@ -29,31 +29,33 @@ public:
     
     Vector3f& operator=(const Vector3f& other)
     {
-        set(other.x, other.y, other.z);
+        if (&other != this) {
+            set(other.x, other.y, other.z);
+        }
         return *this;
     }
 
-    void set(float x1, float y1, float z1);
+    void set(float x, float y, float z);
 
-    void set(const Vector3f& v3);
+    void set(const Vector3f& v);
 
     double length() const;
 
-    double distance(const Vector3f& v3) const;
+    double distance(const Vector3f& v) const;
 
-    double distance(float x1, float y1, float z1) const;
+    double distance(float x, float y, float z) const;
 
-    double distanceSquare(const Vector3f& v3) const;
+    double distanceSquare(const Vector3f& v) const;
 
-    double distanceSquare(float x1, float y1, float z1) const;
+    double distanceSquare(float x, float y, float z) const;
 
     double dot(const Vector3f& v) const;
 
-    Vector3f cross(const Vector3f& v1) const;
+    Vector3f cross(const Vector3f& v) const;
 
     Vector3f normalize() const;
 
-    Vector3f scale(const Vector3f& sc) const;
+    Vector3f scale(const Vector3f& scale) const;
 
     Vector3f scale(float scale) const;
 
@@ -171,18 +173,18 @@ inline Vector3f operator*(float scale, const Vector3f& value)
 }
 #endif
 
-inline void Vector3f::set(float x1, float y1, float z1)
+inline void Vector3f::set(float x, float y, float z)
 {
-    x = x1;
-    y = y1;
-    z = z1;
+    this->x = x;
+    this->y = y;
+    this->z = z;
 }
 
-inline void Vector3f::set(const Vector3f& v3)
+inline void Vector3f::set(const Vector3f& v)
 {
-    x = v3.x;
-    y = v3.y;
-    z = v3.z;
+    x = v.x;
+    y = v.y;
+    z = v.z;
 }
 
 inline double Vector3f::dot(const Vector3f& v) const
@@ -195,28 +197,28 @@ inline double Vector3f::length() const
     return sqrt((double)x * x + (double)y * y + (double)z * z);
 }
 
-inline double Vector3f::distance(const Vector3f& v3) const
+inline double Vector3f::distance(const Vector3f& v) const
 {
-    double x1 = ((double)v3.x - (double)x) , y1 = ((double)v3.y - (double)y), z1 = ((double)v3.z - (double)z);
+    double x1 = ((double)v.x - (double)x) , y1 = ((double)v.y - (double)y), z1 = ((double)v.z - (double)z);
     return sqrt(x1 * x1 + y1 * y1 + z1 * z1);
 }
 
-inline double Vector3f::distance(float x1, float y1, float z1) const
+inline double Vector3f::distance(float x, float y, float z) const
 {	
-    double x2 = ((double)x1 - (double)x) , y2 = ((double)y1 - (double)y), z2 = ((double)z1 - (double)z);
-    return sqrt(x2 * x2 + y2 * y2 + z2 * z2);
+    double x1 = ((double)x - (double)this->x) , y1 = ((double)y - (double)this->y), z1 = ((double)z - (double)this->z);
+    return sqrt(x1 * x1 + y1 * y1 + z1 * z1);
 }
 
-inline double Vector3f::distanceSquare(const Vector3f& v3) const
+inline double Vector3f::distanceSquare(const Vector3f& v) const
 {	
-    double x1 = ((double)v3.x - (double)x) , y1 = ((double)v3.y - (double)y), z1 = ((double)v3.z - (double)z);
+    double x1 = ((double)v.x - (double)x) , y1 = ((double)v.y - (double)y), z1 = ((double)v.z - (double)z);
     return (x1 * x1 + y1 * y1 + z1 * z1);
 }
 
-inline double Vector3f::distanceSquare(float x1, float y1, float z1) const
+inline double Vector3f::distanceSquare(float x, float y, float z) const
 {	
-    double x2 = ((double)x1 - (double)x) , y2 = ((double)y1 - (double)y), z2 = ((double)z1 - (double)z);
-    return (x2 * x2 + y2 * y2 + z2 * z2);
+    double x1 = ((double)x - (double)this->x) , y1 = ((double)y - (double)this->y), z1 = ((double)z - (double)this->z);
+    return (x1 * x1 + y1 * y1 + z1 * z1);
 }
 
 inline Vector3f Vector3f::cross(const Vector3f& op2) const
@@ -241,9 +243,9 @@ inline Vector3f Vector3f::scale(float scale) const
     return Vector3f(x * scale, y * scale, z * scale);
 }
 
-inline Vector3f Vector3f::scale(const Vector3f& sc) const
+inline Vector3f Vector3f::scale(const Vector3f& scale) const
 {
-    return Vector3f(x * sc.x, y * sc.y, z * sc.z);
+    return Vector3f(x * scale.x, y * scale.y, z * scale.z);
 }
 
 inline bool Vector3f::isAlmostEqual(const Vector3f& v, float tol) const

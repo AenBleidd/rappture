@@ -29,11 +29,13 @@ public:
 
     Vector2f& operator=(const Vector2f& other)
     {
-        set(other.x, other.y);
+        if (&other != this) {
+            set(other.x, other.y);
+        }
         return *this;
     }
 
-    void set(float x1, float y1);
+    void set(float x, float y);
 
     void set(const Vector2f& v);
 
@@ -43,19 +45,19 @@ public:
 
     double distance(const Vector2f& v) const;
 
-    double distance(float x1, float y1) const;
+    double distance(float x, float y) const;
 
     double distanceSquare(const Vector2f& v) const;
 
-    double distanceSquare(float x1, float y1) const;
+    double distanceSquare(float x, float y) const;
 
     float x, y;
 };
 
-inline void Vector2f::set(float x1, float y1)
+inline void Vector2f::set(float x, float y)
 {
-    x = x1;
-    y = y1;
+    this->x = x;
+    this->y = y;
 }
 
 inline void Vector2f::set(const Vector2f& v)
@@ -80,10 +82,10 @@ inline double Vector2f::distance(const Vector2f& v) const
     return sqrt(x1 * x1 + y1 * y1);
 }
 
-inline double Vector2f::distance(float x1, float y1) const
+inline double Vector2f::distance(float x, float y) const
 {	
-    double x2 = ((double)x1 - (double)x) , y2 = ((double)y1 - (double)y);
-    return sqrt(x2 * x2 + y2 * y2);
+    double x1 = ((double)x - (double)this->x) , y1 = ((double)y - (double)this->y);
+    return sqrt(x1 * x1 + y1 * y1);
 }
 
 inline double Vector2f::distanceSquare(const Vector2f& v) const
@@ -92,10 +94,10 @@ inline double Vector2f::distanceSquare(const Vector2f& v) const
     return (x1 * x1 + y1 * y1);
 }
 
-inline double Vector2f::distanceSquare(float x1, float y1) const
+inline double Vector2f::distanceSquare(float x, float y) const
 {	
-    double x2 = ((double)x1 - (double)x) , y2 = ((double)y1 - (double)y);
-    return (x2 * x2 + y2 * y2);
+    double x1 = ((double)x - (double)this->x) , y1 = ((double)y - (double)this->y);
+    return (x1 * x1 + y1 * y1);
 }
 
 }
