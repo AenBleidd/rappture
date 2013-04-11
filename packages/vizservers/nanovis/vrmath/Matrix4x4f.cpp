@@ -870,7 +870,7 @@ void Matrix4x4f::transpose(const Matrix4x4f& mat)
     set(m);
 }
 
-void Matrix4x4f::setDouble(double *m)
+void Matrix4x4f::setDouble(const double *m)
 {
     for (int i = 0; i < 16; ++i) {
         _data[i] = (float)m[i];

@@ -20,7 +20,19 @@ public:
 
     Quaternion(double x, double y, double z, double w);
 
-    void set(double x1, double y1, double z1, double w1);
+    Quaternion(const Quaternion& other) :
+        x(other.x), y(other.y), z(other.z), w(other.w)
+    {}
+
+    Quaternion& operator=(const Quaternion& other)
+    {
+        if (&other != this) {
+            set(other.x, other.y, other.z, other.w);
+        }
+        return *this;
+    }
+
+    void set(double x, double y, double z, double w);
 
     const Quaternion& set(const Rotation& rot);
 
@@ -76,12 +88,12 @@ inline void Quaternion::slerp(const Rotation &a,const Rotation &b, double t)
     slerp(Quaternion(a), Quaternion(b), t);
 }
 
-inline void Quaternion::set(double x1, double y1, double z1, double w1)
+inline void Quaternion::set(double x, double y, double z, double w)
 {
-    x = x1;
-    y = y1;
-    z = z1;
-    w = w1;
+    this->x = x;
+    this->y = y;
+    this->z = z;
+    this->w = w;
 }
 
 }

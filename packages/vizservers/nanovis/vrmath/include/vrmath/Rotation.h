@@ -27,9 +27,17 @@ public:
         x(x1), y(y1), z(z1), angle(angle1)
     {}
 
-    Rotation(const Rotation& rotation) :
-        x(rotation.x), y(rotation.y), z(rotation.z), angle(rotation.angle)
+    Rotation(const Rotation& other) :
+        x(other.x), y(other.y), z(other.z), angle(other.angle)
     {}
+
+    Rotation& operator=(const Rotation& other)
+    {
+        if (&other != this) {
+            set(other.x, other.y, other.z, other.angle);
+        }
+        return *this;
+    }
 
     double getX() const
     { return x; }

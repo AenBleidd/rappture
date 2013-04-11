@@ -34,6 +34,15 @@ public:
      */
     BBox(const Vector3f& min, const Vector3f& max);
 
+    BBox& operator=(const BBox& other)
+    {
+        if (&other != this) {
+            min = other.min;
+            max = other.max;
+        }
+        return *this;
+    }
+
     /**
      * @brief make an empty bounding box
      */
@@ -50,6 +59,9 @@ public:
      * @brief check if the bounding box is empty
      */
     bool isEmpty();
+    bool isEmptyX();
+    bool isEmptyY();
+    bool isEmptyZ();
 
     /**
      * @brief extend the bounding box by a point
@@ -62,7 +74,7 @@ public:
     void extend(const BBox& bbox);
 
     /**
-     * @brief transform a bounding box with an matrix and set the bounding box
+     * @brief transform a bounding box with a matrix and set the bounding box
      */
     void transform(const BBox& box, const Matrix4x4d& mat);
 
@@ -72,9 +84,9 @@ public:
     bool intersect(const BBox& box);
 
     /**
-     * @brief check if the bounding box intersect with a point
+     * @brief check if the bounding box contains a point
      */
-    bool intersect(const Vector3f& point);
+    bool contains(const Vector3f& point);
 
     float getRadius() const;
     Vector3f getCenter() const;
@@ -92,7 +104,7 @@ inline float BBox::getRadius() const
 inline Vector3f BBox::getCenter() const
 {
     Vector3f temp;
-    temp.x = (max.x+ min.x) * 0.5f;
+    temp.x = (max.x + min.x) * 0.5f;
     temp.y = (max.y + min.y) * 0.5f;
     temp.z = (max.z + min.z) * 0.5f;
     return temp;

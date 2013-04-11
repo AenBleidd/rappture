@@ -39,11 +39,11 @@ CXX_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
 VRMATHLIB	= vrmath.a
 
-#		BBox.o \
 #		BPlane.o \
 #		Projection.o \
 
 OBJS		= \
+		BBox.o \
 		LineSegment.o \
 		Matrix4x4f.o \
 		Matrix4x4d.o \

@@ -945,7 +945,7 @@ void Matrix4x4d::transpose(const Matrix4x4d& mat)
     set(m);
 }
 
-void Matrix4x4d::setFloat(float *m)
+void Matrix4x4d::setFloat(const float *m)
 {
     for (int i = 0; i < 16; ++i) {
         _data[i] = m[i];
