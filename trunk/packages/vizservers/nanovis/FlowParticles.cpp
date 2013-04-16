@@ -70,8 +70,8 @@ FlowParticles::render()
           _name.c_str(), _sv.position.axis, _sv.position.value,
           getRelativePosition(&_sv.position));
 
-    _renderer->setPos(getRelativePosition(&_sv.position));
-    _renderer->setAxis(_sv.position.axis);
+    _renderer->setSlicePosition(getRelativePosition(&_sv.position));
+    _renderer->setSliceAxis(_sv.position.axis);
     assert(_renderer->active());
     _renderer->render();
 }
@@ -86,14 +86,14 @@ FlowParticles::configure()
                                 _sv.color.b, 
                                 _sv.color.a));
     _renderer->particleSize(_sv.particleSize);
-    if (_renderer->getAxis() != _sv.position.axis) {
+    if (_renderer->getSliceAxis() != _sv.position.axis) {
         needReset = true;
-        _renderer->setAxis(_sv.position.axis);
+        _renderer->setSliceAxis(_sv.position.axis);
     }
     float pos = getRelativePosition(&_sv.position);
-    if (_renderer->getPos() != pos) {
+    if (_renderer->getSlicePosition() != pos) {
         needReset = true;
-        _renderer->setPos(pos);
+        _renderer->setSlicePosition(pos);
     }
     _renderer->active(!_sv.isHidden);
 

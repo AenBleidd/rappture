@@ -334,7 +334,7 @@ ParticleRenderer::setVectorField(Volume *volume)
 }
 
 void
-ParticleRenderer::setAxis(FlowSliceAxis axis)
+ParticleRenderer::setSliceAxis(FlowSliceAxis axis)
 {
     if (axis != _sliceAxis) {
         _sliceAxis = axis;
@@ -343,7 +343,7 @@ ParticleRenderer::setAxis(FlowSliceAxis axis)
 }
 
 void
-ParticleRenderer::setPos(float pos)
+ParticleRenderer::setSlicePosition(float pos)
 {
     if (pos != _slicePos) {
         _slicePos = pos;
