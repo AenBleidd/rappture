@@ -12,7 +12,7 @@ PointShader::PointShader() :
     _scale(1.0f),
     _normal(NULL)
 {
-    loadVertexProgram("pointsvp.cg", "main");
+    loadVertexProgram("pointsvp.cg");
 }
 
 PointShader::~PointShader()
@@ -21,8 +21,8 @@ PointShader::~PointShader()
 
 void PointShader::bind()
 {
-    setGLStateMatrixVPParameter("modelview", MODELVIEW_MATRIX, MATRIX_IDENTITY);
-    setGLStateMatrixVPParameter("projection", PROJECTION_MATRIX, MATRIX_IDENTITY);
+    setGLStateMatrixVPParameter("modelView", MODELVIEW_MATRIX, MATRIX_IDENTITY);
+    setGLStateMatrixVPParameter("modelViewProj", MODELVIEW_PROJECTION_MATRIX, MATRIX_IDENTITY);
 
     setVPParameter1f("atten", 1.0f);
     setVPParameter4f("posoffset", 1.0f, 1.0f, 1.0f, 1.0f);

@@ -20,7 +20,7 @@ ZincBlendeVolumeShader::~ZincBlendeVolumeShader()
 
 void ZincBlendeVolumeShader::init()
 {
-    loadFragmentProgram("zincblende_volume.cg", "main");
+    loadFragmentProgram("zincblende_volume.cg");
 }
 
 void ZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume,

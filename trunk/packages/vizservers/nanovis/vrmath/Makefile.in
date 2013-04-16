@@ -69,7 +69,7 @@ $(VRMATHLIB): $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 clean:
-	$(RM) $(VRMATHLIB) $(OBJS)
+	$(RM) *.a *.o
 
 distclean: clean
 	$(RM) Makefile *~

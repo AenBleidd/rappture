@@ -6,6 +6,7 @@
 #ifndef NV_GRID_H
 #define NV_GRID_H
 
+#include <vrmath/Vector3f.h>
 #include <vrmath/Color4f.h>
 
 #include "Axis.h"
@@ -47,6 +48,9 @@ public:
     void render();
 
     void setFont(nv::util::Fonts *font);
+
+    void getBounds(vrmath::Vector3f& bboxMin,
+                   vrmath::Vector3f& bboxMax) const;
 
     Axis xAxis;
     Axis yAxis;

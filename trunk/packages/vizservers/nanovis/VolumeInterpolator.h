@@ -39,8 +39,7 @@ public :
 
 private:
     Volume *_volume;
-
-    std::vector<Volume*> _volumes;
+    std::vector<Volume *> _volumes;
 
     double _interval;
     bool _started;

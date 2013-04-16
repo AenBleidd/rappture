@@ -30,47 +30,27 @@ public:
         MATRIX_INVERSE = CG_GL_MATRIX_INVERSE
     };
 
-    typedef void CgCallbackFunction(void);
+    typedef void (*ShaderCallbackFunction)(void);
 
     Shader();
 
     virtual ~Shader();
 
     /**
-     * @brief create a Cg vertex program and load it
-     * @param fileName the name of Cg program file
-     * @param entryPoint a entry point of the Cg program
+     * \brief Load and compile a vertex shader
+     * \param fileName the name of the shader source file
      */
-    void loadVertexProgram(const char *fileName, const char *entryPoint);
+    void loadVertexProgram(const char *fileName);
 
     /**
-     * @brief create a Cg fragment program and load it
-     * @param fileName the name of Cg program file
-     * @param entryPoint a entry point of the Cg program
+     * \brief Load and compile a fragment shader
+     * \param fileName the name of the shader source file
      */
-    void loadFragmentProgram(const char *fileName, const char *entryPoint);
-
-    CGparameter getNamedParameterFromFP(const char *paramName)
-    {
-        if (_cgFP) {
-            return cgGetNamedParameter(_cgFP, paramName);
-        }
-        ERROR("Unknown fragment program parameter: %s", paramName);
-        return 0;
-    }
-
-    CGparameter getNamedParameterFromVP(const char *paramName)
-    {
-        if (_cgVP) {
-            return cgGetNamedParameter(_cgVP, paramName);
-        }
-        ERROR("Unknown vertex program parameter: %s", paramName);
-        return 0;
-    }
+    void loadFragmentProgram(const char *fileName);
 
     void setVPParameter1f(const char *name, float val)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgSetParameter1f(param, val);
@@ -78,7 +58,7 @@ public:
 
     void setFPParameter1f(const char *name, float val)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgSetParameter1f(param, val);
@@ -86,7 +66,7 @@ public:
 
     void setVPParameter2f(const char *name, float val1, float val2)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgSetParameter2f(param, val1, val2);
@@ -94,7 +74,7 @@ public:
 
     void setFPParameter2f(const char *name, float val1, float val2)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgSetParameter2f(param, val1, val2);
@@ -102,7 +82,7 @@ public:
 
     void setVPParameter3f(const char *name, float val1, float val2, float val3)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgSetParameter3f(param, val1, val2, val3);
@@ -110,7 +90,7 @@ public:
 
     void setFPParameter3f(const char *name, float val1, float val2, float val3)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgSetParameter3f(param, val1, val2, val3);
@@ -118,7 +98,7 @@ public:
 
     void setVPParameter4f(const char *name, float val1, float val2, float val3, float val4)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgSetParameter4f(param, val1, val2, val3, val4);
@@ -126,7 +106,7 @@ public:
 
     void setFPParameter4f(const char *name, float val1, float val2, float val3, float val4)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgSetParameter4f(param, val1, val2, val3, val4);
@@ -134,7 +114,7 @@ public:
 
     void setVPMatrixParameterf(const char *name, float *mat)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgSetMatrixParameterfc(param, mat);
@@ -142,7 +122,7 @@ public:
 
     void setFPMatrixParameterf(const char *name, float *mat)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgSetMatrixParameterfc(param, mat);
@@ -150,7 +130,7 @@ public:
 
     void setVPTextureParameter(const char *name, GLuint texobj, bool enable = true)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgGLSetTextureParameter(param, texobj);
@@ -160,7 +140,7 @@ public:
 
     void setFPTextureParameter(const char *name, GLuint texobj, bool enable = true)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgGLSetTextureParameter(param, texobj);
@@ -170,7 +150,7 @@ public:
 
     void enableVPTextureParameter(const char *name)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgGLEnableTextureParameter(param);
@@ -178,7 +158,7 @@ public:
 
     void enaableFPTextureParameter(const char *name)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgGLEnableTextureParameter(param);
@@ -186,7 +166,7 @@ public:
 
     void disableVPTextureParameter(const char *name)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgGLDisableTextureParameter(param);
@@ -194,7 +174,7 @@ public:
 
     void disableFPTextureParameter(const char *name)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgGLDisableTextureParameter(param);
@@ -203,7 +183,7 @@ public:
     void setGLStateMatrixVPParameter(const char *name, GLMatrix matrix,
                                      GLMatrixType type = MATRIX_IDENTITY)
     {
-        CGparameter param = getVPParam(name);
+        Parameter param = getVPParam(name);
         if (param == NULL)
             return;
         cgGLSetStateMatrixParameter(param, (CGGLenum)matrix, (CGGLenum)type);
@@ -212,7 +192,7 @@ public:
     void setGLStateMatrixFPParameter(const char *name, GLMatrix matrix,
                                      GLMatrixType type = MATRIX_IDENTITY)
     {
-        CGparameter param = getFPParam(name);
+        Parameter param = getFPParam(name);
         if (param == NULL)
             return;
         cgGLSetStateMatrixParameter(param, (CGGLenum)matrix, (CGGLenum)type);
@@ -238,6 +218,82 @@ public:
             disableFragmentProfile();
     }
 
+    static void init();
+
+    static void exit();
+
+    static bool printErrorInfo();
+
+    static void setErrorCallback(ShaderCallbackFunction callback);
+
+private:
+    typedef CGparameter Parameter;
+    typedef std::tr1::unordered_map<std::string, Parameter> ParameterHashmap;
+
+    Parameter getNamedParameterFromFP(const char *paramName)
+    {
+        if (_cgFP) {
+            return cgGetNamedParameter(_cgFP, paramName);
+        }
+        ERROR("Unknown fragment program parameter: %s", paramName);
+        return 0;
+    }
+
+    Parameter getNamedParameterFromVP(const char *paramName)
+    {
+        if (_cgVP) {
+            return cgGetNamedParameter(_cgVP, paramName);
+        }
+        ERROR("Unknown vertex program parameter: %s", paramName);
+        return 0;
+    }
+
+    Parameter getVPParam(const char *name)
+    {
+        Parameter param;
+        ParameterHashmap::iterator itr = _vpParams.find(name);
+        if (itr == _vpParams.end()) {
+            param = getNamedParameterFromVP(name);
+            if (param != NULL)
+                _vpParams[name] = param;
+            else
+                ERROR("Unknown vertex program parameter: %s", name);
+        } else {
+            param = itr->second;
+        }
+        return param;
+    }
+
+    Parameter getFPParam(const char *name)
+    {
+        Parameter param;
+        ParameterHashmap::iterator itr = _fpParams.find(name);
+        if (itr == _fpParams.end()) {
+            param = getNamedParameterFromFP(name);
+            if (param != NULL)
+                _fpParams[name] = param;
+            else
+                ERROR("Unknown fragment program parameter: %s", name);
+        } else {
+            param = itr->second;
+        }
+        return param;
+    }
+
+
+    void resetPrograms();
+
+
+    CGprogram getVP()
+    {
+        return _cgVP;
+    }
+
+    CGprogram getFP()
+    {
+        return _cgFP;
+    }
+
     void enableVertexProfile()
     {
         cgGLEnableProfile(_vertexProfile);
@@ -258,81 +314,27 @@ public:
         cgGLDisableProfile(_fragmentProfile);
     }
 
-    static void initCg(CGprofile defaultVertexProfile = CG_PROFILE_VP40,
-                       CGprofile defaultFragmentProfile = CG_PROFILE_FP40);
-
-    static void exitCg();
-
-    static bool printErrorInfo();
-
-    static void setErrorCallback(CgCallbackFunction callback);
-
     static CGcontext getCgContext()
     {
         return _cgContext;
     }
 
-protected:
-    typedef std::tr1::unordered_map<std::string, CGparameter> ParameterHashmap;
+    std::string _vpFile;
+    std::string _fpFile;
 
-    CGprogram getVP()
-    {
-        return _cgVP;
-    }
-
-    CGprogram getFP()
-    {
-        return _cgFP;
-    }
-
-    CGparameter getVPParam(const char *name)
-    {
-        CGparameter param;
-        ParameterHashmap::iterator itr = _vpParams.find(name);
-        if (itr == _vpParams.end()) {
-            param = getNamedParameterFromVP(name);
-            if (param != NULL)
-                _vpParams[name] = param;
-            else
-                ERROR("Unknown vertex program parameter: %s", name);
-        } else {
-            param = itr->second;
-        }
-        return param;
-    }
-
-    CGparameter getFPParam(const char *name)
-    {
-        CGparameter param;
-        ParameterHashmap::iterator itr = _fpParams.find(name);
-        if (itr == _fpParams.end()) {
-            param = getNamedParameterFromFP(name);
-            if (param != NULL)
-                _fpParams[name] = param;
-            else
-                ERROR("Unknown fragment program parameter: %s", name);
-        } else {
-            param = itr->second;
-        }
-        return param;
-    }
-
-    void resetPrograms();
+    ParameterHashmap _vpParams;
+    ParameterHashmap _fpParams;
 
     CGprofile _vertexProfile;
     CGprofile _fragmentProfile;
-    std::string _vpFile;
+
     CGprogram _cgVP;
-    std::string _fpFile;
     CGprogram _cgFP;
-    ParameterHashmap _vpParams;
-    ParameterHashmap _fpParams;
 
     static CGprofile _defaultVertexProfile;
     static CGprofile _defaultFragmentProfile;
     static CGcontext _cgContext;
 
-private:
     static CGprogram
     loadCgSourceProgram(CGcontext context, const char *filename, 
                         CGprofile profile, const char *entryPoint);

@@ -1,18 +1,24 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Authors:
+ *   Wei Qiao <qiaow@purdue.edu>
+ */
 
 #include "particle_common.cg"
 
-void vpmain(in float4 posin : POSITION,
-            in float4 colin : COLOR0,
-            out float4 posout : POSITION,
-            out float4 colout : COLOR0,
-            out float2 center : TEXCOORD2,
-            out float4 rotation : TEXCOORD3,
-            out float4 pointSize : PSIZE,
-            uniform sampler3D vfield : TEXUNIT1,
-            uniform float tanHalfFOV,
-            uniform float4x4 modelview,
-            uniform float4x4 mvp)
+void main(in float4 posin : POSITION,
+          in float4 colin : COLOR0,
+          out float4 posout : POSITION,
+          out float4 colout : COLOR0,
+          out float2 center : TEXCOORD2,
+          out float4 rotation : TEXCOORD3,
+          out float4 pointSize : PSIZE,
+          uniform sampler3D vfield : TEXUNIT1,
+          uniform float tanHalfFOV,
+          uniform float4x4 modelview,
+          uniform float4x4 mvp)
 {
     float4 vec;
     vec.xyz = posin.xyz;

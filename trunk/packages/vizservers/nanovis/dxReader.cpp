@@ -487,15 +487,5 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
 
     delete [] data;
 
-    //
-    // Center this new volume on the origin.
-    //
-    float dx0 = -0.5;
-    float dy0 = -0.5*ly/lx;
-    float dz0 = -0.5*lz/lx;
-    if (volume) {
-        volume->location(vrmath::Vector3f(dx0, dy0, dz0));
-        TRACE("Set volume location to %g %g %g", dx0, dy0, dz0);
-    }
     return volume;
 }

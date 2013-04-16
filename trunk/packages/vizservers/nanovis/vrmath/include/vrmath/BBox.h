@@ -110,7 +110,7 @@ inline Vector3f BBox::getCenter() const
     return temp;
 }
 
-inline Vector3f  BBox::getSize() const
+inline Vector3f BBox::getSize() const
 {
     Vector3f temp;
     temp.x = max.x - min.x;

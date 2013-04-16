@@ -1,11 +1,17 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Authors:
+ *   Wei Qiao <qiaow@purdue.edu>
+ */
+
 #include "common.cg"
 
 PixelOut main(v2f IN, 
               uniform sampler1D tf,
               uniform sampler3D vol_grid_s, 
               uniform float4 cell_size, 
-              uniform float4x4 ModelViewInv, 
               uniform float4 renderParameters)
 {
     PixelOut OUT;
@@ -13,15 +19,15 @@ PixelOut main(v2f IN,
     float tf_coord_s, tf_coord_p, tf_coord_d, tf_coord_ss;
 
     float4 twice_cell_size = cell_size*2.0;
-    float4 tex_coord = mul(ModelViewInv, IN.TexCoord);
+    float4 tex_coord = IN.TexCoord;
     float4 tex_coord_a = tex_coord - float4(twice_cell_size.x, twice_cell_size.y, 0, 0);
     float4 tex_coord_b = tex_coord - float4(twice_cell_size.x, 0, twice_cell_size.z, 0);
     float4 tex_coord_c = tex_coord - float4(0, twice_cell_size.y, twice_cell_size.z, 0); 
 
-    float4 voxel_corner = f4tex3D(vol_grid_s, tex_coord);
-    float4 voxel_face_center_a = f4tex3D(vol_grid_s, tex_coord_a);
-    float4 voxel_face_center_b = f4tex3D(vol_grid_s, tex_coord_b);
-    float4 voxel_face_center_c = f4tex3D(vol_grid_s, tex_coord_c);  
+    float4 voxel_corner = tex3D(vol_grid_s, tex_coord);
+    float4 voxel_face_center_a = tex3D(vol_grid_s, tex_coord_a);
+    float4 voxel_face_center_b = tex3D(vol_grid_s, tex_coord_b);
+    float4 voxel_face_center_c = tex3D(vol_grid_s, tex_coord_c);  
     float sample = (voxel_corner.x + voxel_face_center_a.y + voxel_face_center_b.z + voxel_face_center_c.w)*0.25;
 
     //sample the transfer function texture

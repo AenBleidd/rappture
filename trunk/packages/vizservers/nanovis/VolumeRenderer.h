@@ -8,6 +8,8 @@
 #ifndef NV_VOLUME_RENDERER_H
 #define NV_VOLUME_RENDERER_H
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
 #include <vrmath/Matrix4x4d.h>
 
 #include "Volume.h"
@@ -60,18 +62,23 @@ public:
 private:
     void initShaders();
 
-    void activateVolumeShader(Volume *vol, bool sliceMode, float sampleRatio);
+    void activateVolumeShader(Volume *vol, 
+                              vrmath::Vector4f& objPlaneS,
+                              vrmath::Vector4f& objPlaneT,
+                              vrmath::Vector4f& objPlaneR,
+                              bool sliceMode, float sampleRatio);
 
     void deactivateVolumeShader();
 
-    void drawBoundingBox(float x0, float y0, float z0,
-                         float x1, float y1, float z1,
-                         float r, float g, float b, float line_width);
+    static void drawBoundingBox(float x0, float y0, float z0,
+                                float x1, float y1, float z1,
+                                float r, float g, float b, float line_width);
 
-    void getEyeSpaceBounds(const vrmath::Matrix4x4d& mv,
-                           double& xMin, double& xMax,
-                           double& yMin, double& yMax,
-                           double& zNear, double& zFar);
+    static void getEyeSpaceBounds(const vrmath::Vector3f& worldMin,
+                                  const vrmath::Vector3f& worldMax,
+                                  const vrmath::Matrix4x4d& mv,
+                                  vrmath::Vector3f& eyeMin,
+                                  vrmath::Vector3f& eyeMax);
 
     VolumeInterpolator *_volumeInterpolator;
 

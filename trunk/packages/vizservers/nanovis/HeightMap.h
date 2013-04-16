@@ -112,7 +112,7 @@ public:
 	_contourColor.z = rgb[2];
     }
 
-    void getWorldSpaceBounds(vrmath::Vector3f& bboxMin, vrmath::Vector3f& bboxMax) const;
+    void getBounds(vrmath::Vector3f& bboxMin, vrmath::Vector3f& bboxMax) const;
 
     AxisRange xAxis, yAxis, zAxis, wAxis;
     static bool updatePending;

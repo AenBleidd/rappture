@@ -18,6 +18,7 @@
 
 #include "nanovis.h"
 #include "VelocityArrowsSlice.h"
+#include "Volume.h"
 #include "Shader.h"
 #include "Camera.h"
 
@@ -37,11 +38,8 @@ static inline float rad2deg(float rad)
 
 VelocityArrowsSlice::VelocityArrowsSlice() :
     _vectorFieldGraphicsID(0),
-    _vfXscale(0),
-    _vfYscale(0),
-    _vfZscale(0),
     _slicePos(0.5f),
-    _axis(2),
+    _axis(AXIS_Z),
     _fbo(0),
     _tex(0),
     _maxPointSize(1.0f),
@@ -56,18 +54,18 @@ VelocityArrowsSlice::VelocityArrowsSlice() :
     _pointCount(0),
     _maxVelocityScale(1, 1, 1),
     _arrowColor(1, 1, 0),
-    _enabled(false),
+    _visible(false),
     _dirty(true),
     _vertexBufferGraphicsID(0),
     _arrowsTex(NULL),
     _renderMode(LINES)
 {
-    axis(2);
+    setSliceAxis(AXIS_Z);
 
-    _queryVelocityFP.loadFragmentProgram("queryvelocity.cg", "main");
+    _queryVelocityFP.loadFragmentProgram("queryvelocity.cg");
 
-    _particleShader.loadVertexProgram("velocityslicevp.cg", "vpmain");
-    _particleShader.loadFragmentProgram("velocityslicefp.cg", "fpmain");
+    _particleShader.loadVertexProgram("velocityslicevp.cg");
+    _particleShader.loadFragmentProgram("velocityslicefp.cg");
 
     createRenderTarget();
 
@@ -174,21 +172,21 @@ void VelocityArrowsSlice::createRenderTarget()
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 }
 
-void VelocityArrowsSlice::axis(int axis)
+void VelocityArrowsSlice::setSliceAxis(FlowSliceAxis axis)
 {
     _axis = axis;
     switch (_axis) {
-    case 0:
+    case AXIS_X:
         _projectionVector.x = 0;
         _projectionVector.y = 1;
         _projectionVector.z = 1;
         break;
-    case 1 :
+    case AXIS_Y:
         _projectionVector.x = 1;
         _projectionVector.y = 0;
         _projectionVector.z = 1;
         break;
-    case 2:
+    case AXIS_Z:
         _projectionVector.x = 1;
         _projectionVector.y = 1;
         _projectionVector.z = 0;
@@ -199,8 +197,6 @@ void VelocityArrowsSlice::axis(int axis)
 
 void VelocityArrowsSlice::queryVelocity()
 {
-    if (!_enabled) return;
-
     glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
     int fboOrig;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
@@ -300,7 +296,7 @@ static void drawLineArrow(int axis)
 
 void VelocityArrowsSlice::render()
 {
-    if (!_enabled)
+    if (!_visible)
         return;
 
     if (_dirty) {
@@ -309,7 +305,7 @@ void VelocityArrowsSlice::render()
         _dirty = false;
     }
 
-    TRACE("_vf: %g %g %g", _vfXscale,_vfYscale, _vfZscale);
+    TRACE("_scale: %g %g %g", _scale.x, _scale.y, _scale.z);
     TRACE("_maxVelocityScale: %g %g %g",
           _maxVelocityScale.x, _maxVelocityScale.y, _maxVelocityScale.z);
 
@@ -318,8 +314,8 @@ void VelocityArrowsSlice::render()
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    glScalef(_vfXscale,_vfYscale, _vfZscale);
-    glTranslatef(-0.5f, -0.5f, -0.5f);
+    glTranslatef(_origin.x, _origin.y, _origin.z);
+    glScalef(_scale.x, _scale.y, _scale.z);
 
     if (_renderMode == LINES) {
         glDisable(GL_TEXTURE_2D);
@@ -421,7 +417,7 @@ void VelocityArrowsSlice::render()
         _particleShader.setVPTextureParameter("vfield", _vectorFieldGraphicsID);
         _particleShader.setFPTextureParameter("arrows", _arrowsTex->id());
         _particleShader.setVPParameter1f("tanHalfFOV",
-                                         tan(NanoVis::getCamera()->fov() * 0.5) * NanoVis::winHeight * 0.5);
+                                         tan(NanoVis::getCamera()->getFov() * 0.5) * NanoVis::winHeight * 0.5);
         _particleShader.setGLStateMatrixVPParameter("modelview",
                                                     Shader::MODELVIEW_MATRIX,
                                                     Shader::MATRIX_IDENTITY);
@@ -456,51 +452,50 @@ void VelocityArrowsSlice::render()
 }
 
 void 
-VelocityArrowsSlice::setVectorField(unsigned int vfGraphicsID, const Vector3f& origin,
-                                    float xScale, float yScale, float zScale, float max)
+VelocityArrowsSlice::setVectorField(Volume *volume)
 {
-    _vectorFieldGraphicsID = vfGraphicsID;
-    _vfXscale = xScale;
-    _vfYscale = yScale;
-    _vfZscale = zScale;
+    _vectorFieldGraphicsID = volume->textureID();
+    Vector3f bmin, bmax;
+    volume->getBounds(bmin, bmax);
+    _origin = bmin;
+    _scale.set(bmax.x-bmin.x, bmax.y-bmin.y, bmax.z-bmin.z);
 
     _dirty = true;
 }
 
 void VelocityArrowsSlice::computeSamplingTicks()
 {
-    if (_vfXscale < _vfYscale) {
-        if (_vfXscale < _vfZscale || _vfZscale == 0.0) {
-            // vfXscale
+    if (_scale.x < _scale.y) {
+        if (_scale.x < _scale.z || _scale.z == 0.0) {
+            // _scale.x
             _tickCountX = _tickCountForMinSizeAxis;
 
-            float step = _vfXscale / (_tickCountX + 1);
-
-            _tickCountY = (int)(_vfYscale/step);
-            _tickCountZ = (int)(_vfZscale/step);
+            float step = _scale.x / (_tickCountX + 1);
+            _tickCountY = (int)(_scale.y/step);
+            _tickCountZ = (int)(_scale.z/step);
         } else {
-            // vfZscale
+            // _scale.z
             _tickCountZ = _tickCountForMinSizeAxis;
 
-            float step = _vfZscale / (_tickCountZ + 1);
-            _tickCountX = (int)(_vfXscale/step);
-            _tickCountY = (int)(_vfYscale/step);
+            float step = _scale.z / (_tickCountZ + 1);
+            _tickCountX = (int)(_scale.x/step);
+            _tickCountY = (int)(_scale.y/step);
         }
     } else {
-        if (_vfYscale < _vfZscale || _vfZscale == 0.0) {
-            // _vfYscale
+        if (_scale.y < _scale.z || _scale.z == 0.0) {
+            // _scale.y
             _tickCountY = _tickCountForMinSizeAxis;
 
-            float step = _vfYscale / (_tickCountY + 1);
-            _tickCountX = (int)(_vfXscale/step);
-            _tickCountZ = (int)(_vfZscale/step);
+            float step = _scale.y / (_tickCountY + 1);
+            _tickCountX = (int)(_scale.x/step);
+            _tickCountZ = (int)(_scale.z/step);
         } else {
-            // vfZscale
+            // _scale.z
             _tickCountZ = _tickCountForMinSizeAxis;
 
-            float step = _vfZscale / (_tickCountZ + 1);
-            _tickCountX = (int)(_vfXscale/step);
-            _tickCountY = (int)(_vfYscale/step);
+            float step = _scale.z / (_tickCountZ + 1);
+            _tickCountX = (int)(_scale.x/step);
+            _tickCountY = (int)(_scale.y/step);
         }
     }
 

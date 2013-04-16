@@ -23,11 +23,11 @@
 using namespace nv;
 using namespace vrmath;
 
-LIC::LIC(int size, int width, int height, int axis, 
+LIC::LIC(FlowSliceAxis axis, 
          float offset) :
-    _width(width),
-    _height(height),
-    _size(size),
+    _width(NPIX),
+    _height(NPIX),
+    _size(NMESH),
     _scale(1.0f, 1.0f, 1.0f),
     _origin(0, 0, 0),
     _offset(offset),
@@ -40,9 +40,9 @@ LIC::LIC(int size, int width, int height, int axis,
     _max(1.0f),
     _disListID(0),
     _vectorFieldId(0),
-    _activate(false)
+    _visible(false)
 {
-    _sliceVector = new float[_size*_size*4];
+    _sliceVector = new float[_size * _size * 4];
     memset(_sliceVector, 0, sizeof(float) * _size * _size * 4);
 
     int fboOrig;
@@ -103,7 +103,7 @@ LIC::LIC(int size, int width, int height, int axis,
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
     _renderVelShader = new Shader();
-    _renderVelShader->loadFragmentProgram("render_vel.cg", "main");
+    _renderVelShader->loadFragmentProgram("render_vel.cg");
 
     makePatterns();
 }
@@ -177,7 +177,8 @@ LIC::makePatterns()
     TRACE("Leave");
 }
 
-void LIC::makeMagnitudes()
+void
+LIC::makeMagnitudes()
 {
     GLubyte mag[NMESH][NMESH][4];
 
@@ -245,14 +246,14 @@ LIC::getSlice()
     _renderVelShader->setFPParameter1f("vmax", _max > 100.0 ? 100.0 : _max);
 
     switch (_axis) {
-    case 0:
+    case AXIS_X:
         _renderVelShader->setFPParameter3f("projection_vector", 0., 1., 1.);
         break;
-    case 1:
+    case AXIS_Y:
         _renderVelShader->setFPParameter3f("projection_vector", 1., 0., 1.);
         break;
     default:
-    case 2:
+    case AXIS_Z:
         _renderVelShader->setFPParameter3f("projection_vector", 1., 1., 0.);
         break;
     }
@@ -260,19 +261,19 @@ LIC::getSlice()
     glBegin(GL_QUADS);
     {
         switch (_axis) {
-        case 0:
+        case AXIS_X:
             glTexCoord3f(_offset, 0., 0.); glVertex2f(0.,    0.);
             glTexCoord3f(_offset, 1., 0.); glVertex2f(_size, 0.);
             glTexCoord3f(_offset, 1., 1.); glVertex2f(_size, _size);
             glTexCoord3f(_offset, 0., 1.); glVertex2f(0.,    _size);
             break;
-        case 1:
+        case AXIS_Y:
             glTexCoord3f(0., _offset, 0.); glVertex2f(0.,    0.);
             glTexCoord3f(1., _offset, 0.); glVertex2f(_size, 0.);
             glTexCoord3f(1., _offset, 1.); glVertex2f(_size, _size);
             glTexCoord3f(0., _offset, 1.); glVertex2f(0.,    _size);
             break;
-        case 2:
+        case AXIS_Z:
             glTexCoord3f(0., 0., _offset); glVertex2f(0.,    0.);
             glTexCoord3f(1., 0., _offset); glVertex2f(_size, 0.);
             glTexCoord3f(1., 1., _offset); glVertex2f(_size, _size);
@@ -427,7 +428,7 @@ LIC::convolve()
 void 
 LIC::render()
 {
-    if (_vectorFieldId == 0) {
+    if (_vectorFieldId == 0 || !_visible) {
         return;
     }
 
@@ -450,21 +451,21 @@ LIC::render()
     glColor4f(1, 1, 1, 1);
     glBegin(GL_QUADS);
     switch (_axis) {
-    case 0:
+    case AXIS_X:
         glNormal3f(1, 0, 0);
         glTexCoord2f(0, 0); glVertex3f(_offset, 0, 0);
         glTexCoord2f(1, 0); glVertex3f(_offset, 1, 0);
         glTexCoord2f(1, 1); glVertex3f(_offset, 1, 1);
         glTexCoord2f(0, 1); glVertex3f(_offset, 0, 1);
         break;
-    case 1:
+    case AXIS_Y:
         glNormal3f(0, 1, 0);
         glTexCoord2f(0, 0); glVertex3f(0, _offset, 0);
         glTexCoord2f(1, 0); glVertex3f(1, _offset, 0);
         glTexCoord2f(1, 1); glVertex3f(1, _offset, 1);
         glTexCoord2f(0, 1); glVertex3f(0, _offset, 1);
         break;
-    case 2:
+    case AXIS_Z:
         glNormal3f(0, 0, 1);
         glTexCoord2f(0, 0); glVertex3f(0, 0, _offset);
         glTexCoord2f(1, 0); glVertex3f(1, 0, _offset);
@@ -482,14 +483,16 @@ LIC::render()
 }
 
 void 
-LIC::setVectorField(unsigned int texID, const Vector3f& origin, 
-                      float scaleX, float scaleY, float scaleZ, float max)
+LIC::setVectorField(Volume *volume)
 {
-    TRACE("LIC: vector field is assigned [%d]", texID);
-    _vectorFieldId = texID;
-    _origin = origin;
-    _scale = Vector3f(scaleX, scaleY, scaleZ);
-    _max = max;
+    TRACE("LIC: vector field is assigned [%d]", volume->textureID());
+
+    _vectorFieldId = volume->textureID();
+    Vector3f bmin, bmax;
+    volume->getBounds(bmin, bmax);
+    _origin = bmin;
+    _scale.set(bmax.x-bmin.x, bmax.y-bmin.y, bmax.z-bmin.z);
+    _max = volume->wAxis.max();
 
     makePatterns();
 
@@ -506,15 +509,15 @@ LIC::getVelocity(float x, float y, float *px, float *py)
 
     //TRACE("(xi yi) = (%d %d), ", xi, yi);
    switch (_axis) {
-   case 0:
+   case AXIS_X:
        vx = _sliceVector[4 * (xi+yi*_size)+2];
        vy = _sliceVector[4 * (xi+yi*_size)+1];
        break;
-   case 1:
+   case AXIS_Y:
        vx = _sliceVector[4 * (xi+yi*_size)];
        vy = _sliceVector[4 * (xi+yi*_size)+2];
        break;
-   case 2:
+   case AXIS_Z:
    default:
        vx = _sliceVector[4 * (xi+yi*_size)];
        vy = _sliceVector[4 * (xi+yi*_size)+1];
@@ -536,13 +539,13 @@ LIC::getVelocity(float x, float y, float *px, float *py)
 }
 
 void 
-LIC::setOffset(float offset)
+LIC::setSlicePosition(float offset)
 {
     _offset = offset;
     getSlice();
 }
 
-void LIC::setAxis(int axis)
+void LIC::setSliceAxis(FlowSliceAxis axis)
 {
     _axis = axis;
 }

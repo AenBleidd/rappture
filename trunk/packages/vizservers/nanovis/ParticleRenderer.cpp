@@ -12,16 +12,16 @@
 
 #include <GL/glew.h>
 
+#include <vrmath/Vector3f.h>
 #include <vrmath/Color4f.h>
 
 #include "ParticleRenderer.h"
+#include "Volume.h"
 #include "define.h"
 #include "Trace.h"
 
+using namespace vrmath;
 using namespace nv;
-
-ParticleAdvectionShader *ParticleRenderer::_advectionShader = NULL;
-ParticleAdvectionShaderInstance shaderInstance;
 
 ParticleRenderer::ParticleRenderer(int w, int h) :
     _initPosTex(0),
@@ -36,13 +36,12 @@ ParticleRenderer::ParticleRenderer(int w, int h) :
     _origin(0, 0, 0),
     _activate(false),
     _slicePos(0.0),
-    _sliceAxis(0),
+    _sliceAxis(AXIS_Z),
     _color(0.2, 0.2, 1.0, 1.0),
     _psysWidth(w),
     _psysHeight(h)
 {
     _data = new Particle[w * h];
-    memset(_data, 0, sizeof(Particle) * w * h);
 
     _vertexArray = new RenderVertexArray(_psysWidth * _psysHeight, 3, GL_FLOAT);
 
@@ -103,9 +102,7 @@ ParticleRenderer::ParticleRenderer(int w, int h) :
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
 
-    if (_advectionShader == NULL) {
-        _advectionShader = new ParticleAdvectionShader();
-    }
+    _advectionShader = new ParticleAdvectionShader();
 }
 
 ParticleRenderer::~ParticleRenderer()
@@ -120,6 +117,7 @@ ParticleRenderer::~ParticleRenderer()
 
     glDeleteFramebuffersEXT(2, _psysFbo);
 
+    delete _advectionShader;
     delete _vertexArray;
     delete [] _data;
 }
@@ -127,48 +125,38 @@ ParticleRenderer::~ParticleRenderer()
 void
 ParticleRenderer::initializeDataArray()
 {
-    size_t n = _psysWidth * _psysHeight * 4;
-    memset(_data, 0, sizeof(float)* n);
+    TRACE("Enter axis: %d pos: %g", _sliceAxis, _slicePos);
 
-    int index;
-    bool particle;
-    float *p = (float *)_data;
+    memset(_data, 0, sizeof(Particle) * _psysWidth * _psysHeight);
+ 
+    bool hasParticle;
     for (int i = 0; i < _psysWidth; i++) {
         for (int j = 0; j < _psysHeight; j++) {
-            index = i + _psysHeight*j;
-            particle = (rand() % 256) > 150;
-            if (particle) {
+            Particle *p = &_data[i + _psysHeight*j];
+            hasParticle = (rand() % 256) > 150;
+             if (hasParticle) {
                 //assign any location (x,y,z) in range [0,1]
                 switch (_sliceAxis) {
-                case 0:
-                    p[4*index]   = _slicePos;
-                    p[4*index+1] = j/float(_psysHeight);
-                    p[4*index+2] = i/float(_psysWidth);
+                case AXIS_X:
+                    p->x = _slicePos;
+                    p->y = j/float(_psysHeight);
+                    p->z = i/float(_psysWidth);
                     break;
-                case 1:
-                    p[4*index]   = j/float(_psysHeight);
-                    p[4*index+1] = _slicePos;
-                    p[4*index+2] = i/float(_psysWidth);
+                case AXIS_Y:
+                    p->x = j/float(_psysHeight);
+                    p->y = _slicePos;
+                    p->z = i/float(_psysWidth);
                     break;
-                case 2:
-                    p[4*index]   = j/float(_psysHeight);
-                    p[4*index+1] = i/float(_psysWidth);
-                    p[4*index+2] = _slicePos;
+                case AXIS_Z:
+                    p->x = j/float(_psysHeight);
+                    p->y = i/float(_psysWidth);
+                    p->z = _slicePos;
                     break;
                 default:
-                    p[4*index]   = 0;
-                    p[4*index+1] = 0;
-                    p[4*index+2] = 0;
-                    p[4*index+3] = 0;
+                    ERROR("Unknown axis");
                 }
-
                 //shorter life span, quicker iterations
-                p[4*index+3] = rand() / ((float) RAND_MAX) * 0.5  + 0.5f; 
-            } else {
-                p[4*index]   = 0;
-                p[4*index+1] = 0;
-                p[4*index+2] = 0;
-                p[4*index+3] = 0;
+                p->life = rand() / ((float) RAND_MAX) * 0.5  + 0.5f; 
             }
         }
     }
@@ -177,6 +165,8 @@ ParticleRenderer::initializeDataArray()
 void
 ParticleRenderer::initialize()
 {
+    TRACE("Enter");
+
     initializeDataArray();
 
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
@@ -191,6 +181,7 @@ ParticleRenderer::initialize()
 
     _flip = true;
     _reborn = false;
+    _psysFrame = 0;
 
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
 #ifdef HAVE_FLOAT_TEXTURES
@@ -225,6 +216,8 @@ ParticleRenderer::reset()
 void
 ParticleRenderer::advect()
 {
+    TRACE("Enter");
+
     if (_reborn) 
         reset();
 
@@ -255,13 +248,12 @@ ParticleRenderer::advect()
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    //gluOrtho2D(0, _psysWidth, 0, _psysHeight);
     glOrtho(0, _psysWidth, 0, _psysHeight, -10.0f, 10.0f);
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
 
-    _advectionShader->bind(_psysTex[tex], _initPosTex);
+    _advectionShader->bind(_psysTex[tex], _initPosTex, _psysFrame == 0);
 
     draw_quad(_psysWidth, _psysHeight, _psysWidth, _psysHeight);
 
@@ -281,8 +273,8 @@ ParticleRenderer::advect()
 
     _psysFrame++;
     if (_psysFrame == _maxLife) {
-        _psysFrame = 0;
-        // _reborn = true;
+        //_psysFrame = 0;
+        //_reborn = true;
     }
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
@@ -293,14 +285,16 @@ void
 ParticleRenderer::updateVertexBuffer()
 {
     _vertexArray->read(_psysWidth, _psysHeight);
-
-    //_vertexArray->loadData(vert);     //does not work??
-    //assert(glGetError()==0);
 }
 
 void 
 ParticleRenderer::render()
 {
+    if (_psysFrame == 0) {
+        TRACE("Initializing vertex array");
+        advect();
+    }
+
     glPushAttrib(GL_ENABLE_BIT);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
@@ -327,26 +321,32 @@ ParticleRenderer::render()
 }
 
 void 
-ParticleRenderer::setVectorField(unsigned int texID, const vrmath::Vector3f& origin, 
-                                 float scaleX, float scaleY, float scaleZ, 
-                                 float max)
+ParticleRenderer::setVectorField(Volume *volume)
 {
-    _origin = origin;
-    _scale.set(scaleX, scaleY, scaleZ);
+    Vector3f bmin, bmax;
+    volume->getBounds(bmin, bmax);
+    _origin = bmin;
+    Vector3f scale(bmax.x-bmin.x, bmax.y-bmin.y, bmax.z-bmin.z);
+    _scale.set(scale.x, scale.y, scale.z);
     _advectionShader->setScale(_scale);
-    _advectionShader->setVelocityVolume(texID, max);
+    _advectionShader->setVelocityVolume(volume->textureID(),
+                                        volume->wAxis.max());
 }
 
 void
-ParticleRenderer::setAxis(int axis)
+ParticleRenderer::setAxis(FlowSliceAxis axis)
 {
-    _sliceAxis = axis;
-    initializeDataArray();
+    if (axis != _sliceAxis) {
+        _sliceAxis = axis;
+        initialize();
+    }
 }
 
 void
 ParticleRenderer::setPos(float pos)
 {
-    _slicePos = pos;
-    initializeDataArray();
+    if (pos != _slicePos) {
+        _slicePos = pos;
+        initialize();
+    }
 }

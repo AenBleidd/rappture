@@ -18,18 +18,13 @@ RegularVolumeShader::~RegularVolumeShader()
 
 void RegularVolumeShader::init()
 {
-    loadFragmentProgram("one_volume.cg", "main");
+    loadFragmentProgram("one_volume.cg");
 }
 
 void RegularVolumeShader::bind(unsigned int tfID, Volume *volume,
-                                 int sliceMode, float sampleRatio)
+                               int sliceMode, float sampleRatio)
 {
     //regular cubic volume
-    setGLStateMatrixFPParameter("modelViewInv", MODELVIEW_MATRIX,
-                                MATRIX_INVERSE);
-    setGLStateMatrixFPParameter("modelView", MODELVIEW_MATRIX,
-                                MATRIX_IDENTITY);
-
     setFPTextureParameter("volume", volume->textureID());
     setFPTextureParameter("tf", tfID);
 

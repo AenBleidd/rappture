@@ -13,6 +13,12 @@
 
 namespace nv {
 
+enum FlowSliceAxis {
+    AXIS_X,
+    AXIS_Y,
+    AXIS_Z
+};
+
 struct FlowColor {
     float r, g, b, a;
 };
@@ -24,7 +30,7 @@ struct FlowPoint {
 struct FlowPosition {
     float value;
     unsigned int flags;
-    int axis;
+    FlowSliceAxis axis;
 };
 
 // FlowPosition flag values

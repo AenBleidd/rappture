@@ -39,7 +39,7 @@ HeightMap::HeightMap() :
     _heights(NULL)
 {
     _shader = new Shader();
-    _shader->loadFragmentProgram("heightcolor.cg", "main");
+    _shader->loadFragmentProgram("heightcolor.cg");
 }
 
 HeightMap::~HeightMap()
@@ -489,11 +489,9 @@ HeightMap::mapToGrid(Grid *grid)
 }
 
 void
-HeightMap::getWorldSpaceBounds(Vector3f& bboxMin,
-                               Vector3f& bboxMax) const
+HeightMap::getBounds(Vector3f& bboxMin,
+                     Vector3f& bboxMax) const
 {
-    bboxMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
-    bboxMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-    
+    bboxMin.set(xAxis.min(), yAxis.min(), zAxis.min());
+    bboxMax.set(xAxis.max(), yAxis.max(), zAxis.max());
 }

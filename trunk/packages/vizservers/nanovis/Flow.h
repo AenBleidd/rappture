@@ -24,6 +24,7 @@
 #include "FlowParticles.h"
 #include "FlowBox.h"
 #include "LIC.h"
+#include "VelocityArrowsSlice.h"
 #include "Unirect.h"
 #include "Volume.h"
 #include "TransferFunction.h"
@@ -49,8 +50,6 @@ struct FlowValues {
 class Flow
 {
 public:
-    enum SliceAxis { AXIS_X, AXIS_Y, AXIS_Z };
-
     Flow(Tcl_Interp *interp, const char *name);
 
     ~Flow();
@@ -83,10 +82,6 @@ public:
 
     void getBoxNames(std::vector<std::string>& names);
 
-    float *getScaledVector();
-
-    Volume *makeVolume(float *data);
-
     bool scaleVectorField();
 
     bool visible()
@@ -116,65 +111,60 @@ public:
         }
         _data = data;
     }
-#if 0
-    void activateSlice()
-    {
-        /* Must set axis before offset or position goes to wrong axis. */
-        NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
-        NanoVis::licRenderer->setOffset(_sv.slicePos.value);
-        NanoVis::licRenderer->active(true);
-    }
 
-    void deactivateSlice()
+    FlowSliceAxis getAxis()
     {
-        NanoVis::licRenderer->active(false);
-    }
-#endif
-    SliceAxis getAxis()
-    {
-        return (SliceAxis)_sv.slicePos.axis;
+        return _sv.slicePos.axis;
     }
 
     TransferFunction *getTransferFunction()
     {
         return _sv.transferFunction;
     }
-
-    float getRelativePosition();
-
-    void setAxis()
-    {
-        NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
-    }
-
-    void setAxis(Flow::SliceAxis axis)
+#if 0
+    void setAxis(FlowSliceAxis axis)
     {
         _sv.slicePos.axis = axis;
-        NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
+        if (NanoVis::licRenderer != NULL) {
+            NanoVis::licRenderer->setSliceAxis(_sv.slicePos.axis);
+        }
+        if (NanoVis::velocityArrowsSlice != NULL) {
+            NanoVis::velocityArrowsSlice->setSliceAxis(_sv.slicePos.axis);
+        }
     }
 
     void setCurrentPosition(float position)
     {
         _sv.slicePos.value = position;
-        NanoVis::licRenderer->setOffset(_sv.slicePos.value);
+        if (NanoVis::licRenderer != NULL) {
+            NanoVis::licRenderer->setSlicePosition(_sv.slicePos.value);
+        }
+        if (NanoVis::velocityArrowsSlice != NULL) {
+            NanoVis::velocityArrowsSlice->setSlicePosition(_sv.slicePos.value);
+        }
     }
 
-    void setCurrentPosition()
-    {
-        NanoVis::licRenderer->setOffset(_sv.slicePos.value);
-    }
-
-    void setActive(bool state)
+    void setLICActive(bool state)
     {
         _sv.sliceVisible = state;
-        NanoVis::licRenderer->active(state);
+        if (NanoVis::licRenderer != NULL) {
+            NanoVis::licRenderer->setVectorField(_volume);
+            NanoVis::licRenderer->setSliceAxis(_sv.slicePos.axis);
+            NanoVis::licRenderer->setSlicePosition(_sv.slicePos.value);
+            NanoVis::licRenderer->visible(state);
+        }
     }
 
-    void setActive()
-    {
-        NanoVis::licRenderer->active(_sv.sliceVisible);
+    void setArrowsActive(bool state)
+        _sv.showArrows = state;
+        if (NanoVis::velocityArrowsSlice != NULL) {
+            NanoVis::velocityArrowsSlice->setVectorField(_volume);
+            NanoVis::velocityArrowsSlice->setSliceAxis(_sv.slicePos.axis);
+            NanoVis::velocityArrowsSlice->setSlicePosition(_sv.slicePos.value);
+            NanoVis::velocityArrowsSlice->visible(_sv.showArrows);
+        }
     }
-
+#endif
     const Volume *getVolume() const
     {
         return _volume;
@@ -189,12 +179,17 @@ public:
         return TCL_OK;
     }
 
+    bool configure();
+
     Tcl_Command getCommandToken()
     {
         return _cmdToken;
     }
 
-    static float getRelativePosition(FlowPosition *pos);
+    float getRelativePosition(FlowPosition *pos);
+
+    static bool updatePending;
+    static double magMin, magMax;
 
 private:
     typedef std::string ParticlesId;
@@ -202,7 +197,9 @@ private:
     typedef std::tr1::unordered_map<ParticlesId, FlowParticles *> ParticlesHashmap;
     typedef std::tr1::unordered_map<BoxId, FlowBox *> BoxHashmap;
 
-    void configure();
+    float *getScaledVector();
+
+    Volume *makeVolume(float *data);
 
     void renderBoxes();
 

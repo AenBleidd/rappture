@@ -103,7 +103,7 @@ Rappture::SwitchSpec Flow::_switches[] = {
 };
 
 Rappture::SwitchSpec FlowParticles::_switches[] = {
-    {Rappture::SWITCH_CUSTOM, "-axis", "string",
+    {Rappture::SWITCH_CUSTOM, "-axis", "axis",
      offsetof(FlowParticlesValues, position.axis), 0, 0, &axisSwitch},
     {Rappture::SWITCH_CUSTOM, "-color", "{r g b a}",
      offsetof(FlowParticlesValues, color), 0, 0,  &colorSwitch},
@@ -196,7 +196,8 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     flow->data(dataPtr);
-    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
+    Flow::updatePending = true;
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -265,6 +266,22 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
+#if 0
+    } else if ((length > 14) && (strncmp(bytes, "# vtk DataFile", 14) == 0)) {
+        TRACE("VTK loading...");
+        std::stringstream fdata;
+        fdata.write(bytes, length);
+        if (length <= 0) {
+            ERROR("data buffer is empty");
+            abort();
+        }
+        Rappture::Outcome context;
+        volume = load_vtk_volume_stream(context, tag, fdata);
+        if (volume == NULL) {
+            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
+            return TCL_ERROR;
+        }
+#endif
     } else {
         TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
@@ -306,7 +323,8 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
 #endif
     }
-    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
+    Flow::updatePending = true;
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -352,17 +370,17 @@ AxisSwitchProc(ClientData clientData, Tcl_Interp *interp,
 {
     const char *string = Tcl_GetString(objPtr);
     if (string[1] == '\0') {
-        Flow::SliceAxis *axisPtr = (Flow::SliceAxis *)(record + offset);
+        FlowSliceAxis *axisPtr = (FlowSliceAxis *)(record + offset);
         char c;
         c = tolower((unsigned char)string[0]);
         if (c == 'x') {
-            *axisPtr = Flow::AXIS_X;
+            *axisPtr = AXIS_X;
             return TCL_OK;
         } else if (c == 'y') {
-            *axisPtr = Flow::AXIS_Y;
+            *axisPtr = AXIS_Y;
             return TCL_OK;
         } else if (c == 'z') {
-            *axisPtr = Flow::AXIS_Z;
+            *axisPtr = AXIS_Z;
             return TCL_OK;
         }
         /*FALLTHRU*/
@@ -563,7 +581,10 @@ FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (flow->parseSwitches(interp, objc - 2, objv + 2) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
+    if (flow->configure()) {
+        Flow::updatePending = true;
+    }
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -586,6 +607,7 @@ FlowParticlesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     particles->configure();
+    Flow::updatePending = true;
     NanoVis::eventuallyRedraw();
     Tcl_SetObjResult(interp, objv[3]);
     return TCL_OK;
@@ -607,8 +629,10 @@ FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (particles->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         return TCL_ERROR;
     }
-    particles->configure();
-    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
+    if (particles->configure()) {
+        Flow::updatePending = true;
+    }
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -814,10 +838,10 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    if (NanoVis::flags & NanoVis::MAP_FLOWS) {
+    if (Flow::updatePending) {
         NanoVis::mapFlows();
     }
-    NanoVis::renderLegend(tf, NanoVis::magMin, NanoVis::magMax, w, h, label);
+    NanoVis::renderLegend(tf, Flow::magMin, Flow::magMax, w, h, label);
     return TCL_OK;
 }
 
@@ -904,7 +928,8 @@ FlowDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_DeleteCommandFromToken(interp, flow->getCommandToken());
         }
     }
-    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
+    Flow::updatePending = true;
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -938,14 +963,11 @@ FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::resetFlows();
-    if (NanoVis::flags & NanoVis::MAP_FLOWS) {
+    if (Flow::updatePending) {
         NanoVis::mapFlows();
     }
-    NanoVis::advectFlows();
     for (int i = 0; i < nSteps; i++) {
-        if (NanoVis::licRenderer->active()) {
-            NanoVis::licRenderer->convolve();
-        }
+        NanoVis::licRenderer->convolve();
         NanoVis::advectFlows();
     }
     NanoVis::eventuallyRedraw();
@@ -973,12 +995,12 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
            Tcl_Obj *const *objv)
 {
     assert(NanoVis::licRenderer != NULL);
-    if (NanoVis::flags & NanoVis::MAP_FLOWS) {
+    if (Flow::updatePending) {
         NanoVis::mapFlows();
     }
-    NanoVis::eventuallyRedraw();
     NanoVis::licRenderer->convolve();
     NanoVis::advectFlows();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1100,9 +1122,8 @@ MakeImageFiles(char *tmpFileName,
             *cancelPtr = true;
             break;
         }
-        if (NanoVis::licRenderer->active()) {
-            NanoVis::licRenderer->convolve();
-        }
+
+        NanoVis::licRenderer->convolve();
         NanoVis::advectFlows();
 
         int fboOrig;

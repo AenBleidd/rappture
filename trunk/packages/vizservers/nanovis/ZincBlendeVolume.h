@@ -20,10 +20,10 @@ namespace nv {
 class ZincBlendeVolume : public Volume
 {
 public:
-    ZincBlendeVolume(float x, float y, float z, 
-                     int width, int height, int depth, int numComponents, 
+    ZincBlendeVolume(int width, int height, int depth, int numComponents, 
                      float *dataVolumeA, float *dataVolumeB,
-                     double vmin, double vmax, double non_zeromin, const vrmath::Vector3f& cellSize);
+                     double vmin, double vmax, double non_zeromin,
+                     const vrmath::Vector3f& cellSize);
 
     virtual ~ZincBlendeVolume();
 

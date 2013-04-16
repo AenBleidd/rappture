@@ -103,7 +103,7 @@ flow video <token> <?switches...?>
           -opacity <val>
           -outline <bool>
           -position <val|%val>
-           val = [0,100], or %val = [0,1]
+           val = world coordinate, or %val = [0,100]
           -slice <bool>
           -specularExp <val>
           -specularLevel <val>

@@ -263,10 +263,13 @@ ZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
     cellSize.y = 0.25 / height;
     cellSize.z = 0.25 / depth;
 
-    zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
-                                            width, height, depth, 4,
+    zincBlendeVolume = new ZincBlendeVolume(width, height, depth, 4,
                                             fourAnionVolume, fourCationVolume,
                                             vmin, vmax, nzero_min, cellSize);
+
+    zincBlendeVolume->xAxis.setRange(origin.x, origin.x + delta.x * (width-1));
+    zincBlendeVolume->yAxis.setRange(origin.y, origin.y + delta.y * (height-1));
+    zincBlendeVolume->zAxis.setRange(origin.z, origin.z + delta.z * (depth-1));
 
     return zincBlendeVolume;
 }
@@ -341,10 +344,13 @@ ZincBlendeReconstructor::buildUp(const Vector3f& origin, const Vector3f& delta,
     cellSize.y = 0.25 / height;
     cellSize.z = 0.25 / depth;
 
-    zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
-                                            width, height, depth, 4,
+    zincBlendeVolume = new ZincBlendeVolume(width, height, depth, 4,
                                             fourAnionVolume, fourCationVolume,
                                             vmin, vmax, nzero_min, cellSize);
+
+    zincBlendeVolume->xAxis.setRange(origin.x, origin.x + delta.x * (width-1));
+    zincBlendeVolume->yAxis.setRange(origin.y, origin.y + delta.y * (height-1));
+    zincBlendeVolume->zAxis.setRange(origin.z, origin.z + delta.z * (depth-1));
 
     return zincBlendeVolume;
 }

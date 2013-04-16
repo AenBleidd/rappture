@@ -13,6 +13,8 @@
 
 #include <rappture.h>
 
+#include <vrmath/Vector3f.h>
+
 #include "Trace.h"
 
 namespace Rappture {
@@ -196,6 +198,13 @@ public:
         return _magMax;
     }
 
+    void getBounds(vrmath::Vector3f& bboxMin,
+                   vrmath::Vector3f& bboxMax) const
+    {
+        bboxMin.set(_xMin, _yMin, _zMin);
+        bboxMax.set(_xMax, _yMax, _zMax);
+    }
+
     const float *SaveValues()
     {
         float *values;
@@ -349,6 +358,13 @@ public:
     size_t nComponents()
     {
         return _nComponents;
+    }
+
+    void getBounds(vrmath::Vector3f& bboxMin,
+                   vrmath::Vector3f& bboxMax) const
+    {
+        bboxMin.set(_xMin, _yMin, 0);
+        bboxMax.set(_xMax, _yMax, 0);
     }
 
     float *transferValues()

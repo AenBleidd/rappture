@@ -20,18 +20,24 @@
 
 namespace nv {
 
-struct CutPlane {
-    /// orientation - 1: xy slice, 2: yz slice, 3: xz slice
-    int orient;
-    float offset;	///< normalized offset [0,1] in the volume
-    bool enabled;
+class CutPlane {
+public:
+    enum Axis {
+        X_AXIS = 1,
+        Y_AXIS = 2,
+        Z_AXIS = 3
+    };
 
-    CutPlane(int _orient, float _offset) :
+    CutPlane(Axis _orient, float _offset) :
         orient(_orient),
         offset(_offset),
         enabled(true)
     {
     }
+
+    Axis orient;
+    float offset;	///< normalized offset [0,1] in the volume
+    bool enabled;
 };
 
 class VolumeInterpolator;
@@ -51,9 +57,6 @@ public:
      * Represents a 3D regular grid with uniform spacing along
      * each axis.  Sample spacing may differ between X, Y and Z
      *
-     * \param x X location
-     * \param y Y location
-     * \param z Z location
      * \param width Number of samples in X
      * \param height Number of samples in Y
      * \param depth Number of samples in Z
@@ -63,8 +66,7 @@ public:
      * \param vmax Scalar value maximum
      * \param nonZeroMin Scalar minimum which is greater than zero
      */
-    Volume(float x, float y, float z,
-           int width, int height, int depth, 
+    Volume(int width, int height, int depth, 
            int numComponents,
            float *data,
            double vmin, double vmax, 
@@ -97,16 +99,6 @@ public:
         return _enabled; 
     }
 
-    void location(const vrmath::Vector3f& loc)
-    { 
-        _location = loc; 
-    }
-
-    vrmath::Vector3f location() const
-    {
-        return _location;
-    }
-
     int isosurface() const
     {
         return _isosurface;
@@ -132,6 +124,8 @@ public:
         return _volumeType;
     }
 
+    void setData(float *data, double v0, double v1, double nonZeroMin);
+
     const float *data() const
     {
         return _data;
@@ -154,13 +148,13 @@ public:
 
     // methods related to cutplanes
     /// add a plane and returns its index
-    int addCutplane(int orientation, float location);
+    int addCutplane(CutPlane::Axis orientation, float location);
 
     void enableCutplane(int index);
 
     void disableCutplane(int index);
 
-    void moveCutplane(int index, float location);
+    void setCutplanePosition(int index, float location);
 
     CutPlane *getCutplane(int index);
 
@@ -281,18 +275,29 @@ public:
     void setOutlineColor(float *rgb);
 
     void getOutlineColor(float *rgb);
-
-    vrmath::Vector3f getPhysicalScaling() const
-    {
-        vrmath::Vector3f scale;
-        scale.x = 1;
-        scale.y = yAxis.length() / xAxis.length();
-        scale.z = zAxis.length() / xAxis.length();
-        return scale;
+    
+    void setPosition(const vrmath::Vector3f& pos)
+    { 
+        _position = pos;
     }
 
-    void getWorldSpaceBounds(vrmath::Vector3f& bboxMin,
-                             vrmath::Vector3f& bboxMax) const;
+    const vrmath::Vector3f& getPosition() const
+    {
+        return _position;
+    }
+
+    void setScale(const vrmath::Vector3f& scale)
+    { 
+        _scale = scale;
+    }
+
+    const vrmath::Vector3f& getScale() const
+    {
+        return _scale;
+    }
+
+    void getBounds(vrmath::Vector3f& bboxMin,
+                   vrmath::Vector3f& bboxMax) const;
  
     double sampleDistanceX() const
     {
@@ -369,8 +374,7 @@ protected:
 
     /**
      * The scale multiplied to the opacity assigned by the 
-     * transfer function. Rule of thumb: higher opacity_scale
-     * the object is to appear like plastic
+     * transfer function.
      */
     float _opacityScale;
 
@@ -386,7 +390,8 @@ protected:
 
     Texture3D *_tex;		///< OpenGL texture storing the volume
 
-    vrmath::Vector3f _location;
+    vrmath::Vector3f _position;
+    vrmath::Vector3f _scale;
 
     /**
      * Number of slices when rendered. The greater
@@ -402,7 +407,7 @@ protected:
 };
 
 inline int
-Volume::addCutplane(int orientation, float location)
+Volume::addCutplane(CutPlane::Axis orientation, float location)
 {
     _plane.push_back(CutPlane(orientation, location));
     return _plane.size() - 1;
@@ -423,10 +428,10 @@ Volume::disableCutplane(int index)
 }
 
 inline void 
-Volume::moveCutplane(int index, float location)
+Volume::setCutplanePosition(int index, float position)
 {
     //assert(index < plane.size());
-    _plane[index].offset = location;
+    _plane[index].offset = position;
 }
 
 inline CutPlane * 

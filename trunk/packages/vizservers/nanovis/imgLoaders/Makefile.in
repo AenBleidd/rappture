@@ -58,7 +58,7 @@ $(IMGLIB): $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 clean:
-	$(RM) $(IMGLIB) $(OBJS)
+	$(RM) *.a *.o
 
 distclean: clean
 	$(RM) Makefile *~

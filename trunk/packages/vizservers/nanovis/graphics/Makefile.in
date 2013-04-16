@@ -58,7 +58,7 @@ $(NVGRAPHICSLIB): $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 clean:
-	$(RM) $(NVGRAPHICSLIB) $(OBJS)
+	$(RM) *.a *.o
 
 distclean: clean
 	$(RM) Makefile *~

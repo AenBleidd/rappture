@@ -351,7 +351,7 @@ exitService(int code)
 
     NanoVis::removeAllData();
 
-    Shader::exitCg();
+    Shader::exit();
 
     //close log file
     if (g_fLog != NULL) {
@@ -433,10 +433,10 @@ writerThread(void *clientData)
 #endif  /*USE_THREADS*/
 
 static
-void cgErrorCallback(void)
+void shaderErrorCallback(void)
 {
     if (!Shader::printErrorInfo()) {
-        TRACE("Cg error, exiting...");
+        TRACE("Shader error, exiting...");
         exitService(1);
     }
 }
@@ -578,8 +578,9 @@ main(int argc, char **argv)
         delete [] newPath;
     }
 
+    Shader::init();
     // Override callback with one that cleans up server on exit
-    Shader::setErrorCallback(cgErrorCallback);
+    Shader::setErrorCallback(shaderErrorCallback);
 
     if (!NanoVis::initGL()) {
         exitService(1);

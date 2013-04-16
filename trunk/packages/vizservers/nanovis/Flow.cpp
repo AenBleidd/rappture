@@ -9,8 +9,11 @@
  *   Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <float.h>
+
 #include <tcl.h>
 
+#include <vrmath/BBox.h>
 #include <vrmath/Vector3f.h>
 
 #include "nanovis.h"
@@ -29,6 +32,10 @@
 
 using namespace nv;
 using namespace vrmath;
+
+bool Flow::updatePending = false;
+double Flow::magMin = DBL_MAX;
+double Flow::magMax = -DBL_MAX;
 
 Flow::Flow(Tcl_Interp *interp, const char *name) :
     _interp(interp),
@@ -80,58 +87,23 @@ Flow::getBounds(Vector3f& min,
     if (onlyVisible && !visible())
         return;
 
-#if 0  // Using volume bounds instead of these
+    BBox allBounds;
     if (isDataLoaded()) {
-        Vector3f umin, umax;
-        Rappture::Unirect3d *unirect = data();
-        unirect->getWorldSpaceBounds(umin, umax);
-        if (min.x > umin.x) {
-            min.x = umin.x;
-        }
-        if (max.x < umax.x) {
-            max.x = umax.x;
-        }
-        if (min.y > umin.y) {
-            min.y = umin.y;
-        }
-        if (max.y < umax.y) {
-            max.y = umax.y;
-        }
-        if (min.z > umin.z) {
-            min.z = umin.z;
-        }
-        if (max.z < umax.z) {
-            max.z = umax.z;
-        }
+        BBox bbox;
+        data()->getBounds(bbox.min, bbox.max);
+        allBounds.extend(bbox);
     }
-#endif
     for (BoxHashmap::iterator itr = _boxTable.begin();
          itr != _boxTable.end(); ++itr) {
         FlowBox *box = itr->second;
         if (!onlyVisible || box->visible()) {
-            Vector3f fbmin, fbmax;
-            box->getWorldSpaceBounds(fbmin, fbmax,
-                                     getVolume());
-            if (min.x > fbmin.x) {
-                min.x = fbmin.x;
-            }
-            if (max.x < fbmax.x) {
-                max.x = fbmax.x;
-            }
-            if (min.y > fbmin.y) {
-                min.y = fbmin.y;
-            }
-            if (max.y < fbmax.y) {
-                max.y = fbmax.y;
-            }
-            if (min.z > fbmin.z) {
-                min.z = fbmin.z;
-            }
-            if (max.z < fbmax.z) {
-                max.z = fbmax.z;
-            }
+            BBox bbox;
+            box->getBounds(bbox.min, bbox.max);
+            allBounds.extend(bbox);
         }
     }
+    min = allBounds.min;
+    max = allBounds.max;
 }
 
 float
@@ -142,22 +114,16 @@ Flow::getRelativePosition(FlowPosition *position)
     }
     switch (position->axis) {
     case AXIS_X:  
-        return (position->value - NanoVis::xMin) / 
-            (NanoVis::xMax - NanoVis::xMin); 
+        return (position->value - _data->xMin()) / 
+            (_data->xMax() - _data->xMin()); 
     case AXIS_Y:  
-        return (position->value - NanoVis::yMin) / 
-            (NanoVis::yMax - NanoVis::yMin); 
+        return (position->value - _data->yMin()) / 
+            (_data->yMax() - _data->yMin()); 
     case AXIS_Z:  
-        return (position->value - NanoVis::zMin) / 
-            (NanoVis::zMax - NanoVis::zMin); 
+        return (position->value - _data->zMin()) / 
+            (_data->zMax() - _data->zMin()); 
     }
     return 0.0;
-}
-
-float
-Flow::getRelativePosition() 
-{
-    return getRelativePosition(&_sv.slicePos);
 }
 
 void
@@ -294,61 +260,75 @@ Flow::initializeParticles()
 }
 
 bool
+Flow::configure()
+{
+    bool needReset = false;
+
+    if (_volume != NULL) {
+        _volume->transferFunction(_sv.transferFunction);
+        _volume->dataEnabled(_sv.showVolume);
+        _volume->twoSidedLighting(_sv.twoSidedLighting);
+        _volume->outline(_sv.showOutline);
+        _volume->opacityScale(_sv.opacity);
+        _volume->ambient(_sv.ambient);
+        _volume->diffuse(_sv.diffuse);
+        _volume->specularLevel(_sv.specular);
+        _volume->specularExponent(_sv.specularExp);
+    }
+
+    float slicePos = getRelativePosition(&_sv.slicePos);
+
+    // FIXME: LIC and arrows should be per-flow
+    if (NanoVis::licRenderer != NULL) {
+        if (NanoVis::licRenderer->getSliceAxis() != _sv.slicePos.axis) {
+            needReset = true;
+            NanoVis::licRenderer->setSliceAxis(_sv.slicePos.axis);
+        }
+        if (NanoVis::licRenderer->getSlicePosition() != slicePos) {
+            needReset = true;
+            NanoVis::licRenderer->setSlicePosition(slicePos);
+        }
+        NanoVis::licRenderer->visible(_sv.sliceVisible);
+    }
+    if (NanoVis::velocityArrowsSlice != NULL) {
+        NanoVis::velocityArrowsSlice->setSliceAxis(_sv.slicePos.axis);
+        NanoVis::velocityArrowsSlice->setSlicePosition(slicePos);
+        NanoVis::velocityArrowsSlice->visible(_sv.showArrows);
+    }
+
+    return needReset;
+}
+
+bool
 Flow::scaleVectorField()
 {
-    if (_volume != NULL) {
-        TRACE("Removing existing volume: %s", _volume->name());
-        NanoVis::removeVolume(_volume);
-        _volume = NULL;
-    }
     float *vdata = getScaledVector();
-    if (vdata == NULL) {
-        return false;
+    if (_volume != NULL) {
+        TRACE("Updating existing volume: %s", _volume->name());
+        _volume->setData(vdata, magMin, magMax, 0);
+    } else {
+        _volume = makeVolume(vdata);
+        if (_volume == NULL) {
+            return false;
+        }
     }
-    Volume *volume = makeVolume(vdata);
     delete [] vdata;
-    if (volume == NULL) {
-        return false;
-    }
-    _volume = volume;
-
-    Vector3f scale = volume->getPhysicalScaling();
-    Vector3f location = _volume->location();
-
+    // FIXME: LIC and arrows should be per-flow
     if (NanoVis::licRenderer != NULL) {
-        NanoVis::licRenderer->
-            setVectorField(_volume->textureID(),
-                           location,
-                           scale.x,
-                           scale.y,
-                           scale.z,
-                           _volume->wAxis.max());
-        setCurrentPosition();
-        setAxis();
-        setActive();
+        NanoVis::licRenderer->setVectorField(_volume);
+        NanoVis::licRenderer->setSliceAxis(_sv.slicePos.axis);
+        NanoVis::licRenderer->setSlicePosition(getRelativePosition(&_sv.slicePos));
+        NanoVis::licRenderer->visible(_sv.sliceVisible);
     }
-
     if (NanoVis::velocityArrowsSlice != NULL) {
-        NanoVis::velocityArrowsSlice->
-            setVectorField(_volume->textureID(),
-                           location,
-                           scale.x,
-                           scale.y,
-                           scale.z,
-                           _volume->wAxis.max());
-        NanoVis::velocityArrowsSlice->axis(_sv.slicePos.axis);
-        NanoVis::velocityArrowsSlice->slicePos(_sv.slicePos.value);
-        NanoVis::velocityArrowsSlice->enabled(_sv.showArrows);
+        NanoVis::velocityArrowsSlice->setVectorField(_volume);
+        NanoVis::velocityArrowsSlice->setSliceAxis(_sv.slicePos.axis);
+        NanoVis::velocityArrowsSlice->setSlicePosition(getRelativePosition(&_sv.slicePos));
+        NanoVis::velocityArrowsSlice->visible(_sv.showArrows);
     }
-
     for (ParticlesHashmap::iterator itr = _particlesTable.begin();
          itr != _particlesTable.end(); ++itr) {
-        itr->second->setVectorField(_volume,
-                                    location,
-                                    scale.x,
-                                    scale.y,
-                                    scale.z,
-                                    _volume->wAxis.max());
+        itr->second->setVectorField(_volume);
     }
     return true;
 }
@@ -370,9 +350,6 @@ Flow::getScaledVector()
     assert(_data->nComponents() == 3);
     size_t n = _data->nValues() / _data->nComponents() * 4;
     float *data = new float[n];
-    if (data == NULL) {
-        return NULL;
-    }
     memset(data, 0, sizeof(float) * n);
     float *dest = data;
     const float *values = _data->values();
@@ -384,10 +361,10 @@ Flow::getScaledVector()
                 vy = values[1];
                 vz = values[2];
                 vm = sqrt(vx*vx + vy*vy + vz*vz);
-                dest[0] = vm / NanoVis::magMax;
-                dest[1] = vx /(2.0*NanoVis::magMax) + 0.5;
-                dest[2] = vy /(2.0*NanoVis::magMax) + 0.5;
-                dest[3] = vz /(2.0*NanoVis::magMax) + 0.5;
+                dest[0] = vm / magMax;
+                dest[1] = vx /(2.0 * magMax) + 0.5;
+                dest[2] = vy /(2.0 * magMax) + 0.5;
+                dest[3] = vz /(2.0 * magMax) + 0.5;
                 values += 3;
                 dest += 4;
             }
@@ -405,15 +382,12 @@ Flow::makeVolume(float *data)
                             _data->yNum(), 
                             _data->zNum(),
                             4, data, 
-                            NanoVis::magMin, NanoVis::magMax, 0);
+                            magMin, magMax, 0);
     volume->xAxis.setRange(_data->xMin(), _data->xMax());
     volume->yAxis.setRange(_data->yMin(), _data->yMax());
     volume->zAxis.setRange(_data->zMin(), _data->zMax());
 
-    TRACE("min=%g %g %g max=%g %g %g mag=%g %g",
-          NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
-          NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
-          NanoVis::magMin, NanoVis::magMax);
+    TRACE("mag=%g %g", magMin, magMax);
 
     volume->disableCutplane(0);
     volume->disableCutplane(1);
@@ -429,12 +403,6 @@ Flow::makeVolume(float *data)
     volume->diffuse(_sv.diffuse);
     volume->specularLevel(_sv.specular);
     volume->specularExponent(_sv.specularExp);
-    volume->visible(_sv.showVolume);
-
-    Vector3f volScaling = volume->getPhysicalScaling();
-    Vector3f loc(volScaling);
-    loc *= -0.5;
-    volume->location(loc);
 
     Volume::updatePending = true;
     return volume;

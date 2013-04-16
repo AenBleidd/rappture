@@ -13,6 +13,8 @@
 #include <vrmath/Vector3f.h>
 #include <vrmath/Color4f.h>
 
+#include "FlowTypes.h"
+#include "Volume.h"
 #include "ParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
 
@@ -22,13 +24,16 @@ struct Particle {
     float x;
     float y;
     float z;
-    float aux;
+    float life;
 
     Particle()
     {}
 
     Particle(float _x, float _y, float _z, float _life) :
-        x(_x), y(_y), z(_z), aux(_life)
+        x(_x),
+        y(_y),
+        z(_z),
+        life(_life)
     {}
 };
 
@@ -39,14 +44,11 @@ public:
 
     ~ParticleRenderer();
 
-    void setVectorField(unsigned int texID, const vrmath::Vector3f& origin,
-                        float scaleX, float scaleY, float scaleZ, float max);
+    void setVectorField(Volume *volume);
 
     void initialize();
 
     void advect();
-
-    void updateVertexBuffer();
 
     void reset();
 
@@ -67,11 +69,19 @@ public:
         _color = color;
     }
 
-    void setAxis(int axis);
+    void setAxis(FlowSliceAxis axis);
+
+    FlowSliceAxis getAxis() const
+    {
+        return _sliceAxis;
+    }
 
     void setPos(float pos);
 
-    void initializeDataArray();
+    float getPos() const
+    {
+        return _slicePos;
+    }
 
     void particleSize(float size)
     {
@@ -83,9 +93,13 @@ public:
         return _particleSize;
     }
 
-   static ParticleAdvectionShader *_advectionShader;
-
 private:
+    void initializeDataArray();
+
+    void updateVertexBuffer();
+
+    ParticleAdvectionShader *_advectionShader;
+
     /// frame buffer objects: two are defined, flip them as input output every step
     GLuint _psysFbo[2];
 
@@ -95,7 +109,7 @@ private:
     Particle *_data;
 
     /// Count the frame number of particle system iteration
-    int _psysFrame;
+    unsigned int _psysFrame;
 
     /// Reinitiate particles
     bool _reborn;
@@ -119,27 +133,13 @@ private:
     bool _activate;
 
     float _slicePos;
-    int _sliceAxis;
+    FlowSliceAxis _sliceAxis;
 
     vrmath::Color4f _color;
 
     //the storage of particles is implemented as a 2D array.
     int _psysWidth;
     int _psysHeight;
-};
-
-class ParticleAdvectionShaderInstance
-{
-public :
-    ParticleAdvectionShaderInstance()
-    {}
-
-    ~ParticleAdvectionShaderInstance()
-    {
-        if (ParticleRenderer::_advectionShader) {
-            delete ParticleRenderer::_advectionShader;
-        }
-    }
 };
 
 }
