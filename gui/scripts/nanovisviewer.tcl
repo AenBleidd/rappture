@@ -1347,14 +1347,12 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
     return $tf
 }
 
-
-
 #
 # ComputeTransferFunc --
 #
 #   Computes and sends the transfer function to the render server.  It's
 #   assumed that the volume data limits are known and that the global
-#   transfer-functions slider values have be setup.  Both parts are
+#   transfer-functions slider values have been set up.  Both parts are
 #   needed to compute the relative value (location) of the marker, and
 #   the alpha map of the transfer function.
 #

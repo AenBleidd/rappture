@@ -2805,9 +2805,6 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
         "reset" {
             set _settings($this-currenttime) 0
             SendCmd "flow reset"
-            if { !$_flow(state) } {
-                SendCmd "flow next"
-            }
         }
         "next" {
             if { ![winfo viewable $itk_component(3dview)] } {
