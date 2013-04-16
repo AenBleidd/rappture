@@ -69,16 +69,16 @@ public:
         _color = color;
     }
 
-    void setAxis(FlowSliceAxis axis);
+    void setSliceAxis(FlowSliceAxis axis);
 
-    FlowSliceAxis getAxis() const
+    FlowSliceAxis getSliceAxis() const
     {
         return _sliceAxis;
     }
 
-    void setPos(float pos);
+    void setSlicePosition(float pos);
 
-    float getPos() const
+    float getSlicePosition() const
     {
         return _slicePos;
     }
