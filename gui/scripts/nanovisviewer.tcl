@@ -723,7 +723,7 @@ itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
     if { $info(-type) == "image" } {
         ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"       
         $_image(plot) configure -data $bytes
-    } elseif { $info(type) == "print" } {
+    } elseif { $info(-type) == "print" } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
     }
