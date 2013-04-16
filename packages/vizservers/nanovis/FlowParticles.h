@@ -76,20 +76,15 @@ public:
         _renderer->initialize();
     }
 
-    void setVectorField(Volume *volume, const vrmath::Vector3f& location,
-                        float scaleX, float scaleY, float scaleZ,
-                        float max)
+    void setVectorField(Volume *volume)
     {
-        _renderer->
-            setVectorField(volume->textureID(),
-                           location,
-                           scaleX,
-                           scaleY,
-                           scaleZ,
-                           max);
+        _volume = volume;
+        _renderer->setVectorField(volume);
     }
 
-    void configure();
+    float getRelativePosition(FlowPosition *position);
+
+    bool configure();
 
 private:
     /**
@@ -98,6 +93,7 @@ private:
      */
     std::string _name;
     nv::ParticleRenderer *_renderer;        ///< Particle renderer
+    Volume *_volume;
     FlowParticlesValues _sv;
 
     static Rappture::SwitchSpec _switches[];

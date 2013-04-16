@@ -22,8 +22,8 @@ public:
 
     void loadData(void *data);	// load vertex data from memory
 
-    void read(/*GLenum buffer,*/ int w, int h);   // read vertex data from
-						  // frame buffer
+    void read(int w, int h);   // read vertex data from frame buffer
+
     void setPointer(GLuint index);
 
 private:

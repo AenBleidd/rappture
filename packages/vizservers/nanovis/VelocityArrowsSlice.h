@@ -10,6 +10,8 @@
 
 #include <vrmath/Vector3f.h>
 
+#include "FlowTypes.h"
+#include "Volume.h"
 #include "Texture2D.h"
 #include "Shader.h"
 
@@ -27,39 +29,36 @@ public:
 
     ~VelocityArrowsSlice();
 
-    void setVectorField(unsigned int vfGraphicsID, const vrmath::Vector3f& origin,
-                        float xScale, float yScale, float zScale, float max);
+    void setVectorField(Volume *volume);
 
-    void axis(int axis);
+    void setSliceAxis(FlowSliceAxis axis);
 
-    int axis() const
+    int getSliceAxis() const
     {
         return _axis;
     }
 
-    void slicePos(float pos)
+    void setSlicePosition(float pos)
     {
         _slicePos = pos;
         _dirty = true;
     }
 
-    float slicePos() const
+    float getSlicePosition() const
     {
         return _slicePos;
     }
 
-    void queryVelocity();
-
     void render();
 
-    void enabled(bool enabled)
+    void visible(bool visible)
     {
-        _enabled = enabled;
+        _visible = visible;
     }
 
-    bool enabled() const
+    bool visible() const
     {
-        return _enabled;
+        return _visible;
     }
 
     void tickCountForMinSizeAxis(int tickCount)
@@ -89,16 +88,18 @@ public:
     }
 
 private:
+    void queryVelocity();
+
     void createRenderTarget();
 
     void computeSamplingTicks();
 
     unsigned int _vectorFieldGraphicsID;
-    float _vfXscale;
-    float _vfYscale;
-    float _vfZscale;
+    vrmath::Vector3f _origin;
+    vrmath::Vector3f _scale;
+
     float _slicePos;
-    int _axis;
+    FlowSliceAxis _axis;
 
     unsigned int _fbo;
     unsigned int _tex;
@@ -123,7 +124,7 @@ private:
     vrmath::Vector3f _maxVelocityScale;
     vrmath::Vector3f _arrowColor;
 
-    bool _enabled;
+    bool _visible;
     bool _dirty;
     bool _dirtySamplingPosition;
     bool _dirtyRenderTarget;

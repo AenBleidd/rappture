@@ -72,7 +72,7 @@ $(MATLIB): $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 clean:
-	$(RM) $(MATLIB) $(OBJS)
+	$(RM) *.a *.o
 
 distclean: clean
 	$(RM) Makefile *~

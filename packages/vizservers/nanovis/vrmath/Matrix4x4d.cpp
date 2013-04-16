@@ -228,52 +228,58 @@ void Matrix4x4d::multiply(const Matrix4x4d& m)
 
 void Matrix4x4d::multiply(const Matrix4x4d& m1, const Matrix4x4d& m2)
 {
-    double mat[16];
-    const double *mat1 = m1._data;
-    const double *mat2 = m2._data;
+    if (&m1 == this && &m2 != this) {
+        multiply(m2);
+    } else if (&m1 != this && &m2 != this) {
+        multiplyFast(m1, m2);
+    } else {
+        double mat[16];
+        const double *mat1 = m1._data;
+        const double *mat2 = m2._data;
 
-    // 1 row
-    mat[0] = mat1[0] * mat2[0] + mat1[4] * mat2[1] + 
-             mat1[8] * mat2[2] + mat1[12] * mat2[3];
-    mat[4] = mat1[0] * mat2[4] + mat1[4] * mat2[5] + 
-             mat1[8] * mat2[6] + mat1[12] * mat2[7];
-    mat[8] = mat1[0] * mat2[8] + mat1[4] * mat2[9] + 
-             mat1[8] * mat2[10] + mat1[12] * mat2[11];
-    mat[12] = mat1[0] * mat2[12] + mat1[4] * mat2[13] + 
-              mat1[8] * mat2[14] + mat1[12] * mat2[15];
+        // 1 row
+        mat[0] = mat1[0] * mat2[0] + mat1[4] * mat2[1] + 
+            mat1[8] * mat2[2] + mat1[12] * mat2[3];
+        mat[4] = mat1[0] * mat2[4] + mat1[4] * mat2[5] + 
+            mat1[8] * mat2[6] + mat1[12] * mat2[7];
+        mat[8] = mat1[0] * mat2[8] + mat1[4] * mat2[9] + 
+            mat1[8] * mat2[10] + mat1[12] * mat2[11];
+        mat[12] = mat1[0] * mat2[12] + mat1[4] * mat2[13] + 
+            mat1[8] * mat2[14] + mat1[12] * mat2[15];
 
-    // 2 row
-    mat[1] = mat1[1] * mat2[0] + mat1[5] * mat2[1] + 
-             mat1[9] * mat2[2] + mat1[13] * mat2[3];
-    mat[5] = mat1[1] * mat2[4] + mat1[5] * mat2[5] + 
-             mat1[9] * mat2[6] + mat1[13] * mat2[7];
-    mat[9] = mat1[1] * mat2[8] + mat1[5] * mat2[9] + 
-             mat1[9] * mat2[10] + mat1[13] * mat2[11];
-    mat[13] = mat1[1] * mat2[12] + mat1[5] * mat2[13] + 
-              mat1[9] * mat2[14] + mat1[13] * mat2[15];
+        // 2 row
+        mat[1] = mat1[1] * mat2[0] + mat1[5] * mat2[1] + 
+            mat1[9] * mat2[2] + mat1[13] * mat2[3];
+        mat[5] = mat1[1] * mat2[4] + mat1[5] * mat2[5] + 
+            mat1[9] * mat2[6] + mat1[13] * mat2[7];
+        mat[9] = mat1[1] * mat2[8] + mat1[5] * mat2[9] + 
+            mat1[9] * mat2[10] + mat1[13] * mat2[11];
+        mat[13] = mat1[1] * mat2[12] + mat1[5] * mat2[13] + 
+            mat1[9] * mat2[14] + mat1[13] * mat2[15];
 
-    // 3 row
-    mat[2] = mat1[2] * mat2[0] + mat1[6] * mat2[1] + 
-             mat1[10] * mat2[2] + mat1[14] * mat2[3];
-    mat[6] = mat1[2] * mat2[4] + mat1[6] * mat2[5] + 
-             mat1[10] * mat2[6] + mat1[14] * mat2[7];
-    mat[10] = mat1[2] * mat2[8] + mat1[6] * mat2[9] + 
-              mat1[10] * mat2[10] + mat1[14] * mat2[11];
-    mat[14] = mat1[2] * mat2[12] + mat1[6] * mat2[13] + 
-              mat1[10] * mat2[14] + mat1[14] * mat2[15];
+        // 3 row
+        mat[2] = mat1[2] * mat2[0] + mat1[6] * mat2[1] + 
+            mat1[10] * mat2[2] + mat1[14] * mat2[3];
+        mat[6] = mat1[2] * mat2[4] + mat1[6] * mat2[5] + 
+            mat1[10] * mat2[6] + mat1[14] * mat2[7];
+        mat[10] = mat1[2] * mat2[8] + mat1[6] * mat2[9] + 
+            mat1[10] * mat2[10] + mat1[14] * mat2[11];
+        mat[14] = mat1[2] * mat2[12] + mat1[6] * mat2[13] + 
+            mat1[10] * mat2[14] + mat1[14] * mat2[15];
 
-    // 4 row
-    mat[3] = mat1[3] * mat2[0] + mat1[7] * mat2[1] + 
-             mat1[11] * mat2[2] + mat1[15] * mat2[3];
-    mat[7] = mat1[3] * mat2[4] + mat1[7] * mat2[5] + 
-             mat1[11] * mat2[6] + mat1[15] * mat2[7];
-    mat[11] = mat1[3] * mat2[8] + mat1[7] * mat2[9] + 
-              mat1[11] * mat2[10] + mat1[15] * mat2[11];
-    mat[15] = mat1[3] * mat2[12] + mat1[7] * mat2[13] + 
-              mat1[11] * mat2[14] + mat1[15] * mat2[15];
+        // 4 row
+        mat[3] = mat1[3] * mat2[0] + mat1[7] * mat2[1] + 
+            mat1[11] * mat2[2] + mat1[15] * mat2[3];
+        mat[7] = mat1[3] * mat2[4] + mat1[7] * mat2[5] + 
+            mat1[11] * mat2[6] + mat1[15] * mat2[7];
+        mat[11] = mat1[3] * mat2[8] + mat1[7] * mat2[9] + 
+            mat1[11] * mat2[10] + mat1[15] * mat2[11];
+        mat[15] = mat1[3] * mat2[12] + mat1[7] * mat2[13] + 
+            mat1[11] * mat2[14] + mat1[15] * mat2[15];
 
-    // set matrix
-    set(mat);
+        // set matrix
+        set(mat);
+    }
 }
 
 void Matrix4x4d::multiplyFast(const Matrix4x4d& m1, const Matrix4x4d& m2)
@@ -498,152 +504,11 @@ void Matrix4x4d::invert()
 
 void Matrix4x4d::invert(const Matrix4x4d& mat)
 {
-    const double *data = mat._data;
-
-    double det =
-        data[12] * data[9] * data[6] * data[3]-
-        data[8] * data[13] * data[6] * data[3]-
-        data[12] * data[5] * data[10] * data[3]+
-        data[4] * data[13] * data[10] * data[3]+
-        data[8] * data[5] * data[14] * data[3]-
-        data[4] * data[9] * data[14] * data[3]-
-        data[12] * data[9] * data[2] * data[7]+
-        data[8] * data[13] * data[2] * data[7]+
-        data[12] * data[1] * data[10] * data[7]-
-        data[0] * data[13] * data[10] * data[7]-
-        data[8] * data[1] * data[14] * data[7]+
-        data[0] * data[9] * data[14] * data[7]+
-        data[12] * data[5] * data[2] * data[11]-
-        data[4] * data[13] * data[2] * data[11]-
-        data[12] * data[1] * data[6] * data[11]+
-        data[0] * data[13] * data[6] * data[11]+
-        data[4] * data[1] * data[14] * data[11]-
-        data[0] * data[5] * data[14] * data[11]-
-        data[8] * data[5] * data[2] * data[15]+
-        data[4] * data[9] * data[2] * data[15]+
-        data[8] * data[1] * data[6] * data[15]-
-        data[0] * data[9] * data[6] * data[15]-
-        data[4] * data[1] * data[10] * data[15]+
-        data[0] * data[5] * data[10] * data[15];
-
-    if ( det == 0.0 ) return;
-    det = 1.0 / det;
-
-    double dstData[16];
-
-    dstData[0] = (data[9]*data[14]*data[7] -
-                  data[13]*data[10]*data[7] +
-                  data[13]*data[6]*data[11] -
-                  data[5]*data[14]*data[11] -
-                  data[9]*data[6]*data[15] +
-                  data[5]*data[10]*data[15]) * det;
-
-    dstData[4] = (data[12]*data[10]*data[7] -
-                  data[8]*data[14]*data[7] -
-                  data[12]*data[6]*data[11] +
-                  data[4]*data[14]*data[11] +
-                  data[8]*data[6]*data[15] -
-                  data[4]*data[10]*data[15]) * det;
-
-    dstData[8] = (data[8]*data[13]*data[7] -
-                  data[12]*data[9]*data[7] +
-                  data[12]*data[5]*data[11] -
-                  data[4]*data[13]*data[11] -
-                  data[8]*data[5]*data[15] +
-                  data[4]*data[9]*data[15]) * det;
-
-    dstData[12] = (data[12]*data[9]*data[6] -
-                   data[8]*data[13]*data[6] -
-                   data[12]*data[5]*data[10] +
-                   data[4]*data[13]*data[10] +
-                   data[8]*data[5]*data[14] -
-                   data[4]*data[9]*data[14]) * det;
-
-    dstData[1] = (data[13]*data[10]*data[3] -
-                  data[9]*data[14]*data[3] -
-                  data[13]*data[2]*data[11] +
-                  data[1]*data[14]*data[11] +
-                  data[9]*data[2]*data[15] -
-                  data[1]*data[10]*data[15]) * det;
-
-    dstData[5] = (data[8]*data[14]*data[3] -
-                  data[12]*data[10]*data[3] +
-                  data[12]*data[2]*data[11] -
-                  data[0]*data[14]*data[11] -
-                  data[8]*data[2]*data[15] +
-                  data[0]*data[10]*data[15]) * det;
-
-    dstData[9] = (data[12]*data[9]*data[3] -
-                  data[8]*data[13]*data[3] -
-                  data[12]*data[1]*data[11] +
-                  data[0]*data[13]*data[11] +
-                  data[8]*data[1]*data[15] -
-                  data[0]*data[9]*data[15]) * det;
-
-    dstData[13] = (data[8]*data[13]*data[2] -
-                   data[12]*data[9]*data[2] +
-                   data[12]*data[1]*data[10] -
-                   data[0]*data[13]*data[10] -
-                   data[8]*data[1]*data[14] +
-                   data[0]*data[9]*data[14]) * det;
-
-    dstData[2] = (data[5]*data[14]*data[3] -
-                  data[13]*data[6]*data[3] +
-                  data[13]*data[2]*data[7] -
-                  data[1]*data[14]*data[7] -
-                  data[5]*data[2]*data[15] +
-                  data[1]*data[6]*data[15]) * det;
-
-    dstData[6] = (data[12]*data[6]*data[3] -
-                  data[4]*data[14]*data[3] -
-                  data[12]*data[2]*data[7] +
-                  data[0]*data[14]*data[7] +
-                  data[4]*data[2]*data[15] -
-                  data[0]*data[6]*data[15]) * det;
-
-    dstData[10] = (data[4]*data[13]*data[3] -
-                   data[12]*data[5]*data[3] +
-                   data[12]*data[1]*data[7] -
-                   data[0]*data[13]*data[7] -
-                   data[4]*data[1]*data[15] +
-                   data[0]*data[5]*data[15]) * det;
-
-    dstData[14] = (data[12]*data[5]*data[2] -
-                   data[4]*data[13]*data[2] -
-                   data[12]*data[1]*data[6] +
-                   data[0]*data[13]*data[6] +
-                   data[4]*data[1]*data[14] -
-                   data[0]*data[5]*data[14]) * det;
-
-    dstData[3] = (data[9]*data[6]*data[3] -
-                  data[5]*data[10]*data[3] -
-                  data[9]*data[2]*data[7] +
-                  data[1]*data[10]*data[7] +
-                  data[5]*data[2]*data[11] -
-                  data[1]*data[6]*data[11]) * det;
-
-    dstData[7] = (data[4]*data[10]*data[3] -
-                  data[8]*data[6]*data[3] +
-                  data[8]*data[2]*data[7] -
-                  data[0]*data[10]*data[7] -
-                  data[4]*data[2]*data[11] +
-                  data[0]*data[6]*data[11]) * det;
-
-    dstData[11] = (data[8]*data[5]*data[3] -
-                   data[4]*data[9]*data[3] -
-                   data[8]*data[1]*data[7] +
-                   data[0]*data[9]*data[7] +
-                   data[4]*data[1]*data[11] -
-                   data[0]*data[5]*data[11]) * det;
-
-    dstData[15] = (data[4]*data[9]*data[2] -
-                   data[8]*data[5]*data[2] +
-                   data[8]*data[1]*data[6] -
-                   data[0]*data[9]*data[6] -
-                   data[4]*data[1]*data[10] +
-                   data[0]*data[5]*data[10]) * det;
-
-    set(dstData);
+    if (&mat == this) {
+        invert();
+    } else {
+        invertFast(mat);
+    }
 }
 
 void Matrix4x4d::invertFast(const Matrix4x4d& mat)
@@ -920,29 +785,11 @@ void Matrix4x4d::transposeFast(const Matrix4x4d& mat)
 
 void Matrix4x4d::transpose(const Matrix4x4d& mat)
 {
-    double m[16];
-
-    m[0] = mat._data[0];
-    m[1] = mat._data[4];
-    m[2] = mat._data[8];
-    m[3] = mat._data[12];
-
-    m[4] = mat._data[1];
-    m[5] = mat._data[5];
-    m[6] = mat._data[9];
-    m[7] = mat._data[13];
-
-    m[8] = mat._data[2];
-    m[9] = mat._data[6];
-    m[10] = mat._data[10];
-    m[11] = mat._data[14];
-
-    m[12] = mat._data[3];
-    m[13] = mat._data[7];
-    m[14] = mat._data[11];
-    m[15] = mat._data[15];
-
-    set(m);
+    if (&mat == this) {
+        transpose();
+    } else {
+        transposeFast(mat);
+    }
 }
 
 void Matrix4x4d::setFloat(const float *m)

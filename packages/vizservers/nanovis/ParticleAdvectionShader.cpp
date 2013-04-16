@@ -11,8 +11,7 @@ ParticleAdvectionShader::ParticleAdvectionShader() :
     _velocityVolumeID(0), 
     _scale(1.0f, 1.0f, 1.0f), 
     _max(1.0f), 
-    _timeStep(0.0005f),
-    _mode(1)
+    _timeStep(0.0005f)
 {
     init();
 }
@@ -23,19 +22,18 @@ ParticleAdvectionShader::~ParticleAdvectionShader()
 
 void ParticleAdvectionShader::init()
 {
-    loadFragmentProgram("update_pos.cg", "main");
+    loadFragmentProgram("update_pos.cg");
 }
 
 void 
-ParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
+ParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID, bool init)
 {
     setFPTextureParameter("pos_tex", texID);
     setFPTextureParameter("init_pos_tex", initPosTexID);
     setFPTextureParameter("vel_tex", _velocityVolumeID);
 
     setFPParameter1f("timestep", _timeStep);
-    setFPParameter1f("max", _max);
-    setFPParameter1f("mode", _mode);
+    setFPParameter1f("max", init ? 0 : _max);
     setFPParameter3f("scale", _scale.x, _scale.y, _scale.z);
 
     Shader::bind();

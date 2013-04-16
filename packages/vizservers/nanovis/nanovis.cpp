@@ -23,6 +23,7 @@
 #include <GL/glut.h>
 
 #include <graphics/RenderContext.h>
+#include <vrmath/BBox.h>
 #include <vrmath/Vector3f.h>
 
 #include <util/FilePath.h>
@@ -63,7 +64,7 @@ using namespace vrmath;
 
 Tcl_Interp *NanoVis::interp = NULL;
 
-unsigned int NanoVis::flags = 0;
+bool NanoVis::redrawPending = false;
 bool NanoVis::debugFlag = false;
 
 int NanoVis::winWidth = NPIX;
@@ -72,8 +73,7 @@ int NanoVis::renderWindow = 0;
 unsigned char *NanoVis::screenBuffer = NULL;
 Texture2D *NanoVis::legendTexture = NULL;
 Fonts *NanoVis::fonts;
-int NanoVis::updir = Y_POS;
-Camera *NanoVis::cam = NULL;
+Camera *NanoVis::_camera = NULL;
 RenderContext *NanoVis::renderContext = NULL;
 
 NanoVis::TransferFunctionHashmap NanoVis::tfTable;
@@ -81,17 +81,7 @@ NanoVis::VolumeHashmap NanoVis::volumeTable;
 NanoVis::FlowHashmap NanoVis::flowTable;
 NanoVis::HeightMapHashmap NanoVis::heightMapTable;
 
-double NanoVis::magMin = DBL_MAX;
-double NanoVis::magMax = -DBL_MAX;
-float NanoVis::xMin = FLT_MAX;
-float NanoVis::xMax = -FLT_MAX;
-float NanoVis::yMin = FLT_MAX;
-float NanoVis::yMax = -FLT_MAX;
-float NanoVis::zMin = FLT_MAX;
-float NanoVis::zMax = -FLT_MAX;
-float NanoVis::wMin = FLT_MAX;
-float NanoVis::wMax = -FLT_MAX;
-Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
+BBox NanoVis::sceneBounds;
 
 VolumeRenderer *NanoVis::volRenderer = NULL;
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
@@ -100,32 +90,23 @@ PlaneRenderer *NanoVis::planeRenderer = NULL;
 OrientationIndicator *NanoVis::orientationIndicator = NULL;
 Grid *NanoVis::grid = NULL;
 
-// Image based flow visualization slice location
-// FLOW
-float NanoVis::_licSlice = 0.5f;
-int NanoVis::_licAxis = 2; // z axis
-
 //frame buffer for final rendering
 GLuint NanoVis::_finalFbo = 0;
 GLuint NanoVis::_finalColorTex = 0;
 GLuint NanoVis::_finalDepthRb = 0;
 
-// Default camera location.
-float def_eye_x = 0.0f;
-float def_eye_y = 0.0f;
-float def_eye_z = 2.5f;
-
 void
 NanoVis::removeAllData()
 {
     TRACE("Enter");
+
     if (grid != NULL) {
         TRACE("Deleting grid");
         delete grid;
     }
-    if (cam != NULL) {
-        TRACE("Deleting cam");
-        delete cam;
+    if (_camera != NULL) {
+        TRACE("Deleting camera");
+        delete _camera;
     }
     if (volRenderer != NULL) {
         TRACE("Deleting volRenderer");
@@ -166,42 +147,57 @@ NanoVis::removeAllData()
 }
 
 void 
-NanoVis::eventuallyRedraw(unsigned int flag)
+NanoVis::eventuallyRedraw()
 {
-    if (flag) {
-        flags |= flag;
-    }
-    if ((flags & REDRAW_PENDING) == 0) {
+    if (!redrawPending) {
         glutPostRedisplay();
-        flags |= REDRAW_PENDING;
+        redrawPending = true;
     }
 }
 
 void
-NanoVis::pan(float dx, float dy)
+NanoVis::panCamera(float dx, float dy)
 {
-    /* Move the camera and its target by equal amounts along the x and y
-     * axes. */
-    TRACE("pan: x=%f, y=%f", dx, dy);
-
-    cam->x(def_eye_x - dx);
-    cam->y(def_eye_y + dy);
-    TRACE("set eye to %f %f", cam->x(), cam->y());
-}
-
-void
-NanoVis::zoom(float z)
-{
-    /* Move the camera and its target by equal amounts along the x and y
-     * axes. */
-    TRACE("zoom: z=%f", z);
-
-    cam->z(def_eye_z / z);
+    _camera->pan(dx, dy);
 
     collectBounds();
-    cam->resetClippingRange(sceneMin, sceneMax);
+    _camera->resetClippingRange(sceneBounds.min, sceneBounds.max);
+}
 
-    TRACE("set cam z to %f", cam->z());
+void
+NanoVis::zoomCamera(float z)
+{
+    _camera->zoom(z);
+
+    collectBounds();
+    _camera->resetClippingRange(sceneBounds.min, sceneBounds.max);
+}
+
+void
+NanoVis::orientCamera(double *quat)
+{
+    _camera->orient(quat);
+
+    collectBounds();
+    _camera->resetClippingRange(sceneBounds.min, sceneBounds.max);
+}
+
+void
+NanoVis::setCameraPosition(Vector3f pos)
+{
+    _camera->setPosition(pos);
+
+    collectBounds();
+    _camera->resetClippingRange(sceneBounds.min, sceneBounds.max);
+}
+
+void
+NanoVis::setCameraUpdir(Camera::AxisDirection dir)
+{
+    _camera->setUpdir(dir);
+
+    collectBounds();
+    _camera->resetClippingRange(sceneBounds.min, sceneBounds.max);
 }
 
 void
@@ -210,11 +206,7 @@ NanoVis::resetCamera(bool resetOrientation)
     TRACE("Resetting all=%d", resetOrientation ? 1 : 0);
 
     collectBounds();
-    cam->reset(sceneMin, sceneMax, resetOrientation);
-
-    def_eye_x = cam->x();
-    def_eye_y = cam->y();
-    def_eye_z = cam->z();
+    _camera->reset(sceneBounds.min, sceneBounds.max, resetOrientation);
 }
 
 /** \brief Load a 3D volume
@@ -243,8 +235,7 @@ NanoVis::loadVolume(const char *name, int width, int height, int depth,
         removeVolume(itr->second);
     }
 
-    Volume *volume = new Volume(0.f, 0.f, 0.f,
-                                width, height, depth,
+    Volume *volume = new Volume(width, height, depth,
                                 numComponents,
                                 data, vmin, vmax, nonZeroMin);
     Volume::updatePending = true;
@@ -450,20 +441,11 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
 
     TRACE("change camera");
     //change the camera setting
-    cam->setScreenSize(0, 0, winWidth, winHeight);
+    _camera->setViewport(0, 0, winWidth, winHeight);
     planeRenderer->setScreenSize(winWidth, winHeight);
 
     TRACE("Leave (%d, %d)", w, h);
     return true;
-}
-
-static
-void cgErrorCallback(void)
-{
-    if (!Shader::printErrorInfo()) {
-        TRACE("Cg error, exiting...");
-        exit(1);
-    }
 }
 
 bool NanoVis::init(const char* path)
@@ -535,18 +517,6 @@ bool NanoVis::init(const char* path)
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
-    Shader::initCg();
-    Shader::setErrorCallback(cgErrorCallback);
-
-    fonts = new Fonts();
-    fonts->addFont("verdana", "verdana.fnt");
-    fonts->setFont("verdana");
-
-    velocityArrowsSlice = new VelocityArrowsSlice;
-    licRenderer = new LIC(NMESH, NPIX, NPIX, _licAxis, _licSlice);
-
-    grid = new Grid();
-    grid->setFont(fonts);
     return true;
 }
 
@@ -563,8 +533,7 @@ NanoVis::initGL()
     assert(screenBuffer != NULL);
 
     //create the camera with default setting
-    cam = new Camera(0, 0, winWidth, winHeight,
-                     def_eye_x, def_eye_y, def_eye_z);
+    _camera = new Camera(0, 0, winWidth, winHeight);
 
     glEnable(GL_TEXTURE_2D);
     glShadeModel(GL_FLAT);
@@ -576,13 +545,12 @@ NanoVis::initGL()
     GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat mat_shininess[] = {30.0};
     GLfloat white_light[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat green_light[] = {0.1, 0.5, 0.1, 1.0};
 
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, white_light);
     glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, white_light);
     glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);
 
     //frame buffer object for offscreen rendering
@@ -590,13 +558,24 @@ NanoVis::initGL()
         return false;
     }
 
-    volRenderer = new VolumeRenderer();
+    fonts = new Fonts();
+    fonts->addFont("verdana", "verdana.fnt");
+    fonts->setFont("verdana");
 
     renderContext = new RenderContext();
 
+    volRenderer = new VolumeRenderer();
+
     planeRenderer = new PlaneRenderer(winWidth, winHeight);
 
+    velocityArrowsSlice = new VelocityArrowsSlice();
+
+    licRenderer = new LIC();
+
     orientationIndicator = new OrientationIndicator();
+
+    grid = new Grid();
+    grid->setFont(fonts);
 
     //assert(glGetError()==0);
 
@@ -634,52 +613,23 @@ void NanoVis::update()
 void
 NanoVis::setVolumeRanges()
 {
-    double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-
     TRACE("Enter");
-    xMin = yMin = zMin = wMin = DBL_MAX;
-    xMax = yMax = zMax = wMax = -DBL_MAX;
+
+    double valueMin = DBL_MAX, valueMax = -DBL_MAX;
     VolumeHashmap::iterator itr;
     for (itr = volumeTable.begin();
          itr != volumeTable.end(); ++itr) {
         Volume *volume = itr->second;
-        if (xMin > volume->xAxis.min()) {
-            xMin = volume->xAxis.min();
+        if (valueMin > volume->wAxis.min()) {
+            valueMin = volume->wAxis.min();
         }
-        if (xMax < volume->xAxis.max()) {
-            xMax = volume->xAxis.max();
-        }
-        if (yMin > volume->yAxis.min()) {
-            yMin = volume->yAxis.min();
-        }
-        if (yMax < volume->yAxis.max()) {
-            yMax = volume->yAxis.max();
-        }
-        if (zMin > volume->zAxis.min()) {
-            zMin = volume->zAxis.min();
-        }
-        if (zMax < volume->zAxis.max()) {
-            zMax = volume->zAxis.max();
-        }
-        if (wMin > volume->wAxis.min()) {
-            wMin = volume->wAxis.min();
-        }
-        if (wMax < volume->wAxis.max()) {
-            wMax = volume->wAxis.max();
+        if (valueMax < volume->wAxis.max()) {
+            valueMax = volume->wAxis.max();
         }
     }
-    if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-        grid->xAxis.setScale(xMin, xMax);
-    }
-    if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-        grid->yAxis.setScale(yMin, yMax);
-    }
-    if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-        grid->zAxis.setScale(zMin, zMax);
-    }
-    if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
-        Volume::valueMin = wMin;
-        Volume::valueMax = wMax;
+    if ((valueMin < DBL_MAX) && (valueMax > -DBL_MAX)) {
+        Volume::valueMin = valueMin;
+        Volume::valueMax = valueMax;
     }
     Volume::updatePending = false;
     TRACE("Leave");
@@ -688,52 +638,23 @@ NanoVis::setVolumeRanges()
 void
 NanoVis::setHeightmapRanges()
 {
-    double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-
     TRACE("Enter");
-    xMin = yMin = zMin = wMin = DBL_MAX;
-    xMax = yMax = zMax = wMax = -DBL_MAX;
+
+    double valueMin = DBL_MAX, valueMax = -DBL_MAX;
     HeightMapHashmap::iterator itr;
     for (itr = heightMapTable.begin();
          itr != heightMapTable.end(); ++itr) {
         HeightMap *heightMap = itr->second;
-        if (xMin > heightMap->xAxis.min()) {
-            xMin = heightMap->xAxis.min();
+        if (valueMin > heightMap->wAxis.min()) {
+            valueMin = heightMap->wAxis.min();
         }
-        if (xMax < heightMap->xAxis.max()) {
-            xMax = heightMap->xAxis.max();
-        }
-        if (yMin > heightMap->yAxis.min()) {
-            yMin = heightMap->yAxis.min();
-        }
-        if (yMax < heightMap->yAxis.max()) {
-            yMax = heightMap->yAxis.max();
-        }
-        if (zMin > heightMap->zAxis.min()) {
-            zMin = heightMap->zAxis.min();
-        }
-        if (zMax < heightMap->zAxis.max()) {
-            zMax = heightMap->zAxis.max();
-        }
-        if (wMin > heightMap->wAxis.min()) {
-            wMin = heightMap->wAxis.min();
-        }
-        if (wMax < heightMap->wAxis.max()) {
-            wMax = heightMap->wAxis.max();
+        if (valueMax < heightMap->wAxis.max()) {
+            valueMax = heightMap->wAxis.max();
         }
     }
-    if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-        grid->xAxis.setScale(xMin, xMax);
-    }
-    if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-        grid->yAxis.setScale(yMin, yMax);
-    }
-    if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-        grid->zAxis.setScale(zMin, zMax);
-    }
-    if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
-        HeightMap::valueMin = grid->yAxis.min();
-        HeightMap::valueMax = grid->yAxis.max();
+    if ((valueMin < DBL_MAX) && (valueMax > -DBL_MAX)) {
+        HeightMap::valueMin = valueMin;
+        HeightMap::valueMax = valueMax;
     }
     for (HeightMapHashmap::iterator itr = heightMapTable.begin();
          itr != heightMapTable.end(); ++itr) {
@@ -746,15 +667,11 @@ NanoVis::setHeightmapRanges()
 void
 NanoVis::collectBounds(bool onlyVisible)
 {
-    if (flags & MAP_FLOWS) {
+    if (Flow::updatePending) {
         mapFlows();
-        grid->xAxis.setScale(xMin, xMax);
-        grid->yAxis.setScale(yMin, yMax);
-        grid->zAxis.setScale(zMin, zMax);
     }
 
-    sceneMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
-    sceneMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    sceneBounds.makeEmpty();
 
     for (VolumeHashmap::iterator itr = volumeTable.begin();
          itr != volumeTable.end(); ++itr) {
@@ -763,29 +680,9 @@ NanoVis::collectBounds(bool onlyVisible)
         if (onlyVisible && !volume->visible())
             continue;
 
-        Vector3f bmin, bmax;
-        volume->getWorldSpaceBounds(bmin, bmax);
-        if (bmin.x > bmax.x)
-            continue;
-
-        if (sceneMin.x > bmin.x) {
-            sceneMin.x = bmin.x;
-        }
-        if (sceneMax.x < bmax.x) {
-            sceneMax.x = bmax.x;
-        }
-        if (sceneMin.y > bmin.y) {
-            sceneMin.y = bmin.y;
-        }
-        if (sceneMax.y < bmax.y) {
-            sceneMax.y = bmax.y;
-        }
-        if (sceneMin.z > bmin.z) {
-            sceneMin.z = bmin.z;
-        }
-        if (sceneMax.z < bmax.z) {
-            sceneMax.z = bmax.z;
-        }
+        BBox bbox;
+        volume->getBounds(bbox.min, bbox.max);
+        sceneBounds.extend(bbox);
     }
 
     for (HeightMapHashmap::iterator itr = heightMapTable.begin();
@@ -795,64 +692,41 @@ NanoVis::collectBounds(bool onlyVisible)
         if (onlyVisible && !heightMap->isVisible())
             continue;
 
-        Vector3f bmin, bmax;
-        heightMap->getWorldSpaceBounds(bmin, bmax);
-        if (bmin.x > bmax.x)
-            continue;
-
-        if (sceneMin.x > bmin.x) {
-            sceneMin.x = bmin.x;
-        }
-        if (sceneMax.x < bmax.x) {
-            sceneMax.x = bmax.x;
-        }
-        if (sceneMin.y > bmin.y) {
-            sceneMin.y = bmin.y;
-        }
-        if (sceneMax.y < bmax.y) {
-            sceneMax.y = bmax.y;
-        }
-        if (sceneMin.z > bmin.z) {
-            sceneMin.z = bmin.z;
-        }
-        if (sceneMax.z < bmax.z) {
-            sceneMax.z = bmax.z;
-        }
+        BBox bbox;
+        heightMap->getBounds(bbox.min, bbox.max);
+        sceneBounds.extend(bbox);
     }
 
-    Vector3f flowMin, flowMax;
-    getFlowBounds(flowMin, flowMax, onlyVisible);
-    if (flowMin.x < flowMax.x) {
-        if (sceneMin.x > flowMin.x) {
-            sceneMin.x = flowMin.x;
-        }
-        if (sceneMax.x < flowMax.x) {
-            sceneMax.x = flowMax.x;
-        }
-        if (sceneMin.y > flowMin.y) {
-            sceneMin.y = flowMin.y;
-        }
-        if (sceneMax.y < flowMax.y) {
-            sceneMax.y = flowMax.y;
-        }
-        if (sceneMin.z > flowMin.z) {
-            sceneMin.z = flowMin.z;
-        }
-        if (sceneMax.z < flowMax.z) {
-            sceneMax.z = flowMax.z;
-        }
+    {
+        BBox bbox;
+        getFlowBounds(bbox.min, bbox.max, onlyVisible);
+        sceneBounds.extend(bbox);
     }
 
-    // TODO: Get Grid bounds
+    if (!sceneBounds.isEmptyX()) {
+        grid->xAxis.setScale(sceneBounds.min.x, sceneBounds.max.x);
+    }
+    if (!sceneBounds.isEmptyY()) {
+        grid->yAxis.setScale(sceneBounds.min.y, sceneBounds.max.y);
+    }
+    if (!sceneBounds.isEmptyZ()) {
+        grid->zAxis.setScale(sceneBounds.min.z, sceneBounds.max.z);
+    }
 
-    if (sceneMin.x > sceneMax.x) {
-        sceneMin.set(-0.5, -0.5, -0.5);
-        sceneMax.set( 0.5,  0.5,  0.5);
+    if (!onlyVisible || grid->isVisible()) {
+        BBox bbox;
+        grid->getBounds(bbox.min, bbox.max);
+        sceneBounds.extend(bbox);
+    }
+
+    if (sceneBounds.isEmpty()) {
+        sceneBounds.min.set(-0.5, -0.5, -0.5);
+        sceneBounds.max.set( 0.5,  0.5,  0.5);
     }
 
     TRACE("Scene bounds: (%g,%g,%g) - (%g,%g,%g)",
-          sceneMin.x, sceneMin.y, sceneMin.z,
-          sceneMax.x, sceneMax.y, sceneMax.z);
+          sceneBounds.min.x, sceneBounds.min.y, sceneBounds.min.z,
+          sceneBounds.max.x, sceneBounds.max.y, sceneBounds.max.z);
 }
 
 void
@@ -932,13 +806,12 @@ NanoVis::mapFlows()
 {
     TRACE("Enter");
 
-    flags &= ~MAP_FLOWS;
-
     /* 
      * Step 1. Get the overall min and max magnitudes of all the 
      *         flow vectors.
      */
-    magMin = DBL_MAX, magMax = -DBL_MAX;
+    Flow::magMin = DBL_MAX;
+    Flow::magMax = -DBL_MAX;
 
     for (FlowHashmap::iterator itr = flowTable.begin();
          itr != flowTable.end(); ++itr) {
@@ -950,33 +823,15 @@ NanoVis::mapFlows()
         Rappture::Unirect3d *data = flow->data();
         min = data->magMin();
         max = data->magMax();
-        if (min < magMin) {
-            magMin = min;
+        if (min < Flow::magMin) {
+            Flow::magMin = min;
         } 
-        if (max > magMax) {
-            magMax = max;
-        }
-        if (data->xMin() < xMin) {
-            xMin = data->xMin();
-        }
-        if (data->yMin() < yMin) {
-            yMin = data->yMin();
-        }
-        if (data->zMin() < zMin) {
-            zMin = data->zMin();
-        }
-        if (data->xMax() > xMax) {
-            xMax = data->xMax();
-        }
-        if (data->yMax() > yMax) {
-            yMax = data->yMax();
-        }
-        if (data->zMax() > zMax) {
-            zMax = data->zMax();
+        if (max > Flow::magMax) {
+            Flow::magMax = max;
         }
     }
 
-    TRACE("magMin=%g magMax=%g", NanoVis::magMin, NanoVis::magMax);
+    TRACE("magMin=%g magMax=%g", Flow::magMin, Flow::magMax);
 
     /* 
      * Step 2. Generate the vector field from each data set. 
@@ -993,11 +848,9 @@ NanoVis::mapFlows()
         if (!flow->scaleVectorField()) {
             return false;
         }
-        // FIXME: This doesn't work when there is more than one flow.
-        licRenderer->setOffset(flow->getRelativePosition());
-        velocityArrowsSlice->slicePos(flow->getRelativePosition());
     }
-    advectFlows();
+
+    Flow::updatePending = false;
     return true;
 }
 
@@ -1008,13 +861,16 @@ NanoVis::getFlowBounds(Vector3f& min,
 {
     TRACE("Enter");
 
-    min.set(FLT_MAX, FLT_MAX, FLT_MAX);
-    max.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
+    BBox allBounds;
     for (FlowHashmap::iterator itr = flowTable.begin();
          itr != flowTable.end(); ++itr) {
-        itr->second->getBounds(min, max, onlyVisible);
+        BBox bbox;
+        itr->second->getBounds(bbox.min, bbox.max, onlyVisible);
+        allBounds.extend(bbox);
     }
+
+    min = allBounds.min;
+    max = allBounds.max;
 }
 
 void
@@ -1027,19 +883,16 @@ NanoVis::renderFlows()
             flow->render();
         }
     }
-    flags &= ~REDRAW_PENDING;
 }
 
 void
 NanoVis::resetFlows()
 {
-    if (licRenderer->active()) {
-        NanoVis::licRenderer->reset();
-    }
+    NanoVis::licRenderer->reset();
     for (FlowHashmap::iterator itr = flowTable.begin();
          itr != flowTable.end(); ++itr) {
         Flow *flow = itr->second;
-        if (flow->isDataLoaded() && flow->visible()) {
+        if (flow->isDataLoaded()) {
             flow->resetParticles();
         }
     }
@@ -1048,10 +901,11 @@ NanoVis::resetFlows()
 void
 NanoVis::advectFlows()
 {
+    TRACE("Enter");
     for (FlowHashmap::iterator itr = flowTable.begin();
          itr != flowTable.end(); ++itr) {
         Flow *flow = itr->second;
-        if (flow->isDataLoaded() && flow->visible()) {
+        if (flow->isDataLoaded()) {
             flow->advect();
         }
     }
@@ -1062,17 +916,9 @@ NanoVis::render()
 {
     TRACE("Enter");
 
-    if (flags & MAP_FLOWS) {
-#ifdef notdef
-        xMin = yMin = zMin = wMin = FLT_MAX, magMin = DBL_MAX;
-        xMax = yMax = zMax = wMax = -FLT_MAX, magMax = -DBL_MAX;
-#endif
+    if (Flow::updatePending) {
         mapFlows();
-        grid->xAxis.setScale(xMin, xMax);
-        grid->yAxis.setScale(yMin, yMax);
-        grid->zAxis.setScale(zMin, zMax);
     }
-    //assert(glGetError()==0);
     if (HeightMap::updatePending) {
         setHeightmapRanges();
     }
@@ -1080,7 +926,9 @@ NanoVis::render()
         setVolumeRanges();
     }
 
-    //start final rendering
+    collectBounds();
+
+    // Start final rendering
 
     // Need to reset fbo since it may have been changed to default (0)
     bindOffscreenBuffer();
@@ -1091,59 +939,31 @@ NanoVis::render()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_COLOR_MATERIAL);
 
-    //camera setting activated
-    cam->initialize();
+    // Emit modelview and projection matrices
+    _camera->initialize();
 
-    //set up the orientation of items in the scene.
-    glPushMatrix();
+    // Now render things in the scene
 
-    switch (updir) {
-    case X_POS:
-        glRotatef(90, 0, 0, 1);
-        glRotatef(90, 1, 0, 0);
-        break;
-    case Y_POS:
-        // this is the default
-        break;
-    case Z_POS:
-        glRotatef(-90, 1, 0, 0);
-        glRotatef(-90, 0, 0, 1);
-        break;
-    case X_NEG:
-        glRotatef(-90, 0, 0, 1);
-        break;
-    case Y_NEG:
-        glRotatef(180, 0, 0, 1);
-        glRotatef(-90, 0, 1, 0);
-        break;
-    case Z_NEG:
-        glRotatef(90, 1, 0, 0);
-        break;
-    }
-
-    //now render things in the scene
-
+    orientationIndicator->setPosition(sceneBounds.getCenter());
+    orientationIndicator->setScale(sceneBounds.getSize());
     orientationIndicator->render();
+
     grid->render();
-    if ((licRenderer != NULL) && (licRenderer->active())) {
-        licRenderer->render();
-    }
-    if ((velocityArrowsSlice != NULL) && (velocityArrowsSlice->enabled())) {
-        velocityArrowsSlice->render();
-    }
+
+    licRenderer->render();
+
+    velocityArrowsSlice->render();
+
     renderFlows();
+
     volRenderer->renderAll();
 
-    HeightMapHashmap::iterator itr;
-    for (itr = heightMapTable.begin();
+    for (HeightMapHashmap::iterator itr = heightMapTable.begin();
          itr != heightMapTable.end(); ++itr) {
-        HeightMap *heightMap = itr->second;
-        if (heightMap->isVisible()) {
-            heightMap->render(renderContext);
-        }
-    }
-    glPopMatrix();
+        itr->second->render(renderContext);
+     }
 
     CHECK_FRAMEBUFFER_STATUS();
     TRACE("Leave");
+    redrawPending = false;
 }

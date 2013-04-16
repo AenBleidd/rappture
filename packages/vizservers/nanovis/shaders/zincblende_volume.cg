@@ -1,14 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * ======================================================================
- *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
- *           Purdue Rendering and Perceptualization Lab (PURPL)
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- * ======================================================================
+ * Authors:
+ *   Wei Qiao <qiaow@purdue.edu>
  */
 
 #include "common.cg"
@@ -26,41 +21,40 @@ PixelOut main(v2f IN,
               uniform sampler3D volumeA, 
               uniform sampler3D volumeB, 
               uniform float4 cellSize,
-              uniform float4x4 modelViewInv,
               uniform float4 renderParams)
 
 {
     PixelOut OUT;
 
-    float4 tex_coord = mul(modelViewInv, IN.TexCoord);
+    float4 texcoord = IN.TexCoord;
     float4 twice_cell_size = cellSize * 2.0;
 
     // volumeA : outer
     // volumeB : inner
-    float4 tex_coord_2 = tex_coord + float4(twice_cell_size.x, 0,                 twice_cell_size.z, 0);
-    float4 tex_coord_3 = tex_coord + float4(0,                 twice_cell_size.y, twice_cell_size.z, 0);
-    float4 tex_coord_4 = tex_coord + float4(twice_cell_size.x, twice_cell_size.y, 0, 0); 
-    float4 voxel_corner = f4tex3D(volumeB, tex_coord) + f4tex3D(volumeA, tex_coord - cellSize);
-    float4 voxel_face_center_2 = f4tex3D(volumeB, tex_coord_2) + f4tex3D(volumeA, tex_coord_2 - cellSize);
-    float4 voxel_face_center_3 = f4tex3D(volumeB, tex_coord_3) + f4tex3D(volumeA, tex_coord_3 - cellSize);
-    float4 voxel_face_center_4 = f4tex3D(volumeB, tex_coord_4) + f4tex3D(volumeA, tex_coord_4 - cellSize);
+    float4 texcoord_2 = texcoord + float4(twice_cell_size.x, 0,                 twice_cell_size.z, 0);
+    float4 texcoord_3 = texcoord + float4(0,                 twice_cell_size.y, twice_cell_size.z, 0);
+    float4 texcoord_4 = texcoord + float4(twice_cell_size.x, twice_cell_size.y, 0, 0); 
+    float4 voxel_corner = tex3D(volumeB, texcoord) + tex3D(volumeA, texcoord - cellSize);
+    float4 voxel_face_center_2 = tex3D(volumeB, texcoord_2) + tex3D(volumeA, texcoord_2 - cellSize);
+    float4 voxel_face_center_3 = tex3D(volumeB, texcoord_3) + tex3D(volumeA, texcoord_3 - cellSize);
+    float4 voxel_face_center_4 = tex3D(volumeB, texcoord_4) + tex3D(volumeA, texcoord_4 - cellSize);
 
     float sample = (voxel_corner.x + voxel_face_center_2.y + voxel_face_center_3.z + voxel_face_center_4.w) * 0.125;
     /*
-      float4 tex_coord_a = tex_coord - float4(twice_cell_size.x, twice_cell_size.y, 0, 0);
-      float4 tex_coord_b = tex_coord - float4(twice_cell_size.x, 0, twice_cell_size.z, 0);
-      float4 tex_coord_c = tex_coord - float4(0, twice_cell_size.y, twice_cell_size.z, 0); 
+      float4 texcoord_a = texcoord - float4(twice_cell_size.x, twice_cell_size.y, 0, 0);
+      float4 texcoord_b = texcoord - float4(twice_cell_size.x, 0, twice_cell_size.z, 0);
+      float4 texcoord_c = texcoord - float4(0, twice_cell_size.y, twice_cell_size.z, 0); 
 	
-      float4 voxel_corner = f4tex3D(volumeA, tex_coord) + f4tex3D(volumeB, tex_coord - cellSize);
-      float4 voxel_face_center_a = f4tex3D(volumeA, tex_coord_a) + f4tex3D(volumeB, tex_coord_a - cellSize);
-      float4 voxel_face_center_b = f4tex3D(volumeA, tex_coord_b) + f4tex3D(volumeB, tex_coord_b - cellSize);
-      float4 voxel_face_center_c = f4tex3D(volumeA, tex_coord_c) + f4tex3D(volumeB, tex_coord_c - cellSize);
+      float4 voxel_corner = tex3D(volumeA, texcoord) + tex3D(volumeB, texcoord - cellSize);
+      float4 voxel_face_center_a = tex3D(volumeA, texcoord_a) + tex3D(volumeB, texcoord_a - cellSize);
+      float4 voxel_face_center_b = tex3D(volumeA, texcoord_b) + tex3D(volumeB, texcoord_b - cellSize);
+      float4 voxel_face_center_c = tex3D(volumeA, texcoord_c) + tex3D(volumeB, texcoord_c - cellSize);
       //combine 8 sampling results
       float sample = (voxel_corner.x + voxel_face_center_a.y + voxel_face_center_b.z + voxel_face_center_c.w) * 0.125;
     */
 
     //sample transfer function texture
-    float4 color = f4tex1D(tf, sample);
+    float4 color = tex1D(tf, sample);
 
     if (renderParams.x == 0.0) {
         //If single slice render, only flat shading, completely opaque.

@@ -567,8 +567,10 @@ CameraAngleOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (GetFloatFromObj(interp, objv[4], &psi) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::cam->rotate(phi, theta, psi);
-    return TCL_OK;
+    //NanoVis::orientCamera(phi, theta, psi);
+    //return TCL_OK;
+    Tcl_AppendResult(interp, "The 'camera angle' command is deprecated, use 'camera orient'", (char*)NULL);
+    return TCL_ERROR;
 }
 
 static int
@@ -582,7 +584,7 @@ CameraOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (Tcl_GetDoubleFromObj(interp, objv[5], &quat[2]) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::cam->rotate(quat);
+    NanoVis::orientCamera(quat);
     return TCL_OK;
 }
 
@@ -595,7 +597,7 @@ CameraPanOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (GetFloatFromObj(interp, objv[3], &y) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::pan(x, y);
+    NanoVis::panCamera(x, y);
     return TCL_OK;
 }
 
@@ -603,15 +605,14 @@ static int
 CameraPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
-    float x, y, z;
-    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
+    Vector3f pos;
+    if ((GetFloatFromObj(interp, objv[2], &pos.x) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &pos.y) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[4], &pos.z) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::cam->x(x);
-    NanoVis::cam->y(y);
-    NanoVis::cam->z(z);
+
+    NanoVis::setCameraPosition(pos);
     return TCL_OK;
 }
 
@@ -642,7 +643,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[2], &z) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::zoom(z);
+    NanoVis::zoomCamera(z);
     return TCL_OK;
 }
 
@@ -724,14 +725,11 @@ CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->moveCutplane(axis, relval);
+        (*iter)->setCutplanePosition(axis, relval);
     }
     return TCL_OK;
 }
 
-/*
- * cutplane state $bool $axis vol,,,
- */
 static int
 CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
@@ -1122,7 +1120,7 @@ UpCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (GetAxisDirFromObj(interp, objv[1], &axis, &sign) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::updir = (axis+1)*sign;
+    NanoVis::setCameraUpdir(Camera::AxisDirection((axis+1)*sign));
     return TCL_OK;
 }
 
@@ -1263,11 +1261,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
         TRACE("finish loading");
-
-        Vector3f scale = volume->getPhysicalScaling();
-        Vector3f loc(scale);
-        loc *= -0.5;
-        volume->location(loc);
 
         NanoVis::VolumeHashmap::iterator itr = NanoVis::volumeTable.find(tag);
         if (itr != NanoVis::volumeTable.end()) {

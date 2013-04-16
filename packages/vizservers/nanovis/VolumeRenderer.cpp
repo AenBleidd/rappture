@@ -21,7 +21,9 @@
 #include <GL/glew.h>
 
 #include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
 #include <vrmath/Matrix4x4d.h>
+#include <vrmath/BBox.h>
 
 #include "nanovis.h"
 #include "VolumeRenderer.h"
@@ -53,8 +55,8 @@ VolumeRenderer::~VolumeRenderer()
 void VolumeRenderer::initShaders()
 {
     _cutplaneShader = new Shader();
-    _cutplaneShader->loadVertexProgram("cutplane_vp.cg", "main");
-    _cutplaneShader->loadFragmentProgram("cutplane_fp.cg", "main");
+    _cutplaneShader->loadVertexProgram("cutplane_vp.cg");
+    _cutplaneShader->loadFragmentProgram("cutplane_fp.cg");
 
     //standard vertex program
     _stdVertexShader = new StdVertexShader();
@@ -66,7 +68,7 @@ void VolumeRenderer::initShaders()
     //This shader renders one orbital of the simulation.
     //A sim has S, P, D, SS orbitals. thus a full rendering requires 4 zincblende orbital volumes. 
     //A zincblende orbital volume is decomposed into 2 "interlocking" cubic 4-component volumes and passed to the shader. 
-    //We render each orbital with a independent transfer functions then blend the result.
+    //We render each orbital with independent transfer functions then blend the result.
     //
     //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
     //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
@@ -129,6 +131,10 @@ VolumeRenderer::renderAll()
     //number of actual slices for each volume
     size_t *actual_slices = new size_t[volumes.size()];
     float *z_steps = new float[volumes.size()];
+    float *sampleRatios = new float[volumes.size()];
+    Vector4f *objPlaneS = new Vector4f[volumes.size()];
+    Vector4f *objPlaneT = new Vector4f[volumes.size()];
+    Vector4f *objPlaneR = new Vector4f[volumes.size()];
 
     TRACE("start loop %d", volumes.size());
     for (size_t i = 0; i < volumes.size(); i++) {
@@ -142,18 +148,26 @@ VolumeRenderer::renderAll()
             n_slices <<= 1;
         }
 
-        //volume start location
-        Vector3f volPos = volume->location();
-        Vector3f volScaling = volume->getPhysicalScaling();
+        // Get any additional transforms on Volume
+        Vector3f volPos = volume->getPosition();
+        Vector3f volScale = volume->getScale();
+        // Get world coords of volume bbox
+        double x0 = volume->xAxis.min();
+        double y0 = volume->yAxis.min();
+        double z0 = volume->zAxis.min();
+        double x1 = volume->xAxis.max();
+        double y1 = volume->yAxis.max();
+        double z1 = volume->zAxis.max();
+        Vector3f worldMin(x0, y0, z0);
+        Vector3f worldMax(x1, y1, z1);
 
-        TRACE("VOL POS: %g %g %g",
-              volPos.x, volPos.y, volPos.z);
-        TRACE("VOL SCALE: %g %g %g",
-              volScaling.x, volScaling.y, volScaling.z);
-
-        double x0 = 0;
-        double y0 = 0;
-        double z0 = 0;
+        float edgeLengthX = volume->xAxis.length();
+        float edgeLengthY = volume->yAxis.length();
+        float edgeLengthZ = volume->zAxis.length();
+        // Texgen planes
+        objPlaneS[i].set(1./edgeLengthX, 0, 0, -volume->xAxis.min()/edgeLengthX);
+        objPlaneT[i].set(0, 1./edgeLengthY, 0, -volume->yAxis.min()/edgeLengthY);
+        objPlaneR[i].set(0, 0, 1./edgeLengthZ, -volume->zAxis.min()/edgeLengthZ);
 
         Matrix4x4d model_view_no_trans, model_view_trans;
         Matrix4x4d model_view_no_trans_inverse, model_view_trans_inverse;
@@ -161,15 +175,20 @@ VolumeRenderer::renderAll()
         //initialize volume plane with world coordinates
         nv::Plane volume_planes[6];
         volume_planes[0].setCoeffs( 1,  0,  0, -x0);
-        volume_planes[1].setCoeffs(-1,  0,  0,  x0+1);
+        volume_planes[1].setCoeffs(-1,  0,  0,  x1);
         volume_planes[2].setCoeffs( 0,  1,  0, -y0);
-        volume_planes[3].setCoeffs( 0, -1,  0,  y0+1);
+        volume_planes[3].setCoeffs( 0, -1,  0,  y1);
         volume_planes[4].setCoeffs( 0,  0,  1, -z0);
-        volume_planes[5].setCoeffs( 0,  0, -1,  z0+1);
+        volume_planes[5].setCoeffs( 0,  0, -1,  z1);
+
+        TRACE("VOL POS: %g %g %g",
+              volPos.x, volPos.y, volPos.z);
+        TRACE("VOL SCALE: %g %g %g",
+              volScale.x, volScale.y, volScale.z);
 
         //get modelview matrix with no translation
         glPushMatrix();
-        glScalef(volScaling.x, volScaling.y, volScaling.z);
+        glScalef(volScale.x, volScale.y, volScale.z);
 
         glEnable(GL_DEPTH_TEST);
 
@@ -184,7 +203,7 @@ VolumeRenderer::renderAll()
         //get modelview matrix with translation
         glPushMatrix();
         glTranslatef(volPos.x, volPos.y, volPos.z);
-        glScalef(volScaling.x, volScaling.y, volScaling.z);
+        glScalef(volScale.x, volScale.y, volScale.z);
 
         GLdouble mv_trans[16];
         glGetDoublev(GL_MODELVIEW_MATRIX, mv_trans);
@@ -199,9 +218,9 @@ VolumeRenderer::renderAll()
         if (volume->outline()) {
             float olcolor[3];
             volume->getOutlineColor(olcolor);
-            drawBoundingBox(x0, y0, z0, x0+1, y0+1, z0+1,
-                (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
-                1.5);
+            drawBoundingBox(x0, y0, z0, x1, y1, z1,
+                            olcolor[0], olcolor[1], olcolor[2],
+                            1.5);
         }
         glPopMatrix();
 
@@ -211,11 +230,13 @@ VolumeRenderer::renderAll()
         for (size_t j = 0; j < 6; j++) {
             volume_planes[j].transform(model_view_no_trans);
         }
-        double eyeMinX, eyeMaxX, eyeMinY, eyeMaxY, zNear, zFar;
-        getEyeSpaceBounds(model_view_no_trans, 
-                          eyeMinX, eyeMaxX,
-                          eyeMinY, eyeMaxY,
-                          zNear, zFar);
+        Vector3f eyeMin, eyeMax;
+        double zNear, zFar;
+        getEyeSpaceBounds(worldMin, worldMax,
+                          model_view_no_trans, 
+                          eyeMin, eyeMax);
+        zNear = eyeMax.z;
+        zFar = eyeMin.z;
 
         //compute actual rendering slices
         float z_step = fabs(zNear-zFar)/n_slices;
@@ -235,7 +256,21 @@ VolumeRenderer::renderAll()
         actual_slices[i] = n_actual_slices;
 
         TRACE("near: %g far: %g eye space bounds: (%g,%g)-(%g,%g) z_step: %g slices: %d",
-              zNear, zFar, eyeMinX, eyeMaxX, eyeMinY, eyeMaxY, z_step, n_actual_slices);
+              zNear, zFar, eyeMin.x, eyeMax.x, eyeMin.y, eyeMax.y, z_step, n_actual_slices);
+
+        // Compute opacity correction sample ratios
+        float defDist = z_step == 0.0f ? 1.0 : z_step;
+        float sampleDistX = (volume->width() > 1) ? edgeLengthX / (volume->width()-1) : defDist;
+        float sampleDistY = (volume->height() > 1) ? edgeLengthY / (volume->height()-1) : defDist;
+        float sampleDistZ = (volume->depth() > 1) ? edgeLengthZ / (volume->depth()-1) : defDist;
+        sampleDistX *= volScale.x;
+        sampleDistY *= volScale.y;
+        sampleDistZ *= volScale.z;
+        BBox voxelIn, voxelOut;
+        voxelIn.min.set(0,0,0);
+        voxelIn.max.set(sampleDistX, sampleDistY, sampleDistZ);
+        getEyeSpaceBounds(voxelIn.min, voxelIn.max, model_view_no_trans, voxelOut.min, voxelOut.max);
+        sampleRatios[i] = z_step / (voxelOut.max.z - voxelOut.min.z);
 
         Vector4f vert1, vert2, vert3, vert4;
 
@@ -248,35 +283,43 @@ VolumeRenderer::renderAll()
             if (!volume->isCutplaneEnabled(j)) {
                 continue;
             }
+            Vector4f texcoord1, texcoord2, texcoord3, texcoord4;
             float offset = volume->getCutplane(j)->offset;
             int axis = volume->getCutplane(j)->orient;
 
             switch (axis) {
-            case 1:
-                vert1 = Vector4f(offset, 0, 0, 1);
-                vert2 = Vector4f(offset, 1, 0, 1);
-                vert3 = Vector4f(offset, 1, 1, 1);
-                vert4 = Vector4f(offset, 0, 1, 1);
+            case CutPlane::X_AXIS: // YZ plane
+                vert1 = Vector4f(x0 + offset * (x1 - x0), y0, z0, 1);
+                vert2 = Vector4f(x0 + offset * (x1 - x0), y1, z0, 1);
+                vert3 = Vector4f(x0 + offset * (x1 - x0), y1, z1, 1);
+                vert4 = Vector4f(x0 + offset * (x1 - x0), y0, z1, 1);
+                texcoord1 = Vector4f(offset, 0, 0, 1);
+                texcoord2 = Vector4f(offset, 1, 0, 1);
+                texcoord3 = Vector4f(offset, 1, 1, 1);
+                texcoord4 = Vector4f(offset, 0, 1, 1);
                 break;
-            case 2:
-                vert1 = Vector4f(0, offset, 0, 1);
-                vert2 = Vector4f(1, offset, 0, 1);
-                vert3 = Vector4f(1, offset, 1, 1);
-                vert4 = Vector4f(0, offset, 1, 1);
+            case CutPlane::Y_AXIS: // XZ plane
+                vert1 = Vector4f(x0, y0 + offset * (y1 - y0), z0, 1);
+                vert2 = Vector4f(x1, y0 + offset * (y1 - y0), z0, 1);
+                vert3 = Vector4f(x1, y0 + offset * (y1 - y0), z1, 1);
+                vert4 = Vector4f(x0, y0 + offset * (y1 - y0), z1, 1);
+                texcoord1 = Vector4f(0, offset, 0, 1);
+                texcoord2 = Vector4f(1, offset, 0, 1);
+                texcoord3 = Vector4f(1, offset, 1, 1);
+                texcoord4 = Vector4f(0, offset, 1, 1);
                 break;
-            case 3:
+            case CutPlane::Z_AXIS: // XY plane
             default:
-                vert1 = Vector4f(0, 0, offset, 1);
-                vert2 = Vector4f(1, 0, offset, 1);
-                vert3 = Vector4f(1, 1, offset, 1);
-                vert4 = Vector4f(0, 1, offset, 1);
+                vert1 = Vector4f(x0, y0, z0 + offset * (z1 - z0), 1);
+                vert2 = Vector4f(x1, y0, z0 + offset * (z1 - z0), 1);
+                vert3 = Vector4f(x1, y1, z0 + offset * (z1 - z0), 1);
+                vert4 = Vector4f(x0, y1, z0 + offset * (z1 - z0), 1);
+                texcoord1 = Vector4f(0, 0, offset, 1);
+                texcoord2 = Vector4f(1, 0, offset, 1);
+                texcoord3 = Vector4f(1, 1, offset, 1);
+                texcoord4 = Vector4f(0, 1, offset, 1);
                 break;
             }
-
-            Vector4f texcoord1 = vert1;
-            Vector4f texcoord2 = vert2;
-            Vector4f texcoord3 = vert3;
-            Vector4f texcoord4 = vert4;
 
             _cutplaneShader->bind();
             _cutplaneShader->setFPTextureParameter("volume", volume->textureID());
@@ -284,7 +327,7 @@ VolumeRenderer::renderAll()
 
             glPushMatrix();
             glTranslatef(volPos.x, volPos.y, volPos.z);
-            glScalef(volScaling.x, volScaling.y, volScaling.z);
+            glScalef(volScale.x, volScale.y, volScale.z);
             _cutplaneShader->setGLStateMatrixVPParameter("modelViewProjMatrix",
                                                          Shader::MODELVIEW_PROJECTION_MATRIX);
             glPopMatrix();
@@ -313,10 +356,10 @@ VolumeRenderer::renderAll()
 
         // Initialize view-aligned quads with eye space bounds of
         // volume
-        vert1 = Vector4f(eyeMinX, eyeMinY, -0.5, 1);
-        vert2 = Vector4f(eyeMaxX, eyeMinY, -0.5, 1);
-        vert3 = Vector4f(eyeMaxX, eyeMaxY, -0.5, 1);
-        vert4 = Vector4f(eyeMinX, eyeMaxY, -0.5, 1);
+        vert1 = Vector4f(eyeMin.x, eyeMin.y, zFar, 1);
+        vert2 = Vector4f(eyeMax.x, eyeMin.y, zFar, 1);
+        vert3 = Vector4f(eyeMax.x, eyeMax.y, zFar, 1);
+        vert4 = Vector4f(eyeMin.x, eyeMax.y, zFar, 1);
 
         size_t counter = 0;
 
@@ -344,7 +387,7 @@ VolumeRenderer::renderAll()
             poly->appendVertex(vert4);
 
             for (size_t k = 0; k < 6; k++) {
-                if (!poly->clip(volume_planes[k], true))
+                if (!poly->clip(volume_planes[k], false))
                     break;
             }
 
@@ -383,35 +426,28 @@ VolumeRenderer::renderAll()
     glEnable(GL_BLEND);
 
     for (size_t i = 0; i < total_rendered_slices; i++) {
-        Volume *volume = NULL;
+        int volIdx = slices[i].volumeId;
+        int sliceIdx = slices[i].sliceId;
+        ConvexPolygon *currentSlice = polys[volIdx][sliceIdx];
 
-        int volume_index = slices[i].volumeId;
-        int slice_index = slices[i].sliceId;
-        ConvexPolygon *currentSlice = polys[volume_index][slice_index];
-        float z_step = z_steps[volume_index];
-
-        volume = volumes[volume_index];
-
-        Vector3f volScaling = volume->getPhysicalScaling();
+        Volume *volume = volumes[volIdx];
+        Vector3f volPos = volume->getPosition();
+        Vector3f volScale = volume->getScale();
 
         glPushMatrix();
-        glScalef(volScaling.x, volScaling.y, volScaling.z);
-
-        // FIXME: compute view-dependent volume sample distance
-        double avgSampleDistance = 1.0 / pow(volume->width() * volScaling.x * 
-                                             volume->height() * volScaling.y * 
-                                             volume->depth() * volScaling.z, 1.0/3.0);
-        float sampleRatio = z_step / avgSampleDistance;
+        glTranslatef(volPos.x, volPos.y, volPos.z);
+        glScalef(volScale.x, volScale.y, volScale.z);
 
 #ifdef notdef
-        TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d z_step=%g avgSD=%g", 
-              volume->name(), volume, slice_index, volume_index, z_step, avgSampleDistance);
+        float z_step = z_steps[volIdx];
+        TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d z_step=%g sampleRatio=%g", 
+              volume->name(), volume, sliceIdx, volIdx, z_step, sampleRatios[volIdx]);
 #endif
-        activateVolumeShader(volume, false, sampleRatio);
+        activateVolumeShader(volume, objPlaneS[volIdx], objPlaneT[volIdx], objPlaneR[volIdx], false, sampleRatios[volIdx]);
         glPopMatrix();
 
         glBegin(GL_POLYGON);
-        currentSlice->emit(true);
+        currentSlice->emit(false);
         glEnd();
 
         deactivateVolumeShader();
@@ -431,6 +467,10 @@ VolumeRenderer::renderAll()
     delete[] polys;
     delete[] actual_slices;
     delete[] z_steps;
+    delete[] objPlaneS;
+    delete[] objPlaneT;
+    delete[] objPlaneR;
+    delete[] sampleRatios;
     free(slices);
 }
 
@@ -438,7 +478,7 @@ void
 VolumeRenderer::drawBoundingBox(float x0, float y0, float z0, 
                                 float x1, float y1, float z1,
                                 float r, float g, float b, 
-                                float line_width)
+                                float lineWidth)
 {
     glPushAttrib(GL_ENABLE_BIT);
 
@@ -450,7 +490,7 @@ VolumeRenderer::drawBoundingBox(float x0, float y0, float z0,
     glPushMatrix();
 
     glColor4d(r, g, b, 1.0);
-    glLineWidth(line_width);
+    glLineWidth(lineWidth);
 
     glBegin(GL_LINE_LOOP);
     {
@@ -493,11 +533,15 @@ VolumeRenderer::drawBoundingBox(float x0, float y0, float z0,
 }
 
 void 
-VolumeRenderer::activateVolumeShader(Volume *volume, bool sliceMode,
+VolumeRenderer::activateVolumeShader(Volume *volume,
+                                     Vector4f& objPlaneS,
+                                     Vector4f& objPlaneT,
+                                     Vector4f& objPlaneR,
+                                     bool sliceMode,
                                      float sampleRatio)
 {
     //vertex shader
-    _stdVertexShader->bind();
+    _stdVertexShader->bind(objPlaneS, objPlaneT, objPlaneR);
     TransferFunction *transferFunc  = volume->transferFunction();
     if (volume->volumeType() == Volume::CUBIC) {
         _regularVolumeShader->bind(transferFunc->id(), volume, sliceMode, sampleRatio);
@@ -513,50 +557,15 @@ void VolumeRenderer::deactivateVolumeShader()
     _zincBlendeShader->unbind();
 }
 
-void VolumeRenderer::getEyeSpaceBounds(const Matrix4x4d& mv,
-                                       double& xMin, double& xMax,
-                                       double& yMin, double& yMax,
-                                       double& zNear, double& zFar)
+void VolumeRenderer::getEyeSpaceBounds(const Vector3f& worldMin,
+                                       const Vector3f& worldMax,
+                                       const Matrix4x4d& modelViewMatrix,
+                                       Vector3f& eyeMin, Vector3f& eyeMax)
 {
-    double x0 = 0;
-    double y0 = 0;
-    double z0 = 0;
-    double x1 = 1;
-    double y1 = 1;
-    double z1 = 1;
+    BBox bbox(worldMin, worldMax);
 
-    double zMin, zMax;
-    xMin = DBL_MAX;
-    xMax = -DBL_MAX;
-    yMin = DBL_MAX;
-    yMax = -DBL_MAX;
-    zMin = DBL_MAX;
-    zMax = -DBL_MAX;
+    bbox.transform(bbox, modelViewMatrix);
 
-    double vertex[8][4];
-
-    vertex[0][0]=x0; vertex[0][1]=y0; vertex[0][2]=z0; vertex[0][3]=1.0;
-    vertex[1][0]=x1; vertex[1][1]=y0; vertex[1][2]=z0; vertex[1][3]=1.0;
-    vertex[2][0]=x0; vertex[2][1]=y1; vertex[2][2]=z0; vertex[2][3]=1.0;
-    vertex[3][0]=x0; vertex[3][1]=y0; vertex[3][2]=z1; vertex[3][3]=1.0;
-    vertex[4][0]=x1; vertex[4][1]=y1; vertex[4][2]=z0; vertex[4][3]=1.0;
-    vertex[5][0]=x1; vertex[5][1]=y0; vertex[5][2]=z1; vertex[5][3]=1.0;
-    vertex[6][0]=x0; vertex[6][1]=y1; vertex[6][2]=z1; vertex[6][3]=1.0;
-    vertex[7][0]=x1; vertex[7][1]=y1; vertex[7][2]=z1; vertex[7][3]=1.0;
-
-    for (int i = 0; i < 8; i++) {
-        Vector4f eyeVert = mv.transform(Vector4f(vertex[i][0],
-                                                 vertex[i][1],
-                                                 vertex[i][2],
-                                                 vertex[i][3]));
-        if (eyeVert.x < xMin) xMin = eyeVert.x;
-        if (eyeVert.x > xMax) xMax = eyeVert.x;
-        if (eyeVert.y < yMin) yMin = eyeVert.y;
-        if (eyeVert.y > yMax) yMax = eyeVert.y;
-        if (eyeVert.z < zMin) zMin = eyeVert.z;
-        if (eyeVert.z > zMax) zMax = eyeVert.z;
-    }
-
-    zNear = zMax;
-    zFar = zMin;
+    eyeMin = bbox.min;
+    eyeMax = bbox.max;
 }

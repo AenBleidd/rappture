@@ -62,9 +62,8 @@ public:
         return &_sv;
     }
 
-    void getWorldSpaceBounds(vrmath::Vector3f& min,
-                             vrmath::Vector3f& max,
-                             const Volume *volume) const;
+    void getBounds(vrmath::Vector3f& min,
+                   vrmath::Vector3f& max) const;
 
 private:
     std::string _name;          ///< Name of this box in the hash table.

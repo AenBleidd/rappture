@@ -27,7 +27,7 @@ FlowParticles::FlowParticles(const char *name) :
 {
     _sv.position.value = 0.0f;
     _sv.position.flags = RELPOS;
-    _sv.position.axis = 0; // X_AXIS
+    _sv.position.axis = AXIS_Z;
     _sv.color.r = _sv.color.g = _sv.color.b = _sv.color.a = 1.0f;
     _sv.isHidden = false;
     _sv.particleSize = 1.2;
@@ -43,28 +43,59 @@ FlowParticles::~FlowParticles()
     Rappture::FreeSwitches(_switches, &_sv, 0);
 }
 
+float
+FlowParticles::getRelativePosition(FlowPosition *position)
+{
+    if (position->flags == RELPOS) {
+        return position->value;
+    }
+    switch (position->axis) {
+    case AXIS_X:  
+        return (position->value - _volume->xAxis.min()) / 
+            (_volume->xAxis.max() - _volume->xAxis.min()); 
+    case AXIS_Y:  
+        return (position->value - _volume->yAxis.min()) / 
+            (_volume->yAxis.max() - _volume->yAxis.min()); 
+    case AXIS_Z:  
+        return (position->value - _volume->zAxis.min()) / 
+            (_volume->zAxis.max() - _volume->zAxis.min()); 
+    }
+    return 0.0;
+}
+
 void
 FlowParticles::render() 
 {
     TRACE("Particles '%s' axis: %d pos: %g rel pos: %g",
           _name.c_str(), _sv.position.axis, _sv.position.value,
-          Flow::getRelativePosition(&_sv.position));
+          getRelativePosition(&_sv.position));
 
-    _renderer->setPos(Flow::getRelativePosition(&_sv.position));
+    _renderer->setPos(getRelativePosition(&_sv.position));
     _renderer->setAxis(_sv.position.axis);
     assert(_renderer->active());
     _renderer->render();
 }
 
-void 
+bool
 FlowParticles::configure() 
 {
-    _renderer->setPos(Flow::getRelativePosition(&_sv.position));
+    bool needReset = false;
+
     _renderer->setColor(Color4f(_sv.color.r,
                                 _sv.color.g,
                                 _sv.color.b, 
                                 _sv.color.a));
     _renderer->particleSize(_sv.particleSize);
-    _renderer->setAxis(_sv.position.axis);
+    if (_renderer->getAxis() != _sv.position.axis) {
+        needReset = true;
+        _renderer->setAxis(_sv.position.axis);
+    }
+    float pos = getRelativePosition(&_sv.position);
+    if (_renderer->getPos() != pos) {
+        needReset = true;
+        _renderer->setPos(pos);
+    }
     _renderer->active(!_sv.isHidden);
+
+    return needReset;
 }

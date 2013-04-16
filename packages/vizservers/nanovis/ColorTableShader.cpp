@@ -18,7 +18,7 @@ ColorTableShader::~ColorTableShader()
 
 void ColorTableShader::init()
 {
-    loadFragmentProgram("one_plane.cg", "main"); 
+    loadFragmentProgram("one_plane.cg"); 
 }
 
 void ColorTableShader::bind(Texture2D *plane, TransferFunction *tf)

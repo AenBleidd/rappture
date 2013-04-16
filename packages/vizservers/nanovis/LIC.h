@@ -12,6 +12,7 @@
 
 #include <vrmath/Vector3f.h>
 
+#include "FlowTypes.h"
 #include "Volume.h"
 #include "Shader.h"
 
@@ -20,7 +21,7 @@ namespace nv {
 class LIC
 { 
 public:
-    LIC(int size, int width, int height, int axis, float offset);
+    LIC(FlowSliceAxis axis = AXIS_Z, float offset = 0.f);
     ~LIC();
 
     /// project 3D vectors to a 2D slice for line integral convolution
@@ -29,51 +30,46 @@ public:
     /// Display the convolution result
     void render();
 
-    void makePatterns();
+    void setSlicePosition(float pos);
 
-    void makeMagnitudes();
-
-    void getVelocity(float x, float y, float *px, float *py);
-
-    void getSlice();
-
-    void setOffset(float offset);
+    float getSlicePosition() const
+    {
+        return _offset;
+    }
 
     /** 
      * @brief Specify the perpendicular axis
-     *
-     * 0 : x axis<br>
-     * 1 : y axis<br>
-     * 2 : z axis<br>
      */
-    void setAxis(int axis);
+    void setSliceAxis(FlowSliceAxis axis);
 
-    void setVectorField(unsigned int texID, const vrmath::Vector3f& origin,
-                        float scaleX, float scaleY, float scaleZ, float max);
+    FlowSliceAxis getSliceAxis() const
+    {
+        return _axis;
+    }
+
+    void setVectorField(Volume *volume);
 
     void reset();
 
     void visible(bool state)
     {
-	_isHidden = !state;
+	_visible = state;
     }
 
     bool visible() const
     {
-	return (!_isHidden);
-    }
-
-    void active(bool state)
-    {
-	_activate = state;
-    }
-
-    bool active() const
-    {
-	return _activate;
+	return _visible;
     }
 
 private:
+    void getVelocity(float x, float y, float *px, float *py);
+
+    void getSlice();
+
+    void makePatterns();
+
+    void makeMagnitudes();
+
     /**
      * @brief the normal vector of the LIC plane, 
      * the inherited Vector3 location is its center
@@ -88,8 +84,8 @@ private:
     vrmath::Vector3f _scale;             /**< Scaling factor stretching the lic
                                    plane to fit the actual dimensions */
     vrmath::Vector3f _origin;
-    float _offset;            ///< [0,1] offset of slice plane
-    int _axis;                ///< Axis normal to slice plane
+    float _offset;              ///< [0,1] offset of slice plane
+    FlowSliceAxis _axis;        ///< Axis normal to slice plane
 
     //some convolve variables. They can pretty much stay fixed
     int _iframe;
@@ -113,8 +109,7 @@ private:
     /**
      * flag for rendering
      */
-    bool _activate;
-    bool _isHidden;			// Indicates if LIC plane is displayed.
+    bool _visible;			// Indicates if LIC plane is displayed.
 };
 
 }

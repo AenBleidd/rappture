@@ -21,15 +21,12 @@ CGprofile Shader::_defaultVertexProfile = CG_PROFILE_VP40;
 CGprofile Shader::_defaultFragmentProfile = CG_PROFILE_FP40;
 CGcontext Shader::_cgContext = NULL;
 
-void Shader::initCg(CGprofile defaultVertexProfile,
-                    CGprofile defaultFragmentProfile)
+void Shader::init()
 {
-    _defaultVertexProfile = defaultVertexProfile;
-    _defaultFragmentProfile = defaultFragmentProfile;
     _cgContext = cgCreateContext();
 }
 
-void Shader::exitCg()
+void Shader::exit()
 {
     setErrorCallback(NULL);
     printErrorInfo();
@@ -93,23 +90,23 @@ Shader::~Shader()
     }
 }
 
-void Shader::loadVertexProgram(const char *fileName, const char *entryPoint)
+void Shader::loadVertexProgram(const char *fileName)
 {
     if (_cgVP != NULL) {
         cgDestroyProgram(_cgVP);
     }
     _cgVP = loadCgSourceProgram(_cgContext, fileName,
-                                _vertexProfile, entryPoint);
+                                _vertexProfile, "main");
     _vpFile = fileName;
 }
 
-void Shader::loadFragmentProgram(const char *fileName, const char *entryPoint)
+void Shader::loadFragmentProgram(const char *fileName)
 {
     if (_cgFP != NULL) {
         cgDestroyProgram(_cgFP);
     }
     _cgFP = loadCgSourceProgram(_cgContext, fileName,
-                                _fragmentProfile, entryPoint);
+                                _fragmentProfile, "main");
     _fpFile = fileName;
 }
 
@@ -126,7 +123,7 @@ void Shader::resetPrograms()
     }
 }
 
-void Shader::setErrorCallback(CgCallbackFunction callback)
+void Shader::setErrorCallback(ShaderCallbackFunction callback)
 {
     TRACE("Shader setting error callback to: %p", callback);
     cgSetErrorCallback(callback);

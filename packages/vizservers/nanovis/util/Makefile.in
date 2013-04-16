@@ -56,7 +56,7 @@ $(NVUTILLIB): $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 clean:
-	$(RM) $(NVUTILLIB) $(OBJS)
+	$(RM) *.a *.o
 
 distclean: clean
 	$(RM) Makefile *~

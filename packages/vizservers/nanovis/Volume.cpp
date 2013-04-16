@@ -30,8 +30,7 @@ bool Volume::updatePending = false;
 double Volume::valueMin = 0.0;
 double Volume::valueMax = 1.0;
 
-Volume::Volume(float x, float y, float z,
-               int w, int h, int d,
+Volume::Volume(int w, int h, int d,
                int n, float *data,
                double v0, double v1, double nonZeroMin) :
     _id(0),
@@ -49,7 +48,8 @@ Volume::Volume(float x, float y, float z,
     _numComponents(n),
     _nonZeroMin(nonZeroMin),
     _tex(NULL),
-    _location(x, y, z),
+    _position(0,0,0),
+    _scale(1,1,1),
     _numSlices(512),
     _enabled(true),
     _dataEnabled(true),
@@ -64,16 +64,8 @@ Volume::Volume(float x, float y, float z,
     _tex = new Texture3D(_width, _height, _depth, GL_FLOAT, GL_LINEAR, n);
     int fcount = _width * _height * _depth * _numComponents;
     _data = new float[fcount];
-    if (data != NULL) {
-        TRACE("data is copied");
-        memcpy(_data, data, fcount * sizeof(float));
-        _tex->initialize(_data);
-    } else {
-        TRACE("data is null");
-        memset(_data, 0, sizeof(_width * _height * _depth * _numComponents * 
-				sizeof(float)));
-        _tex->initialize(_data);
-    }
+    memcpy(_data, data, fcount * sizeof(float));
+    _tex->initialize(_data);
 
     _id = _tex->id();
 
@@ -82,9 +74,9 @@ Volume::Volume(float x, float y, float z,
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.
     _plane.clear();
-    addCutplane(1, 0.5f);
-    addCutplane(2, 0.5f);
-    addCutplane(3, 0.5f);
+    addCutplane(CutPlane::X_AXIS, 0.5f);
+    addCutplane(CutPlane::Y_AXIS, 0.5f);
+    addCutplane(CutPlane::Z_AXIS, 0.5f);
 
     TRACE("Leave");
 }
@@ -97,40 +89,18 @@ Volume::~Volume()
     delete _tex;
 }
 
-void Volume::getWorldSpaceBounds(Vector3f& bboxMin, Vector3f& bboxMax) const
+void Volume::setData(float *data, double v0, double v1, double nonZeroMin)
 {
-    Vector3f scale = getPhysicalScaling();
+    int fcount = _width * _height * _depth * _numComponents;
+    memcpy(_data, data, fcount * sizeof(float));
+    _tex->update(_data);
+    wAxis.setRange(v0, v1);
+    _nonZeroMin = nonZeroMin;
+    updatePending = true;
+}
 
-    Matrix4x4d mat;
-    mat.makeTranslation(_location);
-    Matrix4x4d mat2;
-    mat2.makeScale(scale);
-
-    mat.multiply(mat2);
-
-    bboxMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
-    bboxMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-    Vector3f modelMin(0, 0, 0);
-    Vector3f modelMax(1, 1, 1);
-
-    Vector4f bvert[8];
-    bvert[0] = Vector4f(modelMin.x, modelMin.y, modelMin.z, 1);
-    bvert[1] = Vector4f(modelMax.x, modelMin.y, modelMin.z, 1);
-    bvert[2] = Vector4f(modelMin.x, modelMax.y, modelMin.z, 1);
-    bvert[3] = Vector4f(modelMin.x, modelMin.y, modelMax.z, 1);
-    bvert[4] = Vector4f(modelMax.x, modelMax.y, modelMin.z, 1);
-    bvert[5] = Vector4f(modelMax.x, modelMin.y, modelMax.z, 1);
-    bvert[6] = Vector4f(modelMin.x, modelMax.y, modelMax.z, 1);
-    bvert[7] = Vector4f(modelMax.x, modelMax.y, modelMax.z, 1);
-
-    for (int i = 0; i < 8; i++) {
-        Vector4f worldVert = mat.transform(bvert[i]);
-        if (worldVert.x < bboxMin.x) bboxMin.x = worldVert.x;
-        if (worldVert.x > bboxMax.x) bboxMax.x = worldVert.x;
-        if (worldVert.y < bboxMin.y) bboxMin.y = worldVert.y;
-        if (worldVert.y > bboxMax.y) bboxMax.y = worldVert.y;
-        if (worldVert.z < bboxMin.z) bboxMin.z = worldVert.z;
-        if (worldVert.z > bboxMax.z) bboxMax.z = worldVert.z;
-    }
+void Volume::getBounds(Vector3f& bboxMin, Vector3f& bboxMax) const
+{
+    bboxMin.set(xAxis.min(), yAxis.min(), zAxis.min());
+    bboxMax.set(xAxis.max(), yAxis.max(), zAxis.max());
 }

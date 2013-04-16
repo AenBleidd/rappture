@@ -23,12 +23,11 @@
 using namespace nv;
 using namespace vrmath;
 
-ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
-                                   int w, int h, int d, int n, 
+ZincBlendeVolume::ZincBlendeVolume(int w, int h, int d, int n, 
                                    float *dataVolumeA, float *dataVolumeB,
                                    double v0, double v1, double non_zeromin,
                                    const Vector3f& cellSz) :
-    Volume(x, y, z, w, h, d, n, dataVolumeA, v0, v1, non_zeromin),
+    Volume(w, h, d, n, dataVolumeA, v0, v1, non_zeromin),
     cellSize(cellSz)
 {
     //label it as zincblende
@@ -48,9 +47,7 @@ ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
 
 ZincBlendeVolume::~ZincBlendeVolume()
 { 
-    // This data will be deleted in a destrutor of Volume class
-    //if (zincblende_tex[0])
-    //  delete zincblende_tex[0];
+    // First texture will be deleted in ~Volume()
     if (zincblendeTex[1])
 	delete zincblendeTex[1];
 }

@@ -398,7 +398,7 @@ private:
 				 * tight, they lie interior to the limits of
 				 * the data. */
 
-    double _range;		/**< Range of values on axis (max_ - min_) */
+    double _range;		/**< Range of values on axis (_max - _min) */
     double _scale;		/**< Scale factor for axis (1.0/_range) */
 
     double _reqStep;		/**< If > 0.0, overrides the computed major tick

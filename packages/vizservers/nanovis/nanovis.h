@@ -30,9 +30,12 @@
 #include <iostream>
 #include <tr1/unordered_map>
 
+#include <vrmath/BBox.h>
 #include <vrmath/Vector3f.h>
 
 #include "config.h"
+#include "Camera.h"
+#include "FlowTypes.h"
 #include "md5.h"
 
 //defines for the image based flow visualization
@@ -47,7 +50,6 @@ namespace util {
     class Fonts;
 }
 
-class Camera;
 class Flow;
 class Grid;
 class HeightMap;
@@ -63,20 +65,6 @@ class VolumeRenderer;
 class NanoVis
 {
 public:
-    enum AxisDirections { 
-        X_POS = 1,
-        Y_POS = 2,
-        Z_POS = 3,
-        X_NEG = -1,
-        Y_NEG = -2,
-        Z_NEG = -3
-    };
-
-    enum NanoVisFlags { 
-	REDRAW_PENDING = (1 << 0), 
-	MAP_FLOWS = (1 << 1)
-    };
-
     typedef std::string TransferFunctionId;
     typedef std::string VolumeId;
     typedef std::string FlowId;
@@ -97,16 +85,16 @@ public:
 
     static const Camera *getCamera()
     {
-        return cam;
+        return _camera;
     }
-    static void pan(float dx, float dy);
-    static void zoom(float z);
+    static void panCamera(float dx, float dy);
+    static void zoomCamera(float z);
+    static void orientCamera(double *quat);
+    static void setCameraPosition(vrmath::Vector3f pos);
+    static void setCameraUpdir(Camera::AxisDirection dir);
     static void resetCamera(bool resetOrientation = false);
 
-    static void eventuallyRedraw(unsigned int flag = 0);
-
-    static void setVolumeRanges();
-    static void setHeightmapRanges();
+    static void eventuallyRedraw();
  
     static TransferFunction *getTransferFunction(const TransferFunctionId& id);
     static TransferFunction *defineTransferFunction(const TransferFunctionId& id, 
@@ -132,11 +120,14 @@ public:
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     }
 
+    static void setVolumeRanges();
+    static void setHeightmapRanges();
+    static bool mapFlows();
+
     static Flow *getFlow(const char *name);
     static Flow *createFlow(Tcl_Interp *interp, const char *name);
     static void deleteFlows(Tcl_Interp *interp);
     static void deleteFlow(const char *name);
-    static bool mapFlows();
     static void getFlowBounds(vrmath::Vector3f& min,
                               vrmath::Vector3f& max,
                               bool onlyVisible = false);
@@ -147,17 +138,15 @@ public:
 
     static Tcl_Interp *interp;
 
-    static unsigned int flags;
+    static bool redrawPending;
     static bool debugFlag;
 
     static int winWidth;	///< Width of the render window
     static int winHeight;	///< Height of the render window
-    static int renderWindow;    //< GLUT handle for the render window
+    static int renderWindow;    ///< GLUT handle for the render window
     static unsigned char *screenBuffer;
     static Texture2D *legendTexture;
     static util::Fonts *fonts;
-    static int updir;
-    static Camera *cam;
     static graphics::RenderContext *renderContext;
 
     static TransferFunctionHashmap tfTable; ///< maps transfunc name to TransferFunction object
@@ -165,9 +154,7 @@ public:
     static FlowHashmap flowTable;
     static HeightMapHashmap heightMapTable;
 
-    static double magMin, magMax;
-    static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-    static vrmath::Vector3f sceneMin, sceneMax;
+    static vrmath::BBox sceneBounds;
 
     static VolumeRenderer *volRenderer;
     static VelocityArrowsSlice *velocityArrowsSlice;
@@ -179,8 +166,7 @@ public:
 private:
     static void collectBounds(bool onlyVisible = false);
 
-    static float _licSlice;  ///< Slice position [0,1]
-    static int _licAxis;     ///< Slice axis: 0:x, 1:y, 2:z
+    static Camera *_camera;
 
     //frame buffer for final rendering
     static GLuint _finalFbo, _finalColorTex, _finalDepthRb;

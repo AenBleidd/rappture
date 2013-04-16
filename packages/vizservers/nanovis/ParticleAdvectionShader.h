@@ -19,7 +19,7 @@ public:
 
     virtual ~ParticleAdvectionShader();
 
-    virtual void bind(unsigned int texID, unsigned int initPosTexID);
+    virtual void bind(unsigned int texID, unsigned int initPosTexID, bool init);
 
     virtual void unbind();
 

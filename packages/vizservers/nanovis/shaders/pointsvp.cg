@@ -1,4 +1,10 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Authors:
+ *   Wei Qiao <qiaow@purdue.edu>
+ */
 
 void main(in float4 posin : POSITION,
           in float4 colin : COLOR0,
@@ -10,16 +16,16 @@ void main(in float4 posin : POSITION,
           uniform float4 posoffset,
           uniform float4 basepos,
           uniform float4 scale,		
-          uniform float4x4 modelview,
-          uniform float4x4 projection)
+          uniform float4x4 modelView,
+          uniform float4x4 modelViewProj)
 {
     float4 vec, homeye, eye;
     vec.xyz = posin.xyz;
     vec.w = 1.0;
-    homeye = mul(modelview, vec);
-    posout = mul(projection, homeye);
+    homeye = mul(modelView, vec);
+    posout = mul(modelViewProj, posin);
 
-    float4 p = mul(modelview, vec);
+    float4 p = mul(modelView, vec);
     //psize = scale.x   *(p.w / -p.z) * 10;
 
     //psize = 5 * scale.x;
@@ -38,7 +44,7 @@ void main(in float4 posin : POSITION,
       vec.xyz = posin.xyz;//(posin.xyz + posoffset.www) * basepos.www + basepos.xyz;
       vec.w = 1.0;
 
-      homeye = mul(modelview, vec);
+      homeye = mul(modelView, vec);
       posout = mul(projection, homeye);
 
       //eye = homeye / homeye.w;

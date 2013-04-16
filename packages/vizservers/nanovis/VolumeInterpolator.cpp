@@ -31,7 +31,7 @@ VolumeInterpolator::VolumeInterpolator() :
 
 void VolumeInterpolator::start()
 {
-    if (_volumes.size() > 0) {
+    if (!_volumes.empty()) {
         TRACE("Volume Interpolation Started");
         _started = true;
     } else {
@@ -127,7 +127,7 @@ VolumeInterpolator::clearAll()
 void
 VolumeInterpolator::addVolume(Volume *volume)
 {
-    if (_volumes.size() != 0) {
+    if (!_volumes.empty()) {
         if (_volumes[0]->width() != volume->width() || 
             _volumes[0]->height() != volume->height() ||   
             _volumes[0]->depth() != volume->depth() || 
@@ -139,9 +139,7 @@ VolumeInterpolator::addVolume(Volume *volume)
         _dataCount = volume->width() * volume->height() * volume->depth();
         _numComponents = volume->numComponents();
         _numBytes = _dataCount * _numComponents * sizeof(float);
-        Vector3f loc = volume->location();
-        _volume = new Volume(loc.x, loc.y, loc.z,
-                             volume->width(),
+        _volume = new Volume(volume->width(),
                              volume->height(),
                              volume->depth(), 
                              volume->numComponents(), 
@@ -150,7 +148,8 @@ VolumeInterpolator::addVolume(Volume *volume)
                              volume->wAxis.max(), 
                              volume->nonZeroMin());
 
-        _volume->numSlices(256-1);
+        _volume->setPosition(volume->getPosition());
+        _volume->setScale(volume->getScale());
         _volume->disableCutplane(0);
         _volume->disableCutplane(1);
         _volume->disableCutplane(2);
@@ -162,15 +161,12 @@ VolumeInterpolator::addVolume(Volume *volume)
         _volume->specularExponent(volume->specularExponent());
         _volume->opacityScale(volume->opacityScale());
         _volume->isosurface(0);
-        TRACE("VOL : location %f %f %f\n\tid : %s", loc.x, loc.y, loc.z, 
-               volume->name());
     }
-    _volumes.push_back(_volume);
-    TRACE("a Volume[%s] is added to VolumeInterpolator", volume->name());
+    _volumes.push_back(volume);
+    TRACE("Volume \"%s\" is added to VolumeInterpolator", volume->name());
 }
 
 Volume *VolumeInterpolator::getVolume()
 {
     return _volume;
-    //return _volumes[0];
 }

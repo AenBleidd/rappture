@@ -82,4 +82,3 @@ inline int Fonts::getFontHeight() const
 }
 
 #endif
-
