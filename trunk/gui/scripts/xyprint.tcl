@@ -1450,7 +1450,7 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
             continue
         }
         set axis [list $axis]
-        append out "    if \{ \[preview axis names $axis] == $axis \} \{\n"
+        append out "    if \{ [llength [preview axis names $axis]] == 1 \} \{\n"
         append out "        preview axis configure $axis"
         foreach opt { -hide -min -max -loose -title -stepsize -subdivisions } {
             set value [$_clone axis cget $axis $opt]
