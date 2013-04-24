@@ -122,7 +122,7 @@ itcl::body Rappture::BooleanEntry::value {args} {
             # someday we may add validation...
             return
         }
-        set newval [lindex $args 0]
+        set newval [string trim [lindex $args 0]]
         $itk_component(switch) value $newval
         event generate $itk_component(hull) <<Value>>
         return $newval
