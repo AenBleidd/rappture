@@ -40,50 +40,42 @@ Error code, err=0 on success, anything else is failure.")
     // The list of values to return.
     octave_value_list retval;
     int err = 1;
-    int nargin = args.length ();
-    std::string path = "";
-    int libHandle = 0;
-    RpLibrary* lib = NULL;
+    int argc;
     std::string retStr = "";
 
-    if (nargin == 2) {
-
-        if (    args(0).is_real_scalar () &&
-                args(1).is_string      ()   ) {
+    argc = args.length();
+    if (argc == 2) {
+        if ((args(0).is_real_scalar()) && (args(1).is_string())) {
+	    std::string path;
+	    int libHandle;
 
             libHandle = args(0).int_value ();
-            path = args(1).string_value ();
 
+            path = args(1).string_value ();
             /* Call the C subroutine. */
             // path can be an empty string
-            if ( (libHandle >= 0) ) {
+            if (libHandle >= 0) {
+		RpLibrary* lib;
 
                 lib = (RpLibrary*) getObject_Void(libHandle);
-
-                if (lib) {
-                    retStr = lib->getString(path);
-                    err = 0;
+                if (lib != NULL) {
+		    retval(0) = lib->getString(path);
+		    retval(1) = 0;
+		    return retval;
                 }
-                else {
-                    // lib was null (not found in dictionary)
-                }
-            }
-            else {
+            } else {
                 // invalid libHandle
-                _PRINT_USAGE (who.c_str());
+                _PRINT_USAGE(who.c_str());
             }
-        }
-        else {
+        } else {
             // wrong arg types
-            _PRINT_USAGE (who.c_str());
+            _PRINT_USAGE(who.c_str());
         }
-    }
-    else {
+    } else {
         // wrong number of args.
-        _PRINT_USAGE (who.c_str());
+        _PRINT_USAGE(who.c_str());
     }
-
     retval(0) = retStr;
-    retval(1) = err;
+    retval(1) = 1;
     return retval;
 }

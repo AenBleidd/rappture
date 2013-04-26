@@ -85,7 +85,7 @@ RbRp_GetString(VALUE self, VALUE path)
    result = lib->getString(GetStdString(path));
       
    /* Return a Ruby VALUE */
-   return rb_str_new2(result.c_str());
+   return rb_str_new(result.c_str(), result.length());
 
 }  /* end RbRp_GetString */
 

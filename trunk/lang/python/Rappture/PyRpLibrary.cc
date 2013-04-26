@@ -470,14 +470,9 @@ static PyObject *
 GetProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char* path = (char *)"";
-
     PyObject* decode = NULL;
     int decodeFlag;
-
-    PyObject* retVal = NULL;
-    std::string retValStr = "";
-    Rappture::Buffer retValBuf;
-
+    PyObject *resultPtr = NULL;
     int argc = 0;
 
     static char *kwlist[] = {
@@ -516,13 +511,17 @@ GetProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
         return NULL;
     }
     if (decodeFlag) {
-        retValStr = self->lib->get(std::string(path));
-        retVal = PyString_FromStringAndSize(retValStr.c_str(),retValStr.size());
+	std::string s;
+
+        s = self->lib->get(std::string(path));
+        resultPtr = PyString_FromStringAndSize(s.c_str(), s.size());
     } else {
-        retValBuf = self->lib->getData(std::string(path));
-        retVal = PyString_FromStringAndSize(retValBuf.bytes(),retValBuf.size());
+	Rappture::Buffer out;
+
+        out = self->lib->getData(std::string(path));
+        resultPtr = PyString_FromStringAndSize(out.bytes(), out.size());
     }
-    return (PyObject *)retVal;
+    return (PyObject *)resultPtr;
 }
 
 #ifdef notdef
