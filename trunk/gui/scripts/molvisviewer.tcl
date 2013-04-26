@@ -764,7 +764,6 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
         array unset _imagecache 
         set _cacheid $cacheid
     }
-    #debug "reading $size bytes from proxy\n"
     set data [ReceiveBytes $size]
     #debug "success: reading $size bytes from proxy\n"
     if { [string match "print*" $cacheid] } {
@@ -963,11 +962,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             if {"" != $data1} {
                 # Save the PDB data in case the user wants to later save it.
                 set _pdbdata $data1
-                set nBytes [string length $data1]
+                set numBytes [string length $data1]
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
-                ServerCmd "loadpdb -defer follows $model $state $nBytes"
+                ServerCmd "loadpdb -defer follows $model $state $numBytes"
                 append _outbuf $data1
                 set _dataobjs($model-$state)  1
             }
@@ -976,11 +975,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             if {"" != $data2} {
                 # Save the PDB data in case the user wants to later save it.
                 set _pdbdata $data2
-                set nBytes [string length $data2]
+                set numBytes [string length $data2]
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
-                ServerCmd "loadpdb -defer follows $model $state $nBytes"
+                ServerCmd "loadpdb -defer follows $model $state $numBytes"
                 append _outbuf $data2
                 set _dataobjs($model-$state)  1
             }
@@ -1025,11 +1024,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 if {"" != $data3} {
                     # Save the PDB data in case the user wants to later save it.
                     set _pdbdata $data3
-                    set nBytes [string length $data3]
+                    set numBytes [string length $data3]
 
                     # We know we're buffered here, so append the "loadpdb" 
                     # command with the data payload immediately afterwards.
-                    ServerCmd "loadpdb -defer follows $model $state $nBytes"
+                    ServerCmd "loadpdb -defer follows $model $state $numBytes"
                     append _outbuf $data3
                 }
                 set _dataobjs($model-$state) 1

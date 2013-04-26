@@ -17,6 +17,18 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Drawing {
+    private variable _drawing
+    private variable _xmlobj 
+    private variable _actors 
+    private variable _styles 
+    private variable _shapes 
+    private variable _labels 
+    private variable _types 
+    private variable _data 
+    private variable _hints
+    private variable _units
+    private variable _limits
+
     constructor {xmlobj path} { 
         # defined below 
     }
@@ -32,19 +44,9 @@ itcl::class Rappture::Drawing {
     public method data { elem }
     public method hints {{keyword ""}} 
     public method components { args } 
-
-    private variable _drawing
-    private variable _xmlobj 
-    private variable _actors 
-    private variable _styles 
-    private variable _shapes 
-    private variable _labels 
-    private variable _types 
-    private variable _data 
-    private variable _hints
-    private variable _units
-    private variable _limits
+    private method PdbToVtk { cname contents } 
 }
+
 
 # ----------------------------------------------------------------------
 # Constructor
@@ -96,7 +98,12 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
                 set _types($elem) glyphs
             }
             molecule* {
-                set _data($elem) [$_xmlobj get $path.$elem.vtk]
+                set pdbdata [$_xmlobj get $path.$elem.pdb]
+                if { $pdbdata != "" } {
+                    set contents [PdbToVTk $elem $pdbdata]
+                } else {
+                    set contents [$_xmlobj get $path.$elem.vtk]
+                }
 		set _data($elem) [string trim $_data($elem)]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
@@ -329,3 +336,43 @@ itcl::body Rappture::Drawing::hints { {keyword ""} } {
     return [array get _hints]
 }
 
+
+itcl::body Rappture::Drawing::PdbToVtk { cname contents } {
+    package require vtk
+
+    set reader $this-datasetreader
+    vtkPDBReader $reader
+
+    # Write the contents to a file just in case it's binary.
+    set tmpfile $cname[pid].pdb
+    set f [open "$tmpfile" "w"]
+    fconfigure $f -translation binary -encoding binary
+    puts $f $contents
+    close $f
+    $reader SetFileName $tmpfile
+    $reader Update
+    file delete $tmpfile
+
+    set output [$reader GetOutput]
+    set pointData [$output GetPointData]
+    set _scalars {}
+    for { set i 0 } { $i < [$pointData GetNumberOfArrays] } { incr i } {
+        set name [$pointData GetArrayName $i]
+	lappend _scalars $name $name "???"
+    }
+    set tmpfile $cname[pid].vtk
+    set writer $this-datasetwriter
+    vtkDataSetWriter $writer
+    $writer SetInputConnection [$reader GetOutputPort]
+    $writer SetFileName $tmpfile
+    $writer Write
+    rename $reader ""
+    rename $writer ""
+
+    set f [open "$tmpfile" "r"]
+    fconfigure $f -translation binary -encoding binary
+    set vtkdata [read $f]
+    close $f
+    file delete $tmpfile
+    return $vtkdata
+}
