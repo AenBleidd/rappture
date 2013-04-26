@@ -196,12 +196,14 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
             }
 
             # if this is a group, then build that group
-            if {[$xmlobj element -as type $path.$cname] == "group"} {
-                if {[$xmlobj element -as id $path.$cname] == "ambient"
+            if {[$xmlobj element -as type $path.$cname] eq "group"} {
+                if {[$xmlobj element -as id $path.$cname] eq "ambient"
                        && $deveditor != ""} {
                     set w [$deveditor component top]
                 } else {
-                    if {[catch {$frame.cntls insert end $path.$cname} c]} {
+                    if {[$_owner widgetfor $path.$cname] ne ""} {
+                        # widget already created -- skip this
+                    } elseif {[catch {$frame.cntls insert end $path.$cname} c]} {
                         global errorInfo
                         error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
                     } else {
@@ -211,7 +213,9 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                 }
                 _buildGroup $w $xmlobj $path.$cname
             } else {
-                if {[catch {$frame.cntls insert end $path.$cname} c]} {
+                if {[$_owner widgetfor $path.$cname] ne ""} {
+                    # widget already created -- skip this
+                } elseif {[catch {$frame.cntls insert end $path.$cname} c]} {
                     global errorInfo
                     error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
                 }

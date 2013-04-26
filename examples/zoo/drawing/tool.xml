@@ -92,13 +92,6 @@ Height = ${feature_height}</text>
      <font>Arial 11</font>
      <anchor>nw</anchor>
     </text>
-    <hotspot id="feature_height">
-     <coords>.95 .53</coords>
-     <controls>input.choice(analysis)</controls>
-     <controls>input.number(feature_height)</controls>
-     <controls>input.number(feature_length)</controls>
-     <controls>input.number(substrate_length)</controls>
-    </hotspot>
     <line id="substrate_length">
      <coords>0 .8 1 .8</coords>
      <color>black</color>
@@ -132,18 +125,21 @@ Height = ${feature_height}</text>
      <color>red</color>
      <linewidth>2</linewidth>
     </line>
+    <rectangle id="border">
+     <coords>-0.05 0.05 0.3 0.35</coords>
+     <outline>black</outline>
+     <linewidth>5</linewidth>
+    </rectangle>
     <picture id="analysis">
-     <coords>-.08 .06 0.17 0.15</coords>
-     <contents>file:images/${analysis}_F-d.png</contents>
-     <anchor>nw</anchor>
+     <coords>-0.05 0.05 0.3 0.35</coords>
+     <contents>file://images/${analysis}_F-d.png</contents>
     </picture>
     <text id="analysis">
-     <coords>.05 .4</coords>
+     <coords>.125 .36</coords>
      <color>black</color>
      <text>${analysis}</text>
      <font>Arial 11</font>
      <anchor>n</anchor>
-     <hotspot>inline</hotspot>
     </text>
     <text id="string">
      <coords>-.03 .85</coords>

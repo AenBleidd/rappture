@@ -85,10 +85,10 @@ io.result(0)
   output image {
     code "\n# save output value for $path"
     code "# data should be base64-encoded image data"
-    code "io.put(\"$path.current\", imdata)"
+    code "io.put(\"$path.current\", imdata, Rappture::OVERWRITE)"
   }
   output * {
     code "\n# save output value for $path"
-    code "io.put(\"$path.current\",$id)"
+    code "io.put(\"$path.current\",$id, Rappture::OVERWRITE)"
   }
 }

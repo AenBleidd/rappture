@@ -114,10 +114,8 @@ itcl::body Rappture::Controls::destructor {} {
 # methods.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::insert {pos path} {
-    if {"end" == $pos} {
-        set pos [llength $_controls]
-    } elseif {![string is integer $pos]} {
-        error "bad index \"$pos\": should be integer or \"end\""
+    if {$pos ne "end" && ![string is integer $pos]} {
+        set pos [index $pos]
     }
 
     incr _counter
@@ -266,17 +264,12 @@ itcl::body Rappture::Controls::insert {pos path} {
         }
     }
     set _name2info($name-enable) $enable
-
-    set hidden [string trim [$_owner xml get $_name2info($name-path).hide]]
-    if { $hidden != "" } {
-	set _name2info($name-enable) [expr !$hidden]
-    }
     $_owner widgetfor $path $w
 
-    if {[lsearch {control group separator note} $type] < 0} {
+    if {[lsearch {control group drawing separator note} $type] < 0} {
         # make a label for this control
         set label [$w label]
-        if {"" != $label} {
+        if {$label ne ""} {
             set _name2info($name-label) $_frame.l$name
             set font [option get $itk_component(hull) labelFont Font]
             label $_name2info($name-label) -text [_formatLabel $label] \
@@ -285,11 +278,11 @@ itcl::body Rappture::Controls::insert {pos path} {
 
         # register the tooltip for this control
         set tip [$w tooltip]
-        if {"" != $tip} {
+        if {$tip ne ""} {
             Rappture::Tooltip::for $w $tip -log $path
 
             # add the tooltip to the label too, if there is one
-            if {$_name2info($name-label) != ""} {
+            if {$_name2info($name-label) ne ""} {
                 Rappture::Tooltip::for $_name2info($name-label) $tip -log $path
             }
         }
@@ -320,11 +313,11 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
     if {$last == ""} {
         set last $first
     }
-    if {![regexp {^[0-9]+|end$} $first]} {
-        error "bad index \"$first\": should be integer or \"end\""
+    if {![string is integer $first]} {
+        set first [index $first]
     }
-    if {![regexp {^[0-9]+|end$} $last]} {
-        error "bad index \"$last\": should be integer or \"end\""
+    if {![string is integer $last]} {
+        set last [index $last]
     }
 
     foreach name [lrange $_controls $first $last] {
@@ -345,23 +338,34 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: index <name>|@n
+# USAGE: index <name>|<path>|@n|end
 #
 # Clients use this to convert a control <name> into its corresponding
 # integer index.  Returns an error if the <name> is not recognized.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Controls::index {name} {
-    set i [lsearch $_controls $name]
+itcl::body Rappture::Controls::index {val} {
+    set i [lsearch $_controls $val]
     if {$i >= 0} {
         return $i
     }
-    if {[regexp {^@([0-9]+)$} $name match i]} {
+    if {[regexp {^@([0-9]+)$} $val match i]} {
         return $i
     }
-    if {$name == "end"} {
+    if {$val eq "end"} {
         return [expr {[llength $_controls]-1}]
     }
-    error "bad control name \"$name\": should be @int or one of [join [lsort $_controls] {, }]"
+
+    # treat as a path name and search for this path
+    foreach name $_controls {
+        if {$_name2info($name-path) eq $val} {
+            set i [lsearch $_controls $name]
+            if {$i >= 0} {
+                return $i
+            }
+        }
+    }
+
+    error "bad control name \"$name\": should be @int or \"end\" or path name or one of [join [lsort $_controls] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -438,9 +442,7 @@ itcl::body Rappture::Controls::_layout {} {
     foreach name $_controls {
         set show 1
         set cond $_name2info($name-enable)
-        if {[string is boolean $cond] && !$cond} {
-            # hard-coded "off" -- ignore completely
-        } elseif {[catch {expr $cond} show] == 0} {
+        if {[catch {expr $cond} show] == 0} {
             set type $_name2info($name-type)
 	    set disablestyle $_name2info($name-disablestyle)
             set lwidget $_name2info($name-label)
