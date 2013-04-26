@@ -746,7 +746,6 @@ itcl::body Rappture::VtkHeightmapViewer::Connect {} {
             lappend info "session" $session
             SendCmd "clientinfo [list $info]"
         }
-
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
