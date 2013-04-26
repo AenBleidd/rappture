@@ -39,6 +39,7 @@ itcl::class Rappture::ControlOwner {
     protected variable _slaves ""    ;# this owner has these slaves
     protected variable _xmlobj ""    ;# Rappture XML description
     private variable _path2widget    ;# maps path => widget on this page
+    private variable _path2controls  ;# maps path => panel containing widget
     private variable _owner2paths    ;# for notify: maps owner => interests
     private variable _type2curpath   ;# maps type(path) => path's current value
     private variable _callbacks      ;# for notify: maps owner/path => callback
@@ -95,12 +96,19 @@ itcl::body Rappture::ControlOwner::xml {args} {
 # various controls associated with this page.  That way, this
 # ControlOwner knows what widgets to look at when syncing itself
 # to the underlying XML data.
+#
+# There can only be one widget per path, since the control owner will
+# later query the widgets for current values.  If there is already an
+# existing widget registered for the <path>, then it will be deleted
+# and the new <widget> will take its place.  If the caller doesn't
+# want to replace an existing widget, it should check before calling
+# this method and make sure that the return value is "".
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::widgetfor {path args} {
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
         set owner [ownerfor $path]
-        if {$owner != $this && $owner != ""} {
+        if {$owner ne $this && $owner ne ""} {
             return [$owner widgetfor $path]
         }
         if {[info exists _path2widget($path)]} {
@@ -111,13 +119,31 @@ itcl::body Rappture::ControlOwner::widgetfor {path args} {
 
     # otherwise, associate the path with the given widget
     set widget [lindex $args 0]
-    if {"" != $widget} {
+    if {$widget ne ""} {
+        # is there already a widget registered for this path?
         if {[info exists _path2widget($path)]} {
-            error "$path already associated with widget $_path2widget($path)"
+            # delete old widget and replace
+            set panel $_path2controls($path)
+            $panel delete $path
+            set _path2controls($path) ""
         }
+
+        # register the new widget for the path
         set _path2widget($path) $widget
+
+        # look up the containing panel and store it too
+        set w [winfo parent $widget]
+        while {$w ne ""} {
+            if {[string match *Controls [winfo class $w]]} {
+                set _path2controls($path) $w
+                break
+            }
+            set w [winfo parent $w]
+        }
     } else {
+        # empty name => forget about this widget
         catch {unset _path2widget($path)}
+        catch {unset _path2controls($path)}
     }
 }
 

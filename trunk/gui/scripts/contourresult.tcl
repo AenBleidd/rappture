@@ -590,7 +590,6 @@ itcl::body Rappture::ContourResult::_rebuild {} {
                         Rappture::Tooltip::cue @$x,$y "This data requires the visualization server, and that appears to be down.  Please try your simulation again later."
                         return
                     }
-puts stderr "ContourResult: dataobj=$dataobj mesh=$mesh "
                     switch -- [$mesh GetClassName] {
                       vtkPoints {
                         # handle cloud of 3D points

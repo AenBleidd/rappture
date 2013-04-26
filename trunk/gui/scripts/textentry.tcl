@@ -491,7 +491,6 @@ itcl::body Rappture::TextEntry::_newValue {} {
 # Used internally to manage edit operations.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_edit {option args} {
-puts "_edit $option $args"
     if {$itk_option(-state) == "disabled"} {
         return  ;# disabled? then bail out here!
     }

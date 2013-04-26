@@ -19,19 +19,28 @@ itcl::class Rappture::DrawingEntry {
     inherit itk::Widget
     itk_option define -state state State "normal"
 
+    private variable _dispatcher ""
+    private variable _path
+    private variable _owner
+    private variable _monitoring ""
+    private variable _xmlobj ""
+
+    # slave interpreter where all substituted variables are stored
+    private variable _parser ""
+
+    # unique counter for popup names
+    private common _popupnum 0
+
     private variable _canvasHeight 0
     private variable _canvasWidth 0
-    private variable _cname2controls
+    private variable _cpath2popup
+    private variable _takedown ""
     private variable _cname2id
     private variable _cname2image
     private variable _name2path
+    private variable _name2map
     private variable _drawingHeight 0
     private variable _drawingWidth 0
-    private variable _owner
-    private variable _xmlobj ""
-    private variable _parser "";	# Slave interpreter where all 
-					# substituted variables are stored.
-    private variable _path
     private variable _showing ""
     private variable _xAspect 0
     private variable _xMin 0
@@ -55,10 +64,8 @@ itcl::class Rappture::DrawingEntry {
 
     private method Activate { tag } 
     private method AdjustDrawingArea { xAspect yAspect } 
-    private method ControlValue {path {units ""}}
     private method Deactivate { tag } 
     private method Highlight { tag } 
-    private method InitSubstitutions {} 
     private method Invoke { name x y } 
     private method ParseBackground {}
     private method ParseDescription {}
@@ -70,18 +77,15 @@ itcl::class Rappture::DrawingEntry {
     private method ParsePolygon { cpath cname }
     private method ParseRectangle { cpath cname }
     private method ParseScreenCoordinates { values }
-    private method ParseSubstitutions {}
     private method ParseText { cpath cname }
     private method Redraw {}
     private method ScreenCoords { coords } 
     private method ScreenX { x } 
     private method ScreenY { y } 
+    private method UpdateSubstitutions {}
     private method XmlGet { path } 
     private method XmlGetSubst { path } 
-    private method Withdraw { cname } 
     private method Hotspot { option cname item args } 
-    private method IsEnabled { path } 
-    private method NumControlsEnabled { cname } 
 }
 
 itk::usual DrawingEntry {
@@ -101,6 +105,11 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     set _path $path
     set _owner $owner
     set _xmlobj [$_owner xml object]
+
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !redraw
+    $_dispatcher dispatch $this !redraw "[itcl::code $this Redraw]; list"
+
     #
     # Display the current drawing.
     #
@@ -111,14 +120,139 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
 	ignore -background
     }
     pack $itk_component(drawing) -expand yes -fill both
-    bind $itk_component(drawing) <Configure> [itcl::code $this Redraw]
+    bind $itk_component(drawing) <Configure> \
+        [itcl::code $_dispatcher event -idle !redraw]
+
+    # scan through all variables and attach notifications for changes
+    foreach cpath [$_xmlobj children -as path -type variable $_path.substitutions] {
+	set map ""
+	set name ""
+	set path ""
+	foreach elem [$_xmlobj children $cpath] {
+	    switch -glob -- $elem {
+		"name*" {
+		    set name [XmlGet $cpath.$elem]
+		}
+		"path*" {
+		    set path [XmlGet $cpath.$elem]
+		}
+		"map*" {
+		    set from [XmlGet $cpath.$elem.from]
+		    set to [XmlGet $cpath.$elem.to]
+		    if {$from eq "" || $to eq ""} {
+			puts stderr "empty translation in map table \"$cpath\""
+		    }
+		    lappend map $from $to
+		}
+	    }
+	}
+	if {$name eq ""} {
+	    puts stderr "no name defined for substituion variable \"$cpath\""
+	    continue
+	}
+	if {[info exists _name2path($name)]} {
+	    puts stderr "substitution variable \"$name\" already defined"
+	    continue
+	}
+	set _name2path($name) $path
+	if {$path eq ""} {
+	    puts stderr "no path defined for substituion variable \"$cpath\""
+	    continue
+	}
+	set _name2map($name) $map
+
+        # keep track of controls built for each variable (see below)
+        set controls($path) unused
+
+        # whenever variable changes, update drawing to report new values
+        if {[lsearch $_monitoring $path] < 0} {
+            $_owner notify add $this $path \
+                [itcl::code $_dispatcher event -idle !redraw]
+            lappend _monitoring $path
+        }
+    }
+
+    # find all embedded controls and build a popup for each hotspot
+    foreach cpath [$_xmlobj children -type hotspot -as path $_path.components] {
+        set listOfControls [$_xmlobj children -type controls $cpath]
+        if {[llength $listOfControls] > 0} {
+            set popup .drawingentrypopup[incr _popupnum]
+            Rappture::Balloon $popup -title "Change values..."
+            set inner [$popup component inner]
+            Rappture::Controls $inner.controls $_owner
+            pack $inner.controls -fill both -expand yes
+            set _cpath2popup($cpath) $popup
+
+            # Add control widgets to this popup.
+            # NOTE: if the widget exists elsewhere, it is deleted at this
+            #   point and "sucked in" to the popup.
+            foreach cname $listOfControls {
+                set cntlpath [XmlGetSubst $cpath.$cname]
+                $inner.controls insert end $cntlpath
+            }
+        }
+    }
+
+    set c $itk_component(drawing)
+    foreach cpath [$_xmlobj children -type text -as path $_path.components] {
+        set popup ""
+        set mode [XmlGetSubst $cpath.hotspot]
+        if {$mode eq "off"} {
+            # no popup if hotspot is turned off
+            continue
+        }
+
+        # easiest way to parse embedded variables is to create a hotspot item
+        set id [$c create hotspot 0 0 -text [XmlGet $cpath.text]]
+        foreach varName [Rappture::hotspot variables $c $id] {
+	    if {[info exists _name2path($varName)]} {
+		set cntlpath $_name2path($varName)
+
+                if {$controls($cntlpath) ne "unused"} {
+                    puts stderr "WARNING: drawing variable \"$varName\" is used in two hotspots, but will appear in only one of them."
+                    continue
+                }
+                set controls($cntlpath) "--"
+
+                if {$popup eq ""} {
+                    # create the popup for this item, if we haven't already
+                    set popup .drawingentrypopup[incr _popupnum]
+                    Rappture::Balloon $popup -title "Change values..."
+                    set inner [$popup component inner]
+                    Rappture::Controls $inner.controls $_owner
+                    pack $inner.controls -fill both -expand yes
+                }
+
+                # Add the control widget for this variable to this popup.
+                # NOTE: if the widget exists elsewhere, it is deleted at this
+                #   point and "sucked in" to the popup.
+                set inner [$popup component inner]
+                $inner.controls insert end $cntlpath
+                set _cpath2popup($cntlpath) $popup
+	    } else {
+		puts stderr "unknown variable \"$varName\" in drawing item at $cpath"
+            }
+        }
+        $c delete $id
+    }
+
+    # create a parser to manage substitions of variable values
     set _parser [interp create -safe]
-    Redraw
+
     eval itk_initialize $args
+
+    # initialize the drawing at some point
+    $_dispatcher event -idle !redraw
 }
 
 itcl::body Rappture::DrawingEntry::destructor {} {
-    if { $_parser != "" } {
+    # stop monitoring controls for value changes
+    foreach cpath $_monitoring {
+        $_owner notify remove $this $cpath
+    }
+
+    # tear down the value subsitution parser
+    if {$_parser != ""} {
 	$_parser delete 
     }
 }
@@ -129,9 +263,8 @@ itcl::body Rappture::DrawingEntry::destructor {} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::label {} {
-return ""
-    set label [$_xmlobj get $_path.about.label]
-    if {"" == $label} {
+    set label [$_owner xml get $_path.about.label]
+    if {$label eq ""} {
         set label "Drawing"
     }
     return $label
@@ -146,7 +279,6 @@ return ""
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::tooltip {} {
-return ""
     set str [$_xmlobj get $_path.about.description]
     return [string trim $str]
 }
@@ -162,15 +294,20 @@ itcl::configbody Rappture::DrawingEntry::state {
 }
 
 itcl::body Rappture::DrawingEntry::Redraw {} {
+    # If a popup is pending, redraw signals a value change; take it down
+    if {$_takedown ne ""} {
+        $_takedown deactivate
+        set _takedown ""
+    }
+
     # Remove exists canvas items and hints
     $itk_component(drawing) delete all
+
     # Delete any images that we created.
     foreach name [array names _cname2image] {
 	image delete $_cname2image($name)
     }
-    array unset _name2path
     array unset _cname2id
-    array unset _cnames2controls
     array unset _cname2image
     
     # Recompute the size of the canvas/drawing area
@@ -193,9 +330,8 @@ itcl::body Rappture::DrawingEntry::Redraw {} {
 # ParseDescription -- 
 #
 itcl::body Rappture::DrawingEntry::ParseDescription {} {
-    #puts stderr "ParseDescription owner=$_owner path=$_path"
     ParseBackground
-    ParseSubstitutions
+    UpdateSubstitutions
     foreach cname [$_xmlobj children $_path.components] {
 	switch -glob -- $cname {
 	    "line*" {
@@ -230,7 +366,6 @@ itcl::body Rappture::DrawingEntry::ParseDescription {} {
 # ParseGrid -- 
 #
 itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
-    #puts stderr "ParseGrid owner=$_owner cpath=$cpath"
     array set attr2option {
 	"linewidth"	"-width"
 	"arrow"		"-arrow"
@@ -246,9 +381,7 @@ itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
     }
     # Coords
     set xcoords [XmlGetSubst $cpath.xcoords]
-    set xcoords [string trim $xcoords]
     set ycoords [XmlGetSubst $cpath.ycoords]
-    set ycoords [string trim $ycoords]
     if { $ycoords == "" } {
 	set ycoords "0 1"
 	set ymax 1 
@@ -289,7 +422,7 @@ itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
 	}
 	set xcoords $list
     }
-    #puts stderr "ParseGrid owner=$_owner cpath=$cpath xcoords=$xcoords ycoords=$ycoords"
+
     set list {}
     foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
@@ -320,45 +453,37 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
 	"color"	"-fill"
 	"anchor" "-anchor"
     }
-    #puts stderr "ParseHotspot owner=$_owner cpath=$cpath"
+
     # Set default options first and then let tool.xml override them.
     array set options {
 	-fill red
 	-anchor c
     }
-    array unset _cname2controls $cname
     foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
-	} elseif { [string match "controls*" $attr] } {
-	    set value [XmlGetSubst $cpath.$attr]
-	    lappend _cname2controls($cname) $value
-	    $_xmlobj put $value.hide 1
 	}
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
-    set coords [ScreenCoords $coords]
-    if { $coords == "" } {
+    if {$coords eq ""} {
 	set coords "0 0 1 1"
-    } 
+    }
     set c $itk_component(drawing)
-    set img [Rappture::icon hotspot_normal]
-    foreach { x1 y1 } $coords break
+    foreach {x1 y1} [ScreenCoords $coords] break
     set id [$itk_component(drawing) create image $x1 $y1]
     array unset options -fill
     set options(-tags) $cname
-    set options(-image) $img
+    set options(-image) [Rappture::icon hotspot_normal]
     eval $c itemconfigure $id [array get options]
     set _cname2id($cname) $id
     $c bind $id <Enter> [itcl::code $this Activate $cname]
     $c bind $id <Leave> [itcl::code $this Deactivate $cname]
-    #$c bind $id <ButtonPress-1> [itcl::code $this Depress $cname]
     set bbox [$c bbox $id]
     set y1 [lindex $bbox 1]
-    $c bind $id <ButtonPress-1> [itcl::code $this Invoke $cname $x1 $y1]
+    $c bind $id <ButtonPress-1> [itcl::code $this Invoke $cpath $x1 $y1]
 }
 
 #
@@ -379,15 +504,12 @@ itcl::body Rappture::DrawingEntry::ParseLine { cpath cname } {
 	-dash		""
     }
     # Coords
-    set coords {}
     set coords [XmlGetSubst $cpath.coords]
-    set coords [string trim $coords]
-    if { $coords == "" } {
+    if {$coords eq ""} {
 	set coords "0 0"
-    } else {
-	set coords [ScreenCoords $coords]
     }
-    #puts stderr "ParseLine owner=$_owner cpath=$cpath coords=$coords"
+    set coords [ScreenCoords $coords]
+
     set list {}
     foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
@@ -411,7 +533,6 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
 	"fill"		"-fill"
 	"linewidth"	"-width"
     }
-    #puts stderr "ParseOval owner=$_owner cpath=$cpath"
 
     # Set default options first and then let tool.xml override them.
     array set options {
@@ -427,10 +548,8 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
 	}
     }
     # Coordinates
-    set coords {}
     set coords [XmlGetSubst $cpath.coords]
-    set coords [string trim $coords]
-    if { $coords == "" } {
+    if {$coords eq ""} {
 	set coords "0 0 1 1"
     }
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
@@ -446,7 +565,7 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     array set attr2option {
 	"anchor"	"-anchor"
     }
-    #puts stderr "ParsePicture owner=$_owner cpath=$cpath"
+
     # Set default options first and then let tool.xml override them.
     array set options {
 	-anchor nw
@@ -461,24 +580,25 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     set contents [XmlGetSubst $cpath.contents]
     set img ""
     if { [string compare -length 7 $contents "file://"] == 0 } {
-	set fileName [string range $contents 5 end]
+	set fileName [string range $contents 7 end]
 	if { [file exists $fileName] } {
 	    set img [image create photo -file $fileName]
-	}
+	} else {
+            puts stderr "WARNING: can't find picture contents \"$fileName\""
+        }
     } elseif { [string compare -length 7 $contents "http://"] == 0 } {
 	puts stderr  "don't know how to handle http"
 	return
     } else {
 	set img [image create photo -data $contents]
     }
-    if { $img == "" } {
+    if {$img eq ""} {
 	return
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
-    set coords [ScreenCoords $coords]
     if { [llength $coords] == 2 } {
-	foreach { x1 y1 } $coords break
+	foreach { x1 y1 } [ScreenCoords $coords] break
 	set w [XmlGetSubst $cpath.width]
 	if { $w == "" || ![string is number $w] || $w <= 0.0 } {
 	    set width [expr [image width $img] / 4]
@@ -493,12 +613,12 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	}
 	if { $width != [image width $img] || $height != [image height $img] } {
 	    set dst [image create photo -width $width -height $height]
-	    blt::winop resample $img $dest
+	    blt::winop resample $img $dst
 	    image delete $img
 	    set img $dst
 	}
     } elseif { [llength $coords] == 4 } {
-	foreach { x1 y1 x2 y2 } $coords break
+	foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
 	if { $x1 > $x2 } {
 	    set tmp $x1 
 	    set x1 $x2
@@ -509,8 +629,8 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	    set x1 $x2
 	    set x2 $tmp
 	}
-	set width [expr $x2 - $x1 + 1]
-	set height [expr $x2 - $x1 + 1]
+	set width [expr {$x2 - $x1 + 1}]
+	set height [expr {$y2 - $y1 + 1}]
 	if { $width != [image width $img] || $height != [image height $img] } {
 	    set dst [image create photo -width $width -height $height]
 	    blt::winop resample $img $dst
@@ -547,18 +667,14 @@ itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
 	-fill		blue
 	-outline	black
     }
+
     # Coords
     set coords [XmlGetSubst $cpath.coords]
-    set coords [string trim $coords]
-    if { $coords == "" } {
+    if {$coords eq ""} {
 	set coords "0 0"
-    } else {
-	set coords [ScreenCoords $coords]
     }
-    set x1 [lindex $coords 0]
-    set y1 [lindex $coords 1]
-    lappend coords $x1 $y1
-    #puts stderr "ParsePolygon owner=$_owner cpath=$cpath coords=$coords"
+    set coords [ScreenCoords $coords]
+
     set list {}
     foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
@@ -582,7 +698,6 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
 	"fill"		"-fill"
 	"linewidth"	"-width"
     }
-    #puts stderr "ParseRectangle owner=$_owner cpath=$cpath"
 
     # Set default options first and then let tool.xml override them.
     array set options {
@@ -599,12 +714,11 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
-    set coords [string trim $coords]
-    if { $coords == "" } {
+    if {$coords eq ""} {
 	set coords "0 0 1 1"
     }
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break 
-   set id [$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2]
+    set id [$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2]
     set _cname2id($cname) $id
     eval $itk_component(drawing) itemconfigure $id [array get options]
 }
@@ -620,12 +734,11 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 	"text"		"-text"
 	"anchor"	"-anchor"
     }
-    #puts stderr "ParseText owner=$_owner cpath=$cpath"
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-font {Arial 12}
-	-valuefont {Arial 12}
+	-font {Arial -14}
+	-valuefont {Arial -14}
 	-valueforeground blue3
 	-text {}
 	-fill {}
@@ -644,43 +757,38 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     }
     # Coords
     set coords [XmlGetSubst $cpath.coords]
-    set coords [string trim $coords]
-    if { $coords == "" } {
-	set coords "0 0"
-    } else {
-	set coords [ScreenCoords $coords]
+    if {$coords eq ""} {
+        set coords "0 0"
     }
+    foreach {x0 y0} [ScreenCoords $coords] break
+
     set hotspot [XmlGetSubst $cpath.hotspot]
-    if { $hotspot == "inline" } {
+    if {$hotspot eq ""} {
+        # assume inline by default
+        set hotspot "inline"
+    } elseif {[lsearch {inline off} $hotspot] < 0} {
+        puts stderr "WARNING: bad hotspot value \"$hotspot\": should be inline or off"
+    }
+
+    if {$hotspot eq "inline"} {
 	set options(-showicons) 1 
     }
     set c $itk_component(drawing)
     set options(-tags) $cname
-    set img [Rappture::icon hotspot_normal]
-    set options(-image) $img
-    set img [Rappture::icon hotspot_active]
-    set options(-activeimage) $img
-    set id [eval $c create hotspot $coords]
+    set options(-image) [Rappture::icon hotspot_normal]
+    set options(-activeimage) [Rappture::icon hotspot_active]
+    set id [$c create hotspot $x0 $y0]
     set _cname2id($cname) $id
     set options(-interp) $_parser
     eval $c itemconfigure $id [array get options]
-    if { $hotspot == "inline" } {
-	array unset _cname2controls $cname
-	foreach varName [Rappture::hotspot variables $c $id] {
-	    if { [info exists _name2path($varName)] } {
-		set path $_name2path($varName)
-		$_xmlobj put $path.hide 1
-		lappend _cname2controls($cname) $path
-	    } else {
-		puts stderr "unknown varName=$varName"
-	    }
-	}
-	$c bind $id <Motion> \
-	    [itcl::code $this Hotspot watch $cname $id %x %y]
-	$c bind $id <Leave> \
-	    [itcl::code $this Hotspot deactivate $cname $id]
+
+    if {$hotspot eq "inline"} {
 	$c bind $id <Enter> \
 	    [itcl::code $this Hotspot activate $cname $id %x %y]
+	$c bind $id <Motion> \
+	    [itcl::code $this Hotspot activate $cname $id %x %y]
+	$c bind $id <Leave> \
+	    [itcl::code $this Hotspot deactivate $cname $id]
 	$c bind $id <ButtonRelease-1> \
 	    [itcl::code $this Hotspot invoke $cname $id %x %y]
     }
@@ -688,49 +796,67 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 
 
 itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
-    if { [NumControlsEnabled $cname] == 0 } {
-	return
-    }
     set c $itk_component(drawing)
+
+    # see what variable (if any) that we're touching within the text
+    set varName ""
+    if {[llength $args] >= 2} {
+        foreach {x y} $args break
+        foreach {varName x0 y0 x1 y1} [Rappture::hotspot identify $c $item $x $y] break
+    }
+
     switch -- $option {
-	"activate" {
-	    foreach { x y } $args break
-	    set varName  [Rappture::hotspot identify $c $item $x $y]
-	    $c itemconfigure $item -activevalue $varName
+	activate {
+            if {$varName ne ""} {
+	        set active [$c itemcget $item -activevalue]
+	        if {$varName ne $active} {
+	            $c itemconfigure $item -activevalue $varName
+                }
+                $itk_component(drawing) configure -cursor center_ptr 
+
+                # put up a tooltip for this item
+                set cpath $_name2path($varName)
+                set tip [XmlGet $cpath.about.description]
+                if {$tip ne ""} {
+                    set x [expr {[winfo rootx $c]+$x0+10}]
+                    set y [expr {[winfo rooty $c]+$y1}]
+                    set tag "$c-[string map {. ""} $cpath]"
+                    Rappture::Tooltip::text $tag $tip -log $cpath
+                    Rappture::Tooltip::tooltip pending $tag @$x,$y
+                }
+            } else {
+	        $c itemconfigure $item -activevalue ""
+                $itk_component(drawing) configure -cursor ""
+                Rappture::Tooltip::tooltip cancel
+            }
 	}
-	"deactivate" {
+	deactivate {
 	    $c itemconfigure $item -activevalue ""
+            $itk_component(drawing) configure -cursor ""
+            Rappture::Tooltip::tooltip cancel
 	}
-	"watch" {
-	    foreach { x y } $args break
-	    set active [$c itemcget $item -activevalue]
-	    set varName  [Rappture::hotspot identify $c $item $x $y]
-	    if { $varName != $active  } {
-		$c itemconfigure $item -activevalue $varName
+	invoke {
+	    if {$varName ne ""} {
+		set x [expr {($x0+$x1)/2}]
+		Invoke $_name2path($varName) $x $y0
 	    }
 	}
-	"invoke" {
-	    foreach { x y } $args break
-	    set active [$c itemcget $item -activevalue]
-	    set varName  [Rappture::hotspot identify $c $item $x $y]
-	    if { $varName != "" } {
-		set bbox [$c bbox $item]
-		Invoke $cname $x [lindex $bbox 1]
-	    }
-	}
+        default {
+            error "bad option \"$option\": should be activate, deactivate, invoke"
+        }
     }
 }
 
 
 itcl::body Rappture::DrawingEntry::ScreenX { x } {
-    set norm [expr ($x - $_xMin) * $_xScale]
-    set x [expr int($norm * $_drawingWidth) + $_xOffset]
+    set norm [expr {($x - $_xMin) * $_xScale}]
+    set x [expr {int($norm * $_drawingWidth) + $_xOffset}]
     return $x
 }
 
 itcl::body Rappture::DrawingEntry::ScreenY { y } {
-    set norm [expr ($y - $_yMin) * $_yScale]
-    set y [expr int($norm * $_drawingHeight) + $_yOffset]
+    set norm [expr {($y - $_yMin) * $_yScale}]
+    set y [expr {int($norm * $_drawingHeight) + $_yOffset}]
     return $y
 }
 
@@ -859,88 +985,25 @@ itcl::body Rappture::DrawingEntry::ParseBackground {} {
     }
 }
 
-itcl::body Rappture::DrawingEntry::ParseSubstitutions {} {
-    foreach var [$_xmlobj children $_path.substitutions] {
-	if { ![string match "variable*" $var] } {
-	    continue
-	}
-	set varPath $_path.substitutions.$var
-	set map ""
-	set name ""
-	set path ""
-	foreach elem [$_xmlobj children $varPath] {
-	    switch -glob -- $elem {
-		"name*" {
-		    set name [XmlGet $varPath.$elem]
-		}
-		"path*" {
-		    set path [XmlGet $varPath.$elem]
-		}
-		"map*" {
-		    set from [XmlGet $varPath.$elem.from]
-		    set to [XmlGet $varPath.$elem.to]
-		    if { $from == "" || $to == "" } {
-			puts stderr "empty translation in map table \"$varPath\""
-		    }
-		    lappend map $from $to
-		}
-	    }
-	}
-	if { $name == "" } {
-	    puts stderr \
-		"no name defined for substituion variable \"$varPath\""
-	    continue
-	}
-	if { [info exists _name2path($name)] } {
-	    puts stderr \
-		"substitution variable \"$name\" already defined"
-	    continue
-	}		
-	set _name2path($name) $path
-	if { $path == "" } {
-	    puts stderr \
-		"no path defined for substituion variable \"$varPath\""
-	    continue
-	}
-	set _name2map($name) $map
-    }
-    InitSubstitutions
-}
-
 #
 # Invoke -- 
 #
-itcl::body Rappture::DrawingEntry::Invoke { cname x y } {
-    set controls $_cname2controls($cname)
-    if { [llength $controls] == 0 } {
-	puts stderr "no controls defined for $cname"
-	return 
+itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
+    if {![info exists _cpath2popup($cpath)]} {
+        error "internal error: no controls for hotspot at $cpath"
     }
-    # Build a popup with the designated controls
-    set popup .drawingentrypopup
-    if { ![winfo exists $popup] } {
-	# Create a popup for the controls dialog
-	Rappture::Balloon $popup -title "Change values..." \
-	    -deactivatecommand [itcl::code $this Withdraw $cname]
-	set inner [$popup component inner]
-	Rappture::DrawingControls $inner.controls $_owner \
-	    -deactivatecommand [list $popup deactivate]
-	pack $inner.controls -fill both -expand yes
+    set popup $_cpath2popup($cpath)
+
+    # if this popup has only one control, watch for it to change and
+    # take it down automatically
+    set inner [$popup component inner]
+    set n [expr {[$inner.controls index end]+1}]
+    if {$n == 1} {
+        set _takedown $popup
     } else {
-	set inner [$popup component inner]
-	$inner.controls delete all
+        set _takedown ""
     }
-    set count 0
-    foreach path $controls {
-	if { [IsEnabled $path] } {
-	    $inner.controls add $path
-	    incr count
-	}
-    }
-    if { $count == 0 } {
-	return
-    }
-    update
+
     # Activate the popup and call for the output.
     incr x [winfo rootx $itk_component(drawing)]
     incr y [winfo rooty $itk_component(drawing)]
@@ -960,16 +1023,9 @@ itcl::body Rappture::DrawingEntry::Activate { cname } {
 # Deactivate -- 
 #
 itcl::body Rappture::DrawingEntry::Deactivate { cname } {
-    $itk_component(drawing) configure -cursor left_ptr 
+    $itk_component(drawing) configure -cursor ""
     $itk_component(drawing) itemconfigure $_cname2id($cname) \
 	-image [Rappture::icon hotspot_normal]
-}
-
-#
-# Withdraw -- 
-#
-itcl::body Rappture::DrawingEntry::Withdraw { cname } {
-    Redraw
 }
 
 # ----------------------------------------------------------------------
@@ -986,26 +1042,25 @@ itcl::body Rappture::DrawingEntry::value {args} {
     if { [llength $args] > 0 } {
 	set libobj [lindex $args 0]
 	if { $libobj != "" } { 
-	    Redraw
+            $_dispatcher event -idle !redraw
 	}
     }
     return ""
 }
 
-
-#
-# InitSubstitutions -- 
-#
-itcl::body Rappture::DrawingEntry::InitSubstitutions {} {
-    # Load a new parser with the variables representing the substitution
+itcl::body Rappture::DrawingEntry::UpdateSubstitutions {} {
+    # Load parser with the variables representing the substitution
     foreach name [array names _name2path] {
 	set path $_name2path($name)
 	set w [$_owner widgetfor $path]
-	if { $w != "" } {
+	if {$w ne ""} {
 	    set value [$w value]
 	} else {
 	    set value ""
 	}
+        if {$_name2map($name) ne ""} {
+            set value [string map $_name2map($name) $value]
+        }
 	$_parser eval [list set $name $value]
     }
 }
@@ -1017,88 +1072,8 @@ itcl::body Rappture::DrawingEntry::XmlGet { path } {
 
 itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
     set value [$_xmlobj get $path]
-    if { $_parser == "" } {
-	return $value
+    if {$_parser == ""} {
+	return [string trim $value]
     }
     return [string trim [$_parser eval [list subst -nocommands $value]]]
-}
-
-itcl::body Rappture::DrawingEntry::IsEnabled { path } {
-    set enable [string trim [$_xmlobj get $path.about.enable]]
-    if {"" == $enable} {
-        return 1
-    }
-    if {![string is boolean $enable]} {
-        set re {([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\))(\.([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\)))*(:[-a-zA-Z0-9/]+)?}
-        set rest $enable
-        set enable ""
-        set deps ""
-        while {1} {
-            if {[regexp -indices $re $rest match]} {
-                foreach {s0 s1} $match break
-
-                if {[string index $rest [expr {$s0-1}]] == "\""
-                      && [string index $rest [expr {$s1+1}]] == "\""} {
-                    # string in ""'s? then leave it alone
-                    append enable [string range $rest 0 $s1]
-                    set rest [string range $rest [expr {$s1+1}] end]
-                } else {
-                    #
-                    # This is a symbol which should be substituted
-                    # it can be either:
-                    #   input.foo.bar
-                    #   input.foo.bar:units
-                    #
-                    set cpath [string range $rest $s0 $s1]
-                    set parts [split $cpath :]
-                    set ccpath [lindex $parts 0]
-                    set units [lindex $parts 1]
-
-                    # make sure we have the standard path notation
-                    set stdpath [$_owner regularize $ccpath]
-                    if {"" == $stdpath} {
-                        puts stderr "WARNING: don't recognize parameter $cpath in <enable> expression for $path.  This may be buried in a structure that is not yet loaded."
-                        set stdpath $ccpath
-                    }
-                    # substitute [_controlValue ...] call in place of path
-                    append enable [string range $rest 0 [expr {$s0-1}]]
-                    append enable [format {[ControlValue %s %s]} $stdpath $units]
-                    lappend deps $stdpath
-                    set rest [string range $rest [expr {$s1+1}] end]
-                }
-            } else {
-                append enable $rest
-                break
-            }
-        }
-    }
-    return [expr $enable]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: ControlValue <path> ?<units>?
-#
-# Used internally to get the value of a control with the specified
-# <path>.  Returns the current value for the control.
-# ----------------------------------------------------------------------
-itcl::body Rappture::DrawingEntry::ControlValue {path {units ""}} {
-    if {"" != $_owner} {
-        set val [$_owner valuefor $path]
-         if {"" != $units} {
-            set val [Rappture::Units::convert $val -to $units -units off]
-        }
-        return $val
-    }
-    return ""
-}
-
-itcl::body Rappture::DrawingEntry::NumControlsEnabled { cname } {
-    set controls $_cname2controls($cname)
-    set count 0
-    foreach path $controls {
-	if { [IsEnabled $path] } {
-	    incr count
-	}
-    }
-    return $count
 }

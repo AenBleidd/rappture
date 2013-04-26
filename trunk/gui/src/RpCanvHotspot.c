@@ -1725,10 +1725,12 @@ GetHotspotItem(Tcl_Interp *interp, Tcl_Obj *canvasObjPtr, Tcl_Obj *itemObjPtr)
     return itemPtr = (HotspotItem *)canvItemPtr;
 }
 
-static const char *
+static Tcl_Obj *
 Identify(Tcl_Interp *interp, HotspotItem *itemPtr, double x, double y)
 {
+    Tcl_Obj* resultPtr = NULL;
     ItemSegment *segPtr;
+    Tcl_Obj* objPtr;
 
     x -= itemPtr->x1;
     y -= itemPtr->y1;
@@ -1738,10 +1740,27 @@ Identify(Tcl_Interp *interp, HotspotItem *itemPtr, double x, double y)
 	}
 	if ((x >= segPtr->x) && (x < (segPtr->x + segPtr->width)) && 
 	    (y >= segPtr->y) && (y < (segPtr->y + segPtr->height))) {
-	    return segPtr->text;
+
+            /* build return list: {string x0 y0 x1 y1} */
+	    resultPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
+
+            objPtr = Tcl_NewStringObj(segPtr->text, -1);
+            Tcl_ListObjAppendElement(interp, resultPtr, objPtr);
+
+            objPtr = Tcl_NewIntObj(itemPtr->x1 + segPtr->x);
+            Tcl_ListObjAppendElement(interp, resultPtr, objPtr);
+            objPtr = Tcl_NewIntObj(itemPtr->y1 + segPtr->y);
+            Tcl_ListObjAppendElement(interp, resultPtr, objPtr);
+
+            objPtr = Tcl_NewIntObj(itemPtr->x1 + segPtr->x + segPtr->width);
+            Tcl_ListObjAppendElement(interp, resultPtr, objPtr);
+            objPtr = Tcl_NewIntObj(itemPtr->y1 + segPtr->y + segPtr->height);
+            Tcl_ListObjAppendElement(interp, resultPtr, objPtr);
+
+	    return resultPtr;
 	}
     }
-    return "";
+    return NULL;
 }
 
 static int
@@ -1769,7 +1788,6 @@ HotspotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	itemPtr->activeValue = NULL;
     } else if ((c == 'i') && (strncmp(string, "identify", length) == 0)) {
 	double x, y;
-	const char *token;
 	Tcl_Obj *objPtr;
 
 	/* hotspot identify .c 0 x y */
@@ -1777,9 +1795,10 @@ HotspotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    (Tcl_GetDoubleFromObj(interp, objv[5], &y) != TCL_OK)) {
 	    return TCL_ERROR;
 	}
-	token = Identify(interp, itemPtr, x, y);
-	objPtr = Tcl_NewStringObj(token, -1);
-        Tcl_SetObjResult(interp, objPtr);
+	objPtr = Identify(interp, itemPtr, x, y);
+        if (objPtr != NULL) {
+            Tcl_SetObjResult(interp, objPtr);
+        }
     } else if ((c == 'v') && (strncmp(string, "variables", length) == 0)) {
         Tcl_Obj *listObjPtr;
 	ItemSegment *segPtr;
