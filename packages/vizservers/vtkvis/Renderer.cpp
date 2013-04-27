@@ -45,6 +45,8 @@
 #include "ColorMap.h"
 #include "Trace.h"
 
+//#define NEW_SCALAR_BAR
+
 #define MSECS_ELAPSED(t1, t2) \
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
      (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)
@@ -1925,17 +1927,39 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     // Set viewport-relative width/height/pos
     if (title.empty() && numLabels == 0) {
-        _scalarBarActor->SetPosition(0, 0);
+#ifdef NEW_SCALAR_BAR
+        _scalarBarActor->SetBarRatio(1);
+#endif
         if (width > height) {
             // horizontal
+#ifdef NEW_SCALAR_BAR
+            _scalarBarActor->SetDisplayPosition(0, 0);
+            _scalarBarActor->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
+            _scalarBarActor->GetPosition2Coordinate()->SetValue(width+4, height);
+#else
+            _scalarBarActor->SetPosition(0, 0);
             _scalarBarActor->SetHeight((((double)height+1.5)/((double)height))/0.4); // VTK: floor(actorHeight * .4)
             _scalarBarActor->SetWidth(1); // VTK: actorWidth
+#endif
         } else {
             // vertical
+#ifdef NEW_SCALAR_BAR
+            _scalarBarActor->SetDisplayPosition(0, -4);
+            _scalarBarActor->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
+            _scalarBarActor->GetPosition2Coordinate()->SetValue(width+1, height+5);
+#else
+            _scalarBarActor->SetPosition(0, 0);
             _scalarBarActor->SetHeight((((double)height+1.5)/((double)height))/0.86); // VTK: floor(actorHeight * .86)
             _scalarBarActor->SetWidth(((double)(width+5))/((double)width)); // VTK: actorWidth - 4 pixels
+#endif
         }
     } else {
+#ifdef NEW_SCALAR_BAR
+        _scalarBarActor->SetBarRatio(0.375);
+        _scalarBarActor->SetDisplayPosition(0, 0);
+        _scalarBarActor->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
+        _scalarBarActor->GetPosition2Coordinate()->SetValue(width, height);
+#else
         if (width > height) {
             // horizontal
             _scalarBarActor->SetPosition(.075, .1);
@@ -1947,6 +1971,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
             _scalarBarActor->SetHeight(0.9);
             _scalarBarActor->SetWidth(0.8);
         }
+#endif
     }
 
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
@@ -2082,11 +2107,32 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     } else {
         _scalarBarActor->SetTitle("");
     }
+
+    double color[3];
+    color[0] = 1 - _bgColor[0];
+    color[1] = 1 - _bgColor[1];
+    color[2] = 1 - _bgColor[2];
+
+    _scalarBarActor->GetTitleTextProperty()->SetColor(color);
+    _scalarBarActor->GetTitleTextProperty()->BoldOff();
     _scalarBarActor->GetTitleTextProperty()->ItalicOff();
+    _scalarBarActor->GetTitleTextProperty()->ShadowOff();
     _scalarBarActor->SetNumberOfLabels(numLabels);
+    _scalarBarActor->GetLabelTextProperty()->SetColor(color);
     _scalarBarActor->GetLabelTextProperty()->BoldOff();
     _scalarBarActor->GetLabelTextProperty()->ItalicOff();
     _scalarBarActor->GetLabelTextProperty()->ShadowOff();
+#ifdef NEW_SCALAR_BAR
+    if (title.empty() && numLabels == 0) {
+        _scalarBarActor->DrawAnnotationsOff();
+        _scalarBarActor->SetAnnotationLeaderPadding(0);
+        _scalarBarActor->SetTextPad(0);
+    } else {
+        _scalarBarActor->DrawAnnotationsOn();
+        _scalarBarActor->SetAnnotationLeaderPadding(8);
+        _scalarBarActor->SetTextPad(1);
+    }
+#endif
 
     _legendRenderWindow->Render();
 
@@ -2614,13 +2660,13 @@ void Renderer::panCamera(double x, double y, bool absolute)
                                   viewFocus);
             focalDepth = viewFocus[2];
 
-            computeDisplayToWorld(( x * 2. + 1.) * _windowWidth / 2.0,
-                                  ( y * 2. + 1.) * _windowHeight / 2.0,
+            computeDisplayToWorld((x * 2. + 1.) * (double)_windowWidth / 2.0,
+                                  (y * 2. + 1.) * (double)_windowHeight / 2.0,
                                   focalDepth, 
                                   newPickPoint);
 
-            computeDisplayToWorld(_windowWidth / 2.0,
-                                  _windowHeight / 2.0,
+            computeDisplayToWorld((double)_windowWidth / 2.0,
+                                  (double)_windowHeight / 2.0,
                                   focalDepth, 
                                   oldPickPoint);
 
