@@ -100,11 +100,11 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
             molecule* {
                 set pdbdata [$_xmlobj get $path.$elem.pdb]
                 if { $pdbdata != "" } {
-                    set contents [PdbToVTk $elem $pdbdata]
+                    set contents [PdbToVtk $elem $pdbdata]
                 } else {
                     set contents [$_xmlobj get $path.$elem.vtk]
                 }
-		set _data($elem) [string trim $_data($elem)]
+		set _data($elem) [string trim $contents]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
                 set _types($elem) molecule
