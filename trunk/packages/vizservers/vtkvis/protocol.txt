@@ -572,6 +572,9 @@ molecule colormode <by_elements|scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datas
 molecule delete <?datasetName?>
 molecule edges <bool> <?datasetName?>
 molecule labels <bool> <?datasetName?>
+         Toggle display of atom labels
+molecule lfield <fieldName> <?datasetName?>
+         Set the field used for atom labels
 molecule lighting <bool> <?datasetName?>
 molecule linecolor <r> <g> <b> <?datasetName?>
 molecule linewidth <val> <?datasetName?>

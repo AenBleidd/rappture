@@ -6597,6 +6597,21 @@ MoleculeAtomVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeAtomLabelFieldOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    const char *fieldName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeAtomLabelField(name, fieldName);
+    } else {
+        g_renderer->setMoleculeAtomLabelField("all", fieldName);
+    }
+    return TCL_OK;
+}
+
+
+static int
 MoleculeAtomLabelVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                               Tcl_Obj *const *objv)
 {
@@ -7042,6 +7057,7 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"delete",       1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"labels",       2, MoleculeAtomLabelVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lfield",       2, MoleculeAtomLabelFieldOp, 3, 4, "fieldName ?dataSetName?"},
     {"lighting",     3, MoleculeLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",    5, MoleculeLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",    5, MoleculeLineWidthOp, 3, 4, "width ?dataSetName?"},
