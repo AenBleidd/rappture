@@ -1952,6 +1952,32 @@ void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+void Renderer::setMoleculeAtomLabelField(const DataSetId& id, const char *fieldName)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAtomLabelField(fieldName);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Turn on/off rendering of the Molecule atom labels for the given DataSet
  */

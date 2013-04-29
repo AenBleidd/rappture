@@ -180,11 +180,12 @@ void Molecule::update()
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
     if (pd) {
-        TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",
-                  pd->GetNumberOfVerts(),
-                  pd->GetNumberOfLines(),
-                  pd->GetNumberOfPolys(),
-                  pd->GetNumberOfStrips());
+        TRACE("Points: %d Verts: %d Lines: %d Polys: %d Strips: %d",
+              pd->GetNumberOfPoints(),
+              pd->GetNumberOfVerts(),
+              pd->GetNumberOfLines(),
+              pd->GetNumberOfPolys(),
+              pd->GetNumberOfStrips());
         // DataSet is a vtkPolyData
         if (pd->GetNumberOfLines() > 0) {
             // Bonds
@@ -225,16 +226,18 @@ void Molecule::update()
             _bondProp->SetMapper(_bondMapper);
             getAssembly()->AddPart(_bondProp);
         }
-        if (pd->GetNumberOfVerts() > 0) {
-            vtkSmartPointer<vtkPointSetToLabelHierarchy> hier = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
+        if (pd->GetNumberOfPoints() > 0) {
+            if (_labelHierarchy == NULL) {
+                _labelHierarchy = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
+            }
 #ifdef USE_VTK6
-            hier->SetInputData(pd);
+            _labelHierarchy->SetInputData(pd);
 #else
-            hier->SetInput(pd);
+            _labelHierarchy->SetInput(pd);
 #endif
-            hier->SetLabelArrayName("labels");
-            hier->GetTextProperty()->SetColor(0, 0, 0);
-            _labelMapper->SetInputConnection(hier->GetOutputPort());
+            _labelHierarchy->SetLabelArrayName("_atom_labels");
+            _labelHierarchy->GetTextProperty()->SetColor(0, 0, 0);
+            _labelMapper->SetInputConnection(_labelHierarchy->GetOutputPort());
             _labelProp->SetMapper(_labelMapper);
 
             // Atoms
@@ -587,6 +590,17 @@ void Molecule::setColorMap(ColorMap *cmap)
     }
 }
 
+void Molecule::setAtomLabelField(const char *fieldName)
+{
+    if (_labelHierarchy != NULL) {
+        if (strcmp(fieldName, "default") == 0) {
+            _labelHierarchy->SetLabelArrayName("_atom_labels");
+        } else {
+            _labelHierarchy->SetLabelArrayName(fieldName);
+        }
+    }
+}
+
 /**
  * \brief Turn on/off rendering of atom labels
  */
@@ -865,13 +879,13 @@ void Molecule::addLabelArray(vtkDataSet *dataSet)
     }
 
     vtkSmartPointer<vtkStringArray> labelArray = vtkSmartPointer<vtkStringArray>::New();
-    labelArray->SetName("labels");
+    labelArray->SetName("_atom_labels");
     vtkPolyData *pd = vtkPolyData::SafeDownCast(dataSet);
     if (pd == NULL) {
         ERROR("DataSet not a PolyData");
         return;
     }
-    for (int i = 0; i < pd->GetNumberOfVerts(); i++) {
+    for (int i = 0; i < pd->GetNumberOfPoints(); i++) {
         char buf[32];
         if (elements != NULL) {
             int elt = (int)elements->GetComponent(i, 0);
@@ -914,14 +928,14 @@ void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double s
         ;
     }
     vtkSmartPointer<vtkFloatArray> radii = vtkSmartPointer<vtkFloatArray>::New();
-    radii->SetName("radius");
+    radii->SetName("_radii");
     radii->SetNumberOfComponents(3);
     vtkPolyData *pd = vtkPolyData::SafeDownCast(dataSet);
     if (pd == NULL) {
         ERROR("DataSet not a PolyData");
         return;
     }
-    for (int i = 0; i < pd->GetNumberOfVerts(); i++) {
+    for (int i = 0; i < pd->GetNumberOfPoints(); i++) {
         float tuple[3];
         tuple[1] = tuple[2] = 0;
         if (elements != NULL && radiusSource != NULL) {

@@ -18,6 +18,7 @@
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkCylinderSource.h>
 #include <vtkLineSource.h>
+#include <vtkPointSetToLabelHierarchy.h>
 #include <vtkLabelPlacementMapper.h>
 
 #include "ColorMap.h"
@@ -116,6 +117,8 @@ public:
 
     void setAtomLabelVisibility(bool state);
 
+    void setAtomLabelField(const char *fieldName);
+
     void setBondVisibility(bool state);
 
     void setBondStyle(BondStyle style);
@@ -159,6 +162,7 @@ private:
     vtkSmartPointer<vtkLineSource> _lineSource;
     vtkSmartPointer<vtkGlyph3DMapper> _atomMapper;
     vtkSmartPointer<vtkGlyph3DMapper> _bondMapper;
+    vtkSmartPointer<vtkPointSetToLabelHierarchy> _labelHierarchy;
     vtkSmartPointer<vtkLabelPlacementMapper> _labelMapper;
 };
 

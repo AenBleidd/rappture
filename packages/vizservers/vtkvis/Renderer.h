@@ -702,6 +702,8 @@ public:
 
     void setMoleculeAtomVisibility(const DataSetId& id, bool state);
 
+    void setMoleculeAtomLabelField(const DataSetId& id, const char *fieldName);
+
     void setMoleculeAtomLabelVisibility(const DataSetId& id, bool state);
 
     void setMoleculeBondVisibility(const DataSetId& id, bool state);
