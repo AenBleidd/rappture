@@ -22,6 +22,7 @@ option add *Controls.labelFont \
 itcl::class Rappture::Controls {
     inherit itk::Widget
 
+    itk_option define -layout layout Layout ""
     itk_option define -padding padding Padding 0
 
     constructor {owner args} { # defined below }
@@ -49,7 +50,8 @@ itcl::class Rappture::Controls {
     private variable _controls ""    ;# list of known controls
     private variable _showing ""     ;# list of enabled (showing) controls
     private variable _name2info      ;# maps control name => info
-    private variable _scheme ""      ;# layout scheme (tabs/hlabels)
+    private variable _scheme ""      ;# layout scheme (tabs/vert/horz/sentence)
+    private variable _sentenceparts  ;# info for layout scheme "sentence:"
 }
                                                                                 
 itk::usual Controls {
@@ -72,11 +74,12 @@ itcl::body Rappture::Controls::constructor {owner args} {
     set f [$itk_interior.sc contents frame]
 
     set _tabs [blt::tabset $f.tabs -borderwidth 0 -relief flat \
-        -side top -tearoff 0 -highlightthickness 0 \
+        -side top -tearoff 0 -samewidth 0 -highlightthickness 0 \
         -selectbackground $itk_option(-background) \
         -selectcommand [itcl::code $this _changeTabs -user]]
+    pack $_tabs -expand yes -fill both
 
-    set _frame [frame $f.inner]
+    set _frame [frame $_tabs.inner]
     pack $_frame -expand yes -fill both
 
     #
@@ -123,6 +126,7 @@ itcl::body Rappture::Controls::insert {pos path} {
     set path [$_owner xml element -as path $path]
 
     set _name2info($name-path) $path
+    set _name2info($name-id) [$_owner xml element -as id $path]
     set _name2info($name-label) ""
     set _name2info($name-type) ""
     set _name2info($name-value) [set w $_frame.v$name]
@@ -174,8 +178,7 @@ itcl::body Rappture::Controls::insert {pos path} {
             button $w -text $label -command [list $service run]
         }
         separator {
-            # no widget to create
-            set _name2info($name-value) "--"
+            frame $w -class Separator -height 10
         }
         note {
             Rappture::Note $w $_owner $path
@@ -193,8 +196,6 @@ itcl::body Rappture::Controls::insert {pos path} {
     # If this element has an <enable> expression, then register
     # its controlling widget here.
     #
-    set notify [string trim [$_owner xml get $path.about.notify]]
-
     set disablestyle [string trim [$_owner xml get $path.about.disablestyle]]
     if { $disablestyle != "" } {
 	set _name2info($name-disablestyle) $disablestyle
@@ -421,18 +422,29 @@ itcl::body Rappture::Controls::_layout {} {
     #
     # Clear any existing layout
     #
+    foreach {rmax cmax} [grid size $_frame] break
+    for {set r 0} {$r < $rmax} {incr r} {
+        grid rowconfigure $_frame $r -weight 0 -minsize 0
+    }
+    grid rowconfigure $_frame 99 -weight 0
+
+    for {set c 0} {$c < $cmax} {incr c} {
+        grid columnconfigure $_frame $c -weight 0 -minsize 0
+    }
+
     foreach name $_controls {
         foreach elem {label value} {
             set w $_name2info($name-$elem)
-            if {$w != "" && [winfo exists $w]} {
+            if {$w ne "" && [winfo exists $w]} {
                 grid forget $w
             }
         }
     }
+    grid forget $_frame.empty
+
     if {[$_tabs size] > 0} {
         $_tabs delete 0 end
     }
-    grid forget $_frame.empty
 
     #
     # Decide which widgets should be shown and which should be hidden.
@@ -458,17 +470,13 @@ itcl::body Rappture::Controls::_layout {} {
                 # show other objects, but enable/disable them
                 lappend showing $name
                 if {$show ne "" && $show} {
-                    if {[winfo exists $vwidget]} {
-                        $vwidget configure -state normal
-                    }
+                    catch {$vwidget configure -state normal}
                     if {[winfo exists $lwidget]} {
                         $lwidget configure -foreground \
                             [lindex [$lwidget configure -foreground] 3]
                     }
                 } else {
-                    if {[winfo exists $vwidget]} {
-                        $vwidget configure -state disabled
-                    }
+                    catch {$vwidget configure -state disabled}
                     if {[winfo exists $lwidget]} {
                         $lwidget configure -foreground gray
                     }
@@ -484,34 +492,86 @@ itcl::body Rappture::Controls::_layout {} {
 
     #
     # Decide on a layout scheme:
-    #   tabs ...... best if all elements within are groups
-    #   hlabels ... horizontal labels (label: value)
+    #   default ...... tabs for groups of groups; vertical otherwise
+    #   tabs ......... tabbed notebook
+    #   vertical ..... "label: value" down in rows
+    #   horizontal ... "label: value" across columns
+    #   sentence ..... text with embedded widgets
     #
-    if {[llength $showing] >= 2} {
-        # assume tabs for multiple groups
-        set _scheme tabs
-        foreach name $showing {
-            set w $_name2info($name-value)
-
-            if {$w == "--" || [winfo class $w] != "GroupEntry"} {
-                # something other than a group? then fall back on hlabels
-                set _scheme hlabels
-                break
+    set _scheme $itk_option(-layout)
+    if {$_scheme eq "" || $_scheme eq "tabs"} {
+        if {[llength $showing] < 2} {
+            set _scheme "vertical"
+        } else {
+            set _scheme "tabs"
+            foreach name $showing {
+                set w $_name2info($name-value)
+                if {[lsearch {GroupEntry Separator} [winfo class $w]] < 0} {
+                    # something other than a group? then fall back on vertical
+                    set _scheme "vertical"
+                    break
+                }
             }
         }
-    } else {
-        set _scheme hlabels
     }
 
-    switch -- $_scheme {
+    # if the layout is "sentence:..." then create new parts
+    if {[string match {sentence:*} $itk_option(-layout)]
+          && [array size _sentenceparts] == 0} {
+        set n 0
+        set font [option get $itk_component(hull) labelFont Font]
+        set str [string range $itk_option(-layout) 9 end]
+        while {[regexp -indices {\$\{([a-zA-Z0-9_]+)\}} $str match name]} {
+            foreach {s0 s1} $name break
+            set name [string range $str $s0 $s1]
+
+            # create a label for the string before the substitution
+            foreach {s0 s1} $match break
+            set prefix [string trim [string range $str 0 [expr {$s0-1}]]]
+            if {$prefix ne ""} {
+                set lname $_frame.sentence[incr n]
+                label $lname -text $prefix -font $font
+                lappend _sentenceparts(all) $lname
+                lappend _sentenceparts(fragments) $lname
+            }
+
+            # add the widget for the substitution part
+            set found ""
+            foreach c $_controls {
+                if {$_name2info($c-id) eq $name} {
+                    set found $c
+                    break
+                }
+            }
+            if {$found ne ""} {
+                lappend _sentenceparts(all) $_name2info($found-value)
+            } else {
+                puts stderr "WARNING: name \"$name\" in sentence layout \"$itk_option(-layout)\" not recognized"
+            }
+
+            set str [string range $str [expr {$s1+1}] end]
+        }
+
+        # create a label for any trailing string
+        set str [string trim $str]
+        if {$str ne ""} {
+            set lname $_frame.sentence[incr n]
+            label $lname -text $str -font $font
+            lappend _sentenceparts(all) $lname
+            lappend _sentenceparts(fragments) $lname
+        }
+    }
+
+    switch -glob -- $_scheme {
       tabs {
         #
         # SCHEME: tabs
         # put a series of groups into a tabbed notebook
         #
 
-        # use inner frame within tabs to show current group
-        pack $_tabs -before $_frame -fill x
+        # stop covering up the tabset and put the _frame inside the tabs
+        pack forget $_frame
+        $_tabs configure -width 0 -height 0
 
         set gn 1
         foreach name $showing {
@@ -524,7 +584,8 @@ itcl::body Rappture::Controls::_layout {} {
             }
             set _name2info($name-label) $label
             $_tabs insert end $name -text $label \
-                -activebackground $itk_option(-background)
+                -activebackground $itk_option(-background) \
+                -window $_frame -fill both
 
             incr gn
         }
@@ -533,22 +594,23 @@ itcl::body Rappture::Controls::_layout {} {
         # BE CAREFUL: do this after setting "-heading no" above
         $_dispatcher event -now !resize
 
-        grid propagate $_frame off
         grid columnconfigure $_frame 0 -weight 1
         grid rowconfigure $_frame 0 -weight 1
 
         $_tabs select 0; _changeTabs
       }
 
-      hlabels {
+      vertical {
         #
-        # SCHEME: hlabels
+        # SCHEME: vertical
         # simple "Label: Value" layout
         #
-        pack forget $_tabs
-        grid propagate $_frame on
-        grid columnconfigure $_frame 0 -weight 0
-        grid rowconfigure $_frame 0 -weight 0
+        if {[$_tabs size] > 0} {
+            $_tabs delete 0 end
+        }
+        pack $_frame -expand yes -fill both
+        $_tabs configure -width [winfo reqwidth $_frame] \
+            -height [winfo reqheight $_frame]
 
         set expand 0  ;# most controls float to top
         set row 0
@@ -559,7 +621,7 @@ itcl::body Rappture::Controls::_layout {} {
             }
 
             set wv $_name2info($name-value)
-            if {$wv != "" && [winfo exists $wv]} {
+            if {$wv ne "" && [winfo exists $wv]} {
                 if {$wl != ""} {
                     grid $wv -row $row -column 1 -sticky ew
                 } else {
@@ -613,8 +675,6 @@ itcl::body Rappture::Controls::_layout {} {
                     }
                 }
                 grid columnconfigure $_frame 1 -weight 1
-            } elseif {$wv == "--"} {
-                grid rowconfigure $_frame $row -minsize 10
             }
 
             incr row
@@ -635,6 +695,56 @@ itcl::body Rappture::Controls::_layout {} {
             grid rowconfigure $_frame 99 -weight 0
         }
       }
+
+      horizontal {
+        #
+        # SCHEME: horizontal
+        # lay out left to right
+        #
+        if {[$_tabs size] > 0} {
+            $_tabs delete 0 end
+        }
+        pack $_frame -expand yes -fill both
+        $_tabs configure -width [winfo reqwidth $_frame] \
+            -height [winfo reqheight $_frame]
+
+        set col 0
+        set pad [expr {$itk_option(-padding)/2}]
+        foreach name $showing {
+            set wl $_name2info($name-label)
+            if {$wl != "" && [winfo exists $wl]} {
+                grid $wl -row 0 -column $col -sticky e -padx $pad
+                incr col
+            }
+
+            set wv $_name2info($name-value)
+            if {$wv != "" && [winfo exists $wv]} {
+                grid $wv -row 0 -column $col -sticky ew -padx $pad
+                grid columnconfigure $_frame $col -weight 0
+                incr col
+            }
+        }
+      }
+
+      sentence:* {
+        #
+        # SCHEME: sentence
+        # lay out left to right with sentence parts: "( [x] , [y] )"
+        #
+        if {[$_tabs size] > 0} {
+            $_tabs delete 0 end
+        }
+        pack $_frame -expand yes -fill both
+        $_tabs configure -width [winfo reqwidth $_frame] \
+            -height [winfo reqheight $_frame]
+
+        set col 0
+        set pad [expr {$itk_option(-padding)/2}]
+        foreach widget $_sentenceparts(all) {
+            grid $widget -row 0 -column $col -padx $pad
+            incr col
+        }
+      }
     }
 }
 
@@ -649,7 +759,7 @@ itcl::body Rappture::Controls::_layout {} {
 itcl::body Rappture::Controls::_monitor {name state} {
     set tag "Controls-$this"
     set wv $_name2info($name-value)
-    if {$wv == "--" || [catch {bindtags $wv} btags]} {
+    if {[catch {bindtags $wv} btags]} {
         return
     }
     set i [lsearch $btags $tag]
@@ -734,7 +844,9 @@ itcl::body Rappture::Controls::_changeTabs {{why -program}} {
         }
 
         set wv $_name2info($name-value)
-        grid $wv -row 0 -column 0 -sticky new
+        grid $wv -row 0 -column 0 -sticky nsew
+
+        $_tabs tab configure [$_tabs get $i] -window $_frame
 
         if {$why eq "-user"} {
             Rappture::Logger::log group $_name2info($name-path)
@@ -748,10 +860,9 @@ itcl::body Rappture::Controls::_changeTabs {{why -program}} {
 # Used internally to resize the widget when its contents change.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::_resize {} {
-    switch -- $_scheme {
+    switch -glob -- $_scheme {
         tabs {
-            # compute the overall size
-            # BE CAREFUL: do this after setting "-heading no" above
+            # in "tabs" mode, the overall size is the largest for all pages
             set maxw 0
             set maxh 0
             update idletasks
@@ -762,10 +873,16 @@ itcl::body Rappture::Controls::_resize {} {
                 set h [winfo reqheight $wv]
                 if {$h > $maxh} { set maxh $h }
             }
+
+            grid propagate $_frame no
             $_frame configure -width $maxw -height $maxh
         }
-        hlabels {
-            # do nothing
+        vertical - horizontal - sentence* {
+            # in other modes, just use normal size propagation
+            grid propagate $_frame yes
+        }
+        default {
+            error "bad layout scheme \"$_scheme\""
         }
     }
 }
@@ -774,5 +891,26 @@ itcl::body Rappture::Controls::_resize {} {
 # OPTION: -padding
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Controls::padding {
+    $_dispatcher event -idle !layout
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -layout
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Controls::layout {
+    # clear any existing sentence parts
+    if {[array size _sentenceparts] > 0} {
+        foreach part $_sentenceparts(fragments) {
+            destroy $part
+        }
+        catch {unset _sentenceparts}
+    }
+
+    if {![regexp {^(|horizontal|vertical|tabs|sentence:.+)$} $itk_option(-layout)]} {
+        puts "ERROR: bad layout option \"$itk_option(-layout)\" -- should be horizontal, vertical, tabs or sentence:..."
+        set itk_option(-layout) ""
+    }
+
+    # recompute the layout at some point
     $_dispatcher event -idle !layout
 }

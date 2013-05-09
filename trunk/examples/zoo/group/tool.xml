@@ -28,6 +28,7 @@ Group tags can also be used in the output section to overlay plots, but that's r
       <group id="tau">
         <about>
           <label>Minority carrier lifetimes</label>
+          <layout>horizontal</layout>
         </about>
 
         <number id="taun">
@@ -48,6 +49,17 @@ Group tags can also be used in the output section to overlay plots, but that's r
         <units>K</units>
         <default>300K</default>
       </number>
+      <group id="loc">
+        <about> <layout>sentence:Location = (${lat},${long})</layout> </about>
+        <number id="lat">
+          <about> <label>Latitude</label> </about>
+          <default>40.42</default>
+        </number>
+        <number id="long">
+          <about> <label>Longitude</label> </about>
+          <default>-86.91</default>
+        </number>
+      </group>
     </group>
   </group>
 </input>

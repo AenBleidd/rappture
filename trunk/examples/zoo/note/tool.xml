@@ -4,9 +4,7 @@
   <title>note</title>
   <about>Example of a Rappture &lt;note&gt; object.
 
-Notes are not really inputs or outputs, but descriptive explanations
-to the user.  The contents of a note can be arbitrary HTML, so it
-can contain images, hyperlinks, etc.
+Notes are not really inputs or outputs, but descriptive explanations to the user.  The contents of a note can be arbitrary HTML, so it can contain images, hyperlinks, etc.
   </about>
   <command>
     tclsh @tool/note.tcl @driver

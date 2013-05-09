@@ -15,6 +15,8 @@ package require Itk
 
 option add *TemperatureGauge.sampleWidth 30 widgetDefault
 option add *TemperatureGauge.sampleHeight 20 widgetDefault
+option add *TemperatureGauge.borderWidth 2 widgetDefault
+option add *TemperatureGauge.relief sunken widgetDefault
 option add *TemperatureGauge.textBackground #cccccc widgetDefault
 option add *TemperatureGauge.valuePosition "right" widgetDefault
 option add *TemperatureGauge.editable yes widgetDefault

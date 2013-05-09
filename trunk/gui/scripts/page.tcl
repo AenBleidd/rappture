@@ -191,7 +191,8 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
         } else {
             # create a control panel, if necessary
             if {![winfo exists $frame.cntls]} {
-                Rappture::Controls $frame.cntls $_owner
+                Rappture::Controls $frame.cntls $_owner \
+                    -layout [$xmlobj get $path.about.layout]
                 pack $frame.cntls -expand yes -fill both -pady 4
             }
 

@@ -18,20 +18,6 @@ package require BLT
 option add *Spinint.width 5 widgetDefault
 option add *Spinint.textBackground white widgetDefault
 
-blt::bitmap define Spinint-up {
-#define up_width 8
-#define up_height 4
-static unsigned char up_bits[] = {
-   0x10, 0x38, 0x7c, 0xfe};
-}
-
-blt::bitmap define Spinint-down {
-#define arrow_width 8
-#define arrow_height 4
-static unsigned char arrow_bits[] = {
-   0xfe, 0x7c, 0x38, 0x10};
-}
-
 itcl::class Rappture::Spinint {
     inherit itk::Widget
 
@@ -81,24 +67,28 @@ itcl::body Rappture::Spinint::constructor {args} {
     pack $itk_component(controls) -side right
 
     itk_component add up {
-        button $itk_component(controls).spinup -bitmap Spinint-up \
+        button $itk_component(controls).spinup \
+            -image [Rappture::icon intplus] \
             -borderwidth 1 -relief raised -highlightthickness 0 \
             -command [itcl::code $this bump up]
     } {
         usual
         ignore -borderwidth -highlightthickness
+        rename -background -buttonbackground buttonBackground Background
     }
-    pack $itk_component(up) -side top -expand yes -fill both
+    pack $itk_component(up) -side left -expand yes -fill both
 
     itk_component add down {
-        button $itk_component(controls).spindn -bitmap Spinint-down \
+        button $itk_component(controls).spindn \
+            -image [Rappture::icon intminus] \
             -borderwidth 1 -relief raised -highlightthickness 0 \
             -command [itcl::code $this bump down]
     } {
         usual
         ignore -borderwidth -highlightthickness
+        rename -background -buttonbackground buttonBackground Background
     }
-    pack $itk_component(down) -side bottom -expand yes -fill both
+    pack $itk_component(down) -side right -expand yes -fill both
 
     eval itk_initialize $args
 }
