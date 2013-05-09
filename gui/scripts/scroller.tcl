@@ -340,7 +340,7 @@ itcl::body Rappture::Scroller::_fixsize {} {
         # for default size, let the frame being controlled set the size
         grid propagate $itk_component(hull) yes
         if {$_frame == "$itk_component(hull).ifr"} {
-            set w [winfo reqwidth $_frame.f]
+            set w [expr {[winfo reqwidth $_frame.f]+2}]
             set h [winfo reqheight $_frame.f]
             $_frame configure -width $w -height $h
         }

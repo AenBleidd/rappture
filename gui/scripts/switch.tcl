@@ -40,8 +40,7 @@ itk::usual Switch {
 itcl::body Rappture::Switch::constructor {args} {
 
     itk_component add button {
-        button $itk_interior.value \
-            -compound left \
+        button $itk_interior.value -compound left \
             -overrelief flat -relief flat -padx 3 -pady 0 -bd 0 \
             -command [itcl::code $this _toggle]
     } {
@@ -113,14 +112,14 @@ itcl::body Rappture::Switch::_updateText {} {
     set text ""
     if { $_value } {
         if {$itk_option(-showimage)} {
-            set image [Rappture::icon cbon]
+            set image [Rappture::icon switch1]
         }
         if {$itk_option(-showtext)} {
             set text "yes"
         }
     } else {
         if {$itk_option(-showimage)} {
-            set image [Rappture::icon cboff]
+            set image [Rappture::icon switch0]
         }
         if {$itk_option(-showtext)} {
             set text "no"

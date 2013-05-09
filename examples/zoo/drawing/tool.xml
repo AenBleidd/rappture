@@ -15,7 +15,7 @@ When you click the Simulate button, the input strings will be used to generate o
   <layout>wizard</layout>
  </tool>
  <input>
-    <boolean id="trapezoid_top">
+    <boolean id="trapezoid_top_enable">
       <about> <label>Enable trapezoid top</label> </about>
       <default>off</default>
     </boolean>
@@ -46,6 +46,12 @@ When you click the Simulate button, the input strings will be used to generate o
     <variable>
      <name>trapezoid_top</name>
      <path>input.number(trapezoid_top)</path>
+    </variable>
+    <variable>
+     <name>trapezoid_top_color</name>
+     <path>input.boolean(trapezoid_top_enable)</path>
+     <map><from>no</from><to>gray</to></map>
+     <map><from>yes</from><to>black</to></map>
     </variable>
     <variable>
      <name>substrate_length</name>
@@ -108,13 +114,13 @@ Height = ${feature_height}</text>
     </text>
     <line id="trapezoid_top">
      <coords>.35 .38 .65 .38</coords>
-     <color>black</color>
+     <color>${trapezoid_top_color}</color>
      <linewidth>2</linewidth>
      <arrow>both</arrow>
     </line>
     <text id="trapezoid_top">
      <coords>.5 .35</coords>
-     <color>black</color>
+     <color>${trapezoid_top_color}</color>
      <text>Length of Trapezoid Top = ${trapezoid_top}</text>
      <font>Arial 11</font>
      <anchor>s</anchor>
@@ -185,7 +191,7 @@ Height = ${feature_height}</text>
    <about>
     <label>Trapezoid Top</label>
     <description>Width of the Trapezoid Top.</description>
-    <enable>input.boolean(trapezoid_top)</enable>
+    <enable>input.boolean(trapezoid_top_enable)</enable>
    </about>
    <units>nm</units>
    <min>10</min>

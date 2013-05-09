@@ -19,6 +19,8 @@ package require BLT
 
 option add *Gauge.sampleWidth 30 widgetDefault
 option add *Gauge.sampleHeight 20 widgetDefault
+option add *Gauge.borderWidth 2 widgetDefault
+option add *Gauge.relief sunken widgetDefault
 option add *Gauge.valuePosition "right" widgetDefault
 option add *Gauge.textBackground #cccccc widgetDefault
 option add *Gauge.editable yes widgetDefault
@@ -56,19 +58,6 @@ itcl::class Rappture::Gauge {
 
     private variable _value 0  ;# value for this widget
 
-    blt::bitmap define GaugeArrow-up {
-        #define up_width 8
-        #define up_height 4
-        static unsigned char up_bits[] = {
-           0x10, 0x38, 0x7c, 0xfe};
-    }
-    blt::bitmap define GaugeArrow-down {
-        #define arrow_width 8
-        #define arrow_height 4
-        static unsigned char arrow_bits[] = {
-           0xfe, 0x7c, 0x38, 0x10};
-    }
-
     blt::bitmap define GaugeArrow {
         #define arrow_width 9
         #define arrow_height 4
@@ -86,23 +75,28 @@ itk::usual Gauge {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::constructor {args} {
+    itk_option remove hull.borderwidth hull.relief
+    component hull configure -borderwidth 0
+
     itk_component add icon {
         canvas $itk_interior.icon -width 1 -height 1 \
             -borderwidth 0 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness -highlightbackground -highlightcolor
+        ignore -borderwidth -relief
     }
-    pack $itk_component(icon) -side left
     bind $itk_component(icon) <Configure> [itcl::code $this _redraw]
 
     itk_component add -protected vframe {
         frame $itk_interior.vframe
+    } {
+        keep -borderwidth -relief
     }
 
     itk_component add value {
-        label $itk_component(vframe).value -borderwidth 1 -width 7 \
-            -textvariable [itcl::scope _value]
+        label $itk_component(vframe).value -width 7 \
+            -borderwidth 1 -relief flat -textvariable [itcl::scope _value]
     } {
         rename -background -textbackground textBackground Background
     }
@@ -145,33 +139,34 @@ itcl::body Rappture::Gauge::constructor {args} {
     }
 
     itk_component add spinup {
-        button $itk_component(spinner).up -bitmap GaugeArrow-up \
+        button $itk_component(spinner).up -image [Rappture::icon intplus] \
             -borderwidth 1 -relief raised -highlightthickness 0 \
             -command [itcl::code $this bump 1]
     } {
         usual
         ignore -borderwidth -highlightthickness
+        rename -background -buttonbackground buttonBackground Background
     }
-    pack $itk_component(spinup) -side top -expand yes -fill both
+    pack $itk_component(spinup) -side left -expand yes -fill both
 
     itk_component add spindn {
-        button $itk_component(spinner).down -bitmap GaugeArrow-down \
+        button $itk_component(spinner).down -image [Rappture::icon intminus] \
             -borderwidth 1 -relief raised -highlightthickness 0 \
             -command [itcl::code $this bump -1]
     } {
         usual
         ignore -borderwidth -highlightthickness
+        rename -background -buttonbackground buttonBackground Background
     }
-    pack $itk_component(spindn) -side bottom -expand yes -fill both
+    pack $itk_component(spindn) -side right -expand yes -fill both
 
 
     itk_component add presets {
         button $itk_component(vframe).psbtn -bitmap GaugeArrow \
-            -borderwidth 1 -highlightthickness 0 -relief flat
+            -borderwidth 1 -highlightthickness 0 -relief raised
     } {
         usual
         ignore -borderwidth -relief -highlightthickness
-        rename -background -textbackground textBackground Background
     }
 
     bind $itk_component(presets) <Enter> [itcl::code $this _hilite presets on]
@@ -469,7 +464,11 @@ itcl::body Rappture::Gauge::_hilite {comp state} {
     if {$state} {
         $itk_component($comp) configure -relief solid
     } else {
-        $itk_component($comp) configure -relief flat
+        if {$comp eq "presets"} {
+            $itk_component($comp) configure -relief raised
+        } else {
+            $itk_component($comp) configure -relief flat
+        }
     }
 }
 
@@ -559,7 +558,7 @@ itcl::body Rappture::Gauge::_presets {option} {
             after 10 [list $itk_component(presets) configure -relief sunken]
         }
         unpost {
-            $itk_component(presets) configure -relief flat
+            $itk_component(presets) configure -relief raised
         }
         select {
             set val [$itk_component(presetlist) current]
@@ -599,7 +598,7 @@ itcl::body Rappture::Gauge::_layout {} {
     $itk_component(value) configure -anchor $side2anchor($pos)
 
     if {"" != $itk_option(-image) || "" != $itk_option(-spectrum)} {
-        pack $itk_component(icon) -side $pos
+        pack $itk_component(icon) -side $pos -padx 2
     }
 }
 
