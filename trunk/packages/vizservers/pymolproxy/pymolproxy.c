@@ -86,9 +86,9 @@
 
 typedef struct {
     pid_t child;		/* Child process. */
-    size_t nFrames;		/* # of frames sent to client. */
-    size_t nBytes;		/* # of bytes for all frames. */
-    size_t nCommands;		/* # of commands executed */
+    size_t numFrames;		/* # of frames sent to client. */
+    size_t numBytes;		/* # of bytes for all frames. */
+    size_t numCommands;		/* # of commands executed */
     double cmdTime;		/* Elapsed time spend executing commands. */
     struct timeval start;	/* Start of elapsed time. */
 } Stats;
@@ -114,7 +114,7 @@ typedef struct Image {
 					 * images. The list is ordered by the
 					 * most recently received image from
 					 * the pymol server to the least. */
-    ssize_t nWritten;			/* Number of bytes of image data
+    ssize_t numWritten;			/* Number of bytes of image data
 					 * already delivered.*/
     size_t bytesLeft;			/* Number of bytes of image data left
 					 * to delivered to the client. */
@@ -334,11 +334,11 @@ FillBuffer(ReadBuffer *readPtr)
  *	Returns the next available line (terminated by a newline).
  *	If insufficient data is in the buffer, then the channel is
  *	read for more data.  If reading the channel results in a
- *	short read, NULL is returned and *nBytesPtr is set to
+ *	short read, NULL is returned and *numBytesPtr is set to
  *	BUFFER_CONTINUE.
  */
 static char *
-NextLine(ReadBuffer *readPtr, int *nBytesPtr)
+NextLine(ReadBuffer *readPtr, int *numBytesPtr)
 {
     int i;
     int status;
@@ -360,10 +360,10 @@ NextLine(ReadBuffer *readPtr, int *nBytesPtr)
 		/* Save the start of the line. */
 		p = readPtr->bytes + readPtr->mark;
 		i++;			/* Include the newline. */
-		*nBytesPtr = i - readPtr->mark;
+		*numBytesPtr = i - readPtr->mark;
 		readPtr->mark = i;
 #if READTRACE
-		Debug("Leaving NextLine(%.*s)\n", *nBytesPtr, p);
+		Debug("Leaving NextLine(%.*s)\n", *numBytesPtr, p);
 #endif
 		return p;
 	    }
@@ -371,13 +371,13 @@ NextLine(ReadBuffer *readPtr, int *nBytesPtr)
 	/* Couldn't find a newline, so it may be that we need to read some
 	 * more. Check first that last read wasn't a short read. */
 	if (status == BUFFER_CONTINUE) {
-	    *nBytesPtr = BUFFER_CONTINUE;  /* No complete line just yet. */
+	    *numBytesPtr = BUFFER_CONTINUE;  /* No complete line just yet. */
 	    return NULL;
 	}
 	/* Try to add more data to the buffer. */
 	status = FillBuffer(readPtr);
 	if (status == BUFFER_ERROR) {
-	    *nBytesPtr = BUFFER_ERROR;
+	    *numBytesPtr = BUFFER_ERROR;
 	    return NULL;	/* EOF or error on read. */
 	}
 	/* BUFFER_OK or BUFFER_CONTINUE */
@@ -385,7 +385,7 @@ NextLine(ReadBuffer *readPtr, int *nBytesPtr)
 #if READTRACE
     Debug("Leaving NextLine failed to read line\n");
 #endif
-    *nBytesPtr = BUFFER_CONTINUE;
+    *numBytesPtr = BUFFER_CONTINUE;
     return NULL;
 }
 
@@ -397,12 +397,12 @@ NextLine(ReadBuffer *readPtr, int *nBytesPtr)
  *	Never should be short. 
  */
 static int 
-ReadFollowingData(ReadBuffer *readPtr, char *out, int nBytes)
+ReadFollowingData(ReadBuffer *readPtr, char *out, int numBytes)
 {
 #if READTRACE
-    Debug("Entering ReadFollowingData(%d)\n", nBytes);
+    Debug("Entering ReadFollowingData(%d)\n", numBytes);
 #endif
-    while (nBytes > 0) {
+    while (numBytes > 0) {
 	int bytesLeft;
 	int status;
 
@@ -411,16 +411,16 @@ ReadFollowingData(ReadBuffer *readPtr, char *out, int nBytes)
 	    int size;
 
 	    /* Pull bytes out of the buffer, updating the mark. */
-	    size = (bytesLeft >  nBytes) ? nBytes : bytesLeft;
+	    size = (bytesLeft >  numBytes) ? numBytes : bytesLeft;
 	    memcpy(out, readPtr->bytes + readPtr->mark, size);
 	    readPtr->mark += size;
-	    nBytes -= size;
+	    numBytes -= size;
 	    out += size;
 	}
-	if (nBytes == 0) {
+	if (numBytes == 0) {
 	    /* Received requested # bytes. */
 #if READTRACE
-	    Debug("Leaving ReadFollowingData(%d)\n", nBytes);
+	    Debug("Leaving ReadFollowingData(%d)\n", numBytes);
 #endif
 	    return BUFFER_OK;
 	}
@@ -435,7 +435,7 @@ ReadFollowingData(ReadBuffer *readPtr, char *out, int nBytes)
 #endif
     }
 #if READTRACE
-    Debug("Leaving ReadFollowingData(%d)\n", nBytes);
+    Debug("Leaving ReadFollowingData(%d)\n", numBytes);
 #endif
     return BUFFER_OK;
 }
@@ -462,28 +462,28 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
     c = match[0];
     length = strlen(match);
     for (;;) {
-	int nBytes;
+	int numBytes;
 	char *line;
 
-	line = NextLine(&proxyPtr->server, &nBytes);
+	line = NextLine(&proxyPtr->server, &numBytes);
 	if (line != NULL) {
 #if EXPECTTRACE
-	    Debug("pymol says (read %d bytes):%.*s", nBytes, nBytes, line);
+	    Debug("pymol says (read %d bytes):%.*s", numBytes, numBytes, line);
 #endif
 	    if ((c == line[0]) && (strncmp(line, match, length) == 0)) {
-		if (maxSize < nBytes) {
-		    nBytes = maxSize;
+		if (maxSize < numBytes) {
+		    numBytes = maxSize;
 		}
-		memcpy(out, line, nBytes);
+		memcpy(out, line, numBytes);
 		clear_error(proxyPtr);
 #if EXPECTTRACE
-		Debug("Leaving Expect: got (%.*s)\n", nBytes, out);
+		Debug("Leaving Expect: got (%.*s)\n", numBytes, out);
 #endif
 		return TCL_OK;
 	    }
 	    continue;
 	}
-	if (nBytes == BUFFER_ERROR) {
+	if (numBytes == BUFFER_ERROR) {
 	    Tcl_AppendResult(proxyPtr->interp, 
 		"error reading server to find match for \"", match, "\": ", 
 		Tcl_PosixError(proxyPtr->interp), (char *)NULL);
@@ -547,11 +547,11 @@ WriteStats(const char *who, int code)
 
     sprintf(buf, "pid=\"%d\" ", pid);
     Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "num_frames=\"%lu\" ", (unsigned long int)stats.nFrames);
+    sprintf(buf, "num_frames=\"%lu\" ", (unsigned long int)stats.numFrames);
     Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "frame_bytes=\"%lu\" ", (unsigned long int)stats.nBytes);
+    sprintf(buf, "frame_bytes=\"%lu\" ", (unsigned long int)stats.numBytes);
     Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "num_commands=\"%lu\" ", (unsigned long int)stats.nCommands);
+    sprintf(buf, "num_commands=\"%lu\" ", (unsigned long int)stats.numCommands);
     Tcl_DStringAppend(&ds, buf, -1);
     sprintf(buf, "cmd_time=\"%g\" ", stats.cmdTime);
     Tcl_DStringAppend(&ds, buf, -1);
@@ -636,7 +636,7 @@ ExecuteCommand(Tcl_Interp *interp, const char *cmd)
     finish = CVT2SECS(tv);
 
     stats.cmdTime += finish - start;
-    stats.nCommands++;
+    stats.numCommands++;
     return result;
 }
 
@@ -661,7 +661,7 @@ NewImage(PymolProxy *proxyPtr, size_t dataLength)
 	proxyPtr->tailPtr = imgPtr;
     }
     proxyPtr->headPtr = imgPtr;
-    imgPtr->nWritten = 0;
+    imgPtr->numWritten = 0;
     return imgPtr;
 }
 
@@ -690,26 +690,26 @@ WriteImage(PymolProxy *proxyPtr, int fd)
 	Debug("WriteImage: want to write %d bytes.", imgPtr->bytesLeft);
 #endif
 	for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
-	    ssize_t nWritten;
+	    ssize_t numWritten;
 #if WRITETRACE
 	    Debug("WriteImage: try to write %d bytes.", bytesLeft);
 #endif
-	    nWritten = write(fd, imgPtr->data + imgPtr->nWritten, bytesLeft);
+	    numWritten = write(fd, imgPtr->data + imgPtr->numWritten, bytesLeft);
 #if WRITETRACE
-	    Debug("WriteImage: wrote %d bytes.", nWritten);
+	    Debug("WriteImage: wrote %d bytes.", numWritten);
 #endif
-	    if (nWritten < 0) {
+	    if (numWritten < 0) {
 	        ERROR("Error writing fd=%d, %s", fd, strerror(errno));
 		return;
 	    }
-	    bytesLeft -= nWritten;
+	    bytesLeft -= numWritten;
 	    if (bytesLeft > 0) {
 		/* Wrote a short buffer, means we would block. */
-		imgPtr->nWritten += nWritten;
+		imgPtr->numWritten += numWritten;
 		imgPtr->bytesLeft = bytesLeft;
 		return;
 	    }
-	    imgPtr->nWritten += nWritten;
+	    imgPtr->numWritten += numWritten;
 	}
 	/* Check if image is on the head.  */
 	proxyPtr->tailPtr = prevPtr;
@@ -728,7 +728,7 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     char buffer[BUFSIZ];
     char expect[BUFSIZ];
     int result;
-    ssize_t nWritten;
+    ssize_t numWritten;
     size_t length;
     char *p;
 
@@ -746,10 +746,10 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     
     /* Write the command out to the server. */
     length = strlen(buffer);
-    nWritten = write(proxyPtr->sin, buffer, length);
-    if (nWritten != length) {
+    numWritten = write(proxyPtr->sin, buffer, length);
+    if (numWritten != length) {
 	ERROR("short write to pymol (wrote=%d, should have been %d): %s",
-	      nWritten, length, strerror(errno));
+	      numWritten, length, strerror(errno));
     }
     for (p = buffer; *p != '\0'; p++) {
 	if (*p == '\n') {
@@ -1099,7 +1099,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     char *allocated;
     PymolProxy *proxyPtr = clientData;
     int state, defer, push;
-    int nBytes;
+    int numBytes;
     int i, j;
 
     if (proxyPtr == NULL){
@@ -1122,7 +1122,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     argc = j;
     if (argc < 4) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"", argv[0],
-			 " <data>|follows <model> <state> ?<nBytes>?\"",
+			 " <data>|follows <model> <state> ?<numBytes>?\"",
 			 (char *)NULL);
 	return TCL_ERROR;
     }
@@ -1131,17 +1131,17 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (Tcl_GetInt(interp, argv[3], &state) != TCL_OK) {
 	return TCL_ERROR;
     }
-    nBytes = -1;
+    numBytes = -1;
     if (strcmp(data, "follows") == 0) {
 	if (argc != 5) {
 	    Tcl_AppendResult(interp, "wrong # arguments: should be \"", argv[0],
-			 " follows <model> <state> <nBytes>\"", (char *)NULL);
+			 " follows <model> <state> <numBytes>\"", (char *)NULL);
 	    return TCL_ERROR;
 	}
-	if (Tcl_GetInt(interp, argv[4], &nBytes) != TCL_OK) {
+	if (Tcl_GetInt(interp, argv[4], &numBytes) != TCL_OK) {
 	    return TCL_ERROR;
 	}
-	if (nBytes < 0) {
+	if (numBytes < 0) {
 	    Tcl_AppendResult(interp, "bad value for # bytes \"", argv[4],
 			 "\"", (char *)NULL);
 	    return TCL_ERROR;
@@ -1157,14 +1157,14 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     /* Does not invalidate cache? */
 
     allocated = NULL;
-    if (nBytes >= 0) {
-	allocated = malloc(sizeof(char) * nBytes);
+    if (numBytes >= 0) {
+	allocated = malloc(sizeof(char) * numBytes);
 	if (allocated == NULL) {
 	    Tcl_AppendResult(interp, "can't allocate buffer for pdbdata.",
 			     (char *)NULL);
 	    return TCL_ERROR;
 	}
-	if (ReadFollowingData(&proxyPtr->client, allocated, nBytes) 
+	if (ReadFollowingData(&proxyPtr->client, allocated, numBytes) 
 	    != BUFFER_OK) {
 	    Tcl_AppendResult(interp, "can't read pdbdata from client.",
 			     (char *)NULL);
@@ -1173,11 +1173,11 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	}
 	data = allocated;
     } else {
-	nBytes = strlen(data);
+	numBytes = strlen(data);
     }
     {
 	int f;
-	ssize_t nWritten;
+	ssize_t numWritten;
 	char fileName[200];
 
 	strcpy(fileName, "/tmp/pdb.XXXXXX");
@@ -1188,8 +1188,8 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 		fileName, "\":", Tcl_PosixError(interp), (char *)NULL);
 	    goto error;
 	} 
-	nWritten = write(f, data, nBytes);
-	if (nBytes != nWritten) {
+	numWritten = write(f, data, numBytes);
+	if (numBytes != numWritten) {
 	    Tcl_AppendResult(interp, "can't write PDB data to \"",
 			     fileName, "\": ", Tcl_PosixError(interp),
 			     (char *)NULL);
@@ -1295,7 +1295,7 @@ static int
 PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[BUFSIZ];
-    int nBytes=0;
+    int numBytes=0;
     PymolProxy *proxyPtr = clientData;
     size_t length;
     Image *imgPtr;
@@ -1309,27 +1309,27 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     if (Expect(proxyPtr, "png image follows: ", buffer, BUFSIZ-1) != TCL_OK) {
 	return TCL_ERROR;
     }
-    if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
+    if (sscanf(buffer, "png image follows: %d\n", &numBytes) != 1) {
 	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
 			 (char *)NULL);
 	return TCL_ERROR;
     } 
-    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
+    sprintf(buffer, "nv>image %d %d %d %d\n", numBytes, proxyPtr->cacheId, 
 	    proxyPtr->frame, proxyPtr->rockOffset);
     length = strlen(buffer);
-    imgPtr = NewImage(proxyPtr, nBytes + length);
+    imgPtr = NewImage(proxyPtr, numBytes + length);
     strcpy(imgPtr->data, buffer);
-    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, nBytes)
+    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, numBytes)
 	!= BUFFER_OK) {
-        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes, 
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", numBytes, 
 	      strerror(errno));
 	return  TCL_ERROR;
     }
     if (Expect(proxyPtr, " ScenePNG", buffer, BUFSIZ-1) != TCL_OK) {
 	return TCL_ERROR;
     }
-    stats.nFrames++;
-    stats.nBytes += nBytes;
+    stats.numFrames++;
+    stats.numBytes += numBytes;
     return proxyPtr->status;
 }
 
@@ -1338,7 +1338,7 @@ static int
 PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[BUFSIZ];
-    int nBytes=0;
+    int numBytes=0;
     PymolProxy *proxyPtr = clientData;
     size_t length;
     Image *imgPtr;
@@ -1352,19 +1352,19 @@ PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     if (Expect(proxyPtr, "ppm image follows: ", buffer, BUFSIZ-1) != TCL_OK) {
 	return TCL_ERROR;
     }
-    if (sscanf(buffer, "ppm image follows: %d\n", &nBytes) != 1) {
+    if (sscanf(buffer, "ppm image follows: %d\n", &numBytes) != 1) {
 	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
 			 (char *)NULL);
 	return TCL_ERROR;
     } 
-    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
+    sprintf(buffer, "nv>image %d %d %d %d\n", numBytes, proxyPtr->cacheId, 
 	    proxyPtr->frame, proxyPtr->rockOffset);
     length = strlen(buffer);
-    imgPtr = NewImage(proxyPtr, nBytes + length);
+    imgPtr = NewImage(proxyPtr, numBytes + length);
     strcpy(imgPtr->data, buffer);
-    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, nBytes)
+    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, numBytes)
 	!= BUFFER_OK) {
-        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes, 
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", numBytes, 
 	      strerror(errno));
 	return  TCL_ERROR;
     }
@@ -1373,8 +1373,8 @@ PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 	return TCL_ERROR;
     }
 #endif
-    stats.nFrames++;
-    stats.nBytes += nBytes;
+    stats.numFrames++;
+    stats.numBytes += numBytes;
     return proxyPtr->status;
 }
 
@@ -1384,7 +1384,7 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	 const char *argv[])
 {
     char buffer[800];
-    int nBytes=0;
+    int numBytes=0;
     PymolProxy *proxyPtr = clientData;
     size_t length;
     Image *imgPtr;
@@ -1424,20 +1424,20 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	return TCL_ERROR;
     }
 
-    if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
+    if (sscanf(buffer, "png image follows: %d\n", &numBytes) != 1) {
 	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
 			 (char *)NULL);
 	return TCL_ERROR;
     }
-    sprintf(buffer, "nv>image %d print \"%s\" %d\n", nBytes, token, 
+    sprintf(buffer, "nv>image %d print \"%s\" %d\n", numBytes, token, 
 	    proxyPtr->rockOffset);
     Debug("header is png is (%s)\n", buffer);
     length = strlen(buffer);
-    imgPtr = NewImage(proxyPtr, nBytes + length);
+    imgPtr = NewImage(proxyPtr, numBytes + length);
     strcpy(imgPtr->data, buffer);
-    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, nBytes)
+    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, numBytes)
 	!= BUFFER_OK) {
-        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes,
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", numBytes,
 	      strerror(errno));
 	return  TCL_ERROR;
     }
@@ -1445,8 +1445,8 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	return TCL_ERROR;
     }
 
-    stats.nFrames++;
-    stats.nBytes += nBytes;
+    stats.numFrames++;
+    stats.numBytes += numBytes;
     return proxyPtr->status;
 }
 
@@ -2194,21 +2194,21 @@ PollForEvents(PymolProxy *proxyPtr)
 	 * the pymol server to block writing to stderr or stdout.
 	 */
 	if (pollFd[1].revents & POLLIN) { /* Server stdout */
-	    int nBytes;
+	    int numBytes;
 	    char *line;
 	    
 	    Debug("Reading pymol stdout\n");
 	    /* Don't care what's in the server output buffer. */
 	    FlushBuffer(&proxyPtr->server);
-	    line = NextLine(&proxyPtr->server, &nBytes);
+	    line = NextLine(&proxyPtr->server, &numBytes);
 	    if (line != NULL) {
-		Debug("STDOUT>%.*s", nBytes, line);
-		INFO("Garbage found from pymol server: %.%s", nBytes, line);
-	    } else if (nBytes == BUFFER_CONTINUE) {
+		Debug("STDOUT>%.*s", numBytes, line);
+		INFO("Garbage found from pymol server: %.%s", numBytes, line);
+	    } else if (numBytes == BUFFER_CONTINUE) {
 		Debug("No data found on pymol stdout\n");
 		continue;
 	    } else {
-		ERROR("can't read pymol stdout (nBytes=%d): %s\n", nBytes,
+		ERROR("can't read pymol stdout (numBytes=%d): %s\n", numBytes,
 		      strerror(errno));
 		goto error;		/* Get out on EOF or error. */
 	    }
@@ -2218,14 +2218,14 @@ PollForEvents(PymolProxy *proxyPtr)
 	if (pollFd[0].revents & POLLIN) { /* Client stdout */
 	    Debug("Reading client stdout\n");
 	    for (;;) {
-		int nBytes;
+		int numBytes;
 		char *line;
 		
-		line = NextLine(&proxyPtr->client, &nBytes);
+		line = NextLine(&proxyPtr->client, &numBytes);
 		if (line != NULL) {
 		    const char *cmd;
 
-		    Tcl_DStringAppend(&clientCmds, line, nBytes);
+		    Tcl_DStringAppend(&clientCmds, line, numBytes);
 		    cmd = Tcl_DStringValue(&clientCmds);
 		    if (Tcl_CommandComplete(cmd)) {
 			int result;
@@ -2243,10 +2243,10 @@ PollForEvents(PymolProxy *proxyPtr)
 		    }
 		    continue;
 		}
-		if (nBytes == BUFFER_CONTINUE) {
+		if (numBytes == BUFFER_CONTINUE) {
 		    break;
 		}
-		ERROR("can't read client stdout (nBytes=%d): %s\n", nBytes,
+		ERROR("can't read client stdout (numBytes=%d): %s\n", numBytes,
 		      strerror(errno));
 		goto error;		/* Get out on EOF or error. */
 	    }
