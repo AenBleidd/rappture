@@ -37,7 +37,11 @@ def getCommandOutput(command,
                                 stderr=subprocess.PIPE, \
                                 close_fds=True)
     else:
-       commandArgs = shlex.split(command)
+       try:
+          commandStr = str(command)
+       except UnicodeEncodeError:
+          commandStr = unicode(command).encode('unicode_escape')
+       commandArgs = shlex.split(commandStr)
        child = subprocess.Popen(commandArgs,bufsize=BUFSIZ, \
                                 stdout=subprocess.PIPE, \
                                 stderr=subprocess.PIPE, \
