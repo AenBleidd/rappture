@@ -54,7 +54,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     set presets ""
     foreach pre [$_owner xml children -type preset $path] {
         set value [string trim [$_owner xml get $path.$pre.value]]
-        set label [$_owner xml get $path.$pre.label]
+        set label [string trim [$_owner xml get $path.$pre.label]]
         lappend presets $value $label
     }
     
@@ -145,7 +145,7 @@ itcl::body Rappture::NumberEntry::value {args} {
             # someday we may add validation...
             return
         }
-        set newval [lindex $args 0]
+        set newval [string trim [lindex $args 0]]
         $itk_component(gauge) value $newval
         return $newval
 
@@ -166,7 +166,7 @@ itcl::body Rappture::NumberEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "Number"
     }
@@ -182,11 +182,11 @@ itcl::body Rappture::NumberEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberEntry::tooltip {} {
-    set str [$_owner xml get $_path.about.description]
+    set str   [string trim [$_owner xml get $_path.about.description]]
 
     set units [string trim [$_owner xml get $_path.units]]
-    set min [string trim [$_owner xml get $_path.min]]
-    set max [string trim [$_owner xml get $_path.max]]
+    set min   [string trim [$_owner xml get $_path.min]]
+    set max   [string trim [$_owner xml get $_path.max]]
 
     if {$units != "" || $min != "" || $max != ""} {
         append str "\n\nEnter a number"

@@ -576,18 +576,17 @@ itcl::body Rappture::Controls::_layout {} {
         set gn 1
         foreach name $showing {
             set wv $_name2info($name-value)
-            $wv configure -heading no
-
-            set label [$wv component heading cget -text]
-            if {"" == $label} {
-                set label "Group #$gn"
-            }
-            set _name2info($name-label) $label
-            $_tabs insert end $name -text $label \
-                -activebackground $itk_option(-background) \
-                -window $_frame -fill both
-
-            incr gn
+            if { [winfo class $wv] == "GroupEntry" } {
+                $wv configure -heading no
+                set label [$wv component heading cget -text]
+                if {"" == $label} {
+                    set label "Group #$gn"
+                }
+                set _name2info($name-label) $label
+                $_tabs insert end $name -text $label \
+                    -activebackground $itk_option(-background) \
+                    -window $_frame -fill both
+                incr gn
         }
 
         # compute the overall size

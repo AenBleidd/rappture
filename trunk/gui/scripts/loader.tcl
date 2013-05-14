@@ -93,7 +93,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set newfile ""
     foreach comp [$_owner xml children -type new $path] {
-        set name [string trim [$_owner xml get $path.$comp]]
+        set name  [string trim [$_owner xml get $path.$comp]]
         set fname [file join $fdir examples $name]
 
         if {[file exists $fname]} {
@@ -135,8 +135,8 @@ itcl::body Rappture::Loader::constructor {owner path args} {
                     "unknown <upload> path \"$topath\": please fix tool.xml"
                 continue
             }
-            set label [$_owner xml get $topath.about.label]
-            set desc [$_owner xml get $topath.about.description]
+            set label [string trim [$_owner xml get $topath.about.label]]
+            set desc  [string trim [$_owner xml get $topath.about.description]]
             lappend _uppath $topath $label $desc
         }
         break
@@ -163,7 +163,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
                 lappend _dnpaths $frompath
                 set _dnpath2state($this-$frompath) [expr {$i == 0}]
 
-                set label [$_owner xml get $frompath.about.label]
+                set label [string trim [$_owner xml get $frompath.about.label]]
                 checkbutton $inner.cb$i -text $label \
                     -variable ::Rappture::Loader::_dnpath2state($this-$frompath)
                 pack $inner.cb$i -anchor w
@@ -238,7 +238,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     }
 
     set _copyfrom [string trim [$_owner xml get $path.copy.from]]
-    set _copyto [string trim [$_owner xml get $path.copy.to]]
+    set _copyto   [string trim [$_owner xml get $path.copy.to]]
 
     #
     # Assign the default value to this widget, if there is one.
@@ -400,7 +400,7 @@ itcl::body Rappture::Loader::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::_tooltip {} {
-    set str [$_owner xml get $_path.about.description]
+    set str [string trim [$_owner xml get $_path.about.description]]
 
     # get the description for the current choice, if there is one
     set newval [$itk_component(combo) value]

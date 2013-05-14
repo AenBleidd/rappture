@@ -144,7 +144,7 @@ itcl::body Rappture::BooleanEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "Boolean"
     }
@@ -160,9 +160,9 @@ itcl::body Rappture::BooleanEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::tooltip {} {
-    set str [$_owner xml get $_path.about.description]
+    set str [string trim [$_owner xml get $_path.about.description]]
     append str "\n\nClick to turn on/off"
-    return [string trim $str]
+    return $str
 }
 
 # ----------------------------------------------------------------------

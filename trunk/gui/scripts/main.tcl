@@ -195,7 +195,7 @@ Rappture::filexfer::init
 # MAIN WINDOW
 # ----------------------------------------------------------------------
 Rappture::MainWin .main -borderwidth 0
-.main configure -title [$tool xml get tool.title]
+.main configure -title [string trim [$tool xml get tool.title]]
 wm withdraw .main
 wm protocol .main WM_DELETE_WINDOW {Rappture::Logger::cleanup; exit}
 
