@@ -190,8 +190,8 @@ itcl::body Rappture::ImageEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
-    return [string trim $label]
+    set label [string trim [$_owner xml get $_path.about.label]]
+    return $label
 }
 
 # ----------------------------------------------------------------------
@@ -203,8 +203,8 @@ itcl::body Rappture::ImageEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageEntry::tooltip {} {
-    set str [$_owner xml get $_path.about.description]
-    return [string trim $str]
+    set str [string trim [$_owner xml get $_path.about.description]]
+    return $str
 }
 
 # ----------------------------------------------------------------------

@@ -63,9 +63,9 @@ itcl::body Rappture::GroupEntry::constructor {owner path args} {
     }
 
     $itk_component(heading) configure \
-        -text [$_owner xml get $_path.about.label]
+        -text [string trim [$_owner xml get $_path.about.label]]
     Rappture::Tooltip::for $itk_component(heading) \
-        [$_owner xml get $_path.about.description]
+        [string trim [$_owner xml get $_path.about.description]]
 
     itk_component add outline {
         frame $itk_interior.outline -borderwidth 1
@@ -120,7 +120,7 @@ itcl::body Rappture::GroupEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::GroupEntry::tooltip {} {
-    return [$_owner xml get $_path.about.description]
+    return [string trim [$_owner xml get $_path.about.description]]
 }
 
 # ----------------------------------------------------------------------

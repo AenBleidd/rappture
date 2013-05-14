@@ -135,7 +135,7 @@ itcl::body Rappture::ChoiceEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ChoiceEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "Choice"
     }
@@ -192,7 +192,8 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
                 #
                 $_owner notify add $this $cntl [itcl::code $this _rebuild]
 
-                set label [$_owner xml get $_path.$cname.about.label]
+                set label \
+                    [string trim [$_owner xml get $_path.$cname.about.label]]
                 if {"" == $label} {
                     set label "%type #%n"
                 }
@@ -207,7 +208,8 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
                         set subst(%type) [$_owner xml element -as type $leading.$ccname]
                         set subst(%id) [$_owner xml element -as id $leading.$ccname]
                         foreach detail [$_owner xml children $leading.$ccname] {
-                            set subst(%$detail) [$_owner xml get $leading.$ccname.$detail]
+                            set subst(%$detail) \
+                                [$_owner xml get $leading.$ccname.$detail]
                         }
                         set str [string map [array get subst] $label]
                         $itk_component(choice) choices insert end \
@@ -225,7 +227,7 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
             # Add the label as-is into the list of choices.
             #
             set val [string trim [$_owner xml get $_path.$cname.value]]
-            set str [$_owner xml get $_path.$cname.about.label]
+            set str [string trim [$_owner xml get $_path.$cname.about.label]]
             if {"" == $val} {
                 set val $str
             }
@@ -275,14 +277,14 @@ itcl::body Rappture::ChoiceEntry::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ChoiceEntry::_tooltip {} {
-    set tip [$_owner xml get $_path.about.description]
+    set tip [string trim [$_owner xml get $_path.about.description]]
 
     # get the description for the current choice, if there is one
     set str [$itk_component(choice) value]
     set path [$itk_component(choice) translate $str]
     set desc ""
     if {$path != ""} {
-        set desc [$_owner xml get $path.about.description]
+        set desc [string trim [$_owner xml get $path.about.description]]
     }
 
     if {[string length $str] > 0 && [string length $desc] > 0} {

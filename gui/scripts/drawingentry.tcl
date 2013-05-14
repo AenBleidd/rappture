@@ -263,7 +263,7 @@ itcl::body Rappture::DrawingEntry::destructor {} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {$label eq ""} {
         set label "Drawing"
     }

@@ -49,8 +49,12 @@ itcl::class Rappture::Analyzer {
     itk_option define -holdwindow holdWindow HoldWindow ""
     itk_option define -notebookpage notebookPage NotebookPage ""
 
-    constructor {tool args} { # defined below }
-    destructor { # defined below }
+    constructor {tool args} { 
+        # defined below 
+    }
+    destructor { 
+        # defined below 
+    }
 
     public method simulate {args}
     public method reset {{when -eventually}}
@@ -100,7 +104,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     set _tool $tool
 
     # use this to store all simulation results
-    set _resultset [Rappture::ResultSet ::#auto]
+    set _resultset [Rappture::ResultSet ::\#auto]
     $_resultset notify add $this [itcl::code $this _fixResultSet]
 
     # widget settings...
@@ -118,7 +122,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     }
     pack $itk_component(simbg) -expand yes -fill both
 
-    set simtxt [$tool xml get tool.action.label]
+    set simtxt [string trim [$tool xml get tool.action.label]]
     if {"" == $simtxt} {
         set simtxt "Simulate"
     }
@@ -340,13 +344,13 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     $itk_component(toolinfo) tag configure title \
         -font $itk_option(-boldtextfont)
 
-    set mesg [$tool xml get tool.title]
+    set mesg [string trim [$tool xml get tool.title]]
     if {"" != $mesg} {
         $itk_component(toolinfo) insert end $mesg title
         $itk_component(toolinfo) insert end "\n\n"
     }
 
-    set mesg [$tool xml get tool.about]
+    set mesg [string trim [$tool xml get tool.about]]
     if {"" != $mesg} {
         $itk_component(toolinfo) insert end $mesg
     }
@@ -505,7 +509,6 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
     if {[string trim [$_tool xml get tool.analyzer]] == "last"} {
         clear
     }
-
     $_resultset add $xmlobj
 
     # NOTE: Adding will trigger a !change event on the ResultSet
@@ -998,7 +1001,7 @@ itcl::body Rappture::Analyzer::_simState {state args} {
 
                 set details ""
                 foreach {path val} $settings {
-                    set str [$_tool xml get $path.about.label]
+                    set str [string trim [$_tool xml get $path.about.label]]
                     if {"" == $str} {
                         set str [$_tool xml element -as id $path]
                     }

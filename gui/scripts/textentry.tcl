@@ -85,7 +85,7 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     set _size [string trim [$_owner xml get $path.size]]
 
     set hints [string trim [$_owner xml get $path.about.hints]]
-    set icon [string trim [$_owner xml get $path.about.icon]]
+    set icon  [string trim [$_owner xml get $path.about.icon]]
     if {[string length $icon] > 0} {
         set _icon [image create photo -data $icon] 
     } 
@@ -102,9 +102,9 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
 
     eval itk_initialize $args
 
-    # Don't trim the text default value.  Assume that any leading/trailing
-    # whitespace is wanted.
-    set str [$_owner xml get $path.default]
+    # Trimming for now.  May need a <verbatim> flag to indicate to leave
+    # the string alone. 
+    set str [string trim [$_owner xml get $path.default]]
     if {"" != $str} {
         value $str
     }
@@ -164,7 +164,7 @@ itcl::body Rappture::TextEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "String"
     }
@@ -180,8 +180,8 @@ itcl::body Rappture::TextEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::tooltip {} {
-    set str [$_owner xml get $_path.about.description]
-    return [string trim $str]
+    set str [string trim [$_owner xml get $_path.about.description]]
+    return $str
 }
 
 # ----------------------------------------------------------------------

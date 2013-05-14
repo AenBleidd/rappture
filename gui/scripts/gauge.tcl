@@ -138,17 +138,6 @@ itcl::body Rappture::Gauge::constructor {args} {
         frame $itk_component(vframe).spinner
     }
 
-    itk_component add spinup {
-        button $itk_component(spinner).up -image [Rappture::icon intplus] \
-            -borderwidth 1 -relief raised -highlightthickness 0 \
-            -command [itcl::code $this bump 1]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-        rename -background -buttonbackground buttonBackground Background
-    }
-    pack $itk_component(spinup) -side left -expand yes -fill both
-
     itk_component add spindn {
         button $itk_component(spinner).down -image [Rappture::icon intminus] \
             -borderwidth 1 -relief raised -highlightthickness 0 \
@@ -158,8 +147,18 @@ itcl::body Rappture::Gauge::constructor {args} {
         ignore -borderwidth -highlightthickness
         rename -background -buttonbackground buttonBackground Background
     }
-    pack $itk_component(spindn) -side right -expand yes -fill both
+    pack $itk_component(spindn) -side left -expand yes -fill both
 
+    itk_component add spinup {
+        button $itk_component(spinner).up -image [Rappture::icon intplus] \
+            -borderwidth 1 -relief raised -highlightthickness 0 \
+            -command [itcl::code $this bump 1]
+    } {
+        usual
+        ignore -borderwidth -highlightthickness
+        rename -background -buttonbackground buttonBackground Background
+    }
+    pack $itk_component(spinup) -side right -expand yes -fill both
 
     itk_component add presets {
         button $itk_component(vframe).psbtn -bitmap GaugeArrow \
@@ -213,7 +212,7 @@ itcl::body Rappture::Gauge::value {args} {
         # Keep track of the inputted units so we can give a 
         # response about min and max values in familiar units.
         #
-        set newval [set nv [lindex $args 0]]
+        set newval [set nv [string trim [lindex $args 0]]]
         set units $itk_option(-units)
         if {"" != $units} {
             set newval [Rappture::Units::convert $newval -context $units]

@@ -52,8 +52,8 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
 
     set defval [string trim [$_owner xml get $_path.default]]
     # Active and inactive are lists.  Don't need to trim.
-    set active [$_owner xml get $_path.active]
-    set inactive [$_owner xml get $_path.inactive]
+    set active [string trim [$_owner xml get $_path.active]]
+    set inactive [string trim [$_owner xml get $_path.inactive]]
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
@@ -172,12 +172,12 @@ itcl::body Rappture::PeriodicElementEntry::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicElementEntry::_tooltip {} {
-    set tip [$_owner xml get $_path.about.description]
+    set tip [string trim [$_owner xml get $_path.about.description]]
 
     # get the description for the current element, if there is one
     set str [$itk_component(element) element get -all]
     if {$_path != ""} {
-        set desc [$_owner xml get $_path.about.description]
+        set desc [string trim [$_owner xml get $_path.about.description]]
     }
 
     if {[string length $str] > 0 && [string length $desc] > 0} {

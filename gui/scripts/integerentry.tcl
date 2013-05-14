@@ -141,7 +141,7 @@ itcl::body Rappture::IntegerEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::IntegerEntry::label {} {
-    set label [$_owner xml get $_path.about.label]
+    set label [string trim [$_owner xml get $_path.about.label]]
     if {"" == $label} {
         set label "Integer"
     }
@@ -157,8 +157,7 @@ itcl::body Rappture::IntegerEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::IntegerEntry::tooltip {} {
-    set str [$_owner xml get $_path.about.description]
-
+    set str [string trim [$_owner xml get $_path.about.description]]
     set min [string trim [$_owner xml get $_path.min]]
     set max [string trim [$_owner xml get $_path.max]]
 
