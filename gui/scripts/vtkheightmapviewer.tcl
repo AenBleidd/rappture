@@ -79,7 +79,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     protected method ReceiveLegend { colormap title min max size }
     protected method Rotate {option x y}
     protected method Zoom {option}
-    
+
     # The following methods are only used by this class.
     private method BuildAxisTab {}
     private method BuildCameraTab {}
@@ -192,6 +192,9 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
 
+    # Create image for legend colorbar.
+    set _image(legend) [image create photo]
+
     # Initialize the view to some default parameters.
     array set _view {
         qw	0.36
@@ -208,9 +211,9 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $_arcball quaternion $q
 
     array set _settings {
-	axisFlymode		"static"
-	axisMinorTicks		1
-	stretchToFit		0
+        axisFlymode		"static"
+        axisMinorTicks		1
+        stretchToFit		0
         axisLabels              1
         axisVisible		1
         axisXGrid		0
@@ -249,7 +252,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu \
-	    -relief flat \
+            -relief flat \
             -tearoff no 
     } {
         usual
@@ -331,7 +334,6 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
 	global errorInfo
         puts stderr "errs=$errs errorInfo=$errorInfo"
     }
-    set _image(legend) [image create photo]
 
     # Hack around the Tk panewindow.  The problem is that the requested 
     # size of the 3d view isn't set until an image is retrieved from
@@ -1501,7 +1503,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		$itk_component(scale_l) configure -state disabled
 		$itk_component(outline) configure -state normal
                 SendCmd "camera mode image"
-	    }
+            }
             if {$_settings(stretchToFit)} {
                 if {$scale == 0} {
                     SendCmd "camera aspect window"

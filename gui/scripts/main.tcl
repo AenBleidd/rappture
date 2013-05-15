@@ -123,7 +123,8 @@ if {![file exists $params(-tool)]} {
     # if there are loaders or notes, they will still need
     # examples/ and docs/ dirs from the install location
     foreach runobj $loadobjs {
-        set tdir [$runobj get tool.version.application.directory(tool)]
+        set tdir \
+            [string trim [$runobj get tool.version.application.directory(tool)]]
         if {[file isdirectory $tdir] && \
             [file exists $tdir/tool.xml]} {
             set pseudotool $tdir/tool.xml
@@ -220,7 +221,7 @@ pack $win.pager -expand yes -fill both
 #
 # Add a place for about/questions in the breadcrumbs area of this pager.
 #
-set app [$tool xml get tool.id]
+set app [string trim [$tool xml get tool.id]]
 set url [Rappture::Tool::resources -huburl]
 if {"" != $url && "" != $app} {
     set f [$win.pager component breadcrumbarea]
