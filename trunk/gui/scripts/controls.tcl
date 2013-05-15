@@ -506,7 +506,7 @@ itcl::body Rappture::Controls::_layout {} {
             set _scheme "tabs"
             foreach name $showing {
                 set w $_name2info($name-value)
-                if {[lsearch {GroupEntry Separator} [winfo class $w]] < 0} {
+                if {[winfo class $w] ne "GroupEntry"} {
                     # something other than a group? then fall back on vertical
                     set _scheme "vertical"
                     break
