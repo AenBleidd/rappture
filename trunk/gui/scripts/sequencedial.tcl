@@ -77,7 +77,7 @@ itcl::class Rappture::SequenceDial {
 
     private method EventuallyRedraw {} 
     private variable _redrawPending 0
-
+    private variable _afterId -1
     private variable _values ""       ;# list of all values on the dial
     private variable _val2label       ;# maps value => string label(s)
     private variable _current ""      ;# current value (where pointer is)
@@ -120,7 +120,7 @@ itcl::body Rappture::SequenceDial::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceDial::destructor {} {
     configure -variable ""  ;# remove variable trace
-    EventuallyRedraw
+    after cancel $_afterId
 }
 
 # ----------------------------------------------------------------------
@@ -154,7 +154,7 @@ itcl::body Rappture::SequenceDial::add {label {value ""}} {
 
 itcl::body Rappture::SequenceDial::EventuallyRedraw {} {
     if { !$_redrawPending } {
-	after 150 [itcl::code $this _redraw]
+	set _afterId [after 150 [itcl::code $this _redraw]]
 	event generate $itk_component(hull) <<Value>>
         set _resizePending 1
     }
