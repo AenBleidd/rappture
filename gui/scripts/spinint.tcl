@@ -66,18 +66,6 @@ itcl::body Rappture::Spinint::constructor {args} {
     }
     pack $itk_component(controls) -side right
 
-    itk_component add down {
-        button $itk_component(controls).spindn \
-            -image [Rappture::icon intminus] \
-            -borderwidth 1 -relief raised -highlightthickness 0 \
-            -command [itcl::code $this bump down]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-        rename -background -buttonbackground buttonBackground Background
-    }
-    pack $itk_component(down) -side left -expand yes -fill both
-
     itk_component add up {
         button $itk_component(controls).spinup \
             -image [Rappture::icon intplus] \
@@ -88,7 +76,19 @@ itcl::body Rappture::Spinint::constructor {args} {
         ignore -borderwidth -highlightthickness
         rename -background -buttonbackground buttonBackground Background
     }
-    pack $itk_component(up) -side right -expand yes -fill both
+    pack $itk_component(up) -side left -expand yes -fill both
+
+    itk_component add down {
+        button $itk_component(controls).spindn \
+            -image [Rappture::icon intminus] \
+            -borderwidth 1 -relief raised -highlightthickness 0 \
+            -command [itcl::code $this bump down]
+    } {
+        usual
+        ignore -borderwidth -highlightthickness
+        rename -background -buttonbackground buttonBackground Background
+    }
+    pack $itk_component(down) -side right -expand yes -fill both
 
     eval itk_initialize $args
 }
