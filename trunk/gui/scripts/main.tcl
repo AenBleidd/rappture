@@ -278,7 +278,7 @@ update
 
 # adjust the title of the page here.
 # to adjust the button text, look in analyzer.tcl
-set simtxt [$xmlobj get tool.action.label]
+set simtxt [string trim [$xmlobj get tool.action.label]]
 if {"" == $simtxt} {
     set simtxt "Simulate"
 }
@@ -307,7 +307,7 @@ if {[llength [$win.pager page]] > 2} {
     # links for "About" and "Questions?".
     $f.analyze configure -simcontrol off
 } elseif {[llength [$win.pager page]] == 2} {
-    set style [$xmlobj get tool.layout]
+    set style [string trim [$xmlobj get tool.layout]]
     set screenw [winfo screenwidth .]
 
     update idletasks
