@@ -475,6 +475,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     sprintf(mesg, "LOOKUP_TABLE default\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
     Tcl_AppendObjToObj(objPtr, atomsObjPtr);
+    Tcl_DeleteHashTable(&serialTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
     if (objPtr != NULL) {
@@ -482,6 +483,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
  error:
+    Tcl_DeleteHashTable(&serialTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
     return TCL_ERROR;
