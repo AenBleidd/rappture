@@ -132,7 +132,7 @@ itcl::body Rappture::TextEntry::value {args} {
             # someday we may add validation...
             return
         }
-        set newval [lindex $args 0]
+        set newval [string trim [lindex $args 0]]
         _setValue $newval
         _newValue
 
@@ -555,7 +555,7 @@ itcl::body Rappture::TextEntry::_uploadValue {args} {
         default { set widget $itk_component(hull) }
     }
 
-    set opt [lindex $args 0]
+    set opt [string trim [lindex $args 0]]
     switch -- $opt {
         -start {
             set tool [Rappture::Tool::resources -appname]
