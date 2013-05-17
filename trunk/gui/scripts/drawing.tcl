@@ -100,7 +100,10 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
             molecule* {
                 set pdbdata [$_xmlobj get $path.$elem.pdb]
                 if { $pdbdata != "" } {
-                    set contents [PdbToVtk $elem $pdbdata]
+                    set contents [Rappture::PdbToVtk $pdbdata]
+                    set f [open /tmp/junk.pdb "w"]
+                    puts $f $contents
+                    close $f
                 } else {
                     set contents [$_xmlobj get $path.$elem.vtk]
                 }
