@@ -370,7 +370,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	c = line[0];
 	
 	if (((c == 'A') && (strncmp(line, "ATOM  ", 6) == 0)) ||
-	    ((c == 'H') && (strncmp(line, "HEXATM", 6) == 0))) {
+	    ((c == 'H') && (strncmp(line, "HETATM", 6) == 0))) {
 	    char buf[200];
 	    char atomName[6];
 	    char symbolName[3];
