@@ -101,9 +101,11 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
                 set pdbdata [$_xmlobj get $path.$elem.pdb]
                 if { $pdbdata != "" } {
                     set contents [Rappture::PdbToVtk $pdbdata]
-                    set f [open /tmp/junk.pdb "w"]
-                    puts $f $contents
-                    close $f
+                    if 1 {
+                        set f [open /tmp/convertedpdb.vtk "w"]
+                        puts $f $contents
+                        close $f
+                    }
                 } else {
                     set contents [$_xmlobj get $path.$elem.vtk]
                 }
