@@ -274,9 +274,13 @@ void Molecule::update()
 
     setAtomLabelVisibility(_labelsOn);
 
-    _atomMapper->Update();
-    _bondMapper->Update();
-    _labelMapper->Update();
+    if (pd->GetNumberOfPoints() > 0) {
+        _atomMapper->Update();
+        _labelMapper->Update();
+    }
+    if (pd->GetNumberOfLines() > 0) {
+        _bondMapper->Update();
+    }
 }
 
 void Molecule::updateRanges(Renderer *renderer)
