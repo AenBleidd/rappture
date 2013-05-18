@@ -878,6 +878,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
+    SendCmd "dataset visible 0"
+    SendCmd "molecule visible 0"
+    set count 0
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -909,8 +912,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "dataset visible 1 $tag"
-            } else {
-                SendCmd "dataset visible 0 $tag"
+                puts stderr "$count: dataset visible 1 $tag"
             }
             SetObjectStyle $dataobj $comp
         }
@@ -1588,8 +1590,7 @@ itcl::configbody Rappture::VtkViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkViewer::limits { dataobj } {
-
-    array unset _limits $dataobj-*
+    puts stderr components=[$dataobj components]
     foreach comp [$dataobj components] {
         set tag $dataobj-$comp
         if { ![info exists _limits($tag)] } {
@@ -1613,7 +1614,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
             set _limits($tag) [$output GetBounds]
             set pointData [$output GetPointData]
             set fieldData [$output GetFieldData]
-	    if 0 {
+	    if 1 {
 		puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
 		puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
 		puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"

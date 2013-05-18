@@ -74,6 +74,9 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                 curve {
                     set obj [Rappture::Curve ::\#auto $xmlobj $path.$name.$cname]
                 }
+                drawing {
+                    set obj [Rappture::Drawing ::\#auto $xmlobj $path.$name.$cname]
+                }
                 datatable {
                     set obj [Rappture::DataTable ::\#auto $xmlobj $path.$name.$cname]
                 }
