@@ -458,7 +458,8 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
         }
         switch -- $type {
             ::Rappture::Drawing {
-                Rappture::VtkViewer $w
+                set servers [Rappture::VisViewer::GetServerList "nanovis"]
+                Rappture::VtkViewer $w $servers
                 pack $w -expand yes -fill both
             }
             ::Rappture::Curve {
