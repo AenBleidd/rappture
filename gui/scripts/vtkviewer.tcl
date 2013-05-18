@@ -700,6 +700,8 @@ itcl::body Rappture::VtkViewer::download {option args} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Connect {} {
+    global readyForNextFrame
+    set readyForNextFrame 1
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
         return 0
@@ -764,6 +766,8 @@ itcl::body Rappture::VtkViewer::Disconnect {} {
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
+    global readyForNextFrame
+    set readyForNextFrame 1
 }
 
 # ----------------------------------------------------------------------
@@ -774,6 +778,8 @@ itcl::body Rappture::VtkViewer::Disconnect {} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::ReceiveImage { args } {
+    global readyForNextFrame
+    set readyForNextFrame 1
     array set info {
         -token "???"
         -bytes 0
@@ -952,6 +958,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     SendCmd "dataset maprange visible"
         
     set _reset 0
+    global readyForNextFrame
+    set readyForNextFrame 0;            # Don't advance to the next frame
+                                        # until we get an image.
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.

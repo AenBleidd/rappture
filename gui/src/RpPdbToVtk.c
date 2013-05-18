@@ -332,7 +332,7 @@ static int
 PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv) 
 {
-    Tcl_Obj *objPtr, *pointsObjPtr, *atomsObjPtr;
+    Tcl_Obj *objPtr, *pointsObjPtr, *atomsObjPtr, *verticesObjPtr;
     char *p, *pend;
     char *string;
     char mesg[2000];
@@ -353,8 +353,10 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     string = Tcl_GetStringFromObj(objv[1], &length);
     pointsObjPtr = Tcl_NewStringObj("", -1);
     atomsObjPtr = Tcl_NewStringObj("", -1);
+    verticesObjPtr = Tcl_NewStringObj("", -1);
     Tcl_IncrRefCount(pointsObjPtr);
     Tcl_IncrRefCount(atomsObjPtr);
+    Tcl_IncrRefCount(verticesObjPtr);
     objPtr = NULL;
     for (p = string, pend = p + length; p < pend; /*empty*/) {
 	char *line;
@@ -392,6 +394,10 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		goto error;
 	    }
 	    Tcl_SetHashValue(hPtr, numAtoms);
+	    Tcl_ListObjAppendElement(interp, verticesObjPtr, 
+				     Tcl_NewIntObj(1));
+	    Tcl_ListObjAppendElement(interp, verticesObjPtr, 
+				     Tcl_NewIntObj(serial));
 
 	    strncpy(atomName, line + 12, 4);
 	    atomName[4] = '\0';
@@ -463,11 +469,9 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     sprintf(mesg, "VERTICES %d %d\n", numAtoms, numAtoms * 2);
     Tcl_AppendToObj(objPtr, mesg, -1);
     for (i = 0; i < numAtoms; i++) {
-	sprintf(mesg, "1 %d\n", i);
+	sprintf(mesg, " 1 %d\n", i);
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
-    sprintf(mesg, "\n");
-
     sprintf(mesg, "POINT_DATA %d\n", numAtoms);
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "SCALARS element float\n");
@@ -478,6 +482,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DeleteHashTable(&serialTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
+    Tcl_DecrRefCount(verticesObjPtr);
     if (objPtr != NULL) {
 	Tcl_SetObjResult(interp, objPtr);
     }
@@ -486,6 +491,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DeleteHashTable(&serialTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
+    Tcl_DecrRefCount(verticesObjPtr);
     return TCL_ERROR;
 }
 
