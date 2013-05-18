@@ -474,7 +474,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     sprintf(mesg, "POINT_DATA %d\n", numAtoms);
     Tcl_AppendToObj(objPtr, mesg, -1);
-    sprintf(mesg, "SCALARS element float\n");
+    sprintf(mesg, "SCALARS element int\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "LOOKUP_TABLE default\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
