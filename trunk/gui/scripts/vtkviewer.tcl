@@ -914,6 +914,18 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
                 set _datasets($tag) 1
+                switch -- [$dataobj type $comp] {
+                    "polygon" {
+                        SendCmd "polydata add $tag"
+                    }
+                    "glyphs" {
+                        set shape [$dataobj shape $comp]
+                        SendCmd "glyphs add $shape $tag"
+                    }
+                    "molecule" {
+                        SendCmd "molecule add $tag"
+                    }
+                }
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
@@ -2268,7 +2280,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         }
 	set shape [$dataobj shape $comp]
         array set settings $style
-        SendCmd "glyphs add $shape $tag"
         SendCmd "glyphs normscale 0 $tag"
         SendCmd "glyphs gscale $settings(-gscale) $tag"
         SendCmd "glyphs wireframe $settings(-wireframe) $tag"
@@ -2281,23 +2292,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         set _settings(glyphs-wireframe) $settings(-wireframe)
         set _haveGlyphs 1
     } elseif { $type == "molecule" } {
-        array set settings {
-            -color \#808080
-            -gscale 1
-            -edges 0
-            -edgecolor black
-            -linewidth 1.0
-            -opacity 1.0
-            -wireframe 0
-            -lighting 1
-            -visible 1
-        }
-        array set settings $style
-        SendCmd "molecule add $tag"
-        SendCmd "molecule opacity $settings(-opacity) $tag"
-        SendCmd "molecule visible $settings(-visible) $tag"
         SendCmd "molecule rscale van_der_waals $tag"
-        set _settings(molecule-wireframe) $settings(-wireframe)
         set _haveMolecules 1
     } else {
         array set settings {
@@ -2311,7 +2306,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             -visible 1
         }
         array set settings $style
-        SendCmd "polydata add $tag"
         SendCmd "polydata visible $settings(-visible) $tag"
         set _settings(mesh-visible) $settings(-visible)
         SendCmd "polydata edges $settings(-edges) $tag"
@@ -2326,7 +2320,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "polydata wireframe $settings(-wireframe) $tag"
         set _settings(mesh-wireframe) $settings(-wireframe)
     }
-    set _settings(mesh-opacity) [expr $settings(-opacity) * 100.0]
     SetColormap $dataobj $comp
 }
 
