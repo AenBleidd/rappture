@@ -161,7 +161,7 @@ itcl::body Rappture::Controls::insert {pos path} {
         }
         string {
             Rappture::TextEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+            bind $w <<Final>> [itcl::code $this _controlChanged $name]
         }
         drawing {
             Rappture::DrawingEntry $w $_owner $path
@@ -631,7 +631,7 @@ itcl::body Rappture::Controls::_layout {} {
                 switch -- [winfo class $wv] {
                     TextEntry {
                         if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
-                            grid $wl -sticky n -pady 4
+                            grid $wl -sticky ne -pady 4
                             grid $wv -sticky nsew
                             grid rowconfigure $_frame $row -weight 1
                             grid columnconfigure $_frame 1 -weight 1

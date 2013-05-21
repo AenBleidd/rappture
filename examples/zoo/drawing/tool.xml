@@ -155,6 +155,17 @@ Height = ${feature_height}</text>
      <anchor>nw</anchor>
      <hotspot>inline</hotspot>
     </text>
+    <text>
+     <coords>.9 .3</coords>
+     <text>Info</text>
+     <anchor>e</anchor>
+    </text>
+    <hotspot>
+     <coords>.91 .3</coords>
+     <controls>input.string(title)</controls>
+     <controls>input.boolean(cmtcntl)</controls>
+     <controls>input.string(comments)</controls>
+    </hotspot>
    </components>
   </drawing>
   <number id="feature_height">
@@ -239,6 +250,20 @@ Height = ${feature_height}</text>
    <default>Enter your SPICE commands
 in this area.  Right-click
 for a menu of editing options.</default>
+  </string>
+  <string id="title">
+    <about><label>Title</label></about>
+  </string>
+  <boolean id="cmtcntl">
+    <about><label>Comments</label></about>
+    <default>on</default>
+  </boolean>
+  <string id="comments">
+    <about>
+      <label>Info</label>
+      <enable>input.boolean(cmtcntl)</enable>
+    </about>
+    <size>40x3</size>
   </string>
  </input>
 </run>

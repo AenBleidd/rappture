@@ -139,9 +139,6 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
 		"map*" {
 		    set from [XmlGet $cpath.$elem.from]
 		    set to [XmlGet $cpath.$elem.to]
-		    if {$from eq "" || $to eq ""} {
-			puts stderr "empty translation in map table \"$cpath\""
-		    }
 		    lappend map $from $to
 		}
 	    }

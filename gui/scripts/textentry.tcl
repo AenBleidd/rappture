@@ -262,10 +262,14 @@ itcl::body Rappture::TextEntry::_layout {} {
 		# Otherwise you'll always get the entry value before the edit.
                 bind textentry-$this <KeyPress> \
                     [itcl::code $this _newValue]
+                bind textentry-$this <KeyPress-Return> \
+                    [itcl::code $this _edit finalize]
                 bind textentry-$this <Control-KeyPress-a> \
                     "[list $itk_component(entry) selection range 0 end]; break"
                 bind textentry-$this <FocusOut> \
-                    [itcl::code $this _edit log]
+                    [itcl::code $this _edit finalize]
+                bind textentry-$this <Unmap> \
+                    [itcl::code $this _edit finalize]
 		set bindtags [bindtags $itk_component(entry)]
 		lappend bindtags textentry-$this
 		bindtags $itk_component(entry) $bindtags
@@ -310,6 +314,7 @@ itcl::body Rappture::TextEntry::_layout {} {
                         -width 1 -height 1 -wrap char
                 } {
                     usual
+                    ignore -highlightthickness -highlightcolor
                     rename -background -textbackground textBackground Background
                     rename -foreground -textforeground textForeground Foreground
                     rename -font -codefont codeFont CodeFont
@@ -317,17 +322,22 @@ itcl::body Rappture::TextEntry::_layout {} {
                 $itk_component(text) configure \
                     -background $itk_option(-textbackground) \
                     -foreground $itk_option(-textforeground) \
-                    -font $itk_option(-codefont)
+                    -font $itk_option(-codefont) \
+                    -highlightthickness 1
                 $itk_component(scrollbars) contents $itk_component(text)
 
 		# Make sure these event bindings occur after the class bindings.
 		# Otherwise you'll always get the text value before the edit.
                 bind textentry-$this <KeyPress> \
                     [itcl::code $this _newValue]
+                # leave [Return] key alone for multi-line text so the user
+                # can enter newlines and keep editing
                 bind textentry-$this <Control-KeyPress-a> \
                     "[list $itk_component(text) tag add sel 1.0 end]; break"
                 bind textentry-$this <FocusOut> \
-                    [itcl::code $this _edit log]
+                    [itcl::code $this _edit finalize]
+                bind textentry-$this <Unmap> \
+                    [itcl::code $this _edit finalize]
 		set bindtags [bindtags $itk_component(text)]
 		lappend bindtags textentry-$this
 		bindtags $itk_component(text) $bindtags
@@ -486,6 +496,7 @@ itcl::body Rappture::TextEntry::_newValue {} {
 # ----------------------------------------------------------------------
 # USAGE: _edit action <which> <action>
 # USAGE: _edit menu <which> <X> <Y>
+# USAGE: _edit finalize
 # USAGE: _edit log
 #
 # Used internally to manage edit operations.
@@ -528,7 +539,10 @@ itcl::body Rappture::TextEntry::_edit {option args} {
             set y [lindex $args 2]
             tk_popup $itk_component($mname) $x $y
         }
-        log {
+        finalize {
+            event generate $itk_component(hull) <<Final>>
+
+            # log each final value
             set newval [value]
             if {$newval ne $_value} {
                 Rappture::Logger::log input $_path $newval
