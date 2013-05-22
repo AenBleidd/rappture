@@ -597,13 +597,13 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     if { [llength $coords] == 2 } {
 	foreach { x1 y1 } [ScreenCoords $coords] break
 	set w [XmlGetSubst $cpath.width]
-	if { $w == "" || ![string is number $w] || $w <= 0.0 } {
+	if { $w == "" || ![string is double $w] || $w <= 0.0 } {
 	    set width [expr [image width $img] / 4]
 	} else {
 	    set width [expr [ScreenX $w] - [ScreenX 0]]
 	}
 	set h [XmlGetSubst $cpath.height]
-	if { $h == "" || ![string is number $h] || $h <= 0.0 } {
+	if { $h == "" || ![string is double $h] || $h <= 0.0 } {
 	    set height [expr [image height $img] / 4]
 	} else {
 	    set height [expr [ScreenY $h] - [ScreenY 0]]
@@ -728,6 +728,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 	"font"		"-font"
 	"color"		"-foreground"
 	"valuecolor"	"-valueforeground"
+	"fill"		"-background"
 	"text"		"-text"
 	"anchor"	"-anchor"
     }
