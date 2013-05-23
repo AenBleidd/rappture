@@ -17,4 +17,21 @@ object group -extends base {
     palettes "Inputs" "Grouping"
     help http://rappture.org/wiki/rp_xml_ele_group
     terminal no
+
+    check label {
+        # it's okay to have a blank label for invisible groups
+    }
+
+    check description {
+        set label [string trim $attr(label)]
+        set desc [string trim $attr(description)]
+        if {$label ne ""} {
+            # label is set, so must have a good description
+            if {$desc eq ""} {
+                return [list warning "You should include a description of what this group represents."]
+            } elseif {$desc eq $label} {
+                return [list warning "The description should be different from the label and give additional information about this group."]
+            }
+        }
+    }
 }

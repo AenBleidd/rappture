@@ -19,7 +19,7 @@ object string -extends base {
 
     attr default -title "Default Value" -type string -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
 
-    attr size -title "Size" -type string:validate=size -path size -only input -tooltip "Sets the desired size for the string.  Strings are normally 1 line of text, but if the size is set to some WxH, then the entry area will be at least W chars wide and H lines tall.  For example, 40x5 says that the string should be 40 chars wide and 10 lines tall."
+    attr size -title "Size" -type string:validate=size -path size -only input -tooltip "Sets the desired size for the string.  Strings are normally 1 line of text, but if the size is set to some WxH, then the entry area will be at least W chars wide and H lines tall.  For example, 40x5 says that the string should be 40 chars wide and 5 lines tall."
 
     attr hints -title "Hint String" -type string -path about.hints -only input -tooltip "Sets a line of text displayed beneath the entry area for the string.  This is used to give a hint to the user about what should be entered in the string area."
 
