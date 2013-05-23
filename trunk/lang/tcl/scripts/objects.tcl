@@ -818,18 +818,20 @@ itcl::class Rappture::objects::ObjDef {
         if {$extra ne ""} {
             array set object $extra
         } else {
-            array set object [list type [type] palettes $palettes help $help]
+            array set object [list type [type] palettes $palettes help $help checked ""]
         }
 
-        # handle checks defined in a base class
-        foreach baseobj [cget -inherit] {
-            eval lappend rlist [$baseobj check $side $data $debug [array get object]]
-        }
-
-        # add checks defined in the current class
+        # do checks defined in the current class
         for {set n 1} {$n <= $_checks(num)} {incr n} {
-            # look at the -only option and see if the check applies here
             set aname $_checks($n-attr)
+
+            # if we already did this check on a derived class, then skip it
+            # derived classes override the base class
+            if {[lsearch $object(checked) $aname] >= 0} {
+                continue
+            }
+
+            # look at the -only option and see if the check applies here
             set only [getAttr $aname -only]
             if {$only ne "" && [lsearch $only $side] < 0} {
                 continue
@@ -837,6 +839,8 @@ itcl::class Rappture::objects::ObjDef {
 
             # execute the code to look for errors in the value
             set status [catch $_checks($n-code) result]
+            lappend object(checked) $aname
+
             if {$status != 0 && $status != 2} {
                 puts stderr "ERROR DURING VALUE CHECK:\n$result"
             } elseif {[llength $result] > 0} {
@@ -847,6 +851,12 @@ itcl::class Rappture::objects::ObjDef {
                 lappend rlist [list $class $mesg $dinfo]
             }
         }
+
+        # handle checks defined in a base class
+        foreach baseobj [cget -inherit] {
+            eval lappend rlist [$baseobj check $side $data $debug [array get object]]
+        }
+
         return $rlist
     }
 

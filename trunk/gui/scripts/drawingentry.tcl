@@ -847,15 +847,11 @@ itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
 
 
 itcl::body Rappture::DrawingEntry::ScreenX { x } {
-    set norm [expr {($x - $_xMin) * $_xScale}]
-    set x [expr {int($norm * $_drawingWidth) + $_xOffset}]
-    return $x
+    return [expr {($x - $_xMin)*$_xScale + $_xOffset}]
 }
 
 itcl::body Rappture::DrawingEntry::ScreenY { y } {
-    set norm [expr {($y - $_yMin) * $_yScale}]
-    set y [expr {int($norm * $_drawingHeight) + $_yOffset}]
-    return $y
+    return [expr {($y - $_yMin)*$_yScale + $_yOffset}]
 }
 
 itcl::body Rappture::DrawingEntry::ScreenCoords { coords } {
@@ -926,59 +922,116 @@ itcl::body Rappture::DrawingEntry::AdjustDrawingArea { xAspect yAspect } {
 #
 
 itcl::body Rappture::DrawingEntry::ParseScreenCoordinates { values } {
-    set len [llength $values]
-    if { $len == 4 } {
-	if { [scan $values "%g %g %g %g" x1 y1 x2 y2] != 4 } {
-	    error "bad coordinates specification \"$values\""
-	}
-	set _xScale [expr 1.0 / ($x2 - $x1)]
-	set _yScale [expr 1.0 / ($y2 - $y1)]
-	set _xMin $x1
-	set _yMin $y1
-    } elseif { $len == 10 } {
-	if { [scan $values "%g %g %s %d%% %d%% %g %g %s %d%% %d%%" \
-		  sx1 sy1 at1 x1 y1 sx2 sy2 at2 x2 y2] != 10 } {
-	    error "bad coordinates specification \"$values\""
-	}
-	if { $at1 != "at" || $at2 != "at" } {
-	    error "bad coordinates specification \"$values\""
-	}	    
-	set x1 [expr $x1 / 100.0]
-	set x2 [expr $x2 / 100.0]
-	set y1 [expr $y1 / 100.0]
-	set y2 [expr $y2 / 100.0]
-	set _xScale [expr ($sx2 - $sx1) / ($x2 - $x1)]
-	set _yScale [expr ($sy2 - $sy2) / ($y2 - $y2)]
-	set _xMin $x1
-	set _yMin $y1
+    set bad ""
+    foreach point {1 2} {
+        set xvals($point) [lindex $values 0]
+        if {![string is double -strict $xvals($point)]} {
+            set bad "missing background coordinate point $point in \"$values\""
+            break
+        }
+
+        set yvals($point) [lindex $values 1]
+        if {![string is double -strict $yvals($point)]} {
+            set bad "missing background coordinate point $point in \"$values\""
+            break
+        }
+        set values [lrange $values 2 end]
+
+        # each corner point can be place anywhere from 0% to 100%
+        if {[lindex $values 0] eq "at"} {
+            if {[regexp {^([0-9]+)%$} [lindex $values 1] match xpcnt]
+              && [regexp {^([0-9]+)%$} [lindex $values 2] match ypcnt]} {
+                set wherex($point) [expr {0.01*$xpcnt}]
+                set wherey($point) [expr {0.01*$ypcnt}]
+                set values [lrange $values 3 end]
+            } else {
+                set bad "expected \"at XX% YY%\" but got \"$values\""; break
+            }
+        } else {
+            set wherex($point) [expr {($point == 1) ? 0 : 1}]
+            set wherey($point) [expr {($point == 1) ? 0 : 1}]
+        }
     }
+    if {$bad eq "" && $wherex(1) == $wherex(2)} {
+        set bad [format "drawing background limits have x points both at %d%%" [expr {round($wherex(1)*100)}]]
+    }
+    if {$bad eq "" && $wherey(1) == $wherey(2)} {
+        set bad [format "drawing background limits have y points both at %d%%" [expr {round($wherex(1)*100)}]]
+    }
+
+    if {$bad eq "" && $xvals(1) == $xvals(2)} {
+        set bad "drawing background coordinates have 0 range in x"
+    }
+    if {$bad eq "" && $yvals(1) == $yvals(2)} {
+        set bad "drawing background coordinates have 0 range in y"
+    }
+    if {$bad eq "" && [llength $values] > 0} {
+        set bad "extra coordinates \"$values\""
+    }
+
+    if {$bad ne ""} {
+        puts "WARNING: $bad"
+        puts "assuming default \"0 0 1 1\" coordinates"
+        array set xvals {1 0 2 1}
+        array set yvals {1 0 2 1}
+        array set wherex {1 0 2 1}
+        array set wherey {1 0 2 1}
+    }
+
+    # compute min/scale for each axis based on the input values
+    if {$wherex(1) < $wherex(2)} {
+        set min 1; set max 2
+    } else {
+        set min 2; set max 1
+    }
+
+    set slope [expr {double($xvals($max)-$xvals($min))
+                      / ($wherex($max)-$wherex($min))}]
+    set _xMin [expr {-$wherex($min)*$slope + $xvals($min)}]
+    set xmax [expr {(1-$wherex($max))*$slope + $xvals($max)}]
+    set _xScale [expr {[winfo width $itk_component(drawing)]/($xmax-$_xMin)}]
+
+    if {$wherey(1) < $wherey(2)} {
+        set min 1; set max 2
+    } else {
+        set min 2; set max 1
+    }
+
+    set slope [expr {double($yvals($max)-$yvals($min))
+                      / ($wherey($max)-$wherey($min))}]
+    set _yMin [expr {-$wherey($min)*$slope + $yvals($min)}]
+    set ymax [expr {(1-$wherey($max))*$slope + $yvals($max)}]
+    set _yScale [expr {[winfo height $itk_component(drawing)]/($ymax-$_yMin)}]
 }
 
 itcl::body Rappture::DrawingEntry::ParseBackground {} {
     foreach elem [$_xmlobj children $_path.background] {
-	switch -glob -- $elem {
-	    "color*" {
+	switch -- $elem {
+	    "color" {
 		#  Background color of the drawing canvas (default white)
 		set value [XmlGet $_path.background.$elem]
 		$itk_component(drawing) configure -background $value
 	    }
-	    "aspect*" {
+	    "aspect" {
 		set value [XmlGet $_path.background.$elem]
 		foreach { xAspect yAspect } $value break
 		AdjustDrawingArea $xAspect $yAspect
 	    }
-	    "coordinates*" {
+	    "coords" - "coordinates" {
 		set value [XmlGet $_path.background.$elem]
 		ParseScreenCoordinates $value
 	    }
-	    "width*" {
+	    "width" {
 		set width [XmlGet $_path.background.$elem]
 		$itk_component(drawing) configure -width $width
 	    }
-	    "height*" {
+	    "height" {
 		set height [XmlGet $_path.background.$elem]
 		$itk_component(drawing) configure -height $height
 	    }
+            default {
+                puts "WARNING: don't understand \"$elem\" in $_path"
+            }
 	}
     }
 }
@@ -988,7 +1041,8 @@ itcl::body Rappture::DrawingEntry::ParseBackground {} {
 #
 itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
     if {![info exists _cpath2popup($cpath)]} {
-        error "internal error: no controls for hotspot at $cpath"
+        puts "WARNING: no controls for hotspot at $cpath"
+        return
     }
     set popup $_cpath2popup($cpath)
 
