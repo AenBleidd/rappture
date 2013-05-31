@@ -65,7 +65,7 @@ RpLibrary::RpLibrary (
         // Don't ignore whitespaces!
         // Things like string inputs may have trailing newlines that
         // matter to the underlying application.
-        scew_parser_ignore_whitespaces(parser, 0);
+        scew_parser_ignore_whitespaces(parser, 1);
 
         /* Loads an XML file */
         if (!scew_parser_load_file(parser, filePath.c_str()))
