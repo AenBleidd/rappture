@@ -509,11 +509,9 @@ itcl::body Rappture::LibraryObj::get {args} {
     if {$node == ""} {
         return ""
     }
-    set string [$node text]
-    if {$params(-decode) == "yes"} {
+    set string [string trim [$node text]]
+    if {$params(-decode)} {
 	set string [Rappture::encoding::decode -- $string]
-    } else {
-	set string [string trim $string]
     }
     return $string
 }
