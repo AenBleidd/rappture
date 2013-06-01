@@ -915,7 +915,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 append _outbuf $bytes
                 set _datasets($tag) 1
                 switch -- [$dataobj type $comp] {
-                    "polygon" {
+                    "polydata" {
                         SendCmd "polydata add $tag"
                     }
                     "glyphs" {
