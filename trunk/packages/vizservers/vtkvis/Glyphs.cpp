@@ -21,6 +21,7 @@
 #include <vtkConeSource.h>
 #include <vtkCylinderSource.h>
 #include <vtkPlatonicSolidSource.h>
+#include <vtkPointSource.h>
 #include <vtkSphereSource.h>
 #include <vtkTransform.h>
 #include <vtkPolyDataMapper.h>
@@ -144,6 +145,13 @@ void Glyphs::setGlyphShape(GlyphShape shape)
     case OCTAHEDRON:
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
         vtkPlatonicSolidSource::SafeDownCast(_glyphSource)->SetSolidTypeToOctahedron();
+        break;
+    case POINT:
+        _glyphSource = vtkSmartPointer<vtkPointSource>::New();
+        vtkPointSource::SafeDownCast(_glyphSource)->SetNumberOfPoints(1);
+        vtkPointSource::SafeDownCast(_glyphSource)->SetCenter(0, 0, 0);
+        vtkPointSource::SafeDownCast(_glyphSource)->SetRadius(0);
+        vtkPointSource::SafeDownCast(_glyphSource)->SetDistributionToUniform();
         break;
     case SPHERE: {
         _glyphSource = vtkSmartPointer<vtkSphereSource>::New();

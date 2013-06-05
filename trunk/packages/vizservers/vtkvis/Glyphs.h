@@ -39,6 +39,7 @@ public:
         ICOSAHEDRON,
         LINE,
         OCTAHEDRON,
+        POINT,
         SPHERE,
         TETRAHEDRON
     };

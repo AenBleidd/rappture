@@ -4918,13 +4918,15 @@ GlyphsAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         shape = Glyphs::LINE;
     } else if (shapeOpt[0] == 'o' && strcmp(shapeOpt, "octahedron") == 0) {
         shape = Glyphs::OCTAHEDRON;
+    } else if (shapeOpt[0] == 'p' && strcmp(shapeOpt, "point") == 0) {
+        shape = Glyphs::POINT;
     } else if (shapeOpt[0] == 's' && strcmp(shapeOpt, "sphere") == 0) {
         shape = Glyphs::SPHERE;
     } else if (shapeOpt[0] == 't' && strcmp(shapeOpt, "tetrahedron") == 0) {
         shape = Glyphs::TETRAHEDRON;
     } else {
         Tcl_AppendResult(interp, "bad shape option \"", shapeOpt,
-                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'octahedron', 'sphere', 'tetrahedron'", (char*)NULL);
+                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'octahedron', 'point', 'sphere', 'tetrahedron'", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -5168,6 +5170,23 @@ GlyphsOrientGlyphsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsPointSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    float size;
+    if (GetFloatFromObj(interp, objv[2], &size) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectPointSize<Glyphs>(name, size);
+    } else {
+        g_renderer->setGraphicsObjectPointSize<Glyphs>("all", size);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -5274,13 +5293,15 @@ GlyphsShapeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         shape = Glyphs::LINE;
     } else if (shapeOpt[0] == 'o' && strcmp(shapeOpt, "octahedron") == 0) {
         shape = Glyphs::OCTAHEDRON;
+    } else if (shapeOpt[0] == 'p' && strcmp(shapeOpt, "point") == 0) {
+        shape = Glyphs::POINT;
     } else if (shapeOpt[0] == 's' && strcmp(shapeOpt, "sphere") == 0) {
         shape = Glyphs::SPHERE;
     } else if (shapeOpt[0] == 't' && strcmp(shapeOpt, "tetrahedron") == 0) {
         shape = Glyphs::TETRAHEDRON;
     } else {
         Tcl_AppendResult(interp, "bad shape option \"", shapeOpt,
-                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'line', 'octahedron', 'sphere', 'tetrahedron'", (char*)NULL);
+                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'line', 'octahedron', 'point', 'sphere', 'tetrahedron'", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -5342,7 +5363,8 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"normscale",    1, GlyphsNormalizeScaleOp, 3, 4, "bool ?dataSetName?"},
     {"opacity",      2, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",          1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"pos",          2, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"ptsize",       2, GlyphsPointSizeOp, 3, 4, "size ?dataSetName?"},
     {"scale",        2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"shape",        2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
     {"smode",        2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetName?"},
@@ -6609,7 +6631,6 @@ MoleculeAtomLabelFieldOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
 }
-
 
 static int
 MoleculeAtomLabelVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
