@@ -460,8 +460,9 @@ glyphs normscale <bool> <?datasetName?>
 glyphs opacity <val> <?datasetName?>
 glyphs orient <qw> <qx> <qy> <qz> <?dataSetName?>
 glyphs pos <x> <y> <z> <?dataSetName?>
+glyphs ptsize <size> <?dataSetName?>
 glyphs scale <sx> <sy> <sz> <?dataSetName?>
-glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|line|octahedron|sphere|tetrahedron> <?datasetName?>
+glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|line|octahedron|point|sphere|tetrahedron> <?datasetName?>
 glyphs smode <scalar|vmag|vcomp|off> <fieldName> <?dataSetName?>
        Set the scaling mode: use the scalar field, vector magnitude 
        (uniform scale), vector components, or disable scaling
