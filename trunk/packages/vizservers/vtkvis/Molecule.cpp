@@ -669,7 +669,8 @@ void Molecule::setBondStyle(BondStyle style)
             _bondProp->GetProperty()->SetLineWidth(_edgeWidth);
             _bondProp->GetProperty()->SetLighting(_lighting ? 1 : 0);
         }
-        if (_bondMapper != NULL && _cylinderTrans != NULL) {
+        if (_bondMapper != NULL && _cylinderTrans != NULL &&
+            _bondMapper->GetInputConnection(1, 0) != _cylinderTrans->GetOutputPort()) {
             _cylinderTrans->Modified();
             _bondMapper->SetSourceConnection(_cylinderTrans->GetOutputPort());
             _bondMapper->Modified();
@@ -679,7 +680,8 @@ void Molecule::setBondStyle(BondStyle style)
         if (_bondProp != NULL) {
             _bondProp->GetProperty()->LightingOff();
         }
-        if (_bondMapper != NULL && _lineSource != NULL) {
+        if (_bondMapper != NULL && _lineSource != NULL &&
+            _bondMapper->GetInputConnection(1, 0) != _lineSource->GetOutputPort()) {
             _lineSource->Modified();
             _bondMapper->SetSourceConnection(_lineSource->GetOutputPort());
             _bondMapper->Modified();
@@ -742,6 +744,9 @@ void Molecule::setClippingPlanes(vtkPlaneCollection *planes)
  */
 void Molecule::setAtomScaling(AtomScaling state)
 {
+    if (state == _atomScaling)
+        return;
+
     _atomScaling = state;
     if (_dataSet != NULL) {
         vtkDataSet *ds = _dataSet->getVtkDataSet();
@@ -762,6 +767,9 @@ void Molecule::setAtomScaling(AtomScaling state)
  */
 void Molecule::setAtomRadiusScale(double scale)
 {
+    if (scale == _radiusScale)
+        return;
+
     _radiusScale = scale;
     if (_dataSet != NULL) {
         vtkDataSet *ds = _dataSet->getVtkDataSet();
@@ -774,7 +782,8 @@ void Molecule::setAtomRadiusScale(double scale)
  */
 void Molecule::setBondRadiusScale(double scale)
 {
-    if (_cylinderSource != NULL) {
+    if (_cylinderSource != NULL &&
+        _cylinderSource->GetRadius() != scale) {
         _cylinderSource->SetRadius(scale);
         // Workaround bug with source modification not causing
         // mapper to be updated
