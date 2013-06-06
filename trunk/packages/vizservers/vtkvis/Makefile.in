@@ -128,7 +128,7 @@ ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
 endif
 ifdef USE_VTK6
-VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)"
+VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
 DEFINES         += -DUSE_VTK6 $(VTK_MOD_DEFS)
 endif
 
