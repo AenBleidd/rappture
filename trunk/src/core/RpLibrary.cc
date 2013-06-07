@@ -2224,14 +2224,15 @@ RpLibrary::result(int exitStatus)
     std::stringstream outputFile;
     std::fstream file;
     std::string xmlText = "";
-    time_t t = 0;
-    struct tm* timeinfo = NULL;
     std::string timestamp = "";
     std::string username = "";
     std::string hostname = "";
     char *user = NULL;
 
     if (this->root) {
+	time_t t;
+	struct tm* timeinfo = NULL;
+
 #ifdef _POSIX_SOURCE
         // if the posix function gettimeofday is available,
         // we can get more precision on the time and more
@@ -2249,13 +2250,13 @@ RpLibrary::result(int exitStatus)
         if ( "" == get("tool.version.rappture.language") ) {
             put("tool.version.rappture.language","c++");
         }
-
+	t = time(NULL);
         // generate a timestamp for the run file
         timeinfo = localtime(&t);
         timestamp = std::string(ctime(&t));
         // erase the 24th character because it is a newline
         timestamp.erase(24);
-        // concatinate the timezone
+        // concatenate the timezone
         timestamp.append(" ");
 #ifdef _WIN32
         timestamp.append(_tzname[_daylight]);
