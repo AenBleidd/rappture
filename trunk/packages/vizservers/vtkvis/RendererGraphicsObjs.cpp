@@ -1004,6 +1004,36 @@ void Renderer::setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool s
 }
 
 /**
+ * \brief Set the point cloud render style for the specified DataSet
+ */
+void Renderer::setCutplaneCloudStyle(const DataSetId& id,
+                                     Cutplane::CloudStyle style)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        if (itr == _cutplanes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCloudStyle(style);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the color mode for the specified DataSet
  */
 void Renderer::setCutplaneColorMode(const DataSetId& id,
@@ -1558,6 +1588,36 @@ void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
 }
 
 /**
+ * \brief Set the point cloud render style for the specified DataSet
+ */
+void Renderer::setHeightMapCloudStyle(const DataSetId& id,
+                                      HeightMap::CloudStyle style)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCloudStyle(style);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the number of equally spaced contour isolines for the given DataSet
  */
 void Renderer::setHeightMapNumContours(const DataSetId& id, int numContours)
@@ -1952,6 +2012,9 @@ void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set the field used to label atoms for the given DataSet
+ */
 void Renderer::setMoleculeAtomLabelField(const DataSetId& id, const char *fieldName)
 {
     MoleculeHashmap::iterator itr;
@@ -2252,6 +2315,66 @@ bool Renderer::addPolygon(const DataSetId& id, int numSides)
     sceneBoundsChanged();
     _needsRedraw = true;
     return true;
+}
+
+/**
+ * \brief Set the  point cloud render style for the specified DataSet
+ */
+void Renderer::setPolyDataCloudStyle(const DataSetId& id,
+                                     PolyData::CloudStyle style)
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        if (itr == _polyDatas.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCloudStyle(style);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the  point cloud render style for the specified DataSet
+ */
+void Renderer::setPseudoColorCloudStyle(const DataSetId& id,
+                                        PseudoColor::CloudStyle style)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        if (itr == _pseudoColors.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCloudStyle(style);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -2983,6 +3106,36 @@ void Renderer::setVolumeSampleDistance(const DataSetId& id, double distance)
         distance *= itr->second->getAverageSpacing();
         itr->second->setSampleDistance((float)distance);
     } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the point cloud render style for the specified DataSet
+ */
+void Renderer::setWarpCloudStyle(const DataSetId& id,
+                                 Warp::CloudStyle style)
+{
+    WarpHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _warps.begin();
+        if (itr == _warps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _warps.find(id);
+    }
+    if (itr == _warps.end()) {
+        ERROR("Warp not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCloudStyle(style);
+    } while (doAll && ++itr != _warps.end());
 
     _needsRedraw = true;
 }

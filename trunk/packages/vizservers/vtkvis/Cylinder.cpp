@@ -8,6 +8,7 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkCylinderSource.h>
+#include <vtkReverseSense.h>
 
 #include "Cylinder.h"
 #include "Trace.h"
@@ -42,4 +43,19 @@ void Cylinder::update()
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+}
+
+void Cylinder::flipNormals(bool state)
+{
+    if (_cylinder == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->SetInputConnection(_cylinder->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_cylinder->GetOutputPort());
+    }
 }

@@ -12,7 +12,7 @@
 #include <vtkAlgorithmOutput.h>
 #include <vtkContourFilter.h>
 #include <vtkLookupTable.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
 #include <vtkGaussianSplatter.h>
@@ -20,7 +20,7 @@
 #include <vtkWarpScalar.h>
 #include <vtkPolyDataNormals.h>
 #include <vtkAssembly.h>
-#include <vtkPolyData.h>
+#include <vtkDataSet.h>
 #include <vtkPlane.h>
 
 #include <vector>
@@ -36,6 +36,10 @@ namespace VtkVis {
  */
 class HeightMap : public GraphicsObject {
 public:
+    enum CloudStyle {
+        CLOUD_MESH,
+        CLOUD_SPLAT
+    };
     enum ColorMode {
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
@@ -72,6 +76,8 @@ public:
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     virtual void setAspect(double aspect);
+
+    void setCloudStyle(CloudStyle style);
 
     void selectVolumeSlice(Axis axis, double ratio);
 
@@ -133,7 +139,7 @@ private:
     void computeDataScale();
 
     vtkAlgorithmOutput *initWarp(vtkAlgorithmOutput *input);
-    vtkAlgorithmOutput *initWarp(vtkPolyData *input);
+    vtkAlgorithmOutput *initWarp(vtkDataSet *input);
 
     int _numContours;
     std::vector<double> _contours;
@@ -146,6 +152,7 @@ private:
     Axis _sliceAxis;
     bool _pipelineInitialized;
 
+    CloudStyle _cloudStyle;
     ColorMap *_colorMap;
     ColorMode _colorMode;
     std::string _colorFieldName;
@@ -156,10 +163,10 @@ private:
     Renderer *_renderer;
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkDataSetMapper> _dsMapper;
+    vtkSmartPointer<vtkPolyDataMapper> _mapper;
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
-    vtkSmartPointer<vtkGaussianSplatter> _pointSplatter;
+    vtkSmartPointer<vtkGaussianSplatter> _splatter;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
     vtkSmartPointer<vtkPlane> _cutPlane;
     vtkSmartPointer<vtkWarpScalar> _warp;

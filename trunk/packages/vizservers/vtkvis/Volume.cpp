@@ -148,10 +148,7 @@ void Volume::update()
 
         vtkUnstructuredGridVolumeMapper::SafeDownCast(_volumeMapper)->
             SetBlendModeToComposite();
-    } else if (vtkPolyData::SafeDownCast(ds) != NULL &&
-               vtkPolyData::SafeDownCast(ds)->GetNumberOfLines() == 0 &&
-               vtkPolyData::SafeDownCast(ds)->GetNumberOfPolys() == 0 &&
-               vtkPolyData::SafeDownCast(ds)->GetNumberOfStrips() == 0 ) {
+    } else if (_dataSet->isCloud()) {
         // DataSet is a 3D point cloud
         vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
 #ifdef USE_VTK6

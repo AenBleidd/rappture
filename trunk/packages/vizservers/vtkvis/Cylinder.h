@@ -69,6 +69,8 @@ public:
 	}
     }
 
+    void flipNormals(bool state);
+
 private:
     virtual void update();
 

@@ -3467,6 +3467,31 @@ CutplaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CutplaneCloudStyleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    Cutplane::CloudStyle style;
+    char *str =  Tcl_GetString(objv[2]);
+    if (str[0] == 'm' && strcmp(str, "mesh") == 0) {
+        style = Cutplane::CLOUD_MESH;
+    } else if (str[0] == 's' && strcmp(str, "splat") == 0) {
+        style = Cutplane::CLOUD_SPLAT;
+    } else {
+        Tcl_AppendResult(interp, "bad cloudstyle option \"", str,
+                         "\": should be one of: 'mesh', 'splat'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneCloudStyle(name, style);
+    } else {
+        g_renderer->setCutplaneCloudStyle("all", style);
+    }
+    return TCL_OK;
+}
+
+static int
 CutplaneColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
@@ -3822,6 +3847,7 @@ static Rappture::CmdSpec cutplaneOps[] = {
     {"add",          2, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
     {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"ccolor",       2, CutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"cloudstyle",   2, CutplaneCloudStyleOp, 3, 4, "style ?dataSetName?"},
     {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, CutplaneColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},
@@ -5493,6 +5519,31 @@ HeightMapAspectOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+HeightMapCloudStyleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    HeightMap::CloudStyle style;
+    char *str =  Tcl_GetString(objv[2]);
+    if (str[0] == 'm' && strcmp(str, "mesh") == 0) {
+        style = HeightMap::CLOUD_MESH;
+    } else if (str[0] == 's' && strcmp(str, "splat") == 0) {
+        style = HeightMap::CLOUD_SPLAT;
+    } else {
+        Tcl_AppendResult(interp, "bad cloudstyle option \"", str,
+                         "\": should be one of: 'mesh', 'splat'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapCloudStyle(name, style);
+    } else {
+        g_renderer->setHeightMapCloudStyle("all", style);
+    }
+    return TCL_OK;
+}
+
+static int
 HeightMapColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -5957,6 +6008,7 @@ static Rappture::CmdSpec heightmapOps[] = {
     {"add",          2, HeightMapAddOp, 5, 6, "oper value heightscale ?dataSetName?"},
     {"aspect",       2, HeightMapAspectOp, 3, 4, "aspect ?dataSetName?"},
     {"ccolor",       2, HeightMapColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"cloudstyle",   2, HeightMapCloudStyleOp, 3, 4, "style ?dataSetName?"},
     {"colormap",     7, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, HeightMapColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"contourlist",  3, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
@@ -7314,6 +7366,31 @@ PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PolyDataCloudStyleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    PolyData::CloudStyle style;
+    char *str =  Tcl_GetString(objv[2]);
+    if (str[0] == 'm' && strcmp(str, "mesh") == 0) {
+        style = PolyData::CLOUD_MESH;
+    } else if (str[0] == 'p' && strcmp(str, "points") == 0) {
+        style = PolyData::CLOUD_POINTS;
+    } else {
+        Tcl_AppendResult(interp, "bad cloudstyle option \"", str,
+                         "\": should be one of: 'mesh', 'points'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataCloudStyle(name, style);
+    } else {
+        g_renderer->setPolyDataCloudStyle("all", style);
+    }
+    return TCL_OK;
+}
+
+static int
 PolyDataDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -7568,7 +7645,8 @@ PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec polyDataOps[] = {
     {"add",       1, PolyDataAddOp, 2, 3, "?dataSetName?"},
-    {"color",     1, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"cloudstyle",2, PolyDataCloudStyleOp, 3, 4, "style ?dataSetName?"},
+    {"color",     2, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
     {"delete",    1, PolyDataDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, PolyDataEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",  3, PolyDataLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -7903,6 +7981,33 @@ PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PseudoColorCloudStyleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    PseudoColor::CloudStyle style;
+    char *str =  Tcl_GetString(objv[2]);
+    if (str[0] == 'm' && strcmp(str, "mesh") == 0) {
+        style = PseudoColor::CLOUD_MESH;
+    } else if (str[0] == 'p' && strcmp(str, "points") == 0) {
+        style = PseudoColor::CLOUD_POINTS;
+    } else if (str[0] == 's' && strcmp(str, "splat") == 0) {
+        style = PseudoColor::CLOUD_SPLAT;
+    } else {
+        Tcl_AppendResult(interp, "bad cloudstyle option \"", str,
+                         "\": should be one of: 'mesh', 'points', 'splat'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorCloudStyle(name, style);
+    } else {
+        g_renderer->setPseudoColorCloudStyle("all", style);
+    }
+    return TCL_OK;
+}
+
+static int
 PseudoColorColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -8092,6 +8197,23 @@ PseudoColorOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PseudoColorPointSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    float size;
+    if (GetFloatFromObj(interp, objv[2], &size) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectPointSize<PseudoColor>(name, size);
+    } else {
+        g_renderer->setGraphicsObjectPointSize<PseudoColor>("all", size);
+    }
+    return TCL_OK;
+}
+
+static int
 PseudoColorPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
@@ -8183,6 +8305,7 @@ PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec pseudoColorOps[] = {
     {"add",          1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
     {"ccolor",       2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"cloudstyle",   2, PseudoColorCloudStyleOp, 3, 4, "style ?dataSetName?"},
     {"colormap",     7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
@@ -8194,6 +8317,7 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"orient",       2, PseudoColorOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          2, PseudoColorPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"preinterp",    2, PseudoColorPreInterpOp, 3, 4, "bool ?dataSetName?"},
+    {"ptsize",       2, PseudoColorPointSizeOp, 3, 4, "size ?dataSetName?"},
     {"scale",        1, PseudoColorScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",      1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe",    1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
@@ -9696,6 +9820,31 @@ WarpAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+WarpCloudStyleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    Warp::CloudStyle style;
+    char *str =  Tcl_GetString(objv[2]);
+    if (str[0] == 'm' && strcmp(str, "mesh") == 0) {
+        style = Warp::CLOUD_MESH;
+    } else if (str[0] == 'p' && strcmp(str, "points") == 0) {
+        style = Warp::CLOUD_POINTS;
+    } else {
+        Tcl_AppendResult(interp, "bad cloudstyle option \"", str,
+                         "\": should be one of: 'mesh', 'points'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setWarpCloudStyle(name, style);
+    } else {
+        g_renderer->setWarpCloudStyle("all", style);
+    }
+    return TCL_OK;
+}
+
+static int
 WarpColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -9885,6 +10034,23 @@ WarpOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+WarpPointSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float size;
+    if (GetFloatFromObj(interp, objv[2], &size) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectPointSize<Warp>(name, size);
+    } else {
+        g_renderer->setGraphicsObjectPointSize<Warp>("all", size);
+    }
+    return TCL_OK;
+}
+
+static int
 WarpPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -9993,6 +10159,7 @@ WarpWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec warpOps[] = {
     {"add",          1, WarpAddOp, 2, 3, "?dataSetName?"},
     {"ccolor",       2, WarpColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"cloudstyle",   2, WarpCloudStyleOp, 3, 4, "style ?dataSetName?"},
     {"colormap",     7, WarpColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, WarpColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, WarpDeleteOp, 2, 3, "?dataSetName?"},
@@ -10004,6 +10171,7 @@ static Rappture::CmdSpec warpOps[] = {
     {"orient",       2, WarpOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          2, WarpPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"preinterp",    2, WarpPreInterpOp, 3, 4, "bool ?dataSetName?"},
+    {"ptsize",       2, WarpPointSizeOp, 3, 4, "size ?dataSetName?"},
     {"scale",        2, WarpScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",      1, WarpVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"warpscale",    2, WarpWarpScaleOp, 3, 4, "value ?dataSetName?"},

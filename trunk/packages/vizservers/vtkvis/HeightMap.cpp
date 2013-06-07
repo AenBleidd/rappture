@@ -11,7 +11,6 @@
 #include <vtkPointData.h>
 #include <vtkCellData.h>
 #include <vtkCellDataToPointData.h>
-#include <vtkDataSetMapper.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
@@ -36,7 +35,6 @@
 
 using namespace VtkVis;
 
-#define MESH_POINT_CLOUDS
 #define TRANSLATE_TO_ZORIGIN
 
 HeightMap::HeightMap(int numContours, double heightScale) :
@@ -47,6 +45,7 @@ HeightMap::HeightMap(int numContours, double heightScale) :
     _warpScale(heightScale),
     _sliceAxis(Z_AXIS),
     _pipelineInitialized(false),
+    _cloudStyle(CLOUD_MESH),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -68,6 +67,7 @@ HeightMap::HeightMap(const std::vector<double>& contours, double heightScale) :
     _warpScale(heightScale),
     _sliceAxis(Z_AXIS),
     _pipelineInitialized(false),
+    _cloudStyle(CLOUD_MESH),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -219,10 +219,10 @@ void HeightMap::update()
     }
 
     // Mapper, actor to render color-mapped data set
-    if (_dsMapper == NULL) {
-        _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+    if (_mapper == NULL) {
+        _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         // Map scalars through lookup table regardless of type
-        _dsMapper->SetColorModeToMapScalars();
+        _mapper->SetColorModeToMapScalars();
     }
 
     if (!_pipelineInitialized) {
@@ -249,17 +249,14 @@ void HeightMap::update()
             }
         }
 
-        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-        if (pd != NULL) {
-            // DataSet is a vtkPolyData
-            if (pd->GetNumberOfLines() == 0 &&
-                pd->GetNumberOfPolys() == 0 &&
-                pd->GetNumberOfStrips() == 0) {
-                // DataSet is a point cloud
-                PrincipalPlane plane;
-                double offset;
-                if (_dataSet->is2D(&plane, &offset)) {
-#ifdef MESH_POINT_CLOUDS
+        _splatter = NULL;
+
+        if (_dataSet->isCloud()) {
+            // DataSet is a point cloud
+            PrincipalPlane plane;
+            double offset;
+            if (_dataSet->is2D(&plane, &offset)) {
+                if (_cloudStyle == CLOUD_MESH) {
                     // Result of Delaunay2D is a PolyData
                     vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                     if (plane == PLANE_ZY) {
@@ -285,25 +282,26 @@ void HeightMap::update()
                         mesher->SetTransform(trans);
                     }
 #ifdef USE_VTK6
-                    mesher->SetInputData(pd);
+                    mesher->SetInputData(ds);
 #else
-                    mesher->SetInput(pd);
+                    mesher->SetInput(ds);
 #endif
                     vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
-                    _dsMapper->SetInputConnection(warpOutput);
+                    _mapper->SetInputConnection(warpOutput);
                     _contourFilter->SetInputConnection(warpOutput);
-#else
-                    if (_pointSplatter == NULL)
-                        _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                } else {
+                    // _cloudStyle == CLOUD_SPLAT
+                    if (_splatter == NULL)
+                        _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
                     if (_volumeSlicer == NULL)
                         _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
 #ifdef USE_VTK6
-                    _pointSplatter->SetInputData(pd);
+                    _splatter->SetInputData(ds);
 #else
-                    _pointSplatter->SetInput(pd);
+                    _splatter->SetInput(ds);
 #endif
                     int dims[3];
-                    _pointSplatter->GetSampleDimensions(dims);
+                    _splatter->GetSampleDimensions(dims);
                     TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
                     if (plane == PLANE_ZY) {
                         dims[0] = 3;
@@ -317,32 +315,34 @@ void HeightMap::update()
                         dims[2] = 3;
                         _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     }
-                    _pointSplatter->SetSampleDimensions(dims);
+                    _splatter->SetSampleDimensions(dims);
                     double bounds[6];
-                    _pointSplatter->Update();
-                    _pointSplatter->GetModelBounds(bounds);
+                    _splatter->Update();
+                    _splatter->GetModelBounds(bounds);
                     TRACE("Model bounds: %g %g %g %g %g %g",
                           bounds[0], bounds[1],
                           bounds[2], bounds[3],
                           bounds[4], bounds[5]);
-                    _volumeSlicer->SetInputConnection(_pointSplatter->GetOutputPort());
+                    _volumeSlicer->SetInputConnection(_splatter->GetOutputPort());
                     _volumeSlicer->SetSampleRate(1, 1, 1);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                     gf->UseStripsOn();
                     gf->SetInputConnection(_volumeSlicer->GetOutputPort());
                     vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
-                    _dsMapper->SetInputConnection(warpOutput);
+                    _mapper->SetInputConnection(warpOutput);
                     _contourFilter->SetInputConnection(warpOutput);
-#endif
-                } else {
-#ifdef MESH_POINT_CLOUDS
-                    // Data Set is a 3D point cloud
-                    // Result of Delaunay3D mesher is unstructured grid
+                }
+            } else {
+                // 3D point cloud
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->UseStripsOn();
+                if (_cloudStyle == CLOUD_MESH) {
+                     // Result of Delaunay3D mesher is unstructured grid
                     vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-                    mesher->SetInputData(pd);
+                    mesher->SetInputData(ds);
 #else
-                    mesher->SetInput(pd);
+                    mesher->SetInput(ds);
 #endif
                     // Run the mesher
                     mesher->Update();
@@ -360,58 +360,53 @@ void HeightMap::update()
                                          0,
                                          bounds[4] + (bounds[5]-bounds[4])/2.);
                     cutter->SetCutFunction(_cutPlane);
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->UseStripsOn();
                     gf->SetInputConnection(cutter->GetOutputPort());
-#else
-                    if (_pointSplatter == NULL)
-                        _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                } else {
+                    // _cloudStyle == CLOUD_SPLAT
+                    if (_splatter == NULL)
+                        _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
 #ifdef USE_VTK6
-                    _pointSplatter->SetInputData(pd);
+                    _splatter->SetInputData(ds);
 #else
-                    _pointSplatter->SetInput(pd);
+                    _splatter->SetInput(ds);
 #endif
                     int dims[3];
-                    _pointSplatter->GetSampleDimensions(dims);
+                    _splatter->GetSampleDimensions(dims);
                     TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
                     dims[2] = 3;
-                    _pointSplatter->SetSampleDimensions(dims);
+                    _splatter->SetSampleDimensions(dims);
                     double bounds[6];
-                    _pointSplatter->Update();
-                    _pointSplatter->GetModelBounds(bounds);
+                    _splatter->Update();
+                    _splatter->GetModelBounds(bounds);
                     TRACE("Model bounds: %g %g %g %g %g %g",
                           bounds[0], bounds[1],
                           bounds[2], bounds[3],
                           bounds[4], bounds[5]);
                     if (_volumeSlicer == NULL)
                         _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
-                    _volumeSlicer->SetInputConnection(_pointSplatter->GetOutputPort());
+                    _volumeSlicer->SetInputConnection(_splatter->GetOutputPort());
                     _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     _volumeSlicer->SetSampleRate(1, 1, 1);
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->UseStripsOn();
                     gf->SetInputConnection(_volumeSlicer->GetOutputPort());
-#endif
-                    vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
-                    _dsMapper->SetInputConnection(warpOutput);
-                    _contourFilter->SetInputConnection(warpOutput);
                 }
+                vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+                _mapper->SetInputConnection(warpOutput);
+                _contourFilter->SetInputConnection(warpOutput);
+            }
+        } else if (vtkPolyData::SafeDownCast(ds) != NULL) {
+            // DataSet is a vtkPolyData with lines and/or polygons
+            vtkAlgorithmOutput *warpOutput = initWarp(ds);
+            if (warpOutput != NULL) {
+                _mapper->SetInputConnection(warpOutput);
+                _contourFilter->SetInputConnection(warpOutput);
             } else {
-                // DataSet is a vtkPolyData with lines and/or polygons
-                vtkAlgorithmOutput *warpOutput = initWarp(pd);
-                if (warpOutput != NULL) {
-                    _dsMapper->SetInputConnection(warpOutput);
-                    _contourFilter->SetInputConnection(warpOutput);
-                } else {
 #ifdef USE_VTK6
-                    _dsMapper->SetInputData(pd);
-                    _contourFilter->SetInputData(pd);
+                _mapper->SetInputData(vtkPolyData::SafeDownCast(ds));
+                _contourFilter->SetInputData(ds);
 #else
-                    _dsMapper->SetInput(pd);
-                    _contourFilter->SetInput(pd);
+                _mapper->SetInput(vtkPolyData::SafeDownCast(ds));
+                _contourFilter->SetInput(ds);
 #endif
-
-                }
             }
         } else {
             // DataSet is NOT a vtkPolyData
@@ -463,12 +458,10 @@ void HeightMap::update()
 #endif
             }
             vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
-            _dsMapper->SetInputConnection(warpOutput);
+            _mapper->SetInputConnection(warpOutput);
             _contourFilter->SetInputConnection(warpOutput);
         }
     }
-
-    _pipelineInitialized = true;
 
     _contourFilter->ComputeNormalsOff();
     _contourFilter->ComputeGradientsOff();
@@ -510,7 +503,15 @@ void HeightMap::update()
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
         setColorMode(_colorMode);
+    } else if (!_pipelineInitialized) {
+        double *rangePtr = _colorFieldRange;
+        if (_colorFieldRange[0] > _colorFieldRange[1]) {
+            rangePtr = NULL;
+        }
+        setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
     }
+
+    _pipelineInitialized = true;
 
     // Ensure updated dataScale is applied
     if (_warp != NULL) {
@@ -524,9 +525,9 @@ void HeightMap::update()
     setPosition(pos);
     TRACE("Z_POS: %g", pos[2]);
 #endif
-    _dsActor->SetMapper(_dsMapper);
+    _dsActor->SetMapper(_mapper);
 
-    _dsMapper->Update();
+    _mapper->Update();
     _contourMapper->Update();
 
     // Only add contour actor to assembly if contours were
@@ -538,10 +539,21 @@ void HeightMap::update()
     }
 }
 
+void HeightMap::setCloudStyle(CloudStyle style)
+{
+    if (style != _cloudStyle) {
+        _cloudStyle = style;
+        if (_dataSet != NULL) {
+            _pipelineInitialized = false;
+            update();
+        }
+    }
+}
+
 void HeightMap::setInterpolateBeforeMapping(bool state)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    if (_mapper != NULL) {
+        _mapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
     }
 }
 
@@ -680,14 +692,14 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
     }
 }
 
-vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
+vtkAlgorithmOutput *HeightMap::initWarp(vtkDataSet *dsInput)
 {
     TRACE("Warp scale: %g", _warpScale);
     if (_warpScale == 0.0) {
         _warp = NULL;
         _normalsGenerator = NULL;
         return NULL;
-    } else if (pdInput == NULL) {
+    } else if (dsInput == NULL) {
         ERROR("NULL input");
         return NULL;
     } else {
@@ -708,9 +720,9 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
         _warp->UseNormalOn();
         _warp->SetScaleFactor(_warpScale * _dataScale);
 #ifdef USE_VTK6
-        _warp->SetInputData(pdInput);
+        _warp->SetInputData(dsInput);
 #else
-        _warp->SetInput(pdInput);
+        _warp->SetInput(dsInput);
 #endif
         _normalsGenerator->SetInputConnection(_warp->GetOutputPort());
         _normalsGenerator->SetFeatureAngle(90.);
@@ -730,12 +742,12 @@ void HeightMap::setHeightScale(double scale)
 
     _warpScale = scale;
     if (_warp == NULL) {
-        vtkAlgorithmOutput *warpOutput = initWarp(_dsMapper->GetInputConnection(0, 0));
-        _dsMapper->SetInputConnection(warpOutput);
+        vtkAlgorithmOutput *warpOutput = initWarp(_mapper->GetInputConnection(0, 0));
+        _mapper->SetInputConnection(warpOutput);
         _contourFilter->SetInputConnection(warpOutput);
     } else if (scale == 0.0) {
         vtkAlgorithmOutput *warpInput = _warp->GetInputConnection(0, 0);
-        _dsMapper->SetInputConnection(warpInput);
+        _mapper->SetInputConnection(warpInput);
         _contourFilter->SetInputConnection(warpInput);
         _warp = NULL;
     } else {
@@ -749,8 +761,8 @@ void HeightMap::setHeightScale(double scale)
     setPosition(pos);
     TRACE("Z_POS: %g", pos[2]);
 #endif
-    if (_dsMapper != NULL)
-        _dsMapper->Update();
+    if (_mapper != NULL)
+        _mapper->Update();
     if (_contourMapper != NULL)
         _contourMapper->Update();
 }
@@ -820,8 +832,8 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
         }
     } else {
         int dims[3];
-        if (_pointSplatter != NULL) {
-            _pointSplatter->GetSampleDimensions(dims);
+        if (_splatter != NULL) {
+            _splatter->GetSampleDimensions(dims);
         } else {
             vtkImageData *imageData = vtkImageData::SafeDownCast(_dataSet->getVtkDataSet());
             if (imageData == NULL) {
@@ -862,8 +874,8 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
         _volumeSlicer->SetVOI(voi);
     }
 
-    if (_dsMapper != NULL)
-        _dsMapper->Update();
+    if (_mapper != NULL)
+        _mapper->Update();
     if (_contourMapper != NULL)
         _contourMapper->Update();
 }
@@ -1002,16 +1014,16 @@ void HeightMap::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         memcpy(_colorFieldRange, range, sizeof(double)*2);
     }
 
-    if (_dataSet == NULL || _dsMapper == NULL)
+    if (_dataSet == NULL || _mapper == NULL)
         return;
 
     switch (type) {
     case DataSet::POINT_DATA:
-        _dsMapper->SetScalarModeToUsePointFieldData();
+        _mapper->SetScalarModeToUsePointFieldData();
         _contourMapper->SetScalarModeToUsePointFieldData();
         break;
     case DataSet::CELL_DATA:
-        _dsMapper->SetScalarModeToUseCellFieldData();
+        _mapper->SetScalarModeToUseCellFieldData();
         _contourMapper->SetScalarModeToUseCellFieldData();
         break;
     default:
@@ -1019,11 +1031,17 @@ void HeightMap::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         return;
     }
 
-    if (name != NULL && strlen(name) > 0) {
-        _dsMapper->SelectColorArray(name);
+    if (_splatter != NULL) {
+        if (name != NULL && strlen(name) > 0) {
+            _splatter->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, name);
+        }
+        _mapper->SelectColorArray("SplatterValues");
+        _contourMapper->SelectColorArray("SplatterValues");
+    } else if (name != NULL && strlen(name) > 0) {
+        _mapper->SelectColorArray(name);
         _contourMapper->SelectColorArray(name);
     } else {
-        _dsMapper->SetScalarModeToDefault();
+        _mapper->SetScalarModeToDefault();
         _contourMapper->SetScalarModeToDefault();
     }
 
@@ -1069,30 +1087,30 @@ void HeightMap::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     switch (mode) {
     case COLOR_BY_SCALAR:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToMagnitude();
         }
         break;
     case COLOR_BY_VECTOR_X:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
@@ -1100,7 +1118,7 @@ void HeightMap::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         break;
     case COLOR_CONSTANT:
     default:
-        _dsMapper->ScalarVisibilityOff();
+        _mapper->ScalarVisibilityOff();
         break;
     }
 }
@@ -1125,9 +1143,9 @@ void HeightMap::setColorMap(ColorMap *cmap)
 
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-        if (_dsMapper != NULL) {
-            _dsMapper->UseLookupTableScalarRangeOn();
-            _dsMapper->SetLookupTable(_lut);
+        if (_mapper != NULL) {
+            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->SetLookupTable(_lut);
         }
         if (_contourMapper != NULL) {
             _contourMapper->UseLookupTableScalarRangeOn();
@@ -1335,8 +1353,8 @@ void HeightMap::setContourEdgeWidth(float edgeWidth)
  */
 void HeightMap::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetClippingPlanes(planes);
+    if (_mapper != NULL) {
+        _mapper->SetClippingPlanes(planes);
     }
     if (_contourMapper != NULL) {
         _contourMapper->SetClippingPlanes(planes);

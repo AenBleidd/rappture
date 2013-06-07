@@ -609,6 +609,9 @@ public:
 
     // Cutplanes
 
+    void setCutplaneCloudStyle(const DataSetId& id,
+                               Cutplane::CloudStyle style);
+
     void setCutplaneOutlineVisibility(const DataSetId& id, bool state);
 
     void setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state);
@@ -663,6 +666,9 @@ public:
     bool addHeightMap(const DataSetId& id, const std::vector<double>& contours, double heightScale);
 
     void setHeightMapHeightScale(const DataSetId& id, double scale);
+
+    void setHeightMapCloudStyle(const DataSetId& id,
+                                HeightMap::CloudStyle style);
 
     void setHeightMapNumContours(const DataSetId& id, int numContours);
 
@@ -727,7 +733,15 @@ public:
 
     bool addPolygon(const DataSetId& id, int numSides);
 
+    // PolyData meshes
+
+    void setPolyDataCloudStyle(const DataSetId& id,
+                               PolyData::CloudStyle style);
+
     // Color-mapped surfaces
+
+    void setPseudoColorCloudStyle(const DataSetId& id,
+                                  PseudoColor::CloudStyle style);
 
     void setPseudoColorColorMode(const DataSetId& id,
                                  PseudoColor::ColorMode mode,
@@ -805,6 +819,9 @@ public:
     void setVolumeSampleDistance(const DataSetId& id, double distance);
 
     // Warps
+
+    void setWarpCloudStyle(const DataSetId& id,
+                           Warp::CloudStyle style);
 
     void setWarpColorMode(const DataSetId& id,
                           Warp::ColorMode mode,

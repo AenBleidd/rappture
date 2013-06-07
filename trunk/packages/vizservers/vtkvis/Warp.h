@@ -12,7 +12,7 @@
 #include <vtkAlgorithmOutput.h>
 #include <vtkLookupTable.h>
 #include <vtkDataSet.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
 #include <vtkWarpVector.h>
@@ -30,6 +30,10 @@ namespace VtkVis {
  */
 class Warp : public GraphicsObject {
 public:
+    enum CloudStyle {
+        CLOUD_MESH,
+        CLOUD_POINTS
+    };
     enum ColorMode {
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
@@ -58,6 +62,8 @@ public:
     {
         return _warpScale;
     }
+    
+    void setCloudStyle(CloudStyle style);
 
     void setInterpolateBeforeMapping(bool state);
 
@@ -91,6 +97,7 @@ private:
 
     double _warpScale;
 
+    CloudStyle _cloudStyle;
     ColorMap *_colorMap;
     ColorMode _colorMode;
     std::string _colorFieldName;
@@ -102,7 +109,7 @@ private:
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkWarpVector> _warp;
-    vtkSmartPointer<vtkDataSetMapper> _dsMapper;
+    vtkSmartPointer<vtkPolyDataMapper> _mapper;
 };
 
 }

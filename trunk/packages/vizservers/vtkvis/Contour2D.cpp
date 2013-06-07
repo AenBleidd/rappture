@@ -145,62 +145,56 @@ void Contour2D::update()
             }
         }
 
-        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-        if (pd) {
-            // DataSet is a vtkPolyData
-            if (pd->GetNumberOfLines() == 0 &&
-                pd->GetNumberOfPolys() == 0 &&
-                pd->GetNumberOfStrips() == 0) {
-                // DataSet is a point cloud
-                PrincipalPlane plane;
-                double offset;
-                if (_dataSet->is2D(&plane, &offset)) {
-                    vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                    if (plane == PLANE_ZY) {
-                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                        trans->RotateWXYZ(90, 0, 1, 0);
-                        if (offset != 0.0) {
-                            trans->Translate(-offset, 0, 0);
-                        }
-                        mesher->SetTransform(trans);
-                    } else if (plane == PLANE_XZ) {
-                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                        trans->RotateWXYZ(-90, 1, 0, 0);
-                        if (offset != 0.0) {
-                            trans->Translate(0, -offset, 0);
-                        }
-                        mesher->SetTransform(trans);
-                    } else if (offset != 0.0) {
-                        // XY with Z offset
-                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                        trans->Translate(0, 0, -offset);
-                        mesher->SetTransform(trans);
+        if (_dataSet->isCloud()) {
+            // DataSet is a point cloud
+            PrincipalPlane plane;
+            double offset;
+            if (_dataSet->is2D(&plane, &offset)) {
+                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                if (plane == PLANE_ZY) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(90, 0, 1, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(-offset, 0, 0);
                     }
-#ifdef USE_VTK6
-                    mesher->SetInputData(pd);
-#else
-                    mesher->SetInput(pd);
-#endif
-                    _contourFilter->SetInputConnection(mesher->GetOutputPort());
-                } else {
-                    vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
-#ifdef USE_VTK6
-                    mesher->SetInputData(pd);
-#else
-                    mesher->SetInput(pd);
-#endif
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->SetInputConnection(mesher->GetOutputPort());
-                    _contourFilter->SetInputConnection(gf->GetOutputPort());
+                    mesher->SetTransform(trans);
+                } else if (plane == PLANE_XZ) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(-90, 1, 0, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(0, -offset, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (offset != 0.0) {
+                    // XY with Z offset
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->Translate(0, 0, -offset);
+                    mesher->SetTransform(trans);
                 }
-            } else {
-                // DataSet is a vtkPolyData with lines and/or polygons
 #ifdef USE_VTK6
-                _contourFilter->SetInputData(ds);
+                mesher->SetInputData(ds);
 #else
-                _contourFilter->SetInput(ds);
+                mesher->SetInput(ds);
 #endif
+                _contourFilter->SetInputConnection(mesher->GetOutputPort());
+            } else {
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                mesher->SetInputData(ds);
+#else
+                mesher->SetInput(ds);
+#endif
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->SetInputConnection(mesher->GetOutputPort());
+                _contourFilter->SetInputConnection(gf->GetOutputPort());
             }
+        } else if (vtkPolyData::SafeDownCast(ds) != NULL) {
+            // DataSet is a vtkPolyData with lines and/or polygons
+#ifdef USE_VTK6
+            _contourFilter->SetInputData(ds);
+#else
+            _contourFilter->SetInput(ds);
+#endif
         } else {
             TRACE("Generating surface for data set");
             // DataSet is NOT a vtkPolyData
@@ -240,14 +234,14 @@ void Contour2D::update()
 
     initProp();
 
-    if (_dsMapper == NULL) {
-        _dsMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        _dsMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _dsMapper->ScalarVisibilityOff();
+    if (_mapper == NULL) {
+        _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _mapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _mapper->ScalarVisibilityOff();
         vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
         stripper->SetInputConnection(_contourFilter->GetOutputPort());
-        _dsMapper->SetInputConnection(stripper->GetOutputPort());
-        getActor()->SetMapper(_dsMapper);
+        _mapper->SetInputConnection(stripper->GetOutputPort());
+        getActor()->SetMapper(_mapper);
     }
 
     if (_lut == NULL) {
@@ -255,7 +249,7 @@ void Contour2D::update()
         setColorMode(_colorMode);
     }
 
-    _dsMapper->Update();
+    _mapper->Update();
 }
 
 void Contour2D::updateRanges(Renderer *renderer)
@@ -384,15 +378,15 @@ void Contour2D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         memcpy(_colorFieldRange, range, sizeof(double)*2);
     }
 
-    if (_dataSet == NULL || _dsMapper == NULL)
+    if (_dataSet == NULL || _mapper == NULL)
         return;
 
     switch (type) {
     case DataSet::POINT_DATA:
-        _dsMapper->SetScalarModeToUsePointFieldData();
+        _mapper->SetScalarModeToUsePointFieldData();
         break;
     case DataSet::CELL_DATA:
-        _dsMapper->SetScalarModeToUseCellFieldData();
+        _mapper->SetScalarModeToUseCellFieldData();
         break;
     default:
         ERROR("Unsupported DataAttributeType: %d", type);
@@ -400,9 +394,9 @@ void Contour2D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     }
 
     if (name != NULL && strlen(name) > 0) {
-        _dsMapper->SelectColorArray(name);
+        _mapper->SelectColorArray(name);
     } else {
-        _dsMapper->SetScalarModeToDefault();
+        _mapper->SetScalarModeToDefault();
     }
 
     if (_lut != NULL) {
@@ -438,30 +432,30 @@ void Contour2D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     switch (mode) {
     case COLOR_BY_SCALAR:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToMagnitude();
         }
         break;
     case COLOR_BY_VECTOR_X:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
@@ -469,7 +463,7 @@ void Contour2D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         break;
     case COLOR_CONSTANT:
     default:
-        _dsMapper->ScalarVisibilityOff();
+        _mapper->ScalarVisibilityOff();
         break;
     }
 }
@@ -494,9 +488,9 @@ void Contour2D::setColorMap(ColorMap *cmap)
  
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-        if (_dsMapper != NULL) {
-            _dsMapper->UseLookupTableScalarRangeOn();
-            _dsMapper->SetLookupTable(_lut);
+        if (_mapper != NULL) {
+            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->SetLookupTable(_lut);
         }
         _lut->DeepCopy(cmap->getLookupTable());
         switch (_colorMode) {
@@ -598,7 +592,7 @@ const std::vector<double>& Contour2D::getContourList() const
  */
 void Contour2D::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetClippingPlanes(planes);
+    if (_mapper != NULL) {
+        _mapper->SetClippingPlanes(planes);
     }
 }

@@ -53,6 +53,8 @@ public:
 
     PrincipalPlane principalPlane() const;
 
+    bool isCloud() const;
+
     const std::string& getName() const;
 
     vtkDataSet *getVtkDataSet();
@@ -119,6 +121,8 @@ public:
     void setVisibility(bool state);
 
     bool getVisibility() const;
+
+    static void getCellSizeRange(vtkDataSet *dataSet, double minmax[2], double *average);
 
     static void print(vtkDataSet *ds);
 
