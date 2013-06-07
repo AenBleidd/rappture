@@ -12,7 +12,7 @@
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
 #include <vtkImageData.h>
@@ -29,13 +29,12 @@
 #include "Renderer.h"
 #include "Trace.h"
 
-#define MESH_POINT_CLOUDS
-
 using namespace VtkVis;
 
 Cutplane::Cutplane() :
     GraphicsObject(),
     _pipelineInitialized(false),
+    _cloudStyle(CLOUD_MESH),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -158,7 +157,7 @@ void Cutplane::update()
     // Mapper, actor to render color-mapped data set
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] == NULL) {
-            _mapper[i] = vtkSmartPointer<vtkDataSetMapper>::New();
+            _mapper[i] = vtkSmartPointer<vtkPolyDataMapper>::New();
             // Map scalars through lookup table regardless of type
             _mapper[i]->SetColorModeToMapScalars();
         }
@@ -195,120 +194,119 @@ void Cutplane::update()
     initProp();
 
     if (!_pipelineInitialized) {
-        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-        if (pd && 
-            pd->GetNumberOfLines() == 0 &&
-            pd->GetNumberOfPolys() == 0 &&
-            pd->GetNumberOfStrips() == 0) {
+        _splatter = NULL;
+        if (_dataSet->isCloud()) {
             // DataSet is a point cloud
             PrincipalPlane plane;
             double offset;
             if (_dataSet->is2D(&plane, &offset)) {
                 // DataSet is a 2D point cloud
-#ifdef MESH_POINT_CLOUDS
-                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                if (plane == PLANE_ZY) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(90, 0, 1, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(-offset, 0, 0);
+                if (_cloudStyle == CLOUD_MESH) {
+                    vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                    if (plane == PLANE_ZY) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(90, 0, 1, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(-offset, 0, 0);
+                        }
+                        mesher->SetTransform(trans);
+                        _actor[1]->VisibilityOff();
+                        _actor[2]->VisibilityOff();
+                    } else if (plane == PLANE_XZ) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(-90, 1, 0, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(0, -offset, 0);
+                        }
+                        mesher->SetTransform(trans);
+                        _actor[0]->VisibilityOff();
+                        _actor[2]->VisibilityOff();
+                    } else if (offset != 0.0) {
+                        // XY with Z offset
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->Translate(0, 0, -offset);
+                        mesher->SetTransform(trans);
+                        _actor[0]->VisibilityOff();
+                        _actor[1]->VisibilityOff();
                     }
-                    mesher->SetTransform(trans);
-                    _actor[1]->VisibilityOff();
-                    _actor[2]->VisibilityOff();
-                } else if (plane == PLANE_XZ) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(-90, 1, 0, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(0, -offset, 0);
+#ifdef USE_VTK6
+                    mesher->SetInputData(ds);
+#else
+                    mesher->SetInput(ds);
+#endif
+                    for (int i = 0; i < 3; i++) {
+                        _mapper[i]->SetInputConnection(mesher->GetOutputPort());
                     }
-                    mesher->SetTransform(trans);
-                    _actor[0]->VisibilityOff();
-                    _actor[2]->VisibilityOff();
-                } else if (offset != 0.0) {
-                    // XY with Z offset
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->Translate(0, 0, -offset);
-                    mesher->SetTransform(trans);
-                    _actor[0]->VisibilityOff();
-                    _actor[1]->VisibilityOff();
-                }
-#ifdef USE_VTK6
-                mesher->SetInputData(pd);
-#else
-                mesher->SetInput(pd);
-#endif
-                for (int i = 0; i < 3; i++) {
-                    _mapper[i]->SetInputConnection(mesher->GetOutputPort());
-                }
-#else
-                if (_splatter == NULL) {
-                    _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-                }
-#ifdef USE_VTK6
-                _splatter->SetInputData(pd);
-#else
-                _splatter->SetInput(pd);
-#endif
-                int dims[3];
-                _splatter->GetSampleDimensions(dims);
-                TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                if (plane == PLANE_ZY) {
-                    dims[0] = 3;
-                } else if (plane == PLANE_XZ) {
-                    dims[1] = 3;
                 } else {
-                    dims[2] = 3;
-                }
-                _splatter->SetSampleDimensions(dims);
-                for (int i = 0; i < 3; i++) {
-                    _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->UseStripsOn();
-                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
-                }
+                    // _cloudStyle == CLOUD_SPLAT
+                    if (_splatter == NULL) {
+                        _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                    }
+#ifdef USE_VTK6
+                    _splatter->SetInputData(ds);
+#else
+                    _splatter->SetInput(ds);
 #endif
+                    int dims[3];
+                    _splatter->GetSampleDimensions(dims);
+                    TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
+                    if (plane == PLANE_ZY) {
+                        dims[0] = 3;
+                    } else if (plane == PLANE_XZ) {
+                        dims[1] = 3;
+                    } else {
+                        dims[2] = 3;
+                    }
+                    _splatter->SetSampleDimensions(dims);
+                    for (int i = 0; i < 3; i++) {
+                        _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
+                        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                        gf->UseStripsOn();
+                        gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                        _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                    }
+                }
             } else {
-#ifdef MESH_POINT_CLOUDS
-                // Data Set is a 3D point cloud
-                // Result of Delaunay3D mesher is unstructured grid
-                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+                if (_cloudStyle == CLOUD_MESH) {
+                    // Data Set is a 3D point cloud
+                    // Result of Delaunay3D mesher is unstructured grid
+                    vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+                    mesher->SetInputData(ds);
 #else
-                mesher->SetInput(pd);
+                    mesher->SetInput(ds);
 #endif
-                // Sample a plane within the grid bounding box
-                for (int i = 0; i < 3; i++) {
-                    _cutter[i]->SetInputConnection(mesher->GetOutputPort());
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->UseStripsOn();
-                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
-                }
-#else
-                if (_splatter == NULL) {
-                    _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-                }
+                    // Sample a plane within the grid bounding box
+                    for (int i = 0; i < 3; i++) {
+                        _cutter[i]->SetInputConnection(mesher->GetOutputPort());
+                        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                        gf->UseStripsOn();
+                        gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                        _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                    }
+                } else {
+                    // _cloudStyle == CLOUD_SPLAT
+                    if (_splatter == NULL) {
+                        _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                    }
 #ifdef USE_VTK6
-                _splatter->SetInputData(pd);
+                    _splatter->SetInputData(ds);
 #else
-                _splatter->SetInput(pd);
+                    _splatter->SetInput(ds);
 #endif
-                int dims[3];
-                dims[0] = dims[1] = dims[2] = 64;
-                TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
-                      dims[0], dims[1], dims[2]);
-                _splatter->SetSampleDimensions(dims);
-                for (int i = 0; i < 3; i++) {
-                    _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->UseStripsOn();
-                    gf->SetInputConnection(_cutter[i]->GetOutputPort());
-                    _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                    int dims[3];
+                    dims[0] = dims[1] = dims[2] = 64;
+                    TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
+                          dims[0], dims[1], dims[2]);
+                    _splatter->SetSampleDimensions(dims);
+                    for (int i = 0; i < 3; i++) {
+                        _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
+                        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                        gf->UseStripsOn();
+                        gf->SetInputConnection(_cutter[i]->GetOutputPort());
+                        _mapper[i]->SetInputConnection(gf->GetOutputPort());
+                    }
                 }
-#endif
             }
         } else {
             // DataSet can be: image/volume/uniform grid, structured grid, unstructured grid, rectilinear grid, or
@@ -355,8 +353,6 @@ void Cutplane::update()
         }
     }
 
-    _pipelineInitialized = true;
-
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] != NULL && _borderMapper[i] == NULL) {
             _borderMapper[i] = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -398,8 +394,23 @@ void Cutplane::update()
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
-        setColorMode(_colorMode);
+        if (ds->GetPointData()->GetScalars() == NULL &&
+            ds->GetPointData()->GetVectors() != NULL) {
+            TRACE("Setting color mode to vector magnitude");
+            setColorMode(COLOR_BY_VECTOR_MAGNITUDE);
+        } else {
+            TRACE("Setting color mode to scalar");
+            setColorMode(COLOR_BY_SCALAR);
+        }
+    } else if (!_pipelineInitialized) {
+        double *rangePtr = _colorFieldRange;
+        if (_colorFieldRange[0] > _colorFieldRange[1]) {
+            rangePtr = NULL;
+        }
+        setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
     }
+
+    _pipelineInitialized = true;
 
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] != NULL) {
@@ -416,6 +427,17 @@ void Cutplane::update()
         _actor[i]->GetBounds(bounds);
         if (bounds[0] <= bounds[1]) {
             getAssembly()->AddPart(_actor[i]);
+        }
+    }
+}
+
+void Cutplane::setCloudStyle(CloudStyle style)
+{
+    if (style != _cloudStyle) {
+        _cloudStyle = style;
+        if (_dataSet != NULL) {
+            _pipelineInitialized = false;
+            update();
         }
     }
 }
@@ -629,6 +651,9 @@ void Cutplane::setColorMode(ColorMode mode,
     }
 
     if (_splatter != NULL) {
+        if (name != NULL && strlen(name) > 0) {
+            _splatter->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, name);
+        }
         for (int i = 0; i < 3; i++) {
             _mapper[i]->SelectColorArray("SplatterValues");
         }

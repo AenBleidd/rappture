@@ -210,6 +210,7 @@ private:
     vtkSmartPointer<vtkActor> _linesActor;
     vtkSmartPointer<vtkActor> _seedActor;
     vtkSmartPointer<vtkDataSet> _seedMesh;
+    vtkSmartPointer<vtkAlgorithm> _mesher;
     vtkSmartPointer<vtkStreamTracer> _streamTracer;
     vtkSmartPointer<vtkPolyDataAlgorithm> _lineFilter;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;

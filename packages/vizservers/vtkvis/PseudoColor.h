@@ -10,9 +10,10 @@
 
 #include <vtkSmartPointer.h>
 #include <vtkLookupTable.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
+#include <vtkGaussianSplatter.h>
 
 #include "ColorMap.h"
 #include "GraphicsObject.h"
@@ -24,6 +25,11 @@ namespace VtkVis {
  */
 class PseudoColor : public GraphicsObject {
 public:
+    enum CloudStyle {
+        CLOUD_MESH,
+        CLOUD_POINTS,
+        CLOUD_SPLAT
+    };
     enum ColorMode {
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
@@ -45,6 +51,8 @@ public:
                             Renderer *renderer);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setCloudStyle(CloudStyle style);
 
     void setInterpolateBeforeMapping(bool state);
 
@@ -82,8 +90,10 @@ private:
     double _vectorComponentRange[3][2];
     Renderer *_renderer;
 
+    CloudStyle _cloudStyle;
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkDataSetMapper> _dsMapper;
+    vtkSmartPointer<vtkPolyDataMapper> _mapper;
+    vtkSmartPointer<vtkGaussianSplatter> _splatter;
 };
 
 }

@@ -21,6 +21,9 @@
 #include <vtkPointData.h>
 #include <vtkCellData.h>
 #include <vtkCellDataToPointData.h>
+#include <vtkDelaunay2D.h>
+#include <vtkDelaunay3D.h>
+#include <vtkUnstructuredGrid.h>
 #include <vtkPolygon.h>
 #include <vtkPolyData.h>
 #include <vtkTubeFilter.h>
@@ -499,11 +502,65 @@ void Streamlines::update()
         _streamTracer = vtkSmartPointer<vtkStreamTracer>::New();
     }
 
+    if (_dataSet->isCloud()) {
+        // DataSet is a point cloud
+        PrincipalPlane plane;
+        double offset;
+        vtkDataSet *mesherOutput = NULL;
+        if (_dataSet->is2D(&plane, &offset)) {
+            // Generate a 2D PolyData
+            _mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+            if (plane == PLANE_ZY) {
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateWXYZ(90, 0, 1, 0);
+                if (offset != 0.0) {
+                    trans->Translate(-offset, 0, 0);
+                }
+                vtkDelaunay2D::SafeDownCast(_mesher)->SetTransform(trans);
+            } else if (plane == PLANE_XZ) {
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateWXYZ(-90, 1, 0, 0);
+                if (offset != 0.0) {
+                    trans->Translate(0, -offset, 0);
+                }
+                vtkDelaunay2D::SafeDownCast(_mesher)->SetTransform(trans);
+            } else if (offset != 0.0) {
+                // XY with Z offset
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->Translate(0, 0, -offset);
+                vtkDelaunay2D::SafeDownCast(_mesher)->SetTransform(trans);
+            }
 #ifdef USE_VTK6
-    _streamTracer->SetInputData(ds);
+            vtkDelaunay2D::SafeDownCast(_mesher)->SetInputData(ds);
 #else
-    _streamTracer->SetInput(ds);
+            _mesher->SetInput(ds);
 #endif
+            _streamTracer->SetInputConnection(_mesher->GetOutputPort());
+            _mesher->Update();
+            mesherOutput = vtkDelaunay2D::SafeDownCast(_mesher)->GetOutput();
+        } else {
+            // Generate a 3D unstructured grid
+            _mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+            vtkDelaunay3D::SafeDownCast(_mesher)->SetInputData(ds);
+#else
+            _mesher->SetInput(ds);
+#endif
+            _streamTracer->SetInputConnection(_mesher->GetOutputPort());
+            _mesher->Update();
+            mesherOutput = vtkDelaunay3D::SafeDownCast(_mesher)->GetOutput();
+        }
+        DataSet::getCellSizeRange(mesherOutput, cellSizeRange, &avgSize);
+        _dataScale = avgSize / 8.;
+     } else {
+        // DataSet is NOT a cloud (has cells)
+#ifdef USE_VTK6
+        _streamTracer->SetInputData(ds);
+#else
+        _streamTracer->SetInput(ds);
+#endif
+    }
+
     _streamTracer->SetMaximumPropagation(xLen + yLen + zLen);
     _streamTracer->SetIntegratorTypeToRungeKutta45();
 
@@ -699,6 +756,13 @@ void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
 #endif
     } else {
         _seedMesh = NULL;
+        if (_mesher != NULL) {
+            if (vtkDelaunay2D::SafeDownCast(_mesher) != NULL) {
+                ds = vtkDelaunay2D::SafeDownCast(_mesher)->GetOutput();
+            } else {
+                ds = vtkDelaunay3D::SafeDownCast(_mesher)->GetOutput();
+            }
+        }
     }
     if (_streamTracer != NULL) {
         // Set up seed source object

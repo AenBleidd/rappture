@@ -27,10 +27,6 @@
 #else
 #include <vtkCubeAxesActor.h>
 #endif
-#include <vtkDataSetReader.h>
-#include <vtkDataSetMapper.h>
-#include <vtkContourFilter.h>
-#include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
 #include <vtkProperty2D.h>
 #include <vtkPointData.h>

@@ -12,7 +12,7 @@
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyData.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
 #include <vtkImageData.h>
@@ -23,12 +23,11 @@
 #include <vtkGaussianSplatter.h>
 #include <vtkExtractVOI.h>
 #include <vtkDataSetSurfaceFilter.h>
+#include <vtkVertexGlyphFilter.h>
 
 #include "PseudoColor.h"
 #include "Renderer.h"
 #include "Trace.h"
-
-#define MESH_POINT_CLOUDS
 
 using namespace VtkVis;
 
@@ -37,7 +36,8 @@ PseudoColor::PseudoColor() :
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
-    _renderer(NULL)
+    _renderer(NULL),
+    _cloudStyle(CLOUD_MESH)
 {
     _colorFieldRange[0] = DBL_MAX;
     _colorFieldRange[1] = -DBL_MAX;
@@ -96,134 +96,171 @@ void PseudoColor::update()
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
     // Mapper, actor to render color-mapped data set
-    if (_dsMapper == NULL) {
-        _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+    if (_mapper == NULL) {
+        _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         // Map scalars through lookup table regardless of type
-        _dsMapper->SetColorModeToMapScalars();
+        _mapper->SetColorModeToMapScalars();
     }
 
-    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-    if (pd) {
-        // DataSet is a vtkPolyData
-        if (pd->GetNumberOfLines() == 0 &&
-            pd->GetNumberOfPolys() == 0 &&
-            pd->GetNumberOfStrips() == 0) {
-            // DataSet is a point cloud
+    _splatter = NULL;
+    if (_dataSet->isCloud()) {
+        // DataSet is a point cloud
+        if (_cloudStyle == CLOUD_POINTS) {
+            vtkSmartPointer<vtkVertexGlyphFilter> vgf = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+#ifdef USE_VTK6
+            vgf->SetInputData(ds);
+#else
+            vgf->SetInput(ds);
+#endif
+            vgf->ReleaseDataFlagOn();
+            _mapper->SetInputConnection(vgf->GetOutputPort());
+        } else {
             PrincipalPlane plane;
             double offset;
             if (_dataSet->is2D(&plane, &offset)) {
-#ifdef MESH_POINT_CLOUDS
-                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                if (plane == PLANE_ZY) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(90, 0, 1, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(-offset, 0, 0);
+                if (_cloudStyle == CLOUD_MESH) {
+                    // 2D CLOUD_MESH
+                    vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                    if (plane == PLANE_ZY) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(90, 0, 1, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(-offset, 0, 0);
+                        }
+                        mesher->SetTransform(trans);
+                    } else if (plane == PLANE_XZ) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(-90, 1, 0, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(0, -offset, 0);
+                        }
+                        mesher->SetTransform(trans);
+                    } else if (offset != 0.0) {
+                        // XY with Z offset
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->Translate(0, 0, -offset);
+                        mesher->SetTransform(trans);
                     }
-                    mesher->SetTransform(trans);
-                } else if (plane == PLANE_XZ) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(-90, 1, 0, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(0, -offset, 0);
-                    }
-                    mesher->SetTransform(trans);
-                } else if (offset != 0.0) {
-                    // XY with Z offset
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->Translate(0, 0, -offset);
-                    mesher->SetTransform(trans);
-                }
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+                    mesher->SetInputData(ds);
 #else
-                mesher->SetInput(pd);
+                    mesher->SetInput(ds);
 #endif
-                _dsMapper->SetInputConnection(mesher->GetOutputPort());
-#else
-                vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-                vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
-#ifdef USE_VTK6
-                splatter->SetInputData(pd);
-#else
-                splatter->SetInput(pd);
-#endif
-                int dims[3];
-                splatter->GetSampleDimensions(dims);
-                TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                if (plane == PLANE_ZY) {
-                    dims[0] = 3;
-                    slicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
-                } else if (plane == PLANE_XZ) {
-                    dims[1] = 3;
-                    slicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
+                    _mapper->SetInputConnection(mesher->GetOutputPort());
                 } else {
-                    dims[2] = 3;
-                    slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
-                }
-                splatter->SetSampleDimensions(dims);
-                double bounds[6];
-                splatter->Update();
-                splatter->GetModelBounds(bounds);
-                TRACE("Model bounds: %g %g %g %g %g %g",
-                      bounds[0], bounds[1],
-                      bounds[2], bounds[3],
-                      bounds[4], bounds[5]);
-                slicer->SetInputConnection(splatter->GetOutputPort());
-                slicer->SetSampleRate(1, 1, 1);
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
-                gf->SetInputConnection(slicer->GetOutputPort());
-                _dsMapper->SetInputConnection(gf->GetOutputPort());
+                    // 2D CLOUD_SPLAT
+                    if (_splatter == NULL) {
+                        _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                    }
+#ifdef USE_VTK6
+                    _splatter->SetInputData(ds);
+#else
+                    _splatter->SetInput(ds);
 #endif
+                    int dims[3];
+                    _splatter->GetSampleDimensions(dims);
+                    TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
+                    vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
+                    if (plane == PLANE_ZY) {
+                        dims[0] = 3;
+                        slicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
+                    } else if (plane == PLANE_XZ) {
+                        dims[1] = 3;
+                        slicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
+                    } else {
+                        dims[2] = 3;
+                        slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
+                    }
+                    _splatter->SetSampleDimensions(dims);
+                    double bounds[6];
+                    _splatter->Update();
+                    _splatter->GetModelBounds(bounds);
+                    TRACE("Model bounds: %g %g %g %g %g %g",
+                          bounds[0], bounds[1],
+                          bounds[2], bounds[3],
+                          bounds[4], bounds[5]);
+                    slicer->SetInputConnection(_splatter->GetOutputPort());
+                    slicer->SetSampleRate(1, 1, 1);
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
+                    gf->SetInputConnection(slicer->GetOutputPort());
+                    _mapper->SetInputConnection(gf->GetOutputPort());
+                }
             } else {
+                // 3D cloud
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+                mesher->SetInputData(ds);
 #else
-                mesher->SetInput(pd);
+                mesher->SetInput(ds);
 #endif
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->SetInputConnection(mesher->GetOutputPort());
-                _dsMapper->SetInputConnection(gf->GetOutputPort());
-             }
-        } else {
-            // DataSet is a vtkPolyData with lines and/or polygons
-#ifdef USE_VTK6
-            _dsMapper->SetInputData(ds);
-#else
-            _dsMapper->SetInput(ds);
-#endif
+                _mapper->SetInputConnection(gf->GetOutputPort());
+            }
         }
+    } else if (vtkPolyData::SafeDownCast(ds) != NULL) {
+        // DataSet is a vtkPolyData with lines and/or polygons
+#ifdef USE_VTK6
+        _mapper->SetInputData(vtkPolyData::SafeDownCast(ds));
+#else
+        _mapper->SetInput(vtkPolyData::SafeDownCast(ds));
+#endif
     } else {
         TRACE("Generating surface for data set");
-        // DataSet is NOT a vtkPolyData
+        // DataSet is NOT a vtkPolyData and has cells
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
 #ifdef USE_VTK6
         gf->SetInputData(ds);
 #else
         gf->SetInput(ds);
 #endif
-        _dsMapper->SetInputConnection(gf->GetOutputPort());
+        _mapper->SetInputConnection(gf->GetOutputPort());
     }
 
     setInterpolateBeforeMapping(true);
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
+        if (ds->GetPointData()->GetScalars() == NULL &&
+            ds->GetPointData()->GetVectors() != NULL) {
+            TRACE("Setting color mode to vector magnitude");
+            setColorMode(COLOR_BY_VECTOR_MAGNITUDE);
+        } else {
+            TRACE("Setting color mode to scalar");
+            setColorMode(COLOR_BY_SCALAR);
+        }
+    } else {
+        double *rangePtr = _colorFieldRange;
+        if (_colorFieldRange[0] > _colorFieldRange[1]) {
+            rangePtr = NULL;
+        }
+        setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
     }
 
-    setColorMode(_colorMode);
-
     initProp();
-    getActor()->SetMapper(_dsMapper);
-    _dsMapper->Update();
+    getActor()->SetMapper(_mapper);
+    _mapper->Update();
+#ifdef WANT_TRACE
+    double *b = getBounds();
+    TRACE("bounds: %g %g %g %g %g %g", b[0], b[1], b[2], b[3], b[4], b[5]);
+#endif
+}
+
+void PseudoColor::setCloudStyle(CloudStyle style)
+{
+    if (style != _cloudStyle) {
+        _cloudStyle = style;
+        if (_dataSet != NULL) {
+            update();
+        }
+    }
 }
 
 void PseudoColor::setInterpolateBeforeMapping(bool state)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    if (_mapper != NULL) {
+        _mapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
     }
 }
 
@@ -337,25 +374,30 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         memcpy(_colorFieldRange, range, sizeof(double)*2);
     }
 
-    if (_dataSet == NULL || _dsMapper == NULL)
+    if (_dataSet == NULL || _mapper == NULL)
         return;
 
     switch (type) {
     case DataSet::POINT_DATA:
-        _dsMapper->SetScalarModeToUsePointFieldData();
+        _mapper->SetScalarModeToUsePointFieldData();
         break;
     case DataSet::CELL_DATA:
-        _dsMapper->SetScalarModeToUseCellFieldData();
+        _mapper->SetScalarModeToUseCellFieldData();
         break;
     default:
         ERROR("Unsupported DataAttributeType: %d", type);
         return;
     }
 
-    if (name != NULL && strlen(name) > 0) {
-        _dsMapper->SelectColorArray(name);
+    if (_splatter != NULL) {
+        if (name != NULL && strlen(name) > 0) {
+            _splatter->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, name);
+        }
+        _mapper->SelectColorArray("SplatterValues");
+    } else if (name != NULL && strlen(name) > 0) {
+        _mapper->SelectColorArray(name);
     } else {
-        _dsMapper->SetScalarModeToDefault();
+        _mapper->SetScalarModeToDefault();
     }
 
     if (_lut != NULL) {
@@ -391,30 +433,30 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     switch (mode) {
     case COLOR_BY_SCALAR:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToMagnitude();
         }
         break;
     case COLOR_BY_VECTOR_X:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
@@ -422,7 +464,7 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         break;
     case COLOR_CONSTANT:
     default:
-        _dsMapper->ScalarVisibilityOff();
+        _mapper->ScalarVisibilityOff();
         break;
     }
 }
@@ -447,9 +489,9 @@ void PseudoColor::setColorMap(ColorMap *cmap)
  
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-        if (_dsMapper != NULL) {
-            _dsMapper->UseLookupTableScalarRangeOn();
-            _dsMapper->SetLookupTable(_lut);
+        if (_mapper != NULL) {
+            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->SetLookupTable(_lut);
         }
         _lut->DeepCopy(cmap->getLookupTable());
         switch (_colorMode) {
@@ -508,7 +550,7 @@ void PseudoColor::setColorMap(ColorMap *cmap)
  */
 void PseudoColor::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetClippingPlanes(planes);
+    if (_mapper != NULL) {
+        _mapper->SetClippingPlanes(planes);
     }
 }

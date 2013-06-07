@@ -13,7 +13,7 @@
 #include <vtkPointData.h>
 #include <vtkCellData.h>
 #include <vtkCellDataToPointData.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
 #include <vtkImageData.h>
@@ -24,18 +24,18 @@
 #include <vtkGaussianSplatter.h>
 #include <vtkExtractVOI.h>
 #include <vtkDataSetSurfaceFilter.h>
+#include <vtkVertexGlyphFilter.h>
 
 #include "Warp.h"
 #include "Renderer.h"
 #include "Trace.h"
-
-#define MESH_POINT_CLOUDS
 
 using namespace VtkVis;
 
 Warp::Warp() :
     GraphicsObject(),
     _warpScale(1.0),
+    _cloudStyle(CLOUD_MESH),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -102,10 +102,10 @@ void Warp::update()
     }
 
     // Mapper, actor to render color-mapped data set
-    if (_dsMapper == NULL) {
-        _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+    if (_mapper == NULL) {
+        _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         // Map scalars through lookup table regardless of type
-        _dsMapper->SetColorModeToMapScalars();
+        _mapper->SetColorModeToMapScalars();
     }
 
     vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
@@ -130,17 +130,22 @@ void Warp::update()
         }
     }
 
-    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-    if (pd) {
-        // DataSet is a vtkPolyData
-        if (pd->GetNumberOfLines() == 0 &&
-            pd->GetNumberOfPolys() == 0 &&
-            pd->GetNumberOfStrips() == 0) {
-            // DataSet is a point cloud
+    if (_dataSet->isCloud()) {
+        // DataSet is a point cloud
+        if (_cloudStyle == CLOUD_POINTS) {
+            vtkSmartPointer<vtkVertexGlyphFilter> vgf = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+#ifdef USE_VTK6
+            vgf->SetInputData(ds);
+#else
+            vgf->SetInput(ds);
+#endif
+            vtkAlgorithmOutput *warpOutput = initWarp(vgf->GetOutputPort());
+            _mapper->SetInputConnection(warpOutput);
+        } else {
             PrincipalPlane plane;
             double offset;
             if (_dataSet->is2D(&plane, &offset)) {
-#ifdef MESH_POINT_CLOUDS
+                //_cloudStyle == CLOUD_MESH
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                 if (plane == PLANE_ZY) {
                     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
@@ -163,74 +168,37 @@ void Warp::update()
                     mesher->SetTransform(trans);
                 }
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+                mesher->SetInputData(ds);
 #else
-                mesher->SetInput(pd);
+                mesher->SetInput(ds);
 #endif
                 vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
-                _dsMapper->SetInputConnection(warpOutput);
-#else
-                vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-                vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
-#ifdef USE_VTK6
-                splatter->SetInputData(pd);
-#else
-                splatter->SetInput(pd);
-#endif
-                int dims[3];
-                splatter->GetSampleDimensions(dims);
-                TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                if (plane == PLANE_ZY) {
-                    dims[0] = 3;
-                    slicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
-                } else if (plane == PLANE_XZ) {
-                    dims[1] = 3;
-                    slicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
-                } else {
-                    dims[2] = 3;
-                    slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
-                }
-                splatter->SetSampleDimensions(dims);
-                double bounds[6];
-                splatter->Update();
-                splatter->GetModelBounds(bounds);
-                TRACE("Model bounds: %g %g %g %g %g %g",
-                      bounds[0], bounds[1],
-                      bounds[2], bounds[3],
-                      bounds[4], bounds[5]);
-                slicer->SetInputConnection(splatter->GetOutputPort());
-                slicer->SetSampleRate(1, 1, 1);
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->UseStripsOn();
-                gf->SetInputConnection(slicer->GetOutputPort());
-                vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
-                _dsMapper->SetInputConnection(warpOutput);
-#endif
+                _mapper->SetInputConnection(warpOutput);
             } else {
-                // Data Set is a 3D point cloud
+                // Data Set is a 3D point cloud and _cloudStyle == CLOUD_MESH
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+                mesher->SetInputData(ds);
 #else
-                mesher->SetInput(pd);
+                mesher->SetInput(ds);
 #endif
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->SetInputConnection(mesher->GetOutputPort());
                 vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
-                _dsMapper->SetInputConnection(warpOutput);
-             }
-        } else {
-            // DataSet is a vtkPolyData with lines and/or polygons
-            vtkAlgorithmOutput *warpOutput = initWarp(pd);
-            if (warpOutput != NULL) {
-                _dsMapper->SetInputConnection(warpOutput);
-            } else {
-#ifdef USE_VTK6
-                _dsMapper->SetInputData(pd);
-#else
-                _dsMapper->SetInput(pd);
-#endif
+                _mapper->SetInputConnection(warpOutput);
             }
+        }
+    } else if (vtkPolyData::SafeDownCast(ds) != NULL) {
+        // DataSet is a vtkPolyData with lines and/or polygons
+        vtkAlgorithmOutput *warpOutput = initWarp(ds);
+        if (warpOutput != NULL) {
+            _mapper->SetInputConnection(warpOutput);
+        } else {
+#ifdef USE_VTK6
+            _mapper->SetInputData(vtkPolyData::SafeDownCast(ds));
+#else
+            _mapper->SetInput(vtkPolyData::SafeDownCast(ds));
+#endif
         }
     } else {
         TRACE("Generating surface for data set");
@@ -242,7 +210,7 @@ void Warp::update()
         gf->SetInput(ds);
 #endif
         vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
-        _dsMapper->SetInputConnection(warpOutput);
+        _mapper->SetInputConnection(warpOutput);
     }
 
     setInterpolateBeforeMapping(true);
@@ -251,17 +219,33 @@ void Warp::update()
         setColorMap(ColorMap::getDefault());
     }
 
-    setColorMode(_colorMode);
+    if (ds->GetPointData()->GetScalars() == NULL) {
+        TRACE("Setting color mode to vector magnitude");
+        setColorMode(COLOR_BY_VECTOR_MAGNITUDE);
+    } else {
+        TRACE("Setting color mode to scalar");
+        setColorMode(COLOR_BY_SCALAR);
+    }
 
     initProp();
-    getActor()->SetMapper(_dsMapper);
-    _dsMapper->Update();
+    getActor()->SetMapper(_mapper);
+    _mapper->Update();
+}
+
+void Warp::setCloudStyle(CloudStyle style)
+{
+    if (style != _cloudStyle) {
+        _cloudStyle = style;
+        if (_dataSet != NULL) {
+            update();
+        }
+    }
 }
 
 void Warp::setInterpolateBeforeMapping(bool state)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    if (_mapper != NULL) {
+        _mapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
     }
 }
 
@@ -315,18 +299,18 @@ void Warp::setWarpScale(double scale)
 
     _warpScale = scale;
     if (_warp == NULL) {
-        vtkAlgorithmOutput *warpOutput = initWarp(_dsMapper->GetInputConnection(0, 0));
-        _dsMapper->SetInputConnection(warpOutput);
+        vtkAlgorithmOutput *warpOutput = initWarp(_mapper->GetInputConnection(0, 0));
+        _mapper->SetInputConnection(warpOutput);
     } else if (scale == 0.0) {
         vtkAlgorithmOutput *warpInput = _warp->GetInputConnection(0, 0);
-        _dsMapper->SetInputConnection(warpInput);
+        _mapper->SetInputConnection(warpInput);
         _warp = NULL;
     } else {
         _warp->SetScaleFactor(_warpScale);
     }
 
-    if (_dsMapper != NULL)
-        _dsMapper->Update();
+    if (_mapper != NULL)
+        _mapper->Update();
 }
 
 void Warp::updateRanges(Renderer *renderer)
@@ -439,15 +423,15 @@ void Warp::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         memcpy(_colorFieldRange, range, sizeof(double)*2);
     }
 
-    if (_dataSet == NULL || _dsMapper == NULL)
+    if (_dataSet == NULL || _mapper == NULL)
         return;
 
     switch (type) {
     case DataSet::POINT_DATA:
-        _dsMapper->SetScalarModeToUsePointFieldData();
+        _mapper->SetScalarModeToUsePointFieldData();
         break;
     case DataSet::CELL_DATA:
-        _dsMapper->SetScalarModeToUseCellFieldData();
+        _mapper->SetScalarModeToUseCellFieldData();
         break;
     default:
         ERROR("Unsupported DataAttributeType: %d", type);
@@ -455,9 +439,9 @@ void Warp::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     }
 
     if (name != NULL && strlen(name) > 0) {
-        _dsMapper->SelectColorArray(name);
+        _mapper->SelectColorArray(name);
     } else {
-        _dsMapper->SetScalarModeToDefault();
+        _mapper->SetScalarModeToDefault();
     }
 
     if (_lut != NULL) {
@@ -493,30 +477,30 @@ void Warp::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     switch (mode) {
     case COLOR_BY_SCALAR:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToMagnitude();
         }
         break;
     case COLOR_BY_VECTOR_X:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
@@ -524,7 +508,7 @@ void Warp::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         break;
     case COLOR_CONSTANT:
     default:
-        _dsMapper->ScalarVisibilityOff();
+        _mapper->ScalarVisibilityOff();
         break;
     }
 }
@@ -549,9 +533,9 @@ void Warp::setColorMap(ColorMap *cmap)
  
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-        if (_dsMapper != NULL) {
-            _dsMapper->UseLookupTableScalarRangeOn();
-            _dsMapper->SetLookupTable(_lut);
+        if (_mapper != NULL) {
+            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->SetLookupTable(_lut);
         }
         _lut->DeepCopy(cmap->getLookupTable());
         switch (_colorMode) {
@@ -610,7 +594,7 @@ void Warp::setColorMap(ColorMap *cmap)
  */
 void Warp::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetClippingPlanes(planes);
+    if (_mapper != NULL) {
+        _mapper->SetClippingPlanes(planes);
     }
 }

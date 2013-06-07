@@ -17,6 +17,7 @@
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
+#include <vtkVertexGlyphFilter.h>
 
 #include "PolyData.h"
 #include "Trace.h"
@@ -24,7 +25,8 @@
 using namespace VtkVis;
 
 PolyData::PolyData() :
-    GraphicsObject()
+    GraphicsObject(),
+    _cloudStyle(CLOUD_MESH)
 {
 }
 
@@ -36,14 +38,6 @@ PolyData::~PolyData()
     else
         TRACE("Deleting PolyData with NULL DataSet");
 #endif
-}
-
-/**
- * \brief Create and initialize a VTK Prop to render a mesh
- */
-void PolyData::initProp()
-{
-    GraphicsObject::initProp();
 }
 
 /**
@@ -70,103 +64,106 @@ void PolyData::update()
               pd->GetNumberOfLines(),
               pd->GetNumberOfPolys(),
               pd->GetNumberOfStrips());
-        // DataSet is a vtkPolyData
-        if (pd->GetNumberOfLines() == 0 &&
-            pd->GetNumberOfPolys() == 0 &&
-            pd->GetNumberOfStrips() == 0) {
-            // DataSet is a point cloud
-            PrincipalPlane plane;
-            double offset;
-            if (_dataSet->numDimensions() < 2 || pd->GetNumberOfPoints() < 3) {
-                // 0D or 1D or not enough points to mesh
+    }
+    if (_dataSet->isCloud()) {
+        // DataSet is a point cloud
+        PrincipalPlane plane;
+        double offset;
+        if (_cloudStyle == CLOUD_POINTS ||
+            _dataSet->numDimensions() < 2 || ds->GetNumberOfPoints() < 3) { // 0D or 1D or not enough points to mesh
+            vtkSmartPointer<vtkVertexGlyphFilter> vgf = vtkSmartPointer<vtkVertexGlyphFilter>::New();
 #ifdef USE_VTK6
-                _pdMapper->SetInputData(pd);
+            vgf->SetInputData(ds);
 #else
-                _pdMapper->SetInput(pd);
+            vgf->SetInput(ds);
 #endif
-            } else if (_dataSet->is2D(&plane, &offset)) {
-                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                if (plane == PLANE_ZY) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(90, 0, 1, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(-offset, 0, 0);
-                    }
-                    mesher->SetTransform(trans);
-                } else if (plane == PLANE_XZ) {
-                     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(-90, 1, 0, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(0, -offset, 0);
-                    }
-                    mesher->SetTransform(trans);
-                } else if (offset != 0.0) {
-                    // XY with Z offset
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->Translate(0, 0, -offset);
-                    mesher->SetTransform(trans);
+            _pdMapper->SetInputConnection(vgf->GetOutputPort());
+        } else if (_dataSet->is2D(&plane, &offset)) {
+            vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+            if (plane == PLANE_ZY) {
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateWXYZ(90, 0, 1, 0);
+                if (offset != 0.0) {
+                    trans->Translate(-offset, 0, 0);
                 }
-#ifdef USE_VTK6
-                mesher->SetInputData(pd);
-#else
-                mesher->SetInput(pd);
-#endif
-                mesher->ReleaseDataFlagOn();
-                mesher->Update();
-                vtkPolyData *outpd = mesher->GetOutput();
-                TRACE("Delaunay2D Verts: %d Lines: %d Polys: %d Strips: %d",
-                      outpd->GetNumberOfVerts(),
-                      outpd->GetNumberOfLines(),
-                      outpd->GetNumberOfPolys(),
-                      outpd->GetNumberOfStrips());
-                if (outpd->GetNumberOfPolys() == 0) {
-                    WARN("Delaunay2D mesher failed");
-#ifdef USE_VTK6
-                    _pdMapper->SetInputData(pd);
-#else
-                    _pdMapper->SetInput(pd);
-#endif
-                } else {
-                    _pdMapper->SetInputConnection(mesher->GetOutputPort());
+                mesher->SetTransform(trans);
+            } else if (plane == PLANE_XZ) {
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateWXYZ(-90, 1, 0, 0);
+                if (offset != 0.0) {
+                    trans->Translate(0, -offset, 0);
                 }
+                mesher->SetTransform(trans);
+            } else if (offset != 0.0) {
+                // XY with Z offset
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->Translate(0, 0, -offset);
+                mesher->SetTransform(trans);
+            }
+#ifdef USE_VTK6
+            mesher->SetInputData(ds);
+#else
+            mesher->SetInput(ds);
+#endif
+            mesher->ReleaseDataFlagOn();
+            mesher->Update();
+            vtkPolyData *outpd = mesher->GetOutput();
+            TRACE("Delaunay2D Verts: %d Lines: %d Polys: %d Strips: %d",
+                  outpd->GetNumberOfVerts(),
+                  outpd->GetNumberOfLines(),
+                  outpd->GetNumberOfPolys(),
+                  outpd->GetNumberOfStrips());
+            if (outpd->GetNumberOfPolys() == 0) {
+                WARN("Delaunay2D mesher failed");
+                vtkSmartPointer<vtkVertexGlyphFilter> vgf = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+#ifdef USE_VTK6
+                vgf->SetInputData(ds);
+#else
+                vgf->SetInput(ds);
+#endif
+                _pdMapper->SetInputConnection(vgf->GetOutputPort());
             } else {
-                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
-#ifdef USE_VTK6
-                mesher->SetInputData(pd);
-#else
-                mesher->SetInput(pd);
-#endif
-                mesher->ReleaseDataFlagOn();
-                mesher->Update();
-                vtkUnstructuredGrid *grid = mesher->GetOutput();
-                TRACE("Delaunay3D Cells: %d",
-                      grid->GetNumberOfCells());
-                if (grid->GetNumberOfCells() == 0) {
-                    WARN("Delaunay3D mesher failed");
-#ifdef USE_VTK6
-                    _pdMapper->SetInputData(pd);
-#else
-                    _pdMapper->SetInput(pd);
-#endif
-                } else {
-                    // Delaunay3D returns an UnstructuredGrid, so feed it 
-                    // through a surface filter to get the grid boundary 
-                    // as a PolyData
-                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->UseStripsOn();
-                    gf->SetInputConnection(mesher->GetOutputPort());
-                    gf->ReleaseDataFlagOn();
-                    _pdMapper->SetInputConnection(gf->GetOutputPort());
-                }
-             }
+                _pdMapper->SetInputConnection(mesher->GetOutputPort());
+            }
         } else {
-            // DataSet is a vtkPolyData with lines and/or polygons
+            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-            _pdMapper->SetInputData(pd);
+            mesher->SetInputData(ds);
 #else
-            _pdMapper->SetInput(pd);
+            mesher->SetInput(ds);
 #endif
+            mesher->ReleaseDataFlagOn();
+            mesher->Update();
+            vtkUnstructuredGrid *grid = mesher->GetOutput();
+            TRACE("Delaunay3D Cells: %d",
+                  grid->GetNumberOfCells());
+            if (grid->GetNumberOfCells() == 0) {
+                WARN("Delaunay3D mesher failed");
+                vtkSmartPointer<vtkVertexGlyphFilter> vgf = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+#ifdef USE_VTK6
+                vgf->SetInputData(ds);
+#else
+                vgf->SetInput(ds);
+#endif
+                _pdMapper->SetInputConnection(vgf->GetOutputPort());
+            } else {
+                // Delaunay3D returns an UnstructuredGrid, so feed it 
+                // through a surface filter to get the grid boundary 
+                // as a PolyData
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->UseStripsOn();
+                gf->SetInputConnection(mesher->GetOutputPort());
+                gf->ReleaseDataFlagOn();
+                _pdMapper->SetInputConnection(gf->GetOutputPort());
+            }
         }
+    } else if (pd) {
+        // DataSet is a vtkPolyData with cells
+#ifdef USE_VTK6
+        _pdMapper->SetInputData(pd);
+#else
+        _pdMapper->SetInput(pd);
+#endif
     } else {
         // DataSet is NOT a vtkPolyData
         TRACE("DataSet is not a PolyData");
@@ -182,7 +179,6 @@ void PolyData::update()
     }
 
     initProp();
-    setVisibility(_dataSet->getVisibility());
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
 #ifdef WANT_TRACE
@@ -203,3 +199,12 @@ void PolyData::setClippingPlanes(vtkPlaneCollection *planes)
     }
 }
 
+void PolyData::setCloudStyle(CloudStyle style)
+{
+    if (style != _cloudStyle) {
+        _cloudStyle = style;
+        if (_dataSet != NULL) {
+            update();
+        }
+    }
+}

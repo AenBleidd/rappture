@@ -107,7 +107,7 @@ private:
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataNormals> _normalsGenerator;
-    vtkSmartPointer<vtkPolyDataMapper> _dsMapper;
+    vtkSmartPointer<vtkPolyDataMapper> _mapper;
 };
 
 }

@@ -375,6 +375,8 @@ cutplane axis <axis> <bool> <?dataSetName?>
          Toggle visibility of the 3 principal axis cutplanes
 cutplane ccolor r g b <?datasetName?>
          Set color of outline bounding box
+cutplane cloudstyle <style> <?datasetName?>
+         <style> = mesh | splat
 cutplane colormap <colorMapName> <?dataSetName?>
 cutplane colormode <scalar|vmag|vx|vy|vz> <fieldName> <?datasetName?>
          Set the field used to color the object.  'scalar' uses
@@ -477,6 +479,8 @@ heightmap add contourlist <list> <heightScale> <?dataSetName?>
 heightmap aspect <aspectRatio>
           Set scaling by aspect ratio
           <aspectRatio> = width/height or 0 for native aspect
+heightmap cloudstyle <style> <?datasetName?>
+          <style> = mesh | splat
 heightmap colormap <colorMapName> <?dataSetName?>
 heightmap colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
           Set the field used to color the object.  'ccolor' means to use
@@ -602,6 +606,8 @@ outline scale <sx> <sy> <sz> <?datasetName?>
 outline visible <bool> <?datasetName?>
 
 polydata add <?datasetName?>
+polydata cloudstyle <style> <?datasetName?>
+         <style> = mesh | points
 polydata color <r> <g> <b> <?datasetName?>
 polydata delete <?datasetName?>
 polydata edges <bool> <?datasetName?>
@@ -634,6 +640,8 @@ polygon wireframe <bool> <?name?>
 
 pseudocolor add <?datasetName?>
 pseudocolor ccolor <r> <g> <b> <?datasetName?>
+pseudocolor cloudstyle <style> <?datasetName?>
+            <style> = mesh | points | splat
 pseudocolor colormap <colormapName> <?datasetName?>
 pseudocolor colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
             Set the field used to color the object.  'ccolor' means to use
@@ -654,6 +662,7 @@ pseudocolor preinterp <bool> <?dataSetName?>
             Setting this on will give more correct colors, as the interpolation
             is done on texture coordinates that lookup into a 1D texture instead
             of using color interpolation from triangle vertices.
+pseudocolor ptsize <size> <?dataSetName?>
 pseudocolor scale <sx> <sy> <sz> <?dataSetName?>
 pseudocolor visible <bool> <?datasetName?>
 pseudocolor wireframe <bool> <?datasetName?>
@@ -750,6 +759,8 @@ volume visible <bool> <?datasetName?>
 
 warp add <?dataSetName?>
 warp ccolor <r> <g> <b> <?datasetName?>
+warp cloudstyle <style> <?datasetName?>
+     <style> = mesh | points
 warp colormap <colormapName> <?datasetName?>
 warp colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
      Set the field used to color the object.  'ccolor' means to use
@@ -764,6 +775,7 @@ warp linecolor <r> <g> <b> <?dataSetName?>
 warp linewidth <width> <?dataSetName?>
 warp opacity <value> <?dataSetName?>
 warp orient <qw> <qx> <qy> <qz> <?dataSetName?>
+warp ptsize <size> <?dataSetName?>
 warp pos <x> <y> <z> <?dataSetName?>
 warp preinterp <bool> <?dataSetName?>
      ontrols if VTK's InterpolateScalarsBeforeMapping option is set.

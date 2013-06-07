@@ -10,7 +10,7 @@
 
 #include <vtkSmartPointer.h>
 #include <vtkLookupTable.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
 #include <vtkCutter.h>
@@ -34,6 +34,10 @@ namespace VtkVis {
  */
 class Cutplane : public GraphicsObject {
 public:
+    enum CloudStyle {
+        CLOUD_MESH,
+        CLOUD_SPLAT
+    };
     enum ColorMode {
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
@@ -60,6 +64,8 @@ public:
     virtual void setEdgeVisibility(bool state);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setCloudStyle(CloudStyle style);
 
     void setOutlineVisibility(bool state);
 
@@ -97,6 +103,7 @@ private:
 
     bool _pipelineInitialized;
 
+    CloudStyle _cloudStyle;
     ColorMap *_colorMap;
     ColorMode _colorMode;
     std::string _colorFieldName;
@@ -109,7 +116,7 @@ private:
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _actor[3];
     vtkSmartPointer<vtkActor> _borderActor[3];
-    vtkSmartPointer<vtkDataSetMapper> _mapper[3];
+    vtkSmartPointer<vtkPolyDataMapper> _mapper[3];
     vtkSmartPointer<vtkPolyDataMapper> _borderMapper[3];
     vtkSmartPointer<vtkCutter> _cutter[3];
     vtkSmartPointer<vtkPlane> _cutPlane[3];

@@ -140,26 +140,20 @@ void Contour3D::update()
             }
         }
 
-        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-        if (pd) {
-            // DataSet is a vtkPolyData
-            if (pd->GetNumberOfLines() == 0 &&
-                pd->GetNumberOfPolys() == 0 &&
-                pd->GetNumberOfStrips() == 0) {
-                // DataSet is a point cloud
-                // Generate a 3D unstructured grid
-                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+        if (_dataSet->isCloud()) {
+            // DataSet is a point cloud
+            // Generate a 3D unstructured grid
+            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+            mesher->SetInputData(ds);
 #else
-                mesher->SetInput(pd);
+            mesher->SetInput(ds);
 #endif
-                _contourFilter->SetInputConnection(mesher->GetOutputPort());
-            } else {
-                // DataSet is a vtkPolyData with lines and/or polygons
-                ERROR("Not a 3D DataSet");
-                return;
-            }
+            _contourFilter->SetInputConnection(mesher->GetOutputPort());
+        } else if (vtkPolyData::SafeDownCast(ds) != NULL) {
+            // DataSet is a vtkPolyData with lines and/or polygons
+            ERROR("Not a 3D DataSet");
+            return;
         } else {
             // DataSet is NOT a vtkPolyData
 #ifdef USE_VTK6
@@ -205,13 +199,13 @@ void Contour3D::update()
         _normalsGenerator->ComputePointNormalsOn();
     }
 
-    if (_dsMapper == NULL) {
-        _dsMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        _dsMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _dsMapper->SetInputConnection(_normalsGenerator->GetOutputPort());
-        _dsMapper->ScalarVisibilityOff();
-        //_dsMapper->SetColorModeToMapScalars();
-        getActor()->SetMapper(_dsMapper);
+    if (_mapper == NULL) {
+        _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _mapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _mapper->SetInputConnection(_normalsGenerator->GetOutputPort());
+        _mapper->ScalarVisibilityOff();
+        //_mapper->SetColorModeToMapScalars();
+        getActor()->SetMapper(_mapper);
     }
 
     if (_lut == NULL) {
@@ -219,7 +213,7 @@ void Contour3D::update()
         setColorMode(_colorMode);
     }
 
-    _dsMapper->Update();
+    _mapper->Update();
     TRACE("Contour output %d polys, %d strips",
           _contourFilter->GetOutput()->GetNumberOfPolys(),
           _contourFilter->GetOutput()->GetNumberOfStrips());
@@ -351,15 +345,15 @@ void Contour3D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         memcpy(_colorFieldRange, range, sizeof(double)*2);
     }
 
-    if (_dataSet == NULL || _dsMapper == NULL)
+    if (_dataSet == NULL || _mapper == NULL)
         return;
 
     switch (type) {
     case DataSet::POINT_DATA:
-        _dsMapper->SetScalarModeToUsePointFieldData();
+        _mapper->SetScalarModeToUsePointFieldData();
         break;
     case DataSet::CELL_DATA:
-        _dsMapper->SetScalarModeToUseCellFieldData();
+        _mapper->SetScalarModeToUseCellFieldData();
         break;
     default:
         ERROR("Unsupported DataAttributeType: %d", type);
@@ -367,9 +361,9 @@ void Contour3D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     }
 
     if (name != NULL && strlen(name) > 0) {
-        _dsMapper->SelectColorArray(name);
+        _mapper->SelectColorArray(name);
     } else {
-        _dsMapper->SetScalarModeToDefault();
+        _mapper->SetScalarModeToDefault();
     }
 
     if (_lut != NULL) {
@@ -405,30 +399,30 @@ void Contour3D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     switch (mode) {
     case COLOR_BY_SCALAR:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToMagnitude();
         }
         break;
     case COLOR_BY_VECTOR_X:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
-        _dsMapper->ScalarVisibilityOn();
+        _mapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
@@ -436,7 +430,7 @@ void Contour3D::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         break;
     case COLOR_CONSTANT:
     default:
-        _dsMapper->ScalarVisibilityOff();
+        _mapper->ScalarVisibilityOff();
         break;
     }
 }
@@ -461,9 +455,9 @@ void Contour3D::setColorMap(ColorMap *cmap)
  
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-        if (_dsMapper != NULL) {
-            _dsMapper->UseLookupTableScalarRangeOn();
-            _dsMapper->SetLookupTable(_lut);
+        if (_mapper != NULL) {
+            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->SetLookupTable(_lut);
         }
         _lut->DeepCopy(cmap->getLookupTable());
         switch (_colorMode) {
@@ -565,7 +559,7 @@ const std::vector<double>& Contour3D::getContourList() const
  */
 void Contour3D::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_dsMapper != NULL) {
-        _dsMapper->SetClippingPlanes(planes);
+    if (_mapper != NULL) {
+        _mapper->SetClippingPlanes(planes);
     }
 }

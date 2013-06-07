@@ -454,6 +454,27 @@ PrincipalPlane DataSet::principalPlane() const
 }
 
 /**
+ * \brief Determines if mesh is a point cloud (has no cells)
+ */
+bool DataSet::isCloud() const
+{
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(_dataSet);
+    if (pd) {
+        // If PolyData, is a cloud if there are no cells other than vertices
+        if (pd->GetNumberOfLines() == 0 &&
+            pd->GetNumberOfPolys() == 0 &&
+            pd->GetNumberOfStrips() == 0) {
+            return true;
+        } else {
+            // Has cells
+            return false;
+        }
+    } else {
+        return (_dataSet->GetNumberOfCells() == 0);
+    }
+}
+
+/**
  * \brief Get the name/id of this dataset
  */
 const std::string& DataSet::getName() const
@@ -836,14 +857,7 @@ void DataSet::getBounds(double bounds[6]) const
  */
 void DataSet::getCellSizeRange(double minmax[2], double *average)
 {
-    if (_dataSet == NULL ||
-        _dataSet->GetNumberOfCells() < 1) {
-        minmax[0] = 1;
-        minmax[1] = 1;
-        *average = 1;
-        return;
-    }
-
+    // Check for cached values
     if (_cellSizeRange[0] >= 0.0) {
         minmax[0] = _cellSizeRange[0];
         minmax[1] = _cellSizeRange[1];
@@ -851,12 +865,33 @@ void DataSet::getCellSizeRange(double minmax[2], double *average)
         return;
     }
 
+    getCellSizeRange(_dataSet, minmax, average);
+
+    // Save values in cache
+    _cellSizeRange[0] = minmax[0];
+    _cellSizeRange[1] = minmax[1];
+    _cellSizeAverage = *average;
+}
+
+/**
+ * \brief Get the range of cell AABB diagonal lengths in the DataSet
+ */
+void DataSet::getCellSizeRange(vtkDataSet *dataSet, double minmax[2], double *average)
+{
+    if (dataSet == NULL ||
+        dataSet->GetNumberOfCells() < 1) {
+        minmax[0] = 1;
+        minmax[1] = 1;
+        *average = 1;
+        return;
+    }
+
     minmax[0] = DBL_MAX;
     minmax[1] = -DBL_MAX;
 
     *average = 0;
-    for (int i = 0; i < _dataSet->GetNumberOfCells(); i++) {
-        double length2 = _dataSet->GetCell(i)->GetLength2();
+    for (int i = 0; i < dataSet->GetNumberOfCells(); i++) {
+        double length2 = dataSet->GetCell(i)->GetLength2();
         if (length2 < minmax[0])
             minmax[0] = length2;
         if (length2 > minmax[1])
@@ -870,10 +905,7 @@ void DataSet::getCellSizeRange(double minmax[2], double *average)
 
     minmax[0] = sqrt(minmax[0]);
     minmax[1] = sqrt(minmax[1]);
-    *average = sqrt(*average/((double)_dataSet->GetNumberOfCells()));
-    _cellSizeRange[0] = minmax[0];
-    _cellSizeRange[1] = minmax[1];
-    _cellSizeAverage = *average;
+    *average = sqrt(*average/((double)dataSet->GetNumberOfCells()));
 }
 
 /**

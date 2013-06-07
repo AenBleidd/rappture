@@ -8,6 +8,7 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkDiskSource.h>
+#include <vtkPolyDataNormals.h>
 
 #include "Disk.h"
 #include "Trace.h"
@@ -15,7 +16,8 @@
 using namespace VtkVis;
 
 Disk::Disk() :
-    Shape()
+    Shape(),
+    _flipNormals(false)
 {
 }
 
@@ -36,10 +38,23 @@ void Disk::update()
         _pdMapper->ScalarVisibilityOff();
     }
 
-    _pdMapper->SetInputConnection(_disk->GetOutputPort());
+    vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normalFilter->SetInputConnection(_disk->GetOutputPort());
+    normalFilter->AutoOrientNormalsOff();
+    normalFilter->SetFlipNormals(_flipNormals ? 1 : 0);
+
+    _pdMapper->SetInputConnection(normalFilter->GetOutputPort());
 
     initProp();
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+}
+
+void Disk::flipNormals(bool state)
+{
+    if (_flipNormals != state) {
+        _flipNormals = state;
+        update();
+    }
 }
