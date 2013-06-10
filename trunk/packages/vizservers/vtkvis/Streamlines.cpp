@@ -31,6 +31,7 @@
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkVertexGlyphFilter.h>
+#include <vtkMaskPoints.h>
 
 #include "Streamlines.h"
 #include "Renderer.h"
@@ -610,11 +611,14 @@ void Streamlines::update()
 #if 0 && defined(WANT_TRACE)
     _streamTracer->Update();
     vtkPolyData *pd = _streamTracer->GetOutput();
-    TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",
+    DataSet::print(pd);
+    TRACE("Points: %d Verts: %d Lines: %d Polys: %d Strips: %d",
+          pd->GetNumberOfPoints(),
           pd->GetNumberOfVerts(),
           pd->GetNumberOfLines(),
           pd->GetNumberOfPolys(),
           pd->GetNumberOfStrips());
+#if 0
     vtkCellArray *arr = pd->GetLines();
     arr->InitTraversal();
     vtkIdType npts, *pts;
@@ -622,6 +626,7 @@ void Streamlines::update()
     for (int i = 0; i < npts; i++) {
         TRACE("Pt: %d", pts[i]);
     }
+#endif
 #endif
 
     initProp();
@@ -656,6 +661,12 @@ void Streamlines::setNumberOfSeedPoints(int numPoints)
             ERROR("NULL _seedMesh");
         }
         break;
+    case DATASET_MESH_POINTS:
+        setSeedToMeshPoints(numPoints);
+        break;
+    case MESH_POINTS:
+        setSeedToMeshPoints(_seedMesh, numPoints);
+        break;
     default:
         ERROR("Can't set number of points for seed type %d", _seedType);
         break;
@@ -668,10 +679,10 @@ void Streamlines::setNumberOfSeedPoints(int numPoints)
  * \brief Use points of the DataSet associated with this 
  * Streamlines as seeds
  */
-void Streamlines::setSeedToMeshPoints()
+void Streamlines::setSeedToMeshPoints(int maxPoints)
 {
     _seedType = DATASET_MESH_POINTS;
-    setSeedToMeshPoints(_dataSet->getVtkDataSet());
+    setSeedToMeshPoints(_dataSet->getVtkDataSet(), maxPoints);
 }
 
 /**
@@ -695,27 +706,49 @@ void Streamlines::setSeedToFilledMesh(int numPoints)
  *
  * \param[in] seed vtkDataSet with points to use as seeds
  */
-void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
+void Streamlines::setSeedToMeshPoints(vtkDataSet *seed, int maxPoints)
 {
     if (seed != _dataSet->getVtkDataSet()) {
         _seedType = MESH_POINTS;
+        _seedMesh = seed;
+    } else {
+        _seedType = DATASET_MESH_POINTS;
+        _seedMesh = NULL;
     }
-    _seedMesh = NULL;
-    if (_streamTracer != NULL) {
+
+    if (_streamTracer == NULL)
+        return;
+
+#ifndef USE_VTK6
+    vtkSmartPointer<vtkDataSet> oldSeed;
+    if (_streamTracer->GetSource() != NULL) {
+        oldSeed = _streamTracer->GetSource();
+    }
+#endif
+
+    if (maxPoints > 0 && seed->GetNumberOfPoints() > maxPoints) {
+        TRACE("Seed points: %d", maxPoints);
+        vtkSmartPointer<vtkMaskPoints> mask = vtkSmartPointer<vtkMaskPoints>::New();
+#ifdef USE_VTK6
+        mask->SetInputData(seed);
+#else
+        mask->SetInput(seed);
+#endif
+        mask->SetMaximumNumberOfPoints(maxPoints);
+        mask->RandomModeOn();
+        mask->GenerateVerticesOff();
+        _streamTracer->SetSourceConnection(mask->GetOutputPort());
+
+        vtkSmartPointer<vtkVertexGlyphFilter> vertFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+        vertFilter->SetInputConnection(mask->GetOutputPort());
+        _seedMapper->SetInputConnection(vertFilter->GetOutputPort());
+    } else {
         TRACE("Seed points: %d", seed->GetNumberOfPoints());
-        vtkSmartPointer<vtkDataSet> oldSeed;
-        if (_streamTracer->GetSource() != NULL) {
-            oldSeed = _streamTracer->GetSource();
-        }
 
 #ifdef USE_VTK6
         _streamTracer->SetSourceData(seed);
 #else
         _streamTracer->SetSource(seed);
-
-        if (oldSeed != NULL) {
-            oldSeed->SetPipelineInformation(NULL);
-        }
 #endif
         if (vtkPolyData::SafeDownCast(seed) != NULL) {
 #ifdef USE_VTK6
@@ -733,6 +766,12 @@ void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
             _seedMapper->SetInputConnection(vertFilter->GetOutputPort());
         }
     }
+
+#ifndef USE_VTK6
+    if (oldSeed != NULL) {
+        oldSeed->SetPipelineInformation(NULL);
+    }
+#endif
 }
 
 /**
@@ -1762,6 +1801,16 @@ void Streamlines::setSeedColor(float color[3])
     if (_seedActor != NULL) {
         _seedActor->GetProperty()->SetColor(_seedColor[0], _seedColor[1], _seedColor[2]);
         _seedActor->GetProperty()->SetEdgeColor(_seedColor[0], _seedColor[1], _seedColor[2]);
+    }
+}
+
+/**
+ * \brief Set point size of seed geometry (may be a no-op)
+ */
+void Streamlines::setSeedPointSize(float size)
+{
+    if (_seedActor != NULL) {
+        _seedActor->GetProperty()->SetPointSize(size);
     }
 }
 

@@ -2536,9 +2536,9 @@ void Renderer::setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoin
 }
 
 /**
- * \brief Set the streamlines seed to points of the streamlines DataSet
+ * \brief Set the streamlines seed point size (may be a no-op)
  */
-void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
+void Renderer::setStreamlinesSeedPointSize(const DataSetId& id, float size)
 {
     StreamlinesHashmap::iterator itr;
 
@@ -2558,7 +2558,37 @@ void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
     }
 
     do {
-        itr->second->setSeedToMeshPoints();
+        itr->second->setSeedPointSize(size);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to points of the streamlines DataSet
+ */
+void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
+                                              int maxPoints)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToMeshPoints(maxPoints);
     } while (doAll && ++itr != _streamlines.end());
 
     sceneBoundsChanged();
@@ -2606,7 +2636,8 @@ void Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints
  * \return boolean indicating success or failure
  */
 bool Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
-                                              char *data, size_t nbytes)
+                                              char *data, size_t nbytes,
+                                              int maxPoints)
 {
     vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
     vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
@@ -2639,7 +2670,7 @@ bool Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
     }
 
     do {
-        itr->second->setSeedToMeshPoints(dataSet);
+        itr->second->setSeedToMeshPoints(dataSet, maxPoints);
     } while (doAll && ++itr != _streamlines.end());
 
     sceneBoundsChanged();
@@ -2829,6 +2860,33 @@ void Renderer::setStreamlinesSeedToFilledPolygon(const DataSetId& id,
     do {
         itr->second->setSeedToFilledPolygon(center, normal, angle,
                                             radius, numSides, numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+void Renderer::setStreamlinesTerminalSpeed(const DataSetId& id, double speed)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTerminalSpeed(speed);
     } while (doAll && ++itr != _streamlines.end());
 
     sceneBoundsChanged();

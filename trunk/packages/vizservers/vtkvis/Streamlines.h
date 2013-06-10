@@ -99,11 +99,11 @@ public:
 
     void setNumberOfSeedPoints(int numPoints);
 
-    void setSeedToMeshPoints();
+    void setSeedToMeshPoints(int maxPoints = 500);
 
     void setSeedToFilledMesh(int numPoints);
 
-    void setSeedToMeshPoints(vtkDataSet *ds);
+    void setSeedToMeshPoints(vtkDataSet *ds, int maxPoints = 500);
 
     void setSeedToFilledMesh(vtkDataSet *ds, int numPoints);
 
@@ -171,6 +171,8 @@ public:
     void setSeedVisibility(bool state);
 
     void setSeedColor(float color[3]);
+
+    void setSeedPointSize(float size);
 
 private:
     virtual void initProp();
