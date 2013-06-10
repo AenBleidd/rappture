@@ -9347,6 +9347,23 @@ StreamlinesSeedFilledPolygonOp(ClientData clientData, Tcl_Interp *interp, int ob
 }
 
 static int
+StreamlinesSeedPointSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                           Tcl_Obj *const *objv)
+{
+    float size;
+    if (GetFloatFromObj(interp, objv[3], &size) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesSeedPointSize(name, size);
+    } else {
+        g_renderer->setStreamlinesSeedPointSize("all", size);
+    }
+    return TCL_OK;
+}
+
+static int
 StreamlinesSeedRakeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
@@ -9415,6 +9432,7 @@ static Rappture::CmdSpec streamlinesSeedOps[] = {
     {"numpts",  1, StreamlinesSeedNumPointsOp,     4, 5, "numPoints ?dataSetName?"},
     {"points",  3, StreamlinesSeedPointsOp,        3, 4, "?dataSetName?"},
     {"polygon", 3, StreamlinesSeedPolygonOp,       12, 13, "centerX centerY centerZ normalX normalY normalZ angle radius numSides ?dataSetName?"},
+    {"ptsize",  2, StreamlinesSeedPointSizeOp,     3, 4, "size ?dataSetName?"},
     {"rake",    3, StreamlinesSeedRakeOp,          10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
     {"random",  3, StreamlinesSeedRandomOp,        4, 5, "numPoints ?dataSetName?"},
     {"visible", 1, StreamlinesSeedVisibleOp,       4, 5, "bool ?dataSetName?"}
@@ -9433,6 +9451,23 @@ StreamlinesSeedOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+StreamlinesTerminalSpeedOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                           Tcl_Obj *const *objv)
+{
+    double speed;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &speed) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesTerminalSpeed(name, speed);
+    } else {
+        g_renderer->setStreamlinesTerminalSpeed("all", speed);
+    }
+    return TCL_OK;
 }
 
 static int
@@ -9491,7 +9526,8 @@ static Rappture::CmdSpec streamlinesOps[] = {
     {"ribbons",      1, StreamlinesRibbonsOp,        4, 5, "width angle ?dataSetName?"},
     {"scale",        2, StreamlinesScaleOp,          5, 6, "sx sy sz ?dataSetName?"},
     {"seed",         2, StreamlinesSeedOp,           3, 14, "op params... ?dataSetName?"},
-    {"tubes",        1, StreamlinesTubesOp,          4, 5, "numSides radius ?dataSetName?"},
+    {"termspeed",    2, StreamlinesTerminalSpeedOp,  3, 4, "speed ?dataSetName?"},
+    {"tubes",        2, StreamlinesTubesOp,          4, 5, "numSides radius ?dataSetName?"},
     {"visible",      1, StreamlinesVisibleOp,        3, 4, "bool ?dataSetName?"}
 };
 static int nStreamlinesOps = NumCmdSpecs(streamlinesOps);

@@ -761,14 +761,31 @@ public:
 
     // Streamlines
 
+    void setStreamlinesColorMode(const DataSetId& id,
+                                 Streamlines::ColorMode mode,
+                                 const char *name, double range[2] = NULL);
+
+    void setStreamlinesColorMode(const DataSetId& id,
+                                 Streamlines::ColorMode mode,
+                                 DataSet::DataAttributeType type,
+                                 const char *name, double range[2] = NULL);
+
+    void setStreamlinesLength(const DataSetId& id, double length);
+
     void setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints);
 
-    void setStreamlinesSeedToMeshPoints(const DataSetId& id);
+    void setStreamlinesSeedColor(const DataSetId& id, float color[3]);
+
+    void setStreamlinesSeedPointSize(const DataSetId& id, float size);
+
+    void setStreamlinesSeedToMeshPoints(const DataSetId& id,
+                                        int maxPoints = 500);
 
     void setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints);
 
     bool setStreamlinesSeedToMeshPoints(const DataSetId& id,
-                                        char *data, size_t nbytes);
+                                        char *data, size_t nbytes,
+                                        int maxPoints = 500);
 
     bool setStreamlinesSeedToFilledMesh(const DataSetId& id,
                                         char *data, size_t nbytes,
@@ -793,26 +810,15 @@ public:
                                            double angle, double radius,
                                            int numSides, int numPoints);
 
-    void setStreamlinesLength(const DataSetId& id, double length);
+    void setStreamlinesSeedVisibility(const DataSetId& id, bool state);
+
+    void setStreamlinesTerminalSpeed(const DataSetId& id, double speed);
 
     void setStreamlinesTypeToLines(const DataSetId& id);
 
     void setStreamlinesTypeToTubes(const DataSetId& id, int numSides, double radius);
 
     void setStreamlinesTypeToRibbons(const DataSetId& id, double width, double angle);
-
-    void setStreamlinesSeedVisibility(const DataSetId& id, bool state);
-
-    void setStreamlinesColorMode(const DataSetId& id,
-                                 Streamlines::ColorMode mode,
-                                 const char *name, double range[2] = NULL);
-
-    void setStreamlinesColorMode(const DataSetId& id,
-                                 Streamlines::ColorMode mode,
-                                 DataSet::DataAttributeType type,
-                                 const char *name, double range[2] = NULL);
-
-    void setStreamlinesSeedColor(const DataSetId& id, float color[3]);
 
     // Volumes
 

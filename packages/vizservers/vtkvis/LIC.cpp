@@ -20,6 +20,9 @@
 #include <vtkCutter.h>
 #include <vtkImageMask.h>
 #include <vtkImageCast.h>
+#include <vtkDelaunay2D.h>
+#include <vtkDelaunay3D.h>
+#include <vtkTransform.h>
 
 #include "LIC.h"
 #include "Trace.h"
@@ -108,7 +111,7 @@ void LIC::update()
             _volumeSlicer->SetSampleRate(1, 1, 1);
             _lic->SetInputConnection(_volumeSlicer->GetOutputPort());
         } else {
-            // 2D image/volume/uniform grid
+            // 2D image/uniform grid
 #ifdef USE_VTK6
             _lic->SetInputData(ds);
 #else
@@ -119,8 +122,10 @@ void LIC::update()
             _mapper = vtkSmartPointer<vtkDataSetMapper>::New();
         }
         _mapper->SetInputConnection(_lic->GetOutputPort());
-    } else if (vtkPolyData::SafeDownCast(ds) == NULL) {
-        // structured grid, unstructured grid, or rectilinear grid
+    } else if (vtkPolyData::SafeDownCast(ds) == NULL ||
+               _dataSet->isCloud() ||
+               _dataSet->is2D()) {
+        // structured/rectilinear/unstructured grid, cloud or 2D polydata
         if (_lic == NULL) {
             _lic = vtkSmartPointer<vtkImageDataLIC2D>::New();
         }
@@ -139,8 +144,10 @@ void LIC::update()
         if (_probeFilter == NULL)
             _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
 
-        if (!_dataSet->is2D()) {
-            // Sample a plane within the grid bounding box
+        PrincipalPlane plane;
+        double offset;
+        if (!_dataSet->is2D(&plane, &offset)) {
+            // 3D Data: Sample a plane within the bounding box
             vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
             if (_cutPlane == NULL) {
                 _cutPlane = vtkSmartPointer<vtkPlane>::New();
@@ -161,19 +168,62 @@ void LIC::update()
                                      0,
                                      bounds[4] + (bounds[5]-bounds[4])/2.);
             }
+
+            if (_dataSet->isCloud()) {
+                // 3D cloud -- Need to mesh it before we can resample
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
 #ifdef USE_VTK6
-            cutter->SetInputData(ds);
+                mesher->SetInputData(ds);
 #else
-            cutter->SetInput(ds);
+                mesher->SetInput(ds);
 #endif
+                cutter->SetInputConnection(mesher->GetOutputPort());
+            } else {
+#ifdef USE_VTK6
+                cutter->SetInputData(ds);
+#else
+                cutter->SetInput(ds);
+#endif
+            }
             cutter->SetCutFunction(_cutPlane);
             _probeFilter->SetSourceConnection(cutter->GetOutputPort());
         } else {
+            if (_dataSet->isCloud()) {
+                // 2D cloud -- Need to mesh it before we can resample
+                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                if (plane == PLANE_ZY) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(90, 0, 1, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(-offset, 0, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (plane == PLANE_XZ) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(-90, 1, 0, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(0, -offset, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (offset != 0.0) {
+                    // XY with Z offset
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->Translate(0, 0, -offset);
+                    mesher->SetTransform(trans);
+                }
 #ifdef USE_VTK6
-            _probeFilter->SetSourceData(ds);
+                mesher->SetInputData(ds);
 #else
-            _probeFilter->SetSource(ds);
+                mesher->SetInput(ds);
 #endif
+                _probeFilter->SetSourceConnection(mesher->GetOutputPort());
+            } else {
+#ifdef USE_VTK6
+                _probeFilter->SetSourceData(ds);
+#else
+                _probeFilter->SetSource(ds);
+#endif
+            }
         }
 
         vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
@@ -238,7 +288,7 @@ void LIC::update()
         mask->SetInputConnection(1, cast->GetOutputPort());
         _mapper->SetInputConnection(mask->GetOutputPort());
     } else {
-        // DataSet is a PolyData
+        // DataSet is a 3D PolyData with cells
         vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
         assert(pd != NULL);
 

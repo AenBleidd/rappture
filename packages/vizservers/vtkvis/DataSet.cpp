@@ -184,6 +184,12 @@ void DataSet::print(vtkDataSet *ds)
                       ds->GetPointData()->GetAbstractArray(i)->GetNumberOfComponents());
             }
         }
+        if (ds->GetPointData()->GetScalars() != NULL) {
+            TRACE("Active point scalars: %s", ds->GetPointData()->GetScalars()->GetName());
+        }
+        if (ds->GetPointData()->GetVectors() != NULL) {
+            TRACE("Active point vectors: %s", ds->GetPointData()->GetVectors()->GetName());
+        }
     }
     if (ds->GetCellData() != NULL) {
         TRACE("CellData arrays: %d", ds->GetCellData()->GetNumberOfArrays());
@@ -199,6 +205,12 @@ void DataSet::print(vtkDataSet *ds)
                       ds->GetCellData()->GetArrayName(i),
                       ds->GetCellData()->GetAbstractArray(i)->GetNumberOfComponents());
             }
+        }
+        if (ds->GetCellData()->GetScalars() != NULL) {
+            TRACE("Active cell scalars: %s", ds->GetPointData()->GetScalars()->GetName());
+        }
+        if (ds->GetCellData()->GetVectors() != NULL) {
+            TRACE("Active cell vectors: %s", ds->GetPointData()->GetVectors()->GetName());
         }
     }
     if (ds->GetFieldData() != NULL) {
@@ -406,7 +418,7 @@ bool DataSet::is2D(PrincipalPlane *plane, double *offset) const
     double bounds[6];
     getBounds(bounds);
     if (bounds[4] == bounds[5]) {
-        // Z = 0, XY plane
+        // Zmin = Zmax, XY plane
         if (plane != NULL) {
             *plane = PLANE_XY;
         }
@@ -414,7 +426,7 @@ bool DataSet::is2D(PrincipalPlane *plane, double *offset) const
             *offset = bounds[4];
         return true;
     } else if (bounds[0] == bounds[1]) {
-        // X = 0, ZY plane
+        // Xmin = Xmax, ZY plane
         if (plane != NULL) {
             *plane = PLANE_ZY;
         }
@@ -422,7 +434,7 @@ bool DataSet::is2D(PrincipalPlane *plane, double *offset) const
             *offset = bounds[0];
         return true;
     } else if (bounds[2] == bounds[3]) {
-        // Y = 0, XZ plane
+        // Ymin = Ymax, XZ plane
         if (plane != NULL) {
             *plane = PLANE_XZ;
          }
