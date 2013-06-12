@@ -9,6 +9,7 @@
 #include <vtkActor.h>
 #include <vtkDiskSource.h>
 #include <vtkPolyDataNormals.h>
+#include <vtkReverseSense.h>
 
 #include "Disk.h"
 #include "Trace.h"
@@ -16,8 +17,7 @@
 using namespace VtkVis;
 
 Disk::Disk() :
-    Shape(),
-    _flipNormals(false)
+    Shape()
 {
 }
 
@@ -41,7 +41,6 @@ void Disk::update()
     vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
     normalFilter->SetInputConnection(_disk->GetOutputPort());
     normalFilter->AutoOrientNormalsOff();
-    normalFilter->SetFlipNormals(_flipNormals ? 1 : 0);
 
     _pdMapper->SetInputConnection(normalFilter->GetOutputPort());
 
@@ -53,8 +52,18 @@ void Disk::update()
 
 void Disk::flipNormals(bool state)
 {
-    if (_flipNormals != state) {
-        _flipNormals = state;
-        update();
+    if (_disk == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
+        filter->SetInputConnection(_disk->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_disk->GetOutputPort());
     }
+    _pdMapper->Update();
 }

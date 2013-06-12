@@ -8,6 +8,8 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkArrowSource.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkReverseSense.h>
 
 #include "Arrow.h"
 #include "Trace.h"
@@ -36,10 +38,31 @@ void Arrow::update()
         _pdMapper->ScalarVisibilityOff();
     }
 
+    vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normalFilter->SetInputConnection(_arrow->GetOutputPort());
+    normalFilter->AutoOrientNormalsOff();
+
     _pdMapper->SetInputConnection(_arrow->GetOutputPort());
 
     initProp();
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+}
+
+void Arrow::flipNormals(bool state)
+{
+    if (_arrow == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
+        filter->SetInputConnection(_arrow->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_arrow->GetOutputPort());
+    }
 }

@@ -8,6 +8,8 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkConeSource.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkReverseSense.h>
 
 #include "Cone.h"
 #include "Trace.h"
@@ -36,10 +38,31 @@ void Cone::update()
         _pdMapper->ScalarVisibilityOff();
     }
 
+    vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normalFilter->SetInputConnection(_cone->GetOutputPort());
+    normalFilter->AutoOrientNormalsOff();
+
     _pdMapper->SetInputConnection(_cone->GetOutputPort());
 
     initProp();
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+}
+
+void Cone::flipNormals(bool state)
+{
+    if (_cone == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
+        filter->SetInputConnection(_cone->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_cone->GetOutputPort());
+    }
 }

@@ -276,6 +276,39 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double angle, d
 }
 
 /**
+ * \brief Set the prop origin (center of rotation)
+ */
+template<class T>
+void Renderer::setGraphicsObjectOrigin(const DataSetId& id, double origin[3])
+{
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+    if (itr == hashmap.end()) {
+        GO_ERROR(T, "not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrigin(origin);
+    } while (doAll && ++itr != hashmap.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the prop position in world coords
  */
 template<class T>
@@ -478,6 +511,73 @@ void Renderer::setGraphicsObjectColor(const DataSetId& id, float color[3])
 }
 
 /**
+ * \brief Set cull face for graphics object
+ */
+template<class T>
+void Renderer::setGraphicsObjectCullFace(const DataSetId& id,
+                                         GraphicsObject::CullFace state)
+{
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+
+    if (itr == hashmap.end()) {
+        GO_ERROR(T, "not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCullFace(state);
+    } while (doAll && ++itr != hashmap.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set face culling for graphics object
+ */
+template<class T>
+void Renderer::setGraphicsObjectCulling(const DataSetId& id, bool state)
+{
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+
+    if (itr == hashmap.end()) {
+        GO_ERROR(T, "not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCulling(state);
+    } while (doAll && ++itr != hashmap.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Turn on/off edges for the given DataSet
  */
 template<class T>
@@ -579,6 +679,38 @@ void Renderer::setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth)
 }
 
 /**
+ * \brief Flip normals and front/back faces of the shape geometry
+ */
+template<class T>
+void Renderer::setGraphicsObjectFlipNormals(const DataSetId& id, bool state)
+{
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+    if (itr == hashmap.end()) {
+        GO_ERROR(T, "not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->flipNormals(state);
+    } while (doAll && ++itr != hashmap.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set ambient lighting/shading coefficient for the specified DataSet
  */
 template<class T>
@@ -637,6 +769,41 @@ void Renderer::setGraphicsObjectDiffuse(const DataSetId& id, double coeff)
 
     do {
         itr->second->setDiffuse(coeff);
+    } while (doAll && ++itr != hashmap.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the shading of the object (flat or smooth)
+ *
+ * Currently Phong shading is not implemented
+ */
+template<class T>
+void Renderer::setGraphicsObjectShadingModel(const DataSetId& id,
+                                             GraphicsObject::ShadingModel state)
+{
+    std::tr1::unordered_map<DataSetId, T *>& hashmap = 
+        getGraphicsObjectHashmap<T>();
+    typename std::tr1::unordered_map<DataSetId, T *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+    if (itr == hashmap.end()) {
+        GO_ERROR(T, "not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setShadingModel(state);
     } while (doAll && ++itr != hashmap.end());
 
     _needsRedraw = true;

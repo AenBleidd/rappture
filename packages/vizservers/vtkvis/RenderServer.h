@@ -15,7 +15,7 @@ namespace VtkVis {
 
 class Renderer;
 
-#define VTKVIS_VERSION_STRING "1.3"
+#define VTKVIS_VERSION_STRING "1.4"
 
 #define MSECS_ELAPSED(t1, t2) \
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \

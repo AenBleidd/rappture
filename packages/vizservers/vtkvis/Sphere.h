@@ -76,11 +76,19 @@ public:
             _sphere->SetLatLongTessellation((val ? 1 : 0));
     }
 
+    void setCenter(double center[3])
+    {
+        if (_sphere != NULL)
+            _sphere->SetCenter(center);
+    }
+
     void setRadius(double radius)
     {
         if (_sphere != NULL)
             _sphere->SetRadius(radius);
     }
+
+    void flipNormals(bool state);
 
 private:
     virtual void update();

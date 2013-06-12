@@ -164,6 +164,55 @@ template Polygon *Renderer::getGraphicsObject(const DataSetId&);
 template Sphere *Renderer::getGraphicsObject(const DataSetId&);
 
 template <>
+void Renderer::deleteGraphicsObject<Group>(const DataSetId& id)
+{
+    GroupHashmap& hashmap = getGraphicsObjectHashmap<Group>();
+    GroupHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+    if (itr == hashmap.end()) {
+        ERROR("Group not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Group: %s", id.c_str());
+
+    do {
+        Group *gobj = itr->second;
+        if (gobj->getProp())
+            _renderer->RemoveViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->RemoveViewProp(gobj->getOverlayProp());
+
+        std::vector<GraphicsObject *> children;
+        gobj->getChildren(children);
+
+        // Un-grouping children
+        for (std::vector<GraphicsObject *>::iterator citr = children.begin();
+             citr != children.end(); ++citr) {
+            if ((*citr)->getProp())
+                _renderer->AddViewProp((*citr)->getProp());
+            if ((*citr)->getOverlayProp())
+                _renderer->AddViewProp((*citr)->getOverlayProp());
+        }
+
+        delete gobj;
+
+        itr = hashmap.erase(itr);
+    } while (doAll && itr != hashmap.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+template <>
 bool Renderer::addGraphicsObject<Box>(const DataSetId& id)
 {
     Box *gobj;
@@ -261,10 +310,91 @@ void Renderer::setGraphicsObjectVolumeSlice<HeightMap>(const DataSetId& id, Axis
 
 using namespace VtkVis;
 
+GraphicsObject *
+Renderer::getGenericGraphicsObject(const DataSetId& id)
+{
+    GraphicsObject *gobj = NULL;
+
+    if ((gobj = getGraphicsObject<Arc>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Arrow>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Box>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Cone>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Cylinder>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Disk>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Line>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Polygon>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Sphere>(id)) != NULL) {
+        return gobj;
+    }
+    //
+    if ((gobj = getGraphicsObject<Contour2D>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Contour3D>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Cutplane>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Glyphs>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<HeightMap>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<LIC>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Molecule>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Outline>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<PolyData>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<PseudoColor>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Streamlines>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Volume>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Warp>(id)) != NULL) {
+        return gobj;
+    }
+    //
+    if ((gobj = getGraphicsObject<Group>(id)) != NULL) {
+        return gobj;
+    }
+
+    return NULL;
+}
+
 /**
  * \brief Create a new Arc and associate it with an ID
  */
-bool Renderer::addArc(const DataSetId& id, double pt1[3], double pt2[3])
+bool Renderer::addArc(const DataSetId& id, double center[3],
+                      double pt1[3], double pt2[3])
 {
     Arc *gobj;
     if ((gobj = getGraphicsObject<Arc>(id)) != NULL) {
@@ -287,6 +417,7 @@ bool Renderer::addArc(const DataSetId& id, double pt1[3], double pt2[3])
             _renderer->AddViewProp(gobj->getOverlayProp());
     }
 
+    gobj->setCenter(center);
     gobj->setEndPoints(pt1, pt2);
 
     getGraphicsObjectHashmap<Arc>()[id] = gobj;
@@ -329,7 +460,9 @@ void Renderer::setArcResolution(const DataSetId& id, int res)
 /**
  * \brief Create a new Arrow and associate it with an ID
  */
-bool Renderer::addArrow(const DataSetId& id, double tipRadius, double shaftRadius, double tipLength)
+bool Renderer::addArrow(const DataSetId& id, double tipRadius,
+                        double shaftRadius, double tipLength,
+                        bool flipNormals)
 {
     Arrow *gobj;
     if ((gobj = getGraphicsObject<Arrow>(id)) != NULL) {
@@ -354,6 +487,8 @@ bool Renderer::addArrow(const DataSetId& id, double tipRadius, double shaftRadiu
 
     gobj->setRadii(tipRadius, shaftRadius);
     gobj->setTipLength(tipLength);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
 
     getGraphicsObjectHashmap<Arrow>()[id] = gobj;
 
@@ -393,9 +528,49 @@ void Renderer::setArrowResolution(const DataSetId& id, int tipRes, int shaftRes)
 }
 
 /**
+ * \brief Create a new Box and associate it with an ID
+ */
+bool Renderer::addBox(const DataSetId& id,
+                      double xLen, double yLen, double zLen,
+                      bool flipNormals)
+{
+    Box *gobj;
+    if ((gobj = getGraphicsObject<Box>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Box>(id);
+    }
+
+    gobj = new Box();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setSize(xLen, yLen, zLen);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
+
+    getGraphicsObjectHashmap<Box>()[id] = gobj;
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
  * \brief Create a new Cone and associate it with an ID
  */
-bool Renderer::addCone(const DataSetId& id, double radius, double height, bool cap)
+bool Renderer::addCone(const DataSetId& id, double radius, double height,
+                       bool cap, bool flipNormals)
 {
     Cone *gobj;
     if ((gobj = getGraphicsObject<Cone>(id)) != NULL) {
@@ -421,6 +596,8 @@ bool Renderer::addCone(const DataSetId& id, double radius, double height, bool c
     gobj->setRadius(radius);
     gobj->setHeight(height);
     gobj->setCapping(cap);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
 
     getGraphicsObjectHashmap<Cone>()[id] = gobj;
 
@@ -1099,7 +1276,8 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
 /**
  * \brief Create a new Cylinder and associate it with an ID
  */
-bool Renderer::addCylinder(const DataSetId& id, double radius, double height, bool cap)
+bool Renderer::addCylinder(const DataSetId& id, double radius, double height,
+                           bool cap, bool flipNormals)
 {
     Cylinder *gobj;
     if ((gobj = getGraphicsObject<Cylinder>(id)) != NULL) {
@@ -1125,12 +1303,44 @@ bool Renderer::addCylinder(const DataSetId& id, double radius, double height, bo
     gobj->setRadius(radius);
     gobj->setHeight(height);
     gobj->setCapping(cap);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
 
     getGraphicsObjectHashmap<Cylinder>()[id] = gobj;
 
     sceneBoundsChanged();
     _needsRedraw = true;
     return true;
+}
+
+/**
+ * \brief Set Cylinder capping
+ */
+void Renderer::setCylinderCapping(const DataSetId& id, bool state)
+{
+    CylinderHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cylinders.begin();
+        if (itr == _cylinders.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _cylinders.find(id);
+    }
+    if (itr == _cylinders.end()) {
+        ERROR("Cylinder not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setCapping(state);
+    } while (doAll && ++itr != _cylinders.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
 }
 
 /**
@@ -1166,7 +1376,10 @@ void Renderer::setCylinderResolution(const DataSetId& id, int res)
 /**
  * \brief Create a new Disk and associate it with an ID
  */
-bool Renderer::addDisk(const DataSetId& id, double innerRadius, double outerRadius)
+bool Renderer::addDisk(const DataSetId& id,
+                       double innerRadius,
+                       double outerRadius,
+                       bool flipNormals)
 {
     Disk *gobj;
     if ((gobj = getGraphicsObject<Disk>(id)) != NULL) {
@@ -1190,6 +1403,8 @@ bool Renderer::addDisk(const DataSetId& id, double innerRadius, double outerRadi
     }
 
     gobj->setRadii(innerRadius, outerRadius);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
 
     getGraphicsObjectHashmap<Disk>()[id] = gobj;
 
@@ -1456,6 +1671,136 @@ void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
     do {
         itr->second->setScaleFactor(scale);
     } while (doAll && ++itr != _glyphs.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+bool Renderer::addGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList)
+{
+    if (id.compare("all") == 0) {
+        addChildrenToGroup(id, nodeList);
+        return true;
+    }
+
+    Group *gobj;
+    if ((gobj = getGraphicsObject<Group>(id)) != NULL) {
+        // Group exists, so add nodes to it
+        addChildrenToGroup(id, nodeList);
+        return true;
+    }
+
+    gobj = new Group();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    for (std::vector<Group::NodeId>::const_iterator itr = nodeList.begin();
+         itr != nodeList.end(); ++itr) {
+        GraphicsObject *node = getGenericGraphicsObject(*itr);
+        if (node != NULL) {
+            if (node->getProp())
+                _renderer->RemoveViewProp(node->getProp());
+            if (node->getOverlayProp())
+                _renderer->RemoveViewProp(node->getOverlayProp());
+            gobj->addChild(*itr, node);
+        } else {
+            ERROR("Can't find node: %s", itr->c_str());
+        }
+    }
+
+    getGraphicsObjectHashmap<Group>()[id] = gobj;
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+    return true; 
+}
+
+void Renderer::addChildrenToGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList)
+{
+    GroupHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _groups.begin();
+        if (itr == _groups.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _groups.find(id);
+    }
+
+    if (itr == _groups.end()) {
+        ERROR("Group not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        for (std::vector<Group::NodeId>::const_iterator citr = nodeList.begin();
+             citr != nodeList.end(); ++citr) {
+            GraphicsObject *node = getGenericGraphicsObject(*citr);
+            if (node != NULL) {
+                if (node->getProp())
+                    _renderer->RemoveViewProp(node->getProp());
+                if (node->getOverlayProp())
+                    _renderer->RemoveViewProp(node->getOverlayProp());
+                itr->second->addChild(*citr, node);
+            } else {
+                ERROR("Can't find node: %s", citr->c_str());
+            }
+        }
+     } while (doAll && ++itr != _groups.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+void Renderer::removeChildrenFromGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList)
+{
+    GroupHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _groups.begin();
+        if (itr == _groups.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _groups.find(id);
+    }
+
+    if (itr == _groups.end()) {
+        ERROR("Group not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        for (std::vector<Group::NodeId>::const_iterator citr = nodeList.begin();
+             citr != nodeList.end(); ++citr) {
+            GraphicsObject *node = getGenericGraphicsObject(*citr);
+            if (node != NULL) {
+                if (node->getProp())
+                    _renderer->AddViewProp(node->getProp());
+                if (node->getOverlayProp())
+                    _renderer->AddViewProp(node->getOverlayProp());
+                assert(node == itr->second->removeChild(*citr));
+            } else {
+                ERROR("Can't find node: %s", citr->c_str());
+            }
+        }
+     } while (doAll && ++itr != _groups.end());
 
     sceneBoundsChanged();
     _needsRedraw = true;
@@ -2285,7 +2630,8 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
 /**
  * \brief Create a new n-sided regular Polygon and associate it with an ID
  */
-bool Renderer::addPolygon(const DataSetId& id, int numSides)
+bool Renderer::addPolygon(const DataSetId& id, int numSides,
+                          double center[3], double normal[3], double radius)
 {
     Polygon *gobj;
     if ((gobj = getGraphicsObject<Polygon>(id)) != NULL) {
@@ -2309,6 +2655,9 @@ bool Renderer::addPolygon(const DataSetId& id, int numSides)
     }
 
     gobj->setNumberOfSides(numSides);
+    gobj->setCenter(center);
+    gobj->setNormal(normal);
+    gobj->setRadius(radius);
 
     getGraphicsObjectHashmap<Polygon>()[id] = gobj;
 
@@ -2438,6 +2787,44 @@ void Renderer::setPseudoColorColorMode(const DataSetId& id,
     } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Sphere and associate it with an ID
+ */
+bool Renderer::addSphere(const DataSetId& id, double center[3], double radius, bool flipNormals)
+{
+    Sphere *gobj;
+    if ((gobj = getGraphicsObject<Sphere>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Sphere>(id);
+    }
+
+    gobj = new Sphere();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setCenter(center);
+    gobj->setRadius(radius);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
+
+    getGraphicsObjectHashmap<Sphere>()[id] = gobj;
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+    return true;
 }
 
 /**

@@ -53,18 +53,19 @@ GraphicsObject *Group::getChild(const NodeId& name)
     }
 }
 
-void Group::removeChild(const NodeId& name)
+GraphicsObject *Group::removeChild(const NodeId& name)
 {
     NodeHashmap::iterator itr = _nodes.find(name);
     if (itr == _nodes.end()) {
         ERROR("Node not found: '%s'", name.c_str());
-        return;
+        return NULL;
     }
     GraphicsObject *obj = itr->second;
     if (obj->getProp3D() != NULL) {
         getAssembly()->RemovePart(obj->getProp3D());
     }
     _nodes.erase(itr);
+    return obj;
 }
 
 /**

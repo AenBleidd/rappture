@@ -19,6 +19,7 @@
 #include <vtkMath.h>
 #include <vtkCamera.h>
 #include <vtkLight.h>
+#include <vtkLightCollection.h>
 #include <vtkCoordinate.h>
 #include <vtkTransform.h>
 #include <vtkCharArray.h>
@@ -123,12 +124,15 @@ Renderer::Renderer() :
     // Global ambient (defaults to 1,1,1)
     //_renderer->SetAmbient(.2, .2, .2);
 
+    _renderer->AutomaticLightCreationOff();
+
     vtkSmartPointer<vtkLight> headlight = vtkSmartPointer<vtkLight>::New();
     headlight->SetLightTypeToHeadlight();
     headlight->PositionalOff();
     // Light ambient color defaults to 0,0,0
     //headlight->SetAmbientColor(1, 1, 1);
     _renderer->AddLight(headlight);
+
     vtkSmartPointer<vtkLight> skylight = vtkSmartPointer<vtkLight>::New();
     skylight->SetLightTypeToCameraLight();
     skylight->SetPosition(0, 1, 0);
@@ -137,6 +141,7 @@ Renderer::Renderer() :
     // Light ambient color defaults to 0,0,0
     //skylight->SetAmbientColor(1, 1, 1);
     _renderer->AddLight(skylight);
+
     _renderer->LightFollowCameraOn();
     _renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
 #ifdef USE_OFFSCREEN_RENDERING
@@ -3176,6 +3181,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectBounds<Cylinder>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Disk>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Glyphs>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Group>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<HeightMap>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Line>(bounds, onlyVisible);
@@ -3815,6 +3821,43 @@ bool Renderer::is2D(const double bounds[6],
     *plane = PLANE_XY;
     *offset = 0;
     return false;
+}
+
+int Renderer::addLight(float pos[3])
+{
+    vtkSmartPointer<vtkLight> light = vtkSmartPointer<vtkLight>::New();
+    light->SetLightTypeToCameraLight();
+    light->SetPosition(pos[0], pos[1], pos[2]);
+    light->SetFocalPoint(0, 0, 0);
+    light->PositionalOff();
+    _renderer->AddLight(light);
+    _needsRedraw = true;
+    return (_renderer->GetLights()->GetNumberOfItems()-1);
+}
+
+vtkLight *Renderer::getLight(int lightIdx)
+{
+    vtkLightCollection *lights = _renderer->GetLights();
+    if (lights->GetNumberOfItems() < lightIdx+1)
+        return NULL;
+    lights->InitTraversal();
+    vtkLight *light = NULL;
+    int i = 0;
+    do {
+        light = lights->GetNextItem();
+    } while (i++ < lightIdx);
+    return light;
+}
+
+void Renderer::setLightSwitch(int lightIdx, bool state)
+{
+    vtkLight *light = getLight(lightIdx);
+    if (light == NULL) {
+        ERROR("Unknown light %d", lightIdx);
+        return;
+    }
+    light->SetSwitch((state ? 1 : 0));
+    _needsRedraw = true;
 }
 
 /**

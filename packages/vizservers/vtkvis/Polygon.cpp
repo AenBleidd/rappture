@@ -8,6 +8,8 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkRegularPolygonSource.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkReverseSense.h>
 
 #include "Polygon.h"
 #include "Trace.h"
@@ -36,6 +38,10 @@ void Polygon::update()
         _pdMapper->ScalarVisibilityOff();
     }
 
+    vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normalFilter->SetInputConnection(_polygon->GetOutputPort());
+    normalFilter->AutoOrientNormalsOff();
+
     _pdMapper->SetInputConnection(_polygon->GetOutputPort());
 
     initProp();
@@ -43,3 +49,22 @@ void Polygon::update()
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
 }
+
+void Polygon::flipNormals(bool state)
+{
+    if (_polygon == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
+        filter->SetInputConnection(_polygon->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_polygon->GetOutputPort());
+    }
+    _pdMapper->Update();
+}
+
