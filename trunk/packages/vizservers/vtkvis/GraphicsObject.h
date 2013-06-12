@@ -41,6 +41,11 @@ public:
         CULL_BACK,
         CULL_FRONT_AND_BACK
     };
+    enum ShadingModel {
+        SHADE_FLAT = VTK_FLAT,
+        SHADE_GOURAUD = VTK_GOURAUD,
+        SHADE_PHONG = VTK_PHONG
+    };
 
     GraphicsObject() :
         _dataSet(NULL),
@@ -700,6 +705,25 @@ public:
                     vtkActor::SafeDownCast(prop)->GetProperty()->SetLighting((state ? 1 : 0));
                 } else if (vtkVolume::SafeDownCast(prop) != NULL) {
                     vtkVolume::SafeDownCast(prop)->GetProperty()->SetShade((state ? 1 : 0));
+                }
+            }
+        }
+    }
+
+    /**
+     * \brief Set shading interpolation model of the prop
+     */
+    virtual void setShadingModel(ShadingModel state)
+    {
+        if (getActor() != NULL) {
+            getActor()->GetProperty()->SetInterpolation(state);
+        } else if (getAssembly() != NULL) {
+            vtkProp3DCollection *props = getAssembly()->GetParts();
+            vtkProp3D *prop;
+            props->InitTraversal();
+            while ((prop = props->GetNextProp3D()) != NULL) {
+                if (vtkActor::SafeDownCast(prop) != NULL) {
+                    vtkActor::SafeDownCast(prop)->GetProperty()->SetInterpolation(state);
                 }
             }
         }

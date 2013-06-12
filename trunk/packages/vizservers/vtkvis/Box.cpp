@@ -14,6 +14,7 @@
 #include <vtkProperty.h>
 #include <vtkTransform.h>
 #include <vtkCubeSource.h>
+#include <vtkReverseSense.h>
 
 #include "Box.h"
 #include "Trace.h"
@@ -48,4 +49,21 @@ void Box::update()
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+}
+
+void Box::flipNormals(bool state)
+{
+    if (_box == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
+        filter->SetInputConnection(_box->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_box->GetOutputPort());
+    }
 }

@@ -247,6 +247,8 @@ renderer depthpeel <bool>
 renderer light2side <bool>
          Toggle use of two-sided lighting (controls if backfaces are lit with a
          flipped normal)
+renderer lights <lightNum> <bool>
+         Toggle lights on/off.  Light 0 is the headlight, light 1 the skylight
 renderer render
          Force a new image to be rendered - use for advancing animation
 
@@ -255,13 +257,14 @@ screen size <width> <height>
 
 == Graphics objects ==
 
-arc add <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
+arc add <centerX> <centerY> <centerZ> <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
 arc color <r> <g> <b> <?name?>
 arc delete <?name?>
 arc linecolor <r> <g> <b> <?name?>
 arc linewidth <val> <?name?>
 arc opacity <val> <?name?>
 arc orient <qw> <qx> <qy> <qz> <?name?>
+arc origin <x> <y> <z> <?name?>
 arc pos <x> <y> <z> <?name?>
 arc resolution <res> <?name?>
 arc scale <sx> <sy> <sz> <?name?>
@@ -270,49 +273,64 @@ arc visible <bool> <?name?>
 arrow add <tipRadius> <shaftRadius> <tipLength> <name>
       Arrow will have base at 0,0,0 and tip at 1, 0, 0
 arrow color <r> <g> <b> <?name?>
+arrow culling <bool> <?name?>
 arrow delete <?name?>
 arrow edges <bool> <?name?>
+arrow flipnorm <bool> <?name?>
 arrow lighting <bool> <?name?>
 arrow linecolor <r> <g> <b> <?name?>
 arrow linewidth <val> <?name?>
 arrow material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 arrow opacity <val> <?name?>
 arrow orient <qw> <qx> <qy> <qz> <?name?>
+arrow origin <x> <y> <z> <?name?>
 arrow pos <x> <y> <z> <?name?>
 arrow resolution <tipRes> <shaftRes> <?name?>
 arrow scale <sx> <sy> <sz> <?name?>
+arrow shading <val> <?name?>
+      val = flat|smooth
 arrow visible <bool> <?name?>
 arrow wireframe <bool> <?name?>
 
-box add <name>
+box add <xLen> <yLen> <zLen> <name>
 box color <r> <g> <b> <?name?>
+box culling <bool> <?name?>
 box delete <?name?>
 box edges <bool> <?name?>
+box flipnorm <bool> <?name?>
 box lighting <bool> <?name?>
 box linecolor <r> <g> <b> <?name?>
 box linewidth <val> <?name?>
 box material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 box opacity <val> <?name?>
 box orient <qw> <qx> <qy> <qz> <?name?>
+box origin <x> <y> <z> <?name?>
 box pos <x> <y> <z> <?name?>
 box scale <sx> <sy> <sz> <?name?>
+box shading <val> <?name?>
+    val = flat|smooth
 box visible <bool> <?name?>
 box wireframe <bool> <?name?>
 
 cone add <radius> <height> <cap> <name>
      <cap> = boolean flag for cap disks
 cone color <r> <g> <b> <?name?>
+cone culling <bool> <?name?>
 cone delete <?name?>
 cone edges <bool> <?name?>
+cone flipnorm <bool> <?name?>
 cone lighting <bool> <?name?>
 cone linecolor <r> <g> <b> <?name?>
 cone linewidth <val> <?name?>
 cone material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 cone opacity <val> <?name?>
 cone orient <qw> <qx> <qy> <qz> <?name?>
+cone origin <x> <y> <z> <?name?>
 cone pos <x> <y> <z> <?name?>
 cone resolution <res> <?name?>
 cone scale <sx> <sy> <sz> <?name?>
+cone shading <val> <?name?>
+     val = flat|smooth
 cone visible <bool> <?name?>
 cone wireframe <bool> <?name?>
 
@@ -408,33 +426,43 @@ cutplane wireframe <bool> <?datasetName?>
 cylinder add <radius> <height> <cap> <name>
          <cap> = boolean flag for cap disks
 cylinder color <r> <g> <b> <?name?>
+cylinder culling <bool> <?name?>
 cylinder delete <?name?>
 cylinder edges <bool> <?name?>
+cylinder flipnorm <bool> <?name?>
 cylinder lighting <bool> <?name?>
 cylinder linecolor <r> <g> <b> <?name?>
 cylinder linewidth <val> <?name?>
 cylinder material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 cylinder opacity <val> <?name?>
 cylinder orient <qw> <qx> <qy> <qz> <?name?>
+cylinder origin <x> <y> <z> <?name?>
 cylinder pos <x> <y> <z> <?name?>
 cylinder resolution <res> <?name?>
 cylinder scale <sx> <sy> <sz> <?name?>
+cylinder shading <val> <?name?>
+         val = flat|smooth
 cylinder visible <bool> <?name?>
 cylinder wireframe <bool> <?name?>
 
 disk add <innerRadius> <outerRadius> <name>
 disk color <r> <g> <b> <?name?>
+disk culling <bool> <?name?>
 disk delete <?name?>
 disk edges <bool> <?name?>
+disk flipnorm <bool> <?name?>
 disk lighting <bool> <?name?>
 disk linecolor <r> <g> <b> <?name?>
 disk linewidth <val> <?name?>
 disk material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 disk opacity <val> <?name?>
 disk orient <qw> <qx> <qy> <qz> <?name?>
+disk origin <x> <y> <z> <?name?>
 disk pos <x> <y> <z> <?name?>
 disk resolution <resRadial> <resCircum> <?name?>
 disk scale <sx> <sy> <sz> <?name?>
+disk shading <val> <?name?>
+     val = flat|smooth
 disk visible <bool> <?name?>
 disk wireframe <bool> <?name?>
 
@@ -470,6 +498,15 @@ glyphs smode <scalar|vmag|vcomp|off> <fieldName> <?dataSetName?>
        (uniform scale), vector components, or disable scaling
 glyphs visible <bool> <?datasetName?>
 glyphs wireframe <bool> <?datasetName?>
+
+group add <nodeList> <name>
+group delete <?name?>
+group orient <qw> <qx> <qy> <qz> <?name?>
+group origin <x> <y> <z> <?name?>
+group pos <x> <y> <z> <?name?>
+group remove <nodeList> <name>
+group scale <sx> <sy> <sz> <?name?>
+group visible <bool> <?name?>
 
 heightmap add numcontours <n> <heightScale> <?dataSetName?>
           Generate evenly spaced contours including range endpoints.  See also
@@ -547,6 +584,7 @@ line linecolor <r> <g> <b> <?name?>
 line linewidth <val> <?name?>
 line opacity <val> <?name?>
 line orient <qw> <qx> <qy> <qz> <?name?>
+line origin <x> <y> <z> <?name?>
 line pos <x> <y> <z> <?name?>
 line scale <sx> <sy> <sz> <?name?>
 line visible <bool> <?name?>
@@ -609,6 +647,7 @@ polydata add <?datasetName?>
 polydata cloudstyle <style> <?datasetName?>
          <style> = mesh | points
 polydata color <r> <g> <b> <?datasetName?>
+polydata culling <bool> <?name?>
 polydata delete <?datasetName?>
 polydata edges <bool> <?datasetName?>
 polydata lighting <bool> <?datasetName?>
@@ -617,24 +656,32 @@ polydata linewidth <val> <?datasetName?>
 polydata material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp>
 polydata opacity <val> <?datasetName?>
 polydata orient <qw> <qx> <qy> <qz> <?dataSetName?>
+polydata origin <x> <y> <z> <?name?>
 polydata pos <x> <y> <z> <?dataSetName?>
 polydata ptsize <size> <?dataSetName?>
 polydata scale <sx> <sy> <sz> <?dataSetName?>
+polydata shading <val> <?name?>
+         val = flat|smooth
 polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
 
-polygon add <numSides> <name>
+polygon add <numSides> <centerX> <centerY> <centerZ> <normX> <normY> <normZ> <radius> <name>
 polygon color <r> <g> <b> <?name?>
+polygon culling <bool> <?name?>
 polygon delete <?name?>
 polygon edges <bool> <?name?>
+polygon flipnorm <bool> <?name?>
 polygon lighting <bool> <?name?>
 polygon linecolor <r> <g> <b> <?name?>
 polygon linewidth <val> <?name?>
 polygon material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 polygon opacity <val> <?name?>
 polygon orient <qw> <qx> <qy> <qz> <?name?>
+polygon origin <x> <y> <z> <?name?>
 polygon pos <x> <y> <z> <?name?>
 polygon scale <sx> <sy> <sz> <?name?>
+polygon shading <val> <?name?>
+        val = flat|smooth
 polygon visible <bool> <?name?>
 polygon wireframe <bool> <?name?>
 
@@ -667,21 +714,26 @@ pseudocolor scale <sx> <sy> <sz> <?dataSetName?>
 pseudocolor visible <bool> <?datasetName?>
 pseudocolor wireframe <bool> <?datasetName?>
 
-sphere add <name>
+sphere add <centerX> <centerY> <centerZ> <radius> <name>
 sphere color <r> <g> <b> <?name?>
+sphere culling <bool> <?name?>
 sphere delete <?name?>
 sphere edges <bool> <?name?>
+sphere flipnorm <bool> <?name?>
 sphere lighting <bool> <?name?>
 sphere linecolor <r> <g> <b> <?name?>
 sphere linewidth <val> <?name?>
 sphere material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
 sphere opacity <val> <?name?>
 sphere orient <qw> <qx> <qy> <qz> <?name?>
+sphere origin <x> <y> <z> <?name?>
 sphere pos <x> <y> <z> <?name?>
 sphere resolution <thetaRes> <phiRes> <?name?>
 sphere scale <sx> <sy> <sz> <?name?>
 sphere section <thetaStart> <thetaEnd> <phiStart> <phiEnd> <?name?>
        Angles are in degrees
+sphere shading <val> <?name?>
+       val = flat|smooth
 sphere visible <bool> <?name?>
 sphere wireframe <bool> <?name?>
 
@@ -784,7 +836,7 @@ warp orient <qw> <qx> <qy> <qz> <?dataSetName?>
 warp ptsize <size> <?dataSetName?>
 warp pos <x> <y> <z> <?dataSetName?>
 warp preinterp <bool> <?dataSetName?>
-     ontrols if VTK's InterpolateScalarsBeforeMapping option is set.
+     Controls if VTK's InterpolateScalarsBeforeMapping option is set.
      Setting this on will give more correct colors, as the interpolation
      is done on texture coordinates that lookup into a 1D texture instead
      of using color interpolation from triangle vertices.

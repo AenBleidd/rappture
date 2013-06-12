@@ -52,10 +52,13 @@ void Cylinder::flipNormals(bool state)
 
     if (state) {
         vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
         filter->SetInputConnection(_cylinder->GetOutputPort());
 
         _pdMapper->SetInputConnection(filter->GetOutputPort());
     } else {
         _pdMapper->SetInputConnection(_cylinder->GetOutputPort());
     }
+    _pdMapper->Update();
 }

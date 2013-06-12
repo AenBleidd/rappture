@@ -173,6 +173,14 @@ public:
 
     int getWindowHeight() const;
 
+    // Lights
+
+    int addLight(float pos[3]);
+
+    vtkLight *getLight(int lightIdx);
+
+    void setLightSwitch(int lightIdx, bool state);
+
     // Camera controls
 
     void setViewAngle(int height);
@@ -447,6 +455,8 @@ public:
 
     // Generic GraphicsObject methods
 
+    GraphicsObject *getGenericGraphicsObject(const DataSetId& id);
+
     template<class T>
     T *getGraphicsObject(const DataSetId& id);
 
@@ -498,6 +508,9 @@ public:
     void setGraphicsObjectOrientation(const DataSetId& id, double angle, double axis[3]);
 
     template<class T>
+    void setGraphicsObjectOrigin(const DataSetId& id, double origin[3]);
+
+    template<class T>
     void setGraphicsObjectPosition(const DataSetId& id, double pos[3]);
 
     template<class T>
@@ -518,6 +531,12 @@ public:
     void setGraphicsObjectColor(const DataSetId& id, float color[3]);
 
     template<class T>
+    void setGraphicsObjectCullFace(const DataSetId& id, GraphicsObject::CullFace state);
+
+    template<class T>
+    void setGraphicsObjectCulling(const DataSetId& id, bool state);
+
+    template<class T>
     void setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state);
 
     template<class T>
@@ -531,6 +550,9 @@ public:
 
     template<class T>
     void setGraphicsObjectDiffuse(const DataSetId& id, double coeff);
+
+    template<class T>
+    void setGraphicsObjectShadingModel(const DataSetId& id, GraphicsObject::ShadingModel state);
 
     template<class T>
     void setGraphicsObjectSpecular(const DataSetId& id, double coeff, double power);
@@ -547,21 +569,30 @@ public:
     template<class T>
     void setGraphicsObjectWireframe(const DataSetId& id, bool state);
 
+    // For Shapes:
+
+    template<class T>
+    void setGraphicsObjectFlipNormals(const DataSetId& id, bool state);
+
     // Arcs
 
-    bool addArc(const DataSetId& id, double pt1[3], double pt2[3]);
+    bool addArc(const DataSetId& id, double center[3], double pt1[3], double pt2[3]);
 
     void setArcResolution(const DataSetId& id, int res);
 
     // Arrows
 
-    bool addArrow(const DataSetId& id, double tipRadius, double shaftRadius, double tipLength);
+    bool addArrow(const DataSetId& id, double tipRadius, double shaftRadius, double tipLength, bool flipNormals = false);
 
     void setArrowResolution(const DataSetId& id, int resTip, int resShaft);
 
+    // Boxes
+
+    bool addBox(const DataSetId& id, double xLen, double yLen, double zLen, bool flipNormals = false);
+
     // Cones
 
-    bool addCone(const DataSetId& id, double radius, double height, bool cap);
+    bool addCone(const DataSetId& id, double radius, double height, bool cap, bool flipNormals = false);
 
     void setConeResolution(const DataSetId& id, int res);
 
@@ -627,13 +658,15 @@ public:
 
     // Cylinders
 
-    bool addCylinder(const DataSetId& id, double radius, double height, bool cap);
+    bool addCylinder(const DataSetId& id, double radius, double height, bool cap, bool flipNormals = false);
+
+    void setCylinderCapping(const DataSetId& id, bool state);
 
     void setCylinderResolution(const DataSetId& id, int res);
 
     // Disks
 
-    bool addDisk(const DataSetId& id, double innerRadius, double outerRadius);
+    bool addDisk(const DataSetId& id, double innerRadius, double outerRadius, bool flipNormals = false);
 
     void setDiskResolution(const DataSetId& id, int resRadial, int resCircum);
 
@@ -658,6 +691,14 @@ public:
     void setGlyphsNormalizeScale(const DataSetId& id, bool normalize);
 
     void setGlyphsScaleFactor(const DataSetId& id, double scale);
+
+    // Groups
+
+    bool addGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList);
+
+    void addChildrenToGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList);
+
+    void removeChildrenFromGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList);
 
     // Height maps
 
@@ -731,7 +772,7 @@ public:
 
     // N-sided Regular Polygons
 
-    bool addPolygon(const DataSetId& id, int numSides);
+    bool addPolygon(const DataSetId& id, int numSides, double center[3], double normal[3], double radius);
 
     // PolyData meshes
 
@@ -754,7 +795,10 @@ public:
 
     // Spheres
 
-    void setSphereSection(const DataSetId& id, double thetaStart, double thetaEnd,
+    bool addSphere(const DataSetId& id, double center[3], double radius, bool flipNormals = false);
+
+    void setSphereSection(const DataSetId& id,
+                          double thetaStart, double thetaEnd,
                           double phiStart, double phiEnd);
 
     void setSphereResolution(const DataSetId& id, int thetaRes, int phiRes);

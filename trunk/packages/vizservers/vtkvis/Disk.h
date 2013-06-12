@@ -55,7 +55,6 @@ public:
 private:
     virtual void update();
 
-    bool _flipNormals;
     vtkSmartPointer<vtkDiskSource> _disk;
 };
 

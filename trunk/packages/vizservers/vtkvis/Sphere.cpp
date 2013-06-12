@@ -14,6 +14,7 @@
 #include <vtkProperty.h>
 #include <vtkTransform.h>
 #include <vtkSphereSource.h>
+#include <vtkReverseSense.h>
 
 #include "Sphere.h"
 #include "Trace.h"
@@ -48,4 +49,21 @@ void Sphere::update()
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+}
+
+void Sphere::flipNormals(bool state)
+{
+    if (_sphere == NULL || _pdMapper == NULL)
+        return;
+
+    if (state) {
+        vtkSmartPointer<vtkReverseSense> filter = vtkSmartPointer<vtkReverseSense>::New();
+        filter->ReverseCellsOn();
+        filter->ReverseNormalsOn();
+        filter->SetInputConnection(_sphere->GetOutputPort());
+
+        _pdMapper->SetInputConnection(filter->GetOutputPort());
+    } else {
+        _pdMapper->SetInputConnection(_sphere->GetOutputPort());
+    }
 }

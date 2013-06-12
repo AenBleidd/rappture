@@ -57,12 +57,17 @@ public:
 	}
     }
 
+    /**
+     * \brief Invert head/tail of arrow
+     */
     void setInvert(bool state)
     {
         if (_arrow != NULL) {
             _arrow->SetInvert(state);
 	}
     }
+
+    void flipNormals(bool state);
 
 private:
     virtual void update();

@@ -53,7 +53,7 @@ public:
         }
     }
 
-    void removeChild(const NodeId& name);
+    GraphicsObject *removeChild(const NodeId& name);
 
 private:
     virtual void initProp();
