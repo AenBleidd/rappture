@@ -498,7 +498,6 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         if { [info exists zNum] } {
             set _dim 3
 	    set _numPoints [expr $xNum * $yNum * $zNum]
-            $all set $points
             if { ($_numPoints*3) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim>"
                 return 0
@@ -1028,6 +1027,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
                 puts stderr "WARNING: bad unstructured grid \"$path\": \# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
                 return 0
             }
+            set all [blt::vector create \#auto]
             set xv [blt::vector create \#auto]
             set yv [blt::vector create \#auto]
             set zv [blt::vector create \#auto]

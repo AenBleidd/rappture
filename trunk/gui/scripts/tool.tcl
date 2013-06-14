@@ -171,12 +171,20 @@ itcl::body Rappture::Tool::run {args} {
         close $fid
     } result]
 
-    # set limits for cpu time
+    # Set limits for cpu time
     set limit [$_xmlobj get tool.limits.cputime]
-    if {"" == $limit || [catch {Rappture::rlimit set cputime $limit}]} {
-        Rappture::rlimit set cputime 900  ;# 15 mins by default
-    }
-
+    if { $limit == "unlimited" } {
+        set limit 43200;                # 12 hours
+    } else {
+        if { [scan $limit "%d" dum] != 1 } {
+            set limit 900;              # 15 mins by default
+        } elseif { $limit > 43200 } {
+            set limit 43200;            # limit to 12 hrs.
+        } elseif { $limit < 10 } {
+            set limit 10;               # lower bound is 10 seconds.
+        }
+    } 
+    Rappture::rlimit set cputime $limit  
     # execute the tool using the path from the tool description
     if {$status == 0} {
         set cmd [$_xmlobj get tool.command]

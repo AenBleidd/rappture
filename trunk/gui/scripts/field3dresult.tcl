@@ -56,11 +56,12 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     }
     array set flags $args 
     set servers ""
+    puts stderr "field3d: args=$args"
     switch -- $flags(-mode) {
         "auto" - "nanovis" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "isosurface" - "heightmap" - "streamlines" - "vtkviewer" - "vtkvolume" {
+        "isosurface" - "heightmap" - "streamlines" - "vtkviewer" - "vtkvolume" - "glyphs" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
         }
         "vtk" {
@@ -80,6 +81,11 @@ itcl::body Rappture::Field3DResult::constructor {args} {
             "flowvis" {
                 itk_component add renderer {
                     Rappture::FlowvisViewer $itk_interior.ren $servers
+                }
+            }
+            "glyphs" {
+                itk_component add renderer {
+                    Rappture::VtkGlyphViewer $itk_interior.glyphs $servers
                 }
             }
             "contour" - "heightmap" {
