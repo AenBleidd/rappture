@@ -74,6 +74,9 @@ itcl::class Rappture::Field {
     private variable _limits;           # maps axis name => {z0 z1} limits
     private variable _field ""
     private variable _comp2fldName ;	# cname => field names.
+    private variable _comp2type ;	# cname => type (e.g. "vector")
+    private variable _comp2size ;	# cname => # of components in element
+    private variable _comp2assoc; # cname => association (e.g. pointdata)
     private variable _fld2Components;   # field name => number of components
     private variable _fld2Label;        # field name => label
     private variable _fld2Units;        # field name => units
@@ -93,6 +96,7 @@ itcl::class Rappture::Field {
     public method components {args}
     public method controls {option args}
     public method extents {{cname -overall}}
+    public method numComponents {cname}
     public method fieldlimits {}
     public method flowhints { cname }
     public method hints {{key ""}}
@@ -145,11 +149,13 @@ itcl::class Rappture::Field {
     private variable _comp2mesh 
     private common _counter 0    ;# counter for unique vector names
 
+    private method AvsToVtk { cname contents } 
     private method BuildPointsOnMesh { cname } 
     private method ConvertToVtkData { cname } 
+    private method GetAssociation { cname } 
+    private method GetTypeAndSize { cname } 
     private method ReadVtkDataSet { cname contents } 
     private method VerifyVtkDataSet { contents } 
-    private method AvsToVtk { cname contents } 
     private variable _values ""
 }
 
@@ -779,6 +785,15 @@ itcl::body Rappture::Field::Build {} {
         }
         set _comp2extents($cname) $extents
         set _type $type
+
+        GetTypeAndSize $cname
+        GetAssociation $cname
+        if { $_comp2size($cname) > 1 } {
+            set viewer [$_field get "about.view"]
+            if { $viewer == "" } {
+                set _viewer "glyphs"
+            }
+        }
         if {$type == "1D"} {
             #
             # 1D data can be represented as 2 BLT vectors,
@@ -1028,6 +1043,20 @@ itcl::body Rappture::Field::type {} {
 }
 
 #
+# numComponents --
+#
+# Returns if the number of components in the field component.
+#
+itcl::body Rappture::Field::numComponents {cname} {
+    set name $cname
+    regsub -all { } $name {_} name
+    if {[info exists _fld2Components($name)] } {
+        return $_fld2Components($name)
+    }
+    return 1;                           # Default to scalar.
+}
+
+#
 # extents --
 #
 # Returns if the field is a unirect2d object.  
@@ -1255,6 +1284,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
 	    lappend limits $fname [list $min $max]
             set _fld2Units($fname) ""
 	    set _fld2Label($fname) $fname
+            # Let the VTK file override the <type> designated.
             set _fld2Components($fname) [$array GetNumberOfComponents]
             lappend _comp2fldName($cname) $fname
 	}
@@ -1297,8 +1327,27 @@ itcl::body Rappture::Field::vtkdata {cname} {
 	append out "[hints label]\n"
 	append out "ASCII\n"
 	append out [$mesh vtkdata]
-	append out "POINT_DATA [$vector length]\n"
-	append out "SCALARS $label double 1\n"
+
+        if { $_comp2assoc($cname) == "pointdata" } {
+            set vtkassoc "POINT_DATA"
+        } elseif { $_comp2assoc($cname) == "celldata" } {
+            set vtkassoc "CELL_DATA"
+        } elseif { $_comp2assoc($cname) == "fielddata" } {
+            set vtkassoc "FIELD_DATA"
+        } else {
+            error "unknown association \"$_comp2assoc($cname)\""
+        }
+        set elemSize [numComponents $cname]
+        set numValues [expr [$vector length] / $elemSize]
+        append out "$vtkassoc $numValues\n"
+        if { $_comp2type($cname) == "scalar" } {
+            set vtktype "SCALARS"
+        } elseif { $_comp2type($cname) == "vector" } {
+            set vtktype "VECTORS"
+        } else {
+            error "unknown element type \"$_comp2type($cname)\""
+        }
+        append out "$vtktype $label double $elemSize\n"
 	append out "LOOKUP_TABLE default\n"
 	append out "[$vector range 0 end]\n"
         if 0 {
@@ -1326,7 +1375,10 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	# Unknown mesh designated.
 	return 0
     }
-    set _viewer [$_field get "about.view"]
+    set viewer [$_field get "about.view"]
+    if { $viewer != "" } {
+        set _viewer $viewer
+    }
     set element [$_xmlobj element -as type $path]
     set name $cname
     regsub -all { } $name {_} name
@@ -1336,16 +1388,16 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         set _fld2Label($name) $label
     }
     set _fld2Units($name) [hints zunits]
-    set _fld2Components($name) 1
+    set _fld2Components($name) $_comp2size($cname)
     lappend _comp2fldName($cname) $name
 
     # Handle bizarre cases that hopefully will be deprecated.
     if { $element == "unirect3d" } {
 	# Special case: unirect3d (should be deprecated) + flow.
         if { [$_field element $cname.extents] != "" } {
-            set extents [$_field get $cname.extents]
+            set vectorsize [$_field get $cname.extents]
         } else {
-            set extents 1 
+            set vectorsize 1 
         }
 	set _dim 3
         if { $_viewer == "" } {
@@ -1353,7 +1405,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
 	set _comp2dims($cname) "3D"
 	set _comp2unirect3d($cname) \
-	    [Rappture::Unirect3d \#auto $_xmlobj $_field $cname $extents]
+	    [Rappture::Unirect3d \#auto $_xmlobj $_field $cname $vectorsize]
 	set _comp2style($cname) [$_field get $cname.style]
 	if {[$_field element $cname.flow] != ""} {
 	    set _comp2flowhints($cname) \
@@ -1365,9 +1417,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     if { $element == "unirect2d" && [$_field element $cname.flow] != "" } {
 	# Special case: unirect2d (normally deprecated) + flow.
         if { [$_field element $cname.extents] != "" } {
-            set extents [$_field get $cname.extents]
+            set vectorsize [$_field get $cname.extents]
         } else {
-            set extents 1 
+            set vectorsize 1 
         }
 	set _dim 2
         if { $_viewer == "" } {
@@ -1531,4 +1583,44 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
     close $f
     file delete $tmpfile
     return $vtkdata
+}
+
+itcl::body Rappture::Field::GetTypeAndSize { cname } {
+    array set type2components {
+        "colorscalar"          4
+        "scalar"               1
+        "tcoord"               2
+        "tensor"               9
+        "vector"               3 
+    }
+    set type [$_field get $cname.elemtype]
+    if { $type == "" } {
+        set type "scalar"
+    } 
+    if { ![info exists type2components($type)] } {
+        error "unknown <elemtype> \"$type\" in field"
+    }
+    set size [$_field get $cname.elemsize]
+    if { $size == "" } {
+        set size $type2components($type)
+    }
+    set _comp2type($cname) $type
+    set _comp2size($cname) $size
+}
+
+itcl::body Rappture::Field::GetAssociation { cname } {
+    set assoc [$_field get $cname.association]
+    if { $assoc == "" } {
+        set _comp2assoc($cname) "pointdata"
+        return
+    } 
+    switch -- $assoc {
+        "pointdata" - "celldata" - "fielddata" {
+            set _comp2assoc($cname) $assoc
+            return
+        }
+        default {
+            error "unknown field association \"$assoc\""
+        }
+    }
 }

@@ -130,6 +130,7 @@ FILES		= \
 		$(srcdir)/videopreview.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/vtkviewer.tcl \
+		$(srcdir)/vtkglyphviewer.tcl \
 		$(srcdir)/vtkisosurfaceviewer.tcl \
 		$(srcdir)/vtkstreamlinesviewer.tcl \
 		$(srcdir)/vtkvolumeviewer.tcl \
