@@ -2116,7 +2116,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set _currentOpacity $style(-opacity)
     SendCmd "glyphs add arrow $tag"
     SendCmd "glyphs edges $style(-edges) $tag"
-    SendCmd "glyphs gscale 10 $tag"
+    SendCmd "glyphs gscale 20 $tag"
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
