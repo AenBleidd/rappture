@@ -1341,14 +1341,13 @@ itcl::body Rappture::Field::vtkdata {cname} {
         set numValues [expr [$vector length] / $elemSize]
         append out "$vtkassoc $numValues\n"
         if { $_comp2type($cname) == "scalar" } {
-            set vtktype "SCALARS"
+            append out "SCALARS $label double $elemSize\n"
+            append out "LOOKUP_TABLE default\n"
         } elseif { $_comp2type($cname) == "vector" } {
-            set vtktype "VECTORS"
+            append out "VECTORS $label double $elemSize\n"
         } else {
             error "unknown element type \"$_comp2type($cname)\""
         }
-        append out "$vtktype $label double $elemSize\n"
-	append out "LOOKUP_TABLE default\n"
 	append out "[$vector range 0 end]\n"
         if 0 {
             VerifyVtkDataSet $out
