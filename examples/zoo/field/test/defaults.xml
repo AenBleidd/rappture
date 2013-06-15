@@ -4,7 +4,7 @@
         <title>field</title>
         <about>Example of a Rappture &lt;field&gt; object.
 
-Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; and &lt;cloud&gt; elements for details).
+Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; element for details).
 
 When you click the Simulate button, the inputs will be used to generate output fields.
   </about>
@@ -15,11 +15,10 @@ When you click the Simulate button, the inputs will be used to generate output f
             <cputime>unlimited</cputime>
             <filesize>unlimited</filesize>
         </limits>
-        <name>Workspace (800x600)</name>
         <version>
             <rappture>
-                <revision>$LastChangedRevision: 1018 $</revision>
-                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <revision>$LastChangedRevision: 3362 $</revision>
+                <modified>$LastChangedDate: 2013-02-26 16:34:35 -0500 (Tue, 26 Feb 2013) $</modified>
                 <language>tcl</language>
             </rappture>
         </version>
@@ -38,66 +37,60 @@ When you click the Simulate button, the inputs will be used to generate output f
         <choice id="3D">
             <about>
                 <label>3D Rendering</label>
-                <description>Determines the method used for 3D rendering--either the built-in Vtk library or the external nanoVIS engine.</description>
+                <description>Determines the mesh type and method used for 3D rendering</description>
             </about>
             <option>
                 <about>
-                    <label>Vtk library</label>
-                    <description>This is the older visualization solution, implemented in Vtk and linked into the Rappture environment.</description>
+                    <label>Isosurface (Uniform Grid)</label>
+                    <description>Renders a series of isosurfaces using a uniform 3D grid mesh.</description>
                 </about>
-                <value>vtk</value>
+                <value>grid</value>
             </option>
             <option>
                 <about>
-                    <label>nanoVIS</label>
-                    <description>This is the newer nanoVIS engine running on accelerated hardware in the nanoHUB environment.</description>
+                    <label>Isosurface (Unstructured Grid)</label>
+                    <description>Renders a series of isosurfaces using an unstructured 3D grid mesh with a hole.</description>
                 </about>
-                <value>nanovis</value>
+                <value>unstructured</value>
             </option>
-            <default>nanovis</default>
-            <current>nanovis</current>
+            <option>
+                <about>
+                    <label>Volume (OpenDX)</label>
+                    <description>Renders a 3D volume using the deprecated OpenDX mesh/field format.</description>
+                </about>
+                <value>dx</value>
+            </option>
+            <default>grid</default>
+            <current>grid</current>
         </choice>
     </input>
     <output>
-        <cloud id="m2d">
+        <mesh id="m2d">
             <about>
                 <label>2D Mesh</label>
             </about>
+            <dim>2</dim>
             <units>um</units>
             <hide>yes</hide>
-            <points>0 0
-1 0
-2 0
-3 0
-4 0
-0 1
-1 1
-2 1
-3 1
-4 1
-0 2
-1 2
-2 2
-3 2
-4 2
-0 3
-1 3
-2 3
-3 3
-4 3
-0 4
-1 4
-2 4
-3 4
-4 4
-</points>
-        </cloud>
+            <grid>
+                <xaxis>
+                    <min>0</min>
+                    <max>4</max>
+                    <numpoints>5</numpoints>
+                </xaxis>
+                <yaxis>
+                    <min>0</min>
+                    <max>4</max>
+                    <numpoints>5</numpoints>
+                </yaxis>
+            </grid>
+        </mesh>
         <field id="f2d">
             <about>
                 <label>2D Field</label>
             </about>
             <component>
-                <mesh>output.cloud(m2d)</mesh>
+                <mesh>output.mesh(m2d)</mesh>
                 <values>0
 0
 0
@@ -126,23 +119,93 @@ When you click the Simulate button, the inputs will be used to generate output f
 </values>
             </component>
         </field>
+        <mesh id="m3d">
+            <about>
+                <label>3D Uniform Mesh</label>
+            </about>
+            <dim>3</dim>
+            <units>um</units>
+            <hide>yes</hide>
+            <grid>
+                <xaxis>
+                    <min>0</min>
+                    <max>4</max>
+                    <numpoints>5</numpoints>
+                </xaxis>
+                <yaxis>
+                    <min>0</min>
+                    <max>4</max>
+                    <numpoints>5</numpoints>
+                </yaxis>
+                <zaxis>
+                    <min>0</min>
+                    <max>1</max>
+                    <numpoints>2</numpoints>
+                </zaxis>
+            </grid>
+        </mesh>
         <field id="f3d">
             <about>
                 <label>3D Field</label>
             </about>
             <component>
-                <style>-color blue:yellow:red</style>
-                <dx>H4sICHNYP0kAA2R4MTIyODg4ODE3OQClUdGOwiAQfN+v2PAFLWiv9zm0rA2KbAPUi39/W0Wt
-3uOxCczODkMy8HCksWCLY7A545S8mzn74jlmHHmJJeNeyoCjUKwIG2wqbtbuiaUDvrvpjdvI
-MQr3169qTdXalOwVy3UmdLwMgTDZeBJXX+ic8WuPzso7Bw6BfzI0/6oWNBjYCdKyd9ALMnJ+
-Q6sF7oQQ0HZvl17S7by7oR706tavnCCjwZaS/LAUQuVoVpiljROqZ7oKUFZNQSWalmATvsJ/
-MJsAVc3q4Cm42/WRzzNHimVrjBcbFpLv+FC8Od01+lOzhvwYGvgFb6Ijqx4CAAA=
-</dx>
+                <mesh>output.mesh(m3d)</mesh>
+                <values>0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+1
+2
+3
+4
+0
+2
+4
+6
+8
+0
+3
+6
+9
+12
+0
+4
+8
+12
+16
+</values>
             </component>
         </field>
-        <time>Wed Dec 10 00:49:39 EST 2008</time>
+        <time>Sat Jun 15 12:14:09 AM EDT 2013</time>
         <status>ok</status>
-        <user>dkearney</user>
+        <user>ldelgass</user>
     </output>
 </run>
 

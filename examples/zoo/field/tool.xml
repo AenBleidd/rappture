@@ -4,7 +4,7 @@
   <title>field</title>
   <about>Example of a Rappture &lt;field&gt; object.
 
-Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; and &lt;cloud&gt; elements for details).
+Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; element for details).
 
 When you click the Simulate button, the inputs will be used to generate output fields.
   </about>
@@ -29,23 +29,30 @@ When you click the Simulate button, the inputs will be used to generate output f
   <choice id="3D">
     <about>
       <label>3D Rendering</label>
-      <description>Determines the method used for 3D rendering--either the built-in Vtk library or the external nanoVIS engine.</description>
+      <description>Determines the mesh type and method used for 3D rendering</description>
     </about>
     <option>
       <about>
-        <label>Vtk library</label>
-        <description>This is the older visualization solution, implemented in Vtk and linked into the Rappture environment.</description>
+        <label>Isosurface (Uniform Grid)</label>
+        <description>Renders a series of isosurfaces using a uniform 3D grid mesh.</description>
       </about>
-      <value>vtk</value>
+      <value>grid</value>
     </option>
     <option>
       <about>
-        <label>nanoVIS</label>
-        <description>This is the newer nanoVIS engine running on accelerated hardware in the nanoHUB environment.</description>
+        <label>Isosurface (Unstructured Grid)</label>
+        <description>Renders a series of isosurfaces using an unstructured 3D grid mesh with a hole.</description>
       </about>
-      <value>nanovis</value>
+      <value>unstructured</value>
     </option>
-    <default>nanovis</default>
+    <option>
+      <about>
+        <label>Volume (OpenDX)</label>
+        <description>Renders a 3D volume using the deprecated OpenDX mesh/field format.</description>
+      </about>
+      <value>dx</value>
+    </option>
+    <default>grid</default>
   </choice>
 </input>
 </run>
