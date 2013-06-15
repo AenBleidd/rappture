@@ -17,49 +17,32 @@ set formula [$driver get input.string(formula).current]
 regsub -all {[xyz]} $formula {$\0} formula
 
 #
-# Generate the 2D mesh and field values...
+# Generate a uniform grid 2D mesh and field values...
 #
 
-$driver put output.cloud(m2d).about.label "2D Mesh"
-$driver put output.cloud(m2d).units "um"
-$driver put output.cloud(m2d).hide "yes"
+$driver put output.mesh(m2d).about.label "2D Mesh"
+$driver put output.mesh(m2d).dim 2
+$driver put output.mesh(m2d).units "um"
+$driver put output.mesh(m2d).hide "yes"
+$driver put output.mesh(m2d).grid.xaxis.min 0
+$driver put output.mesh(m2d).grid.xaxis.max 4
+$driver put output.mesh(m2d).grid.xaxis.numpoints 5
+$driver put output.mesh(m2d).grid.yaxis.min 0
+$driver put output.mesh(m2d).grid.yaxis.max 4
+$driver put output.mesh(m2d).grid.yaxis.numpoints 5
 
 $driver put output.field(f2d).about.label "2D Field"
-$driver put output.field(f2d).component.mesh "output.cloud(m2d)"
+$driver put output.field(f2d).component.mesh "output.mesh(m2d)"
+
 set n 0
 set z 1
-foreach {x y} {
-    0 0
-    1 0
-    2 0
-    3 0
-    4 0
-    0 1
-    1 1
-    2 1
-    3 1
-    4 1
-    0 2
-    1 2
-    2 2
-    3 2
-    4 2
-    0 3
-    1 3
-    2 3
-    3 3
-    4 3
-    0 4
-    1 4
-    2 4
-    3 4
-    4 4
-} {
-    $driver put -append yes output.cloud(m2d).points "$x $y\n"
-    incr n
+for {set y 0} {$y < 5} {incr y} {
+    for {set x 0} {$x < 5} {incr x} {
+        incr n
 
-    set fval [expr $formula]
-    $driver put -append yes output.field(f2d).component.values "$fval\n"
+        set fval [expr $formula]
+        $driver put -append yes output.field(f2d).component.values "$fval\n"
+    }
 }
 
 #
@@ -67,107 +50,101 @@ foreach {x y} {
 #
 set vizmethod [$driver get input.choice(3D).current]
 
-#
-# Generate the 3D mesh and field values...
-#
-$driver put output.field(f3d).about.label "3D Field"
-$driver put output.field(f3d).component.style "color blue:yellow:red"
-if {$vizmethod == "vtk"} {
-    set n 0
-    foreach {x y z} {
-        0 0 0
-        1 0 0
-        2 0 0
-        3 0 0
-        4 0 0
-        0 1 0
-        1 1 0
-        2 1 0
-        3 1 0
-        4 1 0
-        0 2 0
-        1 2 0
-        2 2 0
-        3 2 0
-        4 2 0
-        0 3 0
-        1 3 0
-        2 3 0
-        3 3 0
-        4 3 0
-        0 4 0
-        1 4 0
-        2 4 0
-        3 4 0
-        4 4 0
-        0 0 1
-        1 0 1
-        2 0 1
-        3 0 1
-        4 0 1
-        0 1 1
-        1 1 1
-        2 1 1
-        3 1 1
-        4 1 1
-        0 2 1
-        1 2 1
-        2 2 1
-        3 2 1
-        4 2 1
-        0 3 1
-        1 3 1
-        2 3 1
-        3 3 1
-        4 3 1
-        0 4 1
-        1 4 1
-        2 4 1
-        3 4 1
-        4 4 1
-    } {
-        $driver put output.mesh(m3d).node($n) "$x $y $z"
-        incr n
+if {$vizmethod == "grid"} {
+    #
+    # Generate a uniform grid 3D mesh and field values...
+    #
+    $driver put output.mesh(m3d).about.label "3D Uniform Mesh"
+    $driver put output.mesh(m3d).dim 3
+    $driver put output.mesh(m3d).units "um"
+    $driver put output.mesh(m3d).hide "yes"
+    $driver put output.mesh(m3d).grid.xaxis.min 0
+    $driver put output.mesh(m3d).grid.xaxis.max 4
+    $driver put output.mesh(m3d).grid.xaxis.numpoints 5
+    $driver put output.mesh(m3d).grid.yaxis.min 0
+    $driver put output.mesh(m3d).grid.yaxis.max 4
+    $driver put output.mesh(m3d).grid.yaxis.numpoints 5
+    $driver put output.mesh(m3d).grid.zaxis.min 0
+    $driver put output.mesh(m3d).grid.zaxis.max 1
+    $driver put output.mesh(m3d).grid.zaxis.numpoints 2
 
-        set fval [expr $formula]
-        $driver put -append yes output.field(f3d).component.values "$fval\n"
+    $driver put output.field(f3d).about.label "3D Field"
+    $driver put output.field(f3d).component.mesh "output.mesh(m3d)"
+
+    set n 0
+
+    for {set z 0} {$z < 2} {incr z} {
+        for {set y 0} {$y < 5} {incr y} {
+            for {set x 0} {$x < 5} {incr x} {
+                 incr n
+
+                set fval [expr $formula]
+                $driver put -append yes output.field(f3d).component.values "$fval\n"
+            }
+        }
     }
 
-    # meshes also need element descriptions
-    $driver put output.mesh(m3d).about.label "3D Mesh"
+}
+
+if {$vizmethod == "unstructured"} {
+    #
+    # Generate an unstructured grid 3D mesh and field values...
+    #
+    $driver put output.mesh(m3d).about.label "3D Unstructured Mesh"
+    $driver put output.mesh(m3d).dim 3
     $driver put output.mesh(m3d).units "um"
     $driver put output.mesh(m3d).hide "yes"
 
-    $driver put output.mesh(m3d).element(0).nodes "0 1 5 6 25 26 30 31"
-    $driver put output.mesh(m3d).element(1).nodes "1 2 6 7 26 27 31 32"
-    $driver put output.mesh(m3d).element(2).nodes "2 3 7 8 27 28 32 33"
-    $driver put output.mesh(m3d).element(3).nodes "3 4 8 9 28 29 33 34"
-    $driver put output.mesh(m3d).element(4).nodes "5 6 10 11 30 31 35 36"
-    $driver put output.mesh(m3d).element(5).nodes "8 9 13 14 33 34 38 39"
-    $driver put output.mesh(m3d).element(6).nodes "10 11 15 16 35 36 40 41"
-    $driver put output.mesh(m3d).element(7).nodes "13 14 18 19 38 39 43 44"
-    $driver put output.mesh(m3d).element(8).nodes "15 16 20 21 40 41 45 46"
-    $driver put output.mesh(m3d).element(9).nodes "16 17 21 22 41 42 46 47"
-    $driver put output.mesh(m3d).element(10).nodes "17 18 22 23 42 43 47 48"
-    $driver put output.mesh(m3d).element(12).nodes "18 19 23 24 43 44 48 49"
-
+    $driver put output.field(f3d).about.label "3D Field"
     $driver put output.field(f3d).component.mesh "output.mesh(m3d)"
+
+    set n 0
+
+    for {set z 0} {$z < 2} {incr z} {
+        for {set y 0} {$y < 5} {incr y} {
+            for {set x 0} {$x < 5} {incr x} {
+                $driver put -append yes output.mesh(m3d).unstructured.points "$x $y $z\n"
+                incr n
+
+                set fval [expr $formula]
+                $driver put -append yes output.field(f3d).component.values "$fval\n"
+            }
+        }
+    }
+
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "0 1 6 5 25 26 31 30\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "1 2 7 6 26 27 32 31\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "2 3 8 7 27 28 33 32\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "3 4 9 8 28 29 34 33\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "5 6 11 10 30 31 36 35\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "8 9 14 13 33 34 39 38\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "10 11 16 15 35 36 41 40\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "13 14 19 18 38 39 44 43\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "15 16 21 20 40 41 46 45\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "16 17 22 21 41 42 47 46\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "17 18 23 22 42 43 48 47\n"
+    $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "18 19 24 23 43 44 49 48\n"
 }
 
-#
-# Generate the 3D mesh in OpenDX format...
-#
-if {$vizmethod == "nanovis"} {
-    set dx "object 1 class gridpositions counts 5 5 3
+if {$vizmethod == "dx"} {
+    #
+    # Generate a uniform 3D mesh in OpenDX format...
+    #
+    $driver put output.field(f3d).about.label "3D Field"
+    $driver put output.field(f3d).component.style "-color blue:yellow:red -levels 6"
+
+    set dx "object 1 class gridpositions counts 5 5 2
+origin 0 0 0
 delta 1 0 0
 delta 0 1 0
 delta 0 0 1
-object 2 class gridconnections counts 5 5 3
-object 3 class array type double rank 0 items 75 data follows
+object 2 class gridconnections counts 5 5 2
+object 3 class array type double rank 0 items 50 data follows
 "
-    for {set z 0} {$z < 3} {incr z} {
+    # Axis ordering for OpenDX is reversed (z fastest)
+    for {set x 0} {$x < 5} {incr x} {
         for {set y 0} {$y < 5} {incr y} {
-            for {set x 0} {$x < 5} {incr x} {
+            for {set z 0} {$z < 2} {incr z} {
                 set fval [expr $formula]
                 append dx "$fval\n"
             }
