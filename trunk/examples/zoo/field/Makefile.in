@@ -15,8 +15,8 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
-		$(srcdir)/2dfield.gif \
-		$(srcdir)/3dfield.gif \
+		$(srcdir)/2DField.jpg \
+		$(srcdir)/3DField.jpg \
 		$(srcdir)/field.tcl \
 		$(srcdir)/tool.xml 
 
