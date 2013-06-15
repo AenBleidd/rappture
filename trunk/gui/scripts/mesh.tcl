@@ -978,7 +978,6 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
             return 0
         }
         if { $xcoords != "" && $ycoords != "" } {
-            set all [blt::vector create \#auto]
             set xv [blt::vector create \#auto]
             set yv [blt::vector create \#auto]
             $xv set $xcoords
