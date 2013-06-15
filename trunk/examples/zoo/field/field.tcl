@@ -24,22 +24,19 @@ $driver put output.mesh(m2d).about.label "2D Mesh"
 $driver put output.mesh(m2d).dim 2
 $driver put output.mesh(m2d).units "um"
 $driver put output.mesh(m2d).hide "yes"
-$driver put output.mesh(m2d).grid.xaxis.min 0
-$driver put output.mesh(m2d).grid.xaxis.max 4
+$driver put output.mesh(m2d).grid.xaxis.min 0.0
+$driver put output.mesh(m2d).grid.xaxis.max 4.0
 $driver put output.mesh(m2d).grid.xaxis.numpoints 5
-$driver put output.mesh(m2d).grid.yaxis.min 0
-$driver put output.mesh(m2d).grid.yaxis.max 4
+$driver put output.mesh(m2d).grid.yaxis.min 0.0
+$driver put output.mesh(m2d).grid.yaxis.max 4.0
 $driver put output.mesh(m2d).grid.yaxis.numpoints 5
 
 $driver put output.field(f2d).about.label "2D Field"
 $driver put output.field(f2d).component.mesh "output.mesh(m2d)"
 
-set n 0
 set z 1
 for {set y 0} {$y < 5} {incr y} {
     for {set x 0} {$x < 5} {incr x} {
-        incr n
-
         set fval [expr $formula]
         $driver put -append yes output.field(f2d).component.values "$fval\n"
     }
@@ -58,32 +55,27 @@ if {$vizmethod == "grid"} {
     $driver put output.mesh(m3d).dim 3
     $driver put output.mesh(m3d).units "um"
     $driver put output.mesh(m3d).hide "yes"
-    $driver put output.mesh(m3d).grid.xaxis.min 0
-    $driver put output.mesh(m3d).grid.xaxis.max 4
+    $driver put output.mesh(m3d).grid.xaxis.min 0.0
+    $driver put output.mesh(m3d).grid.xaxis.max 4.0
     $driver put output.mesh(m3d).grid.xaxis.numpoints 5
-    $driver put output.mesh(m3d).grid.yaxis.min 0
-    $driver put output.mesh(m3d).grid.yaxis.max 4
+    $driver put output.mesh(m3d).grid.yaxis.min 0.0
+    $driver put output.mesh(m3d).grid.yaxis.max 4.0
     $driver put output.mesh(m3d).grid.yaxis.numpoints 5
-    $driver put output.mesh(m3d).grid.zaxis.min 0
-    $driver put output.mesh(m3d).grid.zaxis.max 1
+    $driver put output.mesh(m3d).grid.zaxis.min 0.0
+    $driver put output.mesh(m3d).grid.zaxis.max 1.0
     $driver put output.mesh(m3d).grid.zaxis.numpoints 2
 
     $driver put output.field(f3d).about.label "3D Field"
     $driver put output.field(f3d).component.mesh "output.mesh(m3d)"
 
-    set n 0
-
     for {set z 0} {$z < 2} {incr z} {
         for {set y 0} {$y < 5} {incr y} {
             for {set x 0} {$x < 5} {incr x} {
-                 incr n
-
                 set fval [expr $formula]
                 $driver put -append yes output.field(f3d).component.values "$fval\n"
             }
         }
     }
-
 }
 
 if {$vizmethod == "unstructured"} {
@@ -98,14 +90,10 @@ if {$vizmethod == "unstructured"} {
     $driver put output.field(f3d).about.label "3D Field"
     $driver put output.field(f3d).component.mesh "output.mesh(m3d)"
 
-    set n 0
-
     for {set z 0} {$z < 2} {incr z} {
         for {set y 0} {$y < 5} {incr y} {
             for {set x 0} {$x < 5} {incr x} {
                 $driver put -append yes output.mesh(m3d).unstructured.points "$x $y $z\n"
-                incr n
-
                 set fval [expr $formula]
                 $driver put -append yes output.field(f3d).component.values "$fval\n"
             }
@@ -145,6 +133,7 @@ object 3 class array type double rank 0 items 50 data follows
     for {set x 0} {$x < 5} {incr x} {
         for {set y 0} {$y < 5} {incr y} {
             for {set z 0} {$z < 2} {incr z} {
+                
                 set fval [expr $formula]
                 append dx "$fval\n"
             }
