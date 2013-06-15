@@ -6,6 +6,8 @@
 
 Clouds are a collection of mesh points over which a &lt;field&gt; is defined.
 
+WARNING: The cloud output is deprecated in favor of the unstructured mesh type -- please see the &lt;mesh&gt; example.
+
 When you click the Simulate button, the inputs will be used to generate output clouds.
   </about>
   <command>

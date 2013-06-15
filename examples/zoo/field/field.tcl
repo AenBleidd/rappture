@@ -133,7 +133,6 @@ object 3 class array type double rank 0 items 50 data follows
     for {set x 0} {$x < 5} {incr x} {
         for {set y 0} {$y < 5} {incr y} {
             for {set z 0} {$z < 2} {incr z} {
-                
                 set fval [expr $formula]
                 append dx "$fval\n"
             }
