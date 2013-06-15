@@ -47,7 +47,6 @@ itcl::class Rappture::Drawing {
     private method PdbToVtk { cname contents } 
 }
 
-
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
@@ -309,7 +308,6 @@ itcl::body Rappture::Drawing::limits {which} {
     return [list $min $max]
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: hints ?<keyword>?
 #
@@ -340,7 +338,6 @@ itcl::body Rappture::Drawing::hints { {keyword ""} } {
     }
     return [array get _hints]
 }
-
 
 itcl::body Rappture::Drawing::PdbToVtk { cname contents } {
     package require vtk
