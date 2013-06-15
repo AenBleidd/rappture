@@ -20,8 +20,8 @@ switch -- $meshtype {
     "unirect2d" {
 	set mesh "output.unirect2d"
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "unirect2d mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -48,8 +48,8 @@ switch -- $meshtype {
     }
     "oldcloud" {
 	set mesh output.cloud
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "cloud (deprecated)"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -67,8 +67,8 @@ switch -- $meshtype {
     "cloud" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "cloud in unstructured mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -84,8 +84,8 @@ switch -- $meshtype {
     "regular" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "uniform grid mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -99,8 +99,8 @@ switch -- $meshtype {
     "irregular" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "irregular grid mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -110,8 +110,8 @@ switch -- $meshtype {
     "hybrid" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "hybrid regular and irregular grid mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -124,8 +124,8 @@ switch -- $meshtype {
     "triangular" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "triangles in unstructured mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -135,8 +135,8 @@ switch -- $meshtype {
     "generic" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "nodes and elements mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -154,8 +154,8 @@ switch -- $meshtype {
     "unstructured" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "Unstructured Grid"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -170,8 +170,8 @@ switch -- $meshtype {
     "cells" {
 	set mesh output.mesh
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "unstructured grid with heterogeneous cells"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -191,8 +191,8 @@ switch -- $meshtype {
 	set data [read $f]
 	close $f
 
-	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "vtk mesh"
+	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 	$driver put $mesh.vtk $data
@@ -230,4 +230,3 @@ $driver put output.string.current [$driver xml $mesh]
 # save the updated XML describing the run...
 Rappture::result $driver
 exit 0
-
