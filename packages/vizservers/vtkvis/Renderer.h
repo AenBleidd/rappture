@@ -741,6 +741,10 @@ public:
 
     // Molecules
 
+    void setMoleculeAtomQuality(const DataSetId& id, double quality);
+
+    void setMoleculeBondQuality(const DataSetId& id, double quality);
+
     void setMoleculeAtomRadiusScale(const DataSetId& id, double scale);
 
     void setMoleculeBondRadiusScale(const DataSetId& id, double scale);

@@ -2268,6 +2268,68 @@ bool Renderer::addLine(const DataSetId& id, double pt1[3], double pt2[3])
 }
 
 /**
+ * \brief Set atom sphere resolution
+ */
+void Renderer::setMoleculeAtomQuality(const DataSetId& id, double quality)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAtomQuality(quality);
+    } while (doAll && ++itr != _molecules.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+
+/**
+ * \brief Set bond cylinder resolution
+ */
+void Renderer::setMoleculeBondQuality(const DataSetId& id, double quality)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBondQuality(quality);
+    } while (doAll && ++itr != _molecules.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+
+/**
  * \brief Set radius scale factor for atoms
  */
 void Renderer::setMoleculeAtomRadiusScale(const DataSetId& id, double scale)
@@ -3019,6 +3081,7 @@ void Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints
  * \param[in] id DataSet identifier
  * \param[in] data Bytes of VTK DataSet file
  * \param[in] nbytes Length of data array
+ * \param[in] maxPoints Maximum number of points to be used as seeds
  *
  * \return boolean indicating success or failure
  */

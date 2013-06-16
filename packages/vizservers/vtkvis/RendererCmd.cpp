@@ -7331,6 +7331,23 @@ MoleculeAtomLabelVisibilityOp(ClientData clientData, Tcl_Interp *interp, int obj
 }
 
 static int
+MoleculeAtomQualityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double quality;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quality) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeAtomQuality(name, quality);
+    } else {
+        g_renderer->setMoleculeAtomQuality("all", quality);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeAtomScaleFactorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                           Tcl_Obj *const *objv)
 {
@@ -7414,6 +7431,23 @@ MoleculeBondColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setMoleculeBondColor(name, color);
     } else {
         g_renderer->setMoleculeBondColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeBondQualityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double quality;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quality) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeBondQuality(name, quality);
+    } else {
+        g_renderer->setMoleculeBondQuality("all", quality);
     }
     return TCL_OK;
 }
@@ -7746,11 +7780,13 @@ MoleculeWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec moleculeOps[] = {
     {"add",          2, MoleculeAddOp, 2, 3, "?dataSetName?"},
+    {"aquality",     2, MoleculeAtomQualityOp, 3, 4, "value ?dataSetName?"},
     {"ascale",       2, MoleculeAtomScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"atoms",        2, MoleculeAtomVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"bcmode",       3, MoleculeBondColorModeOp, 3, 4, "mode ?dataSetName?"},
     {"bcolor",       3, MoleculeBondColorOp, 5, 6, "r g b ?dataSetName?"},
     {"bonds",        2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"bquality",     2, MoleculeBondQualityOp, 3, 4, "value ?dataSetName?"},
     {"bscale",       3, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"bstyle",       3, MoleculeBondStyleOp, 3, 4, "value ?dataSetName?"},
     {"ccolor",       2, MoleculeColorOp, 5, 6, "r g b ?dataSetName?"},
