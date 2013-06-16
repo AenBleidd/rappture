@@ -16,6 +16,7 @@
 #include <vtkAssembly.h>
 #include <vtkGlyph3DMapper.h>
 #include <vtkTransformPolyDataFilter.h>
+#include <vtkSphereSource.h>
 #include <vtkCylinderSource.h>
 #include <vtkLineSource.h>
 #include <vtkPointSetToLabelHierarchy.h>
@@ -127,6 +128,10 @@ public:
 
     void setBondColorMode(BondColorMode mode);
 
+    void setAtomQuality(double quality);
+
+    void setBondQuality(double quality);
+
     static ColorMap *createElementColorMap();
 
 private:
@@ -156,6 +161,7 @@ private:
     vtkSmartPointer<vtkActor> _atomProp;
     vtkSmartPointer<vtkActor> _bondProp;
     vtkSmartPointer<vtkActor2D> _labelProp;
+    vtkSmartPointer<vtkSphereSource> _sphereSource;
     vtkSmartPointer<vtkPolyData> _bondPD;
     vtkSmartPointer<vtkCylinderSource> _cylinderSource;
     vtkSmartPointer<vtkTransformPolyDataFilter>_cylinderTrans;

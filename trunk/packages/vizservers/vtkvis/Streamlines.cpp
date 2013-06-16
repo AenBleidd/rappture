@@ -705,6 +705,7 @@ void Streamlines::setSeedToFilledMesh(int numPoints)
  * \brief Use points of a supplied vtkDataSet as seeds
  *
  * \param[in] seed vtkDataSet with points to use as seeds
+ * \param[in] maxPoints Maximum number of points to be used as seeds
  */
 void Streamlines::setSeedToMeshPoints(vtkDataSet *seed, int maxPoints)
 {

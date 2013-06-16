@@ -590,16 +590,20 @@ line scale <sx> <sy> <sz> <?name?>
 line visible <bool> <?name?>
 
 molecule add <?datasetName?>
-molecule atoms <bool> <?datasetName?>
-         Toggle rendering of atoms
+molecule aquality <val> <?datasetName?>
+         Set atom sphere resolution quality val=[0,10], 1 is default
 molecule ascale <val> <?datasetName?>
          Set atom scale factor
+molecule atoms <bool> <?datasetName?>
+         Toggle rendering of atoms
 molecule bcmode <by_elements|constant> <?datasetName?>
          Set bond color mode
 molecule bcolor <r> <g> <b> <?datasetName?>
          Set constant bond color
 molecule bonds <bool> <?datasetName?>
          Toggle rendering of bonds
+molecule bquality <val> <?datasetName?>
+         Set bond cylinder resolution quality val=[0,10], 1 is default
 molecule bscale <val> <?datasetName?>
          Set bond scale factor
 molecule bstyle <cylinder|line> <?datasetName?>

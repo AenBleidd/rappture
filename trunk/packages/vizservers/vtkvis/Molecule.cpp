@@ -241,12 +241,14 @@ void Molecule::update()
             _labelProp->SetMapper(_labelMapper);
 
             // Atoms
-            vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-            sphereSource->SetRadius(1.0);
-            sphereSource->SetThetaResolution(14);
-            sphereSource->SetPhiResolution(14);
+            if (_sphereSource == NULL) {
+                _sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+                _sphereSource->SetRadius(1.0);
+                _sphereSource->SetThetaResolution(14);
+                _sphereSource->SetPhiResolution(14);
+            }
 
-            _atomMapper->SetSourceConnection(sphereSource->GetOutputPort());
+            _atomMapper->SetSourceConnection(_sphereSource->GetOutputPort());
 #ifdef USE_VTK6
             _atomMapper->SetInputData(pd);
 #else
@@ -658,6 +660,47 @@ void Molecule::setOpacity(double opacity)
     GraphicsObject::setOpacity(opacity);
     if (_labelMapper != NULL) {
         _labelMapper->SetBackgroundOpacity(opacity);
+    }
+}
+
+void Molecule::setAtomQuality(double quality)
+{
+    if (_sphereSource == NULL)
+        return;
+
+    if (quality > 10.0)
+        quality = 10.0;
+
+    int thetaRes = (int)(quality * 14.0);
+    int phiRes = (int)(quality * 14.0);
+    if (thetaRes < 4) thetaRes = 4;
+    if (phiRes < 3) phiRes = 3;
+
+    _sphereSource->SetThetaResolution(thetaRes);
+    _sphereSource->SetPhiResolution(phiRes);
+
+    if (_atomMapper != NULL) {
+        _atomMapper->Modified();
+        _atomMapper->Update();
+    }
+}
+
+void Molecule::setBondQuality(double quality)
+{
+    if (_cylinderSource == NULL)
+        return;
+
+    if (quality > 10.0)
+        quality = 10.0;
+
+    int res = (int)(quality * 12.0);
+    if (res < 3) res = 3;
+
+    _cylinderSource->SetResolution(res);
+
+    if (_bondMapper != NULL) {
+        _bondMapper->Modified();
+        _bondMapper->Update();
     }
 }
 
