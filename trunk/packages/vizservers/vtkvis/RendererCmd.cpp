@@ -12,6 +12,7 @@
 #include <cerrno>
 #include <string>
 #include <sstream>
+#include <vector>
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/uio.h>
@@ -130,20 +131,21 @@ static int
 ArcAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
          Tcl_Obj *const *objv)
 {
-    double center[3], pt1[3], pt2[3];
+    double center[3], pt1[3], norm[3], angle;
     if (Tcl_GetDoubleFromObj(interp, objv[2], &center[0]) != TCL_OK ||
         Tcl_GetDoubleFromObj(interp, objv[3], &center[1]) != TCL_OK ||
         Tcl_GetDoubleFromObj(interp, objv[4], &center[2]) != TCL_OK ||
         Tcl_GetDoubleFromObj(interp, objv[5], &pt1[0]) != TCL_OK ||
         Tcl_GetDoubleFromObj(interp, objv[6], &pt1[1]) != TCL_OK ||
         Tcl_GetDoubleFromObj(interp, objv[7], &pt1[2]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[8], &pt2[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[9], &pt2[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[10], &pt2[2]) != TCL_OK) {
+        Tcl_GetDoubleFromObj(interp, objv[8], &norm[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[9], &norm[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[10], &norm[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[11], &angle) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *name = Tcl_GetString(objv[11]);
-    if (!g_renderer->addArc(name, center, pt1, pt2)) {
+    const char *name = Tcl_GetString(objv[12]);
+    if (!g_renderer->addArc(name, center, pt1, norm, angle)) {
         Tcl_AppendResult(interp, "Failed to create arc", (char*)NULL);
         return TCL_ERROR;
     }
@@ -328,7 +330,7 @@ ArcVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec arcOps[] = {
-    {"add",       1, ArcAddOp, 12, 12, "centerX centerY centerZ x1 y1 z1 x2 y2 z2 name"},
+    {"add",       1, ArcAddOp, 13, 13, "centerX centerY centerZ startX startY startZ normX normY normZ angle name"},
     {"color",     1, ArcColorOp, 5, 6, "r g b ?name?"},
     {"delete",    1, ArcDeleteOp, 2, 3, "?name?"},
     {"linecolor", 5, ArcColorOp, 5, 6, "r g b ?name?"},
@@ -720,7 +722,7 @@ static Rappture::CmdSpec arrowOps[] = {
     {"opacity",   2, ArrowOpacityOp, 3, 4, "value ?name?"},
     {"orient",    4, ArrowOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"origin",    4, ArrowOriginOp, 5, 6, "x y z ?name?"},
-    {"pos",       2, ArrowPositionOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, ArrowPositionOp, 5, 6, "x y z ?name?"},
     {"resolution",1, ArrowResolutionOp, 4, 5, "tipRes shaftRes ?name?"},
     {"scale",     2, ArrowScaleOp, 5, 6, "sx sy sz ?name?"},
     {"shading",   2, ArrowShadingOp, 3, 4, "val ?name?"},
@@ -7074,18 +7076,25 @@ static int
 LineAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
-    double pt1[3];
-    double pt2[3];
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &pt1[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[3], &pt1[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[4], &pt1[2]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[5], &pt2[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[6], &pt2[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[7], &pt2[2]) != TCL_OK) {
+    std::vector<double> points;
+    int ptlistc;
+    Tcl_Obj **ptlistv;
+    if (Tcl_ListObjGetElements(interp, objv[2], &ptlistc, &ptlistv) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *name = Tcl_GetString(objv[8]);
-    if (!g_renderer->addLine(name, pt1, pt2)) {
+    if (ptlistc < 6 || ptlistc % 3 != 0) {
+        Tcl_AppendResult(interp, "Points list size must be 6 or more and a multiple of 3", (char*)NULL);
+        return TCL_ERROR;
+    }
+    for (int i = 0; i < ptlistc; i++) {
+        double val;
+        if (Tcl_GetDoubleFromObj(interp, ptlistv[i], &val) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        points.push_back(val);
+    }
+    const char *name = Tcl_GetString(objv[3]);
+    if (!g_renderer->addLine(name, points)) {
         Tcl_AppendResult(interp, "Failed to create line", (char*)NULL);
         return TCL_ERROR;
     }
@@ -7253,7 +7262,7 @@ LineVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec lineOps[] = {
-    {"add",       1, LineAddOp, 9, 9, "x1 y1 z1 x2 y2 z2 name"},
+    {"add",       1, LineAddOp, 4, 4, "points name"},
     {"color",     1, LineColorOp, 5, 6, "r g b ?name?"},
     {"delete",    1, LineDeleteOp, 2, 3, "?name?"},
     {"linecolor", 5, LineColorOp, 5, 6, "r g b ?name?"},

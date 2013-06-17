@@ -257,7 +257,9 @@ screen size <width> <height>
 
 == Graphics objects ==
 
-arc add <centerX> <centerY> <centerZ> <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
+arc add <centerX> <centerY> <centerZ> <startX> <startY> <startZ> <normX> <normY> <normZ> <angle> <name>
+    Creates a circular arc given a center and starting point, a normal and a 
+    sweep angle.
 arc color <r> <g> <b> <?name?>
 arc delete <?name?>
 arc linecolor <r> <g> <b> <?name?>
@@ -491,6 +493,8 @@ glyphs opacity <val> <?datasetName?>
 glyphs orient <qw> <qx> <qy> <qz> <?dataSetName?>
 glyphs pos <x> <y> <z> <?dataSetName?>
 glyphs ptsize <size> <?dataSetName?>
+glyphs quality <val> <?dataSetName?>
+       Set glyph shape resolution quality val=[0,10], 1 is default
 glyphs scale <sx> <sy> <sz> <?dataSetName?>
 glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|line|octahedron|point|sphere|tetrahedron> <?datasetName?>
 glyphs smode <scalar|vmag|vcomp|off> <fieldName> <?dataSetName?>
@@ -576,7 +580,9 @@ lic slice <axis> <ratio> <?datasetName?>
     ratio is [0,1]
 lic visible <bool> <?datasetName?>
 
-line add <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
+line add <points> <name>
+     Create a polyline from the list of point coordinates in <points>. The
+     list size must be a multiple of 3 (each point's x,y,z coordinates)
 line color <r> <g> <b> <?name?>
 line delete <?name?>
 line linecolor <r> <g> <b> <?name?>
