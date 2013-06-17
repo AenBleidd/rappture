@@ -5665,6 +5665,23 @@ GlyphsPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsQualityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double quality;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quality) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsQuality(name, quality);
+    } else {
+        g_renderer->setGlyphsQuality("all", quality);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -5824,6 +5841,7 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"orient",       2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          2, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"ptsize",       2, GlyphsPointSizeOp, 3, 4, "size ?dataSetName?"},
+    {"quality",      1, GlyphsQualityOp, 3, 4, "val ?dataSetName?"},
     {"scale",        2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"shape",        2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
     {"smode",        2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetName?"},

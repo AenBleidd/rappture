@@ -39,8 +39,8 @@ void Cone::update()
     }
 
     vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normalFilter->SetFeatureAngle(90.);
     normalFilter->SetInputConnection(_cone->GetOutputPort());
-    normalFilter->AutoOrientNormalsOff();
 
     _pdMapper->SetInputConnection(_cone->GetOutputPort());
 

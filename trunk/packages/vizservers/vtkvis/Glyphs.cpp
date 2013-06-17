@@ -26,6 +26,7 @@
 #include <vtkTransform.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkTransformPolyDataFilter.h>
+#include <vtkPolyDataNormals.h>
 
 #include "Glyphs.h"
 #include "Renderer.h"
@@ -103,6 +104,9 @@ void Glyphs::setGlyphShape(GlyphShape shape)
     // SourceTransform because of a bug: vtkGlyph3D doesn't transform normals
     // by the SourceTransform, so the lighting would be wrong
 
+    bool needsNormals = false;
+    double featureAngle = 90.;
+
     switch (_glyphShape) {
     case LINE:
         _glyphSource = vtkSmartPointer<vtkLineSource>::New();
@@ -112,12 +116,14 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         vtkSmartPointer<vtkArrowSource> arrow = vtkArrowSource::SafeDownCast(_glyphSource);
         arrow->SetTipResolution(8);
         arrow->SetShaftResolution(8);
+        needsNormals = true;
     }
         break;
     case CONE: {
         _glyphSource = vtkSmartPointer<vtkConeSource>::New();
         vtkSmartPointer<vtkConeSource> cone = vtkConeSource::SafeDownCast(_glyphSource);
         cone->SetResolution(8);
+        needsNormals = true;
     }
         break;
     case CUBE:
@@ -137,14 +143,20 @@ void Glyphs::setGlyphShape(GlyphShape shape)
     case DODECAHEDRON:
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
         vtkPlatonicSolidSource::SafeDownCast(_glyphSource)->SetSolidTypeToDodecahedron();
+        needsNormals = true;
+        featureAngle = 30.;
         break;
     case ICOSAHEDRON:
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
         vtkPlatonicSolidSource::SafeDownCast(_glyphSource)->SetSolidTypeToIcosahedron();
+        needsNormals = true;
+        featureAngle = 30.;
         break;
     case OCTAHEDRON:
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
         vtkPlatonicSolidSource::SafeDownCast(_glyphSource)->SetSolidTypeToOctahedron();
+        needsNormals = true;
+        featureAngle = 30.;
         break;
     case POINT:
         _glyphSource = vtkSmartPointer<vtkPointSource>::New();
@@ -164,6 +176,8 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         // FIXME: need to rotate inital orientation
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
         vtkPlatonicSolidSource::SafeDownCast(_glyphSource)->SetSolidTypeToTetrahedron();
+        needsNormals = true;
+        featureAngle = 30.;
         break;
     default:
         ERROR("Unknown glyph shape: %d", _glyphShape);
@@ -178,11 +192,14 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         setCullFace(CULL_BACK);
     }
 
-    if (_glyphMapper != NULL) {
+    if (needsNormals && _glyphMapper != NULL) {
+        vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+        normalFilter->SetFeatureAngle(featureAngle);
+        normalFilter->SetInputConnection(_glyphSource->GetOutputPort());
+        _glyphMapper->SetSourceConnection(normalFilter->GetOutputPort());
+    } else if (_glyphMapper != NULL) {
         _glyphMapper->SetSourceConnection(_glyphSource->GetOutputPort());
     }
-
-    //setQuality(0.8);
 }
 
 void Glyphs::setQuality(double quality)
@@ -190,38 +207,48 @@ void Glyphs::setQuality(double quality)
     switch (_glyphShape) {
     case ARROW: {
         vtkSmartPointer<vtkArrowSource> arrow = vtkArrowSource::SafeDownCast(_glyphSource);
-        int res = (int)(quality * 25);
-        if (res < 5) res = 5;
+        int res = (int)(quality * 8.);
+        if (res < 3) res = 3;
         arrow->SetTipResolution(res);
         arrow->SetShaftResolution(res);
     }
         break;
     case CONE: {
         vtkSmartPointer<vtkConeSource> cone = vtkConeSource::SafeDownCast(_glyphSource);
-        int res = (int)(quality * 25);
-        if (res < 5) res = 5;
+        int res = (int)(quality * 8.);
+        if (res < 3) res = 3;
         cone->SetResolution(res);
+    }
+        break;
+    case CYLINDER: {
+        vtkSmartPointer<vtkCylinderSource> csource = 
+            vtkCylinderSource::SafeDownCast(_glyphSource->GetInputAlgorithm(0, 0));
+        if (csource == NULL) {
+            ERROR("Can't get cylinder glyph source");
+            return;
+        }
+        int res = (int)(quality * 8.);
+        if (res < 3) res = 3;
+        csource->SetResolution(res);
     }
         break;
     case SPHERE: {
         vtkSmartPointer<vtkSphereSource> sphere = vtkSphereSource::SafeDownCast(_glyphSource);
-        int res = (int)(quality * 50);
-        if (res < 5) res = 5;
-        sphere->SetThetaResolution(res);
-        sphere->SetPhiResolution(res);
-    }
-        break;
-    case CYLINDER: {
-        assert(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource) != NULL);
-        assert(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInputConnection(0, 0) != NULL);
-        vtkSmartPointer<vtkCylinderSource> csource = vtkCylinderSource::SafeDownCast(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInputConnection(0, 0));
-        int res = (int)(quality * 25);
-        if (res < 5) res = 5;
-        csource->SetResolution(res);
+        int thetaRes = (int)(quality * 14.);
+        int phiRes = thetaRes;
+        if (thetaRes < 4) thetaRes = 4;
+        if (phiRes < 3) phiRes = 3;
+
+        sphere->SetThetaResolution(thetaRes);
+        sphere->SetPhiResolution(phiRes);
     }
         break;
     default:
         break;
+    }
+    if (_glyphMapper != NULL) {
+        _glyphMapper->Modified();
+        _glyphMapper->Update();
     }
 }
 

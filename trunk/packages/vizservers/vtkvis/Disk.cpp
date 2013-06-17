@@ -40,7 +40,6 @@ void Disk::update()
 
     vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
     normalFilter->SetInputConnection(_disk->GetOutputPort());
-    normalFilter->AutoOrientNormalsOff();
 
     _pdMapper->SetInputConnection(normalFilter->GetOutputPort());
 

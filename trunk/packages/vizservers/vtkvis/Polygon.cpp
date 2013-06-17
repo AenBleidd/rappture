@@ -40,7 +40,6 @@ void Polygon::update()
 
     vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
     normalFilter->SetInputConnection(_polygon->GetOutputPort());
-    normalFilter->AutoOrientNormalsOff();
 
     _pdMapper->SetInputConnection(_polygon->GetOutputPort());
 
