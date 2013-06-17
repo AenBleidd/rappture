@@ -243,8 +243,8 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
         cutplaneZVisible	1
         glyphEdges              0
         glyphLighting           1
-        glyphOpacity            60
-        saveGlyphOpacity	60
+        glyphOpacity            100
+        saveGlyphOpacity	100
         glyphOutline            0
         glyphVisible            1
         glyphWireframe          0
@@ -2064,7 +2064,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -edges 0
         -edgecolor black
         -linewidth 1.0
-        -opacity 0.6
+        -opacity 1.0
         -wireframe 0
         -lighting 1
         -outline 0
