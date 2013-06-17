@@ -576,23 +576,27 @@ public:
 
     // Arcs
 
-    bool addArc(const DataSetId& id, double center[3], double pt1[3], double pt2[3]);
+    bool addArc(const DataSetId& id, double center[3], double pt1[3],
+                double normal[3], double angle);
 
     void setArcResolution(const DataSetId& id, int res);
 
     // Arrows
 
-    bool addArrow(const DataSetId& id, double tipRadius, double shaftRadius, double tipLength, bool flipNormals = false);
+    bool addArrow(const DataSetId& id, double tipRadius, double shaftRadius,
+                  double tipLength, bool flipNormals = false);
 
     void setArrowResolution(const DataSetId& id, int resTip, int resShaft);
 
     // Boxes
 
-    bool addBox(const DataSetId& id, double xLen, double yLen, double zLen, bool flipNormals = false);
+    bool addBox(const DataSetId& id, double xLen, double yLen, double zLen,
+                bool flipNormals = false);
 
     // Cones
 
-    bool addCone(const DataSetId& id, double radius, double height, bool cap, bool flipNormals = false);
+    bool addCone(const DataSetId& id, double radius, double height, bool cap,
+                 bool flipNormals = false);
 
     void setConeResolution(const DataSetId& id, int res);
 
@@ -740,6 +744,8 @@ public:
     // Lines
 
     bool addLine(const DataSetId& id, double pt1[3], double pt2[3]);
+
+    bool addLine(const DataSetId& id, std::vector<double> points);
 
     // Molecules
 

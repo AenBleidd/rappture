@@ -41,12 +41,36 @@ public:
 	}
     }
 
-    void setEndPoints(double pt1[3], double pt2[3])
+    void setStartPoint(double pt[3])
     {
         if (_arc != NULL) {
-            _arc->SetPoint1(pt1);
-            _arc->SetPoint2(pt2);
+            double polarVec[3];
+            for (int i = 0; i < 3; i++) {
+                polarVec[i] = pt[i] - _arc->GetCenter()[i];
+            }
+            setPolarVector(polarVec);
+ 	}
+    }
+
+    void setNormal(double norm[3])
+    {
+        if (_arc != NULL) {
+            _arc->SetNormal(norm);
 	}
+    }
+
+    void setPolarVector(double vec[3])
+    {
+        if (_arc != NULL) {
+            _arc->SetPolarVector(vec);
+	}
+    }
+
+    void setAngle(double angle)
+    {
+        if (_arc != NULL) {
+            _arc->SetAngle(angle);
+ 	}
     }
 
     void setResolution(int res)

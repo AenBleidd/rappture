@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <typeinfo>
+#include <vector>
 
 #include <vtkVersion.h>
 #include <vtkSmartPointer.h>
@@ -393,8 +394,11 @@ Renderer::getGenericGraphicsObject(const DataSetId& id)
 /**
  * \brief Create a new Arc and associate it with an ID
  */
-bool Renderer::addArc(const DataSetId& id, double center[3],
-                      double pt1[3], double pt2[3])
+bool Renderer::addArc(const DataSetId& id,
+                      double center[3],
+                      double pt1[3],
+                      double normal[3],
+                      double angle)
 {
     Arc *gobj;
     if ((gobj = getGraphicsObject<Arc>(id)) != NULL) {
@@ -418,7 +422,9 @@ bool Renderer::addArc(const DataSetId& id, double center[3],
     }
 
     gobj->setCenter(center);
-    gobj->setEndPoints(pt1, pt2);
+    gobj->setStartPoint(pt1);
+    gobj->setNormal(normal);
+    gobj->setAngle(angle);
 
     getGraphicsObjectHashmap<Arc>()[id] = gobj;
 
@@ -2289,6 +2295,41 @@ bool Renderer::addLine(const DataSetId& id, double pt1[3], double pt2[3])
     }
 
     gobj->setEndPoints(pt1, pt2);
+
+    getGraphicsObjectHashmap<Line>()[id] = gobj;
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Create a new Line and associate it with an ID
+ */
+bool Renderer::addLine(const DataSetId& id, std::vector<double> points)
+{
+    Line *gobj;
+    if ((gobj = getGraphicsObject<Line>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Line>(id);
+    }
+
+    gobj = new Line();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setPoints(points);
 
     getGraphicsObjectHashmap<Line>()[id] = gobj;
 

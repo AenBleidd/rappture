@@ -27,7 +27,9 @@ Arc::~Arc()
 void Arc::update()
 {
     if (_arc == NULL) {
-	_arc = vtkSmartPointer<vtkArcSource>::New();
+        _arc = vtkSmartPointer<vtkArcSource>::New();
+        _arc->SetResolution(4);
+        _arc->UseNormalAndAngleOn();
     }
 
     if (_pdMapper == NULL) {
