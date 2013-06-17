@@ -1340,10 +1340,10 @@ itcl::body Rappture::Field::vtkdata {cname} {
         set elemSize [numComponents $cname]
         set numValues [expr [$vector length] / $elemSize]
         append out "$vtkassoc $numValues\n"
-        if { $_comp2type($cname) == "scalar" } {
+        if { $_comp2type($cname) == "scalars" } {
             append out "SCALARS $label double $elemSize\n"
             append out "LOOKUP_TABLE default\n"
-        } elseif { $_comp2type($cname) == "vector" } {
+        } elseif { $_comp2type($cname) == "vectors" } {
             append out "VECTORS $label double $elemSize\n"
         } else {
             error "unknown element type \"$_comp2type($cname)\""
