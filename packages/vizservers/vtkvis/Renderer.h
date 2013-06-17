@@ -678,6 +678,8 @@ public:
 
     void setGlyphsOrientMode(const DataSetId& id, bool state, const char *name);
 
+    void setGlyphsQuality(const DataSetId& id, double quality);
+
     void setGlyphsColorMode(const DataSetId& id,
                             Glyphs::ColorMode mode,
                             const char *name,

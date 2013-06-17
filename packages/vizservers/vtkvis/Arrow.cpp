@@ -39,8 +39,8 @@ void Arrow::update()
     }
 
     vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normalFilter->SetFeatureAngle(90.);
     normalFilter->SetInputConnection(_arrow->GetOutputPort());
-    normalFilter->AutoOrientNormalsOff();
 
     _pdMapper->SetInputConnection(_arrow->GetOutputPort());
 

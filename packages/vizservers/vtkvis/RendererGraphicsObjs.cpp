@@ -1617,6 +1617,36 @@ void Renderer::setGlyphsOrientMode(const DataSetId& id, bool state,
 }
 
 /**
+ * \brief Set glyph shape resolution
+ */
+void Renderer::setGlyphsQuality(const DataSetId& id, double quality)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setQuality(quality);
+    } while (doAll && ++itr != _glyphs.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the shape of Glyphs for the given DataSet
  */
 void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)
@@ -2297,7 +2327,6 @@ void Renderer::setMoleculeAtomQuality(const DataSetId& id, double quality)
     _needsRedraw = true;
 }
 
-
 /**
  * \brief Set bond cylinder resolution
  */
@@ -2327,7 +2356,6 @@ void Renderer::setMoleculeBondQuality(const DataSetId& id, double quality)
     sceneBoundsChanged();
     _needsRedraw = true;
 }
-
 
 /**
  * \brief Set radius scale factor for atoms
