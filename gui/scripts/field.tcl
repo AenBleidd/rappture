@@ -1586,11 +1586,12 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
 
 itcl::body Rappture::Field::GetTypeAndSize { cname } {
     array set type2components {
-        "colorscalar"          4
-        "scalar"               1
-        "tcoord"               2
-        "tensor"               9
-        "vector"               3 
+        "colorscalars"         4
+        "normals"              3
+        "scalars"              1
+        "tcoords"              2
+        "tensors"              9
+        "vectors"              3 
     }
     set type [$_field get $cname.elemtype]
     if { $type == "" } {
