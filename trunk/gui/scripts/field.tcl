@@ -154,7 +154,8 @@ itcl::class Rappture::Field {
     private method ConvertToVtkData { cname } 
     private method GetAssociation { cname } 
     private method GetTypeAndSize { cname } 
-    private method ReadVtkDataSet { cname contents } 
+    protected method ReadVtkDataSet { cname contents } 
+
     private method VerifyVtkDataSet { contents } 
     private variable _values ""
 }
@@ -1595,7 +1596,7 @@ itcl::body Rappture::Field::GetTypeAndSize { cname } {
     }
     set type [$_field get $cname.elemtype]
     if { $type == "" } {
-        set type "scalar"
+        set type "scalars"
     } 
     if { ![info exists type2components($type)] } {
         error "unknown <elemtype> \"$type\" in field"
