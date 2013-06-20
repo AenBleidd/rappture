@@ -52,10 +52,13 @@
 # With <views>, can specify which viewer for a specific datasets.  So it's OK
 # to if the same dataset can be viewed in more than one way.
 #  o Any 2D dataset can be viewed as a contour/heightmap. 
-#  o Any 3D dataset can be viewed as a isosurface.  
+#  o Any 3D dataset can be viewed as a isosurface.  o
 #  o Any 2D dataset with vector data can be streamlines.  
 #  o Any 3D uniform rectilinear dataset can be viewed as a volume.
 #  o Any 3D dataset with vector data can be streamlines or flow.
+#   
+#  Vector data 2/3 streamlines
+#  Scalar data 1/
 #
 # Need <views> to properly do things like qdot: volume with a polydata
 # transparent shell.  The view will combine the two objects <field> and
@@ -1290,6 +1293,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
             lappend _comp2fldName($cname) $fname
 	}
     }
+    
     lappend limits v [list $vmin $vmax]
     set _comp2limits($cname) $limits
     file delete $tmpfile
@@ -1334,7 +1338,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
         } elseif { $_comp2assoc($cname) == "celldata" } {
             set vtkassoc "CELL_DATA"
         } elseif { $_comp2assoc($cname) == "fielddata" } {
-            set vtkassoc "FIELD_DATA"
+            set vtkassoc "FIELD"
         } else {
             error "unknown association \"$_comp2assoc($cname)\""
         }
@@ -1349,7 +1353,8 @@ itcl::body Rappture::Field::vtkdata {cname} {
         } else {
             error "unknown element type \"$_comp2type($cname)\""
         }
-	append out "[$vector range 0 end]\n"
+        append out [$vector range 0 end] 
+        append out "\n"
         if 0 {
             VerifyVtkDataSet $out
         }

@@ -103,6 +103,7 @@ itcl::class Rappture::XyResult {
     private variable _dataobj2dashes ;# maps dataobj => BLT -dashes list
     private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
     private variable _dataobj2desc   ;# maps dataobj => description of data
+    private variable _dataobj2type   ;# maps dataobj => type of graph element
     private variable _elem2dataobj   ;# maps graph element => dataobj
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
@@ -342,6 +343,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         set _dataobj2dashes($dataobj) $params(-linestyle)
         set _dataobj2raise($dataobj) $params(-raise)
         set _dataobj2desc($dataobj) $params(-description)
+        set _dataobj2type($dataobj) $params(-type)
 
         $_dispatcher event -idle !rebuild
     }
@@ -568,7 +570,7 @@ itcl::body Rappture::XyResult::download {option args} {
                         Rappture::Balloon $popup -title "Save as image..."
                         set inner [$popup component inner]
                         # Create the print dialog widget and add it to the
-                        # the balloon popup.
+                        # balloon popup.
                         Rappture::XyPrint $inner.print 
                         $popup configure \
                             -deactivatecommand [list $inner.print reset] 
