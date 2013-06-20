@@ -52,7 +52,7 @@
 # With <views>, can specify which viewer for a specific datasets.  So it's OK
 # to if the same dataset can be viewed in more than one way.
 #  o Any 2D dataset can be viewed as a contour/heightmap. 
-#  o Any 3D dataset can be viewed as a isosurface.  o
+#  o Any 3D dataset can be viewed as a isosurface.
 #  o Any 2D dataset with vector data can be streamlines.  
 #  o Any 3D uniform rectilinear dataset can be viewed as a volume.
 #  o Any 3D dataset with vector data can be streamlines or flow.
@@ -155,8 +155,8 @@ itcl::class Rappture::Field {
     private method AvsToVtk { cname contents } 
     private method BuildPointsOnMesh { cname } 
     private method ConvertToVtkData { cname } 
-    private method GetAssociation { cname } 
-    private method GetTypeAndSize { cname } 
+    protected method GetAssociation { cname } 
+    protected method GetTypeAndSize { cname } 
     protected method ReadVtkDataSet { cname contents } 
 
     private method VerifyVtkDataSet { contents } 
@@ -1344,14 +1344,33 @@ itcl::body Rappture::Field::vtkdata {cname} {
         }
         set elemSize [numComponents $cname]
         set numValues [expr [$vector length] / $elemSize]
-        append out "$vtkassoc $numValues\n"
-        if { $_comp2type($cname) == "scalars" } {
-            append out "SCALARS $label double $elemSize\n"
-            append out "LOOKUP_TABLE default\n"
-        } elseif { $_comp2type($cname) == "vectors" } {
-            append out "VECTORS $label double $elemSize\n"
+        if { $_comp2assoc($cname) == "fielddata" } {
+            append out "$vtkassoc FieldData 1\n"
+            append out "$label $elemSize $numValues double\n"
         } else {
-            error "unknown element type \"$_comp2type($cname)\""
+            append out "$vtkassoc $numValues\n"
+            if { $_comp2type($cname) == "colorscalars" } {
+                # Must be float for ASCII, unsigned char for BINARY
+                append out "COLOR_SCALARS $label $elemSize\n"
+            } elseif { $_comp2type($cname) == "normals" } {
+                # elemSize must equal 3
+                append out "NORMALS $label double\n"
+            } elseif { $_comp2type($cname) == "scalars" } {
+                # elemSize can be 1, 2, 3 or 4
+                append out "SCALARS $label double $elemSize\n"
+                append out "LOOKUP_TABLE default\n"
+            } elseif { $_comp2type($cname) == "tcoords" } {
+                # elemSize must be 1, 2, or 3
+                append out "TEXTURE_COORDINATES $label $elemSize double\n"
+            } elseif { $_comp2type($cname) == "tensors" } {
+                # elemSize must equal 9
+                append out "TENSORS $label double\n"
+            } elseif { $_comp2type($cname) == "vectors" } {
+                # elemSize must equal 3
+                append out "VECTORS $label double\n"
+            } else {
+                error "unknown element type \"$_comp2type($cname)\""
+            }
         }
         append out [$vector range 0 end] 
         append out "\n"
