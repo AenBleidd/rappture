@@ -95,6 +95,34 @@ Rappture::getopts argv params {
     value -nosim 0
 }
 
+proc ReadToolParameters { numTries } {
+    incr numTries -1 
+    if { $numTries < 0 } {
+	return
+    }
+    global env
+    set paramsFile $env(TOOL_PARAMETERS)
+    if { ![file readable $paramsFile] } {
+	after 500 ReadToolParmeters $numTries
+	return
+    }
+    catch { 
+        set f [open $paramsFile "r"]
+        set contents [read $f]
+        close $f
+        set pattern {^file\((.*)\):(.*)$} 
+        foreach line [split $contents "\n"] {
+            if { [regexp $pattern $line match path rest] } {
+                set ::Rappture::parameters($path) $rest
+            }
+        }
+    }
+}
+
+if { [info exists env(TOOL_PARAMETERS)] } {
+    ReadToolParameters 10
+}
+
 set loadobjs {}
 foreach runfile $params(-load) {
     if {![file exists $runfile]} {
