@@ -107,11 +107,11 @@ bool DataSet::setDataFile(const char *filename)
 
     reader->SetFileName(filename);
     reader->ReadAllNormalsOn();
-    //reader->ReadAllTCoordsOn();
+    reader->ReadAllTCoordsOn();
     reader->ReadAllScalarsOn();
-    //reader->ReadAllColorScalarsOn();
+    reader->ReadAllColorScalarsOn();
     reader->ReadAllVectorsOn();
-    //reader->ReadAllTensorsOn();
+    reader->ReadAllTensorsOn();
     reader->ReadAllFieldsOn();
 
     return setData(reader);
@@ -134,11 +134,11 @@ bool DataSet::setData(char *data, int nbytes)
     reader->SetInputArray(dataSetString);
     reader->ReadFromInputStringOn();
     reader->ReadAllNormalsOn();
-    //reader->ReadAllTCoordsOn();
+    reader->ReadAllTCoordsOn();
     reader->ReadAllScalarsOn();
-    //reader->ReadAllColorScalarsOn();
+    reader->ReadAllColorScalarsOn();
     reader->ReadAllVectorsOn();
-    //reader->ReadAllTensorsOn();
+    reader->ReadAllTensorsOn();
     reader->ReadAllFieldsOn();
 
     return setData(reader);
