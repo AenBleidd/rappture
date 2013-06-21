@@ -175,19 +175,12 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 	    } 
 	}
     }
-    set elemcount 0
-    foreach cname [$_mesh children] {
-	foreach type { node element } {
-	    if { $cname == $type } {
-		incr elemcount
-		break
-	    } 
-	}
+    if {[$_mesh element "node"] != "" ||
+        [$_mesh element "element"] != ""} {
+        incr subcount
     }
-    if { $elemcount > 0 } {
-	incr $subcount
-    }
-    if { $subcount ==  0 } {
+
+    if { $subcount == 0 } {
         puts stderr "WARNING: no mesh specified for \"$path\"."
         return
     }
@@ -202,7 +195,7 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 	set result [ReadGrid $path]
     } elseif {[$_mesh element "unstructured"] != "" } {
 	set result [ReadUnstructuredGrid $path]
-    } elseif {[$_mesh element "node"] != "" && [$_mesh element "element"]!=""} {
+    } elseif {[$_mesh element "node"] != "" && [$_mesh element "element"] != ""} {
         set result [ReadNodesElements $path]
     }
     set _isValid $result
