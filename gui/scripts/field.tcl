@@ -1191,8 +1191,12 @@ itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
     close $f
 
     $reader SetFileName $tmpfile
+    $reader ReadAllNormalsOn
+    $reader ReadAllTCoordsOn
     $reader ReadAllScalarsOn
+    $reader ReadAllColorScalarsOn
     $reader ReadAllVectorsOn
+    $reader ReadAllTensorsOn
     $reader ReadAllFieldsOn
     $reader Update
     set dataset [$reader GetOutput]
@@ -1225,8 +1229,12 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     close $f
 
     $reader SetFileName $tmpfile
+    $reader ReadAllNormalsOn
+    $reader ReadAllTCoordsOn
     $reader ReadAllScalarsOn
+    $reader ReadAllColorScalarsOn
     $reader ReadAllVectorsOn
+    $reader ReadAllTensorsOn
     $reader ReadAllFieldsOn
     $reader Update
     set dataset [$reader GetOutput]
