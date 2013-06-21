@@ -74,6 +74,64 @@ for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
     $driver put -append yes output.curve(scatter).component.xy "$x $y\n"
 }
 
+# generate a bar curve
+$driver put output.curve(bars).about.label "Bar chart"
+$driver put output.curve(bars).about.description \
+    "This is an example of a scatter curve."
+$driver put output.curve(bars).about.type "bar"
+$driver put output.curve(bars).xaxis.label "Time"
+$driver put output.curve(bars).xaxis.description "Time during the experiment."
+$driver put output.curve(bars).xaxis.units "s"
+$driver put output.curve(bars).yaxis.label "Voltage v(11)"
+$driver put output.curve(bars).yaxis.description "Output from the amplifier."
+$driver put output.curve(bars).yaxis.units "V"
+
+for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
+    set y [expr {sin($x)/(1+$x)}]
+    $driver put -append yes output.curve(bars).component.xy "$x $y\n"
+}
+
+# generate mixed curves on the same plot
+set deg2rad 0.017453292519943295
+
+$driver put output.curve(line).about.group "Mixed element types"
+$driver put output.curve(line).about.label "Sine"
+$driver put output.curve(line).about.description \
+    "This is an example of a mixed curves on the same plot."
+$driver put output.curve(line).xaxis.label "Degrees"
+#$driver put output.curve(line).yaxis.label "Sine"
+$driver put output.curve(line).about.type "line"
+for {set x 0} {$x <= 360} {incr x 30} {
+    set y [expr {sin($x*$deg2rad)}]
+    $driver put -append yes output.curve(line).component.xy "$x $y\n"
+}
+
+$driver put output.curve(bar).about.group "Mixed element types"
+$driver put output.curve(bar).about.label "Cosine"
+$driver put output.curve(bar).about.description \
+    "This is an example of a mixed curves on the same plot."
+$driver put output.curve(bar).xaxis.label "Degrees"
+#$driver put output.curve(bar).yaxis.label "Cosine"
+$driver put output.curve(bar).about.type "bar"
+$driver put output.curve(bar).about.style "-barwidth 24.0"
+
+for {set x 0} {$x <= 360} {incr x 30} {
+    set y [expr {cos($x*$deg2rad)}]
+    $driver put -append yes output.curve(bar).component.xy "$x $y\n"
+}
+
+$driver put output.curve(point).about.group "Mixed element types"
+$driver put output.curve(point).about.label "Random"
+$driver put output.curve(point).about.description \
+    "This is an example of a mixed curves on the same plot."
+$driver put output.curve(point).xaxis.label "Degrees"
+#$driver put output.curve(point).yaxis.label "Random"
+$driver put output.curve(point).about.type "scatter"
+for {set x 0} {$x <= 360} {incr x 10} {
+    set y [expr {(rand() * 2.0) - 1}]
+    $driver put -append yes output.curve(point).component.xy "$x $y\n"
+}
+
 # save the updated XML describing the run...
 Rappture::result $driver
 exit 0
