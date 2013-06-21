@@ -104,6 +104,7 @@ itcl::class Rappture::XyResult {
     private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
     private variable _dataobj2desc   ;# maps dataobj => description of data
     private variable _dataobj2type   ;# maps dataobj => type of graph element
+    private variable _dataobj2barwidth ;# maps dataobj => type of graph element
     private variable _elem2dataobj   ;# maps graph element => dataobj
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
@@ -114,6 +115,13 @@ itcl::class Rappture::XyResult {
     common _downloadPopup          ;# download options from popup
     private variable _markers
     private variable _nextElement 0
+
+    private method FormatAxis { axis w value }
+    private method GetFormattedValue { axis g value }
+    private method BuildAxisPopup { popup }
+    private method ShowAxisPopup { axis }
+    private method SetAxis { setting }
+    private method SetAxisRangeState { axis }
 }
                                                                                 
 itk::usual XyResult {
@@ -182,23 +190,12 @@ itcl::body Rappture::XyResult::constructor {args} {
         [itcl::code $this Hilite off %x %y]
 
     # Add support for editing axes:
+    if 0 {
     Rappture::Balloon $itk_component(hull).axes -title "Axis Options"
     set inner [$itk_component(hull).axes component inner]
 
     label $inner.labell -text "Label:"
     entry $inner.label -width 15 -highlightbackground $itk_option(-background)
-    grid $inner.labell -row 1 -column 0 -sticky e
-    grid $inner.label -row 1 -column 1 -sticky ew -pady 4
-
-    label $inner.minl -text "Minimum:"
-    entry $inner.min -width 15 -highlightbackground $itk_option(-background)
-    grid $inner.minl -row 2 -column 0 -sticky e
-    grid $inner.min -row 2 -column 1 -sticky ew -pady 4
-
-    label $inner.maxl -text "Maximum:"
-    entry $inner.max -width 15 -highlightbackground $itk_option(-background)
-    grid $inner.maxl -row 3 -column 0 -sticky e
-    grid $inner.max -row 3 -column 1 -sticky ew -pady 4
 
     label $inner.formatl -text "Format:"
     Rappture::Combobox $inner.format -width 15 -editable no
@@ -213,26 +210,65 @@ itcl::body Rappture::XyResult::constructor {args} {
         "%.2e"  "X.XXe+XX"     \
         "%.3e"  "X.XXXe+XX"    \
         "%.6e"  "X.XXXXXXe+XX"
-    grid $inner.formatl -row 4 -column 0 -sticky e
-    grid $inner.format -row 4 -column 1 -sticky ew -pady 4
+
+    label $inner.rangel -text "Range:"
+    radiobutton $inner.auto -text "automatic" \
+        -variable [itcl::scope _axisPopup(auto)] -value 1 \
+        -command [itcl::code $this SetAxis range]
+    radiobutton $inner.manual -text "manual" \
+        -variable [itcl::scope _axisPopup(auto)] -value 0 \
+        -command [itcl::code $this SetAxis range]
+
+    radiobutton $inner.loose -text "loose" \
+        -variable [itcl::scope _axisPopup(loose)] -value 1 \
+        -command [itcl::code $this SetAxis loose]
+    radiobutton $inner.tight -text "tight" \
+        -variable [itcl::scope _axisPopup(loose)] -value 0 \
+        -command [itcl::code $this SetAxis loose]
+
+    label $inner.minl -text "min"
+    entry $inner.min \
+        -width 15 -highlightbackground $itk_option(-background) \
+        -textvariable [itcl::scope _axisPopup(min)]
+    bind $inner.min <Return> [itcl::code $this SetAxis min]
+    label $inner.maxl -text "max"
+    entry $inner.max \
+        -width 15 -highlightbackground $itk_option(-background) \
+        -textvariable [itcl::scope _axisPopup(max)]
+    bind $inner.min <Return> [itcl::code $this SetAxis max]
 
     label $inner.scalel -text "Scale:"
-    frame $inner.scales
-    radiobutton $inner.scales.linear -text "Linear" \
-        -variable [itcl::scope _axisPopup(scale)] -value "linear"
-    pack $inner.scales.linear -side left
-    radiobutton $inner.scales.log -text "Logarithmic" \
-        -variable [itcl::scope _axisPopup(scale)] -value "log"
-    pack $inner.scales.log -side left
-    grid $inner.scalel -row 5 -column 0 -sticky e
-    grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
+    radiobutton $inner.linear -text "linear" \
+        -variable [itcl::scope _axisPopup(logscale)] -value 0 \
+        -command [itcl::code $this SetAxis logscale]
+    radiobutton $inner.log -text "logarithmic" \
+        -variable [itcl::scope _axisPopup(logscale)] -value 1 \
+        -command [itcl::code $this Axis SetAxis logscale]
+
+    blt::table $inner \
+        0,0 $inner.labell -anchor e \
+        0,1 $inner.label -anchor w -fill x  -cspan 2 \
+        1,0 $inner.formatl -anchor e \
+        1,1 $inner.format -anchor w -fill x  -cspan 2 \
+        2,0 $inner.scalel -anchor e \
+        2,1 $inner.linear -anchor w \
+        2,2 $inner.log -anchor w \
+        3,0 $inner.rangel -anchor e \
+        3,1 $inner.manual -anchor w \
+        3,2 $inner.auto -anchor w \
+        4,1 $inner.minl -anchor w \
+        4,2 $inner.min -anchor w \
+        5,1 $inner.maxl -anchor w \
+        5,2 $inner.max -anchor w \
+        6,1 $inner.loose -anchor w \
+        6,2 $inner.tight -anchor w \
 
     foreach axis {x y} {
-        set _axisPopup(format-$axis) "%.6g"
+        set _axisPopup($axis-format) "%.6g"
     }
     Axis scale x linear
     Axis scale y linear
-
+    }
     $itk_component(plot) legend configure -hide yes
 
     #
@@ -278,6 +314,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         -brightness 0
         -width 1
         -type "line"
+        -barwidth 1
         -raise 0
         -linestyle solid
         -description ""
@@ -344,7 +381,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         set _dataobj2raise($dataobj) $params(-raise)
         set _dataobj2desc($dataobj) $params(-description)
         set _dataobj2type($dataobj) $params(-type)
-
+        set _dataobj2barwidth($dataobj) $params(-barwidth)
         $_dispatcher event -idle !rebuild
     }
 }
@@ -387,10 +424,12 @@ itcl::body Rappture::XyResult::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
             set _dlist [lreplace $_dlist $pos $pos]
-            array unset _dataobj2color  $dataobj
-            array unset _dataobj2width  $dataobj
-            array unset _dataobj2dashes $dataobj
-            array unset _dataobj2raise  $dataobj
+            array unset _dataobj2color    $dataobj
+            array unset _dataobj2width    $dataobj
+            array unset _dataobj2dashes   $dataobj
+            array unset _dataobj2raise    $dataobj
+            array unset _dataobj2type     $dataobj
+            array unset _dataobj2barwidth $dataobj
             foreach elem [array names _elem2dataobj] {
                 if {$_elem2dataobj($elem) == $dataobj} {
                     array unset _elem2dataobj $elem
@@ -423,16 +462,19 @@ itcl::body Rappture::XyResult::delete {args} {
 itcl::body Rappture::XyResult::scale {args} {
     set allx [$itk_component(plot) x2axis use]
     lappend allx x  ;# fix main x-axis too
+
+    if 0 {
     foreach axis $allx {
         Axis scale $axis linear
     }
-
+    }
     set ally [$itk_component(plot) y2axis use]
     lappend ally y  ;# fix main y-axis too
+    if 0 {
     foreach axis $ally {
         Axis scale $axis linear
     }
-
+    }
     catch {unset _limits}
     foreach dataobj $args {
         # Find the axes for this dataobj (e.g., {x y2})
@@ -465,8 +507,10 @@ itcl::body Rappture::XyResult::scale {args} {
                     }
                 }
             }
+            if 0 {
             if {[$dataobj hints ${axis}scale] == "log"} {
                 Axis scale $map($axis) log
+            }
             }
         }
     }
@@ -608,7 +652,23 @@ itcl::body Rappture::XyResult::Rebuild {} {
     eval $g element delete [$g element names]
     eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
-        $g axis configure $axis -hide yes -checklimits no
+        if { [$g axis cget $axis -logscale] } {
+            set type "log"
+        } else {
+            set type "lin"
+        }
+        set amin ""
+        if { [info exists _limits(${axis}${type}-min)] } {
+            set amin $_limits(${axis}${type}-min)
+        }
+        set amax ""
+        if { [info exists _limits(${axis}${type}-max)] } {
+            set amax $_limits(${axis}${type}-max)
+        }
+        $g axis configure $axis \
+            -hide yes -checklimits no \
+            -command [itcl::code $this GetFormattedValue $axis] \
+            -min $amin -max $amax
     }
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
@@ -668,8 +728,6 @@ itcl::body Rappture::XyResult::Rebuild {} {
     }
 
     foreach axis $all {
-        set _axisPopup(format-$axis) "%.6g"
-
         $g axis bind $axis <Enter> \
             [itcl::code $this Axis hilite $axis on]
         $g axis bind $axis <Leave> \
@@ -700,6 +758,16 @@ itcl::body Rappture::XyResult::Rebuild {} {
             } else {
 		set color black
             }
+            if {[info exists _dataobj2type($dataobj)]} {
+                set type $_dataobj2type($dataobj)
+            } else {
+                set type "line"
+            }
+            if {[info exists _dataobj2barwidth($dataobj)]} {
+                set barwidth $_dataobj2barwidth($dataobj)
+            } else {
+                set barwidth 1.0
+            }
             if {[info exists _dataobj2width($dataobj)]} {
                 set lwidth $_dataobj2width($dataobj)
             } else {
@@ -721,11 +789,21 @@ itcl::body Rappture::XyResult::Rebuild {} {
             set elem "elem[incr _nextElement]"
             set _elem2dataobj($elem) $dataobj
             lappend label2elem($label) $elem
-            $g element create $elem -x $xv -y $yv \
-                -symbol $sym -pixels $pixels -linewidth $lwidth \
-                -label $label \
-                -color $color -dashes $dashes \
-                -mapx $mapx -mapy $mapy
+            switch -- $type {
+                "line" - "scatter" {
+                    $g element create $elem -x $xv -y $yv \
+                        -symbol $sym -pixels $pixels -linewidth $lwidth \
+                        -label $label \
+                        -color $color -dashes $dashes \
+                        -mapx $mapx -mapy $mapy
+                } "bar" {
+                    $g bar create $elem -x $xv -y $yv \
+                        -barwidth $barwidth \
+                        -label $label \
+                        -color $color \
+                        -mapx $mapx -mapy $mapy
+                }
+            }
         }
     }
 
@@ -808,12 +886,19 @@ itcl::body Rappture::XyResult::Rebuild {} {
 itcl::body Rappture::XyResult::ResetLimits {} {
     set g $itk_component(plot)
 
+    foreach axis [$g axis names] {
+        $g axis configure $axis -min "" -max ""
+    }
+    return
     #
     # HACK ALERT!
     # Use this code to fix up the y-axis limits for the BLT graph.
     # The auto-limits don't always work well.  We want them to be
     # set to a "nice" number slightly above or below the min/max
     # limits.
+    #
+    # I don't get what's better about this.  It's replicating what's
+    # in the BLT graph. It's missing pieces like handling bar elements.
     #
     foreach axis [$g axis names] {
         if {[info exists _limits(${axis}lin-min)]} {
@@ -942,9 +1027,9 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
                     set yunits ""
                 }
                 set tip [$g element cget $elem -label]
-                set yval [Axis format y dummy $info(y)]
+                set yval [GetFormattedValue y $g $info(y)]
                 append tip "\n$yval$yunits"
-                set xval [Axis format x dummy $info(x)]
+                set xval [GetFormattedValue x $g $info(x)]
                 append tip " @ $xval$xunits"
                 set tip [string trim $tip]
             }
@@ -974,9 +1059,9 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
                 set yunits ""
             }
             set tip [$g element cget $elem -label]
-            set yval [Axis format y dummy $info(y)]
+            set yval [GetFormattedValue y $g $info(y)]
             append tip "\n$yval$yunits"
-            set xval [Axis format x dummy $info(x)]
+            set xval [GetFormattedValue x $g $info(x)]
             append tip " @ $xval$xunits"
             set tip [string trim $tip]
             set state 1
@@ -1039,26 +1124,26 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
                 if {$x < 4} {
                     set tipx "-0"
                 } else {
-                    set tipx "-[expr {$x-4}]"  ;# move tooltip to the left
+                    set tipx "-[expr {$x-20}]"  ;# move tooltip to the left
                 }
             } else {
                 if {$x < -4} {
                     set tipx "+0"
                 } else {
-                    set tipx "+[expr {$x+4}]"  ;# move tooltip to the right
+                    set tipx "+[expr {$x+20}]"  ;# move tooltip to the right
                 }
             }
             if {$y > 0.5*[winfo height $g]} {
                 if {$y < 4} {
                     set tipy "-0"
                 } else {
-                    set tipy "-[expr {$y-4}]"  ;# move tooltip to the top
+                    set tipy "-[expr {$y-20}]"  ;# move tooltip to the top
                 }
             } else {
                 if {$y < -4} {
                     set tipy "+0"
                 } else {
-                    set tipy "+[expr {$y+4}]"  ;# move tooltip to the bottom
+                    set tipy "+[expr {$y+20}]"  ;# move tooltip to the bottom
                 }
             }
             Rappture::Tooltip::text $g $tip
@@ -1123,7 +1208,6 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
 # changes from the panel.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::Axis {option args} {
-    set inner [$itk_component(hull).axes component inner]
     switch -- $option {
         hilite {
             if {[llength $args] != 2} {
@@ -1239,7 +1323,8 @@ itcl::body Rappture::XyResult::Axis {option args} {
                 set dx [expr {abs($x-$_axis(click-x))}]
                 set dy [expr {abs($y-$_axis(click-y))}]
                 if {$dx < 2 && $dy < 2} {
-                    Axis edit $axis
+                    ShowAxisPopup $axis
+                    #Axis edit $axis
                     return
                 }
             }
@@ -1258,12 +1343,13 @@ itcl::body Rappture::XyResult::Axis {option args} {
             }
             set axis [lindex $args 0]
             set _axisPopup(current) $axis
-
+            set _axisPopup(axis) $axis
             # apply last value when deactivating
             $itk_component(hull).axes configure -deactivatecommand \
                 [itcl::code $this Axis changed $axis focus]
 
             # fix axis label controls...
+            set inner [$itk_component(hull).axes component inner]
             set label [$itk_component(plot) axis cget $axis -title]
             $inner.label delete 0 end
             $inner.label insert end $label
@@ -1296,7 +1382,7 @@ itcl::body Rappture::XyResult::Axis {option args} {
 
             # fix format control...
             set fmts [$inner.format choices get -value]
-            set i [lsearch -exact $fmts $_axisPopup(format-$axis)]
+            set i [lsearch -exact $fmts $_axisPopup($axis-format)]
             if {$i < 0} { set i 0 }  ;# use Auto choice
             $inner.format value [$inner.format choices get -label $i]
 
@@ -1305,15 +1391,15 @@ itcl::body Rappture::XyResult::Axis {option args} {
 
             # fix scale control...
             if {[$itk_component(plot) axis cget $axis -logscale]} {
-                set _axisPopup(scale) "log"
+                set _axisPopup(logscale) 1
                 $inner.format configure -state disabled
             } else {
-                set _axisPopup(scale) "linear"
+                set _axisPopup(logscale) 0
                 $inner.format configure -state normal
             }
-            $inner.scales.linear configure \
+            $inner.linear configure \
                 -command [itcl::code $this Axis changed $axis scale]
-            $inner.scales.log configure \
+            $inner.log configure \
                 -command [itcl::code $this Axis changed $axis scale]
 
             #
@@ -1356,6 +1442,7 @@ itcl::body Rappture::XyResult::Axis {option args} {
             $itk_component(hull).axes activate @$x,$y $dir
         }
         changed {
+            set inner [$itk_component(hull).axes component inner]
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"Axis changed axis what\""
             }
@@ -1422,17 +1509,17 @@ itcl::body Rappture::XyResult::Axis {option args} {
                 }
                 format {
                     set fmt [$inner.format translate [$inner.format value]]
-                    set _axisPopup(format-$axis) $fmt
+                    set _axisPopup($axis-format) $fmt
 
                     # force a refresh
                     $itk_component(plot) axis configure $axis -min \
                         [$itk_component(plot) axis cget $axis -min]
                 }
                 scale {
-                    Axis scale $axis $_axisPopup(scale)
-                    Rappture::Logger::log curve axis $axis -scale $_axisPopup(scale)
+                    Axis scale $axis $_axisPopup(logscale)
+                    Rappture::Logger::log curve axis $axis -scale $_axisPopup(logscale)
 
-                    if {$_axisPopup(scale) == "log"} {
+                    if { $_axisPopup(logscale) } {
                         $inner.format configure -state disabled
                     } else {
                         $inner.format configure -state normal
@@ -1459,7 +1546,7 @@ itcl::body Rappture::XyResult::Axis {option args} {
             if {[$itk_component(plot) axis cget $axis -logscale]} {
                 set fmt "%.6g"
             } else {
-                set fmt $_axisPopup(format-$axis)
+                set fmt $_axisPopup($axis-format)
             }
             return [format $fmt $value]
         }
@@ -1616,4 +1703,333 @@ itcl::body Rappture::XyResult::LeaveMarker { g name } {
         $g marker delete $id
         unset _markers($name)
     }
+}
+
+#
+# SetAxis --
+#
+#       Configures the graph axis with the designated setting using
+#       the currently stored value.  User-configurable axis settings 
+#       are stored in the _axisPopup variable or in the widgets. This
+#       routine syncs the graph with that setting.
+#
+itcl::body Rappture::XyResult::SetAxis { setting } {
+    set g $itk_component(plot)
+    set axis $_axisPopup(axis)
+    switch -- $setting {
+        "logscale" {
+            set bool $_axisPopup(logscale)
+            $g axis configure $axis -logscale $bool
+        }
+        "loose" {
+            set bool $_axisPopup(loose)
+            $g axis configure $axis -loose $bool
+        }
+        "range" {
+            set auto $_axisPopup(auto)
+            set _axisPopup($axis-auto) $auto
+            if { $auto } {
+                # Set the axis range automatically
+                $g axis configure $axis -min "" -max ""
+            } else {
+                # Set the axis range from the entry values.
+                set min $_axisPopup($axis-min)
+                set max $_axisPopup($axis-max)
+                $g axis configure $axis -min $min -max $max
+            }
+            SetAxisRangeState $axis
+        }
+        "format" {
+            set inner [$itk_component(hull).axes component inner]
+            set format [$inner.format translate [$inner.format value]]
+            set _axisPopup($axis-format) $format
+
+            # Force the graph to reformat the ticks
+            set min [$itk_component(plot) axis cget $axis -min]
+            $g axis configure $axis -min $min
+        }
+        "label" {
+            set label $_axisPopup(label)
+            $g axis configure $axis -label $label
+        }
+        "min" {
+            set min $_axisPopup(min)
+            if { [catch { $g axis configure $axis -min $min } msg] != 0 } {
+                set inner [$itk_component(hull).axes component inner]
+                Rappture::Tooltip::cue $inner.max $msg
+                bell
+                return
+            }
+            set _axisPopup($axis-min) $min
+        }
+        "max" {
+            set max $_axisPopup(max)
+            if { [catch { $g axis configure $axis -max $max } msg] != 0 } {
+                set inner [$itk_component(hull).axes component inner]
+                Rappture::Tooltip::cue $inner.max $msg
+                bell
+                return
+            }
+            set _axisPopup($axis-max) $max
+        }
+    }
+}
+
+#
+# SetAxisRangeState --
+#
+#       Sets the state of widgets controlling the axis range based
+#       upon whether the automatic or manual setting.  If the 
+#       axis is configure to be automatic, the manual setting widgets
+#       are disabled.  And vesa-versa the automatic setting widgets
+#       are dsiabled if the axis is manual.
+#
+itcl::body Rappture::XyResult::SetAxisRangeState { axis } {
+    set inner [$itk_component(hull).axes component inner]
+    set g $itk_component(plot)
+
+    if { $_axisPopup(auto) } {
+        foreach {min max} [$g axis limits $axis] break
+        $inner.minl configure -state disabled 
+        $inner.min configure -state disabled 
+        $inner.maxl configure -state disabled 
+        $inner.max configure -state disabled 
+        $inner.loose configure -state normal
+        $inner.tight configure -state normal
+    } else {
+        foreach {min max} [$g axis limits $axis] break
+        $inner.minl configure -state normal 
+        $inner.min configure -state normal 
+        set _axisPopup(min) [$g axis cget $axis -min]
+        $inner.maxl configure -state normal 
+        $inner.max configure -state normal 
+        set _axisPopup(max) [$g axis cget $axis -max]
+        $inner.loose configure -state disabled
+        $inner.tight configure -state disabled
+    }
+}
+
+#
+# BuildAxisPopup --
+#
+#       Creates the popup balloon dialog for axes. This routine is 
+#       called only once the first time the user clicks to bring up 
+#       an axis dialog.  It is reused for all other axes.  
+#
+itcl::body Rappture::XyResult::BuildAxisPopup { popup } {
+    Rappture::Balloon $popup -title "Axis Options"
+    set inner [$itk_component(hull).axes component inner]
+
+    label $inner.labell -text "Label:"
+    entry $inner.label \
+        -width 15 -highlightbackground $itk_option(-background) \
+        -textvariable [itcl::scope _axisPopup(label)]
+
+    bind $inner.label <Return>   [itcl::code $this SetAxis label]
+    bind $inner.label <KP_Enter> [itcl::code $this SetAxis label]
+    bind $inner.label <FocusOut> [itcl::code $this SetAxis label]
+
+    label $inner.formatl -text "Format:"
+    Rappture::Combobox $inner.format -width 15 -editable no
+    $inner.format choices insert end \
+        "%.6g"  "Auto"         \
+        "%.0f"  "X"          \
+        "%.1f"  "X.X"          \
+        "%.2f"  "X.XX"         \
+        "%.3f"  "X.XXX"        \
+        "%.6f"  "X.XXXXXX"     \
+        "%.1e"  "X.Xe+XX"      \
+        "%.2e"  "X.XXe+XX"     \
+        "%.3e"  "X.XXXe+XX"    \
+        "%.6e"  "X.XXXXXXe+XX"
+
+    bind $inner.format <<Value>> [itcl::code $this SetAxis format]
+
+    label $inner.rangel -text "Axis Range:"
+    radiobutton $inner.auto -text "Automatic" \
+        -variable [itcl::scope _axisPopup(auto)] -value 1 \
+        -command [itcl::code $this SetAxis range]
+    radiobutton $inner.manual -text "Manual" \
+        -variable [itcl::scope _axisPopup(auto)] -value 0 \
+        -command [itcl::code $this SetAxis range]
+
+    radiobutton $inner.loose -text "loose" \
+        -variable [itcl::scope _axisPopup(loose)] -value 1 \
+        -command [itcl::code $this SetAxis loose]
+    radiobutton $inner.tight -text "tight" \
+        -variable [itcl::scope _axisPopup(loose)] -value 0 \
+        -command [itcl::code $this SetAxis loose]
+
+    label $inner.minl -text "min"
+    entry $inner.min \
+        -width 15 -highlightbackground $itk_option(-background) \
+        -textvariable [itcl::scope _axisPopup(min)]
+    bind $inner.min <Return> [itcl::code $this SetAxis min]
+    bind $inner.min <KP_Enter> [itcl::code $this SetAxis min]
+    bind $inner.min <FocusOut> [itcl::code $this SetAxis min]
+
+    label $inner.maxl -text "max"
+    entry $inner.max \
+        -width 15 -highlightbackground $itk_option(-background) \
+        -textvariable [itcl::scope _axisPopup(max)]
+    bind $inner.max <Return> [itcl::code $this SetAxis max]
+    bind $inner.max <KP_Enter> [itcl::code $this SetAxis max]
+    bind $inner.max <FocusOut> [itcl::code $this SetAxis max]
+
+
+    label $inner.scalel -text "Scale:"
+    radiobutton $inner.linear -text "linear" \
+        -variable [itcl::scope _axisPopup(logscale)] -value 0 \
+        -command [itcl::code $this SetAxis logscale]
+    radiobutton $inner.log -text "logarithmic" \
+        -variable [itcl::scope _axisPopup(logscale)] -value 1 \
+        -command [itcl::code $this SetAxis logscale]
+
+    blt::table $inner \
+        0,0 $inner.labell -anchor w \
+        0,1 $inner.label -anchor w -fill x  -cspan 3 \
+        1,0 $inner.formatl -anchor w \
+        1,1 $inner.format -anchor w -fill x  -cspan 3 \
+        2,0 $inner.scalel -anchor w \
+        2,2 $inner.linear -anchor w \
+        2,3 $inner.log -anchor w \
+        3,0 $inner.rangel -anchor w \
+        4,0 $inner.manual -anchor w -padx 4 \
+        4,2 $inner.minl -anchor e \
+        4,3 $inner.min -anchor w \
+        5,2 $inner.maxl -anchor e \
+        5,3 $inner.max -anchor w \
+        6,0 $inner.auto -anchor w -padx 4 \
+        6,2 $inner.tight -anchor w \
+        6,3 $inner.loose -anchor w \
+        
+
+    blt::table configure $inner r2 -pady 4
+    blt::table configure $inner c1 -width 20
+    update
+}
+
+#
+# ShowAxisPopup --
+#
+#       Displays the axis dialog for an axis.  It initializes the 
+#       _axisInfo variables for that axis if necessary.
+#
+itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
+    set g $itk_component(plot)
+    set popup $itk_component(hull).axes 
+
+    if { ![winfo exists $popup] } {
+        BuildAxisPopup $popup
+    }
+    set _axisPopup(axis)     $axis
+    set _axisPopup(label)    [$g axis cget $axis -title]
+    set _axisPopup(logscale) [$g axis cget $axis -logscale]
+    set _axisPopup(loose)    [$g axis cget $axis -loose]
+    if { ![info exists _axisPopup($axis-format)] } {
+        set inner [$itk_component(hull).axes component inner]
+        set _axisPopup($axis-format) "%.6g"
+        set fmts [$inner.format choices get -value]
+        set i [lsearch -exact $fmts $_axisPopup($axis-format)]
+        if {$i < 0} { set i 0 }  ;# use Auto choice
+        $inner.format value [$inner.format choices get -label $i]
+    }
+    foreach {min max} [$g axis limits $axis] break
+    if { $_axisPopup(logscale) } {
+        set type "log"
+    } else {
+        set type "lin"
+    }
+    set amin $_limits(${axis}${type}-min)
+    set amax $_limits(${axis}${type}-max)
+    set auto 1 
+    if { $amin != "" || $amax != "" } {
+        set auto 0
+    }
+    if { ![info exists _axisPopup($axis-auto)] } {
+        set _axisPopup($axis-auto) $auto;# Defaults to automatic
+    }
+    set _axisPopup(auto)  $_axisPopup($axis-auto)
+    SetAxisRangeState $axis
+    if { ![info exists _axisPopup($axis-min)] } {
+        if { $amin != "" } {
+            set _axisPopup($axis-min) $amin
+            set _axisPopup(min)   $_axisPopup($axis-min)
+            SetAxis min
+        } else {
+            set _axisPopup($axis-min) $min
+        }
+    }
+    if { ![info exists _axisPopup($axis-max)] } {
+        if { $amax != "" } {
+            set _axisPopup($axis-max) $amax
+            set _axisPopup(max)   $_axisPopup($axis-max)
+            SetAxis max
+        } else {
+            set _axisPopup($axis-max) $max
+        }
+    }
+    set _axisPopup(min)   $_axisPopup($axis-min)
+    set _axisPopup(max)   $_axisPopup($axis-max)
+    set _axisPopup(axis) $axis
+    if 0 {
+    $popup configure -deactivatecommand \
+        [itcl::code $this Axis changed $axis focus]
+    }
+
+    #
+    # Figure out where the window should pop up.
+    #
+    set x [winfo rootx $g]
+    set y [winfo rooty $g]
+    set w [winfo width $g]
+    set h [winfo height $g]
+    foreach {x0 y0 pw ph} [$g extents plotarea] break
+    switch -glob -- $axis {
+        x {
+            set x [expr {round($x + $x0+0.5*$pw)}]
+            set y [expr {round($y + $y0+$ph + 0.5*($h-$y0-$ph))}]
+            set dir "above"
+        }
+        x* {
+            set x [expr {round($x + $x0+0.5*$pw)}]
+            set dir "below"
+            set allx [$itk_component(plot) x2axis use]
+            set max [llength $allx]
+            set i [lsearch -exact $allx $axis]
+            set y [expr {round($y + ($i+0.5)*$y0/double($max))}]
+        }
+        y {
+            set x [expr {round($x + 0.5*$x0)}]
+            set y [expr {round($y + $y0+0.5*$ph)}]
+            set dir "right"
+        }
+        y* {
+            set y [expr {round($y + $y0+0.5*$ph)}]
+            set dir "left"
+            set ally [$g y2axis use]
+            set max [llength $ally]
+            set i [lsearch -exact $ally $axis]
+            set y [expr {round($y + ($i+0.5)*$y0/double($max))}]
+            set x [expr {round($x+$x0+$pw + ($i+0.5)*($w-$x0-$pw)/double($max))}]
+        }
+    }
+    $popup activate @$x,$y $dir
+}
+
+#
+# GetFormattedValue --
+#
+#       Callback routine for the axis format procedure.  It formats the
+#       axis tick label according to the selected format.  This routine 
+#       is also used to format tooltip values.
+#
+itcl::body Rappture::XyResult::GetFormattedValue { axis g value } {
+    if { [$g axis cget $axis -logscale] || 
+         ![info exists _axisPopup($axis-format)] } {
+        set fmt "%.6g"
+    } else {
+        set fmt $_axisPopup($axis-format)
+    }
+    return [format $fmt $value]
 }
