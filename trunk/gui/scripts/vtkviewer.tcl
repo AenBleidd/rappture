@@ -223,20 +223,20 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }]
     array set _settings [subst {
         legend          1
-	molecule-representation  "Ball and Stick"
+        molecule-representation  "Ball and Stick"
         molecule-edges           0
         molecule-labels          0
         molecule-lighting        1
         molecule-opacity         100
         molecule-visible         1
         molecule-wireframe       0
-	molecule-palette         elementDefault
+        molecule-palette         elementDefault
         mesh-edges           0
         mesh-lighting        1
         mesh-opacity         40
         mesh-visible         1
         mesh-wireframe       0
-	mesh-palette         rainbow
+        mesh-palette         rainbow
     }]
 
     itk_component add view {
@@ -279,7 +279,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(reset) \
-	"Reset the view to the default zoom level"
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -306,11 +306,11 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     if { [catch { BuildMeshTab } errs ]  != 0 } {
-	puts stderr "errs=$errs"
+        puts stderr "errs=$errs"
     }
     if { [catch { BuildMoleculeTab } errs ]  != 0 } {
-	global errorInfo
-	puts stderr "errs=$errs\nerrorInfo=$errorInfo"
+        global errorInfo
+        puts stderr "errs=$errs\nerrorInfo=$errorInfo"
     }
     BuildAxisTab
     #BuildCutawayTab
@@ -493,7 +493,6 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
     set _obj2ovride($dataobj-raise) $params(-raise)
     $_dispatcher event -idle !rebuild
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
@@ -711,17 +710,17 @@ itcl::body Rappture::VtkViewer::Connect {} {
         if { $_reportClientInfo }  {
             # Tell the server the viewer, hub, user and session.
             # Do this immediately on connect before buffing any commands
-	    global env
+            global env
 
             set info {}
             set user "???"
-	    if { [info exists env(USER)] } {
+            if { [info exists env(USER)] } {
                 set user $env(USER)
-	    }
+            }
             set session "???"
-	    if { [info exists env(SESSION)] } {
+            if { [info exists env(SESSION)] } {
                 set session $env(SESSION)
-	    }
+            }
             lappend info "hub" [exec hostname]
             lappend info "client" "vtkviewer"
             lappend info "user" $user
@@ -896,9 +895,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj data $comp]
-		if { $bytes == "" } {
-		    continue
-		}
+                if { $bytes == "" } {
+                    continue
+                }
                 set length [string length $bytes]
                 if { $_reportClientInfo }  {
                     set info {}
@@ -914,25 +913,13 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
                 set _datasets($tag) 1
-                switch -- [$dataobj type $comp] {
-                    "polydata" {
-                        SendCmd "polydata add $tag"
-                    }
-                    "glyphs" {
-                        set shape [$dataobj shape $comp]
-                        SendCmd "glyphs add $shape $tag"
-                    }
-                    "molecule" {
-                        SendCmd "molecule add $tag"
-                    }
-                }
+                SetObjectStyle $dataobj $comp
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "dataset visible 1 $tag"
                 puts stderr "$count: dataset visible 1 $tag"
             }
-            SetObjectStyle $dataobj $comp
         }
     }
     if {"" != $_first} {
@@ -953,16 +940,16 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         }
     }
     if { $_reset } {
-	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-	$_arcball quaternion $q 
+        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+        $_arcball quaternion $q 
         SendCmd "camera reset"
         if { $_view(ortho)} {
             SendCmd "camera mode ortho"
         } else {
             SendCmd "camera mode persp"
-	}
-	DoRotate
-	PanCamera
+        }
+        DoRotate
+        PanCamera
         Zoom reset
     }
     FixSettings molecule-representation 
@@ -1073,7 +1060,6 @@ itcl::body Rappture::VtkViewer::PanCamera {} {
     set y $_view(ypan)
     SendCmd "camera pan $x $y"
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: Rotate click <x> <y>
@@ -1214,51 +1200,51 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set val $_settings(mesh-opacity)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "polydata" } {
-		    SendCmd "$type opacity $sval $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    SendCmd "$type opacity $sval $dataset"
+                }
             }
         }
         "mesh-wireframe" {
             set bool $_settings(mesh-wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "polydata" } {
-		    SendCmd "$type wireframe $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    SendCmd "$type wireframe $bool $dataset"
+                }
             }
         }
         "mesh-visible" {
             set bool $_settings(mesh-visible)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "polydata" } {
-		    SendCmd "$type visible $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    SendCmd "$type visible $bool $dataset"
+                }
             }
         }
         "mesh-lighting" {
             set bool $_settings(mesh-lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "polydata" } {
-		    SendCmd "$type lighting $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    SendCmd "$type lighting $bool $dataset"
+                }
             }
         }
         "mesh-edges" {
             set bool $_settings(mesh-edges)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "polydata" } {
-		    SendCmd "$type edges $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    SendCmd "$type edges $bool $dataset"
+                }
             }
         }
         "mesh-palette" {
@@ -1266,10 +1252,10 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set _settings(mesh-palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "polydata" } {
-		    ChangeColormap $dataobj $comp $palette
-		}
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    ChangeColormap $dataobj $comp $palette
+                }
             }
             set _legendPending 1
         }
@@ -1277,51 +1263,51 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set val $_settings(molecule-opacity)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd "molecule opacity $sval $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd "molecule opacity $sval $dataset"
+                }
             }
         }
         "molecule-wireframe" {
             set bool $_settings(molecule-wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd "molecule wireframe $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd "molecule wireframe $bool $dataset"
+                }
             }
         }
         "molecule-visible" {
             set bool $_settings(molecule-visible)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd "molecule visible $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd "molecule visible $bool $dataset"
+                }
             }
         }
         "molecule-lighting" {
             set bool $_settings(molecule-lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd "molecule lighting $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd "molecule lighting $bool $dataset"
+                }
             }
         }
         "molecule-edges" {
             set bool $_settings(molecule-edges)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd "molecule edges $bool $dataset"
-		}
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd "molecule edges $bool $dataset"
+                }
             }
         }
         "molecule-palette" {
@@ -1329,88 +1315,88 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set _settings(molecule-palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    ChangeColormap $dataobj $comp $palette
-		    if { $palette == "elementDefault" } {
-			SendCmd "molecule colormode by_elements element $dataset"
-		    } else {
-			# FIXME: Set the chosen scalar field name here
-			SendCmd "molecule colormode scalar {} $dataset"
-		    }
-		}
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    ChangeColormap $dataobj $comp $palette
+                    if { $palette == "elementDefault" } {
+                        SendCmd "molecule colormode by_elements element $dataset"
+                    } else {
+                        # FIXME: Set the chosen scalar field name here
+                        SendCmd "molecule colormode scalar {} $dataset"
+                    }
+                }
             }
             set _legendPending 1
         }
-	"molecule-representation" {
-	    set value [$itk_component(representation) value]
-	    set value [$itk_component(representation) translate $value]
-	    switch -- $value {
-		"ballandstick" {
-		    set rscale covalent
-		    set ashow 1
-		    set bshow 1
-		    set bstyle cylinder
-		    set ascale 0.3
-		    set bscale 0.075
-		}
-		"balls" - "spheres" {
-		    set rscale covalent
-		    set ashow 1
-		    set bshow 0
-		    set bstyle cylinder
-		    set ascale 0.3
-		    set bscale 0.075
-		}
-		"sticks" {
-		    set rscale none
-		    set ashow 1
-		    set bshow 1
-		    set bstyle cylinder
-		    set ascale 0.075
-		    set bscale 0.075
-		}
-		"spacefilling" {
-		    set rscale van_der_waals
-		    set ashow 1
-		    set bshow 0
-		    set bstyle cylinder
-		    set ascale 1.0
-		    set bscale 0.075
-		}
-		"rods"  {
-		    set rscale none
-		    set ashow 1
-		    set bshow 1
-		    set bstyle cylinder
-		    set ascale 0.1
-		    set bscale 0.1
-		}
-		"wireframe" - "lines" {
-		    set rscale none
-		    set ashow 0
-		    set bshow 1
-		    set bstyle line
-		    set ascale 1.0
-		    set bscale 1.0
-		}
-		default {
-		    error "unknown representation $value"
-		}
-	    }
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		foreach {dataobj comp} [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd [subst {molecule rscale $rscale $dataset
+        "molecule-representation" {
+            set value [$itk_component(representation) value]
+            set value [$itk_component(representation) translate $value]
+            switch -- $value {
+                "ballandstick" {
+                    set rscale covalent
+                    set ashow 1
+                    set bshow 1
+                    set bstyle cylinder
+                    set ascale 0.3
+                    set bscale 0.075
+                }
+                "balls" - "spheres" {
+                    set rscale covalent
+                    set ashow 1
+                    set bshow 0
+                    set bstyle cylinder
+                    set ascale 0.3
+                    set bscale 0.075
+                }
+                "sticks" {
+                    set rscale none
+                    set ashow 1
+                    set bshow 1
+                    set bstyle cylinder
+                    set ascale 0.075
+                    set bscale 0.075
+                }
+                "spacefilling" {
+                    set rscale van_der_waals
+                    set ashow 1
+                    set bshow 0
+                    set bstyle cylinder
+                    set ascale 1.0
+                    set bscale 0.075
+                }
+                "rods"  {
+                    set rscale none
+                    set ashow 1
+                    set bshow 1
+                    set bstyle cylinder
+                    set ascale 0.1
+                    set bscale 0.1
+                }
+                "wireframe" - "lines" {
+                    set rscale none
+                    set ashow 0
+                    set bshow 1
+                    set bstyle line
+                    set ascale 1.0
+                    set bscale 1.0
+                }
+                default {
+                    error "unknown representation $value"
+                }
+            }
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd [subst {molecule rscale $rscale $dataset
 molecule atoms $ashow $dataset
 molecule bonds $bshow $dataset
 molecule bstyle $bstyle $dataset
 molecule ascale $ascale $dataset
 molecule bscale $bscale $dataset}]
-		}
-	    }
-	}
+                }
+            }
+        }
         "molecule-labels" {
             set bool $_settings(molecule-labels)
             foreach dataset [CurrentDatasets -visible $_first] {
@@ -1542,9 +1528,9 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style $_style($tag)
 
     if { $style(-color) == "elementDefault" } {
-	set name "$style(-color)"
+        set name "$style(-color)"
     } else {
-	set name "$style(-color):$style(-levels):$style(-opacity)"
+        set name "$style(-color):$style(-levels):$style(-opacity)"
     }
     if { ![info exists _colormaps($name)] } {
         BuildColormap $name [array get style]
@@ -1553,17 +1539,17 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     if { ![info exists _dataset2style($tag)] ||
          $_dataset2style($tag) != $name } {
         set _dataset2style($tag) $name
-	switch -- [$dataobj type $comp] {
-	    "polygon" {
-		SendCmd "pseudocolor colormap $name $tag"
-	    }
-	    "glyphs" {
-		SendCmd "glyphs colormap $name $tag"
-	    }
-	    "molecule" {
-		SendCmd "molecule colormap $name $tag"
-	    }
-	}
+        switch -- [$dataobj type $comp] {
+            "polygon" {
+                SendCmd "pseudocolor colormap $name $tag"
+            }
+            "glyphs" {
+                SendCmd "glyphs colormap $name $tag"
+            }
+            "molecule" {
+                SendCmd "molecule colormap $name $tag"
+            }
+        }
     }
 }
 
@@ -1572,7 +1558,7 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
 #
 itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
     if { $name ==  "elementDefault" } {
-	return
+        return
     }
     array set style $styles
     set cmap [ColorsToColormap $style(-color)]
@@ -1587,7 +1573,6 @@ itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
     set wmap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
 }
-
 
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotbackground
@@ -1616,9 +1601,9 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
         set tag $dataobj-$comp
         if { ![info exists _limits($tag)] } {
             set data [$dataobj data $comp]
-	    if { $data == "" } {
-		continue
-	    }
+            if { $data == "" } {
+                continue
+            }
             set tmpfile file[pid].vtk
             set f [open "$tmpfile" "w"]
             fconfigure $f -translation binary -encoding binary
@@ -1626,34 +1611,54 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
             close $f
             set reader [vtkDataSetReader $tag-xvtkDataSetReader]
             $reader SetFileName $tmpfile
-            $reader ReadAllNormalsOn
-            $reader ReadAllScalarsOn
-            $reader ReadAllVectorsOn
-            $reader ReadAllFieldsOn
+set debug 0
+            if {$debug} {
+                # Only needed for debug output below
+                $reader ReadAllNormalsOn
+                $reader ReadAllTCoordsOn
+                $reader ReadAllScalarsOn
+                $reader ReadAllColorScalarsOn
+                $reader ReadAllVectorsOn
+                $reader ReadAllTensorsOn
+                $reader ReadAllFieldsOn
+            }
             $reader Update
+            file delete $tmpfile
             set output [$reader GetOutput]
             set _limits($tag) [$output GetBounds]
-            set pointData [$output GetPointData]
-            set fieldData [$output GetFieldData]
-	    if 1 {
-		puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
-		puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
-		puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
-		puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
-		puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
-		puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
-		puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
-		puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
-		puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
-		puts stderr "point \#components=[$pointData GetNumberOfComponents]"
-		puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
-		puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
-		puts stderr "point \#scalars=[$pointData GetScalars]"
-		puts stderr vectors=[$pointData GetVectors]
-	    }
+            if {$debug} {
+                puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
+                puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
+                puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
+                puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
+                puts stderr "\#tcoords=[$reader GetNumberOfTCoordsInFile]"
+                puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
+                puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
+                set pointData [$output GetPointData]
+                if { $pointData != ""} {
+                    puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
+                    puts stderr "point \#components=[$pointData GetNumberOfComponents]"
+                    puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
+                    puts stderr "point scalars=[$pointData GetScalars]"
+                    puts stderr "point vectors=[$pointData GetVectors]"
+                }
+                set cellData [$output GetCellData]
+                if { $cellData != ""} {
+                    puts stderr "cell \#arrays=[$cellData GetNumberOfArrays]"
+                    puts stderr "cell \#components=[$cellData GetNumberOfComponents]"
+                    puts stderr "cell \#tuples=[$cellData GetNumberOfTuples]"
+                    puts stderr "cell scalars=[$cellData GetScalars]"
+                    puts stderr "cell vectors=[$cellData GetVectors]"
+                }
+                set fieldData [$output GetFieldData]
+                if { $fieldData != ""} {
+                    puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
+                    puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
+                    puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
+                }
+            }
             rename $output ""
             rename $reader ""
-            file delete $tmpfile
         }
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
         if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
@@ -1822,7 +1827,6 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c1 -resize expand
 }
-
 
 itcl::body Rappture::VtkViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
@@ -2060,14 +2064,14 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     }
     $inner.rep choices insert end \
         "ballandstick"  "Ball and Stick" \
-        "spheres"	"Spheres"	\
-        "sticks"	"Sticks"	\
-        "rods"		"Rods"          \
-        "wireframe"     "Wireframe"	\
+        "spheres"	"Spheres"        \
+        "sticks"	"Sticks"	 \
+        "rods"		"Rods"           \
+        "wireframe"     "Wireframe"	 \
         "spacefilling"  "Space Filling" 
 
     bind $inner.rep <<Value>> \
-	[itcl::code $this AdjustSetting molecule-representation]
+        [itcl::code $this AdjustSetting molecule-representation]
     $inner.rep value "Ball and Stick"
 
     label $inner.palette_l -text "Palette" -font "Arial 9" 
@@ -2075,7 +2079,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
-	"elementDefault"	     "elementDefault" \
+        "elementDefault"     "elementDefault"   \
         "BCGYR"              "BCGYR"            \
         "BGYOR"              "BGYOR"            \
         "blue"               "blue"             \
@@ -2193,7 +2197,6 @@ itcl::body Rappture::VtkViewer::ConvertToVtkData { dataobj comp } {
     return $out
 }
 
-
 itcl::body Rappture::VtkViewer::GetVtkData { args } {
     set bytes ""
     foreach dataobj [get] {
@@ -2201,7 +2204,7 @@ itcl::body Rappture::VtkViewer::GetVtkData { args } {
             set tag $dataobj-$comp
             set contents [$dataobj data $comp]
             append bytes "$contents\n"
-	    append bytes "\# End of VTK file\n\n"
+            append bytes "\# End of VTK file\n\n"
         }
     }
     return [list .txt $bytes]
@@ -2278,8 +2281,9 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             -lighting 1
             -visible 1
         }
-	set shape [$dataobj shape $comp]
+        set shape [$dataobj shape $comp]
         array set settings $style
+        SendCmd "glyphs add $shape $tag"
         SendCmd "glyphs normscale 0 $tag"
         SendCmd "glyphs gscale $settings(-gscale) $tag"
         SendCmd "glyphs wireframe $settings(-wireframe) $tag"
@@ -2292,6 +2296,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         set _settings(glyphs-wireframe) $settings(-wireframe)
         set _haveGlyphs 1
     } elseif { $type == "molecule" } {
+        SendCmd "molecule add $tag"
         SendCmd "molecule rscale van_der_waals $tag"
         set _haveMolecules 1
     } else {
@@ -2306,6 +2311,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             -visible 1
         }
         array set settings $style
+        SendCmd "polydata add $tag"
         SendCmd "polydata visible $settings(-visible) $tag"
         set _settings(mesh-visible) $settings(-visible)
         SendCmd "polydata edges $settings(-edges) $tag"
@@ -2455,7 +2461,6 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
     Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: Slice move x|y|z <newval>
 #
@@ -2507,4 +2512,3 @@ itcl::body Rappture::VtkViewer::SetOrientation { side } {
     set _view(ypan) 0
     set _view(zoom) 1.0
 }
-
