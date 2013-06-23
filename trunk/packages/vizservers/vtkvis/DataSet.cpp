@@ -207,10 +207,10 @@ void DataSet::print(vtkDataSet *ds)
             }
         }
         if (ds->GetCellData()->GetScalars() != NULL) {
-            TRACE("Active cell scalars: %s", ds->GetPointData()->GetScalars()->GetName());
+            TRACE("Active cell scalars: %s", ds->GetCellData()->GetScalars()->GetName());
         }
         if (ds->GetCellData()->GetVectors() != NULL) {
-            TRACE("Active cell vectors: %s", ds->GetPointData()->GetVectors()->GetName());
+            TRACE("Active cell vectors: %s", ds->GetCellData()->GetVectors()->GetName());
         }
     }
     if (ds->GetFieldData() != NULL) {
