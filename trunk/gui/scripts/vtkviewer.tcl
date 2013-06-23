@@ -1540,8 +1540,12 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
          $_dataset2style($tag) != $name } {
         set _dataset2style($tag) $name
         switch -- [$dataobj type $comp] {
-            "polygon" {
-                SendCmd "pseudocolor colormap $name $tag"
+            "polydata" {
+                # FIXME: Can't colormap a polydata from a scalar field 
+                # currently.  If we want to support this, need to use 
+                # a pseudocolor instead of a polydata, or add colormap 
+                # support to polydata
+                #SendCmd "polydata colormap $name $tag"
             }
             "glyphs" {
                 SendCmd "glyphs colormap $name $tag"
