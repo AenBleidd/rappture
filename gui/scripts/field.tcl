@@ -79,7 +79,7 @@ itcl::class Rappture::Field {
     private variable _comp2fldName ;	# cname => field names.
     private variable _comp2type ;	# cname => type (e.g. "vector")
     private variable _comp2size ;	# cname => # of components in element
-    private variable _comp2assoc; # cname => association (e.g. pointdata)
+    private variable _comp2assoc;	# cname => association (e.g. pointdata)
     private variable _fld2Components;   # field name => number of components
     private variable _fld2Label;        # field name => label
     private variable _fld2Units;        # field name => units
@@ -1199,19 +1199,15 @@ itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
     $reader ReadAllTensorsOn
     $reader ReadAllFieldsOn
     $reader Update
+    file delete $tmpfile
+
     set dataset [$reader GetOutput]
-    set points [$dataset GetPoints]
-    set numPoints [$points GetNumberOfPoints]
     set dataAttrs [$dataset GetPointData]
-    if { $_dim == 1 } {
-        set numArrays [$dataAttrs GetNumberOfArrays]
-    }
     if { $dataAttrs == ""} {
 	puts stderr "WARNING: no point data found in \"$_path\""
+        rename $reader ""
         return 0
     }
-    set numArrays [$dataAttrs GetNumberOfArrays]
-    file delete $tmpfile
     rename $reader ""
 }
 
@@ -1237,6 +1233,8 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     $reader ReadAllTensorsOn
     $reader ReadAllFieldsOn
     $reader Update
+    file delete $tmpfile
+
     set dataset [$reader GetOutput]
     set limits {}
     foreach {xmin xmax ymin ymax zmin zmax} [$dataset GetBounds] break
@@ -1260,26 +1258,39 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     }
     set _comp2dims($cname) ${_dim}D
     if { $_dim < 2 } {
-        set points [$dataset GetPoints]
-        set numPoints [$points GetNumberOfPoints]
+        set numPoints [$dataset GetNumberOfPoints]
         set xv [blt::vector create \#auto]
         for { set i 0 } { $i < $numPoints } { incr i } {
-            set point [$points GetPoint 0]
+            set point [$dataset GetPoint $i]
             $xv append [lindex $point 0] 
         }
         set yv [blt::vector create \#auto]
-        $yv seq 0 1 [$xv length]
+        set dataAttrs [$dataset GetPointData]
+        if { $dataAttrs == ""} {
+            puts stderr "WARNING: no point data found in \"$_path\""
+            rename $reader ""
+            return 0
+        }
+        set array [$dataAttrs GetScalars]
+        if { $array == ""} {
+            puts stderr "WARNING: no scalar point data found in \"$_path\""
+            rename $reader ""
+            return 0
+        }
+        set numTuples [$array GetNumberOfTuples]
+        for { set i 0 } { $i < $numTuples } { incr i } {
+            $yv append [$array GetComponent $i 0] 
+        }
+        $xv sort $yv
         set _comp2xy($cname) [list $xv $yv]
     }
     lappend limits x [list $xmin $xmax] 
     lappend limits y [list $ymin $ymax] 
     lappend limits z [list $zmin $zmax]
     set dataAttrs [$dataset GetPointData]
-    if { $_dim == 1 } {
-        set numArrays [$dataAttrs GetNumberOfArrays]
-    }
     if { $dataAttrs == ""} {
 	puts stderr "WARNING: no point data found in \"$_path\""
+        rename $reader ""
         return 0
     }
     set vmin 0
@@ -1287,12 +1298,14 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set numArrays [$dataAttrs GetNumberOfArrays]
     if { $numArrays > 0 } {
 	set array [$dataAttrs GetArray 0]
-	foreach {vmin vmax} [$array GetRange] break
+        # Calling GetRange with component set to -1 will return 
+        # either the scalar range or vector magnitude range
+	foreach {vmin vmax} [$array GetRange -1] break
 
 	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
 	    set array [$dataAttrs GetArray $i]
 	    set fname  [$dataAttrs GetArrayName $i]
-	    foreach {min max} [$array GetRange] break
+	    foreach {min max} [$array GetRange -1] break
 	    lappend limits $fname [list $min $max]
             set _fld2Units($fname) ""
 	    set _fld2Label($fname) $fname
@@ -1304,7 +1317,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     
     lappend limits v [list $vmin $vmax]
     set _comp2limits($cname) $limits
-    file delete $tmpfile
+
     rename $reader ""
 }
 
@@ -1545,15 +1558,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     } 
     if {$_dim == 3} {
 	# 3D data: By default isosurfaces plot using isosurface widget.
-	set values [$_field get $cname.values]
-	set farray [vtkFloatArray ::vals$_counter]
-	foreach v $values {
-	    if {"" != $_units} {
-		set v [Rappture::Units::convert $v \
-			   -context $_units -to $_units -units off]
-	    }
-	    $farray InsertNextValue $v
-	}
         if { $_viewer == "" } {
             set _viewer "isosurface"
         }
@@ -1593,13 +1597,6 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
     $reader Update
     file delete $tmpfile
 
-    set output [$reader GetOutput]
-    set pointData [$output GetPointData]
-    set _scalars {}
-    for { set i 0 } { $i < [$pointData GetNumberOfArrays] } { incr i } {
-        set name [$pointData GetArrayName $i]
-	lappend _scalars $name $name "???"
-    }
     set tmpfile $cname[pid].vtk
     set writer $this-datasetwriter
     vtkDataSetWriter $writer

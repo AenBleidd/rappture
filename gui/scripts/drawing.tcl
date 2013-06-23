@@ -355,13 +355,6 @@ itcl::body Rappture::Drawing::PdbToVtk { cname contents } {
     $reader Update
     file delete $tmpfile
 
-    set output [$reader GetOutput]
-    set pointData [$output GetPointData]
-    set _scalars {}
-    for { set i 0 } { $i < [$pointData GetNumberOfArrays] } { incr i } {
-        set name [$pointData GetArrayName $i]
-	lappend _scalars $name $name "???"
-    }
     set tmpfile $cname[pid].vtk
     set writer $this-datasetwriter
     vtkDataSetWriter $writer
