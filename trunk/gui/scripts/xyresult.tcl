@@ -484,15 +484,8 @@ itcl::body Rappture::XyResult::scale {args} {
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
-                foreach {min max} [$dataobj limits $axis$type] break
-                set amin [$dataobj hints ${axis}min]
-                set amax [$dataobj hints ${axis}max]
-                if { $amin != "" } {
-                    set min $amin
-                }
-                if { $amax != "" } {
-                    set max $amax
-                }
+                set min [$dataobj hints ${axis}min]
+                set max [$dataobj hints ${axis}max]
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -506,11 +499,6 @@ itcl::body Rappture::XyResult::scale {args} {
                         }
                     }
                 }
-            }
-            if 0 {
-            if {[$dataobj hints ${axis}scale] == "log"} {
-                Axis scale $map($axis) log
-            }
             }
         }
     }
@@ -1940,8 +1928,14 @@ itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
     } else {
         set type "lin"
     }
-    set amin $_limits(${axis}${type}-min)
-    set amax $_limits(${axis}${type}-max)
+    set amin ""
+    if { [info exists _limits(${axis}${type}-min)] } {
+        set amin $_limits(${axis}${type}-min)
+    }
+    set amax ""
+    if { [info exists _limits(${axis}${type}-max)] } {
+        set amax $_limits(${axis}${type}-max)
+    }
     set auto 1 
     if { $amin != "" || $amax != "" } {
         set auto 0
