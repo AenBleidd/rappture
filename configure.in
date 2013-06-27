@@ -55,10 +55,12 @@ AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
 
 AC_LANG([C++])
 
-AC_CHECK_FUNCS([sysinfo])
-AC_CHECK_HEADERS(sys/sysinfo.h)
+AC_CHECK_FUNCS(sysinfo)
+AC_CHECK_FUNCS(gettimeofday)
+AC_CHECK_FUNC(localtime,,AC_MSG_ERROR(oops! no localtime ?!?))
+AC_CHECK_FUNC(getenv,,AC_MSG_ERROR(oops! no getenv ?!?))
 
-AC_CHECK_LIB(m, main,,AC_MSG_ERROR(librappture requires libm))
+AC_CHECK_HEADERS(sys/sysinfo.h)
 
 AC_CHECK_LIB(ncurses, clrtoeol,,AC_MSG_ERROR([ncurses library missing?]))
 AC_CHECK_HEADERS(ncurses.h,,AC_MSG_WARN(ncurses headers missing ?))

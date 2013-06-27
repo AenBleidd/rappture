@@ -39,6 +39,6 @@ install:
 	$(R) CMD INSTALL $(R_flags) --library=$(Rlib) Rappture
 
 clean:
-	$(RM) -rf Rappture Rappture_1.0.tar.gz ${PWD}/build
+	$(RM) -rf Rappture ${PWD}/build
 
 distclean: clean
