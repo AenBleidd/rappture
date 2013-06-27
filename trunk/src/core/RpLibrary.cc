@@ -11,6 +11,7 @@
  * ======================================================================
  */
 
+#include "config.h"
 #include "scew/scew.h"
 #include "scew_extras.h"
 #include "RpLibrary.h"
@@ -2221,89 +2222,99 @@ RpLibrary::outcome() const
 void
 RpLibrary::result(int exitStatus)
 {
-    std::stringstream outputFile;
     std::fstream file;
     std::string xmlText = "";
-    std::string timestamp = "";
-    std::string username = "";
-    std::string hostname = "";
+    time_t t;
+    struct tm* timeinfo;
+    std::stringstream outputFile;
+    std::string timestamp;
+    std::string username;
+    std::string hostname;
     char *user = NULL;
 
-    if (this->root) {
-	time_t t;
-	struct tm* timeinfo = NULL;
-
-#ifdef _POSIX_SOURCE
-        // if the posix function gettimeofday is available,
-        // we can get more precision on the time and more
-        // unique filenames.
-        struct timeval tv;
-        gettimeofday(&tv,NULL);
-        outputFile << "run" << tv.tv_sec << tv.tv_usec << ".xml";
-#else
-        outputFile << "run" << (int)time(&t) << ".xml";
-#endif
-        file.open(outputFile.str().c_str(),std::ios::out);
-
-        put("tool.version.rappture.revision","$LastChangedRevision$");
-        put("tool.version.rappture.modified","$LastChangedDate$");
-        if ( "" == get("tool.version.rappture.language") ) {
-            put("tool.version.rappture.language","c++");
-        }
-	t = time(NULL);
-        // generate a timestamp for the run file
-        timeinfo = localtime(&t);
-        timestamp = std::string(ctime(&t));
-        // erase the 24th character because it is a newline
-        timestamp.erase(24);
-        // concatenate the timezone
-        timestamp.append(" ");
-#ifdef _WIN32
-        timestamp.append(_tzname[_daylight]);
-        // username is left blank for windows because i dont know
-        // how to retrieve username on win32 environment.
-        username = "";
-        hostname = "";
-#else
-        timestamp.append(timeinfo->tm_zone);
-        user = getenv("USER");
-        if (user != NULL) {
-            username = std::string(user);
-        } else {
-            user = getenv("LOGNAME");
-            if (user != NULL) {
-                username = std::string(user);
-            }
-        }
-#endif
-
-        // add the timestamp to the run file
-        put("output.time", timestamp);
-        put("output.status",exitStatus);
-        put("output.user",username);
-        put("output.host",hostname);
-
-        if ( file.is_open() ) {
-            xmlText = xml();
-            if (!xmlText.empty()) {
-                file << xmlText;
-            }
-            // check to make sure there were no
-            // errors while writing the run.xml file.
-            if (   (!file.good())
-                || ((long)xmlText.length() != ((long)file.tellp()-(long)1))
-               ) {
-                 status.error("Error while writing run file");
-                 status.addContext("RpLibrary::result()");
-            }
-            file.close();
-        }
-        else {
-            status.error("Error while opening run file");
-            status.addContext("RpLibrary::result()");
-        }
-        std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
+    if (this->root == NULL) {
+	return;				/* No tree available */
     }
+
+    t = time(NULL);			/* This is presumably the time the
+					 * simulation finished. */
+#ifdef HAVE_GETTIMEOFDAY
+    /* If the posix function gettimeofday is available, use it to produce
+     * unique filenames. */
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    outputFile << "run" << tv.tv_sec << tv.tv_usec << ".xml";
+#else
+    outputFile << "run" << (int)t << ".xml";
+#endif
+    file.open(outputFile.str().c_str(),std::ios::out);
+    
+    
+    put("tool.version.rappture.version", RAPPTURE_VERSION);
+    put("tool.version.rappture.revision", SVN_VERSION);
+    put("tool.version.rappture.modified",
+	"$LastChangedDate$");
+    if ( "" == get("tool.version.rappture.language") ) {
+	put("tool.version.rappture.language","c++");
+    }
+    // generate a timestamp for the run file
+    timeinfo = localtime(&t);
+    timestamp = std::string(ctime(&t));
+    // erase the 24th character because it is a newline
+    timestamp.erase(24);
+    // concatenate the timezone
+    timestamp.append(" ");
+#ifdef _WIN32
+    timestamp.append(_tzname[_daylight]);
+    username = "";
+    hostname = "";
+    user = getenv("USERNAME");
+    if (user != NULL) {
+	username = std::string(user);
+    } else {
+	user = getenv("LOGNAME");
+	if (user != NULL) {
+	    username = std::string(user);
+	}
+    }
+#else
+    timestamp.append(timeinfo->tm_zone);
+    user = getenv("USER");
+    if (user != NULL) {
+	username = std::string(user);
+    } else {
+	user = getenv("LOGNAME");
+	if (user != NULL) {
+	    username = std::string(user);
+	}
+    }
+#endif
+
+    // add the timestamp to the run file
+    put("output.time", timestamp);
+    put("output.status",exitStatus);
+    put("output.user",username);
+    put("output.host",hostname);
+    
+    if ( file.is_open() ) {
+	xmlText = xml();
+	if (!xmlText.empty()) {
+	    file << xmlText;
+	}
+	// check to make sure there were no
+	// errors while writing the run.xml file.
+	if (   (!file.good())
+	       || ((long)xmlText.length() != ((long)file.tellp()-(long)1))
+               ) {
+	    status.error("Error while writing run file");
+	    status.addContext("RpLibrary::result()");
+	}
+	file.close();
+    } else {
+	status.error("Error while opening run file");
+	status.addContext("RpLibrary::result()");
+    }
+    std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
 }
 
 /**********************************************************************/

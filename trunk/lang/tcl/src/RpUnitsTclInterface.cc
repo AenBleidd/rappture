@@ -161,14 +161,12 @@ RpTclUnitsConvert   (   ClientData cdata,
                             (char*)NULL);
                         return TCL_ERROR;
                     }
-                }
-                else {
+                } else {
                     // if user does not specify wishes for this option,
                     // set fromUnitsName to an empty string.
                     fromUnitsName = "";
                 }
-            }
-            else if ( option == "-to" ) {
+            } else if ( option == "-to" ) {
                 nextarg++;
                 if (argv[nextarg] != NULL) {
                     toUnitsName = std::string(argv[nextarg]);
@@ -182,14 +180,12 @@ RpTclUnitsConvert   (   ClientData cdata,
                             (char*)NULL);
                         return TCL_ERROR;
                     }
-                }
-                else {
+                } else {
                     // if user does not specify wishes for this option,
                     // set toUnitsName to an empty string.
                     toUnitsName = "";
                 }
-            }
-            else if ( option == "-units" ) {
+            } else if ( option == "-units" ) {
                 nextarg++;
                 if (argv[nextarg] != NULL) {
                     if (Tcl_GetBoolean(interp, argv[nextarg], &showUnits)) {
@@ -200,8 +196,7 @@ RpTclUnitsConvert   (   ClientData cdata,
                         //     argv[nextarg], "\"", (char*)NULL);
                         return TCL_ERROR;
                     }
-                }
-                else {
+                } else {
                     // if user does not specify wishes for this option,
                     // return error.
                     // unrecognized value for -units option
@@ -209,8 +204,7 @@ RpTclUnitsConvert   (   ClientData cdata,
                         "expected boolean value but got \"\"", (char*)NULL);
                     return TCL_ERROR;
                 }
-            }
-            else {
+            } else {
                 // unrecognized option
                 Tcl_AppendResult(interp, "bad option \"", argv[nextarg], 
                         "\": should be -context, -to, -units",
@@ -219,8 +213,7 @@ RpTclUnitsConvert   (   ClientData cdata,
             }
 
             nextarg++;
-        }
-        else {
+        } else {
             // unrecognized input
             Tcl_AppendResult(interp, "bad option \"", argv[nextarg], "\": ",
                 "should be -context, -to, -units",
@@ -239,8 +232,7 @@ RpTclUnitsConvert   (   ClientData cdata,
     // Trim away white space from the value.  
     trim(inValue);
 
-    double value;
-    value = strtod(inValue.c_str(), &endptr);
+    strtod(inValue.c_str(), &endptr);
     if (endptr == inValue.c_str()) {
         // there was no numeric value that could be pulled from inValue
         // return error
@@ -255,8 +247,7 @@ RpTclUnitsConvert   (   ClientData cdata,
         Tcl_AppendResult(interp, "bad value \"", 
                 inValue.c_str(), mesg.c_str(), (char*)NULL);
         return TCL_ERROR;
-    }
-    else if ( ((unsigned)(endptr - inValue.c_str())) == inValue.length() ) {
+    } else if ( ((unsigned)(endptr - inValue.c_str())) == inValue.length() ) {
         // add 1 because we are subtracting indicies
         // there were no units at the end of the inValue string
         // rappture units convert expects the val variable to be 
@@ -264,14 +255,12 @@ RpTclUnitsConvert   (   ClientData cdata,
 
         if (!fromUnitsName.empty()) {
             val = inValue + fromUnitsName;
-        }
-        else {
+        } else {
             Tcl_AppendResult(interp, "value: \"", inValue.c_str(),
                     "\" has unrecognized units", (char*)NULL);
             return TCL_ERROR;
         }
-    }
-    else {
+    } else {
         // there seemed to be units at the end of the inValue string
         // we will ignore the -context flag and use the units in inValue
         val = inValue;
@@ -284,8 +273,7 @@ RpTclUnitsConvert   (   ClientData cdata,
         // store the new result in the interpreter
         Tcl_AppendResult(interp, convertedVal.c_str(), (char*)NULL);
         retVal = TCL_OK;
-    }
-    else {
+    } else {
         // error while converting
         Tcl_AppendResult(interp, 
                 convertedVal.c_str(),

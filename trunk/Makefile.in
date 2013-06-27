@@ -21,6 +21,7 @@ os		:= $(shell uname -s)
 
 pkg_path	:= $(shell dirname $(prefix))
 pkg_name	:= $(shell basename $(prefix))
+SVN_VERSION	:= $(shell svnversion $(srcdir))
 
 rappture_binary_tarfile	= rappture-$(os)-$(machine)-$(build_date).tar.gz
 rappture_source_tarfile = rappture-src-$(build_date).tar.gz
