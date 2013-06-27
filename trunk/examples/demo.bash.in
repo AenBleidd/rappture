@@ -82,7 +82,7 @@ STD="\
   graph  \
   zoo/structure  \
   zoo/image  \
-  zoo/cloud \
+  zoo/field \
 "
 dirs=$STD
 
