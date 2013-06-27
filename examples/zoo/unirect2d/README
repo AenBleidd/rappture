@@ -1,0 +1,55 @@
+
+The <unirect2d> element is deprecated in favor of the <mesh>.
+See the mesh example under examples/zoo/mesh.
+
+If you already are using a <unirect2d> element, you should convert it to use
+the <mesh> element.  For example,
+
+  <unirect2d>
+    <about>
+        <label>unirect2d mesh</label>
+    </about>
+    <dim>2</dim>
+    <units>m</units>
+    <hide>yes</hide>
+    <xaxis>
+        <min>0.0</min>
+        <max>1.0</max>
+        <numpoints>50</numpoints>
+    </xaxis>
+    <yaxis>
+        <min>0.0</min>
+        <max>1.0</max>
+        <numpoints>50</numpoints>
+    </yaxis>
+  </unirect2d>
+
+should be converted to 
+
+  <mesh>
+    <about>
+        <label>uniform grid mesh</label>
+    </about>
+    <dim>2</dim>
+    <units>m</units>
+    <hide>yes</hide>
+    <grid>
+        <xaxis>
+            <min>0.0</min>
+            <max>1.0</max>
+            <numpoints>50</numpoints>
+        </xaxis>
+        <yaxis>
+            <min>0.0</min>
+            <max>1.0</max>
+            <numpoints>50</numpoints>
+        </yaxis>
+    </grid>
+  </mesh>
+
+See the mesh documentation for more information.
+
+  https://nanohub.org/infrastructure/rappture/wiki/rp_xml_ele_mesh
+
+
+

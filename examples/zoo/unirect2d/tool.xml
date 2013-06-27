@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<run>
-    <tool>
-        <about>Press Simulate to see surface plots.</about>
-        <command>tclsh @tool/unirect2d.tcl @driver</command>
-    </tool>
-    <input/>
-</run>
-
