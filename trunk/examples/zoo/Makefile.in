@@ -17,7 +17,6 @@ examples	= \
 		binary \
 		boolean	\
 		choice \
-		cloud \
 		curve \
 		drawing \
 		enable \
@@ -39,8 +38,7 @@ examples	= \
 		sequence \
 		string \
 		structure \
-		table  \
-		unirect2d 
+		table  
 
 destdir		= $(prefix)/examples/zoo
 

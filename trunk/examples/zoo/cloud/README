@@ -1,0 +1,48 @@
+
+The <cloud> element is deprecated in favor of the <mesh>.
+See the mesh example under examples/zoo/mesh.
+
+If you already have a <cloud>, you should convert it to use
+the <mesh> element.  For example,
+
+ <cloud>
+    <about>
+        <label>cloud (deprecated)</label>
+    </about>
+    <dim>2</dim>
+    <units>m</units>
+    <hide>yes</hide>
+    <points>
+       0.0 0.0
+       ...
+    </points>
+ </cloud>
+
+should be converted to 
+
+ <mesh>
+    <about>
+        <label>cloud in unstructured mesh</label>
+    </about>
+    <dim>2</dim>
+    <units>m</units>
+    <hide>yes</hide>
+    <unstructured>
+        <points>
+ 	  0.0 0.0
+          ...
+        </points>
+    </unstructured>
+ </mesh>
+
+Please note that a cloud should be used when your output has no geometry (it's
+really just a cloud of points).  If your output contains a mesh that has a
+geometry (for example, a uniform grid) use that mesh.  The mesh generated from
+a cloud of points may be very different what your tool produced.
+
+See the mesh documentation for more information.
+
+  https://nanohub.org/infrastructure/rappture/wiki/rp_xml_ele_mesh
+
+
+
