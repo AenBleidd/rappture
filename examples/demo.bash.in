@@ -14,8 +14,6 @@ ZOO="\
 	./zoo/binary
 	./zoo/boolean
 	./zoo/choice
-	./zoo/cloud/matlab
-	./zoo/cloud
 	./zoo/curve
 	./zoo/drawing
 	./zoo/enable
@@ -38,7 +36,6 @@ ZOO="\
 	./zoo/string
 	./zoo/structure
 	./zoo/table
-	./zoo/unirect2d
 "
 
 FLOW=" \
