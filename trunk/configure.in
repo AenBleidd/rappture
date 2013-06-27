@@ -261,7 +261,7 @@ if test "${with_ffmpeg}" != "no" ; then
   else 
     AC_PATH_PROG(FFMPEG, ffmpeg, [], [${with_ffmpeg}/bin:${with_ffmpeg}])
   fi 
-  if text "${FFMPEG}x" != "x" ; then
+  if test "${FFMPEG}x" != "x" ; then
     AC_DEFINE(HAVE_FFMPEG, 1, [Render servers can use ffmpeg])
   fi
 fi
@@ -521,8 +521,6 @@ AC_CONFIG_FILES([
     examples/zoo/binary/Makefile
     examples/zoo/boolean/Makefile
     examples/zoo/choice/Makefile
-    examples/zoo/cloud/Makefile
-    examples/zoo/cloud/matlab/Makefile
     examples/zoo/curve/Makefile
     examples/zoo/drawing/Makefile
     examples/zoo/enable/Makefile
@@ -551,7 +549,6 @@ AC_CONFIG_FILES([
     examples/zoo/structure/Makefile
     examples/zoo/structure/examples/Makefile
     examples/zoo/table/Makefile
-    examples/zoo/unirect2d/Makefile
     video/Makefile
     video/pkgIndex.tcl
     oldtest/Makefile
