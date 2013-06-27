@@ -126,9 +126,15 @@ Starting Newton iterations:
  21  dump        cpu:      0.27 sec  1r  5i    1089n    1024e  [2472k]
 -----------------------------------------------------------------------</log>
         <status>ok</status>
-        <cloud id="m0">
+        <mesh id="m0">
+            <about>
+                <label>Cloud Mesh</label>
+            </about>
+            <dim>3</dim>
             <units>um</units>
-            <points>0.00000 0.00000 0.00000
+            <hide>yes</hide>
+            <unstructured>
+                <points>0.00000 0.00000 0.00000
 0.06250 0.00000 1.00000
 0.12500 0.00000 1.00000
 0.18750 0.00000 1.00000
@@ -1217,14 +1223,15 @@ Starting Newton iterations:
 1.87500 2.00000 2.00000
 1.93750 2.00000 2.00000
 2.00000 2.00000 2.00000</points>
-        </cloud>
+            </unstructured>
+        </mesh>
         <field id="psi-0">
             <about>
                 <group>psi</group>
                 <label>solve system=my_poisson</label>
             </about>
             <component>
-                <mesh>output.cloud(m0)</mesh>
+                <mesh>output.mesh(m0)</mesh>
                 <values>-1
 -0.61367
 -0.25967
