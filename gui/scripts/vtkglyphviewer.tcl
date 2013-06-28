@@ -1998,7 +1998,7 @@ itcl::body Rappture::VtkGlyphViewer::GetVtkData { args } {
         foreach cname [$dataobj components] {
             set tag $dataobj-$cname
             set contents [$dataobj vtkdata $cname]
-            append bytes "$contents\n\n"
+            append bytes "$contents\n"
         }
     }
     return [list .vtk $bytes]
@@ -2116,7 +2116,9 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set _currentOpacity $style(-opacity)
     SendCmd "glyphs add arrow $tag"
     SendCmd "glyphs edges $style(-edges) $tag"
-    SendCmd "glyphs gscale 20 $tag"
+    # normscale=1 and gscale=1 are defaults
+    #SendCmd "glyphs normscale 1 $tag"
+    #SendCmd "glyphs gscale 1 $tag"
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
