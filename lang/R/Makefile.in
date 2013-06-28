@@ -22,23 +22,29 @@ R               = @R@
 
 coresrcdir      = ${PWD}/../../rappture/src/core
 corelibdir      = ${PWD}/../src/core
-R_flags         = --configure-args='--with-rappture-include=$(coresrcdir)\
-                                    --with-rappture-lib=$(corelibdir)'
+R_flags         = --configure-args='--with-rappture-include=$(includedir)\
+                                    --with-rappture-lib=$(libdir)'
 
-Rlib            = $(libdir)/R
+RLIB            = R
 
 #	$(MKDIR_P) -m 0755 ${PWD}/build
 #	tar -C ${PWD}/build -clf - . | tar -C $(Rlib) -xpf -
 
-all:
-	$(R) CMD build $(srcdir)/Rappture
-	tar xvzf Rappture_1.0.tar.gz
+all: $(RLIB)
 
-install:
-	$(MKDIR_P) -m 0755 $(Rlib)
-	$(R) CMD INSTALL $(R_flags) --library=$(Rlib) Rappture
+$(RLIB): 
+	tar -C $(srcdir) -clf - Rappture | tar -xpf - 
+	$(MKDIR_P) -m 0755 $(RLIB)
+	$(R) CMD build Rappture
+	LD_LIBRARY_PATH=$(libdir) $(R) CMD INSTALL $(R_flags) --library=$(RLIB) Rappture
+
+install: $(RLIB)
+	$(RM) -rf $(libdir)/$(RLIB)
+	$(MKDIR_P) -m 0755 $(RLIB)
+	tar -clf - $(RLIB) | tar -C $(libdir) -xpf -  
 
 clean:
-	$(RM) -rf Rappture ${PWD}/build
+	$(RM) -r $(RLIB)
+	$(RM) -rf Rappture Rappture_1.0.tar.gz
 
 distclean: clean
