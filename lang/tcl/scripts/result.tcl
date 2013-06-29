@@ -39,7 +39,13 @@ proc Rappture::result {libobj {status 0}} {
         $libobj put output.status "ok"
     }
 
-    $libobj put tool.version.rappture.revision "\$LastChangedRevision$"
+    # I can't stand that there are two versions of this.  I spend more time
+    # tracking down problems that exist in the one version but not the other.
+    # For example, it matters if the tool is running TCL or some other
+    # language.
+
+    $libobj put tool.version.rappture.version $::Rappture::version
+    $libobj put tool.version.rappture.revision $::Rappture::build
     $libobj put tool.version.rappture.modified "\$LastChangedDate$"
     $libobj put tool.version.rappture.language "tcl"
 
