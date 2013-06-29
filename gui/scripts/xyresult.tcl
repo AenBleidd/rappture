@@ -390,6 +390,9 @@ itcl::body Rappture::XyResult::scale {args} {
         # Find the axes for this dataobj (e.g., {x y2})
         foreach {map(x) map(y)} [GetAxes $dataobj] break
         foreach axis {x y} {
+            if {[$dataobj hints ${axis}scale] == "log"} {
+                set _limits(${axis}log) 1
+            }
             # Get defaults for both linear and log scales
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
@@ -551,10 +554,12 @@ itcl::body Rappture::XyResult::Rebuild {} {
     eval $g marker delete [$g marker names]
 
     foreach axis [$g axis names] {
-        if { [$g axis cget $axis -logscale] } {
+        if { [info exist _limits(${axis}log)] } {
             set type "log"
+            set logscale 1
         } else {
             set type "lin"
+            set logscale 0
         }
         set amin ""
         if { [info exists _limits(${axis}${type}-min)] } {
@@ -567,7 +572,7 @@ itcl::body Rappture::XyResult::Rebuild {} {
         $g axis configure $axis \
             -hide yes -checklimits no \
             -command [itcl::code $this GetFormattedValue $axis] \
-            -min $amin -max $amax
+            -min $amin -max $amax -logscale $logscale
     }
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
