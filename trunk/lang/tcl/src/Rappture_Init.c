@@ -49,7 +49,15 @@ Rappture_Init( Tcl_Interp * interp)
     if (Tcl_InitStubs(interp, "8.4", 0) == NULL) {
         return TCL_ERROR;
     }
-    if (Tcl_PkgProvide(interp, "Rappture", PACKAGE_VERSION) != TCL_OK) {
+    if (Tcl_PkgProvide(interp, "Rappture", RAPPTURE_VERSION) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_SetVar(interp, "::Rappture::version", RAPPTURE_VERSION,
+                   TCL_GLOBAL_ONLY | TCL_LEAVE_ERR_MSG) == NULL) {
+        return TCL_ERROR;
+    }
+    if (Tcl_SetVar(interp, "::Rappture::build", SVN_VERSION,
+                   TCL_GLOBAL_ONLY | TCL_LEAVE_ERR_MSG) == NULL) {
         return TCL_ERROR;
     }
 #ifdef notdef

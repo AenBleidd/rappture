@@ -38,8 +38,10 @@ INCLUDES    = -I$(srcdir) \
   -I$(srcdir)/../../../src/core \
   -I$(srcdir)/../../../src/objects \
   -I$(includedir)
-version         = @PACKAGE_VERSION@
-DEFINES         = -DPACKAGE_VERSION=\"$(version)\"
+RAPPTURE_VERSION = @PACKAGE_VERSION@
+SVN_VERSION     := $(shell svnversion $(srcdir))
+DEFINES         = -DSVN_VERSION=\"$(SVN_VERSION)\" \
+                  -DRAPPTURE_VERSION=\"$(RAPPTURE_VERSION)\"
 
 RANLIB          = @RANLIB@
 AR              = ar
@@ -78,7 +80,7 @@ endif
 
 # Not using     RpLibraryTclInterface.o \
 
-name        = Rappture$(version)
+name        = Rappture$(RAPPTURE_VERSION)
 libname     = $(name)
 lib         = $(libname)$(SHLIB_SUFFIX)
 destdir     = $(libdir)/$(name)
