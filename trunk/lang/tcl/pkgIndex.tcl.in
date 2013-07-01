@@ -4,6 +4,7 @@ package ifneeded Rappture @PACKAGE_VERSION@ [format {
     lappend auto_path [file join $dir scripts]
     namespace eval Rappture {
 	variable version $version
+	variable build "@SVN_VERSION@"
 	variable installdir [file normalize $dir]
     }
     namespace eval Rappture::LibraryObj {
@@ -13,3 +14,4 @@ package ifneeded Rappture @PACKAGE_VERSION@ [format {
     load [file join $dir "Rappture${version}${ext}"]
     package provide Rappture $version
 } $dir]
+

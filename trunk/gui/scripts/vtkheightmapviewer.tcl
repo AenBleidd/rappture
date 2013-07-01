@@ -388,7 +388,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     }
 
     set _image(download) [image create photo]
-
+    puts stderr "args=$args"
     eval itk_initialize $args
     Connect
     set _beforeConnect 0

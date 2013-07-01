@@ -10,6 +10,12 @@ package require BLT
 set driver [Rappture::library [lindex $argv 0]]
 
 set meshtype [$driver get input.choice.current]
+set contour [$driver get input.boolean.current]
+if { $contour  == "yes" } {
+    set view contour
+} else {
+    set view heightmap
+}
 
 set xv [blt::vector create \#auto]
 $xv seq 0 1 50
@@ -221,13 +227,13 @@ switch -- $meshtype {
 }
 
 $driver put output.field(substrate).about.label "Substrate Surface"
-#$driver put output.field(substrate).about.type "contour"
+$driver put output.field(substrate).about.view $view
 $driver put output.field(substrate).component.mesh $mesh
 $driver put -type file -compress no output.field(substrate).component.values \
     substrate_data.txt
 
 $driver put output.field(particle).about.label "Particle Surface"
-#$driver put output.field(particle).about.type "contour"
+$driver put output.field(particle).about.view $view
 $driver put output.field(particle).component.mesh $mesh
 $driver put -type file -compress no output.field(particle).component.values \
     particle_data.txt
