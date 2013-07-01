@@ -461,7 +461,7 @@ itcl::body Rappture::Gauge::_hilite {comp state} {
     }
 
     if {$state} {
-        $itk_component($comp) configure -relief solid
+        $itk_component($comp) configure -relief flat
     } else {
         if {$comp eq "presets"} {
             $itk_component($comp) configure -relief raised

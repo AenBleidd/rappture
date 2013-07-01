@@ -43,6 +43,7 @@ __declspec( dllexport )
 int
 Rappture_Init( Tcl_Interp * interp)
 {
+    fprintf(stderr, "Rappture_init\n");
 #ifdef _WIN32
     rpWinInitJob();
 #endif

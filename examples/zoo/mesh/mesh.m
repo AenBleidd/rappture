@@ -237,4 +237,3 @@ rpLibPutString(lib, 'output.string.current', xml, 0);
 % save the updated XML describing the run...
 rpLibResult(lib);
 quit;
-
