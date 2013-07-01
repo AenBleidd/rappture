@@ -86,7 +86,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method BuildDownloadPopup { widget command } 
     private method BuildStreamsTab {}
     private method BuildVolumeTab {}
-    private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
     private method Combo { option }
     private method EnterLegend { x y } 
@@ -2030,7 +2029,6 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
     }
     $itk_component(zCutScale) set 50
     $itk_component(zCutScale) configure -state disabled
-    #$itk_component(zCutScale) configure -state disabled
     Rappture::Tooltip::for $itk_component(zCutScale) \
         "@[itcl::code $this Slice tooltip z]"
 
@@ -2050,8 +2048,6 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c4 -resize expand
 }
-
-
 
 #
 #  camera -- 
@@ -2092,33 +2088,13 @@ itcl::body Rappture::VtkStreamlinesViewer::camera {option args} {
     }
 }
 
-itcl::body Rappture::VtkStreamlinesViewer::ConvertToVtkData { dataobj comp } {
-    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
-    set values [$dataobj values $comp]
-    append out "# vtk DataFile Version 2.0 \n"
-    append out "Test data \n"
-    append out "ASCII \n"
-    append out "DATASET STRUCTURED_POINTS \n"
-    append out "DIMENSIONS $xN $yN 1 \n"
-    append out "ORIGIN 0 0 0 \n"
-    append out "SPACING 1 1 1 \n"
-    append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS field double 1 \n"
-    append out "LOOKUP_TABLE default \n"
-    append out [join $values "\n"]
-    append out "\n"
-    return $out
-}
-
-
 itcl::body Rappture::VtkStreamlinesViewer::GetVtkData { args } {
     set bytes ""
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-            #set contents [ConvertToVtkData $dataobj $comp]
-            set contents [$dataobj blob $comp]
-            append bytes "$contents\n\n"
+            set contents [$dataobj vtkdata $comp]
+            append bytes "$contents\n"
         }
     }
     return [list .vtk $bytes]
@@ -2206,6 +2182,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     }
     SendCmd "cutplane add $tag"
     SendCmd "polydata add $tag"
+    #SendCmd "polydata colormode ccolor {} $tag"
     set _settings(volumeEdges) $settings(-edges)
     set _settings(volumeLighting) $settings(-lighting)
     set _settings(volumeOpacity) $settings(-opacity)
@@ -2386,7 +2363,6 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: Slice move x|y|z <newval>
 #
@@ -2417,7 +2393,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Slice {option args} {
         }
     }
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: _dropdown post
@@ -2476,4 +2451,3 @@ itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } {
     set _view(ypan) 0
     set _view(zoom) 1.0
 }
-
