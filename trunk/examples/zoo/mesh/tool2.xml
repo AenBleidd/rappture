@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<run>
+ <tool>
+  <about>Press Simulate to view results.</about>
+  <command>octave --silent --eval "infile='@driver',path('@tool',path),mesh"</command>
+ </tool>
+ <input>
+   <choice id="mesh">
+    <option>
+     <about>
+      <label>unirect2d (deprecated)</label>
+      <description>Uniform 2D grid using old-style unirect2d element.</description>
+     </about>
+     <value>unirect2d</value>
+    </option>
+    <option>
+     <about>
+      <label>cloud (deprecated)</label>
+      <description>2 dimensional cloud of points using old-style cloud element.</description>
+     </about>
+     <value>oldcloud</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as cloud</label>
+      <description>2 dimensional cloud of points.</description>
+     </about>
+     <value>cloud</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as uniform grid</label>
+      <description>uniform 2 dimensional grid of points.</description>
+     </about>
+     <value>regular</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as irregular grid</label>
+      <description>irregular 2 dimensional grid of points.</description>
+     </about>
+     <value>irregular</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as hybrid irregular/regular grid</label>
+      <description>Hybrid 2 dimensional grid of points X (irregular), Y (regular).</description>
+     </about>
+     <value>hybrid</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as triangular grid</label>
+      <description>Triangular 2 dimensional grid.</description>
+     </about>
+     <value>triangular</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as hybid cell types</label>
+      <description>Unstructured 2D grid of (possibly) hybrid cells.</description>
+     </about>
+     <value>cells</value>
+    </option>
+    <option>
+     <about>
+      <label>mesh as unstructured grid</label>
+      <description>Unstructured 2D grid.</description>
+     </about>
+     <value>unstructured</value>
+    </option>
+    <option>
+     <about>
+      <label>general nodes and elements description</label>
+      <description>Unstructured 2 dimensional grid of cells using nodes and elements.</description>
+     </about>
+     <value>generic</value>
+    </option>
+    <option>
+     <about>
+      <label>VTK mesh</label>
+      <description>Partial VTK file representing the mesh.</description>
+     </about>
+     <value>vtkmesh</value>
+    </option>
+    <option>
+     <about>
+      <label>VTK format (field + mesh)</label>
+      <description>Single VTK file representing both the mesh and field.</description>
+     </about>
+     <value>vtkfield</value>
+    </option>
+    <default>triangular</default>
+   </choice>
+ <boolean>
+   <about>
+     <label>Contour Plot</label>
+     <description>Display as a contour plot or surface plot</description>
+   </about>
+   <default>yes</default>
+ </boolean>
+ </input>
+</run>

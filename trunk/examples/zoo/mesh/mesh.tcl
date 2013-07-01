@@ -5,8 +5,6 @@ package require Rappture
 package require BLT
 
 # Read in the data since we're not simulating anything...
-source data.tcl
-source datatri.tcl
 
 # Open an XML run file to write into
 set driver [Rappture::library [lindex $argv 0]]
@@ -128,9 +126,11 @@ switch -- $meshtype {
 	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
-
-	$driver put $mesh.unstructured.points $points
-	$driver put $mesh.unstructured.triangles $triangles
+	
+	$driver put -type file -compress no $mesh.unstructured.points \
+	    points.txt
+	$driver put -type file -compress no $mesh.unstructured.triangles \
+	    triangles.txt
     }
     "generic" {
 	set mesh output.mesh
@@ -141,11 +141,17 @@ switch -- $meshtype {
 	$driver put $mesh.hide "yes"
 
 	set count 0
+	set f [open "points.txt" "r"]
+	set points [read $f]
+	close $f
 	foreach { x y } $points {
 	    $driver put $mesh.node($count) "$x $y"
 	    incr count
 	}
 	set count 0
+	set f [open "triangles.txt" "r"]
+	set triangles [read $f]
+	close $f
 	foreach { a b c } $triangles {
 	    $driver put $mesh.element($count).nodes "$a $b $c"
 	    incr count
@@ -159,8 +165,11 @@ switch -- $meshtype {
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
-	$driver put $mesh.unstructured.points $points
+	$driver put -type file -compress no $mesh.unstructured.points points.txt
 	set cells {}
+	set f [open "triangles.txt" "r"]
+	set triangles [read $f]
+	close $f
 	foreach { a b c } $triangles {
 	    append cells "$a $b $c\n"
 	}
@@ -170,41 +179,38 @@ switch -- $meshtype {
     "cells" {
 	set mesh output.mesh
 
-	$driver put $mesh.about.label "unstructured grid with heterogeneous cells"
+	$driver put $mesh.about.label \
+	    "Unstructured Grid with Heterogeneous Cells"
 	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
 	set celltypes {}
+	set f [open "triangles.txt" "r"]
+	set triangles [read $f]
+	close $f
 	foreach { a b c } $triangles {
 	    append cells "$a $b $c\n"
 	    append celltypes "triangle\n"
 	}
-	$driver put $mesh.unstructured.points $points
+	$driver put -type file -compress no $mesh.unstructured.points points.txt
 	$driver put $mesh.unstructured.celltypes "triangle"
 	$driver put $mesh.unstructured.cells $cells
     }
     "vtkmesh" {
 	set mesh output.mesh
 
-	set f [open "mesh.vtk" "r"]
-	set data [read $f]
-	close $f
-
 	$driver put $mesh.about.label "vtk mesh"
 	$driver put $mesh.dim  2
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
-	$driver put $mesh.vtk $data
+	$driver put -type file -compress no $mesh.vtk mesh.vtk
     }
     "vtkfield" {
 
-
 	$driver put output.field(substrate).about.label "Substrate Surface"
-	set f [open "file.vtk" "r"]
-	set data [read $f]
-	close $f
-	$driver put output.field(substrate).component.vtk "$data"
+	$driver put -type file -compress no \
+	    output.field(substrate).component.vtk file.vtk
         $driver put output.string.current ""
 	Rappture::result $driver
 	exit 0
@@ -217,12 +223,14 @@ switch -- $meshtype {
 $driver put output.field(substrate).about.label "Substrate Surface"
 #$driver put output.field(substrate).about.type "contour"
 $driver put output.field(substrate).component.mesh $mesh
-$driver put output.field(substrate).component.values $substrate_data
+$driver put -type file -compress no output.field(substrate).component.values \
+    substrate_data.txt
 
 $driver put output.field(particle).about.label "Particle Surface"
 #$driver put output.field(particle).about.type "contour"
 $driver put output.field(particle).component.mesh $mesh
-$driver put output.field(particle).component.values $particle_data
+$driver put -type file -compress no output.field(particle).component.values \
+    particle_data.txt
 
 $driver put output.string.about.label "Mesh XML definition"
 $driver put output.string.current [$driver xml $mesh]
