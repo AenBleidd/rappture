@@ -51,12 +51,13 @@ ifneq ($(R),)
   LANGS += R
 endif
 
-.PHONY:	all install test clean distclean tcl octave matlab perl python ruby java R
+.PHONY:	all install test clean distclean $(LANGS)
 
-all:
-	for i in $(LANGS) ; do \
-	  $(MAKE) -C $$i all || exit 1 ;\
-	done
+
+all: $(LANGS)
+
+$(LANGS):
+	$(MAKE) -C $@ all 
 
 install:
 	for i in $(LANGS) ; do \

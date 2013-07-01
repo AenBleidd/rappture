@@ -43,7 +43,6 @@ __declspec( dllexport )
 int
 Rappture_Init( Tcl_Interp * interp)
 {
-    fprintf(stderr, "Rappture_init\n");
 #ifdef _WIN32
     rpWinInitJob();
 #endif
@@ -51,14 +50,6 @@ Rappture_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
     if (Tcl_PkgProvide(interp, "Rappture", RAPPTURE_VERSION) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (Tcl_SetVar(interp, "::Rappture::version", RAPPTURE_VERSION,
-                   TCL_GLOBAL_ONLY | TCL_LEAVE_ERR_MSG) == NULL) {
-        return TCL_ERROR;
-    }
-    if (Tcl_SetVar(interp, "::Rappture::build", SVN_VERSION,
-                   TCL_GLOBAL_ONLY | TCL_LEAVE_ERR_MSG) == NULL) {
         return TCL_ERROR;
     }
 #ifdef notdef

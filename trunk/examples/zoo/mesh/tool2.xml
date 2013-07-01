@@ -6,19 +6,6 @@
  </tool>
  <input>
    <choice id="mesh">
-    <option>
-     <about>
-      <label>unirect2d (deprecated)</label>
-      <description>Uniform 2D grid using old-style unirect2d element.</description>
-     </about>
-     <value>unirect2d</value>
-    </option>
-    <option>
-     <about>
-      <label>cloud (deprecated)</label>
-      <description>2 dimensional cloud of points using old-style cloud element.</description>
-     </about>
-     <value>oldcloud</value>
     </option>
     <option>
      <about>
