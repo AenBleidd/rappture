@@ -21,53 +21,6 @@ set xv [blt::vector create \#auto]
 $xv seq 0 1 50
 
 switch -- $meshtype {
-    "unirect2d" {
-	set mesh "output.unirect2d"
-
-	$driver put $mesh.about.label "unirect2d mesh"
-	$driver put $mesh.dim  2
-	$driver put $mesh.units "m"
-	$driver put $mesh.hide "yes"
-
-	# Create a unirect2d mesh.  The mesh will be used in the "field"
-	# object below. We will specify a mesh and then provide the data
-	# points to the field.
-
-	$driver put $mesh.xaxis.label "Fermi-Dirac Factor"
-	$driver put $mesh.yaxis.label "Energy"
-
-	# The uniform grid that we are specifying is a mesh of 50 points on
-	# the x-axis # and 50 points on the y-axis.  The 50 points are
-	# equidistant between 0.0 and # 1.0
-
-	# Specify the x-axis of the mesh
-	$driver put $mesh.xaxis.min 0.0 
-	$driver put $mesh.xaxis.max 1.0
-	$driver put $mesh.xaxis.numpoints 50
-	
-	# Specify the y-axis of the mesh
-	$driver put $mesh.yaxis.min 0.0 
-	$driver put $mesh.yaxis.max 1.0
-	$driver put $mesh.yaxis.numpoints 50
-    }
-    "oldcloud" {
-	set mesh output.cloud
-	$driver put $mesh.about.label "cloud (deprecated)"
-	$driver put $mesh.dim  2
-	$driver put $mesh.units "m"
-	$driver put $mesh.hide "yes"
-
-	set points {}
-	foreach y [$xv range 0 end] {
-	    foreach x [$xv range 0 end] {
-		append points "$x $y\n"
-	    }
-	}
-    
-	# Test old-style cloud element.
-	$driver put $mesh.units "m"
-	$driver put $mesh.points $points
-    }
     "cloud" {
 	set mesh output.mesh
 

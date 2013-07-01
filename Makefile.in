@@ -44,9 +44,10 @@ endif
 .PHONY: all test install clean distclean package distrib runtime-distrib $(TARGETS)
 
 all: $(TARGETS)
-	for i in $(TARGETS) ; do \
-	  $(MAKE) -C $$i all || exit 1 ;\
-	done
+
+$(TARGETS):
+	$(MAKE) -C $@ all
+
 test:
 	$(MAKE) -C test all
 
