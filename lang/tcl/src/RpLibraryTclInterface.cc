@@ -184,14 +184,6 @@ LibraryCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     RpLibrary *rpptr = new RpLibrary( Tcl_GetString(objv[1]) );
     std::string libName = rpLib2command(interp,rpptr);
 
-    if (Tcl_SetVar(interp, "::Rappture::version", RAPPTURE_VERSION,
-		   TCL_GLOBAL_ONLY | TCL_LEAVE_ERR_MSG) != NULL) {
-        return TCL_ERROR;
-    }
-    if (Tcl_SetVar(interp, "::Rappture::build", SVN_VERSION,
-		   TCL_GLOBAL_ONLY | TCL_LEAVE_ERR_MSG) != NULL) {
-        return TCL_ERROR;
-    }
     Tcl_AppendResult(interp, libName.c_str(), (char*)NULL);
     return TCL_OK;
 }
