@@ -28,6 +28,13 @@
 #include "ruby.h"        /* VALUE, rb_*(), Data_*_Struct(), NUM2INT(), 
                             INT2NUM(), NUM2DBL(), Str2Cstr(), ANYARGS */
 
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(s) (RSTRING(s)->ptr)
+#endif
+#ifndef RSTRING_LEN
+#define RSTRING_LEN(s) (RSTRING(s)->len)
+#endif
+
 /******************************************************************************
  * File scope variables
  ******************************************************************************/
