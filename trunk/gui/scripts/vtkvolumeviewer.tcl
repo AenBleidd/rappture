@@ -86,7 +86,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildVolumeTab {}
-    private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
     private method Combo { option }
     private method EnterLegend { x y } 
@@ -1956,33 +1955,13 @@ itcl::body Rappture::VtkVolumeViewer::camera {option args} {
     }
 }
 
-itcl::body Rappture::VtkVolumeViewer::ConvertToVtkData { dataobj comp } {
-    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
-    set values [$dataobj values $comp]
-    append out "# vtk DataFile Version 2.0 \n"
-    append out "Test data \n"
-    append out "ASCII \n"
-    append out "DATASET STRUCTURED_POINTS \n"
-    append out "DIMENSIONS $xN $yN 1 \n"
-    append out "ORIGIN 0 0 0 \n"
-    append out "SPACING 1 1 1 \n"
-    append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS field double 1\n"
-    append out "LOOKUP_TABLE default \n"
-    append out [join $values "\n"]
-    append out "\n"
-    return $out
-}
-
-
 itcl::body Rappture::VtkVolumeViewer::GetVtkData { args } {
     set bytes ""
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-            #set contents [ConvertToVtkData $dataobj $comp]
-            set contents [$dataobj blob $comp]
-            append bytes "$contents\n\n"
+            set contents [$dataobj vtkdata $comp]
+            append bytes "$contents\n"
         }
     }
     return [list .vtk $bytes]
