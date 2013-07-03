@@ -20,10 +20,10 @@ VPATH           = $(srcdir)
 
 R               = @R@
 
-coresrcdir      = ${PWD}/../../rappture/src/core
-corelibdir      = ${PWD}/../src/core
-R_flags         = --configure-args='--with-rappture-include=$(includedir)\
-                                    --with-rappture-lib=$(libdir)'
+coresrcdir      = ${PWD}/$(srcdir)/../../src/core
+corelibdir      = ${PWD}/../../src/core
+R_flags         = --configure-args='--with-rappture-include=$(coresrcdir) \
+                                    --with-rappture-lib=$(corelibdir)'
 
 RLIB            = R
 

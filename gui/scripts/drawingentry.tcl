@@ -124,7 +124,8 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
         [itcl::code $_dispatcher event -idle !redraw]
 
     # scan through all variables and attach notifications for changes
-    foreach cpath [$_xmlobj children -as path -type variable $_path.substitutions] {
+    set subs [$_xmlobj children -as path -type variable $_path.substitutions]
+    foreach cpath $subs {
 	set map ""
 	set name ""
 	set path ""
@@ -170,7 +171,8 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     }
 
     # find all embedded controls and build a popup for each hotspot
-    foreach cpath [$_xmlobj children -type hotspot -as path $_path.components] {
+    set hotspots [$_xmlobj children -type hotspot -as path $_path.components]
+    foreach cpath $hotspots {
         set listOfControls [$_xmlobj children -type controls $cpath]
         if {[llength $listOfControls] > 0} {
             set popup .drawingentrypopup[incr _popupnum]
@@ -189,9 +191,9 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
             }
         }
     }
-
     set c $itk_component(drawing)
-    foreach cpath [$_xmlobj children -type text -as path $_path.components] {
+    set texts [$_xmlobj children -type text -as path $_path.components] 
+    foreach cpath $texts {
         set popup ""
         set mode [XmlGetSubst $cpath.hotspot]
         if {$mode eq "off"} {
@@ -600,17 +602,17 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	if { $w == "" || ![string is double $w] || $w <= 0.0 } {
 	    set width [expr [image width $img] / 4]
 	} else {
-	    set width [expr [ScreenX $w] - [ScreenX 0]]
+	    set width [expr int([ScreenX $w] - [ScreenX 0])]
 	}
 	set h [XmlGetSubst $cpath.height]
 	if { $h == "" || ![string is double $h] || $h <= 0.0 } {
 	    set height [expr [image height $img] / 4]
 	} else {
-	    set height [expr [ScreenY $h] - [ScreenY 0]]
+	    set height [expr int([ScreenY $h] - [ScreenY 0])]
 	}
 	if { $width != [image width $img] || $height != [image height $img] } {
 	    set dst [image create photo -width $width -height $height]
-	    blt::winop resample $img $dst
+	    blt::winop resample $img $dst box
 	    image delete $img
 	    set img $dst
 	}
@@ -626,11 +628,11 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	    set x1 $x2
 	    set x2 $tmp
 	}
-	set width [expr {$x2 - $x1 + 1}]
-	set height [expr {$y2 - $y1 + 1}]
+	set width [expr {int($x2 - $x1 + 1)}]
+	set height [expr {int($y2 - $y1 + 1)}]
 	if { $width != [image width $img] || $height != [image height $img] } {
 	    set dst [image create photo -width $width -height $height]
-	    blt::winop resample $img $dst
+	    blt::winop resample $img $dst box
 	    image delete $img
 	    set img $dst
 	}
@@ -638,7 +640,7 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	set width [expr [image width $img] / 4]
 	set height [expr [image height $img] / 4]
  	set dst [image create photo -width $width -height $height]
-	blt::winop resample $img $dst
+	blt::winop resample $img $dst box
 	image delete $img
 	set img $dst
 	set x1 0 
@@ -970,8 +972,8 @@ itcl::body Rappture::DrawingEntry::ParseScreenCoordinates { values } {
     }
 
     if {$bad ne ""} {
-        puts "WARNING: $bad"
-        puts "assuming default \"0 0 1 1\" coordinates"
+        puts stderr "WARNING: $bad"
+        puts stderr "assuming default \"0 0 1 1\" coordinates"
         array set xvals {1 0 2 1}
         array set yvals {1 0 2 1}
         array set wherex {1 0 2 1}
@@ -1030,7 +1032,7 @@ itcl::body Rappture::DrawingEntry::ParseBackground {} {
 		$itk_component(drawing) configure -height $height
 	    }
             default {
-                puts "WARNING: don't understand \"$elem\" in $_path"
+                puts stderr "WARNING: don't understand \"$elem\" in $_path"
             }
 	}
     }
@@ -1041,7 +1043,7 @@ itcl::body Rappture::DrawingEntry::ParseBackground {} {
 #
 itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
     if {![info exists _cpath2popup($cpath)]} {
-        puts "WARNING: no controls for hotspot at $cpath"
+        puts stderr "WARNING: no controls for hotspot at $cpath"
         return
     }
     set popup $_cpath2popup($cpath)
