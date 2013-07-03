@@ -23,17 +23,21 @@ extern "C" {
 static void
 rp_lib_finalizer(SEXP ptr)
 {
-    RpLibrary* lib = NULL;
     if (!R_ExternalPtrAddr(ptr)) {
         return;
     }
-    lib = (RpLibrary *) R_ExternalPtrAddr(ptr);
+#ifdef notdef
+    /* Until we figure this out, don't delete the library object.  R is
+     * calling the finalizer on every method of the library object.  This is a
+     * problem only if someone explicitly deletes the library object from
+     * R. */
+    RpLibrary* lib;
+    lib = (RpLibrary *)R_ExternalPtrAddr(ptr);
     if (lib != NULL) {
         delete lib;
-        lib = NULL;
     }
+#endif
     R_ClearExternalPtr(ptr);
-
 }
 
 
@@ -91,7 +95,7 @@ RPRLibGetString(
     SEXP handle,            // integer handle of library
     SEXP path)              // null terminated path
 {
-    RpLibrary* lib = NULL;
+    RpLibrary* lib;
     SEXP ans;
     int handleVal = -1;
     std::string data;
@@ -122,7 +126,6 @@ RPRLibGetString(
     }
 
     lib = (RpLibrary*) getObject_Void(handleVal);
-
     if (lib == NULL) {
         error("invalid Rappture Library Object");
         UNPROTECT(1);
