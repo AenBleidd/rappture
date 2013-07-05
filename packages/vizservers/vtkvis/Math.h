@@ -216,6 +216,16 @@ inline double max2(double a, double b)
     return ((a > b) ? a : b);
 }
 
+inline double min3(double a, double b, double c)
+{
+    return min2(min2(a, b), c);
+}
+
+inline double max3(double a, double b, double c)
+{
+    return max2(max2(a, b), c);
+}
+
 }
 
 #endif
