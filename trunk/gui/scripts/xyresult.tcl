@@ -665,7 +665,7 @@ itcl::body Rappture::XyResult::BuildMarkers { dataobj elem } {
 #       This does what "Rebuild" used to.  It (re)creates all the  
 #       the elements and markers for the graph based on the data objects
 #       given.  The axes are also set if min and max have been set for
-#       any data object.
+#       any data object.  
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
@@ -855,7 +855,7 @@ itcl::body Rappture::XyResult::BuildElementsAndMarkers { dlist } {
 # ----------------------------------------------------------------------
 # USAGE: Rebuild
 #
-# Called automatically whenever something changes that affects the
+#       Called automatically whenever something changes that affects the
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------

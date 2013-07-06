@@ -20,9 +20,9 @@ VPATH           = $(srcdir)
 
 R               = @R@
 
-coresrcdir      = ${PWD}/$(srcdir)/../../src/core
-corelibdir      = ${PWD}/../../src/core
-R_flags         = --configure-args='--with-rappture-include=$(includedir) \
+coresrcdir      = `pwd`/$(srcdir)/../../src/core
+corelibdir      = `pwd`/../../src/core
+R_flags         = --configure-args='--with-rappture-include=$(includedir)  \
                                     --with-rappture-lib=$(libdir)'
 
 RLIB            = R

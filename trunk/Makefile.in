@@ -41,7 +41,8 @@ ifneq ($(HAVE_FFMPEG),)
   TARGETS += video
 endif
 
-.PHONY: all test install clean distclean package distrib runtime-distrib $(TARGETS)
+.PHONY: all test install clean distclean package distrib runtime-distrib \
+	$(TARGETS)
 
 all:
 	for i in $(TARGETS) ; do \
