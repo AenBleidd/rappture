@@ -22,8 +22,8 @@ R               = @R@
 
 coresrcdir      = ${PWD}/$(srcdir)/../../src/core
 corelibdir      = ${PWD}/../../src/core
-R_flags         = --configure-args='--with-rappture-include=$(coresrcdir) \
-                                    --with-rappture-lib=$(corelibdir)'
+R_flags         = --configure-args='--with-rappture-include=$(includedir) \
+                                    --with-rappture-lib=$(libdir)'
 
 RLIB            = R
 

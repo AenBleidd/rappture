@@ -56,7 +56,6 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     }
     array set flags $args 
     set servers ""
-    puts stderr "field3d: args=$args"
     switch -- $flags(-mode) {
         "auto" - "nanovis" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
