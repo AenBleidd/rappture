@@ -6,7 +6,6 @@
  </tool>
  <input>
    <choice id="mesh">
-    </option>
     <option>
      <about>
       <label>mesh as cloud</label>
@@ -79,12 +78,12 @@
     </option>
     <default>triangular</default>
    </choice>
- <boolean>
-   <about>
-     <label>Contour Plot</label>
-     <description>Display as a contour plot or surface plot</description>
-   </about>
-   <default>yes</default>
- </boolean>
+   <boolean id="contour">
+     <about>
+       <label>Contour Plot</label>
+       <description>Display as a contour plot or surface plot</description>
+     </about>
+     <default>yes</default>
+   </boolean>
  </input>
 </run>

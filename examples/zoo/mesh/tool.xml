@@ -78,5 +78,12 @@
     </option>
     <default>triangular</default>
    </choice>
+   <boolean id="contour">
+     <about>
+       <label>Contour Plot</label>
+       <description>Display as a contour plot or surface plot</description>
+     </about>
+     <default>yes</default>
+   </boolean>
  </input>
 </run>
