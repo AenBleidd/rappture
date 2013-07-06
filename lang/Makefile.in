@@ -53,11 +53,11 @@ endif
 
 .PHONY:	all install test clean distclean $(LANGS)
 
-
-all: $(LANGS)
-
-$(LANGS):
-	$(MAKE) -C $@ all 
+all:
+	make -C ../src install
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ;\
+	done
 
 install:
 	for i in $(LANGS) ; do \

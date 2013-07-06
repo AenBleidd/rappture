@@ -36,10 +36,10 @@ endif
 FILES		= \
 		start_viz.sh
 
-all:
-	for i in $(SUBDIRS) ; do \
-	  $(MAKE) -C $$i all || exit 1 ; \
-	done
+all: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
 
 install:
 	$(MKDIR_P) -m 0755 $(destdir)
