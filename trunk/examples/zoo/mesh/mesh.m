@@ -2,8 +2,8 @@
 % Open an XML run file to write into
 lib = rpLib(infile);
 
-meshtype = rpLibGetString(lib, 'input.choice.current');
-contour = rpLibGetString(lib, 'input.boolean.current')
+meshtype = rpLibGetString(lib, 'input.choice(mesh).current');
+contour = rpLibGetString(lib, 'input.boolean(contour).current')
 switch contour 
   case 'yes'
     view = 'contour';

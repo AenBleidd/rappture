@@ -15,12 +15,15 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
-		$(srcdir)/data.tcl \
-		$(srcdir)/datatri.tcl \
 		$(srcdir)/file.vtk \
+		$(srcdir)/mesh.m \
 		$(srcdir)/mesh.tcl \
 		$(srcdir)/mesh.vtk \
-		$(srcdir)/tool.xml
+		$(srcdir)/particle_data.txt \
+		$(srcdir)/points.txt \
+		$(srcdir)/substrate_data.txt \
+		$(srcdir)/tool.xml \
+		$(srcdir)/triangles.txt
 
 destdir		= $(prefix)/examples/zoo/mesh
 

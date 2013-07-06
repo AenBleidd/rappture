@@ -9,8 +9,8 @@ package require BLT
 # Open an XML run file to write into
 set driver [Rappture::library [lindex $argv 0]]
 
-set meshtype [$driver get input.choice.current]
-set contour [$driver get input.boolean.current]
+set meshtype [$driver get "input.choice(mesh).current"]
+set contour [$driver get "input.boolean(contour).current"]
 if { $contour  == "yes" } {
     set view contour
 } else {
