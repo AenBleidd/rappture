@@ -72,7 +72,7 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Field {
-    private variable _dim 0;            # Dimension of the mesh
+    protected variable _dim 0;          # Dimension of the mesh
     private variable _xmlobj "";        # ref to XML obj with field data
     private variable _limits;           # maps axis name => {z0 z1} limits
     private variable _field ""
