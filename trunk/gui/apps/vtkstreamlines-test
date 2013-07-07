@@ -77,34 +77,55 @@ itcl::class visData {
         Rappture::Field::constructor [Rappture::library standard] ""
     } {
         set _data [lindex $args 0]
+        GetTypeAndSize $_cname
+        GetAssociation $_cname
+        ReadVtkDataSet $_cname $_data
         set _type [lindex $args 1]
     }
 
     public method components {args} {
+        Rappture::getopts args params {
+            flag what -name default
+            flag what -dimensions
+            flag what -style
+            flag what -particles
+            flag what -flow
+            flag what -box
+        }
+        if { $params(what) == "-dimensions" } {
+            return "${_dim}D"
+        }
         if {[llength $args] == 0} {
-            return "one"
+            return $_cname
         }
         return ""
     }
-    public method blob {args} {
-        return $_data
+    public method isvalid {} {
+        return 1
     }
     public method data {args} {
+        return $_data
+    }
+    public method vtkdata {args} {
         return $_data
     }
     public method values {args} {
         return $_data
     }
-    public method hints {args} {
+    public method style {args} {
         return ""
     }
-    public method style {args} {
+    public method hints {args} {
         return ""
     }
     public method type {args} {
         return $_type
     }
+    public method viewer {args} {
+        return "streamlines"
+    }
 
+    private variable _cname "one"
     private variable _data ""
     private variable _type ""
 }
@@ -127,27 +148,7 @@ proc send_file {} {
           }] == 0} {
         set obj [visData #auto $info "vtk"]
         $widgets(vtkviewer) add $obj
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: send_streamlines_file
-#
-# Prompts the user for a text file, and then sends the text within
-# that file along to the rendering widget.
-# ----------------------------------------------------------------------
-proc send_streamlines_file {} {
-    global widgets
-
-    set file [tk_getOpenFile -title "Open VTK File as Streamlines"]
-    if {"" != $file && [catch {
-            set fid [open $file r]
-            fconfigure $fid -translation binary -encoding binary
-            set info [read $fid]
-            close $fid
-          }] == 0} {
-        set obj [visData #auto $info "vtkstreamlines"]
-        $widgets(vtkviewer) add $obj
+        $widgets(vtkviewer) scale $obj
     }
 }
 
@@ -347,7 +348,6 @@ $widgets(viewer) create rectangle 0 0 1 1 -width 2 -outline red -fill "" \
 menu .mbar
 menu .mbar.file
 .mbar.file add command -label "Send VTK File..." -underline 0 -command send_file
-.mbar.file add command -label "Send VTK File as Streamlines..." -underline 0 -command send_streamlines_file
 .mbar.file add command -label "Load script..." -underline 0 -command load_script
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
