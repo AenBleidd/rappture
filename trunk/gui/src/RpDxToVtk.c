@@ -59,7 +59,7 @@ GetUniformFieldValues(Tcl_Interp *interp, int nPoints, int *counts, char **strin
     if (array == NULL) {
         return TCL_ERROR;
     }
-    vmin = FLT_MAX, vmax = -FLT_MAX;
+    vmin = DBL_MAX, vmax = -DBL_MAX;
     iX = iY = iZ = 0;
     for (i = 0; i < nPoints; i++) {
         double value;
@@ -125,7 +125,7 @@ GetCloudFieldValues(Tcl_Interp *interp, int nXYPoints, int nZPoints, char **stri
     if (array == NULL) {
         return TCL_ERROR;
     }
-    vmin = FLT_MAX, vmax = -FLT_MAX;
+    vmin = DBL_MAX, vmax = -DBL_MAX;
     iXY = iZ = 0;
     for (i = 0; i < nPoints; i++) {
         double value;
