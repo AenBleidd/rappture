@@ -1457,7 +1457,6 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             #SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
             #SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "glyphs colormode $_colorMode $_curFldName"
-            SendCmd "camera reset"
             DrawLegend
         }
         "legendVisible" {
