@@ -1391,12 +1391,12 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set _settings(colormap) $color
 	    if { $color == "none" } {
 		if { $_settings(colormapVisible) } {
-		    SendCmd "glyphs surface 0"
+		    SendCmd "glyphs colormode ccolor {}"
 		    set _settings(colormapVisible) 0
 		}
 	    } else {
 		if { !$_settings(colormapVisible) } {
-		    SendCmd "glyphs surface 1"
+		    SendCmd "glyphs colormode $_colorMode $_curFldName"
 		    set _settings(colormapVisible) 1
 		}
 		SetCurrentColormap $color
@@ -1454,8 +1454,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            SendCmd "dataset vector $_curFldName"
-            SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            #SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
             #SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "glyphs colormode $_colorMode $_curFldName"
             SendCmd "camera reset"
@@ -1520,7 +1519,7 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
 	set cmap $_currentColormap
-	SendCmdNoWait "legend $cmap vmag $_curFldName {} $w $h 0"
+	SendCmdNoWait "legend $cmap $_colorMode $_curFldName {} $w $h 0"
     }
 }
 
@@ -1627,7 +1626,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         -command [itcl::code $this AdjustSetting glyphs-scale]
 
     itk_component add field_l {
-        label $inner.field_l -text "Field" -font "Arial 9" 
+        label $inner.field_l -text "Color By" -font "Arial 9" 
     } {
         ignore -font
     }
