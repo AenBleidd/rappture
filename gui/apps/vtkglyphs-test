@@ -1,7 +1,7 @@
 #!/bin/sh
 # -*- mode: Tcl -*-
 # ----------------------------------------------------------------------
-#  TEST PROGRAM for VtkContourViewer
+#  TEST PROGRAM for VtkGlyphViewer
 #
 #  This program is a test harness for the VtkVis visualization
 #  engine.  It allows you to monitor the commands being sent back
@@ -30,7 +30,6 @@ lappend auto_path $libdir $libdir/vtk $libdir/vtk/tcl
 package require Itcl
 package require Rappture
 package require RapptureGUI
-package require vtk
 
 option add *comm.font -*-courier-medium-r-normal-*-*-120-*
 option add *Menu.tearOff off
@@ -72,147 +71,66 @@ Rappture::resources::load
 # Fake data object for sending VTK data file...
 # ----------------------------------------------------------------------
 itcl::class visData {
+    inherit Rappture::Field
+
     constructor {args} {
-        set _reader [vtkDataSetReader $this-xvtkDataSetReader]
-        $_reader SetFileName [lindex $args 0]
-        $_reader Update
-        set _data [$_reader GetOutput]
+        Rappture::Field::constructor [Rappture::library standard] ""
+    } {
+        set _data [lindex $args 0]
+        GetTypeAndSize $_cname
+        GetAssociation $_cname
+        ReadVtkDataSet $_cname $_data
+        set _type [lindex $args 1]
     }
-    destructor {
-        rename _data ""
-        rename _reader ""
-    }
+
     public method components {args} {
+        Rappture::getopts args params {
+            flag what -name default
+            flag what -dimensions
+            flag what -style
+            flag what -particles
+            flag what -flow
+            flag what -box
+        }
+        if { $params(what) == "-dimensions" } {
+            return "${_dim}D"
+        }
         if {[llength $args] == 0} {
-            return "one"
+            return $_cname
         }
         return ""
     }
-    public method mesh {args} {
-        switch -- [$_data GetClassName] {
-            vtkPolyData {
-                if {[$_data GetNumberOfCells] > 0} {
-                    return $_data
-                } else {
-                    return [$_data GetPoints]
-                }
-            }
-            vtkStructuredPoints -
-            vtkUniformGrid -
-            vtkImageData {
-                foreach { x1 y1 z1 } [$_data GetOrigin] break
-                foreach { xN yN zN } [$_data GetDimensions] break
-                foreach { xS yS zS } [$_data GetSpacing] break
-                set x2 [expr {$x1 + $xN * $xS}]
-                set y2 [expr {$x1 + $yN * $yS}]
-                set z2 [expr {$x1 + $zN * $zS}]
-                if {$zN == 1} {
-                    lappend out $x1 $x2 $xN $y1 $y2 $yN
-                } else {
-                    lappend out $x1 $x2 $xN $y1 $y2 $yN $z1 $z2 $zN
-                }
-                return $out
-            }
-            default {
-                return $_data
-            }
-        }
-    }
-    public method isunirect2d {args} {
-        if {[$_data GetClassName] != "vtkImageData" &&
-            [$_data GetClassName] != "vtkStructuredPoints" &&
-            [$_data GetClassName] != "vtkUniformGrid"} {
-            return 0
-        }
-        foreach { xN yN zN } [$_data GetDimensions] break
-        if {$zN == 1} {
-            return 1
-        } else {
-            return 0
-        }
-    }
-    public method isunirect3d {args} {
-        if {[$_data GetClassName] != "vtkImageData" &&
-            [$_data GetClassName] != "vtkStructuredPoints" &&
-            [$_data GetClassName] != "vtkUniformGrid"} {
-            return 0
-        }
-        foreach { xN yN zN } [$_data GetDimensions] break
-        if {$zN > 1} {
-            return 1
-        } else {
-            return 0
-        }
+    public method isvalid {} {
+        return 1
     }
     public method data {args} {
-        return [values $args]
+        return $_data
+    }
+    public method vtkdata {args} {
+        return $_data
     }
     public method values {args} {
-        set dataAttrs [$_data GetPointData]
-        if {"" == $dataAttrs} {
-            puts stderr "No point data"
-            return ""
-        }
-        set scalarArr [$dataAttrs GetScalars]
-        if {"" == $scalarArr} {
-            for {set i 0} {$i < [$dataAttrs GetNumberOfArrays]} {incr i} {
-                if {[[$dataAttrs GetArray $i] GetNumberOfComponents] == 1} {
-                    $dataAttrs SetActiveScalars [$dataAttrs GetArrayName $i]
-                    puts stderr "Set scalars to '[$dataAttrs GetArrayName $i]'"
-                    break
-                }
-            }
-            set scalarArr [$dataAttrs GetScalars]
-            if {"" == $scalarArr} {
-                puts stderr "No scalar point data"
-                return ""
-            }
-        }
-        if {[isunirect2d] || [isunirect3d]} {
-            for {set i 0} {$i < [$scalarArr GetNumberOfTuples]} {incr i} {
-                lappend out [$scalarArr GetComponent $i 0]
-            }
-            return $out
-        } 
-        return $scalarArr
+        return $_data
     }
-    public method limits {which} {
-        foreach { xMin xMax yMin yMax zMin zMax} [$_data GetBounds] break
-        set min ""
-        set max ""
-
-        switch -- $which {
-            x - xlin - xlog {
-                set min $xMin
-                set max $xMax
-                set axis "xaxis"
-            }
-            y - ylin - ylog {
-                set min $yMin
-                set max $yMax
-                set axis "yaxis"
-            }
-            z - zlin - zlog {
-                set min $zMin
-                set max $zMax
-                set axis "zaxis"
-            }
-            v - vlin - vlog {
-                foreach { min max } [$_data GetScalarRange] break
-                set axis "vaxis"
-            }
-            default {
-                error "unknown axis description \"$which\""
-            }
-        }
-        return [list $min $max]
+    public method style {args} {
+        return ""
     }
     public method hints {args} {
         return ""
     }
+    public method type {args} {
+        return $_type
+    }
+    public method viewer {args} {
+        return "glyphs"
+    }
+    public method shape {args} {
+	return "arrow"
+    }
 
+    private variable _cname "one"
     private variable _data ""
-    private variable _reader ""
+    private variable _type ""
 }
 
 # ----------------------------------------------------------------------
@@ -225,9 +143,15 @@ proc send_file {} {
     global widgets
 
     set file [tk_getOpenFile -title "Open VTK File"]
-    if {"" != $file} {
-        set obj [visData #auto $file]
-        $widgets(vtkcontourviewer) add $obj
+    if {"" != $file && [catch {
+            set fid [open $file r]
+            fconfigure $fid -translation binary
+            set info [read $fid]
+            close $fid
+          }] == 0} {
+        set obj [visData #auto $info "vtk"]
+        $widgets(vtkglyphviewer) add $obj
+        $widgets(vtkglyphviewer) scale $obj
     }
 }
 
@@ -243,7 +167,7 @@ proc load_script {} {
     set file [tk_getOpenFile -title "Open Command File"]
     if {"" != $file && [catch {
             set fid [open $file r]
-            fconfigure $fid -translation binary -encoding binary
+            fconfigure $fid -translation binary
             set info [read $fid]
             close $fid
           }] == 0} {
@@ -271,7 +195,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::VtkContourViewer [list $widgets(vtkcontourviewer) SendCmd $cmd]
+    namespace eval Rappture::VtkGlyphViewer [list $widgets(vtkglyphviewer) SendCmd $cmd]
     $widgets(command) delete 0 end
 }
 
@@ -283,8 +207,8 @@ proc send_command {} {
 # ----------------------------------------------------------------------
 proc reset {} {
     global widgets
-    $widgets(vtkcontourviewer) delete
-    $widgets(vtkcontourviewer) disconnect
+    $widgets(vtkglyphviewer) delete
+    $widgets(vtkglyphviewer) disconnect
     $widgets(comm) configure -state normal
     $widgets(comm) delete 1.0 end
     $widgets(comm) configure -state disabled
@@ -354,7 +278,7 @@ proc activate_flow {} {
 proc images_save {} {
     global widgets images
 
-    set imh [$widgets(vtkcontourviewer) get -image $images(which)]
+    set imh [$widgets(vtkglyphviewer) get -image $images(which)]
 
     set file [tk_getSaveFile -title "Save Image File" \
         -defaultextension .jpg -filetypes {{{JPEG files} .jpg} {{All Files} *}}]
@@ -383,7 +307,7 @@ proc images_refresh {} {
     set w [winfo width $c]
     set h [winfo height $c]
 
-    set imh [$widgets(vtkcontourviewer) get -image $images(which)]
+    set imh [$widgets(vtkglyphviewer) get -image $images(which)]
     set iw [image width $imh]
     set ih [image height $imh]
 
@@ -394,7 +318,7 @@ proc images_refresh {} {
 }
 
 toplevel .images
-wm title .images "VtkContourViewer: Images"
+wm title .images "VtkGlyphViewer: Images"
 wm withdraw .images
 wm protocol .images WM_DELETE_WINDOW {wm withdraw .images}
 
@@ -447,9 +371,9 @@ pack .main -expand yes -fill both
 
 set f [.main pane 0]
 set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-Rappture::VtkContourViewer $f.viewer $servers
+Rappture::VtkGlyphViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
-set widgets(vtkcontourviewer) $f.viewer
+set widgets(vtkglyphviewer) $f.viewer
 
 $f.viewer configure \
     -sendcommand show_comm \

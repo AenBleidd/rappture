@@ -1,7 +1,7 @@
 #!/bin/sh
 # -*- mode: Tcl -*-
 # ----------------------------------------------------------------------
-#  TEST PROGRAM for VtkVolumeViewer
+#  TEST PROGRAM for VtkIsosurfaceViewer
 #
 #  This program is a test harness for the VtkVis visualization
 #  engine.  It allows you to monitor the commands being sent back
@@ -30,6 +30,7 @@ lappend auto_path $libdir $libdir/vtk $libdir/vtk/tcl
 package require Itcl
 package require Rappture
 package require RapptureGUI
+package require vtk
 
 option add *comm.font -*-courier-medium-r-normal-*-*-120-*
 option add *Menu.tearOff off
@@ -96,7 +97,7 @@ itcl::class visData {
             return "${_dim}D"
         }
         if {[llength $args] == 0} {
-            return "one"
+            return $_cname
         }
         return ""
     }
@@ -122,9 +123,9 @@ itcl::class visData {
         return $_type
     }
     public method viewer {args} {
-        return "vtkvolume"
+        return "isosurface"
     }
-
+ 
     private variable _cname "one"
     private variable _data ""
     private variable _type ""
@@ -142,13 +143,13 @@ proc send_file {} {
     set file [tk_getOpenFile -title "Open VTK File"]
     if {"" != $file && [catch {
             set fid [open $file r]
-            fconfigure $fid -translation binary -encoding binary
+            fconfigure $fid -translation binary
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [visData #auto $info "vtkvolume"]
-        $widgets(vtkviewer) add $obj
-        $widgets(vtkviewer) scale $obj
+        set obj [visData #auto $info "vtk"]
+        $widgets(vtkisosurfaceviewer) add $obj
+        $widgets(vtkisosurfaceviewer) scale $obj
     }
 }
 
@@ -164,7 +165,7 @@ proc load_script {} {
     set file [tk_getOpenFile -title "Open Command File"]
     if {"" != $file && [catch {
             set fid [open $file r]
-            fconfigure $fid -translation binary
+            fconfigure $fid -translation binary -encoding binary
             set info [read $fid]
             close $fid
           }] == 0} {
@@ -192,7 +193,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::VtkVolumeViewer [list $widgets(vtkviewer) SendCmd $cmd]
+    namespace eval Rappture::VtkIsosurfaceViewer [list $widgets(vtkisosurfaceviewer) SendCmd $cmd]
     $widgets(command) delete 0 end
 }
 
@@ -204,8 +205,8 @@ proc send_command {} {
 # ----------------------------------------------------------------------
 proc reset {} {
     global widgets
-    $widgets(vtkviewer) delete
-    $widgets(vtkviewer) disconnect
+    $widgets(vtkisosurfaceviewer) delete
+    $widgets(vtkisosurfaceviewer) disconnect
     $widgets(comm) configure -state normal
     $widgets(comm) delete 1.0 end
     $widgets(comm) configure -state disabled
@@ -275,7 +276,7 @@ proc activate_flow {} {
 proc images_save {} {
     global widgets images
 
-    set imh [$widgets(vtkviewer) get -image $images(which)]
+    set imh [$widgets(vtkisosurfaceviewer) get -image $images(which)]
 
     set file [tk_getSaveFile -title "Save Image File" \
         -defaultextension .jpg -filetypes {{{JPEG files} .jpg} {{All Files} *}}]
@@ -304,7 +305,7 @@ proc images_refresh {} {
     set w [winfo width $c]
     set h [winfo height $c]
 
-    set imh [$widgets(vtkviewer) get -image $images(which)]
+    set imh [$widgets(vtkisosurfaceviewer) get -image $images(which)]
     set iw [image width $imh]
     set ih [image height $imh]
 
@@ -315,7 +316,7 @@ proc images_refresh {} {
 }
 
 toplevel .images
-wm title .images "Vtkviewer: Images"
+wm title .images "VtkIsosurfaceViewer: Images"
 wm withdraw .images
 wm protocol .images WM_DELETE_WINDOW {wm withdraw .images}
 
@@ -368,9 +369,9 @@ pack .main -expand yes -fill both
 
 set f [.main pane 0]
 set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-Rappture::VtkVolumeViewer $f.viewer $servers
+Rappture::VtkIsosurfaceViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
-set widgets(vtkviewer) $f.viewer
+set widgets(vtkisosurfaceviewer) $f.viewer
 
 $f.viewer configure \
     -sendcommand show_comm \

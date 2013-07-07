@@ -26,8 +26,9 @@ SCRIPTS	= \
 		$(srcdir)/launcher.tcl \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
-		$(srcdir)/vtkcontour-test \
+		$(srcdir)/vtkglyphs-test \
 		$(srcdir)/vtkheightmap-test \
+		$(srcdir)/vtkisosurface-test \
 		$(srcdir)/vtkstreamlines-test \
 		$(srcdir)/vtkviewer-test \
 		$(srcdir)/vtkvolume-test \
