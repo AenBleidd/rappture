@@ -1333,7 +1333,9 @@ itcl::body Rappture::Field::vtkdata {cname} {
     }
     # DX: Convert DX to VTK 
     if {[info exists _comp2dx($cname)]} {
-	return [Rappture::DxToVtk $_comp2dx($cname)]
+        set data $_comp2dx($cname)
+        set data [Rappture::encoding::decode $data]
+        return [Rappture::DxToVtk $data]
     }
     # Unirect3d: isosurface 
     if {[info exists _comp2unirect3d($cname)]} {
