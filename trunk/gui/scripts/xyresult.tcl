@@ -70,6 +70,7 @@ itcl::class Rappture::XyResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
+    private variable _viewable "";          # Display list for widget.
     constructor {args} { 
         # defined below 
     }
@@ -87,6 +88,7 @@ itcl::class Rappture::XyResult {
 
     protected method Rebuild {}
     protected method ResetLimits {}
+    protected method ResetLegend {}
     protected method Zoom {option args}
     protected method Hilite {state x y}
     protected method Axis {option args}
@@ -105,7 +107,8 @@ itcl::class Rappture::XyResult {
     private variable _dataobj2desc   ;# maps dataobj => description of data
     private variable _dataobj2type   ;# maps dataobj => type of graph element
     private variable _dataobj2barwidth ;# maps dataobj => type of graph element
-    private variable _elem2dataobj   ;# maps graph element => dataobj
+    private variable _elem2comp   ;# maps graph element => dataobj
+    private variable _comp2elem   ;# maps graph element => dataobj
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
     private variable _autoColorI 0 ;# index for next "-color auto"
@@ -116,6 +119,8 @@ itcl::class Rappture::XyResult {
     private variable _markers
     private variable _nextElement 0
 
+    private method BuildElements { dlist }
+    private method BuildMarkers { dataobj elem }
     private method FormatAxis { axis w value }
     private method GetFormattedValue { axis g value }
     private method BuildAxisPopup { popup }
@@ -203,10 +208,7 @@ itcl::body Rappture::XyResult::constructor {args} {
         Rappture::XyLegend $inner.legend $itk_component(plot)
     }
     pack $itk_component(legend) -expand yes -fill both
-    after idle [subst {
-        update idletasks
-        $itk_component(legend) reset 
-    }]
+    after idle [itcl::code $this ResetLegend]
 
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
@@ -229,6 +231,7 @@ itcl::body Rappture::XyResult::destructor {} {
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
+    #puts stderr "XyResult::add dataobj=$dataobj settings=$settings"
     array set params {
         -color auto
         -brightness 0
@@ -292,18 +295,79 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         }
     }
 
-    set pos [lsearch -exact $dataobj $_dlist]
-    if {$pos < 0} {
-        lappend _dlist $dataobj
-        set _dataobj2color($dataobj) $params(-color)
-        set _dataobj2width($dataobj) $params(-width)
-        set _dataobj2dashes($dataobj) $params(-linestyle)
-        set _dataobj2raise($dataobj) $params(-raise)
-        set _dataobj2desc($dataobj) $params(-description)
-        set _dataobj2type($dataobj) $params(-type)
-        set _dataobj2barwidth($dataobj) $params(-barwidth)
-        $_dispatcher event -idle !rebuild
+    set dataobj2raise($dataobj) $params(-raise)
+
+    set g $itk_component(plot)
+    set color $params(-color)
+    set lwidth $params(-width)
+    set dashes $params(-linestyle)
+    set raise $params(-raise)
+    set desc $params(-description)
+    set type $params(-type)
+    set barwidth $params(-barwidth)
+    foreach {mapx mapy} [GetAxes $dataobj] break
+    foreach comp [$dataobj components] {
+        set tag $dataobj-$comp
+        if { [info exists _comp2elem($tag)] } {
+            set elem $_comp2elem($tag)
+            switch -- $type {
+                "line" - "scatter" {
+                    $g element configure $elem \
+                        -linewidth $lwidth \
+                        -dashes $dashes -hide no
+                } "bar" {
+                    $g bar configure $elem \
+                        -barwidth $barwidth \
+                        -hide no
+                }
+            }
+        } else {
+            set elem "$type[incr _nextElement]"
+            set label [$dataobj hints label]
+            set _elem2comp($elem) $tag
+            set _comp2elem($tag) $elem
+            lappend label2elem($label) $elem
+            set xv [$dataobj mesh $comp]
+            set yv [$dataobj values $comp]
+            switch -- $type {
+                "line" {
+                    if {([$xv length] <= 1) || ($lwidth == 0)} {
+                        set sym square
+                        set pixels 2
+                    } else {
+                        set sym ""
+                        set pixels 6
+                    }
+                    $g element create $elem -x $xv -y $yv \
+                        -symbol $sym -pixels $pixels -linewidth $lwidth \
+                        -label $label \
+                        -color $color -dashes $dashes \
+                        -mapx $mapx -mapy $mapy -hide no
+                } 
+                "scatter" {
+                    $g element create $elem -x $xv -y $yv \
+                        -symbol square -pixels 2 -linewidth $lwidth \
+                        -label $label \
+                        -color $color -dashes $dashes \
+                        -mapx $mapx -mapy $mapy -hide no
+                } 
+                "bar" {
+                    $g bar create $elem -x $xv -y $yv \
+                        -barwidth $barwidth \
+                        -label $label \
+                        -color $color \
+                        -mapx $mapx -mapy $mapy
+                }
+            }
+        }
+        if { [lsearch $_viewable $elem] < 0 } {
+            lappend _viewable $elem
+        }
     }
+    if { [$dataobj info class] == "Rappture::Curve" } {
+        BuildMarkers $dataobj $elem
+    }
+    $_dispatcher event -idle !rebuild
 }
 
 # ----------------------------------------------------------------------
@@ -334,39 +398,30 @@ itcl::body Rappture::XyResult::get {} {
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::delete {args} {
-    if {[llength $args] == 0} {
-        set args $_dlist
-    }
+    #puts stderr "XyResult::delete args=$args"
+    set g $itk_component(plot)
 
-    # delete all specified dataobjs
-    set changed 0
+    # First try to create list of elements from the dataobjs specified
+    set elemlist {}
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            array unset _dataobj2color    $dataobj
-            array unset _dataobj2width    $dataobj
-            array unset _dataobj2dashes   $dataobj
-            array unset _dataobj2raise    $dataobj
-            array unset _dataobj2type     $dataobj
-            array unset _dataobj2barwidth $dataobj
-            foreach elem [array names _elem2dataobj] {
-                if {$_elem2dataobj($elem) == $dataobj} {
-                    array unset _elem2dataobj $elem
-                }
+        foreach cname [$dataobj components] {
+            set tag $dataobj-$cname
+            if { [info exists _comp2elem($tag)] } {
+                lappend elemlist $_comp2elem($tag)
             }
-            set changed 1
         }
     }
-
-    # If anything changed, then rebuild the plot
-    if {$changed} {
-        $_dispatcher event -idle !rebuild
+    # If no dataobjs were specified then hide all elements.
+    if { [llength $elemlist] == 0 } {
+        set elemlist [$g element names]
     }
-
-    # Nothing left? then start over with auto colors
-    if {[llength $_dlist] == 0} {
-        set _autoColorI 0
+    # Hide all elements specified by their dataobjs
+    foreach elem $elemlist {
+        $g element configure $elem -hide yes 
+        set i [lsearch $_viewable $elem] 
+        if { $i >= 0 } {
+            set _viewable [lreplace $_viewable $i $i]
+        }
     }
 }
 
@@ -380,113 +435,9 @@ itcl::body Rappture::XyResult::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
-    set g $itk_component(plot)
-
-
-    set allx [$itk_component(plot) x2axis use]
-    lappend allx x  ;# fix main x-axis too
-
-    set ally [$itk_component(plot) y2axis use]
-    lappend ally y  ;# fix main y-axis too
-    catch {unset _limits}
-    
-    eval $g element delete [$g element names]
-    foreach dataobj $args {
-        set label [$dataobj hints label]
-        foreach {mapx mapy} [GetAxes $dataobj] break
-        foreach comp [$dataobj components] {
-            set xv [$dataobj mesh $comp]
-            set yv [$dataobj values $comp]
-
-            if {[info exists _dataobj2type($dataobj)]} {
-                set type $_dataobj2type($dataobj)
-            } else {
-                set type "line"
-            }
-            if {[info exists _dataobj2barwidth($dataobj)]} {
-                set barwidth $_dataobj2barwidth($dataobj)
-            } else {
-                set barwidth 1.0
-            }
-            if {[info exists _dataobj2width($dataobj)]} {
-                set lwidth $_dataobj2width($dataobj)
-            } else {
-                set lwidth 2
-            }
-            if {([$xv length] <= 1) || ($lwidth == 0)} {
-                set sym square
-                set pixels 2
-            } else {
-                set sym ""
-                set pixels 6
-            }
-            set elem "elem[incr _nextElement]"
-            set _elem2dataobj($elem) $dataobj
-            switch -- $type {
-                "line" - "scatter" {
-                    $g element create $elem -x $xv -y $yv \
-                        -symbol $sym -pixels $pixels -linewidth $lwidth \
-                        -mapx $mapx -mapy $mapy
-                } "bar" {
-                    $g bar create $elem -x $xv -y $yv \
-                        -barwidth $barwidth \
-                        -mapx $mapx -mapy $mapy
-                }
-            }
-        }
-    }
-    foreach axis {x y} {
-        if { [info exists _limits({$axis}log)] } {
-            set type "log"
-            $g axis configure -logscale 1 
-        } else {
-            set type "lin"
-        }
-        foreach {min max} [$g axis limits $axis] break
-        set _limits(${axis}-min) $min
-        set _limits(${axis}-max) $max
-        set min [$dataobj hints ${axis}min]
-        set max [$dataobj hints ${axis}max]
-        if {"" != $min } {
-            set _limits(${axis}-min) $min
-        }
-        if {"" != $max } {
-            set _limits(${axis}-max) $max
-        }
-    }
-    eval $g element delete [$g element names]
-    if 0 {
-    foreach dataobj $args {
-        # Find the axes for this dataobj (e.g., {x y2})
-        foreach {map(x) map(y)} [GetAxes $dataobj] break
-        foreach axis {x y} {
-            if {[$dataobj hints ${axis}scale] == "log"} {
-                set _limits(${axis}log) 1
-            }
-            # Get defaults for both linear and log scales
-            foreach type {lin log} {
-                # store results -- ex: _limits(x2log-min)
-                set id $map($axis)$type
-                set min [$dataobj hints ${axis}min]
-                set max [$dataobj hints ${axis}max]
-                if {"" != $min && "" != $max} {
-                    if {![info exists _limits($id-min)]} {
-                        set _limits($id-min) $min
-                        set _limits($id-max) $max
-                    } else {
-                        if {$min < $_limits($id-min)} {
-                            set _limits($id-min) $min
-                        }
-                        if {$max > $_limits($id-max)} {
-                            set _limits($id-max) $max
-                        }
-                    }
-                }
-            }
-        }
-    }
-    }
-    ResetLimits
+    #puts stderr "XyResult::scale args=$args"
+    set _dlist $args
+    BuildElements $args 
 }
 
 # ----------------------------------------------------------------------
@@ -660,199 +611,6 @@ itcl::body Rappture::XyResult::BuildMarkers { dataobj elem } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: BuildElementsAndMarkers
-#
-#       This does what "Rebuild" used to.  It (re)creates all the  
-#       the elements and markers for the graph based on the data objects
-#       given.  The axes are also set if min and max have been set for
-#       any data object.  
-# data in the widget.  Clears any existing data and rebuilds the
-# widget to display new data.
-# ----------------------------------------------------------------------
-itcl::body Rappture::XyResult::BuildElementsAndMarkers { dlist } {
-    set g $itk_component(plot)
-
-    # First clear out the widget and hide the axes.
-    eval $g element delete [$g element names]
-    eval $g marker delete [$g marker names]
-    foreach label [array names _label2axis] {
-        set axis $_label2axis($label)
-        switch -- $axis {
-            "x" - "x2" - "y" - "y2" {
-                # Do nothing
-                $g axis configure $axis -hide yes
-            }
-            default {
-                $g axis delete $axis
-            }
-    }
-    array unset _label2axis
-    array unset _limits
-
-    # Scan through all objects and create a list of all axes.
-    # The first x-axis gets mapped to "x".  The second, to "x2".
-    # Beyond that, we must create new axes "x3", "x4", etc.
-    # We do the same for y.
-
-    set anum(x) 0
-    set anum(y) 0
-    foreach dataobj $dlist {
-        foreach axis {x y} {
-            set label [$dataobj hints ${axis}label]
-            if { $label == "" } {
-                continue
-            }
-            # Collect the limits (if set for the axis)
-            set min [$dataobj hints ${axis}min]
-            set max [$dataobj hints ${axis}max]
-            if { $min != "" && (![info exists _limits(${label}-min)] || 
-                                $_limits(${label}-min) > $min) } {
-                set _limits(${label}-min} $min
-            }
-            if { $max != "" && (![info exists _limits(${label}-max)] ||
-                                $_limits(${label}-max) < $max) } {
-                set _limits(${label}-max} $max
-            }
-            if  {[$dataobj hints ${axis}scale] == "log"} {
-                set _limits(${axis}log) 1
-            }
-            if {![info exists _label2axis($label)]} {
-                switch [incr anum($axis)] {
-                    1 { set axisName $axis }
-                    2 { set axisName ${axis}2 }
-                    default {
-                        set axis $axis$anum($axis)
-                        catch {$g axis create $axisName}
-                    }
-                }
-                $g axis configure $axisName -title $label -hide no \
-                    -checklimits no
-                set _label2axis($label) $axisName
-                
-                # if this axis has a description, add it as a tooltip
-                set desc [string trim [$dataobj hints ${axis}desc]]
-                Rappture::Tooltip::text $g-$axisName $desc
-            }
-        }
-    }
-
-    # Next set the axes based on what we've found.
-    foreach label [array names _label2axis] {
-        if { [info exist _limits(${label}log)] } {
-            set logscale 1
-        } else {
-            set logscale 0
-        }
-        set amin ""
-        if { [info exists _limits(${label}-min)] } {
-            set amin $_limits(${label}-min)
-        }
-        set amax ""
-        if { [info exists _limits(${label}-max)] } {
-            set amax $_limits(${label}-max)
-        }
-        set axis $_label2axis($label)
-        $g axis configure $axis \
-            -hide no -checklimits no \
-            -command [itcl::code $this GetFormattedValue $axis] \
-            -min $amin -max $amax -logscale $logscale
-        $g axis bind $axis <Enter> \
-            [itcl::code $this Axis hilite $axis on]
-        $g axis bind $axis <Leave> \
-            [itcl::code $this Axis hilite $axis off]
-        $g axis bind $axis <ButtonPress-1> \
-            [itcl::code $this Axis click $axis %x %y]
-        $g axis bind $axis <B1-Motion> \
-            [itcl::code $this Axis drag $axis %x %y]
-        $g axis bind $axis <ButtonRelease-1> \
-            [itcl::code $this Axis release $axis %x %y]
-        $g axis bind $axis <KeyPress> \
-            [list ::Rappture::Tooltip::tooltip cancel]
-    }
-
-    # Generate all the data elements and markers, but mark them as hidden.
-    # The Rebuild method will un-hide them.
-    set count 0
-    foreach dataobj $dlist {
-        set label [$dataobj hints label]
-        foreach {mapx mapy} [GetAxes $dataobj] break
-        foreach comp [$dataobj components] {
-            set xv [$dataobj mesh $comp]
-            set yv [$dataobj values $comp]
-
-            if {[info exists _dataobj2color($dataobj)]} {
-                set color $_dataobj2color($dataobj)
-            } else {
-		set color black
-            }
-            if {[info exists _dataobj2type($dataobj)]} {
-                set type $_dataobj2type($dataobj)
-            } else {
-                set type "line"
-            }
-            if {[info exists _dataobj2barwidth($dataobj)]} {
-                set barwidth $_dataobj2barwidth($dataobj)
-            } else {
-                set barwidth 1.0
-            }
-            if {[info exists _dataobj2width($dataobj)]} {
-                set lwidth $_dataobj2width($dataobj)
-            } else {
-                set lwidth 2
-            }
-            if {[info exists _dataobj2dashes($dataobj)]} {
-                set dashes $_dataobj2dashes($dataobj)
-            } else {
-                set dashes ""
-            }
-            if {([$xv length] <= 1) || ($lwidth == 0)} {
-                set sym square
-                set pixels 2
-            } else {
-                set sym ""
-                set pixels 6
-            }
-
-            set elem "elem[incr _nextElement]"
-            set _elem2dataobj($elem) $dataobj
-            lappend label2elem($label) $elem
-            switch -- $type {
-                "line" - "scatter" {
-                    $g element create $elem -x $xv -y $yv \
-                        -symbol $sym -pixels $pixels -linewidth $lwidth \
-                        -label $label \
-                        -color $color -dashes $dashes \
-                        -mapx $mapx -mapy $mapy -hide yes
-                } "bar" {
-                    $g bar create $elem -x $xv -y $yv \
-                        -barwidth $barwidth \
-                        -label $label \
-                        -color $color \
-                        -mapx $mapx -mapy $mapy -hide yes
-                }
-            }
-            if { [$dataobj info class] == "Rappture::Curve" } {
-                BuildMarkers $dataobj $elem
-            }
-        }
-    }
-    # Fix duplicate labels by appending the simulation number
-    foreach label [array names label2elem] {
-        if { [llength $label2elem($label)] == 1 } {
-            continue
-        }
-        foreach elem $label2elem($label) {
-            set dataobj $_elem2dataobj($elem)
-            regexp {^::curve(?:Value)?([0-9]+)$} $dataobj match suffix
-            incr suffix
-            set elabel [format "%s \#%d" $label $suffix]
-            $g element configure $elem -label $elabel
-        }
-    }        
-    $itk_component(legend) reset 
-}
-
-# ----------------------------------------------------------------------
 # USAGE: Rebuild
 #
 #       Called automatically whenever something changes that affects the
@@ -860,238 +618,8 @@ itcl::body Rappture::XyResult::BuildElementsAndMarkers { dlist } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::Rebuild {} {
-    set g $itk_component(plot)
-
-    # First clear out the widget
-    eval $g element delete [$g element names]
-    eval $g marker delete [$g marker names]
-
-    foreach axis [$g axis names] {
-        if { [info exist _limits(${axis}log)] } {
-            set type "log"
-            set logscale 1
-        } else {
-            set type "lin"
-            set logscale 0
-        }
-        set amin ""
-        if { [info exists _limits(${axis}-min)] } {
-            set amin $_limits(${axis}-min)
-        }
-        set amax ""
-        if { [info exists _limits(${axis}-max)] } {
-            set amax $_limits(${axis}-max)
-        }
-        $g axis configure $axis \
-            -hide yes -checklimits no \
-            -command [itcl::code $this GetFormattedValue $axis] \
-            -min $amin -max $amax -logscale $logscale
-    }
-    # Presumably you want at least an X-axis and Y-axis displayed.
-    $g xaxis configure -hide no
-    $g yaxis configure -hide no
-    array unset _label2axis
-
-    #
-    # Scan through all objects and create a list of all axes.
-    # The first x-axis gets mapped to "x".  The second, to "x2".
-    # Beyond that, we must create new axes "x3", "x4", etc.
-    # We do the same for y.
-    #
-    set anum(x) 0
-    set anum(y) 0
-    foreach dataobj [get] {
-        foreach ax {x y} {
-            set label [$dataobj hints ${ax}label]
-            if {"" != $label} {
-                if {![info exists _label2axis($ax-$label)]} {
-                    switch [incr anum($ax)] {
-                        1 { set axis $ax }
-                        2 { set axis ${ax}2 }
-                        default {
-                            set axis $ax$anum($ax)
-                            catch {$g axis create $axis}
-                        }
-                    }
-                    $g axis configure $axis -title $label -hide no \
-                        -checklimits no
-                    set _label2axis($ax-$label) $axis
-
-                    # if this axis has a description, add it as a tooltip
-                    set desc [string trim [$dataobj hints ${ax}desc]]
-                    Rappture::Tooltip::text $g-$axis $desc
-                }
-            }
-        }
-    }
-
-    #
-    # All of the extra axes get mapped to the x2/y2 (top/right)
-    # position.
-    #
-    set all ""
-    foreach ax {x y} {
-        lappend all $ax
-
-        set extra ""
-        for {set i 2} {$i <= $anum($ax)} {incr i} {
-            lappend extra ${ax}$i
-        }
-        eval lappend all $extra
-        $g ${ax}2axis use $extra
-        if {$ax == "y"} {
-            $g configure -rightmargin [expr {($extra == "") ? 10 : 0}]
-        }
-    }
-
-    foreach axis $all {
-        $g axis bind $axis <Enter> \
-            [itcl::code $this Axis hilite $axis on]
-        $g axis bind $axis <Leave> \
-            [itcl::code $this Axis hilite $axis off]
-        $g axis bind $axis <ButtonPress-1> \
-            [itcl::code $this Axis click $axis %x %y]
-        $g axis bind $axis <B1-Motion> \
-            [itcl::code $this Axis drag $axis %x %y]
-        $g axis bind $axis <ButtonRelease-1> \
-            [itcl::code $this Axis release $axis %x %y]
-        $g axis bind $axis <KeyPress> \
-            [list ::Rappture::Tooltip::tooltip cancel]
-    }
-
-    #
-    # Plot all of the dataobjs.
-    #
-    set count 0
-    foreach dataobj $_dlist {
-        set label [$dataobj hints label]
-        foreach {mapx mapy} [GetAxes $dataobj] break
-        foreach comp [$dataobj components] {
-            set xv [$dataobj mesh $comp]
-            set yv [$dataobj values $comp]
-
-            if {[info exists _dataobj2color($dataobj)]} {
-                set color $_dataobj2color($dataobj)
-            } else {
-		set color black
-            }
-            if {[info exists _dataobj2type($dataobj)]} {
-                set type $_dataobj2type($dataobj)
-            } else {
-                set type "line"
-            }
-            if {[info exists _dataobj2barwidth($dataobj)]} {
-                set barwidth $_dataobj2barwidth($dataobj)
-            } else {
-                set barwidth 1.0
-            }
-            if {[info exists _dataobj2width($dataobj)]} {
-                set lwidth $_dataobj2width($dataobj)
-            } else {
-                set lwidth 2
-            }
-            if {[info exists _dataobj2dashes($dataobj)]} {
-                set dashes $_dataobj2dashes($dataobj)
-            } else {
-                set dashes ""
-            }
-            if {([$xv length] <= 1) || ($lwidth == 0)} {
-                set sym square
-                set pixels 2
-            } else {
-                set sym ""
-                set pixels 6
-            }
-
-            set elem "elem[incr _nextElement]"
-            set _elem2dataobj($elem) $dataobj
-            lappend label2elem($label) $elem
-            switch -- $type {
-                "line" - "scatter" {
-                    $g element create $elem -x $xv -y $yv \
-                        -symbol $sym -pixels $pixels -linewidth $lwidth \
-                        -label $label \
-                        -color $color -dashes $dashes \
-                        -mapx $mapx -mapy $mapy
-                } "bar" {
-                    $g bar create $elem -x $xv -y $yv \
-                        -barwidth $barwidth \
-                        -label $label \
-                        -color $color \
-                        -mapx $mapx -mapy $mapy
-                }
-            }
-        }
-    }
-
-    # Fix duplicate labels by appending the simulation number
-    foreach label [array names label2elem] {
-        if { [llength $label2elem($label)] == 1 } {
-            continue
-        }
-        foreach elem $label2elem($label) {
-            set dataobj $_elem2dataobj($elem)
-            regexp {^::curve(?:Value)?([0-9]+)$} $dataobj match suffix
-            incr suffix
-            set elabel [format "%s \#%d" $label $suffix]
-            $g element configure $elem -label $elabel
-        }
-    }        
-
-    foreach dataobj $_dlist {
-        set xmin -Inf
-        set ymin -Inf
-        set xmax Inf
-        set ymax Inf
-        # 
-        # Create text/line markers for each *axis.marker specified. 
-        # 
-	if { [$dataobj info class] == "Rappture::Curve" } {
-	    foreach m [$dataobj xmarkers] {
-		foreach {at label style} $m break
-		set id [$g marker create line \
-			    -coords [list $at $ymin $at $ymax]]
-		$g marker bind $id <Enter> \
-		    [itcl::code $this EnterMarker $g x-$label $at $ymin $at]
-		$g marker bind $id <Leave> \
-		    [itcl::code $this LeaveMarker $g x-$label]
-		set options [GetLineMarkerOptions $style]
-		if { $options != "" } {
-		    eval $g marker configure $id $options
-		}
-		if { $label != "" } {
-		    set id [$g marker create text -anchor nw \
-				-text $label -coords [list $at $ymax]]
-		    set options [GetTextMarkerOptions $style]
-		    if { $options != "" } {
-			eval $g marker configure $id $options
-		    }
-		}
-	    }
-	    foreach m [$dataobj ymarkers] {
-		foreach {at label style} $m break
-		set id [$g marker create line \
-			    -coords [list $xmin $at $xmax $at]]
-		$g marker bind $id <Enter> \
-		    [itcl::code $this EnterMarker $g y-$label $at $xmin $at]
-		$g marker bind $id <Leave> \
-		    [itcl::code $this LeaveMarker $g y-$label]
-		set options [GetLineMarkerOptions $style]
-		if { $options != "" } {
-		    eval $g marker configure $id $options
-		}
-		if { $label != "" } {
-		    set id [$g marker create text -anchor se \
-				-text $label -coords [list $xmax $at]]
-		    set options [GetTextMarkerOptions $style]
-		    if { $options != "" } {
-			eval $g marker configure $id $options
-		    }
-		}
-	    }
-	}
-    }
-    $itk_component(legend) reset 
+    ResetLegend
+    # Fix raise/lower elements
 }
 
 # ----------------------------------------------------------------------
@@ -1107,6 +635,41 @@ itcl::body Rappture::XyResult::ResetLimits {} {
         $g axis configure $axis -min "" -max ""
     }
 }
+
+# ----------------------------------------------------------------------
+# USAGE: ResetLegend
+#
+# Used internally to apply automatic limits to the axes for the
+# current plot.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::ResetLegend {} {
+    update idletasks
+
+    set g $itk_component(plot)
+    # Fix duplicate labels by appending the simulation number
+    # Collect the labels from all the viewable elements.
+    foreach elem $_viewable {
+        foreach {dataobj cname} [split $_elem2comp($elem) -] break
+        set label [$dataobj hints label]
+        lappend label2elem($label) $elem
+    }
+    # Then relabel elements with the same label, using the simulation number.
+    foreach label [array names label2elem] {
+        foreach elem $label2elem($label) {
+            if { [llength $label2elem($label)] == 1 } {
+                $g element configure $elem -label $label
+                continue
+            }
+            foreach {dataobj cname} [split $_elem2comp($elem) -] break
+            regexp {^::curve(?:Value)?([0-9]+)$} $dataobj match suffix
+            incr suffix
+            set elabel [format "%s \#%d" $label $suffix]
+            $g element configure $elem -label $elabel
+        }
+    }        
+    $itk_component(legend) reset $_viewable
+}
+
 
 # ----------------------------------------------------------------------
 # USAGE: Zoom reset
@@ -1149,8 +712,9 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
             # not have a data object associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2dataobj($elem)]} {
-                foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
+            if {[info exists _elem2comp($elem)]} {
+                foreach {dataobj cname} [split $_elem2comp($elem) -] break
+                foreach {mapx mapy} [GetAxes $dataobj] break
             }
 
             # search again for an exact point -- this time don't interpolate
@@ -1162,8 +726,8 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
                 
-                if {[info exists _elem2dataobj($elem)]} {
-                    set dataobj $_elem2dataobj($elem)
+                if {[info exists _elem2comp($elem)]} {
+                    foreach {dataobj cname} [split $_elem2comp($elem) -] break
                     set yunits [$dataobj hints yunits]
                     set xunits [$dataobj hints xunits]
                 } else {
@@ -1186,16 +750,17 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
             # not have a data object associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2dataobj($elem)]} {
-                foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
+            if {[info exists _elem2comp($elem)]} {
+                foreach {dataobj cname} [split $_elem2comp($elem) -] break
+                foreach {mapx mapy} [GetAxes $dataobj] break
             }
 
             set tip ""
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
                 
-            if {[info exists _elem2dataobj($elem)]} {
-                set dataobj $_elem2dataobj($elem)
+            if {[info exists _elem2comp($elem)]} {
+                foreach {dataobj cname} [split $_elem2comp($elem) -] break
                 set yunits [$dataobj hints yunits]
                 set xunits [$dataobj hints xunits]
             } else {
@@ -1231,8 +796,9 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
 
         set mapx [$g element cget $elem -mapx]
         set mapy [$g element cget $elem -mapy]
-        if {[info exists _elem2dataobj($elem)]} {
-            foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
+        if {[info exists _elem2comp($elem)]} {
+            foreach {dataobj cname} [split $_elem2comp($elem) -] break
+            foreach {mapx mapy} [GetAxes $dataobj] break
         }
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
@@ -1941,4 +1507,202 @@ itcl::body Rappture::XyResult::GetFormattedValue { axis g value } {
         set fmt $_axisPopup($axis-format)
     }
     return [format $fmt $value]
+}
+
+
+#
+# BuildElements --
+#
+#       This procedure loads each data objects specified into the
+#       graph.  The data object may already be loaded (from the "add"
+#       method which gets called first).   The graph elements that
+#       are created, are hidden.  This allows the graph to account
+#       for all datasets, even those not currently being displayed.
+#       
+itcl::body Rappture::XyResult::BuildElements { dlist } {
+    set g $itk_component(plot)
+    
+    foreach label [array names _label2axis] {
+        set axis $_label2axis($label)
+        switch -- $axis {
+            "x" - "x2" - "y" - "y2" {
+                $g axis configure $axis -hide yes
+            }
+            default {
+                $g axis delete $axis
+            }
+        }
+    }
+    array unset _label2axis
+    array unset _limits
+
+    # Scan through all objects and create a list of all axes.
+    # The first x-axis gets mapped to "x".  The second, to "x2".
+    # Beyond that, we must create new axes "x3", "x4", etc.
+    # We do the same for y.
+    
+    set anum(x) 0
+    set anum(y) 0
+    foreach dataobj $dlist {
+        foreach axis {x y} {
+            set label [$dataobj hints ${axis}label]
+            if { $label == "" } {
+                continue
+            }
+            # Collect the limits (if set for the axis)
+            set min [$dataobj hints ${axis}min]
+            set max [$dataobj hints ${axis}max]
+            set tag ${label}-min
+            if { $min != "" && ( ![info exists _limits($tag)] || 
+                                   $_limits($tag) > $min ) } {
+                set _limits(tag) $min
+            }
+            set tag ${label}-max
+            if { $max != "" && (![info exists _limits($tag)] || 
+                                  $_limits($tag) < $max) } {
+                set _limits($tag) $max
+            }
+            if  { [$dataobj hints ${axis}scale] == "log" } {
+                set _limits(${axis}log) 1
+            }
+            if { ![info exists _label2axis($label)] } {
+                switch [incr anum($axis)] {
+                    1 { set axisName $axis }
+                    2 { set axisName ${axis}2 }
+                    default {
+                        set axis $axis$anum($axis)
+                        catch {$g axis create $axisName}
+                    }
+                }
+                $g axis configure $axisName -title $label -hide no \
+                    -checklimits no
+                set _label2axis($label) $axisName
+                
+                # If this axis has a description, add it as a tooltip
+                set desc [string trim [$dataobj hints ${axis}desc]]
+                Rappture::Tooltip::text $g-$axisName $desc
+            }
+        }
+    } 
+    # Next set the axes based on what we've found.
+    foreach label [array names _label2axis] {
+        set logscale [info exists _limits(${label}log)] 
+        set amin ""
+        if { [info exists _limits(${label}-min)] } {
+            set amin $_limits(${label}-min)
+        }
+        set amax ""
+        if { [info exists _limits(${label}-max)] } {
+            set amax $_limits(${label}-max)
+        }
+        set axis $_label2axis($label)
+        $g axis configure $axis \
+            -hide no -checklimits no \
+            -command [itcl::code $this GetFormattedValue $axis] \
+            -min $amin -max $amax -logscale $logscale
+        $g axis bind $axis <Enter> \
+            [itcl::code $this Axis hilite $axis on]
+        $g axis bind $axis <Leave> \
+            [itcl::code $this Axis hilite $axis off]
+        $g axis bind $axis <ButtonPress-1> \
+            [itcl::code $this Axis click $axis %x %y]
+        $g axis bind $axis <B1-Motion> \
+            [itcl::code $this Axis drag $axis %x %y]
+        $g axis bind $axis <ButtonRelease-1> \
+            [itcl::code $this Axis release $axis %x %y]
+        $g axis bind $axis <KeyPress> \
+            [list ::Rappture::Tooltip::tooltip cancel]
+    }
+    
+    # Create data elements and markers, but mark them as hidden.
+    # The "add" method will un-hide them.
+    set count 0
+    foreach dataobj $dlist {
+        set label [$dataobj hints label]
+        array set params [$dataobj hints style]
+        # Default 
+        if {[info exists params(-color)]} {
+            set color params(-color)
+        } else {
+            set color black
+        }
+        if {[info exists parmas(-type)]} {
+            set type $params(-type)
+        } else {
+            set type "line"
+        }
+        if {[info exists parmas(-barwidth)]} {
+            set barwidth $params(-barwidth)
+        } else {
+            set barwidth 1.0
+        }
+        if {[info exists params(-width)]} {
+            set lwidth $params(-width)
+        } else {
+            set lwidth 2
+        }
+        if {[info exists params(-linestyle)]} {
+            set dashes $parmas(-linestyle)
+        } else {
+            set dashes ""
+        }
+        foreach {mapx mapy} [GetAxes $dataobj] break
+        foreach comp [$dataobj components] {
+            set tag $dataobj-$comp
+            if { [info exists _comp2elem($tag)] } {
+                set found($_comp2elem($tag)) 1
+                lappend label2elem($label) $_comp2elem($tag)
+                # Element already created for data object/component.
+                continue
+            }
+            set xv [$dataobj mesh $comp]
+            set yv [$dataobj values $comp]
+            
+            if {([$xv length] <= 1) || ($lwidth == 0)} {
+                set sym square
+                set pixels 2
+            } else {
+                set sym ""
+                set pixels 6
+            }
+            set elem "elem[incr _nextElement]"
+            set _elem2comp($elem) $tag
+            set _comp2elem($tag) $elem
+            set found($_comp2elem($tag)) 1
+            lappend label2elem($label) $elem
+            switch -- $type {
+                "line" - "scatter" {
+                    $g element create $elem \
+                        -x $xv -y $yv \
+                        -symbol $sym \
+                        -pixels $pixels \
+                        -linewidth $lwidth \
+                        -label $label \
+                        -color $color \
+                        -dashes $dashes \
+                        -mapx $mapx \
+                        -mapy $mapy \
+                        -hide yes 
+                } "bar" {
+                    $g bar create $elem \
+                        -x $xv -y $yv \
+                        -barwidth $barwidth \
+                        -label $label \
+                        -color $color \
+                        -mapx $mapx \
+                        -mapy $mapy \
+                        -hide yes
+                }
+            }
+            if { [$dataobj info class] == "Rappture::Curve" } {
+                BuildMarkers $dataobj $elem
+            }
+        }
+    }
+    foreach elem [$g element names] {
+        if { ![info exists found($elem)] } {
+            $g element delete $elem
+        }
+    }
+    ResetLegend
 }

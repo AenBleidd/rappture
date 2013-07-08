@@ -30,8 +30,8 @@ regsub -all {B} $func {$B} func
 set xmin -1
 set xmax 1
 set npts 30
-set elem output.sequence(outs).about.label "Sequence of Plots"
-set elem output.sequence(outs).index.label "Parameter A"
+$driver put output.sequence(outs).about.label "Sequence of Plots"
+$driver put output.sequence(outs).index.label "Parameter A"
 foreach A $avals {
     set elem output.sequence(outs).element($A)
     $driver put $elem.index $A

@@ -71,7 +71,7 @@ itcl::class ::Rappture::XyLegend {
     constructor {graph args} {}
     destructor {}
 
-    public method reset {} 
+    public method reset { list } 
 
     private method Add { elem label {flags ""}} 
     private method Average {} 
@@ -238,17 +238,17 @@ itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: reset <curve> ?<settings>?
+# USAGE: reset
 #
 # Clients use this to add a curve to the plot.  The optional <settings>
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyLegend::reset {} {
+itcl::body Rappture::XyLegend::reset { list } {
     foreach node [$_tree children root] {
         $_tree delete $node
     }
-    foreach elem [$_graph element show] {
+    foreach elem $list {
         if {[catch {$_graph element cget $elem -label} label] == 0} {
             if {$label eq ""} {
                 set label $elem
