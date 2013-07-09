@@ -82,6 +82,7 @@ double Volume::getAverageSpacing()
 {
     double spacing[3];
     getSpacing(spacing);
+    TRACE("Spacing: %g %g %g", spacing[0], spacing[1], spacing[2]);
     return (spacing[0] + spacing[1] + spacing[2]) * 0.333;
 }
 
@@ -119,7 +120,31 @@ void Volume::update()
         _volumeMapper->SetInput(ds);
 #endif
         vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
+    } else if (_dataSet->isCloud()) {
+        // DataSet is a 3D point cloud
+        vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+#ifdef USE_VTK6
+        splatter->SetInputData(ds);
+#else
+        splatter->SetInput(ds);
+#endif
+        int dims[3];
+        dims[0] = dims[1] = dims[2] = 64;
+        TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
+              dims[0], dims[1], dims[2]);
+        splatter->SetSampleDimensions(dims);
+        splatter->Update();
+        TRACE("Done generating volume");
+#ifdef USE_GPU_RAYCAST_MAPPER
+        _volumeMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper>::New();
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->AutoAdjustSampleDistancesOff();
+#else
+        _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
+#endif
+        _volumeMapper->SetInputConnection(splatter->GetOutputPort());
+        vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
     } else if (vtkUnstructuredGrid::SafeDownCast(ds) != NULL) {
+        // Unstructured grid with cells (not a cloud)
         vtkUnstructuredGrid *ugrid = vtkUnstructuredGrid::SafeDownCast(ds);
         // DataSet is unstructured grid
         // Only works if cells are all tetrahedra
@@ -143,32 +168,14 @@ void Volume::update()
             filter->SetInput(ugrid);
 #endif
             filter->TetrahedraOnlyOn();
+            TRACE("Decomposing grid to tets");
+            filter->Update();
+            TRACE("Decomposing done");
             _volumeMapper->SetInputConnection(filter->GetOutputPort());
         }
 
         vtkUnstructuredGridVolumeMapper::SafeDownCast(_volumeMapper)->
             SetBlendModeToComposite();
-    } else if (_dataSet->isCloud()) {
-        // DataSet is a 3D point cloud
-        vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-#ifdef USE_VTK6
-        splatter->SetInputData(ds);
-#else
-        splatter->SetInput(ds);
-#endif
-        int dims[3];
-        dims[0] = dims[1] = dims[2] = 64;
-        TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
-              dims[0], dims[1], dims[2]);
-        splatter->SetSampleDimensions(dims);
-#ifdef USE_GPU_RAYCAST_MAPPER
-        _volumeMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper>::New();
-        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->AutoAdjustSampleDistancesOff();
-#else
-        _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
-#endif
-        _volumeMapper->SetInputConnection(splatter->GetOutputPort());
-        vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
     } else {
         ERROR("Unsupported DataSet type: %s", _dataSet->getVtkType());
         _dataSet = NULL;
