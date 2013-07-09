@@ -427,11 +427,11 @@ itcl::body Rappture::Controls::_layout {} {
         grid rowconfigure $_frame $r -weight 0 -minsize 0
     }
     grid rowconfigure $_frame 99 -weight 0
-
+    
     for {set c 0} {$c < $cmax} {incr c} {
         grid columnconfigure $_frame $c -weight 0 -minsize 0
     }
-
+    
     foreach name $_controls {
         foreach elem {label value} {
             set w $_name2info($name-$elem)
@@ -441,11 +441,11 @@ itcl::body Rappture::Controls::_layout {} {
         }
     }
     grid forget $_frame.empty
-
+    
     if {[$_tabs size] > 0} {
         $_tabs delete 0 end
     }
-
+    
     #
     # Decide which widgets should be shown and which should be hidden.
     #
@@ -454,13 +454,25 @@ itcl::body Rappture::Controls::_layout {} {
     foreach name $_controls {
         set show 1
         set cond $_name2info($name-enable)
-        if {[catch {expr $cond} show] == 0} {
+        if {[string is boolean $cond] && !$cond} {
+            # hard-coded "off" -- ignore completely
+            
+            # When the "enable" of a control is hardcoded "off", "0", etc., it
+            # means to hide the control. This is used by bandstrlab to add
+            # invisible parameters to a structure.  The value of the parameter
+            # is used by other widgets with enable statements.
+            
+            # The proper method for doing this is to add a 
+            #   <disablestyle>hide<disablestyle> 
+            # tag to the about section of the control.  
+            
+        } elseif {[catch {expr $cond} show] == 0} {
             set type $_name2info($name-type)
-	    set disablestyle $_name2info($name-disablestyle)
+            set disablestyle $_name2info($name-disablestyle)
             set lwidget $_name2info($name-label)
             set vwidget $_name2info($name-value)
             if {[lsearch -exact {group image structure} $type] >= 0 || 
-		$disablestyle == "hide" } {
+                $disablestyle == "hide" } {
                 if {$show ne "" && $show} {
                     lappend showing $name
                 } else {
@@ -486,10 +498,10 @@ itcl::body Rappture::Controls::_layout {} {
             bgerror "Error in <enable> expression for \"$_name2info($name-path)\":\n  $show"
         }
     }
-
+    
     # store the showing tabs in the object so it can be used in _changeTabs
     set _showing $showing
-
+    
     #
     # Decide on a layout scheme:
     #   default ...... tabs for groups of groups; vertical otherwise
@@ -514,17 +526,17 @@ itcl::body Rappture::Controls::_layout {} {
             }
         }
     }
-
+    
     # if the layout is "sentence:..." then create new parts
     if {[string match {sentence:*} $itk_option(-layout)]
-          && [array size _sentenceparts] == 0} {
+        && [array size _sentenceparts] == 0} {
         set n 0
         set font [option get $itk_component(hull) labelFont Font]
         set str [string range $itk_option(-layout) 9 end]
         while {[regexp -indices {\$\{([a-zA-Z0-9_]+)\}} $str match name]} {
             foreach {s0 s1} $name break
             set name [string range $str $s0 $s1]
-
+            
             # create a label for the string before the substitution
             foreach {s0 s1} $match break
             set prefix [string trim [string range $str 0 [expr {$s0-1}]]]
@@ -534,7 +546,7 @@ itcl::body Rappture::Controls::_layout {} {
                 lappend _sentenceparts(all) $lname
                 lappend _sentenceparts(fragments) $lname
             }
-
+            
             # add the widget for the substitution part
             set found ""
             foreach c $_controls {
@@ -548,10 +560,10 @@ itcl::body Rappture::Controls::_layout {} {
             } else {
                 puts stderr "WARNING: name \"$name\" in sentence layout \"$itk_option(-layout)\" not recognized"
             }
-
+            
             set str [string range $str [expr {$s1+1}] end]
         }
-
+        
         # create a label for any trailing string
         set str [string trim $str]
         if {$str ne ""} {
@@ -561,188 +573,188 @@ itcl::body Rappture::Controls::_layout {} {
             lappend _sentenceparts(fragments) $lname
         }
     }
-
+    
     switch -glob -- $_scheme {
-      tabs {
-        #
-        # SCHEME: tabs
-        # put a series of groups into a tabbed notebook
-        #
-
-        # stop covering up the tabset and put the _frame inside the tabs
-        pack forget $_frame
-        $_tabs configure -width 0 -height 0
-
-        set gn 1
-        foreach name $showing {
-            set wv $_name2info($name-value)
-            $wv configure -heading no
-            set label [$wv component heading cget -text]
-            if {"" == $label} {
-                set label "Group #$gn"
-            }
-            set _name2info($name-label) $label
-            $_tabs insert end $name -text $label \
-                -activebackground $itk_option(-background) \
-                -window $_frame -fill both
-            incr gn
-        }
-
-        # compute the overall size
-        # BE CAREFUL: do this after setting "-heading no" above
-        $_dispatcher event -now !resize
-
-        grid columnconfigure $_frame 0 -weight 1
-        grid rowconfigure $_frame 0 -weight 1
-
-        $_tabs select 0; _changeTabs
-      }
-
-      vertical {
-        #
-        # SCHEME: vertical
-        # simple "Label: Value" layout
-        #
-        if {[$_tabs size] > 0} {
-            $_tabs delete 0 end
-        }
-        pack $_frame -expand yes -fill both
-        $_tabs configure -width [winfo reqwidth $_frame] \
-            -height [winfo reqheight $_frame]
-
-        set expand 0  ;# most controls float to top
-        set row 0
-        foreach name $showing {
-            set wl $_name2info($name-label)
-            if {$wl != "" && [winfo exists $wl]} {
-                grid $wl -row $row -column 0 -sticky e
-            }
-
-            set wv $_name2info($name-value)
-            if {$wv ne "" && [winfo exists $wv]} {
-                if {$wl != ""} {
-                    grid $wv -row $row -column 1 -sticky ew
-                } else {
-                    grid $wv -row $row -column 0 -columnspan 2 -sticky ew
+        tabs {
+            #
+            # SCHEME: tabs
+            # put a series of groups into a tabbed notebook
+            #
+            
+            # stop covering up the tabset and put the _frame inside the tabs
+            pack forget $_frame
+            $_tabs configure -width 0 -height 0
+            
+            set gn 1
+            foreach name $showing {
+                set wv $_name2info($name-value)
+                $wv configure -heading no
+                set label [$wv component heading cget -text]
+                if {"" == $label} {
+                    set label "Group #$gn"
                 }
-
-                grid rowconfigure $_frame $row -weight 0
-
-                switch -- [winfo class $wv] {
-                    TextEntry {
-                        if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
-                            grid $wl -sticky ne -pady 4
-                            grid $wv -sticky nsew
-                            grid rowconfigure $_frame $row -weight 1
-                            grid columnconfigure $_frame 1 -weight 1
-                            set expand 1
-                        }
+                set _name2info($name-label) $label
+                $_tabs insert end $name -text $label \
+                    -activebackground $itk_option(-background) \
+                    -window $_frame -fill both
+                incr gn
+            }
+            
+            # compute the overall size
+            # BE CAREFUL: do this after setting "-heading no" above
+            $_dispatcher event -now !resize
+            
+            grid columnconfigure $_frame 0 -weight 1
+            grid rowconfigure $_frame 0 -weight 1
+            
+            $_tabs select 0; _changeTabs
+        }
+        
+        vertical {
+            #
+            # SCHEME: vertical
+            # simple "Label: Value" layout
+            #
+            if {[$_tabs size] > 0} {
+                $_tabs delete 0 end
+            }
+            pack $_frame -expand yes -fill both
+            $_tabs configure -width [winfo reqwidth $_frame] \
+                -height [winfo reqheight $_frame]
+            
+            set expand 0  ;# most controls float to top
+            set row 0
+            foreach name $showing {
+                set wl $_name2info($name-label)
+                if {$wl != "" && [winfo exists $wl]} {
+                    grid $wl -row $row -column 0 -sticky e
+                }
+                
+                set wv $_name2info($name-value)
+                if {$wv ne "" && [winfo exists $wv]} {
+                    if {$wl != ""} {
+                        grid $wv -row $row -column 1 -sticky ew
+                    } else {
+                        grid $wv -row $row -column 0 -columnspan 2 -sticky ew
                     }
-                    GroupEntry {
-                        $wv configure -heading yes
-
-                        #
-                        # Scan through all children in this group
-                        # and see if any demand more space.  If the
-                        # group contains a structure or a note, then
-                        # make sure that the group itself is set to
-                        # expand/fill.
-                        #
-                        set queue [winfo children $wv]
-                        set expandgroup 0
-                        while {[llength $queue] > 0} {
-                            set w [lindex $queue 0]
-                            set queue [lrange $queue 1 end]
-                            set c [winfo class $w]
-                            if {[lsearch {DeviceEditor Note} $c] >= 0} {
-                                set expandgroup 1
-                                break
+                    
+                    grid rowconfigure $_frame $row -weight 0
+                    
+                    switch -- [winfo class $wv] {
+                        TextEntry {
+                            if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
+                                grid $wl -sticky ne -pady 4
+                                grid $wv -sticky nsew
+                                grid rowconfigure $_frame $row -weight 1
+                                grid columnconfigure $_frame 1 -weight 1
+                                set expand 1
                             }
-                            eval lappend queue [winfo children $w]
                         }
-                        if {$expandgroup} {
-                            set expand 1
+                        GroupEntry {
+                            $wv configure -heading yes
+                            
+                            #
+                            # Scan through all children in this group
+                            # and see if any demand more space.  If the
+                            # group contains a structure or a note, then
+                            # make sure that the group itself is set to
+                            # expand/fill.
+                            #
+                            set queue [winfo children $wv]
+                            set expandgroup 0
+                            while {[llength $queue] > 0} {
+                                set w [lindex $queue 0]
+                                set queue [lrange $queue 1 end]
+                                set c [winfo class $w]
+                                if {[lsearch {DeviceEditor Note} $c] >= 0} {
+                                    set expandgroup 1
+                                    break
+                                }
+                                eval lappend queue [winfo children $w]
+                            }
+                            if {$expandgroup} {
+                                set expand 1
+                                grid $wv -sticky nsew
+                                grid rowconfigure $_frame $row -weight 1
+                            }
+                        }
+                        Note {
                             grid $wv -sticky nsew
                             grid rowconfigure $_frame $row -weight 1
+                            set expand 1
                         }
                     }
-                    Note {
-                        grid $wv -sticky nsew
-                        grid rowconfigure $_frame $row -weight 1
-                        set expand 1
-                    }
+                    grid columnconfigure $_frame 1 -weight 1
                 }
-                grid columnconfigure $_frame 1 -weight 1
+                
+                incr row
+                grid rowconfigure $_frame $row -minsize $itk_option(-padding)
+                incr row
             }
-
-            incr row
-            grid rowconfigure $_frame $row -minsize $itk_option(-padding)
-            incr row
+            grid $_frame.empty -row $row
+            
+            #
+            # If there are any hidden items, then make the bottom of
+            # this form fill up any extra space, so the form floats
+            # to the top.  Otherwise, it will jitter around as the
+            # hidden items come and go.
+            #
+            if {[llength $hidden] > 0 && !$expand} {
+                grid rowconfigure $_frame 99 -weight 1
+            } else {
+                grid rowconfigure $_frame 99 -weight 0
+            }
         }
-        grid $_frame.empty -row $row
-
-        #
-        # If there are any hidden items, then make the bottom of
-        # this form fill up any extra space, so the form floats
-        # to the top.  Otherwise, it will jitter around as the
-        # hidden items come and go.
-        #
-        if {[llength $hidden] > 0 && !$expand} {
-            grid rowconfigure $_frame 99 -weight 1
-        } else {
-            grid rowconfigure $_frame 99 -weight 0
+        
+        horizontal {
+            #
+            # SCHEME: horizontal
+            # lay out left to right
+            #
+            if {[$_tabs size] > 0} {
+                $_tabs delete 0 end
+            }
+            pack $_frame -expand yes -fill both
+            $_tabs configure -width [winfo reqwidth $_frame] \
+                -height [winfo reqheight $_frame]
+            
+            set col 0
+            set pad [expr {$itk_option(-padding)/2}]
+            foreach name $showing {
+                set wl $_name2info($name-label)
+                if {$wl != "" && [winfo exists $wl]} {
+                    grid $wl -row 0 -column $col -sticky e -padx $pad
+                    incr col
+                }
+                
+                set wv $_name2info($name-value)
+                if {$wv != "" && [winfo exists $wv]} {
+                    grid $wv -row 0 -column $col -sticky ew -padx $pad
+                    grid columnconfigure $_frame $col -weight 0
+                    incr col
+                }
+            }
         }
-      }
-
-      horizontal {
-        #
-        # SCHEME: horizontal
-        # lay out left to right
-        #
-        if {[$_tabs size] > 0} {
-            $_tabs delete 0 end
-        }
-        pack $_frame -expand yes -fill both
-        $_tabs configure -width [winfo reqwidth $_frame] \
-            -height [winfo reqheight $_frame]
-
-        set col 0
-        set pad [expr {$itk_option(-padding)/2}]
-        foreach name $showing {
-            set wl $_name2info($name-label)
-            if {$wl != "" && [winfo exists $wl]} {
-                grid $wl -row 0 -column $col -sticky e -padx $pad
+        
+        sentence:* {
+            #
+            # SCHEME: sentence
+            # lay out left to right with sentence parts: "( [x] , [y] )"
+            #
+            if {[$_tabs size] > 0} {
+                $_tabs delete 0 end
+            }
+            pack $_frame -expand yes -fill both
+            $_tabs configure -width [winfo reqwidth $_frame] \
+                -height [winfo reqheight $_frame]
+            
+            set col 0
+            set pad [expr {$itk_option(-padding)/2}]
+            foreach widget $_sentenceparts(all) {
+                grid $widget -row 0 -column $col -padx $pad
                 incr col
             }
-
-            set wv $_name2info($name-value)
-            if {$wv != "" && [winfo exists $wv]} {
-                grid $wv -row 0 -column $col -sticky ew -padx $pad
-                grid columnconfigure $_frame $col -weight 0
-                incr col
-            }
         }
-      }
-
-      sentence:* {
-        #
-        # SCHEME: sentence
-        # lay out left to right with sentence parts: "( [x] , [y] )"
-        #
-        if {[$_tabs size] > 0} {
-            $_tabs delete 0 end
-        }
-        pack $_frame -expand yes -fill both
-        $_tabs configure -width [winfo reqwidth $_frame] \
-            -height [winfo reqheight $_frame]
-
-        set col 0
-        set pad [expr {$itk_option(-padding)/2}]
-        foreach widget $_sentenceparts(all) {
-            grid $widget -row 0 -column $col -padx $pad
-            incr col
-        }
-      }
     }
 }
 
