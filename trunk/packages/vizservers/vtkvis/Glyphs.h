@@ -15,6 +15,7 @@
 #include <vtkActor.h>
 #include <vtkVersion.h>
 #include <vtkGlyph3DMapper.h>
+#include <vtkMaskPoints.h>
 #include <vtkLookupTable.h>
 #include <vtkPlaneCollection.h>
 
@@ -91,6 +92,9 @@ public:
 
     void setScaleFactor(double scale);
 
+    void setMaximumNumberOfGlyphs(int max, bool random = true,
+                                  int offset = 0, int ratio = 1);
+
     void setColorMap(ColorMap *colorMap);
 
     /**
@@ -135,6 +139,7 @@ private:
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkPolyDataAlgorithm> _glyphSource;
     vtkSmartPointer<vtkGlyph3DMapper> _glyphMapper;
+    vtkSmartPointer<vtkMaskPoints> _maskPoints;
 };
 
 }

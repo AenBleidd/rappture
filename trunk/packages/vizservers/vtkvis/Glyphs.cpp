@@ -28,9 +28,14 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkPolyDataNormals.h>
+#include <vtkDelaunay2D.h>
+#include <vtkDelaunay3D.h>
+#include <vtkPolyData.h>
+#include <vtkUnstructuredGrid.h>
 
 #include "Glyphs.h"
 #include "Renderer.h"
+#include "Math.h"
 #include "Trace.h"
 
 using namespace VtkVis;
@@ -279,6 +284,8 @@ void Glyphs::update()
     if (_glyphMapper == NULL) {
         _glyphMapper = vtkSmartPointer<vtkGlyph3DMapper>::New();
         _glyphMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        // If there are color scalars, use them without lookup table (if scalar visibility is on)
+        _glyphMapper->SetColorModeToDefault();
         _glyphMapper->ScalarVisibilityOn();
     }
 
@@ -322,18 +329,98 @@ void Glyphs::update()
         setScalingMode(SCALE_BY_SCALAR);
     }
 
-    double cellSizeRange[2];
-    double avgSize;
-    _dataSet->getCellSizeRange(cellSizeRange, &avgSize);
-    //_dataScale = cellSizeRange[0] + (cellSizeRange[1] - cellSizeRange[0])/2.;
-    _dataScale = avgSize;
+    if (_dataSet->isCloud()) {
+        PrincipalPlane plane;
+        double offset;
+        if (_dataSet->is2D(&plane, &offset)) {
+            // 2D cloud
+            vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+            if (plane == PLANE_ZY) {
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateWXYZ(90, 0, 1, 0);
+                if (offset != 0.0) {
+                    trans->Translate(-offset, 0, 0);
+                }
+                mesher->SetTransform(trans);
+            } else if (plane == PLANE_XZ) {
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateWXYZ(-90, 1, 0, 0);
+                if (offset != 0.0) {
+                    trans->Translate(0, -offset, 0);
+                }
+                mesher->SetTransform(trans);
+            } else if (offset != 0.0) {
+                // XY with Z offset
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->Translate(0, 0, -offset);
+                mesher->SetTransform(trans);
+            }
+#ifdef USE_VTK6
+            mesher->SetInputData(ds);
+#else
+            mesher->SetInput(ds);
+#endif
+            mesher->Update();
+            vtkPolyData *pd = mesher->GetOutput();
+            if (pd->GetNumberOfPolys() == 0) {
+                // Meshing failed, fall back to scale based on bounds
+                double bounds[6];
+                _dataSet->getBounds(bounds);
+                double xlen = bounds[1] - bounds[0];
+                double ylen = bounds[3] - bounds[2];
+                double zlen = bounds[5] - bounds[4];
+                double max = max3(xlen, ylen, zlen);
+                _dataScale = max / 64.0;
+            } else {
+                double cellSizeRange[2];
+                double avgSize;
+                DataSet::getCellSizeRange(pd, cellSizeRange, &avgSize);
+                _dataScale = avgSize * 2.0;
+            }
+        } else {
+            // 3D cloud
+            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+            mesher->SetInputData(ds);
+#else
+            mesher->SetInput(ds);
+#endif
+            mesher->Update();
+            vtkUnstructuredGrid *ugrid = mesher->GetOutput();
+            if (ugrid->GetNumberOfCells() == 0) {
+                // Meshing failed, fall back to scale based on bounds
+                double bounds[6];
+                _dataSet->getBounds(bounds);
+                double xlen = bounds[1] - bounds[0];
+                double ylen = bounds[3] - bounds[2];
+                double zlen = bounds[5] - bounds[4];
+                double max = max3(xlen, ylen, zlen);
+                _dataScale = max / 64.0;
+            } else {
+                double cellSizeRange[2];
+                double avgSize;
+                DataSet::getCellSizeRange(ugrid, cellSizeRange, &avgSize);
+                _dataScale = avgSize * 2.0;
+            }
+        }
+    } else {
+        double cellSizeRange[2];
+        double avgSize;
+        _dataSet->getCellSizeRange(cellSizeRange, &avgSize);
+        _dataScale = avgSize * 2.0;
+    }
 
-    TRACE("Cell size range: %g,%g, Data scale factor: %g",
-          cellSizeRange[0], cellSizeRange[1], _dataScale);
+    TRACE("Data scale factor: %g", _dataScale);
 
     // Normalize sizes to [0,1] * ScaleFactor
     _glyphMapper->SetClamping(_normalizeScale ? 1 : 0);
-    _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+    if (_normalizeScale) {
+        _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+        TRACE("Setting scale factor: %g", _scaleFactor * _dataScale);
+    } else {
+        _glyphMapper->SetScaleFactor(_scaleFactor);
+        TRACE("Setting scale factor: %g", _scaleFactor);
+    }
     _glyphMapper->ScalingOn();
 
     if (_lut == NULL) {
@@ -362,6 +449,13 @@ void Glyphs::setNormalizeScale(bool normalize)
         _normalizeScale = normalize;
         if (_glyphMapper != NULL) {
             _glyphMapper->SetClamping(_normalizeScale ? 1 : 0);
+            if (_normalizeScale) {
+                _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+                TRACE("Setting scale factor: %g", _scaleFactor * _dataScale);
+            } else {
+                _glyphMapper->SetScaleFactor(_scaleFactor);
+                TRACE("Setting scale factor: %g", _scaleFactor);
+            }
         }
     }
 }
@@ -666,7 +760,13 @@ void Glyphs::setScaleFactor(double scale)
 {
     _scaleFactor = scale;
     if (_glyphMapper != NULL) {
-        _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+        if (_normalizeScale) {
+            _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+            TRACE("Setting scale factor: %g", _scaleFactor * _dataScale);
+        } else {
+            _glyphMapper->SetScaleFactor(_scaleFactor);
+            TRACE("Setting scale factor: %g", _scaleFactor);
+        }
     }
 }
 
@@ -782,6 +882,49 @@ void Glyphs::setColorMap(ColorMap *cmap)
         break;
     default:
         break;
+    }
+}
+
+/**
+ * \brief Limit the number of glyphs displayed
+ *
+ * The choice of glyphs to display can be based on sampling every
+ * n-th point (ratio) or by random sample
+ *
+ * \param max Maximum number of glyphs to display, negative means display all
+ * \param random Flag to enable/disable random sampling
+ * \param offset If random is false, this controls the first sample point
+ * \param ratio If random is false, this ratio controls every n-th point sampling
+ */
+void Glyphs::setMaximumNumberOfGlyphs(int max, bool random, int offset, int ratio)
+{
+    if (_dataSet == NULL || _glyphMapper == NULL)
+        return;
+
+    if (max < 0) {
+        if (_maskPoints != NULL) {
+#ifdef USE_VTK6
+            _glyphMapper->SetInputData(_dataSet->getVtkDataSet());
+#else
+            _glyphMapper->SetInputConnection(_dataSet->getVtkDataSet()->GetProducerPort());
+#endif
+            _maskPoints = NULL;
+        }
+    } else {
+        if (_maskPoints == NULL) {
+            _maskPoints = vtkSmartPointer<vtkMaskPoints>::New();
+        }
+#ifdef USE_VTK6
+        _maskPoints->SetInputData(_dataSet->getVtkDataSet());
+#else
+        _maskPoints->SetInput(_dataSet->getVtkDataSet());
+#endif
+        _maskPoints->SetMaximumNumberOfPoints(max);
+        _maskPoints->SetOffset(offset);
+        _maskPoints->SetOnRatio(ratio);
+        _maskPoints->SetRandomMode((random ? 1 : 0));
+        _maskPoints->GenerateVerticesOff();
+        _glyphMapper->SetInputConnection(_maskPoints->GetOutputPort());
     }
 }
 
