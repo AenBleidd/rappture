@@ -94,6 +94,7 @@ itcl::class Rappture::NumberResult {
     protected method GetAxes {dataobj}
     protected method GetValue {dataobj {which both}}
     protected method GetInfo {what dataobj {which both}}
+    private method ResetLegend {}
 
     private variable _dispatcher "" ;# dispatcher for !events
 
@@ -242,10 +243,8 @@ itcl::body Rappture::NumberResult::constructor {args} {
         Rappture::XyLegend $inner.legend $itk_component(plot)
     }
     pack $itk_component(legend) -expand yes -fill both
-    after idle [subst {
-        update idletasks
-        $itk_component(legend) reset 
-    }]
+    after idle [itcl::code $this ResetLegend]
+
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
     eval itk_initialize $args
@@ -1562,4 +1561,13 @@ itcl::configbody Rappture::NumberResult::gridcolor {
         $itk_component(plot) grid configure -color $itk_option(-gridcolor)
         $itk_component(plot) grid on
     }
+}
+
+#
+# ResetLegend --
+#
+itcl::body Rappture::NumberResult::ResetLegend {} {
+    set g $itk_component(plot)
+    update idletasks
+    $itk_component(legend) reset [$g element show]
 }
