@@ -55,7 +55,7 @@ object boolean -extends base {
     compare {
         if {$_val && !$_val2} {
             return 1
-        } elseif {!$_val && $_val} {
+        } elseif {!$_val && $_val2} {
             return -1
         }
         return 0
