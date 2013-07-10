@@ -1,34 +1,35 @@
 <?xml version="1.0"?>
 <run>
- <tool>
-  <about>Press Simulate to view results.</about>
-  <command>tclsh @tool/test.tcl @driver</command>
- </tool>
- <input>
-  <periodicelement id="first">
-   <about>
-    <label>First Element</label>
-    <description>Select the first element.</description>
-   </about>
-   <default>As</default>
-  </periodicelement>
-  <periodicelement id="second">
-   <about>
-    <label>Second Element</label>
-    <description>Select the second element.</description>
-   </about>
-   <default>O</default>
-   <inactive>lanthanoid actinoid</inactive>
-   <returnvalue>symbol</returnvalue>
-  </periodicelement>
-  <periodicelement id="third">
-   <about>
-    <label>Third Element</label>
-    <description>Select the third element.</description>
-   </about>
-   <default>C</default>
-   <active>other-non-metal</active>
-   <returnvalue>weight</returnvalue>
-  </periodicelement>
- </input>
+    <tool>
+        <about>Press Simulate to view results.</about>
+        <command>tclsh @tool/test.tcl @driver</command>
+    </tool>
+    <input>
+        <periodicelement id="first">
+            <about>
+                <label>First Element</label>
+                <description>Select the first element.</description>
+            </about>
+            <default>As</default>
+            <returnvalue>name</returnvalue>
+        </periodicelement>
+        <periodicelement id="second">
+            <about>
+                <label>Second Element</label>
+                <description>Select the second element.</description>
+            </about>
+            <default>Oxygen</default>
+            <returnvalue>name symbol number weight</returnvalue>
+            <inactive>actinoid lanthanoid</inactive>
+        </periodicelement>
+        <periodicelement id="third">
+            <about>
+                <label>Third Element</label>
+                <description>Select the third element.</description>
+            </about>
+            <default>Carbon</default>
+            <returnvalue>weight</returnvalue>
+            <active>other-non-metal</active>
+        </periodicelement>
+    </input>
 </run>

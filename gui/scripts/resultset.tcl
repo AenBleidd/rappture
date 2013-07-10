@@ -247,7 +247,7 @@ itcl::body Rappture::ResultSet::diff {option args} {
             # treat the "which" parameter as an XML object
             set irun [lindex [$_results find -format xmlobj $which] 0]
             if {$irun ne ""} {
-                set val [$_results get -format $col $irun]
+                set val [lindex [$_results get -format $col $irun] 0]
                 array set val2norm $rlist
                 if {[info exists val2norm($val)]} {
                     return [list $val $val2norm($val)]
