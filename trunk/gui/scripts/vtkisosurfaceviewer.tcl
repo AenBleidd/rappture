@@ -1395,12 +1395,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set _settings(colormap) $color
 	    if { $color == "none" } {
 		if { $_settings(colormapVisible) } {
-		    SendCmd "contour3d surface 0"
+		    SendCmd "contour3d colormode ccolor {}"
 		    set _settings(colormapVisible) 0
 		}
 	    } else {
 		if { !$_settings(colormapVisible) } {
-		    SendCmd "contour3d surface 1"
+		    SendCmd "contour3d colormode $_colorMode $_curFldName"
 		    set _settings(colormapVisible) 1
 		}
 		SetCurrentColormap $color
@@ -2049,7 +2049,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::GetVtkData { args } {
         foreach cname [$dataobj components] {
             set tag $dataobj-$cname
             set contents [$dataobj vtkdata $cname]
-            append bytes "$contents\n\n"
+            append bytes "$contents\n"
         }
     }
     return [list .vtk $bytes]
