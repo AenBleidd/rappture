@@ -107,6 +107,7 @@ itcl::class Rappture::BarchartResult {
     protected method _enterMarker { g name x y text }
     protected method _leaveMarker { g name }
     private method _formatTickLabel { w value } 
+    private method ResetLegend {}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _dlist ""     ;# list of dataobjs
@@ -255,10 +256,7 @@ itcl::body Rappture::BarchartResult::constructor {args} {
         Rappture::XyLegend $inner.legend $itk_component(plot)
     }
     pack $itk_component(legend) -expand yes -fill both
-    after idle [subst {
-        update idletasks
-        $itk_component(legend) reset 
-    }]
+    after idle [itcl::code $this ResetLegend]
 
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
@@ -797,7 +795,7 @@ itcl::body Rappture::BarchartResult::_rebuild {} {
             }
         }
     }
-    $itk_component(legend) reset 
+    ResetLegend
 }
 
 # ----------------------------------------------------------------------
@@ -1625,4 +1623,13 @@ itcl::body Rappture::BarchartResult::_formatTickLabel { w value } {
         return $value
     }
     return $label
+}
+
+#
+# ResetLegend --
+#
+itcl::body Rappture::BarchartResult::ResetLegend {} {
+    set g $itk_component(plot)
+    update idletasks
+    $itk_component(legend) reset [$g element show]
 }

@@ -105,6 +105,7 @@ itcl::class Rappture::HistogramResult {
     protected method EnterMarker { g name x y text }
     protected method LeaveMarker { g name }
     protected method FormatLabels { g value }
+    private method ResetLegend {}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _dlist ""     ;# list of dataobj objects
@@ -251,10 +252,7 @@ itcl::body Rappture::HistogramResult::constructor {args} {
         Rappture::XyLegend $inner.legend $itk_component(plot)
     }
     pack $itk_component(legend) -expand yes -fill both
-    after idle [subst {
-        update idletasks
-        $itk_component(legend) reset 
-    }]
+    after idle [itcl::code $this ResetLegend]
 
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
@@ -821,7 +819,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
 	set invert 1
     }
     $g configure -invertxy $invert
-    $itk_component(legend) reset 
+    ResetLegend
 }
 
 # ----------------------------------------------------------------------
@@ -1608,4 +1606,13 @@ itcl::body Rappture::HistogramResult::FormatLabels { w value } {
 	} 
     }
     return " "
+}
+
+#
+# ResetLegend --
+#
+itcl::body Rappture::HistogramResult::ResetLegend {} {
+    set g $itk_component(plot)
+    update idletasks
+    $itk_component(legend) reset [$g element show]
 }
