@@ -87,7 +87,6 @@ itcl::class Rappture::VtkViewer {
     private method BuildDownloadPopup { widget command } 
     private method BuildMeshTab {}
     private method BuildMoleculeTab {}
-    private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
@@ -2183,24 +2182,6 @@ itcl::body Rappture::VtkViewer::camera {option args} {
     }
 }
 
-itcl::body Rappture::VtkViewer::ConvertToVtkData { dataobj comp } {
-    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
-    set values [$dataobj values $comp]
-    append out "# vtk DataFile Version 2.0 \n"
-    append out "Test data \n"
-    append out "ASCII \n"
-    append out "DATASET STRUCTURED_POINTS \n"
-    append out "DIMENSIONS $xN $yN 1 \n"
-    append out "ORIGIN 0 0 0 \n"
-    append out "SPACING 1 1 1 \n"
-    append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS field double 1 \n"
-    append out "LOOKUP_TABLE default \n"
-    append out [join $values "\n"]
-    append out "\n"
-    return $out
-}
-
 itcl::body Rappture::VtkViewer::GetVtkData { args } {
     set bytes ""
     foreach dataobj [get] {
@@ -2208,10 +2189,9 @@ itcl::body Rappture::VtkViewer::GetVtkData { args } {
             set tag $dataobj-$comp
             set contents [$dataobj data $comp]
             append bytes "$contents\n"
-            append bytes "\# End of VTK file\n\n"
         }
     }
-    return [list .txt $bytes]
+    return [list .vtk $bytes]
 }
 
 itcl::body Rappture::VtkViewer::GetImage { args } {

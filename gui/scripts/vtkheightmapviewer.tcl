@@ -87,7 +87,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method BuildContourTab {}
     private method BuildDownloadPopup { widget command } 
     private method Combo { option }
-    private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
     private method EnterLegend { x y } 
     private method EventuallyRequestLegend {} 
@@ -388,7 +387,6 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     }
 
     set _image(download) [image create photo]
-    puts stderr "args=$args"
     eval itk_initialize $args
     Connect
     set _beforeConnect 0
@@ -2171,9 +2169,8 @@ itcl::body Rappture::VtkHeightmapViewer::GetVtkData { args } {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-            #set contents [ConvertToVtkData $dataobj $comp]
             set contents [$dataobj vtkdata $comp]
-            append bytes "$contents\n\n"
+            append bytes "$contents\n"
         }
     }
     return [list .vtk $bytes]
