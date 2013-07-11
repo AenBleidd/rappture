@@ -77,7 +77,7 @@ itcl::class Rappture::Field {
     private variable _limits;           # maps axis name => {z0 z1} limits
     private variable _field ""
     private variable _comp2fldName ;	# cname => field names.
-    private variable _comp2type ;	# cname => type (e.g. "vector")
+    private variable _comp2type ;	# cname => type (e.g. "vectors")
     private variable _comp2size ;	# cname => # of components in element
     private variable _comp2assoc;	# cname => association (e.g. pointdata)
     private variable _fld2Components;   # field name => number of components
