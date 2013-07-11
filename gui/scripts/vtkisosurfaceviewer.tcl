@@ -1506,11 +1506,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 #	5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
+    set _legendPending 0
     if { ![info exists _fields($_curFldName)] } {
         return
     }
     set fname $_curFldName
-    set _legendPending 0
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     set c $itk_component(view)
@@ -2387,7 +2387,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 	    incr y $lineht
 	$c create text $x $y \
 	    -anchor ne \
-	    -fill $itk_option(-plotforeground) -tags "zmax legend" \
+	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
 	    -font $font
 	incr y $lineht
 	$c create image $x $y \
@@ -2397,7 +2397,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 	    -fill "" -outline "" -tags "sensor legend"
 	$c create text $x [expr {$h-2}] \
 	    -anchor se \
-	    -fill $itk_option(-plotforeground) -tags "zmin legend" \
+	    -fill $itk_option(-plotforeground) -tags "vmin legend" \
 	    -font $font
 	$c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
 	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
@@ -2442,8 +2442,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     $c itemconfigure title -text $title
     if { [info exists _limits($_curFldName)] } {
         foreach { vmin vmax } $_limits($_curFldName) break
-	$c itemconfigure zmin -text [format %g $vmin]
-	$c itemconfigure zmax -text [format %g $vmax]
+	$c itemconfigure vmin -text [format %g $vmin]
+	$c itemconfigure vmax -text [format %g $vmax]
     }
     set y 2
     # If there's a legend title, move the title to the correct position
@@ -2453,14 +2453,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 	incr y $lineht
         $c raise title
     }
-    $c coords zmax $x $y
+    $c coords vmax $x $y
     incr y $lineht
     $c coords colormap $x $y
-    set ix [image width $_image(legend)]
-    set ih [image height $_image(legend)]
     $c coords sensor [expr $x - $iw] $y $x [expr $y + $ih]
     $c raise sensor
-    $c coords zmin $x [expr {$h - 2}]
+    $c coords vmin $x [expr {$h - 2}]
 }
 
 # ----------------------------------------------------------------------

@@ -135,8 +135,6 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
-    private variable _glyph
-    private variable _glyphsList ""
 
     common _downloadPopup;              # download options from popup
     private common _hardcopy
@@ -1486,11 +1484,11 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 #	5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
+    set _legendPending 0
     if { ![info exists _fields($_curFldName)] } {
         return
     }
     set fname $_curFldName
-    set _legendPending 0
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     set c $itk_component(view)
@@ -2223,11 +2221,7 @@ itcl::body Rappture::VtkGlyphViewer::SetLegendTip { x y } {
     }
     set tx [expr $x + 15] 
     set ty [expr $y - 5]
-    if { [info exists _glyph($y)] } {
-        Rappture::Tooltip::text $c [format "$title %g (glyph)" $_glyph($y)]
-    } else {
-        Rappture::Tooltip::text $c [format "$title %g" $value]
-    }
+    Rappture::Tooltip::text $c [format "$title %g" $value]
     Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
@@ -2329,7 +2323,7 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
 	    incr y $lineht
 	$c create text $x $y \
 	    -anchor ne \
-	    -fill $itk_option(-plotforeground) -tags "zmax legend" \
+	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
 	    -font $font
 	incr y $lineht
 	$c create image $x $y \
@@ -2339,19 +2333,16 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
 	    -fill "" -outline "" -tags "sensor legend"
 	$c create text $x [expr {$h-2}] \
 	    -anchor se \
-	    -fill $itk_option(-plotforeground) -tags "zmin legend" \
+	    -fill $itk_option(-plotforeground) -tags "vmin legend" \
 	    -font $font
 	$c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
 	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
 	$c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
     }
-    $c delete isoline
     set x2 $x
     set iw [image width $_image(legend)]
     set ih [image height $_image(legend)]
     set x1 [expr $x2 - ($iw*12)/10]
-    # Draw the glyph on the legend.
-    array unset _glyph
 
     $c bind title <ButtonPress> [itcl::code $this Combo post]
     $c bind title <Enter> [itcl::code $this Combo activate]
@@ -2360,8 +2351,8 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
     $c itemconfigure title -text $title
     if { [info exists _limits($_curFldName)] } {
         foreach { vmin vmax } $_limits($_curFldName) break
-	$c itemconfigure zmin -text [format %g $vmin]
-	$c itemconfigure zmax -text [format %g $vmax]
+	$c itemconfigure vmin -text [format %g $vmin]
+	$c itemconfigure vmax -text [format %g $vmax]
     }
     set y 2
     # If there's a legend title, move the title to the correct position
@@ -2371,14 +2362,12 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
 	incr y $lineht
         $c raise title
     }
-    $c coords zmax $x $y
+    $c coords vmax $x $y
     incr y $lineht
     $c coords colormap $x $y
-    set ix [image width $_image(legend)]
-    set ih [image height $_image(legend)]
     $c coords sensor [expr $x - $iw] $y $x [expr $y + $ih]
     $c raise sensor
-    $c coords zmin $x [expr {$h - 2}]
+    $c coords vmin $x [expr {$h - 2}]
 }
 
 # ----------------------------------------------------------------------
