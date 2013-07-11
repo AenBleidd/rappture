@@ -489,6 +489,13 @@ glyphs linewidth <val> <?datasetName?>
 glyphs normscale <bool> <?datasetName?>
        Control if data values are normalized to [0,1] range before applying
        glyph scaling factor (gscale)
+glyphs numglyphs <max> <random> <offset> <ratio> <?dataSetName?>
+       Limit the maximum number of glyphs displayed.  Can use either a random
+       sampling or every nth point sampling (useful for uniform grids)
+       <max> = integer maximum number of glyphs
+       <random> = bool indicating if random sampling should be used
+       <offset> = offset point index from which to start sampling
+       <ratio> = If random is false, use this to control every nth point sampling
 glyphs opacity <val> <?datasetName?>
 glyphs orient <qw> <qx> <qy> <qz> <?dataSetName?>
 glyphs pos <x> <y> <z> <?dataSetName?>
@@ -504,11 +511,17 @@ glyphs visible <bool> <?datasetName?>
 glyphs wireframe <bool> <?datasetName?>
 
 group add <nodeList> <name>
+      Add listed nodes to group named <name>.  Group will be created if
+      it doesn't exist, but nodes may be added to existing groups.  The
+      nodes will be removed from the virtual root scene.
 group delete <?name?>
 group orient <qw> <qx> <qy> <qz> <?name?>
 group origin <x> <y> <z> <?name?>
 group pos <x> <y> <z> <?name?>
 group remove <nodeList> <name>
+      Remove listed nodes from group.  Currently, nodes will be added back
+      to the virtual root scene, and so nodes must be explicitly deleted to 
+      remove them from the scene.
 group scale <sx> <sy> <sz> <?name?>
 group visible <bool> <?name?>
 
