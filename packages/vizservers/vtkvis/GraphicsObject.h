@@ -13,12 +13,15 @@
 
 #include <vtkSmartPointer.h>
 #include <vtkProp.h>
+#include <vtkActor2D.h>
 #include <vtkProp3D.h>
 #include <vtkProp3DCollection.h>
 #include <vtkAssembly.h>
 #include <vtkActor.h>
+#include <vtkImageActor.h>
 #include <vtkVolume.h>
 #include <vtkProperty.h>
+#include <vtkImageProperty.h>
 #include <vtkVolumeProperty.h>
 #include <vtkMath.h>
 #include <vtkMatrix4x4.h>
@@ -113,6 +116,16 @@ public:
     }
 
     /**
+     * \brief Cast the vktProp to a vtkActor2D
+     *
+     * \return NULL or a vtkActor2D pointer
+     */
+    inline vtkActor2D *getActor2D()
+    {
+        return vtkActor2D::SafeDownCast(_prop);
+    }
+
+    /**
      * \brief Cast the vktProp to a vtkProp3D
      *
      * \return NULL or a vtkProp3D pointer
@@ -130,6 +143,16 @@ public:
     inline vtkActor *getActor()
     {
         return vtkActor::SafeDownCast(_prop);
+    }
+
+    /**
+     * \brief Cast the vktProp to a vtkImageActor
+     *
+     * \return NULL or a vtkImageActor pointer
+     */
+    inline vtkImageActor *getImageActor()
+    {
+        return vtkImageActor::SafeDownCast(_prop);
     }
 
     /**
@@ -483,8 +506,12 @@ public:
                         setCulling(vtkActor::SafeDownCast(prop)->GetProperty(), true);
                         TRACE("Culling on");
                     }
+                } else if (vtkImageActor::SafeDownCast(prop) != NULL) {
+                    vtkImageActor::SafeDownCast(prop)->GetProperty()->SetOpacity(opacity);
                 }
             }
+        } else if (getImageActor() != NULL) {
+            getImageActor()->GetProperty()->SetOpacity(_opacity);
         }
     }
 
@@ -503,6 +530,8 @@ public:
     {
         if (getActor() != NULL) {
             getActor()->GetProperty()->SetAmbient(ambient);
+        } else if (getImageActor() != NULL) {
+            getImageActor()->GetProperty()->SetAmbient(ambient);
         } else if (getVolume() != NULL) {
             getVolume()->GetProperty()->SetAmbient(ambient);
         } else if (getAssembly() != NULL) {
@@ -512,6 +541,8 @@ public:
             while ((prop = props->GetNextProp3D()) != NULL) {
                 if (vtkActor::SafeDownCast(prop) != NULL) {
                     vtkActor::SafeDownCast(prop)->GetProperty()->SetAmbient(ambient);
+                } else if (vtkImageActor::SafeDownCast(prop) != NULL) {
+                    vtkImageActor::SafeDownCast(prop)->GetProperty()->SetAmbient(ambient);
                 } else if (vtkVolume::SafeDownCast(prop) != NULL) {
                     vtkVolume::SafeDownCast(prop)->GetProperty()->SetAmbient(ambient);
                 }
@@ -526,6 +557,8 @@ public:
     {
         if (getActor() != NULL) {
             getActor()->GetProperty()->SetDiffuse(diffuse);
+        } else if (getImageActor() != NULL) {
+            getImageActor()->GetProperty()->SetDiffuse(diffuse);
         } else if (getVolume() != NULL) {
             getVolume()->GetProperty()->SetDiffuse(diffuse);
         } else if (getAssembly() != NULL) {
@@ -535,6 +568,8 @@ public:
             while ((prop = props->GetNextProp3D()) != NULL) {
                 if (vtkActor::SafeDownCast(prop) != NULL) {
                     vtkActor::SafeDownCast(prop)->GetProperty()->SetDiffuse(diffuse);
+                } else if (vtkImageActor::SafeDownCast(prop) != NULL) {
+                    vtkImageActor::SafeDownCast(prop)->GetProperty()->SetDiffuse(diffuse);
                 } else if (vtkVolume::SafeDownCast(prop) != NULL) {
                     vtkVolume::SafeDownCast(prop)->GetProperty()->SetDiffuse(diffuse);
                 }
@@ -580,6 +615,10 @@ public:
             property->SetDiffuse(diffuse);
             property->SetSpecular(specular);
             property->SetSpecularPower(specPower);
+        } else if (getImageActor() != NULL) {
+            vtkImageProperty *property = getImageActor()->GetProperty();
+            property->SetAmbient(ambient);
+            property->SetDiffuse(diffuse);
         } else if (getVolume() != NULL) {
             vtkVolumeProperty *property = getVolume()->GetProperty();
             property->SetAmbient(ambient);
@@ -597,6 +636,10 @@ public:
                     property->SetDiffuse(diffuse);
                     property->SetSpecular(specular);
                     property->SetSpecularPower(specPower);
+                } else if (vtkImageActor::SafeDownCast(prop) != NULL) {
+                    vtkImageProperty *property = vtkImageActor::SafeDownCast(prop)->GetProperty();
+                    property->SetAmbient(ambient);
+                    property->SetDiffuse(diffuse);
                 } else if (vtkVolume::SafeDownCast(prop) != NULL) {
                     vtkVolumeProperty *property = vtkVolume::SafeDownCast(prop)->GetProperty();
                     property->SetAmbient(ambient);
