@@ -139,7 +139,6 @@ void PolyData::update()
 #endif
                 _mapper->SetInputConnection(vgf->GetOutputPort());
             } else {
-                _mapper->SetInputConnection(mesher->GetOutputPort());
                 vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
                 normalFilter->SetInputConnection(mesher->GetOutputPort());
                 _mapper->SetInputConnection(normalFilter->GetOutputPort());
