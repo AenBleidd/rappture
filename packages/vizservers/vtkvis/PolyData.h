@@ -45,7 +45,7 @@ private:
     virtual void update();
 
     CloudStyle _cloudStyle;
-    vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
+    vtkSmartPointer<vtkPolyDataMapper> _mapper;
 };
 
 }

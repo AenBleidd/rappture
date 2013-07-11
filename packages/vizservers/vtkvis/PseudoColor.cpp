@@ -98,6 +98,7 @@ void PseudoColor::update()
     // Mapper, actor to render color-mapped data set
     if (_mapper == NULL) {
         _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _mapper->SetResolveCoincidentTopologyToPolygonOffset();
         // Map scalars through lookup table regardless of type
         _mapper->SetColorModeToMapScalars();
     }
@@ -105,7 +106,8 @@ void PseudoColor::update()
     _splatter = NULL;
     if (_dataSet->isCloud()) {
         // DataSet is a point cloud
-        if (_cloudStyle == CLOUD_POINTS) {
+        if (_cloudStyle == CLOUD_POINTS ||
+            _dataSet->numDimensions() < 2 || ds->GetNumberOfPoints() < 3) {
             vtkSmartPointer<vtkVertexGlyphFilter> vgf = vtkSmartPointer<vtkVertexGlyphFilter>::New();
 #ifdef USE_VTK6
             vgf->SetInputData(ds);
