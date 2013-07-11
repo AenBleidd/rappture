@@ -1560,6 +1560,45 @@ void Renderer::setGlyphsScalingMode(const DataSetId& id,
 }
 
 /**
+ * \brief Limit the number of glyphs displayed
+ *
+ * The choice of glyphs to display can be based on sampling every
+ * n-th point (ratio) or by random sample
+ *
+ * \param max Maximum number of glyphs to display, negative means display all
+ * \param random Flag to enable/disable random sampling
+ * \param offset If random is false, this controls the first sample point
+ * \param ratio If random is false, this ratio controls every n-th point sampling
+ */
+void Renderer::setGlyphsMaximumNumberOfGlyphs(const DataSetId& id, int max,
+                                              bool random, int offset, int ratio)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setMaximumNumberOfGlyphs(max, random, offset, ratio);
+    } while (doAll && ++itr != _glyphs.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Controls if field data range is normalized to [0,1] before
  * applying scale factor for the given DataSet
  */

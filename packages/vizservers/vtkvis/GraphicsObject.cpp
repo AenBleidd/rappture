@@ -12,7 +12,7 @@
 using namespace VtkVis;
 
 void GraphicsObject::setDataSet(DataSet *dataSet,
-                                   Renderer *renderer)
+                                Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
