@@ -698,6 +698,10 @@ public:
 
     void setGlyphsScaleFactor(const DataSetId& id, double scale);
 
+    void setGlyphsMaximumNumberOfGlyphs(const DataSetId& id, int max,
+                                        bool random = true,
+                                        int offset = 0, int ratio = 1);
+
     // Groups
 
     bool addGroup(const DataSetId& id, const std::vector<Group::NodeId>& nodeList);

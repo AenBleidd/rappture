@@ -2048,7 +2048,7 @@ static Rappture::CmdSpec boxOps[] = {
     {"opacity",   2, BoxOpacityOp, 3, 4, "value ?name?"},
     {"orient",    4, BoxOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"origin",    4, BoxOriginOp, 5, 6, "x y z ?name?"},
-    {"pos",       2, BoxPositionOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, BoxPositionOp, 5, 6, "x y z ?name?"},
     {"scale",     2, BoxScaleOp, 5, 6, "sx sy sz ?name?"},
     {"shading",   2, BoxShadingOp, 3, 4, "val ?name?"},
     {"visible",   1, BoxVisibleOp, 3, 4, "bool ?name?"},
@@ -2890,7 +2890,7 @@ static Rappture::CmdSpec coneOps[] = {
     {"opacity",   2, ConeOpacityOp, 3, 4, "value ?name?"},
     {"orient",    4, ConeOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"origin",    4, ConeOriginOp, 5, 6, "x y z ?name?"},
-    {"pos",       2, ConePositionOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, ConePositionOp, 5, 6, "x y z ?name?"},
     {"resolution",1, ConeResolutionOp, 3, 4, "res ?name?"},
     {"scale",     2, ConeScaleOp, 5, 6, "sx sy sz ?name?"},
     {"shading",   2, ConeShadingOp, 3, 4, "val ?name?"},
@@ -4517,7 +4517,7 @@ static Rappture::CmdSpec cylinderOps[] = {
     {"opacity",   2, CylinderOpacityOp, 3, 4, "value ?name?"},
     {"orient",    4, CylinderOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"origin",    4, CylinderOriginOp, 5, 6, "x y z ?name?"},
-    {"pos",       2, CylinderPositionOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, CylinderPositionOp, 5, 6, "x y z ?name?"},
     {"resolution",1, CylinderResolutionOp, 3, 4, "res ?name?"},
     {"scale",     2, CylinderScaleOp, 5, 6, "sx sy sz ?name?"},
     {"shading",   2, CylinderShadingOp, 3, 4, "val ?name?"},
@@ -5333,7 +5333,7 @@ static Rappture::CmdSpec diskOps[] = {
     {"opacity",   2, DiskOpacityOp, 3, 4, "value ?name?"},
     {"orient",    4, DiskOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"origin",    4, DiskOriginOp, 5, 6, "x y z ?name?"},
-    {"pos",       2, DiskPositionOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, DiskPositionOp, 5, 6, "x y z ?name?"},
     {"resolution",1, DiskResolutionOp, 4, 5, "resRadial resCircum ?name?"},
     {"scale",     2, DiskScaleOp, 5, 6, "sx sy sz ?name?"},
     {"shading",   2, DiskShadingOp, 3, 4, "val ?name?"},
@@ -5554,6 +5554,37 @@ GlyphsLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectEdgeWidth<Glyphs>(name, width);
     } else {
         g_renderer->setGraphicsObjectEdgeWidth<Glyphs>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsMaxNumberOfGlyphsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    int max;
+    bool random = true;
+    int offset = 0;
+    int ratio = 1;
+    if (Tcl_GetIntFromObj(interp, objv[2], &max) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc > 3) {
+        if (GetBooleanFromObj(interp, objv[3], &random) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[4], &offset) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[5], &ratio) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGlyphsMaximumNumberOfGlyphs(name, max, random, offset, ratio);
+    } else {
+        g_renderer->setGlyphsMaximumNumberOfGlyphs("all", max, random, offset, ratio);
     }
     return TCL_OK;
 }
@@ -5838,7 +5869,8 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"lighting",     3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",    5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",    5, GlyphsLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"normscale",    1, GlyphsNormalizeScaleOp, 3, 4, "bool ?dataSetName?"},
+    {"normscale",    2, GlyphsNormalizeScaleOp, 3, 4, "bool ?dataSetName?"},
+    {"numglyphs",    2, GlyphsMaxNumberOfGlyphsOp, 3, 7, "max ?random? ?offset? ?ratio? ?dataSetName?"},
     {"opacity",      2, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          2, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
@@ -6023,7 +6055,7 @@ static Rappture::CmdSpec groupOps[] = {
     {"origin",    4, GroupOriginOp, 5, 6, "x y z ?name?"},
     {"pos",       1, GroupPositionOp, 5, 6, "x y z ?name?"},
     {"remove",    1, GroupRemoveChildOp, 3, 4, "nodeList ?name?"},
-    {"scale",     2, GroupScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"scale",     1, GroupScaleOp, 5, 6, "sx sy sz ?name?"},
     {"visible",   1, GroupVisibleOp, 3, 4, "bool ?name?"},
 };
 static int nGroupOps = NumCmdSpecs(groupOps);
@@ -7270,8 +7302,8 @@ static Rappture::CmdSpec lineOps[] = {
     {"opacity",   2, LineOpacityOp, 3, 4, "value ?name?"},
     {"orient",    4, LineOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"origin",    4, LineOriginOp, 5, 6, "x y z ?name?"},
-    {"pos",       2, LinePositionOp, 5, 6, "x y z ?name?"},
-    {"scale",     2, LineScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"pos",       1, LinePositionOp, 5, 6, "x y z ?name?"},
+    {"scale",     1, LineScaleOp, 5, 6, "sx sy sz ?name?"},
     {"visible",   1, LineVisibleOp, 3, 4, "bool ?name?"}
 };
 static int nLineOps = NumCmdSpecs(lineOps);
@@ -8018,8 +8050,8 @@ static Rappture::CmdSpec outlineOps[] = {
     {"linewidth", 5, OutlineLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",   2, OutlineOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",    2, OutlineOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       2, OutlinePositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",     2, OutlineScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"pos",       1, OutlinePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     1, OutlineScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, OutlineVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nOutlineOps = NumCmdSpecs(outlineOps);
@@ -11157,7 +11189,7 @@ static Rappture::CmdSpec warpOps[] = {
     {"pos",          2, WarpPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"preinterp",    2, WarpPreInterpOp, 3, 4, "bool ?dataSetName?"},
     {"ptsize",       2, WarpPointSizeOp, 3, 4, "size ?dataSetName?"},
-    {"scale",        2, WarpScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"scale",        1, WarpScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",      1, WarpVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"warpscale",    2, WarpWarpScaleOp, 3, 4, "value ?dataSetName?"},
     {"wireframe",    2, WarpWireframeOp, 3, 4, "bool ?dataSetName?"}
