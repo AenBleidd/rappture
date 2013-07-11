@@ -1033,7 +1033,7 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
     }
 
     ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
+    if (cmap == NULL && colorMapId.compare("none") != 0) {
         ERROR("Unknown colormap: %s", colorMapId.c_str());
         return;
     }

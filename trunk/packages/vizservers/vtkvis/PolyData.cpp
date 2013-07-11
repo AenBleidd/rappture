@@ -9,6 +9,9 @@
 
 #include <vtkDataSet.h>
 #include <vtkPolyData.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkPointData.h>
+#include <vtkCellData.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
@@ -49,13 +52,18 @@ void PolyData::update()
         return;
     }
 
-    if (_pdMapper == NULL) {
-        _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _pdMapper->ScalarVisibilityOff();
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+
+    if (_mapper == NULL) {
+        _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _mapper->SetResolveCoincidentTopologyToPolygonOffset();
+        // If there are color scalars, use them without lookup table (if scalar visibility is on)
+        _mapper->SetColorModeToDefault();
+        // Use Point data if available, else cell data
+        _mapper->SetScalarModeToDefault();
+        _mapper->ScalarVisibilityOff();
     }
 
-    vtkDataSet *ds = _dataSet->getVtkDataSet();
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
     if (pd) {
         TRACE("Points: %d Verts: %d Lines: %d Polys: %d Strips: %d",
@@ -65,6 +73,14 @@ void PolyData::update()
               pd->GetNumberOfPolys(),
               pd->GetNumberOfStrips());
     }
+    bool hasNormals = false;
+    if ((ds->GetPointData() != NULL &&
+         ds->GetPointData()->GetNormals() != NULL) ||
+        (ds->GetCellData() != NULL &&
+         ds->GetCellData()->GetNormals() != NULL)) {
+        hasNormals = true;
+    }
+
     if (_dataSet->isCloud()) {
         // DataSet is a point cloud
         PrincipalPlane plane;
@@ -77,7 +93,7 @@ void PolyData::update()
 #else
             vgf->SetInput(ds);
 #endif
-            _pdMapper->SetInputConnection(vgf->GetOutputPort());
+            _mapper->SetInputConnection(vgf->GetOutputPort());
         } else if (_dataSet->is2D(&plane, &offset)) {
             vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
             if (plane == PLANE_ZY) {
@@ -121,9 +137,12 @@ void PolyData::update()
 #else
                 vgf->SetInput(ds);
 #endif
-                _pdMapper->SetInputConnection(vgf->GetOutputPort());
+                _mapper->SetInputConnection(vgf->GetOutputPort());
             } else {
-                _pdMapper->SetInputConnection(mesher->GetOutputPort());
+                _mapper->SetInputConnection(mesher->GetOutputPort());
+                vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+                normalFilter->SetInputConnection(mesher->GetOutputPort());
+                _mapper->SetInputConnection(normalFilter->GetOutputPort());
             }
         } else {
             vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
@@ -145,42 +164,56 @@ void PolyData::update()
 #else
                 vgf->SetInput(ds);
 #endif
-                _pdMapper->SetInputConnection(vgf->GetOutputPort());
+                _mapper->SetInputConnection(vgf->GetOutputPort());
             } else {
                 // Delaunay3D returns an UnstructuredGrid, so feed it 
                 // through a surface filter to get the grid boundary 
                 // as a PolyData
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
-                gf->SetInputConnection(mesher->GetOutputPort());
                 gf->ReleaseDataFlagOn();
-                _pdMapper->SetInputConnection(gf->GetOutputPort());
+                gf->SetInputConnection(mesher->GetOutputPort());
+                vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+                normalFilter->SetInputConnection(gf->GetOutputPort());
+                _mapper->SetInputConnection(normalFilter->GetOutputPort());
             }
         }
     } else if (pd) {
         // DataSet is a vtkPolyData with cells
+        if (hasNormals) {
 #ifdef USE_VTK6
-        _pdMapper->SetInputData(pd);
+            _mapper->SetInputData(pd);
 #else
-        _pdMapper->SetInput(pd);
+            _mapper->SetInput(pd);
 #endif
+        } else {
+            vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+#ifdef USE_VTK6
+            normalFilter->SetInputData(pd);
+#else
+            normalFilter->SetInput(pd);
+#endif
+            _mapper->SetInputConnection(normalFilter->GetOutputPort());
+        }
     } else {
         // DataSet is NOT a vtkPolyData
         TRACE("DataSet is not a PolyData");
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
         gf->UseStripsOn();
+        gf->ReleaseDataFlagOn();
 #ifdef USE_VTK6
         gf->SetInputData(ds);
 #else
         gf->SetInput(ds);
 #endif
-        gf->ReleaseDataFlagOn();
-        _pdMapper->SetInputConnection(gf->GetOutputPort());
+        vtkSmartPointer<vtkPolyDataNormals> normalFilter = vtkSmartPointer<vtkPolyDataNormals>::New();
+        normalFilter->SetInputConnection(gf->GetOutputPort());
+        _mapper->SetInputConnection(normalFilter->GetOutputPort());
     }
 
     initProp();
-    getActor()->SetMapper(_pdMapper);
-    _pdMapper->Update();
+    getActor()->SetMapper(_mapper);
+    _mapper->Update();
 #ifdef WANT_TRACE
     double *b = getBounds();
     TRACE("bounds: %g %g %g %g %g %g", b[0], b[1], b[2], b[3], b[4], b[5]);
@@ -194,8 +227,8 @@ void PolyData::update()
  */
 void PolyData::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_pdMapper != NULL) {
-        _pdMapper->SetClippingPlanes(planes);
+    if (_mapper != NULL) {
+        _mapper->SetClippingPlanes(planes);
     }
 }
 
