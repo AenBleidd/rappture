@@ -86,7 +86,7 @@ $driver put output.curve(bars).yaxis.label "Voltage v(11)"
 $driver put output.curve(bars).yaxis.description "Output from the amplifier."
 $driver put output.curve(bars).yaxis.units "V"
 
-for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
+for {set x 0} {$x < $npts} {incr x} {
     set y [expr {sin($x)/(1+$x)}]
     $driver put -append yes output.curve(bars).component.xy "$x $y\n"
 }
