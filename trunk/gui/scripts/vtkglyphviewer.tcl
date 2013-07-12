@@ -2114,7 +2114,10 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     SendCmd "glyphs edges $style(-edges) $tag"
     # normscale=1 and gscale=1 are defaults
     #SendCmd "glyphs normscale 1 $tag"
-    #SendCmd "glyphs gscale 1 $tag"
+
+    # Temporary bandaid.  Will be fixed by update to vtkvis server.
+    SendCmd "glyphs gscale 20 $tag"
+
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
