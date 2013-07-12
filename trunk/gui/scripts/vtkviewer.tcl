@@ -344,7 +344,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     BuildAxisTab
-    BuildCutawayTab
+    #BuildCutawayTab
     BuildCameraTab
 
     # Legend
