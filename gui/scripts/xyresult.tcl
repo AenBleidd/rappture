@@ -236,9 +236,9 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         -color auto
         -brightness 0
         -width 1
-        -type "line"
         -barwidth 1
         -raise 0
+        -type "line"
         -linestyle solid
         -description ""
         -param ""
@@ -246,6 +246,10 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     # Override the defaults with first the <style> specified and then the
     # settings list passed into this routoue.
     array set params [$dataobj hints style]
+    set type [$dataobj hints type]
+    if { $type == "" } {
+        set type "line"
+    }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
@@ -254,7 +258,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     }
 
     # if type is set to "scatter", then override the width
-    if {"scatter" == $params(-type)} {
+    if { $type == "scatter" } {
         set params(-width) 0
     }
     # if the color is "auto", then select a color from -autocolors
@@ -295,7 +299,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         }
     }
 
-    set dataobj2raise($dataobj) $params(-raise)
+    set _dataobj2raise($dataobj) $params(-raise)
 
     set g $itk_component(plot)
     set color $params(-color)
@@ -303,16 +307,16 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     set dashes $params(-linestyle)
     set raise $params(-raise)
     set desc $params(-description)
-    set type $params(-type)
     set barwidth $params(-barwidth)
     foreach {mapx mapy} [GetAxes $dataobj] break
     foreach comp [$dataobj components] {
         set tag $dataobj-$comp
         if { [info exists _comp2elem($tag)] } {
             set elem $_comp2elem($tag)
-            switch -- $type {
+            # Ignore -type, it's already been set 
+            switch -- [$g element type $elem] {
                 "line" - "scatter" {
-                    $g element configure $elem \
+                    $g line configure $elem \
                         -linewidth $lwidth \
                         -dashes $dashes -hide no
                 } "bar" {
@@ -648,10 +652,15 @@ itcl::body Rappture::XyResult::ResetLegend {} {
     set g $itk_component(plot)
     # Fix duplicate labels by appending the simulation number
     # Collect the labels from all the viewable elements.
+    set above {}
+    set below {}
     foreach elem $_viewable {
         foreach {dataobj cname} [split $_elem2comp($elem) -] break
         set label [$dataobj hints label]
         lappend label2elem($label) $elem
+        if { $_dataobj2raise($dataobj) } {
+            lappend $g element raise $elem
+        }
     }
     # Then relabel elements with the same label, using the simulation number.
     foreach label [array names label2elem] {
@@ -1620,15 +1629,14 @@ itcl::body Rappture::XyResult::BuildElements { dlist } {
     foreach dataobj $dlist {
         set label [$dataobj hints label]
         array set params [$dataobj hints style]
+        set type [$dataobj hints type]
         # Default 
         if {[info exists params(-color)]} {
             set color params(-color)
         } else {
             set color black
         }
-        if {[info exists parmas(-type)]} {
-            set type $params(-type)
-        } else {
+        if { $type == "" } {
             set type "line"
         }
         if {[info exists parmas(-barwidth)]} {
@@ -1665,14 +1673,14 @@ itcl::body Rappture::XyResult::BuildElements { dlist } {
                 set sym ""
                 set pixels 6
             }
-            set elem "elem[incr _nextElement]"
+            set elem "$type[incr _nextElement]"
             set _elem2comp($elem) $tag
             set _comp2elem($tag) $elem
             set found($_comp2elem($tag)) 1
             lappend label2elem($label) $elem
             switch -- $type {
                 "line" - "scatter" {
-                    $g element create $elem \
+                    $g line create $elem \
                         -x $xv -y $yv \
                         -symbol $sym \
                         -pixels $pixels \
@@ -1688,7 +1696,8 @@ itcl::body Rappture::XyResult::BuildElements { dlist } {
                         -x $xv -y $yv \
                         -barwidth $barwidth \
                         -label $label \
-                        -color $color \
+                        -foreground $color \
+                        -background $color \
                         -mapx $mapx \
                         -mapy $mapy \
                         -hide yes

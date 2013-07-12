@@ -12,6 +12,8 @@
 package require Itcl
 package require BLT
 
+set count 0
+
 namespace eval Rappture { 
     # forward declaration 
 }
@@ -99,8 +101,15 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
             molecule* {
                 set pdbdata [$_xmlobj get $path.$elem.pdb]
                 if { $pdbdata != "" } {
-                    set contents [Rappture::PdbToVtk $pdbdata]
                     if 1 {
+                        global count
+                        set f [open /tmp/file$count.pdb "w"]
+                        incr count
+                        puts $f $pdbdata
+                        close $f
+                    }
+                    set contents [Rappture::PdbToVtk $pdbdata]
+                    if 0 {
                         set f [open /tmp/convertedpdb.vtk "w"]
                         puts $f $contents
                         close $f

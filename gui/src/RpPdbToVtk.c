@@ -31,7 +31,7 @@ SkipSpaces(char *string)
 }
 
 static INLINE char *
-GetLine(char **stringPtr, const char *endPtr) 
+GetLine(char **stringPtr, const char *endPtr, int *lengthPtr) 
 {
     char *line, *p;
 
@@ -39,6 +39,7 @@ GetLine(char **stringPtr, const char *endPtr)
     for (p = line; p < endPtr; p++) {
 	if (*p == '\n') {
 	    *stringPtr = p + 1;
+	    *lengthPtr = p - line;
 	    return line;
 	}
     }
@@ -297,13 +298,14 @@ VerifyElement(const char *elemName, const char *symbolName)
     int elemIndex, symbolIndex;
 
     symbolIndex = elemIndex = -1;
-
+    elemName = SkipSpaces(elemName);
     for (p = symbolNames; *p != NULL; p++) {
 	if (strcasecmp(elemName, *p) == 0) {
 	    elemIndex = (p - symbolNames) + 1;
 	    break;
 	}
     }
+    symbolName = SkipSpaces(symbolName);
     for (p = symbolNames; *p != NULL; p++) {
 	if (strcasecmp(symbolName, *p) == 0) {
 	    symbolIndex = (p - symbolNames) + 1;
@@ -359,10 +361,11 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_IncrRefCount(verticesObjPtr);
     objPtr = NULL;
     for (p = string, pend = p + length; p < pend; /*empty*/) {
-	char *line;
+	char *line, *q;
 	char c;
+	int lineLength;
 
-	line = GetLine(&p, pend);
+	line = GetLine(&p, pend, &lineLength);
         if (line >= pend) {
 	    break;			/* EOF */
 	}
@@ -380,6 +383,11 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    double x, y, z;
 	    int atom;
 
+	    if (lineLength < 47) {
+		Tcl_AppendResult(interp, "short ATOM line \"", line, "\"", 
+			(char *)NULL);
+		goto error;
+	    }		
 	    strncpy(buf, line + 6, 5);
 	    buf[5] = '\0';
 	    if (Tcl_GetInt(interp, buf, &serial) != TCL_OK) {
@@ -426,13 +434,16 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		goto error;
 	    }
 	    Tcl_ListObjAppendElement(interp, pointsObjPtr, Tcl_NewDoubleObj(z));
-	    strncpy(symbolName, line + 77, 2);
-	    symbolName[2] = '\0';
-
+	    symbolName[0] = '\0';
+	    if (lineLength >= 78) {
+		symbolName[0] = line[76];
+		symbolName[1] = line[77];
+		symbolName[2] = '\0';
+	    }
 	    atom = VerifyElement(SkipSpaces(atomName), SkipSpaces(symbolName));
 	    if (atom < 0) {
-		Tcl_AppendResult(interp, "bad atom/element \"", atomName,
-				 "\" \"", symbolName, "\"", (char *)NULL);
+		Tcl_AppendResult(interp, "bad atom \"", atomName, 
+			"\" or element \"", symbolName, "\"", (char *)NULL);
 		goto error;
 	    }
 	    Tcl_ListObjAppendElement(interp, atomsObjPtr, Tcl_NewIntObj(atom));
