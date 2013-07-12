@@ -652,8 +652,6 @@ itcl::body Rappture::XyResult::ResetLegend {} {
     set g $itk_component(plot)
     # Fix duplicate labels by appending the simulation number
     # Collect the labels from all the viewable elements.
-    set above {}
-    set below {}
     foreach elem $_viewable {
         foreach {dataobj cname} [split $_elem2comp($elem) -] break
         set label [$dataobj hints label]
