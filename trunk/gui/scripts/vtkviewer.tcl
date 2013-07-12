@@ -85,10 +85,15 @@ itcl::class Rappture::VtkViewer {
     private method BuildColormap { name styles }
     private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command } 
-    private method BuildMeshTab {}
     private method BuildMoleculeTab {}
+    private method BuildPolydataTab {}
+    private method ChangeColormap { dataobj comp color }
     private method DrawLegend {}
     private method EnterLegend { x y } 
+    private method EventuallySetAtomScale { args } 
+    private method EventuallySetBondScale { args } 
+    private method EventuallySetMoleculeOpacity { args } 
+    private method EventuallySetPolydataOpacity { args } 
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
     private method GetImage { args } 
@@ -98,16 +103,19 @@ itcl::class Rappture::VtkViewer {
     private method MotionLegend { x y } 
     private method PanCamera {}
     private method RequestLegend {}
+    private method SetAtomScale {}
+    private method SetBondScale {}
     private method SetColormap { dataobj comp }
-    private method ChangeColormap { dataobj comp color }
     private method SetLegendTip { x y }
+    private method SetMoleculeOpacity {}
     private method SetObjectStyle { dataobj comp } 
-    private method Slice {option args} 
+    private method SetOpacity { dataset }
     private method SetOrientation { side }
+    private method SetPolydataOpacity {}
+    private method Slice {option args} 
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
-    private variable _allDataObjs
     private variable _obj2datasets
     private variable _obj2ovride;	# maps dataobj => style override
     private variable _datasets;		# contains all the dataobj-component 
@@ -128,6 +136,7 @@ itcl::class Rappture::VtkViewer {
                                         # needs to be reinitialized.
     private variable _haveGlyphs 0
     private variable _haveMolecules 0
+    private variable _havePolydata 0
 
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
@@ -139,7 +148,15 @@ itcl::class Rappture::VtkViewer {
     private variable _height 0
     private variable _resizePending 0
     private variable _rotatePending 0
+    private variable _atomScalePending 0
+    private variable _bondScalePending 0
+    private variable _moleculeOpacityPending 0
+    private variable _polydataOpacityPending 0
+    private variable _glyphsOpacityPending 0
     private variable _updatePending 0;
+    private variable _rotateDelay 150
+    private variable _scaleDelay 100
+
     private variable _outline
 }
 
@@ -171,6 +188,25 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
+    # Atom scale event
+    $_dispatcher register !atomscale
+    $_dispatcher dispatch $this !atomscale \
+        "[itcl::code $this SetAtomScale]; list"
+
+    # Bond scale event
+    $_dispatcher register !bondscale
+    $_dispatcher dispatch $this !bondscale \
+        "[itcl::code $this SetBondScale]; list"
+
+    # Molecule opacity event
+    $_dispatcher register !moleculeOpacity
+    $_dispatcher dispatch $this !moleculeOpacity \
+        "[itcl::code $this SetMoleculeOpacity]; list"
+
+    # Polydata opacity event
+    $_dispatcher register !polydataOpacity
+    $_dispatcher dispatch $this !polydataOpacity \
+        "[itcl::code $this SetPolydataOpacity]; list"
     #
     # Populate parser with commands handle incoming requests
     #
@@ -221,23 +257,26 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         labels          1
     }]
     array set _settings [subst {
-        legend          1
-        molecule-representation  "Ball and Stick"
-        molecule-edges           0
-        molecule-labels          0
-        molecule-lighting        1
-        molecule-opacity         100
-        molecule-visible         1
-        molecule-wireframe       0
-        molecule-palette         elementDefault
-        mesh-edges           0
-        mesh-lighting        1
-        mesh-opacity         40
-        mesh-visible         1
-        mesh-wireframe       0
-        mesh-palette         rainbow
+        legend                  1
+        polydata-edges          0
+        polydata-lighting       1
+        polydata-opacity        40
+        polydata-palette        rainbow
+        polydata-visible        1
+        polydata-wireframe      0
+        molecule-atomscale      1.0
+        molecule-bondscale      1.0
+        molecule-atoms-visible  1
+        molecule-bonds-visible  1
+        molecule-edges          0
+        molecule-labels         0
+        molecule-lighting       1
+        molecule-opacity        100
+        molecule-palette        elementDefault
+        molecule-representation "Ball and Stick"
+        molecule-visible        1
+        molecule-wireframe      0
     }]
-
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -304,15 +343,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    if { [catch { BuildMeshTab } errs ]  != 0 } {
-        puts stderr "errs=$errs"
-    }
-    if { [catch { BuildMoleculeTab } errs ]  != 0 } {
-        global errorInfo
-        puts stderr "errs=$errs\nerrorInfo=$errorInfo"
-    }
     BuildAxisTab
-    #BuildCutawayTab
+    BuildCutawayTab
     BuildCameraTab
 
     # Legend
@@ -345,10 +377,6 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
-    if 0 {
-    bind $itk_component(view) <Configure> \
-        [itcl::code $this EventuallyResize %w %h]
-    }
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
         [itcl::code $this Pan click %x %y]
@@ -440,14 +468,69 @@ itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
     }
 }
 
-set rotate_delay 150
-
 itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
     foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay 
-        $_dispatcher event -after $rotate_delay !rotate
+        $_dispatcher event -after $_rotateDelay !rotate
+    }
+}
+
+itcl::body Rappture::VtkViewer::SetAtomScale {} {
+    SendCmd "molecule ascale $_settings(molecule-atomscale)"
+    set _atomScalePending 0
+}
+
+itcl::body Rappture::VtkViewer::SetBondScale {} {
+    SendCmd "molecule bscale $_settings(molecule-bondscale)"
+    set _bondScalePending 0
+}
+
+itcl::body Rappture::VtkViewer::SetMoleculeOpacity {} {
+    set _moleculeOpacityPending 0
+    foreach dataset [CurrentDatasets -visible $_first] {
+        foreach { dataobj comp } [split $dataset -] break
+        if { [$dataobj type $comp] == "molecule" } {
+            SetOpacity $dataset
+        }
+    }
+}
+
+itcl::body Rappture::VtkViewer::SetPolydataOpacity {} {
+    set _polydataOpacityPending 0
+    foreach dataset [CurrentDatasets -visible $_first] {
+        foreach { dataobj comp } [split $dataset -] break
+        if { [$dataobj type $comp] == "polydata" } {
+            SetOpacity $dataset
+        }
+    }
+}
+
+itcl::body Rappture::VtkViewer::EventuallySetAtomScale { args } {
+    if { !$_atomScalePending } {
+        set _atomScalePending 1
+        $_dispatcher event -after $_scaleDelay !atomscale
+    }
+}
+
+itcl::body Rappture::VtkViewer::EventuallySetBondScale { args } {
+    if { !$_bondScalePending } {
+        set _bondScalePending 1
+        $_dispatcher event -after $_scaleDelay !bondscale
+    }
+}
+
+itcl::body Rappture::VtkViewer::EventuallySetMoleculeOpacity { args } {
+    if { !$_moleculeOpacityPending } {
+        set _moleculeOpacityPending 1
+        $_dispatcher event -after $_scaleDelay !moleculeOpacity
+    }
+}
+
+itcl::body Rappture::VtkViewer::EventuallySetPolydataOpacity { args } {
+    if { !$_polydataOpacityPending } {
+        set _polydataOpacityPending 1
+        $_dispatcher event -after $_scaleDelay !polydataOpacity
     }
 }
 
@@ -486,7 +569,6 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
     if {$pos < 0} {
         lappend _dlist $dataobj
     }
-    set _allDataObjs($dataobj) 1
     set _obj2ovride($dataobj-color) $params(-color)
     set _obj2ovride($dataobj-width) $params(-width)
     set _obj2ovride($dataobj-raise) $params(-raise)
@@ -610,6 +692,20 @@ itcl::body Rappture::VtkViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::scale {args} {
     foreach dataobj $args {
+        foreach comp [$dataobj components] {
+            set type [$dataobj type $comp]
+            switch -- $type {
+                "polydata" {
+                    set _havePolydata 1
+                }
+                "glyphs" {
+                    set _haveGlyphs 1
+                }
+                "molecule" {
+                    set _haveMolecules 1
+                }
+            }
+        }
         array set bounds [limits $dataobj]
         if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
             set _limits(xmin) $bounds(xmin)
@@ -630,6 +726,21 @@ itcl::body Rappture::VtkViewer::scale {args} {
         }
         if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
             set _limits(zmax) $bounds(zmax)
+        }
+    }
+    if { $_havePolydata } {
+        if { ![$itk_component(main) exists "Mesh Settings"] } {
+            if { [catch { BuildPolydataTab } errs ]  != 0 } {
+                puts stderr "errs=$errs"
+            }
+        }
+    }
+    if { $_haveMolecules } {
+        if { ![$itk_component(main) exists "Molecule Settings"]} {
+            if { [catch { BuildMoleculeTab } errs ]  != 0 } {
+                global errorInfo
+                puts stderr "errs=$errs\nerrorInfo=$errorInfo"
+            }
         }
     }
 }
@@ -874,8 +985,11 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         DoResize
         FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
             axis-visible axis-labels \
-            mesh-edges mesh-lighting mesh-opacity mesh-visible \
-            mesh-wireframe 
+
+        if { $_havePolydata } {
+            FixSettings polydata-edges polydata-lighting polydata-opacity \
+                polydata-visible polydata-wireframe 
+        }
         SendCmd "imgflush"
     }
 
@@ -915,9 +1029,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 SetObjectStyle $dataobj $comp
             }
             lappend _obj2datasets($dataobj) $tag
+            SendCmd "dataset visible 1 $tag"
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                SendCmd "dataset visible 1 $tag"
-                puts stderr "$count: dataset visible 1 $tag"
+                SetOpacity $tag
             }
         }
     }
@@ -951,10 +1065,12 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         PanCamera
         Zoom reset
     }
-    FixSettings molecule-representation 
 
     SendCmd "dataset maprange visible"
-        
+
+    if { $_haveMolecules } {
+        #FixSettings molecule-representation 
+    }
     set _reset 0
     global readyForNextFrame
     set readyForNextFrame 0;            # Don't advance to the next frame
@@ -1195,19 +1311,16 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "mesh-opacity" {
-            set val $_settings(mesh-opacity)
-            set sval [expr { 0.01 * double($val) }]
+        "polydata-opacity" {
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
-                set type [$dataobj type $comp]
-                if { $type == "polydata" } {
-                    SendCmd "$type opacity $sval $dataset"
+                if { [$dataobj type $comp] == "polydata" } {
+                    SetOpacity $dataset
                 }
             }
         }
-        "mesh-wireframe" {
-            set bool $_settings(mesh-wireframe)
+        "polydata-wireframe" {
+            set bool $_settings(polydata-wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1216,8 +1329,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "mesh-visible" {
-            set bool $_settings(mesh-visible)
+        "polydata-visible" {
+            set bool $_settings(polydata-visible)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1226,8 +1339,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "mesh-lighting" {
-            set bool $_settings(mesh-lighting)
+        "polydata-lighting" {
+            set bool $_settings(polydata-lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1236,8 +1349,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "mesh-edges" {
-            set bool $_settings(mesh-edges)
+        "polydata-edges" {
+            set bool $_settings(polydata-edges)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1246,9 +1359,9 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "mesh-palette" {
+        "polydata-palette" {
             set palette [$itk_component(meshpalette) value]
-            set _settings(mesh-palette) $palette
+            set _settings(polydata-palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1263,9 +1376,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
-                set type [$dataobj type $comp]
-                if { $type == "molecule" } {
-                    SendCmd "molecule opacity $sval $dataset"
+                if { [$dataobj type $comp] == "molecule" } {
+                    SetOpacity $dataset
                 }
             }
         }
@@ -1311,7 +1423,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "molecule-palette" {
             set palette [$itk_component(moleculepalette) value]
-            set _settings(molecule-palette) $palette
+            set _moelculeSettings(palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1333,51 +1445,51 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             switch -- $value {
                 "ballandstick" {
                     set rscale covalent
-                    set ashow 1
-                    set bshow 1
+                    set _settings(molecule-atoms-visible) 1
+                    set _settings(molecule-bonds-visible) 1
                     set bstyle cylinder
-                    set ascale 0.3
-                    set bscale 0.075
+                    set _settings(molecule-atomscale) 0.3
+                    set _settings(molecule-bondscale) 0.075
                 }
                 "balls" - "spheres" {
                     set rscale covalent
-                    set ashow 1
-                    set bshow 0
+                    set _settings(molecule-atoms-visible) 1
+                    set _settings(molecule-bonds-visible) 0
                     set bstyle cylinder
-                    set ascale 0.3
-                    set bscale 0.075
+                    set _settings(molecule-atomscale) 0.3
+                    set _settings(molecule-bondscale) 0.075
                 }
                 "sticks" {
                     set rscale none
-                    set ashow 1
-                    set bshow 1
+                    set _settings(molecule-atoms-visible) 1
+                    set _settings(molecule-bonds-visible) 1
                     set bstyle cylinder
-                    set ascale 0.075
-                    set bscale 0.075
+                    set _settings(molecule-atomscale) 0.075
+                    set _settings(molecule-bondscale) 0.075
                 }
                 "spacefilling" {
                     set rscale van_der_waals
-                    set ashow 1
-                    set bshow 0
+                    set _settings(molecule-atoms-visible) 1
+                    set _settings(molecule-bonds-visible) 0
                     set bstyle cylinder
-                    set ascale 1.0
-                    set bscale 0.075
+                    set _settings(molecule-atomscale) 1.0
+                    set _settings(molecule-bondscale) 0.075
                 }
                 "rods"  {
                     set rscale none
-                    set ashow 1
-                    set bshow 1
+                    set _settings(molecule-atoms-visible) 1
+                    set _settings(molecule-bonds-visible) 1
                     set bstyle cylinder
-                    set ascale 0.1
-                    set bscale 0.1
+                    set _settings(molecule-atomscale) 0.1
+                    set _settings(molecule-bondscale) 0.1
                 }
                 "wireframe" - "lines" {
                     set rscale none
-                    set ashow 0
-                    set bshow 1
+                    set _settings(molecule-atoms-visible) 0
+                    set _settings(molecule-bonds-visible) 1
                     set bstyle line
-                    set ascale 1.0
-                    set bscale 1.0
+                    set _settings(molecule-atomscale) 1.0
+                    set _settings(molecule-bondscale) 1.0
                 }
                 default {
                     error "unknown representation $value"
@@ -1388,11 +1500,11 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 set type [$dataobj type $comp]
                 if { $type == "molecule" } {
                     SendCmd [subst {molecule rscale $rscale $dataset
-molecule atoms $ashow $dataset
-molecule bonds $bshow $dataset
+molecule ascale $_settings(molecule-atomscale) $dataset
+molecule bscale $_settings(molecule-bondscale) $dataset
 molecule bstyle $bstyle $dataset
-molecule ascale $ascale $dataset
-molecule bscale $bscale $dataset}]
+molecule atoms $_settings(molecule-atoms-visible) $dataset
+molecule bonds $_settings(molecule-bonds-visible) $dataset}]
                 }
             }
         }
@@ -1568,10 +1680,10 @@ itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(mesh-opacity)] } {
-        set _settings(mesh-opacity) $style(-opacity)
+    if { ![info exists _settings(polydata-opacity)] } {
+        set _settings(polydata-opacity) $style(-opacity)
     }
-    set max $_settings(mesh-opacity)
+    set max $_settings(polydata-opacity)
 
     set wmap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
@@ -1599,7 +1711,6 @@ itcl::configbody Rappture::VtkViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkViewer::limits { dataobj } {
-    puts stderr components=[$dataobj components]
     foreach comp [$dataobj components] {
         set tag $dataobj-$comp
         if { ![info exists _limits($tag)] } {
@@ -1686,7 +1797,7 @@ set debug 0
     return [array get limits]
 }
 
-itcl::body Rappture::VtkViewer::BuildMeshTab {} {
+itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
@@ -1698,26 +1809,26 @@ itcl::body Rappture::VtkViewer::BuildMeshTab {} {
 
     checkbutton $inner.mesh \
         -text "Show Mesh" \
-        -variable [itcl::scope _settings(mesh-visible)] \
-        -command [itcl::code $this AdjustSetting mesh-visible] \
+        -variable [itcl::scope _settings(polydata-visible)] \
+        -command [itcl::code $this AdjustSetting polydata-visible] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(mesh-wireframe)] \
-        -command [itcl::code $this AdjustSetting mesh-wireframe] \
+        -variable [itcl::scope _settings(polydata-wireframe)] \
+        -command [itcl::code $this AdjustSetting polydata-wireframe] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(mesh-lighting)] \
-        -command [itcl::code $this AdjustSetting mesh-lighting] \
+        -variable [itcl::scope _settings(polydata-lighting)] \
+        -command [itcl::code $this AdjustSetting polydata-lighting] \
         -font "Arial 9" -anchor w
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(mesh-edges)] \
-        -command [itcl::code $this AdjustSetting mesh-edges] \
+        -variable [itcl::scope _settings(polydata-edges)] \
+        -command [itcl::code $this AdjustSetting polydata-edges] \
         -font "Arial 9" -anchor w
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
@@ -1744,14 +1855,14 @@ itcl::body Rappture::VtkViewer::BuildMeshTab {} {
 
     $itk_component(meshpalette) value "BCGYR"
     bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting mesh-palette]
+        [itcl::code $this AdjustSetting polydata-palette]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(mesh-opacity)] \
+        -variable [itcl::scope _settings(polydata-opacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting mesh-opacity]
+        -command [itcl::code $this AdjustSetting polydata-opacity]
 
     blt::table $inner \
         0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
@@ -2121,26 +2232,50 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -font "Arial 9"
     $inner.cell select
 
+    label $inner.atomscale_l -text "Atom Scale" -font "Arial 9"
+    ::scale $inner.atomscale -width 15 -font "Arial 7" \
+        -from 0.0 -to 2.0 -resolution 0.05 -label "" \
+        -showvalue true -orient horizontal \
+        -command [itcl::code $this EventuallyAtomScale] \
+        -variable [itcl::scope _settings(molecule-atomscale)]
+    $inner.atomscale set $_settings(molecule-atomscale)
+    Rappture::Tooltip::for $inner.atomscale \
+        "Adjust scale of atoms (spheres or balls). 1.0 is the full VDW radius."
+
+    label $inner.bondscale_l -text "Bond Scale" -font "Arial 9"
+    ::scale $inner.bondscale -width 15 -font "Arial 7" \
+        -from 0.0 -to 1.0 -resolution 0.025 -label "" \
+        -showvalue true -orient horizontal \
+        -command [itcl::code $this EventuallyBondScale] \
+        -variable [itcl::scope _settings(molecule-bondscale)]
+    Rappture::Tooltip::for $inner.bondscale \
+        "Adjust scale of bonds (sticks)."
+    $inner.bondscale set $_settings(molecule-bondscale)
+
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(molecule-opacity)] \
-        -width 10 \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting molecule-opacity]
+        -width 15 -font "Arial 7" \
+        -showvalue on \
+        -command [itcl::code $this EventuallyMoleculeOpacity]
 
     blt::table $inner \
-        0,0 $inner.molecule -anchor w -pady {1 0} \
-        1,0 $inner.label -anchor w -pady {1 0} \
-        2,0 $inner.edges -anchor w -pady {1 0} \
-        3,0 $inner.rep_l -anchor w -pady { 2 0 } \
-        4,0 $inner.rep -anchor w  \
-        5,0 $inner.palette_l -anchor w -pady 2 \
-        6,0 $inner.palette   -fill x   -pady 2  \
-        7,0 $inner.opacity_l -anchor w -pady 2 \
-        8,0 $inner.opacity   -fill x   -pady 2 
+        0,0 $inner.molecule    -anchor w -pady {1 0} \
+        1,0 $inner.label       -anchor w -pady {1 0} \
+        2,0 $inner.edges       -anchor w -pady {1 0} \
+        3,0 $inner.rep_l       -anchor w -pady { 2 0 } \
+        4,0 $inner.rep         -fill x    -pady 2 \
+        5,0 $inner.palette_l   -anchor w  -pady 0 \
+        6,0 $inner.palette     -fill x    -padx 2 \
+        7,0 $inner.atomscale_l -anchor w -pady {3 0} \
+        8,0 $inner.atomscale   -fill x    -padx 2 \
+        9,0 $inner.bondscale_l -anchor w -pady {3 0} \
+        10,0 $inner.bondscale  -fill x   -padx 2 \
+        11,0 $inner.opacity_l  -anchor w -pady {3 0} \
+        12,0 $inner.opacity    -fill x    -padx 2 
     
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r9 -resize expand
+    blt::table configure $inner r13 -resize expand
 }
 
 #
@@ -2253,62 +2388,66 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     if { $dataobj != $_first } {
         set settings(-wireframe) 1
     }
-    if { $type == "glyphs" } {
-        array set settings {
-            -color \#808080
-            -gscale 1
-            -edges 0
-            -edgecolor black
-            -linewidth 1.0
-            -opacity 1.0
-            -wireframe 0
-            -lighting 1
-            -visible 1
+    switch -- $type {
+        "glyphs" {
+            array set settings {
+                -color \#808080
+                -gscale 1
+                -edges 0
+                -edgecolor black
+                -linewidth 1.0
+                -opacity 1.0
+                -wireframe 0
+                -lighting 1
+                -visible 1
+            }
+            set shape [$dataobj shape $comp]
+            array set settings $style
+            SendCmd "glyphs add $shape $tag"
+            SendCmd "glyphs normscale 0 $tag"
+            SendCmd "glyphs gscale $settings(-gscale) $tag"
+            SendCmd "glyphs wireframe $settings(-wireframe) $tag"
+            #SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
+            #SendCmd "glyphs colormode ccolor {} $tag"
+            SendCmd "glyphs gorient 0 {} $tag"
+            SendCmd "glyphs smode vcomp {} $tag"
+            SendCmd "glyphs opacity $settings(-opacity) $tag"
+            SendCmd "glyphs visible $settings(-visible) $tag"
+            set _settings(glyphs-wireframe) $settings(-wireframe)
         }
-        set shape [$dataobj shape $comp]
-        array set settings $style
-        SendCmd "glyphs add $shape $tag"
-        SendCmd "glyphs normscale 0 $tag"
-        SendCmd "glyphs gscale $settings(-gscale) $tag"
-        SendCmd "glyphs wireframe $settings(-wireframe) $tag"
-        #SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
-        #SendCmd "glyphs colormode ccolor {} $tag"
-        SendCmd "glyphs gorient 0 {} $tag"
-        SendCmd "glyphs smode vcomp {} $tag"
-        SendCmd "glyphs opacity $settings(-opacity) $tag"
-        SendCmd "glyphs visible $settings(-visible) $tag"
-        set _settings(glyphs-wireframe) $settings(-wireframe)
-        set _haveGlyphs 1
-    } elseif { $type == "molecule" } {
-        SendCmd "molecule add $tag"
-        SendCmd "molecule rscale van_der_waals $tag"
-        set _haveMolecules 1
-    } else {
-        array set settings {
-            -color \#6666FF
-            -edges 1
-            -edgecolor black
-            -linewidth 1.0
-            -opacity 1.0
-            -wireframe 0
-            -lighting 1
-            -visible 1
+        "molecule" {
+            SendCmd "molecule add $tag"
+            SendCmd "molecule rscale van_der_waals $tag"
+            set _haveMolecules 1
         }
-        array set settings $style
-        SendCmd "polydata add $tag"
-        SendCmd "polydata visible $settings(-visible) $tag"
-        set _settings(mesh-visible) $settings(-visible)
-        SendCmd "polydata edges $settings(-edges) $tag"
-        set _settings(mesh-edges) $settings(-edges)
-        SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
-        SendCmd "polydata lighting $settings(-lighting) $tag"
-        set _settings(mesh-lighting) $settings(-lighting)
-        SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
-        SendCmd "polydata linewidth $settings(-linewidth) $tag"
-        SendCmd "polydata opacity $settings(-opacity) $tag"
-        set _settings(mesh-opacity) $settings(-opacity)
-        SendCmd "polydata wireframe $settings(-wireframe) $tag"
-        set _settings(mesh-wireframe) $settings(-wireframe)
+        "polydata" {
+            array set settings {
+                -color \#6666FF
+                -edges 1
+                -edgecolor black
+                -linewidth 1.0
+                -opacity 1.0
+                -wireframe 0
+                -lighting 1
+                -visible 1
+            }
+            array set settings $style
+            SendCmd "polydata add $tag"
+            SendCmd "polydata visible $settings(-visible) $tag"
+            set _settings(polydata-visible) $settings(-visible)
+            SendCmd "polydata edges $settings(-edges) $tag"
+            set _settings(polydata-edges) $settings(-edges)
+            SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
+            SendCmd "polydata lighting $settings(-lighting) $tag"
+            set _settings(polydata-lighting) $settings(-lighting)
+            SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
+            SendCmd "polydata linewidth $settings(-linewidth) $tag"
+            SendCmd "polydata opacity $settings(-opacity) $tag"
+            set _settings(polydata-opacity) $settings(-opacity)
+            SendCmd "polydata wireframe $settings(-wireframe) $tag"
+            set _settings(polydata-wireframe) $settings(-wireframe)
+            set havePolyData 1
+        }
     }
     SetColormap $dataobj $comp
 }
@@ -2495,4 +2634,16 @@ itcl::body Rappture::VtkViewer::SetOrientation { side } {
     set _view(xpan) 0
     set _view(ypan) 0
     set _view(zoom) 1.0
+}
+
+itcl::body Rappture::VtkViewer::SetOpacity { dataset } { 
+    foreach {dataobj comp} [split $dataset -] break
+    set type [$dataobj type $comp]
+    set val $_settings($type-opacity)
+    set sval [expr { 0.01 * double($val) }]
+    if { !$_obj2ovride($dataobj-raise) } {
+        # This is wrong.  Need to figure out why raise isn't set with 1
+        #set sval [expr $sval * .6]
+    }
+    SendCmd "$type opacity $sval $dataset"
 }

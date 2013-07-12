@@ -42,6 +42,7 @@ itcl::class Rappture::SidebarFrame {
     constructor {args} { # defined below }
 
     public method insert {pos args}
+    public method exists {which}
     public method panel {which}
     public method select {which}
     public method pop {what}
@@ -62,6 +63,7 @@ itcl::class Rappture::SidebarFrame {
     private variable _selected ""    ;# selected panel
     private variable _width "auto"   ;# width adjusted by sash or "auto"
     private variable _counter 0      ;# counter for auto-generated names
+    private variable _title2panel
 }
 
 itk::usual SidebarFrame {
@@ -248,6 +250,7 @@ itcl::body Rappture::SidebarFrame::insert {pos args} {
         -image $panel(-icon) -text "" -padx 0 -pady 0 \
         -command [itcl::code $this _toggleTab $pname]
 
+    set _title2panel($panel(-title)) $pname
     Rappture::Tooltip::text $itk_component(tabs)-$pname \
         "Open/close sidebar for $panel(-title)"
     $itk_component(tabs) bind $pname <Enter> \
@@ -302,6 +305,20 @@ itcl::body Rappture::SidebarFrame::panel {which} {
             error "bad panel title \"$which\""
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: exists <which>
+#
+# Returns the frame representing the requested panel.  The <which>
+# argument can be a panel index, name, or title, or the keyword
+# "current" for the selected panel.
+# ----------------------------------------------------------------------
+itcl::body Rappture::SidebarFrame::exists { title } {
+    if { [info exists _title2panel($title)] } {
+        return 1
+    }
+    return 0
 }
 
 # ----------------------------------------------------------------------

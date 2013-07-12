@@ -562,7 +562,12 @@ itcl::body Rappture::XyLegend::Recolor {} {
         }
         incr _lastColorIndex -1
         set color [lindex $_autocolors $_lastColorIndex]
-        $_graph element configure $elem -color $color
+        if { [$_graph element type $elem] == "bar" } {
+            $_graph element configure $elem -background $color \
+                -foreground $color
+        } else {
+            $_graph element configure $elem -color $color
+        }
         set im [$itk_component(legend) entry cget $node -icon]
         $_graph legend icon $elem $im
     }
