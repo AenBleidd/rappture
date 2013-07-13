@@ -28,6 +28,7 @@
 #include <vtkPointSetToLabelHierarchy.h>
 #include <vtkLabelPlacementMapper.h>
 #include <vtkTextProperty.h>
+#include <vtkTransformPolyDataFilter.h>
 
 #include "Molecule.h"
 #include "MoleculeData.h"
@@ -107,6 +108,8 @@ void Molecule::initProp()
         _atomProp->GetProperty()->SetLineWidth(_edgeWidth);
         _atomProp->GetProperty()->SetOpacity(_opacity);
         _atomProp->GetProperty()->SetAmbient(.2);
+        _atomProp->GetProperty()->SetSpecular(.2);
+        _atomProp->GetProperty()->SetSpecularPower(80.0);
         if (!_lighting)
             _atomProp->GetProperty()->LightingOff();
     }
@@ -120,6 +123,8 @@ void Molecule::initProp()
         _bondProp->GetProperty()->SetLineWidth(_edgeWidth);
         _bondProp->GetProperty()->SetOpacity(_opacity);
         _bondProp->GetProperty()->SetAmbient(.2);
+        _bondProp->GetProperty()->SetSpecular(.2);
+        _bondProp->GetProperty()->SetSpecularPower(80.0);
         if (!_lighting)
             _bondProp->GetProperty()->LightingOff();
     }
@@ -230,11 +235,17 @@ void Molecule::update()
             if (_labelHierarchy == NULL) {
                 _labelHierarchy = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
             }
-#ifdef USE_VTK6
-            _labelHierarchy->SetInputData(pd);
+            if (_labelTransform == NULL) {
+                _labelTransform = vtkSmartPointer<vtkTransform>::New();
+            }
+            vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+#ifdef USE_VTK6              
+            transformFilter->SetInputData(pd);
 #else
-            _labelHierarchy->SetInput(pd);
+            transformFilter->SetInput(pd);
 #endif
+            transformFilter->SetTransform(_labelTransform);
+            _labelHierarchy->SetInputConnection(transformFilter->GetOutputPort());
             _labelHierarchy->SetLabelArrayName("_atom_labels");
             _labelHierarchy->GetTextProperty()->SetColor(0, 0, 0);
             _labelMapper->SetInputConnection(_labelHierarchy->GetOutputPort());
@@ -254,15 +265,9 @@ void Molecule::update()
 #else
             _atomMapper->SetInputConnection(pd->GetProducerPort());
 #endif
-            if (ds->GetPointData() != NULL &&
-                ds->GetPointData()->GetVectors() != NULL) {
-                _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
-                _atomMapper->SetScaleModeToScaleByMagnitude();
-                _atomMapper->ScalingOn();
-            } else {
-                _atomMapper->SetScaleModeToNoDataScaling();
-                _atomMapper->ScalingOff();
-            }
+            _atomMapper->SetScaleArray("_radii");
+            _atomMapper->SetScaleModeToScaleByMagnitude();
+            _atomMapper->ScalingOn();
             _atomMapper->OrientOff();
 
             _atomProp->SetMapper(_atomMapper);
@@ -282,6 +287,13 @@ void Molecule::update()
     }
     if (pd->GetNumberOfLines() > 0) {
         _bondMapper->Update();
+    }
+}
+
+void Molecule::updateLabelTransform()
+{
+    if (_labelTransform != NULL && getAssembly() != NULL) {
+        _labelTransform->SetMatrix(getAssembly()->GetMatrix());
     }
 }
 
@@ -796,9 +808,9 @@ void Molecule::setAtomScaling(AtomScaling state)
         addRadiusArray(ds, _atomScaling, _radiusScale);
         if (_atomMapper != NULL) {
              assert(ds->GetPointData() != NULL &&
-                    ds->GetPointData()->GetVectors() != NULL);
+                    ds->GetPointData()->GetArray("_radii") != NULL);
             _atomMapper->SetScaleModeToScaleByMagnitude();
-            _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
+            _atomMapper->SetScaleArray("_radii");
             _atomMapper->ScalingOn();
         }
     }
@@ -983,26 +995,36 @@ void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double s
     default:
         ;
     }
-    vtkSmartPointer<vtkFloatArray> radii = vtkSmartPointer<vtkFloatArray>::New();
-    radii->SetName("_radii");
-    radii->SetNumberOfComponents(3);
     vtkPolyData *pd = vtkPolyData::SafeDownCast(dataSet);
     if (pd == NULL) {
         ERROR("DataSet not a PolyData");
         return;
     }
+    vtkDataArray *array = dataSet->GetPointData()->GetArray("_radii");
+    vtkSmartPointer<vtkFloatArray> radii;
+    if (array == NULL) {
+        radii = vtkSmartPointer<vtkFloatArray>::New();
+        radii->SetName("_radii");
+        radii->SetNumberOfComponents(1);
+        radii->SetNumberOfValues(pd->GetNumberOfPoints());
+    } else {
+        radii = vtkFloatArray::SafeDownCast(array);
+        assert(radii != NULL);
+    }
     for (int i = 0; i < pd->GetNumberOfPoints(); i++) {
-        float tuple[3];
-        tuple[1] = tuple[2] = 0;
+        float value;
         if (elements != NULL && radiusSource != NULL) {
             int elt = (int)elements->GetComponent(i, 0);
-            tuple[0] = radiusSource[elt] * scaleFactor;
+            value = radiusSource[elt] * scaleFactor;
         } else {
-            tuple[0] = scaleFactor;
+            value = scaleFactor;
         }
-        radii->InsertNextTupleValue(tuple);
+        radii->SetValue(i, value);
     }
-    dataSet->GetPointData()->SetVectors(radii);
+    radii->Modified();
+    if (array == NULL) {
+        dataSet->GetPointData()->AddArray(radii);
+    }
 }
 
 /**
