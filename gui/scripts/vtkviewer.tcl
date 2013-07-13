@@ -258,14 +258,16 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }]
     array set _settings [subst {
         legend                  1
+        glyphs-opacity          100
+        glyphs-wireframe        0
         polydata-edges          0
         polydata-lighting       1
-        polydata-opacity        40
+        polydata-opacity        100
         polydata-palette        rainbow
         polydata-visible        1
         polydata-wireframe      0
-        molecule-atomscale      1.0
-        molecule-bondscale      1.0
+        molecule-atomscale      0.3
+        molecule-bondscale      0.075
         molecule-atoms-visible  1
         molecule-bonds-visible  1
         molecule-edges          0
@@ -274,6 +276,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         molecule-opacity        100
         molecule-palette        elementDefault
         molecule-representation "Ball and Stick"
+        molecule-rscale         "covalent"
         molecule-visible        1
         molecule-wireframe      0
     }]
@@ -1445,7 +1448,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set value [$itk_component(representation) translate $value]
             switch -- $value {
                 "ballandstick" {
-                    set rscale covalent
+                    set _settings(molecule-rscale) covalent
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 1
                     set bstyle cylinder
@@ -1453,7 +1456,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-bondscale) 0.075
                 }
                 "balls" - "spheres" {
-                    set rscale covalent
+                    set _settings(molecule-rscale) covalent
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 0
                     set bstyle cylinder
@@ -1461,7 +1464,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-bondscale) 0.075
                 }
                 "sticks" {
-                    set rscale none
+                    set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 1
                     set bstyle cylinder
@@ -1469,7 +1472,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-bondscale) 0.075
                 }
                 "spacefilling" {
-                    set rscale van_der_waals
+                    set _settings(molecule-rscale) van_der_waals
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 0
                     set bstyle cylinder
@@ -1477,7 +1480,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-bondscale) 0.075
                 }
                 "rods"  {
-                    set rscale none
+                    set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 1
                     set bstyle cylinder
@@ -1485,7 +1488,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-bondscale) 0.1
                 }
                 "wireframe" - "lines" {
-                    set rscale none
+                    set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 0
                     set _settings(molecule-bonds-visible) 1
                     set bstyle line
@@ -1496,16 +1499,37 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     error "unknown representation $value"
                 }
             }
+            $itk_component(rscale) value [$itk_component(rscale) label $_settings(molecule-rscale)]
+            switch -- $value {
+                "ballandstick" - "balls" - "spheres" {
+                    $itk_component(rscale) configure -state normal
+                }
+                default {
+                    $itk_component(rscale) configure -state disabled
+                }
+            }
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "molecule" } {
-                    SendCmd [subst {molecule rscale $rscale $dataset
+                    SendCmd [subst {molecule rscale $_settings(molecule-rscale) $dataset
 molecule ascale $_settings(molecule-atomscale) $dataset
 molecule bscale $_settings(molecule-bondscale) $dataset
 molecule bstyle $bstyle $dataset
 molecule atoms $_settings(molecule-atoms-visible) $dataset
 molecule bonds $_settings(molecule-bonds-visible) $dataset}]
+                }
+            }
+        }
+        "molecule-rscale" {
+            set value [$itk_component(rscale) value]
+            set value [$itk_component(rscale) translate $value]
+            set _settings(molecule-rscale) $value
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd [subst {molecule rscale $_settings(molecule-rscale) $dataset}]
                 }
             }
         }
@@ -1864,6 +1888,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -width 10 \
         -showvalue off \
         -command [itcl::code $this AdjustSetting polydata-opacity]
+    $inner.opacity set $_settings(polydata-opacity)
 
     blt::table $inner \
         0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
@@ -2189,6 +2214,22 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         [itcl::code $this AdjustSetting molecule-representation]
     $inner.rep value "Ball and Stick"
 
+    label $inner.rscale_l -text "Atom Radii" \
+        -font "Arial 9"
+
+    itk_component add rscale {
+        Rappture::Combobox $inner.rscale -width 20 -editable no
+    }
+    $inner.rscale choices insert end \
+        "atomic"	"Atomic"   \
+        "covalent"	"Covalent" \
+        "van_der_waals"	"VDW"	   \
+        "none"		"Constant"
+
+    bind $inner.rscale <<Value>> \
+        [itcl::code $this AdjustSetting molecule-rscale]
+    $inner.rscale value "Covalent"
+
     label $inner.palette_l -text "Palette" -font "Arial 9" 
     itk_component add moleculepalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
@@ -2235,17 +2276,17 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
 
     label $inner.atomscale_l -text "Atom Scale" -font "Arial 9"
     ::scale $inner.atomscale -width 15 -font "Arial 7" \
-        -from 0.0 -to 2.0 -resolution 0.05 -label "" \
+        -from 0.025 -to 2.0 -resolution 0.025 -label "" \
         -showvalue true -orient horizontal \
         -command [itcl::code $this EventuallySetAtomScale] \
         -variable [itcl::scope _settings(molecule-atomscale)]
     $inner.atomscale set $_settings(molecule-atomscale)
     Rappture::Tooltip::for $inner.atomscale \
-        "Adjust scale of atoms (spheres or balls). 1.0 is the default radius."
+        "Adjust relative scale of atoms (spheres or balls)."
 
     label $inner.bondscale_l -text "Bond Scale" -font "Arial 9"
     ::scale $inner.bondscale -width 15 -font "Arial 7" \
-        -from 0.0 -to 1.0 -resolution 0.025 -label "" \
+        -from 0.005 -to 0.3 -resolution 0.005 -label "" \
         -showvalue true -orient horizontal \
         -command [itcl::code $this EventuallySetBondScale] \
         -variable [itcl::scope _settings(molecule-bondscale)]
@@ -2261,22 +2302,24 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -command [itcl::code $this EventuallySetMoleculeOpacity]
 
     blt::table $inner \
-        0,0 $inner.molecule    -anchor w -pady {1 0} \
-        1,0 $inner.label       -anchor w -pady {1 0} \
-        2,0 $inner.edges       -anchor w -pady {1 0} \
-        3,0 $inner.rep_l       -anchor w -pady { 2 0 } \
-        4,0 $inner.rep         -fill x    -pady 2 \
-        5,0 $inner.palette_l   -anchor w  -pady 0 \
-        6,0 $inner.palette     -fill x    -padx 2 \
-        7,0 $inner.atomscale_l -anchor w -pady {3 0} \
-        8,0 $inner.atomscale   -fill x    -padx 2 \
-        9,0 $inner.bondscale_l -anchor w -pady {3 0} \
-        10,0 $inner.bondscale  -fill x   -padx 2 \
-        11,0 $inner.opacity_l  -anchor w -pady {3 0} \
-        12,0 $inner.opacity    -fill x    -padx 2 
+        0,0 $inner.molecule     -anchor w -pady {1 0} \
+        1,0 $inner.label        -anchor w -pady {1 0} \
+        2,0 $inner.edges        -anchor w -pady {1 0} \
+        3,0 $inner.rep_l        -anchor w -pady { 2 0 } \
+        4,0 $inner.rep          -fill x    -pady 2 \
+        5,0 $inner.rscale_l     -anchor w -pady { 2 0 } \
+        6,0 $inner.rscale       -fill x    -pady 2 \
+        7,0 $inner.palette_l    -anchor w  -pady 0 \
+        8,0 $inner.palette      -fill x    -padx 2 \
+        9,0 $inner.atomscale_l  -anchor w -pady {3 0} \
+        10,0 $inner.atomscale   -fill x    -padx 2 \
+        11,0 $inner.bondscale_l -anchor w -pady {3 0} \
+        12,0 $inner.bondscale   -fill x   -padx 2 \
+        13,0 $inner.opacity_l   -anchor w -pady {3 0} \
+        14,0 $inner.opacity     -fill x    -padx 2 
     
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r13 -resize expand
+    blt::table configure $inner r15 -resize expand
 }
 
 #
@@ -2443,7 +2486,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
             SendCmd "polydata linewidth $settings(-linewidth) $tag"
             SendCmd "polydata opacity $settings(-opacity) $tag"
-            set _settings(polydata-opacity) $settings(-opacity)
+            set _settings(polydata-opacity) [expr 100.0 * $settings(-opacity)]
             SendCmd "polydata wireframe $settings(-wireframe) $tag"
             set _settings(polydata-wireframe) $settings(-wireframe)
             set havePolyData 1
