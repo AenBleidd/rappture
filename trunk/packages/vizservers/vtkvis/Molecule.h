@@ -21,6 +21,7 @@
 #include <vtkLineSource.h>
 #include <vtkPointSetToLabelHierarchy.h>
 #include <vtkLabelPlacementMapper.h>
+#include <vtkTransform.h>
 
 #include "ColorMap.h"
 #include "GraphicsObject.h"
@@ -75,6 +76,48 @@ public:
     virtual vtkProp *getOverlayProp()
     {
         return _labelProp;
+    }
+
+    virtual void setTransform(vtkMatrix4x4 *matrix)
+    {
+        GraphicsObject::setTransform(matrix);
+        updateLabelTransform();
+    }
+
+    virtual void setOrigin(double origin[3])
+    {
+        GraphicsObject::setOrigin(origin);
+        updateLabelTransform();
+    }
+
+    virtual void setOrientation(double quat[4])
+    {
+        GraphicsObject::setOrientation(quat);
+        updateLabelTransform();
+    }
+
+    virtual void setOrientation(double angle, double axis[3])
+    {
+        GraphicsObject::setOrientation(angle, axis);
+        updateLabelTransform();
+    }
+
+    virtual void setPosition(double pos[3])
+    {
+        GraphicsObject::setPosition(pos);
+        updateLabelTransform();
+    }
+
+    virtual void setAspect(double aspect)
+    {
+        GraphicsObject::setAspect(aspect);
+        updateLabelTransform();
+    }
+
+    virtual void setScale(double scale[3])
+    {
+        GraphicsObject::setScale(scale);
+        updateLabelTransform();
     }
 
     virtual void setDataSet(DataSet *dataSet,
@@ -140,6 +183,8 @@ private:
 
     void setupBondPolyData();
 
+    void updateLabelTransform();
+
     static void addLabelArray(vtkDataSet *dataSet);
 
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor);
@@ -170,6 +215,7 @@ private:
     vtkSmartPointer<vtkGlyph3DMapper> _bondMapper;
     vtkSmartPointer<vtkPointSetToLabelHierarchy> _labelHierarchy;
     vtkSmartPointer<vtkLabelPlacementMapper> _labelMapper;
+    vtkSmartPointer<vtkTransform> _labelTransform;
 };
 
 }
