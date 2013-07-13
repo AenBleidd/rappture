@@ -309,25 +309,44 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     set desc $params(-description)
     set barwidth $params(-barwidth)
     foreach {mapx mapy} [GetAxes $dataobj] break
+    set label [$dataobj hints label]
     foreach comp [$dataobj components] {
         set tag $dataobj-$comp
         if { [info exists _comp2elem($tag)] } {
             set elem $_comp2elem($tag)
             # Ignore -type, it's already been set 
             switch -- [$g element type $elem] {
-                "line" - "scatter" {
+                "line" {
+                    set xv [$g line cget $elem -x]
+                    if {([$xv length] <= 1) || ($lwidth == 0)} {
+                        set sym square
+                        set pixels 2
+                    } else {
+                        set sym ""
+                        set pixels 6
+                    }
                     $g line configure $elem \
-                        -linewidth $lwidth \
-                        -dashes $dashes -hide no
-                } "bar" {
+                        -symbol $sym -pixels $pixels \
+                        -linewidth $lwidth -label $label \
+                        -color $color -dashes $dashes \
+                        -mapx $mapx -mapy $mapy -hide no
+                }
+                "scatter" {
+                    $g line configure $elem \
+                        -symbol square -pixels 2 \
+                        -linewidth $lwidth -label $label \
+                        -color $color -dashes $dashes \
+                        -mapx $mapx -mapy $mapy -hide no
+                }
+                "bar" {
                     $g bar configure $elem \
-                        -barwidth $barwidth \
-                        -hide no
+                        -barwidth $barwidth -label $label \
+                        -background $color -foreground $color \
+                        -mapx $mapx -mapy $mapy -hide no
                 }
             }
         } else {
             set elem "$type[incr _nextElement]"
-            set label [$dataobj hints label]
             set _elem2comp($elem) $tag
             set _comp2elem($tag) $elem
             lappend label2elem($label) $elem
@@ -359,7 +378,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
                     $g bar create $elem -x $xv -y $yv \
                         -barwidth $barwidth \
                         -label $label \
-                        -color $color \
+                        -background $color -foreground $color \
                         -mapx $mapx -mapy $mapy
                 }
             }
@@ -1630,14 +1649,14 @@ itcl::body Rappture::XyResult::BuildElements { dlist } {
         set type [$dataobj hints type]
         # Default 
         if {[info exists params(-color)]} {
-            set color params(-color)
+            set color $params(-color)
         } else {
             set color black
         }
         if { $type == "" } {
             set type "line"
         }
-        if {[info exists parmas(-barwidth)]} {
+        if {[info exists params(-barwidth)]} {
             set barwidth $params(-barwidth)
         } else {
             set barwidth 1.0
@@ -1648,7 +1667,12 @@ itcl::body Rappture::XyResult::BuildElements { dlist } {
             set lwidth 2
         }
         if {[info exists params(-linestyle)]} {
-            set dashes $parmas(-linestyle)
+            # convert -linestyle to BLT -dashes
+            switch -- $params(-linestyle) {
+                dashed { set dashes {4 4} }
+                dotted { set dashes {2 4} }
+                default { set dashes {} }
+            }
         } else {
             set dashes ""
         }
