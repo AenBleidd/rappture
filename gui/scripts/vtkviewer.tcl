@@ -93,6 +93,7 @@ itcl::class Rappture::VtkViewer {
     private method EventuallySetAtomScale { args } 
     private method EventuallySetBondScale { args } 
     private method EventuallySetMoleculeOpacity { args } 
+    private method EventuallySetMoleculeQuality { args } 
     private method EventuallySetPolydataOpacity { args } 
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
@@ -108,6 +109,7 @@ itcl::class Rappture::VtkViewer {
     private method SetColormap { dataobj comp }
     private method SetLegendTip { x y }
     private method SetMoleculeOpacity {}
+    private method SetMoleculeQuality {}
     private method SetObjectStyle { dataobj comp } 
     private method SetOpacity { dataset }
     private method SetOrientation { side }
@@ -151,6 +153,7 @@ itcl::class Rappture::VtkViewer {
     private variable _atomScalePending 0
     private variable _bondScalePending 0
     private variable _moleculeOpacityPending 0
+    private variable _moleculeQualityPending 0
     private variable _polydataOpacityPending 0
     private variable _glyphsOpacityPending 0
     private variable _updatePending 0;
@@ -202,6 +205,11 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     $_dispatcher register !moleculeOpacity
     $_dispatcher dispatch $this !moleculeOpacity \
         "[itcl::code $this SetMoleculeOpacity]; list"
+
+    # Molecule quality event
+    $_dispatcher register !moleculeQuality
+    $_dispatcher dispatch $this !moleculeQuality \
+        "[itcl::code $this SetMoleculeQuality]; list"
 
     # Polydata opacity event
     $_dispatcher register !polydataOpacity
@@ -275,6 +283,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         molecule-lighting       1
         molecule-opacity        100
         molecule-palette        elementDefault
+        molecule-quality        1.0
         molecule-representation "Ball and Stick"
         molecule-rscale         "covalent"
         molecule-visible        1
@@ -499,6 +508,12 @@ itcl::body Rappture::VtkViewer::SetMoleculeOpacity {} {
     }
 }
 
+itcl::body Rappture::VtkViewer::SetMoleculeQuality {} {
+    SendCmd [subst {molecule aquality $_settings(molecule-quality)
+molecule bquality $_settings(molecule-quality)}]
+    set _moleculeQualityPending 0
+}
+
 itcl::body Rappture::VtkViewer::SetPolydataOpacity {} {
     set _polydataOpacityPending 0
     foreach dataset [CurrentDatasets -visible $_first] {
@@ -527,6 +542,13 @@ itcl::body Rappture::VtkViewer::EventuallySetMoleculeOpacity { args } {
     if { !$_moleculeOpacityPending } {
         set _moleculeOpacityPending 1
         $_dispatcher event -after $_scaleDelay !moleculeOpacity
+    }
+}
+
+itcl::body Rappture::VtkViewer::EventuallySetMoleculeQuality { args } {
+    if { !$_moleculeQualityPending } {
+        set _moleculeQualityPending 1
+        $_dispatcher event -after $_scaleDelay !moleculeQuality
     }
 }
 
@@ -2301,6 +2323,16 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -showvalue on \
         -command [itcl::code $this EventuallySetMoleculeOpacity]
 
+    label $inner.quality_l -text "Quality" -font "Arial 9"
+    ::scale $inner.quality -width 15 -font "Arial 7" \
+        -from 0.0 -to 10.0 -resolution 0.1 -label "" \
+        -showvalue true -orient horizontal \
+        -command [itcl::code $this EventuallySetMoleculeQuality] \
+        -variable [itcl::scope _settings(molecule-quality)]
+    Rappture::Tooltip::for $inner.quality \
+        "Adjust tesselation quality"
+    $inner.quality set $_settings(molecule-quality)
+
     blt::table $inner \
         0,0 $inner.molecule     -anchor w -pady {1 0} \
         1,0 $inner.label        -anchor w -pady {1 0} \
@@ -2316,10 +2348,12 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         11,0 $inner.bondscale_l -anchor w -pady {3 0} \
         12,0 $inner.bondscale   -fill x   -padx 2 \
         13,0 $inner.opacity_l   -anchor w -pady {3 0} \
-        14,0 $inner.opacity     -fill x    -padx 2 
+        14,0 $inner.opacity     -fill x    -padx 2 \
+        15,0 $inner.quality_l   -anchor w -pady {3 0} \
+        16,0 $inner.quality     -fill x    -padx 2
     
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r15 -resize expand
+    blt::table configure $inner r17 -resize expand
 }
 
 #
