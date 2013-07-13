@@ -1367,6 +1367,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 set type [$dataobj type $comp]
                 if { $type == "polydata" } {
                     ChangeColormap $dataobj $comp $palette
+                    #SendCmd "polydata colormode scalar {} $dataset"
                 }
             }
             set _legendPending 1
@@ -2236,17 +2237,17 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     ::scale $inner.atomscale -width 15 -font "Arial 7" \
         -from 0.0 -to 2.0 -resolution 0.05 -label "" \
         -showvalue true -orient horizontal \
-        -command [itcl::code $this EventuallyAtomScale] \
+        -command [itcl::code $this EventuallySetAtomScale] \
         -variable [itcl::scope _settings(molecule-atomscale)]
     $inner.atomscale set $_settings(molecule-atomscale)
     Rappture::Tooltip::for $inner.atomscale \
-        "Adjust scale of atoms (spheres or balls). 1.0 is the full VDW radius."
+        "Adjust scale of atoms (spheres or balls). 1.0 is the default radius."
 
     label $inner.bondscale_l -text "Bond Scale" -font "Arial 9"
     ::scale $inner.bondscale -width 15 -font "Arial 7" \
         -from 0.0 -to 1.0 -resolution 0.025 -label "" \
         -showvalue true -orient horizontal \
-        -command [itcl::code $this EventuallyBondScale] \
+        -command [itcl::code $this EventuallySetBondScale] \
         -variable [itcl::scope _settings(molecule-bondscale)]
     Rappture::Tooltip::for $inner.bondscale \
         "Adjust scale of bonds (sticks)."
@@ -2257,7 +2258,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -variable [itcl::scope _settings(molecule-opacity)] \
         -width 15 -font "Arial 7" \
         -showvalue on \
-        -command [itcl::code $this EventuallyMoleculeOpacity]
+        -command [itcl::code $this EventuallySetMoleculeOpacity]
 
     blt::table $inner \
         0,0 $inner.molecule    -anchor w -pady {1 0} \
@@ -2417,12 +2418,11 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         }
         "molecule" {
             SendCmd "molecule add $tag"
-            SendCmd "molecule rscale van_der_waals $tag"
             set _haveMolecules 1
         }
         "polydata" {
             array set settings {
-                -color \#6666FF
+                -color \#FFFFFF
                 -edges 1
                 -edgecolor black
                 -linewidth 1.0
