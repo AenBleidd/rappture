@@ -42,8 +42,6 @@
 #include "ColorMap.h"
 #include "Trace.h"
 
-#define NEW_SCALAR_BAR
-
 #define MSECS_ELAPSED(t1, t2) \
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
      (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)
@@ -1930,6 +1928,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     if (title.empty() && numLabels == 0) {
 #ifdef NEW_SCALAR_BAR
         _scalarBarActor->SetBarRatio(1);
+        _scalarBarActor->SetTitleRatio(0);
 #endif
         if (width > height) {
             // horizontal
@@ -1957,6 +1956,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     } else {
 #ifdef NEW_SCALAR_BAR
         _scalarBarActor->SetBarRatio(0.375);
+        _scalarBarActor->SetTitleRatio(0.5);
         _scalarBarActor->SetDisplayPosition(0, 0);
         _scalarBarActor->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
         _scalarBarActor->GetPosition2Coordinate()->SetValue(width, height);
@@ -2124,7 +2124,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     _scalarBarActor->GetLabelTextProperty()->ItalicOff();
     _scalarBarActor->GetLabelTextProperty()->ShadowOff();
 #ifdef NEW_SCALAR_BAR
-    if (title.empty() && numLabels == 0) {
+    if (!drawTitle && numLabels == 0) {
         _scalarBarActor->DrawAnnotationsOff();
         _scalarBarActor->SetAnnotationLeaderPadding(0);
         _scalarBarActor->SetTextPad(0);
