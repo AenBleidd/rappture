@@ -5,6 +5,7 @@ USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
 USE_VTK6                = yes
+NEW_SCALAR_BAR          = yes
 
 bindir          = @bindir@
 datadir         = @datadir@
@@ -131,6 +132,9 @@ endif
 ifdef USE_VTK6
 VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="5(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeFontConfig,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
 DEFINES         += -DUSE_VTK6 $(VTK_MOD_DEFS)
+endif
+ifdef NEW_SCALAR_BAR
+DEFINES		+= -DNEW_SCALAR_BAR
 endif
 
 CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(DEFINES) $(INCLUDES)
