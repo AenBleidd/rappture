@@ -7729,6 +7729,31 @@ MoleculeLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Molecule>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Molecule>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Molecule>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Molecule>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Molecule>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Molecule>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -7858,6 +7883,7 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"lighting",     3, MoleculeLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",    5, MoleculeLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",    5, MoleculeLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"material",     1, MoleculeMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
     {"opacity",      2, MoleculeOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, MoleculeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          1, MoleculePositionOp, 5, 6, "x y z ?dataSetName?"},
