@@ -70,7 +70,24 @@ itcl::class Rappture::XyResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
-    private variable _viewable "";          # Display list for widget.
+    private variable _viewable "";      # Display list for widget.
+    private variable _dispatcher "";    # Dispatcher for !events
+    private variable _dlist "";         # List of dataobj objects
+    private variable _dataobj2raise;    # Maps dataobj => raise flag 0/1
+    private variable _dataobj2desc;     # Maps dataobj => description of data
+    private variable _dataobj2sim;      # Maps dataobj => type of graph element
+    private variable _elem2comp;        # Maps graph element => dataobj
+    private variable _comp2elem;        # Maps graph element => dataobj
+    private variable _label2axis;       # Maps axis label => axis ID
+    private variable _limits;           # Axis limits:  x-min, x-max, etc.
+    private variable _nextColorIndex 0; # Index for next "-color auto"
+    private variable _hilite;           # Info for element currently highlighted
+    private variable _axis;             # Info for axis manipulations
+    private variable _axisPopup;        # Info for axis being edited in popup
+    common _downloadPopup;              # Download options from popup
+    private variable _markers
+    private variable _nextElement 0
+
     constructor {args} { 
         # defined below 
     }
@@ -98,34 +115,15 @@ itcl::class Rappture::XyResult {
     protected method EnterMarker { g name x y text }
     protected method LeaveMarker { g name }
 
-    private variable _dispatcher "" ;# dispatcher for !events
-    private variable _dlist ""     ;# list of dataobj objects
-    private variable _dataobj2color  ;# maps dataobj => plotting color
-    private variable _dataobj2width  ;# maps dataobj => line width
-    private variable _dataobj2dashes ;# maps dataobj => BLT -dashes list
-    private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
-    private variable _dataobj2desc   ;# maps dataobj => description of data
-    private variable _dataobj2type   ;# maps dataobj => type of graph element
-    private variable _dataobj2barwidth ;# maps dataobj => type of graph element
-    private variable _elem2comp   ;# maps graph element => dataobj
-    private variable _comp2elem   ;# maps graph element => dataobj
-    private variable _label2axis   ;# maps axis label => axis ID
-    private variable _limits       ;# axis limits:  x-min, x-max, etc.
-    private variable _autoColorI 0 ;# index for next "-color auto"
-    private variable _hilite       ;# info for element currently highlighted
-    private variable _axis         ;# info for axis manipulations
-    private variable _axisPopup    ;# info for axis being edited in popup
-    common _downloadPopup          ;# download options from popup
-    private variable _markers
-    private variable _nextElement 0
 
-    private method BuildElements { dlist }
+    private method BuildGraph { dlist }
     private method BuildMarkers { dataobj elem }
     private method FormatAxis { axis w value }
     private method GetFormattedValue { axis g value }
     private method BuildAxisPopup { popup }
     private method ShowAxisPopup { axis }
     private method SetAxis { setting }
+    private method SetElements { dataobj {settings ""} }
     private method SetAxisRangeState { axis }
 }
                                                                                 
@@ -231,157 +229,56 @@ itcl::body Rappture::XyResult::destructor {} {
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
-    #puts stderr "XyResult::add dataobj=$dataobj settings=$settings"
-    array set params {
-        -color auto
-        -brightness 0
-        -width 1
-        -barwidth 1
-        -raise 0
-        -type "line"
-        -linestyle solid
-        -description ""
-        -param ""
-    }
-    # Override the defaults with first the <style> specified and then the
-    # settings list passed into this routoue.
-    array set params [$dataobj hints style]
-    set type [$dataobj hints type]
-    if { $type == "" } {
-        set type "line"
-    }
-    foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
-    }
+    #puts stderr "add: dataobj=$dataobj settings=$settings"
+    set g $itk_component(plot)
+    SetElements $dataobj $settings
 
-    # if type is set to "scatter", then override the width
-    if { $type == "scatter" } {
-        set params(-width) 0
+    array set attrs $settings
+
+    # Colors have to be set/reset here because of "-brightness" and "auto".
+    # Colors can't be overriden by the user.
+
+    # If the color is "auto", then select a color from -autocolors
+    if { ![info exists attrs(-color)] } {
+        set color "auto"
+    } else {
+        set color $attrs(-color)
     }
-    # if the color is "auto", then select a color from -autocolors
-    if { $params(-color) == "auto" || $params(-color) == "autoreset" } {
-        if {$params(-color) == "autoreset"} {
-            set _autoColorI 0
+    if { $color == "auto" || $color == "autoreset" } {
+        if { $color == "autoreset" } {
+            set _nextColorIndex 0
         }
-	set color [lindex $itk_option(-autocolors) $_autoColorI]
+	set color [lindex $itk_option(-autocolors) $_nextColorIndex]
         if { "" == $color} { 
             set color black 
         }
-        set params(-color) $color
-        # set up for next auto color
-        if {[incr _autoColorI] >= [llength $itk_option(-autocolors)]} {
-            set _autoColorI 0
+        # Set up for next auto color
+        incr _nextColorIndex
+        if { $_nextColorIndex >= [llength $itk_option(-autocolors)] } {
+            set _nextColorIndex 0
         }
     }
-
-    # convert -linestyle to BLT -dashes
-    switch -- $params(-linestyle) {
-        dashed { set params(-linestyle) {4 4} }
-        dotted { set params(-linestyle) {2 4} }
-        default { set params(-linestyle) {} }
-    }
-
-    # if -brightness is set, then update the color
-    if {$params(-brightness) != 0} {
-        set params(-color) [Rappture::color::brightness \
-            $params(-color) $params(-brightness)]
+    # If -brightness is set, then update the color.
+    if { [info exists attrs(-brightness)] } {
+        set brightness $attrs(-brightness)
+        set color [Rappture::color::brightness $color $brightness]
         set bg [$itk_component(plot) cget -plotbackground]
         foreach {h s v} [Rappture::color::RGBtoHSV $bg] break
         if {$v > 0.5} {
-            set params(-color) [Rappture::color::brightness_max \
-                $params(-color) 0.8]
+            set color [Rappture::color::brightness_max $color 0.8]
         } else {
-            set params(-color) [Rappture::color::brightness_min \
-                $params(-color) 0.2]
+            set color [Rappture::color::brightness_min $color 0.2]
         }
     }
-
-    set _dataobj2raise($dataobj) $params(-raise)
-
-    set g $itk_component(plot)
-    set color $params(-color)
-    set lwidth $params(-width)
-    set dashes $params(-linestyle)
-    set raise $params(-raise)
-    set desc $params(-description)
-    set barwidth $params(-barwidth)
-    foreach {mapx mapy} [GetAxes $dataobj] break
-    set label [$dataobj hints label]
-    foreach comp [$dataobj components] {
-        set tag $dataobj-$comp
-        if { [info exists _comp2elem($tag)] } {
-            set elem $_comp2elem($tag)
-            # Ignore -type, it's already been set 
-            switch -- [$g element type $elem] {
-                "line" {
-                    set xv [$g line cget $elem -x]
-                    if {([$xv length] <= 1) || ($lwidth == 0)} {
-                        set sym square
-                        set pixels 2
-                    } else {
-                        set sym ""
-                        set pixels 6
-                    }
-                    $g line configure $elem \
-                        -symbol $sym -pixels $pixels \
-                        -linewidth $lwidth -label $label \
-                        -color $color -dashes $dashes \
-                        -mapx $mapx -mapy $mapy -hide no
-                }
-                "scatter" {
-                    $g line configure $elem \
-                        -symbol square -pixels 2 \
-                        -linewidth $lwidth -label $label \
-                        -color $color -dashes $dashes \
-                        -mapx $mapx -mapy $mapy -hide no
-                }
-                "bar" {
-                    $g bar configure $elem \
-                        -barwidth $barwidth -label $label \
-                        -background $color -foreground $color \
-                        -mapx $mapx -mapy $mapy -hide no
-                }
-            }
+    set type [$dataobj hints type]
+    foreach cname [$dataobj components] {
+        set tag $dataobj-$cname
+        set elem $_comp2elem($tag) 
+        if { $type == "bar" } {
+            $g bar configure $elem -foreground $color -background $color \
+                -hide no
         } else {
-            set elem "$type[incr _nextElement]"
-            set _elem2comp($elem) $tag
-            set _comp2elem($tag) $elem
-            lappend label2elem($label) $elem
-            set xv [$dataobj mesh $comp]
-            set yv [$dataobj values $comp]
-            switch -- $type {
-                "line" {
-                    if {([$xv length] <= 1) || ($lwidth == 0)} {
-                        set sym square
-                        set pixels 2
-                    } else {
-                        set sym ""
-                        set pixels 6
-                    }
-                    $g element create $elem -x $xv -y $yv \
-                        -symbol $sym -pixels $pixels -linewidth $lwidth \
-                        -label $label \
-                        -color $color -dashes $dashes \
-                        -mapx $mapx -mapy $mapy -hide no
-                } 
-                "scatter" {
-                    $g element create $elem -x $xv -y $yv \
-                        -symbol square -pixels 2 -linewidth $lwidth \
-                        -label $label \
-                        -color $color -dashes $dashes \
-                        -mapx $mapx -mapy $mapy -hide no
-                } 
-                "bar" {
-                    $g bar create $elem -x $xv -y $yv \
-                        -barwidth $barwidth \
-                        -label $label \
-                        -background $color -foreground $color \
-                        -mapx $mapx -mapy $mapy
-                }
-            }
+            $g line configure $elem -color $color -hide no
         }
         if { [lsearch $_viewable $elem] < 0 } {
             lappend _viewable $elem
@@ -460,7 +357,7 @@ itcl::body Rappture::XyResult::delete {args} {
 itcl::body Rappture::XyResult::scale {args} {
     #puts stderr "XyResult::scale args=$args"
     set _dlist $args
-    BuildElements $args 
+    BuildGraph $args 
 }
 
 # ----------------------------------------------------------------------
@@ -671,6 +568,8 @@ itcl::body Rappture::XyResult::ResetLegend {} {
     set g $itk_component(plot)
     # Fix duplicate labels by appending the simulation number
     # Collect the labels from all the viewable elements.
+    set above {}
+    set below {}
     foreach elem $_viewable {
         foreach {dataobj cname} [split $_elem2comp($elem) -] break
         set label [$dataobj hints label]
@@ -687,9 +586,8 @@ itcl::body Rappture::XyResult::ResetLegend {} {
                 continue
             }
             foreach {dataobj cname} [split $_elem2comp($elem) -] break
-            regexp {^::curve(?:Value)?([0-9]+)$} $dataobj match suffix
-            incr suffix
-            set elabel [format "%s \#%d" $label $suffix]
+            set sim $_dataobj2sim($dataobj)
+            set elabel [format "%s \#%d" $label $sim]
             $g element configure $elem -label $elabel
         }
     }        
@@ -1181,8 +1079,8 @@ itcl::configbody Rappture::XyResult::autocolors {
             error "bad color \"$c\""
         }
     }
-    if {$_autoColorI >= [llength $itk_option(-autocolors)]} {
-        set _autoColorI 0
+    if {$_nextColorIndex >= [llength $itk_option(-autocolors)]} {
+        set _nextColorIndex 0
     }
 }
 
@@ -1537,7 +1435,7 @@ itcl::body Rappture::XyResult::GetFormattedValue { axis g value } {
 
 
 #
-# BuildElements --
+# BuildGraph --
 #
 #       This procedure loads each data objects specified into the
 #       graph.  The data object may already be loaded (from the "add"
@@ -1545,7 +1443,7 @@ itcl::body Rappture::XyResult::GetFormattedValue { axis g value } {
 #       are created, are hidden.  This allows the graph to account
 #       for all datasets, even those not currently being displayed.
 #       
-itcl::body Rappture::XyResult::BuildElements { dlist } {
+itcl::body Rappture::XyResult::BuildGraph { dlist } {
     set g $itk_component(plot)
     
     foreach label [array names _label2axis] {
@@ -1640,100 +1538,138 @@ itcl::body Rappture::XyResult::BuildElements { dlist } {
             [list ::Rappture::Tooltip::tooltip cancel]
     }
     
-    # Create data elements and markers, but mark them as hidden.
-    # The "add" method will un-hide them.
-    set count 0
     foreach dataobj $dlist {
-        set label [$dataobj hints label]
-        array set params [$dataobj hints style]
-        set type [$dataobj hints type]
-        # Default 
-        if {[info exists params(-color)]} {
-            set color $params(-color)
+        SetElements $dataobj
+    }
+    ResetLegend
+}
+
+#
+# SetElements --
+#
+#       This procedure loads each data objects specified into the
+#       graph.  The data object may already be loaded (from the "add"
+#       method which gets called first).   The graph elements that
+#       are created, are hidden.  This allows the graph to account
+#       for all datasets, even those not currently being displayed.
+#       
+itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
+    set g $itk_component(plot)
+
+    array set attrs [$dataobj hints style]
+    array set attrs $settings
+    set type [$dataobj hints type]
+    if { $type == "" } {
+        set type "line"
+    }
+
+    # Now fix attributes to a more usable form for the graph.
+
+    # Convert -linestyle to BLT -dashes
+    if { ![info exists attrs(-linestyle)] } {
+        set dashes {}
+    } else {
+        switch -- $attrs(-linestyle) {
+            dashed  { set dashes {4 4} }
+            dotted  { set dashes {2 4} }
+            default { set dashes {}    }
+        }
+    }
+    if { ![info exists attrs(-barwidth)] } {
+        set barwidth 1.0
+    } else {
+        set barwidth $attrs(-barwidth)
+    }
+    if { ![info exists attrs(-width)] } {
+        set linewidth 1
+    } else {
+        set linewidth $attrs(-width)
+    }
+    if { ![info exists attrs(-raise)] } {
+        set raise 0
+    } else {
+        set raise $attrs(-raise)
+    }
+    if { ![info exists attrs(-simulation)] } {
+        set sim 0
+    } else {
+        set sim $attrs(-simulation)
+    }
+
+    foreach {mapx mapy} [GetAxes $dataobj] break
+    set label [$dataobj hints label]
+
+    foreach cname [$dataobj components] {
+        set tag $dataobj-$cname
+        set xv [$dataobj mesh $cname]
+        set yv [$dataobj values $cname]
+
+        if {([$xv length] <= 1) || ($linewidth == 0)} {
+            set sym square
+            set pixels 2
         } else {
-            set color black
+            set sym ""
+            set pixels 6
         }
-        if { $type == "" } {
-            set type "line"
-        }
-        if {[info exists params(-barwidth)]} {
-            set barwidth $params(-barwidth)
-        } else {
-            set barwidth 1.0
-        }
-        if {[info exists params(-width)]} {
-            set lwidth $params(-width)
-        } else {
-            set lwidth 2
-        }
-        if {[info exists params(-linestyle)]} {
-            # convert -linestyle to BLT -dashes
-            switch -- $params(-linestyle) {
-                dashed { set dashes {4 4} }
-                dotted { set dashes {2 4} }
-                default { set dashes {} }
-            }
-        } else {
-            set dashes ""
-        }
-        foreach {mapx mapy} [GetAxes $dataobj] break
-        foreach comp [$dataobj components] {
-            set tag $dataobj-$comp
-            if { [info exists _comp2elem($tag)] } {
-                set found($_comp2elem($tag)) 1
-                lappend label2elem($label) $_comp2elem($tag)
-                # Element already created for data object/component.
-                continue
-            }
-            set xv [$dataobj mesh $comp]
-            set yv [$dataobj values $comp]
-            
-            if {([$xv length] <= 1) || ($lwidth == 0)} {
-                set sym square
-                set pixels 2
-            } else {
-                set sym ""
-                set pixels 6
-            }
+        if { ![info exists _comp2elem($tag)] } {
             set elem "$type[incr _nextElement]"
             set _elem2comp($elem) $tag
             set _comp2elem($tag) $elem
             set found($_comp2elem($tag)) 1
             lappend label2elem($label) $elem
             switch -- $type {
-                "line" - "scatter" {
+                "line" {
                     $g line create $elem \
                         -x $xv -y $yv \
                         -symbol $sym \
                         -pixels $pixels \
-                        -linewidth $lwidth \
+                        -linewidth $linewidth \
                         -label $label \
-                        -color $color \
                         -dashes $dashes \
                         -mapx $mapx \
                         -mapy $mapy \
                         -hide yes 
-                } "bar" {
+                } 
+                "scatter" {                
+                    $g line create $elem \
+                        -x $xv -y $yv \
+                        -symbol square \
+                        -pixels 2 \
+                        -linewidth 0 \
+                        -label $label \
+                        -dashes $dashes \
+                        -mapx $mapx \
+                        -mapy $mapy \
+                        -hide yes 
+                } 
+                "bar" {
                     $g bar create $elem \
                         -x $xv -y $yv \
                         -barwidth $barwidth \
                         -label $label \
-                        -foreground $color \
-                        -background $color \
                         -mapx $mapx \
                         -mapy $mapy \
                         -hide yes
                 }
             }
-            if { [$dataobj info class] == "Rappture::Curve" } {
-                BuildMarkers $dataobj $elem
+        } else {
+            set elem $_comp2elem($tag)
+            switch -- $type {
+                "line" {
+                    $g line configure $elem \
+                        -symbol $sym \
+                        -pixels $pixels \
+                        -linewidth $linewidth \
+                        -dashes $dashes 
+                } 
+                "bar" {
+                    $g bar configure $elem \
+                        -barwidth $barwidth \
+                        -label $label 
+                }
             }
         }
+        set _dataobj2raise($dataobj) $raise
+        set _dataobj2sim($dataobj) $sim
     }
-    foreach elem [$g element names] {
-        if { ![info exists found($elem)] } {
-            $g element delete $elem
-        }
-    }
-    ResetLegend
 }

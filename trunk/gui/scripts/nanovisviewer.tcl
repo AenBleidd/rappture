@@ -409,12 +409,8 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
         -description ""
         -param ""
     }
-    foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
-    }
+    array set params $settings
+
     if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
         # can't handle -autocolors yet
         set params(-color) black

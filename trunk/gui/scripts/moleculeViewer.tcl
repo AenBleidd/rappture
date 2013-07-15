@@ -234,12 +234,7 @@ itcl::body Rappture::MoleculeViewer::add {dataobj {settings ""}} {
         -description ""
         -param ""
     }
-    foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
-    }
+    array set params $settings
  
     set pos [lsearch -exact $dataobj $_dlist]
 
