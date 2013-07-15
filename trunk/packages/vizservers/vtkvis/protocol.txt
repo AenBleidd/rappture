@@ -644,6 +644,7 @@ molecule lfield <fieldName> <?datasetName?>
 molecule lighting <bool> <?datasetName?>
 molecule linecolor <r> <g> <b> <?datasetName?>
 molecule linewidth <val> <?datasetName?>
+molecule material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?datasetName?>
 molecule opacity <val> <?datasetName?>
 molecule orient <qw> <qx> <qy> <qz> <?dataSetName?>
 molecule pos <x> <y> <z> <?dataSetName?>
