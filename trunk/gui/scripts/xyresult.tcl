@@ -1585,16 +1585,13 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
     } else {
         set linewidth $attrs(-width)
     }
-    if { ![info exists attrs(-raise)] } {
-        set raise 0
-    } else {
-        set raise $attrs(-raise)
-    }
+    set _dataobj2raise($dataobj) [info exists attrs(-raise)]
     if { ![info exists attrs(-simulation)] } {
         set sim 0
     } else {
         set sim $attrs(-simulation)
     }
+    set _dataobj2sim($dataobj) $sim
 
     foreach {mapx mapy} [GetAxes $dataobj] break
     set label [$dataobj hints label]
@@ -1669,7 +1666,5 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                 }
             }
         }
-        set _dataobj2raise($dataobj) $raise
-        set _dataobj2sim($dataobj) $sim
     }
 }
