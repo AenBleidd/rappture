@@ -449,7 +449,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
         -description    ""
         -param          ""
     }
-    array set params $settings
+    array set params $options
 
     set pos [lsearch -exact $dataobj $_dlist]
 
