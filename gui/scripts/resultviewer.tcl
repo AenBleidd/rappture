@@ -194,6 +194,7 @@ itcl::body Rappture::ResultViewer::plot {option args} {
                 }
 
                 set index [_cleanIndex $index]
+                lappend opts "-simulation" [expr $index + 1]
                 set reset "-color autoreset"
                 set slot [lindex $_dataslots $index]
                 foreach dobj $slot {

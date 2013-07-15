@@ -188,12 +188,7 @@ itcl::body Rappture::ImageResult::add {image {settings ""}} {
         -description ""
         -param ""
     }
-    foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
-    }
+    array set params $settings
 
     if {$params(-raise)} {
         set _topmost $image
