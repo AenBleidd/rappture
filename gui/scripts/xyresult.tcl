@@ -1130,8 +1130,9 @@ itcl::body Rappture::XyResult::SetAxis { setting } {
                 $g axis configure $axis -min "" -max ""
             } else {
                 # Set the axis range from the entry values.
-                set min $_axisPopup($axis-min)
-                set max $_axisPopup($axis-max)
+                set label $_axisPopup(label)
+                set min $_axisPopup(${label}-min)
+                set max $_axisPopup(${label}-max)
                 $g axis configure $axis -min $min -max $max
             }
             SetAxisRangeState $axis
@@ -1157,7 +1158,8 @@ itcl::body Rappture::XyResult::SetAxis { setting } {
                 bell
                 return
             }
-            set _axisPopup($axis-min) $min
+            set label $_axisPopup(label)
+            set _axisPopup(${label}-min) $min
         }
         "max" {
             set max $_axisPopup(max)
@@ -1167,7 +1169,8 @@ itcl::body Rappture::XyResult::SetAxis { setting } {
                 bell
                 return
             }
-            set _axisPopup($axis-max) $max
+            set label $_axisPopup(label)
+            set _axisPopup(${label}-max) $max
         }
     }
 }
@@ -1338,12 +1341,13 @@ itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
         set type "lin"
     }
     set amin ""
-    if { [info exists _limits(${axis}${type}-min)] } {
-        set amin $_limits(${axis}${type}-min)
+    set label $_axisPopup(label)
+    if { [info exists _limits(${label}-min)] } {
+        set amin $_limits(${label}-min)
     }
     set amax ""
-    if { [info exists _limits(${axis}${type}-max)] } {
-        set amax $_limits(${axis}${type}-max)
+    if { [info exists _limits(${label}-max)] } {
+        set amax $_limits(${label}-max)
     }
     set auto 1 
     if { $amin != "" || $amax != "" } {
@@ -1354,26 +1358,26 @@ itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
     }
     set _axisPopup(auto)  $_axisPopup($axis-auto)
     SetAxisRangeState $axis
-    if { ![info exists _axisPopup($axis-min)] } {
+    if { ![info exists _axisPopup(${label}-min)] } {
         if { $amin != "" } {
-            set _axisPopup($axis-min) $amin
-            set _axisPopup(min)   $_axisPopup($axis-min)
+            set _axisPopup(${label}-min) $amin
+            set _axisPopup(min)   $_axisPopup(${label}-min)
             SetAxis min
         } else {
-            set _axisPopup($axis-min) $min
+            set _axisPopup(${label}-min) $min
         }
     }
-    if { ![info exists _axisPopup($axis-max)] } {
+    if { ![info exists _axisPopup(${label}-max)] } {
         if { $amax != "" } {
-            set _axisPopup($axis-max) $amax
-            set _axisPopup(max)   $_axisPopup($axis-max)
+            set _axisPopup(${label}-max) $amax
+            set _axisPopup(max)   $_axisPopup(${label}-max)
             SetAxis max
         } else {
-            set _axisPopup($axis-max) $max
+            set _axisPopup(${label}-max) $max
         }
     }
-    set _axisPopup(min)   $_axisPopup($axis-min)
-    set _axisPopup(max)   $_axisPopup($axis-max)
+    set _axisPopup(min)  $_axisPopup(${label}-min)
+    set _axisPopup(max)  $_axisPopup(${label}-max)
     set _axisPopup(axis) $axis
 
     #
@@ -1479,7 +1483,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
             set tag ${label}-min
             if { $min != "" && ( ![info exists _limits($tag)] || 
                                    $_limits($tag) > $min ) } {
-                set _limits(tag) $min
+                set _limits($tag) $min
             }
             set tag ${label}-max
             if { $max != "" && (![info exists _limits($tag)] || 

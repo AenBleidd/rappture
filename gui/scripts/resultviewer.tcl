@@ -117,6 +117,9 @@ itcl::body Rappture::ResultViewer::clear {{index ""}} {
             if {$i >= 0 && $i < [llength $_dataslots]} {
                 set slot [lindex $_dataslots $i]
                 foreach dobj $slot {
+                    if {"" != $_mode} {
+                        $_mode2widget($_mode) delete $dobj
+                    }
                     itcl::delete object $dobj
                 }
                 set _dataslots [lreplace $_dataslots $i $i ""]
@@ -137,6 +140,9 @@ itcl::body Rappture::ResultViewer::clear {{index ""}} {
                     }
                 }
 
+                if {"" != $_mode} {
+                    $_mode2widget($_mode) delete $dobj
+                }
                 # destroy the object and forget it
                 itcl::delete object $dobj
                 unset _xml2data($key)
