@@ -177,7 +177,7 @@ itcl::body Rappture::Tool::run {args} {
         set limit 43200;                # 12 hours
     } else {
         if { [scan $limit "%d" dum] != 1 } {
-            set limit 900;              # 15 mins by default
+            set limit 14400;            # 4 hours by default
         } elseif { $limit > 43200 } {
             set limit 43200;            # limit to 12 hrs.
         } elseif { $limit < 10 } {
