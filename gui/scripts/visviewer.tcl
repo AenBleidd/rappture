@@ -804,7 +804,7 @@ itcl::body Rappture::VisViewer::SendDebugCommand {} {
 # HandleOk --
 #
 #       This handles the "ok" response from the server that acknowledges
-#       the reception of a server command, but does not produce and image.
+#       the reception of a server command, but does not produce an image.
 #       It may pass an argument such as "-token 9" that could be used to
 #       determine how many commands have been processed by the server.
 #
