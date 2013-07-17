@@ -322,6 +322,8 @@ itcl::body Rappture::DrawingEntry::Redraw {} {
     set _drawingHeight $_canvasHeight
     set _xOffset 0
     set _yOffset 0
+    # By default, the screen coordinates are 0 to 1
+    ParseScreenCoordinates "0 0 1 1"
     ParseDescription
 }
 
