@@ -666,7 +666,7 @@ itcl::body Rappture::VtkViewer::get {args} {
                     continue
                 }
                 if { ![info exists _obj2ovride($dataobj-raise)] } {
-                    # No setting indicates that the object isn't invisible.
+                    # No setting indicates that the object isn't visible.
                     continue
                 }
                 # Otherwise use the -raise parameter to put the object to
