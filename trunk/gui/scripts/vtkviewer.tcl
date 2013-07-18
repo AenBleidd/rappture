@@ -991,13 +991,15 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         $_arcball resize $w $h
         DoResize
         FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-            axis-visible axis-labels \
+            axis-visible axis-labels
 
         if { $_havePolydata } {
             FixSettings polydata-edges polydata-lighting polydata-opacity \
                 polydata-visible polydata-wireframe 
         }
+        StopBufferingCommands
         SendCmd "imgflush"
+        StartBufferingCommands
     }
 
     set _limits(zmin) ""
