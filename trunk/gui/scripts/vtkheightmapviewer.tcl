@@ -487,7 +487,7 @@ itcl::body Rappture::VtkHeightmapViewer::add {dataobj {settings ""}} {
         # can't handle -autocolors yet
         set params(-color) white
     }
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
     }

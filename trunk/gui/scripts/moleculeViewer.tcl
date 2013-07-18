@@ -236,7 +236,7 @@ itcl::body Rappture::MoleculeViewer::add {dataobj {settings ""}} {
     }
     array set params $settings
  
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
 
     if {$pos < 0} {
         if {![Rappture::library isvalid $dataobj]} {

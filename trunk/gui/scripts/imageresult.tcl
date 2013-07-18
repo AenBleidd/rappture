@@ -195,7 +195,7 @@ itcl::body Rappture::ImageResult::add {image {settings ""}} {
         $_dispatcher event -idle !rebuild
     }
 
-    set pos [lsearch -exact $image $_dlist]
+    set pos [lsearch -exact $_dlist $image]
     if {$pos < 0} {
         lappend _dlist $image
         $_dispatcher event -idle !rebuild
