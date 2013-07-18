@@ -39,6 +39,7 @@
 #include "Glyphs.h"
 #include "Group.h"
 #include "HeightMap.h"
+#include "Image.h"
 #include "LIC.h"
 #include "Line.h"
 #include "Molecule.h"
@@ -48,6 +49,7 @@
 #include "PseudoColor.h"
 #include "Sphere.h"
 #include "Streamlines.h"
+#include "Text3D.h"
 #include "Volume.h"
 #include "Warp.h"
 #include "Trace.h"
@@ -420,6 +422,11 @@ public:
 
     void setColorMapNumberOfTableEntries(const ColorMapId& id, int numEntries);
 
+    bool renderColorMap(const ColorMapId& id,
+                        int width, int height,
+                        bool opaque,
+                        vtkUnsignedCharArray *imgData);
+
     bool renderColorMap(const ColorMapId& id, 
                         const DataSetId& dataSetID,
                         LegendType legendType,
@@ -744,6 +751,21 @@ public:
                                DataSet::DataAttributeType type,
                                const char *name, double range[2] = NULL);
 
+    // Images
+
+    void setImageBackground(const DataSetId& id, bool state);
+
+    void setImageBacking(const DataSetId& id, bool state);
+
+    void setImageBorder(const DataSetId& id, bool state);
+
+    void setImageExtents(const DataSetId& id, int extents[6]);
+
+    void setImageLevel(const DataSetId& id, double level);
+
+    void setImageWindow(const DataSetId& id, double window);
+
+    void setImageZSlice(const DataSetId& id, int z);
 
     // Lines
 
@@ -794,6 +816,15 @@ public:
 
     void setPolyDataCloudStyle(const DataSetId& id,
                                PolyData::CloudStyle style);
+
+    void setPolyDataColorMode(const DataSetId& id,
+                              PolyData::ColorMode mode,
+                              const char *name, double range[2] = NULL);
+
+    void setPolyDataColorMode(const DataSetId& id,
+                              PolyData::ColorMode mode,
+                              DataSet::DataAttributeType type,
+                              const char *name, double range[2] = NULL);
 
     // Color-mapped surfaces
 
@@ -880,6 +911,26 @@ public:
 
     void setStreamlinesTypeToRibbons(const DataSetId& id, double width, double angle);
 
+    // Text3Ds
+
+    bool addText3D(const DataSetId& id, const char *string,
+                   const char *fontFamily, int fontSize,
+                   bool bold = false, bool italic = false, bool shadow = false);
+
+    void setText3DBold(const DataSetId& id, bool state);
+
+    void setText3DFollowCamera(const DataSetId& id, bool state);
+
+    void setText3DFont(const DataSetId& id, const char *fontFamily);
+
+    void setText3DFontSize(const DataSetId& id, int size);
+
+    void setText3DItalic(const DataSetId& id, bool state);
+
+    void setText3DShadow(const DataSetId& id, bool state);
+
+    void setText3DText(const DataSetId& id, const char *text);
+
     // Volumes
 
     void setVolumeSampleDistance(const DataSetId& id, double distance);
@@ -918,6 +969,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
     typedef std::tr1::unordered_map<DataSetId, Group *> GroupHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Image *> ImageHashmap;
     typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
     typedef std::tr1::unordered_map<DataSetId, Line *> LineHashmap;
     typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
@@ -927,6 +979,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Sphere *> SphereHashmap;
     typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Text3D *> Text3DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
     typedef std::tr1::unordered_map<DataSetId, Warp *> WarpHashmap;
 
@@ -1022,6 +1075,9 @@ private:
     FieldRangeHashmap _scalarCellDataRange;
     FieldRangeHashmap _vectorCellDataRange;
     FieldRangeHashmap _vectorCompCellDataRange[3];
+    FieldRangeHashmap _scalarFieldDataRange;
+    FieldRangeHashmap _vectorFieldDataRange;
+    FieldRangeHashmap _vectorCompFieldDataRange[3];
 
     FieldRangeHashmap _userScalarPointDataRange;
     FieldRangeHashmap _userVectorPointDataRange;
@@ -1029,6 +1085,9 @@ private:
     FieldRangeHashmap _userScalarCellDataRange;
     FieldRangeHashmap _userVectorCellDataRange;
     FieldRangeHashmap _userVectorCompCellDataRange[3];
+    FieldRangeHashmap _userScalarFieldDataRange;
+    FieldRangeHashmap _userVectorFieldDataRange;
+    FieldRangeHashmap _userVectorCompFieldDataRange[3];
 
     bool _axesAutoBounds[3];
     double _axesUserBounds[6];
@@ -1049,6 +1108,7 @@ private:
     GlyphsHashmap _glyphs;
     GroupHashmap _groups;
     HeightMapHashmap _heightMaps;
+    ImageHashmap _images;
     LICHashmap _lics;
     LineHashmap _lines;
     MoleculeHashmap _molecules;
@@ -1058,6 +1118,7 @@ private:
     PseudoColorHashmap _pseudoColors;
     SphereHashmap _spheres;
     StreamlinesHashmap _streamlines;
+    Text3DHashmap _text3Ds;
     VolumeHashmap _volumes;
     WarpHashmap _warps;
 

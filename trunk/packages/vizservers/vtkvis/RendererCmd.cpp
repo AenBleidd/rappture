@@ -3025,7 +3025,8 @@ Contour2DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Contour2D::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = Contour2D::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Contour2D::COLOR_BY_SCALAR;
@@ -3039,7 +3040,7 @@ Contour2DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Contour2D::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -3252,6 +3253,7 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec contour2dOps[] = {
     {"add",          1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
     {"ccolor",       2, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"color",        5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, Contour2DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, Contour2DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"contourlist",  3, Contour2DContourListOp, 3, 4, "contourList ?dataSetName?"},
@@ -3400,7 +3402,8 @@ Contour3DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Contour3D::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = Contour3D::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Contour3D::COLOR_BY_SCALAR;
@@ -3414,7 +3417,7 @@ Contour3DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Contour3D::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -3687,6 +3690,7 @@ Contour3DWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec contour3dOps[] = {
     {"add",          1, Contour3DAddOp, 4, 5, "oper value ?dataSetName?"},
     {"ccolor",       2, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"color",        5, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, Contour3DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"contourfield", 8, Contour3DContourFieldOp, 3, 4, "fieldName ?dataSetName?"},
@@ -4121,6 +4125,7 @@ static Rappture::CmdSpec cutplaneOps[] = {
     {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"ccolor",       2, CutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
     {"cloudstyle",   2, CutplaneCloudStyleOp, 3, 4, "style ?dataSetName?"},
+    {"color",        5, CutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, CutplaneColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},
@@ -5445,7 +5450,8 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Glyphs::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = Glyphs::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Glyphs::COLOR_BY_SCALAR;
@@ -5459,7 +5465,7 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Glyphs::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -5860,6 +5866,7 @@ GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec glyphsOps[] = {
     {"add",          1, GlyphsAddOp, 3, 4, "shape ?dataSetName?"},
     {"ccolor",       2, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"color",        5, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
@@ -6243,7 +6250,45 @@ HeightMapColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     HeightMap::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
+        mode = HeightMap::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = HeightMap::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == HeightMap::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setHeightMapColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setHeightMapColorMode("all", mode, fieldName);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapColorMode2Op(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    HeightMap::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = HeightMap::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = HeightMap::COLOR_BY_SCALAR;
@@ -6264,11 +6309,49 @@ HeightMapColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (mode == HeightMap::COLOR_CONSTANT) {
         fieldName = NULL;
     }
-    if (objc == 5) {
-        const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setHeightMapColorMode(name, mode, fieldName);
+    str = Tcl_GetString(objv[4]);
+    DataSet::DataAttributeType association = DataSet::POINT_DATA;
+    bool haveAssoc = false;
+    if (str[0] == 'p' && strcmp(str, "point_data") == 0) {
+        association = DataSet::POINT_DATA;
+        haveAssoc = true;
+    } else if (str[0] == 'c' && strcmp(str, "cell_data") == 0) {
+        association = DataSet::CELL_DATA;
+        haveAssoc = true;
+    } else if (str[0] == 'f' && strcmp(str, "field_data") == 0) {
+        association = DataSet::FIELD_DATA;
+        haveAssoc = true;
+    } else if (str[0] == 'a' && strcmp(str, "any") == 0) {
+        haveAssoc = false;
     } else {
-        g_renderer->setHeightMapColorMode("all", mode, fieldName);
+        Tcl_AppendResult(interp, "bad color mode association option \"", str,
+                         "\": should be one of: 'point_data', 'cell_data', 'field_data', 'any'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    double *range = NULL;
+    if (objc >= 7) {
+        range = new double[2];
+        if (Tcl_GetDoubleFromObj(interp, objv[5], &range[0]) != TCL_OK ||
+            Tcl_GetDoubleFromObj(interp, objv[6], &range[1]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (objc == 6 || objc == 8) {
+        const char *name = Tcl_GetString((objc == 6 ? objv[5] : objv[7]));
+        if (haveAssoc) {
+            g_renderer->setHeightMapColorMode(name, mode, association, fieldName, range);
+        } else {
+            g_renderer->setHeightMapColorMode(name, mode, fieldName, range);
+        }
+    } else {
+        if (haveAssoc) {
+            g_renderer->setHeightMapColorMode("all", mode, association, fieldName, range);
+        } else {
+            g_renderer->setHeightMapColorMode("all", mode, fieldName, range);
+        }
+    }
+    if (range != NULL) {
+        delete [] range;
     }
     return TCL_OK;
 }
@@ -6670,8 +6753,10 @@ static Rappture::CmdSpec heightmapOps[] = {
     {"aspect",       2, HeightMapAspectOp, 3, 4, "aspect ?dataSetName?"},
     {"ccolor",       2, HeightMapColorOp, 5, 6, "r g b ?dataSetName?"},
     {"cloudstyle",   2, HeightMapCloudStyleOp, 3, 4, "style ?dataSetName?"},
+    {"color",        5, HeightMapColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode",    7, HeightMapColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"colormode",    9, HeightMapColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"colormode2",   10,HeightMapColorMode2Op, 5, 8, "mode fieldName association ?min max? ?dataSetName?"},
     {"contourlist",  3, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
     {"delete",       1, HeightMapDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, HeightMapEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
@@ -6703,6 +6788,321 @@ HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nHeightmapOps, heightmapOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+ImageAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        if (!g_renderer->addGraphicsObject<Image>(name)) {
+            Tcl_AppendResult(interp, "Failed to create image", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->addGraphicsObject<Image>("all")) {
+            Tcl_AppendResult(interp, "Failed to create iamge for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+ImageBackgroundOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageBackground(name, state);
+    } else {
+        g_renderer->setImageBackground("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageBackingOp(ClientData clientData, Tcl_Interp *interp, int objc,
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageBacking(name, state);
+    } else {
+        g_renderer->setImageBacking("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageBorderOp(ClientData clientData, Tcl_Interp *interp, int objc,
+              Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageBorder(name, state);
+    } else {
+        g_renderer->setImageBorder("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Image>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Image>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectColorMap<Image>(dataSetName, colorMapName);
+    } else {
+        g_renderer->setGraphicsObjectColorMap<Image>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Image>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Image>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+ImageExtentsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    int extents[6];
+    if (Tcl_GetIntFromObj(interp, objv[2], &extents[0]) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &extents[1]) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[4], &extents[2]) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[5], &extents[3]) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[6], &extents[4]) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[7], &extents[5]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 9) {
+        const char *name = Tcl_GetString(objv[8]);
+        g_renderer->setImageExtents(name, extents);
+    } else {
+        g_renderer->setImageExtents("all", extents);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageLevelOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double level;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &level) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageLevel(name, level);
+    } else {
+        g_renderer->setImageLevel("all", level);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Image>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Image>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Image>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Image>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+ImagePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Image>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Image>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Image>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Image>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Image>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Image>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageWindowOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double window;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &window) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageLevel(name, window);
+    } else {
+        g_renderer->setImageLevel("all", window);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageZSliceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    int slice;
+    if (Tcl_GetIntFromObj(interp, objv[2], &slice) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageZSlice(name, slice);
+    } else {
+        g_renderer->setImageZSlice("all", slice);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec imageOps[] = {
+    {"add",          1, ImageAddOp, 2, 3, "?dataSetName?"},
+    {"backing",      2, ImageBackingOp, 3, 4, "bool ?dataSetName?"},
+    {"bg",           2, ImageBackgroundOp, 3, 4, "bool ?dataSetName?"},
+    {"border",       2, ImageBorderOp, 3, 4, "bool ?dataSetName?"},
+    {"color",        5, ImageColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     6, ImageColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",       1, ImageDeleteOp, 2, 3, "?dataSetName?"},
+    {"extents",      1, ImageExtentsOp, 8, 9, "xmin xmax ymin ymax zmin zmax ?dataSetName?"},
+    {"level",        1, ImageLevelOp, 3, 4, "val ?dataSetName?"},
+    {"opacity",      2, ImageOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, ImageOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, ImagePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        1, ImageScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",      1, ImageVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"window",       1, ImageWindowOp, 3, 4, "val ?dataSetName?"},
+    {"zslice",       1, ImageZSliceOp, 3, 4, "val ?dataSetName?"}
+};
+static int nImageOps = NumCmdSpecs(imageOps);
+
+static int
+ImageCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+         Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nImageOps, imageOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -6794,6 +7194,65 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "nv>legend {%s} {%s} %g %g",
              colorMapName, title.c_str(), range[0], range[1]);
+
+# ifdef USE_THREADS
+#  ifdef RENDER_TARGA
+    ResponseQueue *queue = (ResponseQueue *)clientData;
+    queueTGA(queue, cmd, imgData->GetPointer(0), width, height,
+             TARGA_BYTES_PER_PIXEL);
+#  else
+    ResponseQueue *queue = (ResponseQueue *)clientData;
+    queuePPM(queue, cmd, imgData->GetPointer(0), width, height);
+#  endif
+# else
+#  ifdef RENDER_TARGA
+    writeTGA(g_fdOut, cmd, imgData->GetPointer(0), width, height,
+             TARGA_BYTES_PER_PIXEL);
+#  else
+    writePPM(g_fdOut, cmd, imgData->GetPointer(0), width, height);
+#  endif
+# endif // USE_THREADS
+#endif // DEBUG
+    return TCL_OK;
+}
+
+static int
+LegendSimpleCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    if (objc != 4) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"",
+                Tcl_GetString(objv[0]), " colormapName width height\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *colorMapName = Tcl_GetString(objv[1]);
+
+    int width, height;
+    if (Tcl_GetIntFromObj(interp, objv[2], &width) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &height) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    vtkSmartPointer<vtkUnsignedCharArray> imgData = 
+        vtkSmartPointer<vtkUnsignedCharArray>::New();
+
+    if (!g_renderer->renderColorMap(colorMapName, width, height, true, imgData)) {
+        Tcl_AppendResult(interp, "Color map \"",
+                         colorMapName, "\" was not found", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+#ifdef DEBUG
+# ifdef RENDER_TARGA
+    writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height,
+                 TARGA_BYTES_PER_PIXEL);
+# else
+    writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height,
+                 TARGA_BYTES_PER_PIXEL, true);
+# endif
+#else
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd), "nv>legend {%s} {} 0 1", colorMapName);
 
 # ifdef USE_THREADS
 #  ifdef RENDER_TARGA
@@ -7610,7 +8069,8 @@ MoleculeColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *str = Tcl_GetString(objv[2]);
     if (str[0] == 'b' && strcmp(str, "by_elements") == 0) {
         mode = Molecule::COLOR_BY_ELEMENTS;
-    } else if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    } else if (str[0] == 'c' &&
+               (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = Molecule::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Molecule::COLOR_BY_SCALAR;
@@ -7624,7 +8084,7 @@ MoleculeColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Molecule::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'by_elements', 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'by_elements', 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -7874,6 +8334,7 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"bscale",       3, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"bstyle",       3, MoleculeBondStyleOp, 3, 4, "value ?dataSetName?"},
     {"ccolor",       2, MoleculeColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"color",        5, MoleculeColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, MoleculeColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
@@ -8155,6 +8616,57 @@ PolyDataColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectColor<PolyData>(name, color);
     } else {
         g_renderer->setGraphicsObjectColor<PolyData>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+PolyDataColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectColorMap<PolyData>(dataSetName, colorMapName);
+    } else {
+        g_renderer->setGraphicsObjectColorMap<PolyData>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+PolyDataColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    PolyData::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
+        mode = PolyData::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = PolyData::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = PolyData::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = PolyData::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = PolyData::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = PolyData::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == PolyData::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setPolyDataColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setPolyDataColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -8455,8 +8967,11 @@ PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec polyDataOps[] = {
     {"add",       1, PolyDataAddOp, 2, 3, "?dataSetName?"},
+    {"ccolor",    2, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
     {"cloudstyle",2, PolyDataCloudStyleOp, 3, 4, "style ?dataSetName?"},
-    {"color",     2, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"color",     5, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",  7, PolyDataColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, PolyDataColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"culling",   2, PolyDataCullingOp, 3, 4, "bool ?name?"},
     {"delete",    1, PolyDataDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, PolyDataEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
@@ -8948,7 +9463,8 @@ PseudoColorColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     PseudoColor::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = PseudoColor::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = PseudoColor::COLOR_BY_SCALAR;
@@ -8962,7 +9478,7 @@ PseudoColorColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = PseudoColor::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -9208,6 +9724,7 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"add",          1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
     {"ccolor",       2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
     {"cloudstyle",   2, PseudoColorCloudStyleOp, 3, 4, "style ?dataSetName?"},
+    {"color",        5, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
@@ -9868,11 +10385,12 @@ StreamlinesColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Streamlines::COLOR_BY_VECTOR_Y;
     } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
         mode = Streamlines::COLOR_BY_VECTOR_Z;
-    } else if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    } else if (str[0] == 'c' &&
+               (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = Streamlines::COLOR_CONSTANT;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -10517,7 +11035,8 @@ StreamlinesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec streamlinesOps[] = {
     {"add",          1, StreamlinesAddOp,            2, 3, "?dataSetName?"},
-    {"ccolor",       1, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
+    {"ccolor",       2, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
+    {"color",        5, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, StreamlinesColorMapOp,       3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, StreamlinesColorModeOp,      4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, StreamlinesDeleteOp,         2, 3, "?dataSetName?"},
@@ -10546,6 +11065,314 @@ StreamlinesCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nStreamlinesOps, streamlinesOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+Text3DAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    int fontSize;
+    const char *fontFamily = Tcl_GetString(objv[2]);
+    if (Tcl_GetIntFromObj(interp, objv[3], &fontSize) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *text = Tcl_GetString(objv[4]);
+    const char *name = Tcl_GetString(objv[5]);
+    if (!g_renderer->addText3D(name, text, fontFamily, fontSize)) {
+        Tcl_AppendResult(interp, "Failed to create text3d", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DBoldOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DBold(name, state);
+    } else {
+        g_renderer->setText3DBold("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Text3D>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Text3D>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Text3D>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Text3D>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DFollowCameraOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DFollowCamera(name, state);
+    } else {
+        g_renderer->setText3DFollowCamera("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DFontFamilyOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    const char *fontFamily = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DFont(name, fontFamily);
+    } else {
+        g_renderer->setText3DFont("all", fontFamily);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DFontSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    int fontSize;
+    if (Tcl_GetIntFromObj(interp, objv[2], &fontSize) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DFontSize(name, fontSize);
+    } else {
+        g_renderer->setText3DFontSize("all", fontSize);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DItalicOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DItalic(name, state);
+    } else {
+        g_renderer->setText3DItalic("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Text3D>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Text3D>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Text3D>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Text3D>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DOriginOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double origin[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &origin[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &origin[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &origin[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectOrigin<Text3D>(name, origin);
+    } else {
+        g_renderer->setGraphicsObjectOrigin<Text3D>("all", origin);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Text3D>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Text3D>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Text3D>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Text3D>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DShadowOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DShadow(name, state);
+    } else {
+        g_renderer->setText3DShadow("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DTextOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    char *str = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setText3DText(name, str);
+    } else {
+        g_renderer->setText3DText("all", str);
+    }
+    return TCL_OK;
+}
+
+static int
+Text3DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Text3D>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Text3D>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec text3DOps[] = {
+    {"add",       1, Text3DAddOp, 6, 6, "font size text name"},
+    {"bold",      1, Text3DBoldOp, 3, 4, "bool ?name?"},
+    {"color",     1, Text3DColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, Text3DDeleteOp, 2, 3, "?name?"},
+    {"fntfamily", 4, Text3DFontFamilyOp, 3, 4, "font ?name?"},
+    {"fntsize",   4, Text3DFontSizeOp, 3, 4, "size ?name?"},
+    {"followcam", 2, Text3DFollowCameraOp, 3, 4, "bool ?name?"},
+    {"italic",    1, Text3DItalicOp, 3, 4, "bool ?name?"},
+    {"opacity",   2, Text3DOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    4, Text3DOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"origin",    4, Text3DOriginOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, Text3DPositionOp, 5, 6, "x y z ?name?"},
+    {"scale",     1, Text3DScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"shadow",    1, Text3DShadowOp, 3, 4, "bool ?name?"},
+    {"text",      1, Text3DTextOp, 3, 4, "text ?name?"},
+    {"visible",   1, Text3DVisibleOp, 3, 4, "bool ?name?"},
+};
+static int nText3DOps = NumCmdSpecs(text3DOps);
+
+static int
+Text3DCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nText3DOps, text3DOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -10926,7 +11753,8 @@ WarpColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Warp::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+    if (str[0] == 'c' &&
+        (strcmp(str, "ccolor") == 0 || strcmp(str, "constant") == 0)) {
         mode = Warp::COLOR_CONSTANT;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Warp::COLOR_BY_SCALAR;
@@ -10940,7 +11768,7 @@ WarpColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Warp::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor', 'constant'", (char*)NULL);
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
@@ -11203,6 +12031,7 @@ static Rappture::CmdSpec warpOps[] = {
     {"add",          1, WarpAddOp, 2, 3, "?dataSetName?"},
     {"ccolor",       2, WarpColorOp, 5, 6, "r g b ?dataSetName?"},
     {"cloudstyle",   2, WarpCloudStyleOp, 3, 4, "style ?dataSetName?"},
+    {"color",        5, WarpColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, WarpColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, WarpColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, WarpDeleteOp, 2, 3, "?dataSetName?"},
@@ -11397,8 +12226,10 @@ VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "group",       GroupCmd,       clientData, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "image",       ImageCmd,       clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",    ImageFlushCmd,  clientData, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "legend2",     LegendSimpleCmd,clientData, NULL);
     Tcl_CreateObjCommand(interp, "lic",         LICCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "line",        LineCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    clientData, NULL);
@@ -11410,6 +12241,7 @@ VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "sphere",      SphereCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "streamlines", StreamlinesCmd, clientData, NULL);
+    Tcl_CreateObjCommand(interp, "text3d",      Text3DCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "warp",        WarpCmd,        clientData, NULL);
 }
@@ -11436,8 +12268,10 @@ void VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "glyphs");
     Tcl_DeleteCommand(interp, "group");
     Tcl_DeleteCommand(interp, "heightmap");
+    Tcl_DeleteCommand(interp, "image");
     Tcl_DeleteCommand(interp, "imgflush");
     Tcl_DeleteCommand(interp, "legend");
+    Tcl_DeleteCommand(interp, "legend2");
     Tcl_DeleteCommand(interp, "lic");
     Tcl_DeleteCommand(interp, "line");
     Tcl_DeleteCommand(interp, "molecule");
@@ -11449,6 +12283,7 @@ void VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "screen");
     Tcl_DeleteCommand(interp, "sphere");
     Tcl_DeleteCommand(interp, "streamlines");
+    Tcl_DeleteCommand(interp, "text3d");
     Tcl_DeleteCommand(interp, "volume");
     Tcl_DeleteCommand(interp, "warp");
 

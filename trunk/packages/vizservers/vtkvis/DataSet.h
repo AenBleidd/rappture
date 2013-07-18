@@ -25,6 +25,10 @@ namespace VtkVis {
  */
 class DataSet {
 public:
+    /** 
+     * These enum values intentionally match vtkDataObject::FieldAssociations
+     * and vtkDataObject::AttributeTypes
+     */
     enum DataAttributeType {
         POINT_DATA,
         CELL_DATA,

@@ -16,6 +16,9 @@
 #include <sys/time.h>
 #endif
 
+#ifdef USE_FONT_CONFIG
+#include <vtkFreeTypeTools.h>
+#endif
 #include <vtkMath.h>
 #include <vtkCamera.h>
 #include <vtkLight.h>
@@ -117,6 +120,13 @@ Renderer::Renderer() :
     _cameraClipPlanes[3]->SetOrigin(1, 0, 0);
     if (_cameraMode == IMAGE)
         _activeClipPlanes->AddItem(_cameraClipPlanes[3]);
+
+#ifdef USE_FONT_CONFIG
+    vtkFreeTypeTools *typeTools = vtkFreeTypeTools::GetInstance();
+    typeTools->ForceCompiledFontsOff();
+    TRACE("FreeTypeTools impl: %s", typeTools->GetClassName());
+#endif
+
     _renderer = vtkSmartPointer<vtkRenderer>::New();
 
     // Global ambient (defaults to 1,1,1)
@@ -181,6 +191,7 @@ Renderer::~Renderer()
     deleteAllGraphicsObjects<Glyphs>();
     deleteAllGraphicsObjects<Group>();
     deleteAllGraphicsObjects<HeightMap>();
+    deleteAllGraphicsObjects<Image>();
     deleteAllGraphicsObjects<LIC>();
     deleteAllGraphicsObjects<Line>();
     deleteAllGraphicsObjects<Molecule>();
@@ -190,6 +201,7 @@ Renderer::~Renderer()
     deleteAllGraphicsObjects<PseudoColor>();
     deleteAllGraphicsObjects<Sphere>();
     deleteAllGraphicsObjects<Streamlines>();
+    deleteAllGraphicsObjects<Text3D>();
     deleteAllGraphicsObjects<Volume>();
     deleteAllGraphicsObjects<Warp>();
 
@@ -261,6 +273,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteGraphicsObject<Cutplane>(itr->second->getName());
         deleteGraphicsObject<Glyphs>(itr->second->getName());
         deleteGraphicsObject<HeightMap>(itr->second->getName());
+        deleteGraphicsObject<Image>(itr->second->getName());
         deleteGraphicsObject<LIC>(itr->second->getName());
         deleteGraphicsObject<Molecule>(itr->second->getName());
         deleteGraphicsObject<Outline>(itr->second->getName());
@@ -1552,8 +1565,10 @@ void Renderer::updateColorMap(ColorMap *cmap)
     updateGraphicsObjectColorMap<Cutplane>(cmap);
     updateGraphicsObjectColorMap<Glyphs>(cmap);
     updateGraphicsObjectColorMap<HeightMap>(cmap);
+    updateGraphicsObjectColorMap<Image>(cmap);
     updateGraphicsObjectColorMap<LIC>(cmap);
     updateGraphicsObjectColorMap<Molecule>(cmap);
+    updateGraphicsObjectColorMap<PolyData>(cmap);
     updateGraphicsObjectColorMap<PseudoColor>(cmap);
     updateGraphicsObjectColorMap<Streamlines>(cmap);
     updateGraphicsObjectColorMap<Volume>(cmap);
@@ -1576,9 +1591,13 @@ bool Renderer::colorMapUsed(ColorMap *cmap)
         return true;
     if (graphicsObjectColorMapUsed<HeightMap>(cmap))
         return true;
+    if (graphicsObjectColorMapUsed<Image>(cmap))
+        return true;
     if (graphicsObjectColorMapUsed<LIC>(cmap))
         return true;
     if (graphicsObjectColorMapUsed<Molecule>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<PolyData>(cmap))
         return true;
     if (graphicsObjectColorMapUsed<PseudoColor>(cmap))
         return true;
@@ -2177,6 +2196,145 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     return true;
 }
 
+bool Renderer::renderColorMap(const ColorMapId& id,
+                              int width, int height,
+                              bool opaque,
+                              vtkUnsignedCharArray *imgData)
+{
+    TRACE("Enter");
+    ColorMap *colorMap = getColorMap(id);
+    if (colorMap == NULL)
+        return false;
+
+    if (_legendRenderWindow == NULL) {
+        _legendRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+        _legendRenderWindow->SetMultiSamples(0);
+#ifdef USE_OFFSCREEN_RENDERING
+        _legendRenderWindow->DoubleBufferOff();
+        _legendRenderWindow->OffScreenRenderingOn();
+#else
+        _legendRenderWindow->DoubleBufferOn();
+        _legendRenderWindow->SwapBuffersOff();
+#endif
+    }
+
+    _legendRenderWindow->SetSize(width, height);
+
+    if (_legendRenderer == NULL) {
+        _legendRenderer = vtkSmartPointer<vtkRenderer>::New();
+        _legendRenderWindow->AddRenderer(_legendRenderer);
+    }
+    _legendRenderer->SetBackground(_bgColor[0], _bgColor[1], _bgColor[2]);
+
+    if (_scalarBarActor == NULL) {
+        _scalarBarActor = vtkSmartPointer<vtkScalarBarActor>::New();
+        _scalarBarActor->DrawFrameOff();
+        _scalarBarActor->DrawBackgroundOff();
+        _scalarBarActor->DrawColorBarOn();
+        _legendRenderer->AddViewProp(_scalarBarActor);
+    }
+
+    if (opaque) {
+        _scalarBarActor->UseOpacityOff();
+    } else {
+        _scalarBarActor->UseOpacityOn();
+    }
+
+    if (width > height) {
+        _scalarBarActor->SetOrientationToHorizontal();
+    } else {
+        _scalarBarActor->SetOrientationToVertical();
+    }
+
+    // Set viewport-relative width/height/pos
+#ifdef NEW_SCALAR_BAR
+    _scalarBarActor->SetBarRatio(1);
+    _scalarBarActor->SetTitleRatio(0);
+#endif
+    if (width > height) {
+        // horizontal
+#ifdef NEW_SCALAR_BAR
+        _scalarBarActor->SetDisplayPosition(0, 0);
+        _scalarBarActor->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
+        _scalarBarActor->GetPosition2Coordinate()->SetValue(width+4, height);
+#else
+        _scalarBarActor->SetPosition(0, 0);
+        _scalarBarActor->SetHeight((((double)height+1.5)/((double)height))/0.4); // VTK: floor(actorHeight * .4)
+        _scalarBarActor->SetWidth(1); // VTK: actorWidth
+#endif
+    } else {
+        // vertical
+#ifdef NEW_SCALAR_BAR
+        _scalarBarActor->SetDisplayPosition(0, -4);
+        _scalarBarActor->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
+        _scalarBarActor->GetPosition2Coordinate()->SetValue(width+1, height+5);
+#else
+        _scalarBarActor->SetPosition(0, 0);
+        _scalarBarActor->SetHeight((((double)height+1.5)/((double)height))/0.86); // VTK: floor(actorHeight * .86)
+        _scalarBarActor->SetWidth(((double)(width+5))/((double)width)); // VTK: actorWidth - 4 pixels
+#endif
+    }
+
+    vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
+
+    double range[2];
+    range[0] = 0.0;
+    range[1] = 1.0;
+
+    lut->SetRange(range);
+
+    _scalarBarActor->SetLookupTable(lut);
+    _scalarBarActor->SetMaximumNumberOfColors((width > height ? width : height));
+    _scalarBarActor->SetTitle("");
+    _scalarBarActor->SetNumberOfLabels(0);
+#ifdef NEW_SCALAR_BAR
+    _scalarBarActor->DrawAnnotationsOff();
+    _scalarBarActor->SetAnnotationLeaderPadding(0);
+    _scalarBarActor->SetTextPad(0);
+#endif
+
+    _legendRenderWindow->Render();
+
+#ifdef RENDER_TARGA
+    _legendRenderWindow->MakeCurrent();
+    // Must clear previous errors first.
+    while (glGetError() != GL_NO_ERROR){
+        ;
+    }
+    int bytesPerPixel = TARGA_BYTES_PER_PIXEL;
+    int size = bytesPerPixel * width * height;
+
+    if (imgData->GetMaxId() + 1 != size)
+    {
+        imgData->SetNumberOfComponents(bytesPerPixel);
+        imgData->SetNumberOfValues(size);
+    }
+    glDisable(GL_TEXTURE_2D);
+    if (_legendRenderWindow->GetDoubleBuffer()) {
+        glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_legendRenderWindow)->GetBackLeftBuffer()));
+    } else {
+        glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_legendRenderWindow)->GetFrontLeftBuffer()));
+    }
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    if (bytesPerPixel == 4) {
+        glReadPixels(0, 0, width, height, GL_BGRA,
+                     GL_UNSIGNED_BYTE, imgData->GetPointer(0));
+    } else {
+        glReadPixels(0, 0, width, height, GL_BGR,
+                     GL_UNSIGNED_BYTE, imgData->GetPointer(0));
+    }
+    if (glGetError() != GL_NO_ERROR) {
+        ERROR("glReadPixels");
+    }
+#else
+    _legendRenderWindow->GetPixelData(0, 0, width-1, height-1,
+                                      !_legendRenderWindow->GetDoubleBuffer(),
+                                      imgData);
+#endif
+    TRACE("Leave");
+    return true;
+}
+
 /**
  * \brief Set camera FOV based on render window height
  * 
@@ -2264,6 +2422,7 @@ void Renderer::setObjectAspects(double aspectRatio)
     setGraphicsObjectAspect<Disk>(aspectRatio);
     setGraphicsObjectAspect<Glyphs>(aspectRatio);
     setGraphicsObjectAspect<HeightMap>(aspectRatio);
+    setGraphicsObjectAspect<Image>(aspectRatio);
     setGraphicsObjectAspect<LIC>(aspectRatio);
     setGraphicsObjectAspect<Line>(aspectRatio);
     setGraphicsObjectAspect<Molecule>(aspectRatio);
@@ -2273,6 +2432,7 @@ void Renderer::setObjectAspects(double aspectRatio)
     setGraphicsObjectAspect<PseudoColor>(aspectRatio);
     setGraphicsObjectAspect<Sphere>(aspectRatio);
     setGraphicsObjectAspect<Streamlines>(aspectRatio);
+    setGraphicsObjectAspect<Text3D>(aspectRatio);
     setGraphicsObjectAspect<Volume>(aspectRatio);
     setGraphicsObjectAspect<Warp>(aspectRatio);
 }
@@ -3183,6 +3343,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectBounds<Glyphs>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Group>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<HeightMap>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Image>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Molecule>(bounds, onlyVisible);
@@ -3192,6 +3353,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectBounds<PseudoColor>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Sphere>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Streamlines>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Text3D>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Volume>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Warp>(bounds, onlyVisible);
 
@@ -3252,6 +3414,7 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectUnscaledBounds<Disk>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Glyphs>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<HeightMap>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Image>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Molecule>(bounds, onlyVisible);
@@ -3261,6 +3424,7 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectUnscaledBounds<PseudoColor>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Sphere>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Streamlines>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Text3D>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Volume>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Warp>(bounds, onlyVisible);
 
@@ -3307,8 +3471,10 @@ void Renderer::updateFieldRanges()
     updateGraphicsObjectFieldRanges<Cutplane>();
     updateGraphicsObjectFieldRanges<Glyphs>();
     updateGraphicsObjectFieldRanges<HeightMap>();
+    updateGraphicsObjectFieldRanges<Image>();
     updateGraphicsObjectFieldRanges<LIC>();
     updateGraphicsObjectFieldRanges<Molecule>();
+    updateGraphicsObjectFieldRanges<PolyData>();
     updateGraphicsObjectFieldRanges<PseudoColor>();
     updateGraphicsObjectFieldRanges<Streamlines>();
     updateGraphicsObjectFieldRanges<Volume>();
@@ -3367,6 +3533,11 @@ void Renderer::clearFieldRanges()
         delete [] itr->second;
     }
     _scalarCellDataRange.clear();
+    for (FieldRangeHashmap::iterator itr = _scalarFieldDataRange.begin();
+         itr != _scalarFieldDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _scalarFieldDataRange.clear();
     for (FieldRangeHashmap::iterator itr = _vectorPointDataRange.begin();
          itr != _vectorPointDataRange.end(); ++itr) {
         delete [] itr->second;
@@ -3391,6 +3562,18 @@ void Renderer::clearFieldRanges()
         }
         _vectorCompCellDataRange[i].clear();
     }
+    for (FieldRangeHashmap::iterator itr = _vectorFieldDataRange.begin();
+         itr != _vectorFieldDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _vectorFieldDataRange.clear();
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _vectorCompFieldDataRange[i].begin();
+             itr != _vectorCompFieldDataRange[i].end(); ++itr) {
+            delete [] itr->second;
+        }
+        _vectorCompFieldDataRange[i].clear();
+    }
 }
 
 /**
@@ -3409,6 +3592,11 @@ void Renderer::clearUserFieldRanges()
         delete [] itr->second;
     }
     _userScalarCellDataRange.clear();
+    for (FieldRangeHashmap::iterator itr = _userScalarFieldDataRange.begin();
+         itr != _userScalarFieldDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _userScalarFieldDataRange.clear();
     for (FieldRangeHashmap::iterator itr = _userVectorPointDataRange.begin();
          itr != _userVectorPointDataRange.end(); ++itr) {
         delete [] itr->second;
@@ -3432,6 +3620,18 @@ void Renderer::clearUserFieldRanges()
             delete [] itr->second;
         }
         _userVectorCompCellDataRange[i].clear();
+    }
+    for (FieldRangeHashmap::iterator itr = _userVectorFieldDataRange.begin();
+         itr != _userVectorFieldDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _userVectorFieldDataRange.clear();
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _userVectorCompFieldDataRange[i].begin();
+             itr != _userVectorCompFieldDataRange[i].end(); ++itr) {
+            delete [] itr->second;
+        }
+        _userVectorCompFieldDataRange[i].clear();
     }
 }
 
@@ -3474,6 +3674,18 @@ void Renderer::initFieldRanges()
             }
         }
         names.clear();
+        ds->getFieldNames(names, DataSet::FIELD_DATA, 1);
+        for (std::vector<std::string>::iterator itr = names.begin();
+             itr != names.end(); ++itr) {
+            FieldRangeHashmap::iterator fritr = 
+                _scalarFieldDataRange.find(*itr);
+            if (fritr == _scalarFieldDataRange.end()) {
+                _scalarFieldDataRange[*itr] = new double[2];
+                _scalarFieldDataRange[*itr][0] = 0;
+                _scalarFieldDataRange[*itr][1] = 1;
+            }
+        }
+        names.clear();
         ds->getFieldNames(names, DataSet::POINT_DATA, 3);
         for (std::vector<std::string>::iterator itr = names.begin();
              itr != names.end(); ++itr) {
@@ -3510,6 +3722,26 @@ void Renderer::initFieldRanges()
                     _vectorCompCellDataRange[i][*itr] = new double[2];
                     _vectorCompCellDataRange[i][*itr][0] = 0;
                     _vectorCompCellDataRange[i][*itr][1] = 1;
+                }
+            }
+        }
+        names.clear();
+        ds->getFieldNames(names, DataSet::FIELD_DATA, 3);
+        for (std::vector<std::string>::iterator itr = names.begin();
+             itr != names.end(); ++itr) {
+            FieldRangeHashmap::iterator fritr = 
+                _vectorFieldDataRange.find(*itr);
+            if (fritr == _vectorFieldDataRange.end()) {
+                _vectorFieldDataRange[*itr] = new double[2];
+                _vectorFieldDataRange[*itr][0] = 0;
+                _vectorFieldDataRange[*itr][1] = 1;
+            }
+            for (int i = 0; i < 3; i++) {
+                fritr = _vectorCompFieldDataRange[i].find(*itr);
+                if (fritr == _vectorCompFieldDataRange[i].end()) {
+                    _vectorCompFieldDataRange[i][*itr] = new double[2];
+                    _vectorCompFieldDataRange[i][*itr][0] = 0;
+                    _vectorCompFieldDataRange[i][*itr][1] = 1;
                 }
             }
         }
@@ -3609,6 +3841,40 @@ bool Renderer::setCumulativeDataRange(double *range, const char *name,
         }
     }
         break;
+    case DataSet::FIELD_DATA: {
+        FieldRangeHashmap::iterator itr;
+        if (numComponents == 1) {
+            itr = _userScalarFieldDataRange.find(name);
+            if (itr == _userScalarFieldDataRange.end()) {
+                _userScalarFieldDataRange[name] = new double[2];
+                memcpy(_userScalarFieldDataRange[name], range, sizeof(double)*2);
+            } else {
+                found = true;
+                memcpy(itr->second, range, sizeof(double)*2);
+            }
+        } else if (numComponents == 3) {
+            if (component == -1) {
+                itr = _userVectorFieldDataRange.find(name);
+                if (itr == _userVectorFieldDataRange.end()) {
+                    _userVectorFieldDataRange[name] = new double[2];
+                    memcpy(_userVectorFieldDataRange[name], range, sizeof(double)*2);
+                } else {
+                    found = true;
+                    memcpy(itr->second, range, sizeof(double)*2);
+                }
+            } else if (component >= 0 && component <= 3) {
+                itr = _userVectorCompFieldDataRange[component].find(name);
+                if (itr == _userVectorCompFieldDataRange[component].end()) {
+                    _userVectorCompFieldDataRange[component][name] = new double[2];
+                    memcpy(_userVectorCompFieldDataRange[component][name], range, sizeof(double)*2);
+                } else {
+                    found = true;
+                    memcpy(itr->second, range, sizeof(double)*2);
+                }
+            }
+        }
+    }
+        break;
     default:
         ERROR("Bad Field Type");
     }
@@ -3625,7 +3891,8 @@ bool Renderer::setCumulativeDataRange(double *range, const char *name,
 
 /**
  * \brief Get the cumulative range across all DataSets for a point
- * data field if it exists, otherwise a cell data field if it exists
+ * data field if it exists, otherwise a cell data field if it exists,
+ * otherwise a field data field if it exists
  *
  * \param[out] range Pointer to an array of 2 doubles
  * \param[in] name Field name
@@ -3638,10 +3905,17 @@ bool Renderer::getCumulativeDataRange(double *range, const char *name,
                                       int component)
 {
     bool ret;
-    if (!(ret = getCumulativeDataRange(range, name, DataSet::POINT_DATA,
-                                       numComponents, component)))
-        ret = getCumulativeDataRange(range, name, DataSet::CELL_DATA,
+    if ((ret = getCumulativeDataRange(range, name, DataSet::POINT_DATA,
+                                      numComponents, component))) {
+        ; // Found point data
+    } else if ((ret = getCumulativeDataRange(range, name, DataSet::CELL_DATA,
+                                             numComponents, component))) {
+        ; // Found cell data
+        
+    } else {
+        ret = getCumulativeDataRange(range, name, DataSet::FIELD_DATA,
                                      numComponents, component);
+    }
     return ret;
 }
 
@@ -3738,6 +4012,43 @@ bool Renderer::getCumulativeDataRange(double *range, const char *name,
         }
     }
         break;
+    case DataSet::FIELD_DATA: {
+        FieldRangeHashmap::iterator itr;
+        if (numComponents == 1) {
+            itr = _userScalarFieldDataRange.find(name);
+            if (itr == _userScalarFieldDataRange.end()) {
+                itr = _scalarFieldDataRange.find(name);
+                if (itr == _scalarFieldDataRange.end()) {
+                    return false;
+                }
+            }
+            memcpy(range, itr->second, sizeof(double)*2);
+            return true;
+        } else if (numComponents == 3) {
+            if (component == -1) {
+                itr = _userVectorFieldDataRange.find(name);
+                if (itr == _userVectorFieldDataRange.end()) {
+                    itr = _vectorFieldDataRange.find(name);
+                    if (itr == _vectorFieldDataRange.end()) {
+                        return false;
+                    }
+                }
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
+            } else if (component >= 0 && component <= 3) {
+                itr = _userVectorCompFieldDataRange[component].find(name);
+                if (itr == _userVectorCompFieldDataRange[component].end()) {
+                    itr = _vectorCompFieldDataRange[component].find(name);
+                    if (itr == _vectorCompFieldDataRange[component].end()) {
+                        return false;
+                    }
+                }
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
+            }
+        }
+    }
+        break;
     default:
         break;
     }
@@ -3756,6 +4067,12 @@ void Renderer::collectDataRanges()
          itr != _scalarCellDataRange.end(); ++itr) {
         collectDataRanges(itr->second, itr->first.c_str(),
                           DataSet::CELL_DATA, -1,
+                          _cumulativeRangeOnlyVisible);
+    }
+    for (FieldRangeHashmap::iterator itr = _scalarFieldDataRange.begin();
+         itr != _scalarFieldDataRange.end(); ++itr) {
+        collectDataRanges(itr->second, itr->first.c_str(),
+                          DataSet::FIELD_DATA, -1,
                           _cumulativeRangeOnlyVisible);
     }
     for (FieldRangeHashmap::iterator itr = _vectorPointDataRange.begin();
@@ -3783,6 +4100,20 @@ void Renderer::collectDataRanges()
              itr != _vectorCompCellDataRange[i].end(); ++itr) {
             collectDataRanges(itr->second, itr->first.c_str(),
                               DataSet::CELL_DATA, i,
+                              _cumulativeRangeOnlyVisible);
+        }
+    }
+    for (FieldRangeHashmap::iterator itr = _vectorFieldDataRange.begin();
+         itr != _vectorFieldDataRange.end(); ++itr) {
+        collectDataRanges(itr->second, itr->first.c_str(),
+                          DataSet::FIELD_DATA, -1,
+                          _cumulativeRangeOnlyVisible);
+    }
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _vectorCompFieldDataRange[i].begin();
+             itr != _vectorCompFieldDataRange[i].end(); ++itr) {
+            collectDataRanges(itr->second, itr->first.c_str(),
+                              DataSet::FIELD_DATA, i,
                               _cumulativeRangeOnlyVisible);
         }
     }
@@ -4023,6 +4354,8 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
         setGraphicsObjectOpacity<Glyphs>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<HeightMap>(id) != NULL)
         setGraphicsObjectOpacity<HeightMap>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Image>(id) != NULL)
+        setGraphicsObjectOpacity<Image>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<LIC>(id) != NULL)
         setGraphicsObjectOpacity<LIC>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
@@ -4079,6 +4412,8 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
         setGraphicsObjectVisibility<Glyphs>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<HeightMap>(id) != NULL)
         setGraphicsObjectVisibility<HeightMap>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Image>(id) != NULL)
+        setGraphicsObjectVisibility<Image>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<LIC>(id) != NULL)
         setGraphicsObjectVisibility<LIC>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
@@ -4228,6 +4563,7 @@ void Renderer::setCameraClippingPlanes()
     setGraphicsObjectClippingPlanes<Glyphs>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Group>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<HeightMap>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Image>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<LIC>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Line>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Molecule>(_activeClipPlanes);
@@ -4237,6 +4573,7 @@ void Renderer::setCameraClippingPlanes()
     setGraphicsObjectClippingPlanes<PseudoColor>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Sphere>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Streamlines>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Text3D>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Volume>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Warp>(_activeClipPlanes);
 }
