@@ -139,7 +139,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _rotatePending 0
     private variable _cutplanePending 0
     private variable _legendPending 0
-    private variable _outline
     private variable _fields 
     private variable _curFldName ""
     private variable _curFldLabel ""
@@ -200,14 +199,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
 
-    array set _outline {
-        id -1
-        afterId -1
-        x1 -1
-        y1 -1
-        x2 -1
-        y2 -1
-    }
     # Initialize the view to some default parameters.
     array set _view {
         qw              0.853553
