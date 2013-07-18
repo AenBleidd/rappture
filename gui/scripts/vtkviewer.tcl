@@ -159,8 +159,6 @@ itcl::class Rappture::VtkViewer {
     private variable _updatePending 0;
     private variable _rotateDelay 150
     private variable _scaleDelay 100
-
-    private variable _outline
 }
 
 itk::usual VtkViewer {
@@ -222,14 +220,6 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     $_parser alias dataset  [itcl::code $this ReceiveDataset]
     $_parser alias legend   [itcl::code $this ReceiveLegend]
 
-    array set _outline {
-        id -1
-        afterId -1
-        x1 -1
-        y1 -1
-        x2 -1
-        y2 -1
-    }
     # Initialize the view to some default parameters.
     array set _view {
         qw              0.853553
