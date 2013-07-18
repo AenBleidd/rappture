@@ -617,12 +617,8 @@ itcl::body Rappture::VtkViewer::delete {args} {
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
-        foreach comp [$dataobj components] {
-            SendCmd "dataset visible 0 $dataobj-$comp"
-        }
         array unset _obj2ovride $dataobj-*
-        # Append to the end of the dataobj list.
-        lappend _dlist $dataobj
+        array unset _settings $dataobj-*
         set changed 1
     }
     # If anything changed, then rebuild the plot
@@ -1018,7 +1014,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     set _limits(zmax) ""
     set _first ""
     SendCmd "dataset visible 0"
-    SendCmd "molecule visible 0"
     set count 0
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
@@ -1050,8 +1045,8 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 SetObjectStyle $dataobj $comp
             }
             lappend _obj2datasets($dataobj) $tag
-            SendCmd "dataset visible 1 $tag"
             if { [info exists _obj2ovride($dataobj-raise)] } {
+                SendCmd "dataset visible 1 $tag"
                 SetOpacity $tag
             }
         }

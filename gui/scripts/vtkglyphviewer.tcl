@@ -563,11 +563,8 @@ itcl::body Rappture::VtkGlyphViewer::delete {args} {
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
-        SendCmd "dataset visible 0"
         array unset _obj2ovride $dataobj-*
         array unset _settings $dataobj-*
-        # Append to the end of the dataobj list.
-        lappend _dlist $dataobj
         set changed 1
     }
     # If anything changed, then rebuild the plot

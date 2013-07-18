@@ -568,11 +568,8 @@ itcl::body Rappture::VtkVolumeViewer::delete {args} {
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
-        SendCmd "dataset visible 0"
         array unset _obj2ovride $dataobj-*
         array unset _settings $dataobj-*
-        # Append to the end of the dataobj list.
-        lappend _dlist $dataobj
         set changed 1
     }
     # If anything changed, then rebuild the plot
@@ -969,6 +966,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     SendCmd "imgflush"
     set _first ""
 
+    SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -998,8 +996,6 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "dataset visible 1 $tag"
-            } else {
-                SendCmd "dataset visible 0 $tag"
             }
             break
         }
