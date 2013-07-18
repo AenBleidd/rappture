@@ -600,7 +600,7 @@ itcl::body Rappture::FlowvisViewer::add {dataobj {settings ""}} {
         }
         set _obj2flow($dataobj-$comp) $flowobj
     }
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
         set _allDataObjs($dataobj) 1

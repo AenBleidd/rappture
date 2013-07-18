@@ -154,7 +154,7 @@ itcl::body Rappture::MeshResult::add {dataobj {settings ""}} {
             $params(-color) $params(-brightness)]
     }
 
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
         set _dobj2color($dataobj) $params(-color)

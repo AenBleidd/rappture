@@ -451,7 +451,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
     }
     array set params $options
 
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
 
     if {$pos < 0} {
         if {![Rappture::library isvalid $dataobj]} {

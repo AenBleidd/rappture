@@ -566,7 +566,7 @@ itcl::body Rappture::VtkStreamlinesViewer::add {dataobj {settings ""}} {
         # can't handle -autocolors yet
         set params(-color) black
     }
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
     }

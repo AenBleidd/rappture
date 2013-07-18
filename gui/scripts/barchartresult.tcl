@@ -328,7 +328,7 @@ itcl::body Rappture::BarchartResult::add {dataobj {settings ""}} {
         }
     }
 
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
         set _dataobj2color($dataobj) $params(-color)
