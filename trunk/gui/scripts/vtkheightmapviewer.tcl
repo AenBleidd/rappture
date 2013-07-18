@@ -521,8 +521,6 @@ itcl::body Rappture::VtkHeightmapViewer::delete {args} {
         set _dlist [lreplace $_dlist $pos $pos]
         array unset _obj2ovride $dataobj-*
         array unset _settings $dataobj-*
-        # Append to the end of the dataobj list.
-        #lappend _dlist $dataobj
         set changed 1
     }
     # If anything changed, then rebuild the plot
