@@ -22,6 +22,8 @@
 
 #include <tcl.h>
 
+#include <vtksys/SystemInformation.hxx>
+
 #include "Trace.h"
 #include "ReadBuffer.h"
 #include "RenderServer.h"
@@ -492,6 +494,10 @@ main(int argc, char *argv[])
     gettimeofday(&g_stats.start, NULL);
 
     TRACE("Starting VTKVis Server");
+
+#ifdef WANT_TRACE
+    vtksys::SystemInformation::SetStackTraceOnError(1);
+#endif
 
     /* This synchronizes the client with the server, so that the client 
      * doesn't start writing commands before the server is ready. It could

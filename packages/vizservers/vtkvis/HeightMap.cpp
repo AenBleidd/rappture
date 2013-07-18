@@ -477,7 +477,11 @@ void HeightMap::update()
 
     if (_contours.empty()) {
         // Evenly spaced isovalues
-        _contourFilter->GenerateValues(_numContours, _dataRange[0], _dataRange[1]);
+        if (_colorFieldRange[0] <= _colorFieldRange[1]) {
+            _contourFilter->GenerateValues(_numContours, _colorFieldRange[0], _colorFieldRange[1]);
+        } else {
+            _contourFilter->GenerateValues(_numContours, _dataRange[0], _dataRange[1]);
+        }
     } else {
         // User-supplied isovalues
         for (int i = 0; i < _numContours; i++) {

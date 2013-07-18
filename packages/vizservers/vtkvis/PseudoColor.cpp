@@ -386,6 +386,9 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     case DataSet::CELL_DATA:
         _mapper->SetScalarModeToUseCellFieldData();
         break;
+    case DataSet::FIELD_DATA:
+        _mapper->SetScalarModeToUseFieldData();
+        break;
     default:
         ERROR("Unsupported DataAttributeType: %d", type);
         return;
@@ -393,7 +396,7 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     if (_splatter != NULL) {
         if (name != NULL && strlen(name) > 0) {
-            _splatter->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, name);
+            _splatter->SetInputArrayToProcess(0, 0, 0, type, name);
         }
         _mapper->SelectColorArray("SplatterValues");
     } else if (name != NULL && strlen(name) > 0) {

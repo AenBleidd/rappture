@@ -99,6 +99,11 @@ Renderer::getGraphicsObjectHashmap<HeightMap>()
 { return _heightMaps; }
 
 template<>
+Renderer::ImageHashmap &
+Renderer::getGraphicsObjectHashmap<Image>()
+{ return _images; }
+
+template<>
 Renderer::LICHashmap &
 Renderer::getGraphicsObjectHashmap<LIC>()
 { return _lics; }
@@ -144,6 +149,11 @@ Renderer::getGraphicsObjectHashmap<Streamlines>()
 { return _streamlines; }
 
 template<>
+Renderer::Text3DHashmap &
+Renderer::getGraphicsObjectHashmap<Text3D>()
+{ return _text3Ds; }
+
+template<>
 Renderer::VolumeHashmap &
 Renderer::getGraphicsObjectHashmap<Volume>()
 { return _volumes; }
@@ -153,6 +163,7 @@ Renderer::WarpHashmap &
 Renderer::getGraphicsObjectHashmap<Warp>()
 { return _warps; }
 
+#if 0
 template Arc *Renderer::getGraphicsObject(const DataSetId&);
 template Arrow *Renderer::getGraphicsObject(const DataSetId&);
 template Box *Renderer::getGraphicsObject(const DataSetId&);
@@ -163,6 +174,8 @@ template Group *Renderer::getGraphicsObject(const DataSetId&);
 template Line *Renderer::getGraphicsObject(const DataSetId&);
 template Polygon *Renderer::getGraphicsObject(const DataSetId&);
 template Sphere *Renderer::getGraphicsObject(const DataSetId&);
+template Text3D *Renderer::getGraphicsObject(const DataSetId&);
+#endif
 
 template <>
 void Renderer::deleteGraphicsObject<Group>(const DataSetId& id)
@@ -211,68 +224,6 @@ void Renderer::deleteGraphicsObject<Group>(const DataSetId& id)
 
     sceneBoundsChanged();
     _needsRedraw = true;
-}
-
-template <>
-bool Renderer::addGraphicsObject<Box>(const DataSetId& id)
-{
-    Box *gobj;
-    if ((gobj = getGraphicsObject<Box>(id)) != NULL) {
-        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
-        deleteGraphicsObject<Box>(id);
-    }
-
-    gobj = new Box();
- 
-    gobj->setDataSet(NULL, this);
-
-    if (gobj->getProp() == NULL &&
-        gobj->getOverlayProp() == NULL) {
-        delete gobj;
-        return false;
-    } else {
-        if (gobj->getProp())
-            _renderer->AddViewProp(gobj->getProp());
-        if (gobj->getOverlayProp())
-            _renderer->AddViewProp(gobj->getOverlayProp());
-    }
-
-    getGraphicsObjectHashmap<Box>()[id] = gobj;
-
-    sceneBoundsChanged();
-    _needsRedraw = true;
-    return true;
-}
-
-template <>
-bool Renderer::addGraphicsObject<Sphere>(const DataSetId& id)
-{
-    Sphere *gobj;
-    if ((gobj = getGraphicsObject<Sphere>(id)) != NULL) {
-        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
-        deleteGraphicsObject<Sphere>(id);
-    }
-
-    gobj = new Sphere();
- 
-    gobj->setDataSet(NULL, this);
-
-    if (gobj->getProp() == NULL &&
-        gobj->getOverlayProp() == NULL) {
-        delete gobj;
-        return false;
-    } else {
-        if (gobj->getProp())
-            _renderer->AddViewProp(gobj->getProp());
-        if (gobj->getOverlayProp())
-            _renderer->AddViewProp(gobj->getOverlayProp());
-    }
-
-    getGraphicsObjectHashmap<Sphere>()[id] = gobj;
-
-    sceneBoundsChanged();
-    _needsRedraw = true;
-    return true;
 }
 
 /**
@@ -343,6 +294,9 @@ Renderer::getGenericGraphicsObject(const DataSetId& id)
     if ((gobj = getGraphicsObject<Sphere>(id)) != NULL) {
         return gobj;
     }
+    if ((gobj = getGraphicsObject<Text3D>(id)) != NULL) {
+        return gobj;
+    }
     //
     if ((gobj = getGraphicsObject<Contour2D>(id)) != NULL) {
         return gobj;
@@ -357,6 +311,9 @@ Renderer::getGenericGraphicsObject(const DataSetId& id)
         return gobj;
     }
     if ((gobj = getGraphicsObject<HeightMap>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Image>(id)) != NULL) {
         return gobj;
     }
     if ((gobj = getGraphicsObject<LIC>(id)) != NULL) {
@@ -2307,6 +2264,188 @@ void Renderer::setHeightMapColorMode(const DataSetId& id,
     _needsRedraw = true;
 }
 
+void Renderer::setImageBackground(const DataSetId& id, bool state)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBackground(state);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageBacking(const DataSetId& id, bool state)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBacking(state);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageBorder(const DataSetId& id, bool state)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBorder(state);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageExtents(const DataSetId& id, int extents[6])
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setExtents(extents);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageLevel(const DataSetId& id, double level)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLevel(level);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageWindow(const DataSetId& id, double window)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWindow(window);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageZSlice(const DataSetId& id, int z)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setZSlice(z);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Create a new Line and associate it with an ID
  */
@@ -2867,6 +3006,69 @@ void Renderer::setPolyDataCloudStyle(const DataSetId& id,
 }
 
 /**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setPolyDataColorMode(const DataSetId& id,
+                                    PolyData::ColorMode mode,
+                                    DataSet::DataAttributeType type,
+                                    const char *name, double range[2])
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        if (itr == _polyDatas.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, type, name, range);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setPolyDataColorMode(const DataSetId& id,
+                                    PolyData::ColorMode mode,
+                                    const char *name, double range[2])
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        if (itr == _polyDatas.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, name, range);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the  point cloud render style for the specified DataSet
  */
 void Renderer::setPseudoColorCloudStyle(const DataSetId& id,
@@ -2991,6 +3193,48 @@ bool Renderer::addSphere(const DataSetId& id, double center[3], double radius, b
         gobj->flipNormals(flipNormals);
 
     getGraphicsObjectHashmap<Sphere>()[id] = gobj;
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Create a new Text3D label and associate it with an ID
+ */
+bool Renderer::addText3D(const DataSetId& id, const char *string,
+                         const char *fontFamily, int fontSize,
+                         bool bold, bool italic, bool shadow)
+{
+    Text3D *gobj;
+    if ((gobj = getGraphicsObject<Text3D>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Text3D>(id);
+    }
+
+    gobj = new Text3D();
+
+    gobj->setDataSet(NULL, this);
+
+    gobj->setText(string);
+    gobj->setFont(fontFamily);
+    gobj->setFontSize(fontSize);
+    gobj->setBold(bold);
+    gobj->setItalic(italic);
+    gobj->setShadow(shadow);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    getGraphicsObjectHashmap<Text3D>()[id] = gobj;
 
     sceneBoundsChanged();
     _needsRedraw = true;
@@ -3690,6 +3934,201 @@ void Renderer::setStreamlinesSeedColor(const DataSetId& id, float color[3])
         itr->second->setSeedColor(color);
     } while (doAll && ++itr != _streamlines.end());
 
+    _needsRedraw = true;
+}
+
+void Renderer::setText3DBold(const DataSetId& id, bool state)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBold(state);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the font family for the Text3D
+ */
+void Renderer::setText3DFont(const DataSetId& id, const char *fontFamily)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setFont(fontFamily);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the font family for the Text3D
+ */
+void Renderer::setText3DFontSize(const DataSetId& id, int size)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setFontSize(size);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+void Renderer::setText3DFollowCamera(const DataSetId& id, bool state)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setFollowCamera(state, _renderer);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+void Renderer::setText3DItalic(const DataSetId& id, bool state)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setItalic(state);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+void Renderer::setText3DShadow(const DataSetId& id, bool state)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setShadow(state);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+void Renderer::setText3DText(const DataSetId& id, const char *text)
+{
+    Text3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _text3Ds.begin();
+        if (itr == _text3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _text3Ds.find(id);
+    }
+    if (itr == _text3Ds.end()) {
+        ERROR("Text3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setText(text);
+    } while (doAll && ++itr != _text3Ds.end());
+
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 

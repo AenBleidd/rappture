@@ -572,6 +572,24 @@ heightmap surface <bool> <?dataSetName?>
 heightmap visible <bool> <?dataSetName?>
 heightmap wireframe <bool> <?datasetName?>
 
+image add <?dataSetName?>
+      Create an image from a vtkImageData data set
+image backing <bool> <?dataSetName?>
+image bg <bool> <?dataSetName?>
+image border <bool> <?dataSetName?>
+image color <r> <g> <b> <?dataSetName?>
+image colormap <colorMapName> <?dataSetName?>
+image delete <?dataSetName?>
+image extents <xmin> <xmax> <ymin> <ymax> <zmin> <zmax> <?dataSetName?>
+image level <level> <?dataSetName?>
+image opacity <opacity> <?dataSetName?>
+image orient <qw> <qx> <qy> <qz> <?dataSetName?>
+image pos <x> <y> <z> <?dataSetName?>
+image scale <sx> <sy> <sz> <?dataSetName?>
+image visible <bool> <?dataSetName?>
+image window <windowWidth> <?dataSetName?>
+image zslice <sliceNum> <?dataSetName?>
+
 lic add <?datasetName?>
 lic colormap <colormapName> <?datasetName?>
 lic delete <?datasetName?>
@@ -668,9 +686,16 @@ outline scale <sx> <sy> <sz> <?datasetName?>
 outline visible <bool> <?datasetName?>
 
 polydata add <?datasetName?>
+polydata ccolor <r> <g> <b> <?datasetName?>
 polydata cloudstyle <style> <?datasetName?>
          <style> = mesh | points
-polydata color <r> <g> <b> <?datasetName?>
+polydata colormap <colormapName> <?datasetName?>
+polydata colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
+         Set the field used to color the object.  'ccolor' means to use
+         the constant color defined by the ccolor subcommand.  'scalar' uses
+         the active scalar field.  'vmag' uses the magnitude of the current
+         vector field, and 'vx','vy','vz' use the corresponding component of
+         the active vector field.
 polydata culling <bool> <?name?>
 polydata delete <?datasetName?>
 polydata edges <bool> <?datasetName?>
@@ -824,6 +849,18 @@ streamlines tubes <numSides> <radius> <?datasetName?>
             Set rendering type to tubes, numSides is number of sides of tubes,
             radius is minimum tube radius
 streamlines visible <bool> <?datasetName?>
+
+text3d add <textString> <name>
+text3d color <r> <g> <b> <?name?>
+text3d delete <?name?>
+text3d fntfamily <fontName> <?name?>
+text3d fntsize <fontSize> <?name?>
+text3d opacity <opacity> <?name?>
+text3d orient <qw> <qx> <qy> <qz> <?name?>
+text3d origin <x> <y> <z> <?name?>
+text3d pos <x> <y> <z> <?name?>
+text3d scale <sx> <sy> <sz> <?name?>
+text3d visible <bool> <?name?>
 
 volume add <?datasetName?>
 volume colormap <colorMapName> <?datasetName?>
