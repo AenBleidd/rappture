@@ -2155,6 +2155,10 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 #endif
 
     _legendRenderWindow->Render();
+    int *sz = _legendRenderWindow->GetSize();
+    if (sz[0] != width || sz[1] != height) {
+        ERROR("Window size: %dx%d, but expected %dx%d", sz[0], sz[1], width, height);
+    }
 
 #ifdef RENDER_TARGA
     _legendRenderWindow->MakeCurrent();
@@ -2294,6 +2298,10 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 #endif
 
     _legendRenderWindow->Render();
+    int *sz = _legendRenderWindow->GetSize();
+    if (sz[0] != width || sz[1] != height) {
+        ERROR("Window size: %dx%d, but expected %dx%d", sz[0], sz[1], width, height);
+    }
 
 #ifdef RENDER_TARGA
     _legendRenderWindow->MakeCurrent();
@@ -4629,6 +4637,10 @@ bool Renderer::render()
         }
         setCameraClippingPlanes();
         _renderWindow->Render();
+        int *sz = _renderWindow->GetSize();
+        if (sz[0] != _windowWidth || sz[1] != _windowHeight) {
+            ERROR("Window size: %dx%d, but expected %dx%d", sz[0], sz[1], _windowWidth, _windowHeight);
+        }
         _needsRedraw = false;
         return true;
     } else
