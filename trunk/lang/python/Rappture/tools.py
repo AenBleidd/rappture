@@ -13,6 +13,7 @@ import subprocess
 import shlex
 import select
 import signal
+import traceback
 
 commandPid = 0
 
@@ -26,9 +27,15 @@ def getCommandOutput(command,
                      streamOutput=False):
     global commandPid
 
-    sig_INT_handler = signal.signal(signal.SIGINT,sig_handler)
-    sig_HUP_handler = signal.signal(signal.SIGHUP,sig_handler)
-    sig_TERM_handler = signal.signal(signal.SIGTERM,sig_handler)
+    try:
+       sig_INT_handler = signal.signal(signal.SIGINT,sig_handler)
+       sig_HUP_handler = signal.signal(signal.SIGHUP,sig_handler)
+       sig_TERM_handler = signal.signal(signal.SIGTERM,sig_handler)
+    except ValueError:
+#      happens when used in a thread
+       pass
+    except:
+       print traceback.format_exc()
 
     BUFSIZ = 4096
     if isinstance(command,list):
@@ -94,9 +101,15 @@ def getCommandOutput(command,
     pid,err = os.waitpid(commandPid,0)
     commandPid = 0
 
-    signal.signal(signal.SIGINT,sig_INT_handler)
-    signal.signal(signal.SIGHUP,sig_HUP_handler)
-    signal.signal(signal.SIGTERM,sig_TERM_handler)
+    try:
+       signal.signal(signal.SIGINT,sig_INT_handler)
+       signal.signal(signal.SIGHUP,sig_HUP_handler)
+       signal.signal(signal.SIGTERM,sig_TERM_handler)
+    except UnboundLocalError:
+#      happens when used in a thread
+       pass
+    except:
+       print traceback.format_exc()
 
     if err != 0:
         if   os.WIFSIGNALED(err):
