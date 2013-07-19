@@ -83,7 +83,8 @@ VTK6_LIB_SPEC   = \
 		-lvtkCommonExecutionModel-6.0  \
 		-lvtkCommonMisc-6.0  \
 		-lvtkCommonTransforms-6.0 \
-		-lvtkCommonMath-6.0
+		-lvtkCommonMath-6.0 \
+		-lvtksys-6.0
 
 ifdef USE_VTK6
 VTK_LIB_SPEC	= $(VTK6_LIB_SPEC)
