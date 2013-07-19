@@ -57,6 +57,7 @@ VTK6_LIB_SPEC   = \
 		-lvtkDomainsChemistry-6.0 \
 		-lvtkIOCore-6.0 \
 		-lvtkIOLegacy-6.0 \
+		-lvtkFiltersExtraction-6.0 \
 		-lvtkFiltersModeling-6.0 \
 		-lvtkFiltersFlowPaths-6.0 \
 		-lvtkFiltersGeometry-6.0 \
