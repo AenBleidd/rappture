@@ -8889,6 +8889,23 @@ PolyDataPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PolyDataPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<PolyData>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectInterpolateBeforeMapping<PolyData>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 PolyDataScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
@@ -8983,6 +9000,7 @@ static Rappture::CmdSpec polyDataOps[] = {
     {"orient",    4, PolyDataOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"origin",    4, PolyDataOriginOp, 5, 6, "x y z ?name?"},
     {"pos",       2, PolyDataPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp", 2, PolyDataPreInterpOp, 3, 4, "bool ?dataSetName?"},
     {"ptsize",    2, PolyDataPointSizeOp, 3, 4, "size ?dataSetName?"},
     {"scale",     2, PolyDataScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"shading",   2, PolyDataShadingOp, 3, 4, "val ?name?"},

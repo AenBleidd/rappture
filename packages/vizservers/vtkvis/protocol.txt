@@ -707,6 +707,11 @@ polydata opacity <val> <?datasetName?>
 polydata orient <qw> <qx> <qy> <qz> <?dataSetName?>
 polydata origin <x> <y> <z> <?name?>
 polydata pos <x> <y> <z> <?dataSetName?>
+polydata preinterp <bool> <?dataSetName?>
+         Controls if VTK's InterpolateScalarsBeforeMapping option is set.
+         Setting this on will give more correct colors, as the interpolation
+         is done on texture coordinates that lookup into a 1D texture instead
+         of using color interpolation from triangle vertices.
 polydata ptsize <size> <?dataSetName?>
 polydata scale <sx> <sy> <sz> <?dataSetName?>
 polydata shading <val> <?name?>
