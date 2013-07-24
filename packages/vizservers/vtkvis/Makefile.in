@@ -5,7 +5,6 @@ USE_FONT_CONFIG         = #yes
 USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
-USE_VTK6                = yes
 NEW_SCALAR_BAR          = yes
 
 bindir          = @bindir@
@@ -41,19 +40,8 @@ TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
 VTK_LIB_DIR	= @VTK_LIB_DIR@
-VTK_LIB_SPEC	= -L$(VTK_LIB_DIR) \
-		-lvtkChemistry \
-		-lvtkIO \
-		-lvtkWidgets \
-		-lvtkFiltering \
-		-lvtkVolumeRendering \
-		-lvtkRendering \
-		-lvtkHybrid \
-		-lvtkGraphics \
-		-lvtkImaging \
-		-lvtkCommon
 VTK_INC_SPEC	= @VTK_INC_SPEC@
-VTK6_LIB_SPEC   = \
+VTK_LIB_SPEC    = \
 		-lvtkDomainsChemistry-6.0 \
 		-lvtkIOCore-6.0 \
 		-lvtkIOLegacy-6.0 \
@@ -86,15 +74,7 @@ VTK6_LIB_SPEC   = \
 		-lvtkCommonMath-6.0 \
 		-lvtksys-6.0
 
-ifdef USE_VTK6
-VTK_LIB_SPEC	= $(VTK6_LIB_SPEC)
-endif
-
-ifdef USE_VTK6
 LD_RUN_PATH	= $(libdir)
-else
-LD_RUN_PATH	= $(libdir):$(VTK_LIB_DIR)
-endif
 
 LIBS		= \
 		$(TCL_LIB_SPEC) \
@@ -135,10 +115,8 @@ endif
 ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
 endif
-ifdef USE_VTK6
 VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="5(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeFontConfig,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
 DEFINES         += -DUSE_VTK6 $(VTK_MOD_DEFS)
-endif
 ifdef NEW_SCALAR_BAR
 DEFINES		+= -DNEW_SCALAR_BAR
 endif

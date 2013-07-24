@@ -259,7 +259,8 @@ void PolyData::update()
             _dataSet->getFieldInfo(_dataSet->getActiveScalarsName(),
                                    _dataSet->getActiveScalarsType(),
                                    &numComp);
-            if (numComp > 1) {
+            // If DataSet is a PolyData with a scalar field, or has color scalars
+            if (pd != NULL || numComp > 1) {
                 setColorMode(COLOR_BY_SCALAR);
             } else {
                 setColorMode(_colorMode);
