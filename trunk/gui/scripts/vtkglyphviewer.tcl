@@ -994,7 +994,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline (if enabled) 
+                # Setting dataset visible enables outline 
                 # and glyphs
 		SendCmd "dataset visible 1 $tag"
             }
@@ -1030,14 +1030,15 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    #InitSettings cutplaneVisible
+    InitSettings glyphOutline
+        #cutplaneVisible
     if { $_reset } {
 	# These are settings that rely on a dataset being loaded.
         InitSettings \
             glyphLighting \
             field \
             glyphEdges glyphLighting glyphOpacity \
-	    glyphWireframe glyphOutline 
+	    glyphWireframe
 
         #cutplaneXPosition cutplaneYPosition cutplaneZPosition \
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
