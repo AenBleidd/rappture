@@ -1382,7 +1382,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set _settings(colormap) $color
 	    if { $color == "none" } {
 		if { $_settings(colormapVisible) } {
-		    SendCmd "glyphs colormode ccolor {}"
+		    SendCmd "glyphs colormode constant {}"
 		    set _settings(colormapVisible) 0
 		}
 	    } else {
@@ -1531,7 +1531,7 @@ itcl::configbody Rappture::VtkGlyphViewer::plotforeground {
         set rgb [Color2RGB $itk_option(-plotforeground)]
 	SendCmd "axis color all $rgb"
         SendCmd "outline color $rgb"
-        #SendCmd "cutplane ccolor $rgb"
+        #SendCmd "cutplane color $rgb"
     }
 }
 

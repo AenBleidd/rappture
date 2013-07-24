@@ -2167,7 +2167,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     }
     SendCmd "cutplane add $tag"
     SendCmd "polydata add $tag"
-    #SendCmd "polydata colormode ccolor {} $tag"
+    SendCmd "polydata colormode constant {} $tag"
     set _settings(volumeEdges) $settings(-edges)
     set _settings(volumeLighting) $settings(-lighting)
     set _settings(volumeOpacity) $settings(-opacity)
