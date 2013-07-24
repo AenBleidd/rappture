@@ -250,7 +250,7 @@ void PolyData::update()
         _mapper->SetInputConnection(normalFilter->GetOutputPort());
     }
 
-    setInterpolateBeforeMapping(false);
+    setInterpolateBeforeMapping(true);
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
@@ -261,6 +261,10 @@ void PolyData::update()
                                    &numComp);
             // If DataSet is a PolyData with a scalar field, or has color scalars
             if (pd != NULL || numComp > 1) {
+                if (numComp > 1) {
+                    // If we have color scalars, use triangle interpolation
+                    setInterpolateBeforeMapping(false);
+                }
                 setColorMode(COLOR_BY_SCALAR);
             } else {
                 setColorMode(_colorMode);
