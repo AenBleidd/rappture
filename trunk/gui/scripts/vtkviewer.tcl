@@ -1375,6 +1375,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 set type [$dataobj type $comp]
                 if { $type == "polydata" } {
                     ChangeColormap $dataobj $comp $palette
+                    # FIXME: fill in current selected fieldname
                     #SendCmd "polydata colormode scalar {} $dataset"
                 }
             }
@@ -1682,11 +1683,7 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
         set _dataset2style($tag) $name
         switch -- [$dataobj type $comp] {
             "polydata" {
-                # FIXME: Can't colormap a polydata from a scalar field 
-                # currently.  If we want to support this, need to use 
-                # a pseudocolor instead of a polydata, or add colormap 
-                # support to polydata
-                #SendCmd "polydata colormap $name $tag"
+                SendCmd "polydata colormap $name $tag"
             }
             "glyphs" {
                 SendCmd "glyphs colormap $name $tag"
@@ -2452,7 +2449,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     switch -- $type {
         "glyphs" {
             array set settings {
-                -color \#808080
+                -color \#FFFFFF
                 -gscale 1
                 -edges 0
                 -edgecolor black
@@ -2468,8 +2465,8 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "glyphs normscale 0 $tag"
             SendCmd "glyphs gscale $settings(-gscale) $tag"
             SendCmd "glyphs wireframe $settings(-wireframe) $tag"
-            #SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
-            #SendCmd "glyphs colormode ccolor {} $tag"
+            SendCmd "glyphs color [Color2RGB $settings(-color)] $tag"
+            #SendCmd "glyphs colormode constant {} $tag"
             SendCmd "glyphs gorient 0 {} $tag"
             SendCmd "glyphs smode vcomp {} $tag"
             SendCmd "glyphs opacity $settings(-opacity) $tag"
@@ -2498,6 +2495,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "polydata edges $settings(-edges) $tag"
             set _settings(polydata-edges) $settings(-edges)
             SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
+            #SendCmd "polydata colormode constant {} $tag"
             SendCmd "polydata lighting $settings(-lighting) $tag"
             set _settings(polydata-lighting) $settings(-lighting)
             SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
