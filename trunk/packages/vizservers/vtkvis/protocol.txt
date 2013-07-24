@@ -341,12 +341,12 @@ contour2d add numcontours <n> <?datasetName?>
           'dataset maprange' command.
 contour2d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
-contour2d ccolor <r> <g> <b> <?datasetName?>
+contour2d color <r> <g> <b> <?datasetName?>
           synonym for linecolor
 contour2d colormap <colormapName> <?datasetName?>
-contour2d colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-          Set the field used to color the object.  'ccolor' means to use
-          the constant color defined by the ccolor subcommand.  'scalar' uses
+contour2d colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+          Set the field used to color the object.  'constant' means to use
+          the constant color defined by the color subcommand.  'scalar' uses
           the active scalar field.  'vmag' uses the magnitude of the current
           vector field, and 'vx','vy','vz' use the corresponding component of
           the active vector field.
@@ -368,11 +368,11 @@ contour3d add numcontours <n> <?datasetName?>
           'dataset maprange' command.
 contour3d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
-contour3d ccolor r g b <?datasetName?>
+contour3d color r g b <?datasetName?>
 contour3d colormap <colorMapName> <?dataSetName?>
-contour3d colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-          Set the field used to color the object.  'ccolor' means to use
-          the constant color defined by the ccolor subcommand.  'scalar' uses
+contour3d colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+          Set the field used to color the object.  'constant' means to use
+          the constant color defined by the color subcommand.  'scalar' uses
           the active scalar field.  'vmag' uses the magnitude of the current
           vector field, and 'vx','vy','vz' use the corresponding component of
           the active vector field.
@@ -393,7 +393,7 @@ contour3d wireframe <bool> <?datasetName?>
 cutplane add <?dataSetName?>
 cutplane axis <axis> <bool> <?dataSetName?>
          Toggle visibility of the 3 principal axis cutplanes
-cutplane ccolor r g b <?datasetName?>
+cutplane color r g b <?datasetName?>
          Set color of outline bounding box
 cutplane cloudstyle <style> <?datasetName?>
          <style> = mesh | splat
@@ -470,12 +470,12 @@ disk wireframe <bool> <?name?>
 
 glyphs add <shape> <?dataSetName?>
        See 'glyphs shape' for list of shapes
-glyphs ccolor r g b <?datasetName?>
+glyphs color r g b <?datasetName?>
 glyphs colormap <colorMapName> <?dataSetName?>
-glyphs colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?dataSetName?>
+glyphs colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?dataSetName?>
        Set the color mode: color by scalar field or
        vector magnitude -- uses the current color map,
-       or ccolor for constant color
+       or color for constant color
 glyphs delete <?dataSetName?>
 glyphs edges <bool> <?datasetName?>
 glyphs gorient <bool> <fieldName> <?datasetName?>
@@ -536,9 +536,9 @@ heightmap aspect <aspectRatio>
 heightmap cloudstyle <style> <?datasetName?>
           <style> = mesh | splat
 heightmap colormap <colorMapName> <?dataSetName?>
-heightmap colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-          Set the field used to color the object.  'ccolor' means to use
-          the constant color defined by the ccolor subcommand.  'scalar' uses
+heightmap colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+          Set the field used to color the object.  'constant' means to use
+          the constant color defined by the color subcommand.  'scalar' uses
           the active scalar field.  'vmag' uses the magnitude of the current
           vector field, and 'vx','vy','vz' use the corresponding component of
           the active vector field.
@@ -645,11 +645,11 @@ molecule bscale <val> <?datasetName?>
          Set bond scale factor
 molecule bstyle <cylinder|line> <?datasetName?>
          Set bond render style
-molecule ccolor r g b <?datasetName?>
+molecule color r g b <?datasetName?>
 molecule colormap <colormapName> <?datasetName?>
-molecule colormode <by_elements|scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-         Set the field used to color the object.  'ccolor' means to use
-         the constant color defined by the ccolor subcommand.  'scalar' uses
+molecule colormode <by_elements|scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+         Set the field used to color the object.  'constant' means to use
+         the constant color defined by the color subcommand.  'scalar' uses
          the active scalar field.  'vmag' uses the magnitude of the current
          vector field, and 'vx','vy','vz' use the corresponding component of
          the active vector field.
@@ -686,13 +686,13 @@ outline scale <sx> <sy> <sz> <?datasetName?>
 outline visible <bool> <?datasetName?>
 
 polydata add <?datasetName?>
-polydata ccolor <r> <g> <b> <?datasetName?>
+polydata color <r> <g> <b> <?datasetName?>
 polydata cloudstyle <style> <?datasetName?>
          <style> = mesh | points
 polydata colormap <colormapName> <?datasetName?>
-polydata colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-         Set the field used to color the object.  'ccolor' means to use
-         the constant color defined by the ccolor subcommand.  'scalar' uses
+polydata colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+         Set the field used to color the object.  'constant' means to use
+         the constant color defined by the color subcommand.  'scalar' uses
          the active scalar field.  'vmag' uses the magnitude of the current
          vector field, and 'vx','vy','vz' use the corresponding component of
          the active vector field.
@@ -735,13 +735,13 @@ polygon visible <bool> <?name?>
 polygon wireframe <bool> <?name?>
 
 pseudocolor add <?datasetName?>
-pseudocolor ccolor <r> <g> <b> <?datasetName?>
+pseudocolor color <r> <g> <b> <?datasetName?>
 pseudocolor cloudstyle <style> <?datasetName?>
             <style> = mesh | points | splat
 pseudocolor colormap <colormapName> <?datasetName?>
-pseudocolor colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-            Set the field used to color the object.  'ccolor' means to use
-            the constant color defined by the ccolor subcommand.  'scalar' uses
+pseudocolor colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+            Set the field used to color the object.  'constant' means to use
+            the constant color defined by the color subcommand.  'scalar' uses
             the active scalar field.  'vmag' uses the magnitude of the current
             vector field, and 'vx','vy','vz' use the corresponding component of
             the active vector field.
@@ -787,13 +787,13 @@ sphere visible <bool> <?name?>
 sphere wireframe <bool> <?name?>
 
 streamlines add <?datasetName?>
-streamlines ccolor <r> <g> <b> <?datasetName?>
-            Set the constant color of streamlines used for color mode 'ccolor'
+streamlines color <r> <g> <b> <?datasetName?>
+            Set the constant color of streamlines used for color mode 'constant'
 streamlines colormap <colormapName> <?datasetName?>
             Colormap used to color streamlines/tubes/ribbons by vector magnitude
-streamlines colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-            Set the field used to color the streamlines.  'ccolor' means to use
-            the constant color defined by the ccolor subcommand.  'scalar' uses
+streamlines colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+            Set the field used to color the streamlines.  'constant' means to use
+            the constant color defined by the color subcommand.  'scalar' uses
             the active scalar field.  'vmag' uses the magnitude of the current
             vector field, and 'vx','vy','vz' use the corresponding component of
             the active vector field.
@@ -877,13 +877,13 @@ volume shading specular <coeff> <power> <?datasetName?>
 volume visible <bool> <?datasetName?>
 
 warp add <?dataSetName?>
-warp ccolor <r> <g> <b> <?datasetName?>
+warp color <r> <g> <b> <?datasetName?>
 warp cloudstyle <style> <?datasetName?>
      <style> = mesh | points
 warp colormap <colormapName> <?datasetName?>
-warp colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
-     Set the field used to color the object.  'ccolor' means to use
-     the constant color defined by the ccolor subcommand.  'scalar' uses
+warp colormode <scalar|vmag|vx|vy|vz|constant> <fieldName> <?datasetName?>
+     Set the field used to color the object.  'constant' means to use
+     the constant color defined by the color subcommand.  'scalar' uses
      the active scalar field.  'vmag' uses the magnitude of the current
      vector field, and 'vx','vy','vz' use the corresponding component of
      the active vector field.
