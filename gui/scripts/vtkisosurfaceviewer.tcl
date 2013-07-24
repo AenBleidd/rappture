@@ -1001,7 +1001,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline (if enabled) 
+                # Setting dataset visible enables outline
                 # and contour3d
 		SendCmd "dataset visible 1 $tag"
             }
@@ -1037,14 +1037,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings cutplaneVisible
+    InitSettings cutplaneVisible isosurfaceOutline
     if { $_reset } {
 	# These are settings that rely on a dataset being loaded.
         InitSettings \
             isosurfaceLighting \
             field \
             isosurfaceEdges isosurfaceLighting isosurfaceOpacity \
-	    isosurfaceWireframe isosurfaceOutline \
+	    isosurfaceWireframe \
 	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
             cutplanePreinterp numContours
