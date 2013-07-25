@@ -433,12 +433,16 @@ const char *DataSet::getActiveScalarsName() const
              _dataSet->GetPointData()->GetScalars() != NULL) {
             return _dataSet->GetPointData()->GetScalars()->GetName();
         }
+#ifdef DEBUG
         TRACE("No point scalars");
+#endif
         if (_dataSet->GetCellData() != NULL &&
             _dataSet->GetCellData()->GetScalars() != NULL) {
             return _dataSet->GetCellData()->GetScalars()->GetName();
         }
+#ifdef DEBUG
         TRACE("No cell scalars");
+#endif
     }
     return NULL;
 }
@@ -453,12 +457,16 @@ DataSet::DataAttributeType DataSet::getActiveScalarsType() const
              _dataSet->GetPointData()->GetScalars() != NULL) {
             return POINT_DATA;
         }
+#ifdef DEBUG
         TRACE("No point scalars");
+#endif
         if (_dataSet->GetCellData() != NULL &&
             _dataSet->GetCellData()->GetScalars() != NULL) {
             return CELL_DATA;
         }
+#ifdef DEBUG
         TRACE("No cell scalars");
+#endif
     }
     return POINT_DATA;
 }
@@ -497,12 +505,16 @@ DataSet::DataAttributeType DataSet::getActiveVectorsType() const
              _dataSet->GetPointData()->GetVectors() != NULL) {
             return POINT_DATA;
         }
+#ifdef DEBUG
         TRACE("No point vectors");
+#endif
         if (_dataSet->GetCellData() != NULL &&
             _dataSet->GetCellData()->GetVectors() != NULL) {
             return CELL_DATA;
         }
+#ifdef DEBUG
         TRACE("No cell vectors");
+#endif
     }
     return POINT_DATA;
 }
@@ -517,12 +529,16 @@ const char *DataSet::getActiveVectorsName() const
             _dataSet->GetPointData()->GetVectors() != NULL) {
             return _dataSet->GetPointData()->GetVectors()->GetName();
         }
+#ifdef DEBUG
         TRACE("No point vectors");
+#endif
         if (_dataSet->GetCellData() != NULL &&
             _dataSet->GetCellData()->GetVectors() != NULL) {
             return _dataSet->GetCellData()->GetVectors()->GetName();
         }
+#ifdef DEBUG
         TRACE("No cell vectors");
+#endif
     }
     return NULL;
 }
