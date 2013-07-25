@@ -182,6 +182,7 @@ void Molecule::update()
 
     addLabelArray(ds);
     addRadiusArray(ds, _atomScaling, _radiusScale);
+    computeBonds(ds);
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
     if (pd) {
@@ -1057,4 +1058,66 @@ ColorMap *Molecule::createElementColorMap()
     elementCmap->getLookupTable()->SetRange(range);
 
     return elementCmap;
+}
+
+int Molecule::computeBonds(vtkDataSet *dataSet, float tolerance)
+{
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(dataSet);
+    if (pd == NULL) {
+        ERROR("DataSet not a PolyData");
+        return -1;
+    }
+
+    if (pd->GetNumberOfPoints() < 2 ||
+        pd->GetNumberOfLines() > 0) {
+        return 0;
+    }
+
+    vtkDataArray *elements = NULL;
+    if (pd->GetPointData() != NULL &&
+        pd->GetPointData()->GetScalars() != NULL &&
+        strcmp(pd->GetPointData()->GetScalars()->GetName(), "element") == 0) {
+        elements = pd->GetPointData()->GetScalars();
+    } else {
+        TRACE("Can't compute bonds without an element array");
+        return -1;
+    }
+    int numAtoms = pd->GetNumberOfPoints();
+    vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+    for (int i = 0; i < numAtoms; i++) {
+        double pt1[3];
+        int elem1 = (int)elements->GetComponent(i, 0);
+        float r1 = g_covalentRadii[elem1];
+        pd->GetPoint(i, pt1);
+        for (int j = i+1; j < numAtoms; j++) {
+            float r2, dist;
+            double pt2[3];
+            int elem2 = (int)elements->GetComponent(j, 0);
+
+            if (elem1 == 1 && elem2 == 1)
+                continue;
+
+            r2 = g_covalentRadii[elem2];
+            pd->GetPoint(j, pt2);
+
+            double x = pt1[0] - pt2[0];
+            double y = pt1[1] - pt2[1];
+            double z = pt1[2] - pt2[2];
+            dist = (float)sqrt(x*x + y*y + z*z);
+            //TRACE("i=%d,j=%d elem1=%d,elem2=%d r1=%g,r2=%g, dist=%g", i, j, elem1, elem2, r1, r2, dist); 
+            if (dist < (r1 + r2 + tolerance)) {
+                vtkIdType pts[2];
+                pts[0] = i;
+                pts[1] = j;
+                cells->InsertNextCell(2, pts);
+            }
+        }
+    }
+
+    if (cells->GetNumberOfCells() > 0) {
+        pd->SetLines(cells);
+    }
+
+    TRACE("Generated %d bonds", cells->GetNumberOfCells());
+    return cells->GetNumberOfCells();
 }
