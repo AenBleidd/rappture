@@ -926,10 +926,14 @@ void Molecule::setupBondPolyData()
 
         if (elements != NULL) {
             int element = (int)elements->GetComponent(pts[0], 0);
+#ifdef DEBUG
             TRACE("Bond %d, elt 0: %d", i, element);
+#endif
             bondElements->InsertNextValue(element);
             element = (int)elements->GetComponent(pts[1], 0);
+#ifdef DEBUG
             TRACE("Bond %d, elt 1: %d", i, element);
+#endif
             bondElements->InsertNextValue(element);
         }
     }
