@@ -899,10 +899,12 @@ void Molecule::setupBondPolyData()
         bondPoints->InsertNextPoint(newPt0);
         bondPoints->InsertNextPoint(newPt1);
 
+#ifdef DEBUG
         TRACE("Bond %d: (%g,%g,%g)-(%g,%g,%g)-(%g,%g,%g)", i,
               pt0[0], pt0[1], pt0[2], 
               center[0], center[1], center[2],
               pt1[0], pt1[1], pt1[2]);
+#endif
 
         double vec[3];
         for (int j = 0; j < 3; j++)
@@ -910,7 +912,9 @@ void Molecule::setupBondPolyData()
 
         bondVectors->InsertNextTupleValue(vec);
         bondVectors->InsertNextTupleValue(vec);
+#ifdef DEBUG
         TRACE("Bond %d, vec: %g,%g,%g", i, vec[0], vec[1], vec[2]);
+#endif
 
         double scale[3];
         scale[0] = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
