@@ -189,6 +189,8 @@ private:
 
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor);
 
+    static int computeBonds(vtkDataSet *dataSet, float tolerance = 0.45f);
+
     float _bondColor[3];
     double _radiusScale;
     AtomScaling _atomScaling;
