@@ -5,7 +5,7 @@ USE_FONT_CONFIG         = #yes
 USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
-NEW_SCALAR_BAR          = yes
+NEW_SCALAR_BAR          = #yes
 
 bindir          = @bindir@
 datadir         = @datadir@

@@ -150,12 +150,10 @@ void Contour3D::update()
             mesher->SetInput(ds);
 #endif
             _contourFilter->SetInputConnection(mesher->GetOutputPort());
-        } else if (vtkPolyData::SafeDownCast(ds) != NULL) {
-            // DataSet is a vtkPolyData with lines and/or polygons
-            ERROR("Not a 3D DataSet");
-            return;
         } else {
-            // DataSet is NOT a vtkPolyData
+            // DataSet is 3D with cells.  If DataSet is a surface
+            // (e.g. polydata or ugrid with 2D cells), we will 
+            // generate lines instead of surfaces
 #ifdef USE_VTK6
             _contourFilter->SetInputData(ds);
 #else
