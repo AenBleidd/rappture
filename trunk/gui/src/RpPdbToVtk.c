@@ -20,9 +20,31 @@
 #include <float.h>
 #include "tcl.h"
 
+typedef struct {
+    int from, to;
+} ConnectKey;
 
-static INLINE char *
-SkipSpaces(char *string) 
+typedef struct {
+    int lineNum;
+    char atomName[6];			/* Atom name.  */
+    char symbolName[3];			/* Symbol name.  */
+    char residueName[4];		/* Residue name. */
+    int serial;				/* Serial # in PDB file. */
+    double x, y, z;			/* Coordinates of atom. */
+    int number;				/* Atomic number */
+} PdbAtom;
+
+static int lineNum = 0;
+static const char *
+Itoa(int number) 
+{
+    static char buf[200];
+    sprintf(buf, "%d", number);
+    return buf;
+}
+
+static INLINE const char *
+SkipSpaces(const char *string) 
 {
     while (isspace(*string)) {
 	string++;
@@ -30,10 +52,23 @@ SkipSpaces(char *string)
     return string;
 }
 
-static INLINE char *
-GetLine(char **stringPtr, const char *endPtr, int *lengthPtr) 
+static int
+IsSpaces(const char *string) 
 {
-    char *line, *p;
+    const char *p;
+    for (p = string; *p != '\0'; p++) {
+	if (!isspace(*p)) {
+	    return 0;
+	}
+    }
+    return 1;
+}
+
+static INLINE const char *
+GetLine(const char **stringPtr, const char *endPtr, int *lengthPtr) 
+{
+    const char *line;
+    const char *p;
 
     line = SkipSpaces(*stringPtr);
     for (p = line; p < endPtr; p++) {
@@ -46,128 +81,6 @@ GetLine(char **stringPtr, const char *endPtr, int *lengthPtr)
     *stringPtr = p;
     return line;
 }
-
-static const char *elemNames[] = {
-    "Hydrogen",				/* 1 */		
-    "Helium",				/* 2 */		
-    "Lithium",				/* 3 */		
-    "Beryllium",			/* 4 */		
-    "Boron",				/* 5 */		
-    "Carbon",				/* 6 */		
-    "Nitrogen",				/* 7 */		
-    "Oxygen",				/* 8 */		
-    "Fluorine",				/* 9 */		
-    "Neon",				/* 10 */	
-    "Sodium",				/* 11 */	
-    "Magnesium",			/* 12 */	
-    "Aluminium",			/* 13 */	
-    "Silicon",				/* 14 */	
-    "Phosphorus",			/* 15 */	
-    "Sulfur",				/* 16 */	
-    "Chlorine",				/* 17 */	
-    "Argon",				/* 18 */	
-    "Potassium",			/* 19 */	
-    "Calcium",				/* 20 */	
-    "Scandium",				/* 21 */	
-    "Titanium",				/* 22 */	
-    "Vanadium",				/* 23 */	
-    "Chromium",				/* 24 */	
-    "Manganese",			/* 25 */	
-    "Iron",				/* 26 */	
-    "Cobalt",				/* 27 */	
-    "Nickel",				/* 28 */	
-    "Copper",				/* 29 */	
-    "Zinc",				/* 30 */	
-    "Gallium",				/* 31 */	
-    "Germanium",		/* 32 */	
-    "Arsenic",		/* 33 */	
-    "Selenium",		/* 34 */	
-    "Bromine",		/* 35 */	
-    "Krypton",		/* 36 */	
-    "Rubidium",		/* 37 */	
-    "Strontium",		/* 38 */	
-    "Yttrium",		/* 39 */	
-    "Zirconium",		/* 40 */	
-    "Niobium",		/* 41 */	
-    "Molybdenum",		/* 42 */	
-    "Technetium",		/* 43 */	
-    "Ruthenium",		/* 44 */	
-    "Rhodium",		/* 45 */	
-    "Palladium",		/* 46 */	
-    "Silver",		/* 47 */	
-    "Cadmium",		/* 48 */	
-    "Indium",		/* 49 */	
-    "Tin",			/* 50 */	
-    "Antimony",		/* 51 */	
-    "Tellurium",		/* 52 */	
-    "Iodine",		/* 53 */	
-    "Xenon",		/* 54 */	
-    "Cesium",		/* 55 */	
-    "Barium",		/* 56 */	
-    "Lanthanum",		/* 57 */	
-    "Cerium",		/* 58 */	
-    "Praseodymium",		/* 59 */	
-    "Neodymium",		/* 60 */	
-    "Promethium",		/* 61 */	
-    "Samarium",		/* 62 */	
-    "Europium",		/* 63 */	
-    "Gadolinium",		/* 64 */	
-    "Terbium",		/* 65 */	
-    "Dysprosium",		/* 66 */	
-    "Holmium",		/* 67 */	
-    "Erbium",		/* 68 */	
-    "Thulium",		/* 69 */	
-    "Ytterbium",		/* 70 */	
-    "Lutetium",		/* 71 */	
-    "Hafnium",		/* 72 */	
-    "Tantalum",		/* 73 */	
-    "Tungsten",		/* 74 */	
-    "Rhenium",		/* 75 */	
-    "Osmium",		/* 76 */	
-    "Iridium",		/* 77 */	
-    "Platinum",		/* 78 */	
-    "Gold",			/* 79 */	
-    "Mercury",		/* 80 */	
-    "Thallium",		/* 81 */	
-    "Lead",			/* 82 */	
-    "Bismuth",		/* 83 */	
-    "Polonium",		/* 84 */	
-    "Astatine",		/* 85 */	
-    "Radon",		/* 86 */	
-    "Francium",		/* 87 */	
-    "Radium",		/* 88 */	
-    "Actinium",		/* 89 */	
-    "Thorium",		/* 90 */	
-    "Protactinium",		/* 91 */	
-    "Uranium",		/* 92 */	
-    "Neptunium",		/* 93 */	
-    "Plutonium",		/* 94 */	
-    "Americium",		/* 95 */	
-    "Curium",		/* 96 */	
-    "Berkelium",		/* 97 */	
-    "Californium",		/* 98 */	
-    "Einsteinium",		/* 99 */	
-    "Fermium",		/* 100 */	
-    "Mendelevium",		/* 101 */	
-    "Nobelium",		/* 102 */	
-    "Lawrencium",		/* 103 */	
-    "Rutherfordium",	/* 104 */	
-    "Dubnium",		/* 105 */	
-    "Seaborgium",		/* 106 */	
-    "Bohrium",		/* 107 */	
-    "Hassium",		/* 108 */	
-    "Meitnerium",		/* 109 */	
-    "Darmstadtium",		/* 110 */	
-    "Roentgenium",		/* 111 */	
-    "Copernicium",		/* 112 */	
-    "Ununtrium",		/* 113 */	
-    "Flerovium",		/* 114 */	
-    "Ununpentium",		/* 115 */	
-    "Livermorium",		/* 116 */	
-    "Ununseptium",		/* 117 */	
-    "Ununoctium",		/* 118 */	
-    NULL
-};
 
 static const char *symbolNames[] = {
     "H",			/* 1 */		
@@ -292,66 +205,173 @@ static const char *symbolNames[] = {
 };
 
 int 
-VerifyElement(const char *elemName, const char *symbolName)
+GetAtomicNumber(Tcl_Interp *interp, PdbAtom *atomPtr)
 {
     const char **p;
+    char name[3], *namePtr;
     int elemIndex, symbolIndex;
 
     symbolIndex = elemIndex = -1;
-    elemName = SkipSpaces(elemName);
-    for (p = symbolNames; *p != NULL; p++) {
-	if (strcasecmp(elemName, *p) == 0) {
-	    elemIndex = (p - symbolNames) + 1;
-	    break;
+
+    /* 
+     * The atomic symbol may be found the atom name in various locations
+     *	"C   "
+     *  " C  "
+     *  "  C "
+     "  "   C"
+     "  "C 12"
+     "  " C12"
+     */
+    if ((atomPtr->atomName[0] == ' ') && (atomPtr->atomName[1] == ' ')) {
+	name[0] = atomPtr->atomName[2];
+	name[1] = atomPtr->atomName[3];
+    } else {
+	name[0] = atomPtr->atomName[0];
+	name[1] = atomPtr->atomName[1];
+    }
+    name[2] = '\0';
+    if ((name[0] != ' ') || (name[1] != ' ')) {
+	namePtr = name;
+	if (name[0] == ' ') {
+	    namePtr++;
+	}
+	if (name[1] == ' ') {
+	    name[1] = '\0';
+	}
+	for (p = symbolNames; *p != NULL; p++) {
+	    if (strcasecmp(namePtr, *p) == 0) {
+		elemIndex = (p - symbolNames) + 1;
+		break;
+	    }
 	}
     }
-    symbolName = SkipSpaces(symbolName);
-    for (p = symbolNames; *p != NULL; p++) {
-	if (strcasecmp(symbolName, *p) == 0) {
-	    symbolIndex = (p - symbolNames) + 1;
-	    break;
+    name[0] = atomPtr->symbolName[0];
+    name[1] = atomPtr->symbolName[1];
+    name[2] = '\0';
+    if (isdigit(name[1])) {
+	sscanf(name, "%d", &atomPtr->number);
+	return TCL_OK;
+    }
+    if ((name[0] != ' ') || (name[1] != ' ')) {
+	namePtr = name;
+	if (name[0] == ' ') {
+	    namePtr++;
+	}
+	if (name[1] == ' ') {
+	    name[1] = '\0';
+	}
+	for (p = symbolNames; *p != NULL; p++) {
+	    if (strcasecmp(namePtr, *p) == 0) {
+		symbolIndex = (p - symbolNames) + 1;
+		break;
+	    }
 	}
     }
     if (symbolIndex > 0) {
 	if (elemIndex < 0) {
-	    return symbolIndex;
+	    atomPtr->number = symbolIndex;
+	    return TCL_OK;
 	}
 	if (symbolIndex != elemIndex) {
-	    return -1;
+	    fprintf(stderr, "atomName %s and symbolName %s don't match\n",
+		    atomPtr->atomName, atomPtr->symbolName);
+	    atomPtr->number = symbolIndex;
+	    return TCL_OK;
 	}
-	return elemIndex;
+	atomPtr->number = elemIndex;
+	return TCL_OK;
     } else if (elemIndex > 0) {
-	return elemIndex;
+	atomPtr->number = elemIndex;
+	return TCL_OK;
     }
-    return -1;
+    Tcl_AppendResult(interp, "line ", Itoa(lineNum), 
+		     ": bad atom \"", atomPtr->atomName, "\" or element \"", 
+		     atomPtr->symbolName, "\"", (char *)NULL);
+    return TCL_ERROR;
+}
+
+static int 
+SerialToIndex(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
+	      int *indexPtr)
+{
+    int serial;
+    long lserial, lindex;
+    Tcl_HashEntry *hPtr;
+
+    string = SkipSpaces(string);
+    if (Tcl_GetInt(interp, string, &serial) != TCL_OK) {
+	Tcl_AppendResult(interp, ": line ", Itoa(lineNum), 
+		": invalid serial number \"", string, 
+		"\" in CONECT record", (char *)NULL);
+	return TCL_ERROR;
+    }
+    lserial = (long)serial;
+    hPtr = Tcl_FindHashEntry(tablePtr, (char *)lserial);
+    if (hPtr == NULL) {
+	Tcl_AppendResult(interp, "serial number \"", string, 
+			 "\" not found in table", (char *)NULL);
+	return TCL_ERROR;
+    }
+    lindex = (long)Tcl_GetHashValue(hPtr);
+    *indexPtr = (int)lindex;
+    return TCL_OK;
+}
+
+static int
+GetCoordinates(Tcl_Interp *interp, const char *line, PdbAtom *atomPtr)
+{
+    char buf[200];
+
+    strncpy(buf, line + 30, 8);
+    buf[8] = '\0';
+    if (Tcl_GetDouble(interp, buf, &atomPtr->x) != TCL_OK) {
+	Tcl_AppendResult(interp, "bad x-coordinate \"", buf,
+			 "\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    strncpy(buf, line + 38, 8);
+    buf[8] = '\0';
+    if (Tcl_GetDouble(interp, buf, &atomPtr->y) != TCL_OK) {
+	Tcl_AppendResult(interp, "bad y-coordinate \"", buf,
+			 "\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    strncpy(buf, line + 46, 8);
+    buf[8] = '\0';
+    if (Tcl_GetDouble(interp, buf, &atomPtr->z) != TCL_OK) {
+	Tcl_AppendResult(interp, "bad z-coordinate \"", buf,
+			 "\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    return TCL_OK;
 }
 
 /* 
  *  PdbToVtk string
  */
-
 static int
 PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv) 
 {
     Tcl_Obj *objPtr, *pointsObjPtr, *atomsObjPtr, *verticesObjPtr;
-    char *p, *pend;
+    const char *p, *pend;
     char *string;
     char mesg[2000];
-    int length, numAtoms, numConnections;
-    Tcl_HashTable serialTable;
+    int length, nextIndex;
+    Tcl_HashTable serialTable, conectTable;
     int i;
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     int isNew;
 
-    numConnections = numAtoms = 0;
+    lineNum = nextIndex = 0;
     if (objc != 2) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"",
 			 Tcl_GetString(objv[0]), " string\"", (char *)NULL);
 	return TCL_ERROR;
     }
     Tcl_InitHashTable(&serialTable, TCL_ONE_WORD_KEYS);
+    Tcl_InitHashTable(&conectTable, sizeof(ConnectKey) / sizeof(int));
     string = Tcl_GetStringFromObj(objv[1], &length);
     pointsObjPtr = Tcl_NewStringObj("", -1);
     atomsObjPtr = Tcl_NewStringObj("", -1);
@@ -361,10 +381,12 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_IncrRefCount(verticesObjPtr);
     objPtr = NULL;
     for (p = string, pend = p + length; p < pend; /*empty*/) {
-	char *line, *q;
+	const char *line;
 	char c;
 	int lineLength;
 
+	lineLength = 0;			/* Suppress compiler warning. */
+	lineNum++;
 	line = GetLine(&p, pend, &lineLength);
         if (line >= pend) {
 	    break;			/* EOF */
@@ -377,11 +399,8 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	if (((c == 'A') && (strncmp(line, "ATOM  ", 6) == 0)) ||
 	    ((c == 'H') && (strncmp(line, "HETATM", 6) == 0))) {
 	    char buf[200];
-	    char atomName[6];
-	    char symbolName[3];
-	    int serial;
-	    double x, y, z;
-	    int atom;
+	    long lserial;
+	    PdbAtom atom;
 
 	    if (lineLength < 47) {
 		Tcl_AppendResult(interp, "short ATOM line \"", line, "\"", 
@@ -390,100 +409,129 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    }		
 	    strncpy(buf, line + 6, 5);
 	    buf[5] = '\0';
-	    if (Tcl_GetInt(interp, buf, &serial) != TCL_OK) {
-		Tcl_AppendResult(interp, "bad serial number \"", buf,
-				 "\"", (char *)NULL);
+	    if (Tcl_GetInt(interp, buf, &atom.serial) != TCL_OK) {
+		Tcl_AppendResult(interp, "line ", Itoa(lineNum), 
+			": bad serial number \"", buf, "\"", (char *)NULL);
 		goto error;
 	    }
-	    hPtr = Tcl_CreateHashEntry(&serialTable, (char *)serial, &isNew);
+	    lserial = (long)atom.serial;
+	    hPtr = Tcl_CreateHashEntry(&serialTable, (char *)lserial, &isNew);
 	    if (!isNew) {
-		Tcl_AppendResult(interp, "serial number \"", buf,
-				 "\" found more than once", (char *)NULL);
+		Tcl_AppendResult(interp, "line ", Itoa(lineNum), 
+			": serial number \"", buf, "\" found more than once", 
+			(char *)NULL);
 		goto error;
 	    }
-	    Tcl_SetHashValue(hPtr, numAtoms);
+	    Tcl_SetHashValue(hPtr, (long)nextIndex);
+	    strncpy(atom.atomName, line + 12, 4);
+	    atom.atomName[4] = '\0';
+	    strncpy(atom.residueName, line + 17, 3);
+	    atom.residueName[3] = '\0';
+
+	    if (GetCoordinates(interp, line, &atom) != TCL_OK) {
+		goto error;
+	    }
+	    atom.symbolName[0] = '\0';
+	    if (lineLength >= 77) {
+		atom.symbolName[0] = line[76];
+		atom.symbolName[1] = line[77];
+		atom.symbolName[2] = '\0';
+	    }
+	    if (GetAtomicNumber(interp, &atom) != TCL_OK) {
+		goto error;
+	    }
 	    Tcl_ListObjAppendElement(interp, verticesObjPtr, 
 				     Tcl_NewIntObj(1));
 	    Tcl_ListObjAppendElement(interp, verticesObjPtr, 
-				     Tcl_NewIntObj(serial));
-
-	    strncpy(atomName, line + 12, 4);
-	    atomName[4] = '\0';
-	    
-	    strncpy(buf, line + 30, 8);
-	    buf[8] = '\0';
-	    if (Tcl_GetDouble(interp, buf, &x) != TCL_OK) {
-		Tcl_AppendResult(interp, "bad x-coordinate \"", buf,
-				 "\"", (char *)NULL);
-		goto error;
-	    }
-	    Tcl_ListObjAppendElement(interp, pointsObjPtr, Tcl_NewDoubleObj(x));
-	    strncpy(buf, line + 38, 8);
-	    buf[8] = '\0';
-	    if (Tcl_GetDouble(interp, buf, &y) != TCL_OK) {
-		Tcl_AppendResult(interp, "bad y-coordinate \"", buf,
-				 "\"", (char *)NULL);
-		goto error;
-	    }
-	    Tcl_ListObjAppendElement(interp, pointsObjPtr, Tcl_NewDoubleObj(y));
-	    strncpy(buf, line + 46, 8);
-	    buf[8] = '\0';
-	    if (Tcl_GetDouble(interp, buf, &z) != TCL_OK) {
-		Tcl_AppendResult(interp, "bad z-coordinate \"", buf,
-				 "\"", (char *)NULL);
-		goto error;
-	    }
-	    Tcl_ListObjAppendElement(interp, pointsObjPtr, Tcl_NewDoubleObj(z));
-	    symbolName[0] = '\0';
-	    if (lineLength >= 78) {
-		symbolName[0] = line[76];
-		symbolName[1] = line[77];
-		symbolName[2] = '\0';
-	    }
-	    atom = VerifyElement(SkipSpaces(atomName), SkipSpaces(symbolName));
-	    if (atom < 0) {
-		Tcl_AppendResult(interp, "bad atom \"", atomName, 
-			"\" or element \"", symbolName, "\"", (char *)NULL);
-		goto error;
-	    }
-	    Tcl_ListObjAppendElement(interp, atomsObjPtr, Tcl_NewIntObj(atom));
-	    numAtoms++;
+				     Tcl_NewIntObj(atom.serial));
+	    Tcl_ListObjAppendElement(interp, pointsObjPtr, 
+				     Tcl_NewDoubleObj(atom.x));
+	    Tcl_ListObjAppendElement(interp, pointsObjPtr, 
+				     Tcl_NewDoubleObj(atom.y));
+	    Tcl_ListObjAppendElement(interp, pointsObjPtr, 
+				     Tcl_NewDoubleObj(atom.z));
+	    Tcl_ListObjAppendElement(interp, atomsObjPtr, 
+				     Tcl_NewIntObj(atom.number));
+	    nextIndex++;
 	} else if ((c == 'C') && (strncmp(line, "CONECT", 6) == 0)) {
-	    numConnections++;
+	    int a, i, n;
+	    char buf[200];
+
+	    strncpy(buf, line + 6, 5);
+	    buf[5] = '\0';
+	    if (lineLength < 11) {
+		char *msg;
+
+		msg = (char *)line;
+		msg[lineLength] = '\0';
+		Tcl_AppendResult(interp, "line ", Itoa(lineNum), 
+			": bad CONECT record \"", msg, "\"",
+			(char *)NULL);
+		goto error;
+	    }
+	    if (SerialToIndex(interp, &serialTable, buf, &a) != TCL_OK) {
+		goto error;
+	    }
+	    /* Allow basic maximum of 4 connections. */
+	    for (n = 11, i = 0; i < 4; i++, n += 5) {
+		ConnectKey key;
+		int b;
+		if (n >= lineLength) {
+		    break;		
+		}
+		strncpy(buf, line + n, 5);
+		buf[5] = '\0';
+		if (IsSpaces(buf)) {
+		    break;		/* No more entries */
+		}
+		if (SerialToIndex(interp, &serialTable, buf, &b) != TCL_OK) {
+		    goto error;
+		}
+		if (a > b) {
+		    key.from = b;
+		    key.to = a;
+		} else {
+		    key.from = a;
+		    key.to = b;
+		}
+		Tcl_CreateHashEntry(&conectTable, (char *)&key, &isNew);
+	    }
 	}
     }
     objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
-    Tcl_AppendToObj(objPtr, "Converted from PDB file\n", -1);
+    Tcl_AppendToObj(objPtr, "Converted from PDB format\n", -1);
     Tcl_AppendToObj(objPtr, "ASCII\n", -1);
     Tcl_AppendToObj(objPtr, "DATASET POLYDATA\n", -1);
-    sprintf(mesg, "POINTS %d float\n", numAtoms);
+    sprintf(mesg, "POINTS %d float\n", serialTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);
     Tcl_AppendObjToObj(objPtr, pointsObjPtr);
     sprintf(mesg, "\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
 
-#ifdef notdef
-    if (numConnections > 0) {
-	sprintf(mesg, "LINES %d %d\n", numConnections, numConnections * 3);
+    if (conectTable.numEntries > 0) {
+	sprintf(mesg, "LINES %d %d\n", conectTable.numEntries, 
+		conectTable.numEntries * 3);
 	Tcl_AppendToObj(objPtr, mesg, -1);
-	for (hPtr = Tcl_FirstHashEntry(&connectTable, &iter); hPtr != NULL;
+	for (hPtr = Tcl_FirstHashEntry(&conectTable, &iter); hPtr != NULL;
 	     hPtr = Tcl_NextHashEntry(&iter)) {
-	    connectPtr = Tcl_GetHashEntry(hPtr);
-	    sprintf(mesg, "2 %d %d\n", connectPtr->from, connectPtr->to);
+	    ConnectKey *keyPtr;
+
+	    keyPtr = (ConnectKey *)Tcl_GetHashKey(&conectTable, hPtr);
+	    sprintf(mesg, "2 %d %d\n", keyPtr->from, keyPtr->to);
+	    Tcl_AppendToObj(objPtr, mesg, -1);
 	}
+	sprintf(mesg, "\n");
+	Tcl_AppendToObj(objPtr, mesg, -1);
     }
-    Tcl_AppendObjToObj(objPtr, linesObjPtr);
-    sprintf(mesg, "\n");
-    Tcl_AppendToObj(objPtr, mesg, -1);
-#endif
     
-    sprintf(mesg, "VERTICES %d %d\n", numAtoms, numAtoms * 2);
+    sprintf(mesg, "VERTICES %d %d\n", serialTable.numEntries, 
+	    serialTable.numEntries * 2);
     Tcl_AppendToObj(objPtr, mesg, -1);
-    for (i = 0; i < numAtoms; i++) {
+    for (i = 0; i < serialTable.numEntries; i++) {
 	sprintf(mesg, " 1 %d\n", i);
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
-    sprintf(mesg, "POINT_DATA %d\n", numAtoms);
+    sprintf(mesg, "POINT_DATA %d\n", serialTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "SCALARS element int\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
@@ -491,6 +539,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_AppendToObj(objPtr, mesg, -1);
     Tcl_AppendObjToObj(objPtr, atomsObjPtr);
     Tcl_DeleteHashTable(&serialTable);
+    Tcl_DeleteHashTable(&conectTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
     Tcl_DecrRefCount(verticesObjPtr);
@@ -499,6 +548,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
  error:
+    Tcl_DeleteHashTable(&conectTable);
     Tcl_DeleteHashTable(&serialTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
