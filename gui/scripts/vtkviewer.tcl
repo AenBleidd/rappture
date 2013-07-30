@@ -906,7 +906,8 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
     if { $info(-type) == "image" } {
         if 0 {
             set f [open "last.ppm" "w"] 
-            puts $f $bytes
+            fconfigure $f -encoding binary
+            puts -nonewline $f $bytes
             close $f
         }
         $_image(plot) configure -data $bytes
