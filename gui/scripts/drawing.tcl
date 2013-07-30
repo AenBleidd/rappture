@@ -101,7 +101,7 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
             molecule* {
                 set pdbdata [$_xmlobj get $path.$elem.pdb]
                 if { $pdbdata != "" } {
-                    if 1 {
+                    if 0 {
                         global count
                         set f [open /tmp/file$count.pdb "w"]
                         incr count
