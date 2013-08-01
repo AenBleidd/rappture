@@ -266,6 +266,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         polydata-wireframe      0
         molecule-atomscale      0.3
         molecule-bondscale      0.075
+        molecule-bondstyle      "cylinder"
         molecule-atoms-visible  1
         molecule-bonds-visible  1
         molecule-edges          0
@@ -1075,8 +1076,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         Zoom reset
     }
 
-    SendCmd "dataset maprange visible"
-
     if { $_haveMolecules } {
         #FixSettings molecule-representation 
     }
@@ -1458,7 +1457,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) covalent
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 1
-                    set bstyle cylinder
+                    set _settings(molecule-bondstyle) cylinder
                     set _settings(molecule-atomscale) 0.3
                     set _settings(molecule-bondscale) 0.075
                 }
@@ -1466,7 +1465,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) covalent
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 0
-                    set bstyle cylinder
+                    set _settings(molecule-bondstyle) cylinder
                     set _settings(molecule-atomscale) 0.3
                     set _settings(molecule-bondscale) 0.075
                 }
@@ -1474,7 +1473,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 1
-                    set bstyle cylinder
+                    set _settings(molecule-bondstyle) cylinder
                     set _settings(molecule-atomscale) 0.075
                     set _settings(molecule-bondscale) 0.075
                 }
@@ -1482,7 +1481,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) van_der_waals
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 0
-                    set bstyle cylinder
+                    set _settings(molecule-bondstyle) cylinder
                     set _settings(molecule-atomscale) 1.0
                     set _settings(molecule-bondscale) 0.075
                 }
@@ -1490,7 +1489,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 1
                     set _settings(molecule-bonds-visible) 1
-                    set bstyle cylinder
+                    set _settings(molecule-bondstyle) cylinder
                     set _settings(molecule-atomscale) 0.1
                     set _settings(molecule-bondscale) 0.1
                 }
@@ -1498,7 +1497,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 0
                     set _settings(molecule-bonds-visible) 1
-                    set bstyle line
+                    set _settings(molecule-bondstyle) cylinder
                     set _settings(molecule-atomscale) 1.0
                     set _settings(molecule-bondscale) 1.0
                 }
@@ -1515,14 +1514,14 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     $itk_component(rscale) configure -state disabled
                 }
             }
-            foreach dataset [CurrentDatasets -visible $_first] {
+            foreach dataset [CurrentDatasets -all] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "molecule" } {
                     SendCmd [subst {molecule rscale $_settings(molecule-rscale) $dataset
 molecule ascale $_settings(molecule-atomscale) $dataset
 molecule bscale $_settings(molecule-bondscale) $dataset
-molecule bstyle $bstyle $dataset
+molecule bstyle $_settings(molecule-bondstyle) $dataset
 molecule atoms $_settings(molecule-atoms-visible) $dataset
 molecule bonds $_settings(molecule-bonds-visible) $dataset}]
                 }
@@ -2476,6 +2475,11 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         }
         "molecule" {
             SendCmd "molecule add $tag"
+            SendCmd "molecule ascale $_settings(molecule-atomscale) $tag"
+            SendCmd "molecule bscale $_settings(molecule-bondscale) $tag"
+            SendCmd "molecule bstyle $_settings(molecule-bondstyle) $tag"
+            SendCmd "molecule atoms $_settings(molecule-atoms-visible) $tag"
+            SendCmd "molecule bonds $_settings(molecule-bonds-visible) $tag"
             set _haveMolecules 1
         }
         "polydata" {
