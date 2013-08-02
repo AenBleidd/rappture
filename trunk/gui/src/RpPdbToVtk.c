@@ -32,6 +32,7 @@ typedef struct {
     double x, y, z;			/* Coordinates of atom. */
     int number;				/* Atomic number */
     int ordinal;			/* Index of the atom in VTK. */
+    int numConnections;			/*  */
 } PdbAtom;
 
 typedef struct {
@@ -233,6 +234,10 @@ ComputeBonds(Tcl_HashTable *atomTablePtr, Tcl_HashTable *conectTablePtr)
 		    key.to = atom2Ptr->ordinal;
 		}
 		Tcl_CreateHashEntry(conectTablePtr, (char *)&key, &isNew);
+		if (isNew) {
+		    atom1Ptr->numConnections++;
+		    atom2Ptr->numConnections++;
+		}
             }
         }
     }
@@ -650,6 +655,10 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		    key.to = b;
 		}
 		Tcl_CreateHashEntry(&conectTable, (char *)&key, &isNew);
+		if (isNew) {
+		    atom1Ptr->numConnections++;
+		    atom2Ptr->numConnections++;
+		}
 	    }
 	}
     }
