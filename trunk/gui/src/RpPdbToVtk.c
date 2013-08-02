@@ -31,7 +31,7 @@ typedef struct {
 typedef struct {
     double x, y, z;			/* Coordinates of atom. */
     int number;				/* Atomic number */
-    int index;				/* Index of the atom in VTK. */
+    int ordinal;			/* Index of the atom in VTK. */
 } PdbAtom;
 
 typedef struct {
@@ -174,7 +174,7 @@ Itoa(int number)
 }
 
 static void
-ComputeBonds(Tcl_HashTable *serialTablePtr, Tcl_HashTable *conectTablePtr)
+ComputeBonds(Tcl_HashTable *atomTablePtr, Tcl_HashTable *conectTablePtr)
 {
     PdbAtom **array;
     int i;
@@ -183,25 +183,25 @@ ComputeBonds(Tcl_HashTable *serialTablePtr, Tcl_HashTable *conectTablePtr)
 
 #define TOLERANCE 0.45			/* Fuzz factor for comparing distances
 					 * (in angstroms) */
-    array = calloc(serialTablePtr->numEntries, sizeof(PdbAtom *));
+    array = calloc(atomTablePtr->numEntries, sizeof(PdbAtom *));
     if (array == NULL) {
 	return;
     }
-    for (i = 0, hPtr = Tcl_FirstHashEntry(serialTablePtr, &iter); hPtr != NULL;
+    for (i = 0, hPtr = Tcl_FirstHashEntry(atomTablePtr, &iter); hPtr != NULL;
 	 hPtr = Tcl_NextHashEntry(&iter), i++) {
 	PdbAtom *atomPtr;
 
 	atomPtr = Tcl_GetHashValue(hPtr);
 	array[i] = atomPtr;
     }
-    for (i = 0; i < serialTablePtr->numEntries; i++) {
+    for (i = 0; i < atomTablePtr->numEntries; i++) {
 	PdbAtom *atom1Ptr;
 	double r1;
 	int j;
 
 	atom1Ptr = array[i];
         r1 = elements[atom1Ptr->number].radius;
-        for (j = i+1; j < serialTablePtr->numEntries; j++) {
+        for (j = i+1; j < atomTablePtr->numEntries; j++) {
 	    PdbAtom *atom2Ptr;
             double ds2, cut;
 	    double r2;
@@ -213,8 +213,8 @@ ComputeBonds(Tcl_HashTable *serialTablePtr, Tcl_HashTable *conectTablePtr)
 	    r2 = elements[atom2Ptr->number].radius;
 	    cut = (r1 + r2 + TOLERANCE);
 	    ds2 = (((atom1Ptr->x - atom2Ptr->x) * (atom1Ptr->x - atom2Ptr->x)) +
-		  ((atom1Ptr->y - atom2Ptr->y) * (atom1Ptr->y - atom2Ptr->y)) +
-		  ((atom1Ptr->z - atom2Ptr->z) * (atom1Ptr->z - atom2Ptr->z)));
+		   ((atom1Ptr->y - atom2Ptr->y) * (atom1Ptr->y - atom2Ptr->y)) +
+		   ((atom1Ptr->z - atom2Ptr->z) * (atom1Ptr->z - atom2Ptr->z)));
 
 	    // perform distance test, but ignore pairs between atoms
 	    // with nearly identical coords
@@ -225,12 +225,12 @@ ComputeBonds(Tcl_HashTable *serialTablePtr, Tcl_HashTable *conectTablePtr)
 		ConnectKey key;
 		int isNew;
 
-		if (atom1Ptr->index > atom2Ptr->index) {
-		    key.from = atom2Ptr->index;
-		    key.to = atom1Ptr->index;
+		if (atom1Ptr->ordinal > atom2Ptr->ordinal) {
+		    key.from = atom2Ptr->ordinal;
+		    key.to = atom1Ptr->ordinal;
 		} else {
-		    key.from = atom1Ptr->index;
-		    key.to = atom2Ptr->index;
+		    key.from = atom1Ptr->ordinal;
+		    key.to = atom2Ptr->ordinal;
 		}
 		Tcl_CreateHashEntry(conectTablePtr, (char *)&key, &isNew);
             }
@@ -342,7 +342,7 @@ GetAtomicNumber(Tcl_Interp *interp, PdbAtom *atomPtr, const char *atomName,
 }
 
 static PdbAtom *
-NewAtom(Tcl_Interp *interp, int index, const char *line, int lineLength)
+NewAtom(Tcl_Interp *interp, int ordinal, const char *line, int lineLength)
 {
     PdbAtom *atomPtr;
     char buf[200];
@@ -355,7 +355,7 @@ NewAtom(Tcl_Interp *interp, int index, const char *line, int lineLength)
     if (atomPtr == NULL) {
 	return NULL;
     }
-    atomPtr->index = index;
+    atomPtr->ordinal = ordinal;
     strncpy(atomName, line + 12, 4);
     atomName[4] = '\0';
     strncpy(residueName, line + 17, 3);
@@ -457,8 +457,8 @@ GetLine(const char **stringPtr, const char *endPtr, int *lengthPtr)
 
 
 static int 
-SerialToIndex(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
-	      int *indexPtr)
+SerialToOrdinal(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
+	      int *ordPtr)
 {
     int serial;
     PdbAtom *atomPtr;
@@ -480,30 +480,30 @@ SerialToIndex(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
 	return TCL_ERROR;
     }
     atomPtr = Tcl_GetHashValue(hPtr);
-    *indexPtr = atomPtr->index;
+    *ordPtr = atomPtr->ordinal;
     return TCL_OK;
 }
 
 /* 
- *  PdbToVtk string
+ *  PdbToVtk string ?-bonds none|both|auto|conect?
  */
 static int
 PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv) 
 {
-    Tcl_Obj *objPtr, *pointsObjPtr, *atomsObjPtr, *verticesObjPtr;
+    Tcl_Obj *objPtr, *pointsObjPtr, *atomsObjPtr;
     const char *p, *pend;
-    char *string;
+    const char *string;
     char mesg[2000];
-    int length, nextIndex;
-    Tcl_HashTable serialTable, conectTable;
+    int length, nextOrdinal;
+    Tcl_HashTable atomTable, conectTable;
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     int isNew;
     int bondFlags;
 
     bondFlags = BOND_NONE;
-    lineNum = nextIndex = 0;
+    lineNum = nextOrdinal = 0;
     if ((objc != 2) && (objc != 4)) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"",
 		Tcl_GetString(objv[0]), 
@@ -537,15 +537,13 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
     }
-    Tcl_InitHashTable(&serialTable, TCL_ONE_WORD_KEYS);
+    Tcl_InitHashTable(&atomTable, TCL_ONE_WORD_KEYS);
     Tcl_InitHashTable(&conectTable, sizeof(ConnectKey) / sizeof(int));
     string = Tcl_GetStringFromObj(objv[1], &length);
     pointsObjPtr = Tcl_NewStringObj("", -1);
     atomsObjPtr = Tcl_NewStringObj("", -1);
-    verticesObjPtr = Tcl_NewStringObj("", -1);
     Tcl_IncrRefCount(pointsObjPtr);
     Tcl_IncrRefCount(atomsObjPtr);
-    Tcl_IncrRefCount(verticesObjPtr);
     objPtr = NULL;
     for (p = string, pend = p + length; p < pend; /*empty*/) {
 	const char *line;
@@ -586,14 +584,14 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		goto error;
 	    }
 	    lserial = (long)serialNum;
-	    hPtr = Tcl_CreateHashEntry(&serialTable, (char *)lserial, &isNew);
+	    hPtr = Tcl_CreateHashEntry(&atomTable, (char *)lserial, &isNew);
 	    if (!isNew) {
 		Tcl_AppendResult(interp, "line ", Itoa(lineNum), 
 			": serial number \"", buf, "\" found more than once", 
 			(char *)NULL);
 		goto error;
 	    }
-	    atomPtr = NewAtom(interp, nextIndex, line, lineLength);
+	    atomPtr = NewAtom(interp, nextOrdinal, line, lineLength);
 	    if (atomPtr == NULL) {
 		goto error;
 	    }
@@ -606,7 +604,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 				     Tcl_NewDoubleObj(atomPtr->z));
 	    Tcl_ListObjAppendElement(interp, atomsObjPtr, 
 				     Tcl_NewIntObj(atomPtr->number));
-	    nextIndex++;
+	    nextOrdinal++;
 	} else if ((c == 'C') && (strncmp(line, "CONECT", 6) == 0)) {
 	    int a, i, n;
 	    char buf[200];
@@ -626,7 +624,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 			(char *)NULL);
 		goto error;
 	    }
-	    if (SerialToIndex(interp, &serialTable, buf, &a) != TCL_OK) {
+	    if (SerialToOrdinal(interp, &atomTable, buf, &a) != TCL_OK) {
 		goto error;
 	    }
 	    /* Allow basic maximum of 4 connections. */
@@ -641,7 +639,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		if (IsSpaces(buf)) {
 		    break;		/* No more entries */
 		}
-		if (SerialToIndex(interp, &serialTable, buf, &b) != TCL_OK) {
+		if (SerialToOrdinal(interp, &atomTable, buf, &b) != TCL_OK) {
 		    goto error;
 		}
 		if (a > b) {
@@ -656,13 +654,13 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
     }
     if (bondFlags & BOND_COMPUTE) {
-	ComputeBonds(&serialTable, &conectTable);
+	ComputeBonds(&atomTable, &conectTable);
     }
     objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
     Tcl_AppendToObj(objPtr, "Converted from PDB format\n", -1);
     Tcl_AppendToObj(objPtr, "ASCII\n", -1);
     Tcl_AppendToObj(objPtr, "DATASET POLYDATA\n", -1);
-    sprintf(mesg, "POINTS %d float\n", serialTable.numEntries);
+    sprintf(mesg, "POINTS %d float\n", atomTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);
     Tcl_AppendObjToObj(objPtr, pointsObjPtr);
     sprintf(mesg, "\n");
@@ -683,28 +681,26 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	sprintf(mesg, "\n");
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
-    sprintf(mesg, "POINT_DATA %d\n", serialTable.numEntries);
+    sprintf(mesg, "POINT_DATA %d\n", atomTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "SCALARS element int\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "LOOKUP_TABLE default\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
     Tcl_AppendObjToObj(objPtr, atomsObjPtr);
-    FreeAtoms(&serialTable);
+    FreeAtoms(&atomTable);
     Tcl_DeleteHashTable(&conectTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
-    Tcl_DecrRefCount(verticesObjPtr);
     if (objPtr != NULL) {
 	Tcl_SetObjResult(interp, objPtr);
     }
     return TCL_OK;
  error:
     Tcl_DeleteHashTable(&conectTable);
-    FreeAtoms(&serialTable);
+    FreeAtoms(&atomTable);
     Tcl_DecrRefCount(pointsObjPtr);
     Tcl_DecrRefCount(atomsObjPtr);
-    Tcl_DecrRefCount(verticesObjPtr);
     return TCL_ERROR;
 }
 
