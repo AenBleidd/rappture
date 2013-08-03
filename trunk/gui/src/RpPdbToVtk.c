@@ -219,7 +219,7 @@ ComputeBonds(Tcl_HashTable *atomTablePtr, Tcl_HashTable *conectTablePtr)
 
 	    // perform distance test, but ignore pairs between atoms
 	    // with nearly identical coords
-	    if (ds2 < 0.001) {
+	    if (ds2 < 0.16) {
 		continue;
 	    }
 	    if (ds2 < (cut*cut)) {
@@ -251,7 +251,7 @@ GetAtomicNumber(Tcl_Interp *interp, PdbAtom *atomPtr, const char *atomName,
     char name[5], *namePtr;
     int elemIndex, symbolIndex;
     int count;
-    char *p;
+    const char *p;
 
     symbolIndex = elemIndex = -1;
 
@@ -462,11 +462,10 @@ GetLine(const char **stringPtr, const char *endPtr, int *lengthPtr)
 
 
 static int 
-SerialToOrdinal(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
-	      int *ordPtr)
+SerialToAtom(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
+		PdbAtom **atomPtrPtr)
 {
     int serial;
-    PdbAtom *atomPtr;
     long lserial;
     Tcl_HashEntry *hPtr;
 
@@ -484,8 +483,7 @@ SerialToOrdinal(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
 			 "\" not found in table", (char *)NULL);
 	return TCL_ERROR;
     }
-    atomPtr = Tcl_GetHashValue(hPtr);
-    *ordPtr = atomPtr->ordinal;
+    *atomPtrPtr = Tcl_GetHashValue(hPtr);
     return TCL_OK;
 }
 
@@ -507,7 +505,7 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int isNew;
     int bondFlags;
 
-    bondFlags = BOND_NONE;
+    bondFlags = BOND_BOTH;
     lineNum = nextOrdinal = 0;
     if ((objc != 2) && (objc != 4)) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"",
@@ -611,7 +609,8 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 				     Tcl_NewIntObj(atomPtr->number));
 	    nextOrdinal++;
 	} else if ((c == 'C') && (strncmp(line, "CONECT", 6) == 0)) {
-	    int a, i, n;
+	    PdbAtom *atom1Ptr;
+	    int i, n;
 	    char buf[200];
 
 	    if ((bondFlags & BOND_CONECT) == 0) {
@@ -629,13 +628,14 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 			(char *)NULL);
 		goto error;
 	    }
-	    if (SerialToOrdinal(interp, &atomTable, buf, &a) != TCL_OK) {
+	    if (SerialToAtom(interp, &atomTable, buf, &atom1Ptr) != TCL_OK) {
 		goto error;
 	    }
 	    /* Allow basic maximum of 4 connections. */
 	    for (n = 11, i = 0; i < 4; i++, n += 5) {
 		ConnectKey key;
-		int b;
+		PdbAtom *atom2Ptr;
+
 		if (n >= lineLength) {
 		    break;		
 		}
@@ -644,15 +644,15 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		if (IsSpaces(buf)) {
 		    break;		/* No more entries */
 		}
-		if (SerialToOrdinal(interp, &atomTable, buf, &b) != TCL_OK) {
+		if (SerialToAtom(interp, &atomTable, buf, &atom2Ptr) !=TCL_OK) {
 		    goto error;
 		}
-		if (a > b) {
-		    key.from = b;
-		    key.to = a;
+		if (atom1Ptr->ordinal > atom2Ptr->ordinal) {
+		    key.from = atom2Ptr->ordinal;
+		    key.to = atom1Ptr->ordinal;
 		} else {
-		    key.from = a;
-		    key.to = b;
+		    key.from = atom1Ptr->ordinal;
+		    key.to = atom2Ptr->ordinal;
 		}
 		Tcl_CreateHashEntry(&conectTable, (char *)&key, &isNew);
 		if (isNew) {
@@ -689,6 +689,14 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	sprintf(mesg, "\n");
 	Tcl_AppendToObj(objPtr, mesg, -1);
+    }
+    for (hPtr = Tcl_FirstHashEntry(&atomTable, &iter); hPtr != NULL;
+	 hPtr = Tcl_NextHashEntry(&iter)) {
+	PdbAtom *atomPtr;
+
+	atomPtr = Tcl_GetHashValue(hPtr);
+	fprintf(stderr, "%d %s %d connections\n", atomPtr->ordinal,
+		elements[atomPtr->number].symbol, atomPtr->numConnections);
     }
     sprintf(mesg, "POINT_DATA %d\n", atomTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);

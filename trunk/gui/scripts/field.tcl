@@ -798,6 +798,7 @@ itcl::body Rappture::Field::Build {} {
                 set _viewer "glyphs"
             }
         }
+        puts stderr "cname=$cname type=$type"
         if {$type == "1D"} {
             #
             # 1D data can be represented as 2 BLT vectors,
@@ -848,6 +849,7 @@ itcl::body Rappture::Field::Build {} {
                 incr _counter
             }
         } elseif {$type == "points-on-mesh"} {
+            puts stderr "calling BuildPointsOnMesh: cname=$cname type=$type"
 	    if { ![BuildPointsOnMesh $cname] } {
                 continue;               # Ignore this component
             }
@@ -904,6 +906,7 @@ itcl::body Rappture::Field::Build {} {
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         }
+        puts stderr " set _isValidComponent($cname) 1"
         set _isValidComponent($cname) 1
     }
     if { [array size _isValidComponent] == 0 } {
@@ -1413,6 +1416,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
 #	of "cloud", "unirect2d", and "unirect3d" (mostly for flows).
 #
 itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
+    puts stderr "in BuildPointsOnMesh"
     #
     # More complex 2D/3D data is represented by a mesh
     # object and an associated vector for field values.
@@ -1507,9 +1511,26 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	}
     }
     if { ![$mesh isvalid] } {
+        puts stderr "Mesh in invalid"
         return 0
     }
     set _dim [$mesh dimensions]
+    puts stderr "_dim=$_dim"
+    if { $_dim == 3 } {
+        set dim 0 
+        foreach axis {x y z} {
+            foreach {min max} [$mesh limits $axis] { 
+                puts stderr "comparing axis $axis min=$min max=$max"
+                if { $min < $max } {
+                    incr dim
+                }
+            }
+        }
+        if { $dim  != 3 } {
+            set _dim $dim
+        }
+    }
+        
     if {$_dim == 1} {
 	# 1D data: Create vectors for graph widget.
 	# Is this used anywhere?
