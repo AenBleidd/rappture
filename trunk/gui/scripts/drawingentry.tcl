@@ -582,6 +582,18 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     set img ""
     if { [string compare -length 7 $contents "file://"] == 0 } {
 	set fileName [string range $contents 7 end]
+        set path $fileName
+        # find the file on a search path
+        if { [file pathtype $path] != "absolute" } {
+            set dir [[$_owner tool] installdir]
+            set searchlist [list $dir [file join $dir docs]]
+            foreach dir $searchlist {
+                if {[file readable [file join $dir $fileName]]} {
+                    set path [file join $dir $fileName]
+                    break
+                }
+            }
+        }
 	if { [file exists $fileName] } {
 	    set img [image create photo -file $fileName]
 	} else {
