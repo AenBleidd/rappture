@@ -594,10 +594,10 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
                 }
             }
         }
-	if { [file exists $fileName] } {
-	    set img [image create photo -file $fileName]
+	if { [file exists $path] } {
+	    set img [image create photo -file $path]
 	} else {
-            puts stderr "WARNING: can't find picture contents \"$fileName\""
+            puts stderr "WARNING: can't find picture contents \"$path\""
         }
     } elseif { [string compare -length 7 $contents "http://"] == 0 } {
 	puts stderr  "don't know how to handle http"
