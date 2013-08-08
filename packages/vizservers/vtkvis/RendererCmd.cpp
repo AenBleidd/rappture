@@ -8558,6 +8558,379 @@ OutlineCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ParallelpipedAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double vec1[3], vec2[3], vec3[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &vec1[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &vec1[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &vec1[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &vec2[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[6], &vec2[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[7], &vec2[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[8], &vec3[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[9], &vec3[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[10], &vec3[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[11]);
+    if (!g_renderer->addParallelpiped(name, vec1, vec2, vec3)) {
+        Tcl_AppendResult(interp, "Failed to create parallelpiped", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Parallelpiped>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Parallelpiped>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Parallelpiped>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Parallelpiped>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedCullingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectCulling<Parallelpiped>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectCulling<Parallelpiped>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                              Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Parallelpiped>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Parallelpiped>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedFlipNormalsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                           Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectFlipNormals<Parallelpiped>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectFlipNormals<Parallelpiped>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Parallelpiped>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Parallelpiped>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Parallelpiped>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Parallelpiped>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Parallelpiped>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Parallelpiped>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Parallelpiped>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Parallelpiped>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Parallelpiped>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Parallelpiped>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Parallelpiped>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Parallelpiped>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Parallelpiped>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Parallelpiped>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Parallelpiped>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Parallelpiped>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedOriginOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double origin[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &origin[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &origin[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &origin[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectOrigin<Parallelpiped>(name, origin);
+    } else {
+        g_renderer->setGraphicsObjectOrigin<Parallelpiped>("all", origin);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Parallelpiped>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Parallelpiped>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Parallelpiped>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Parallelpiped>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedShadingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    GraphicsObject::ShadingModel shadeModel;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'f' && strcmp(str, "flat") == 0) {
+        shadeModel = GraphicsObject::SHADE_FLAT;
+    } else if (str[0] == 's' && strcmp(str, "smooth") == 0) {
+        shadeModel = GraphicsObject::SHADE_GOURAUD;
+    } else {
+         Tcl_AppendResult(interp, "bad shading option \"", str,
+                         "\": should be one of: 'flat', 'smooth'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectShadingModel<Parallelpiped>(name, shadeModel);
+    } else {
+        g_renderer->setGraphicsObjectShadingModel<Parallelpiped>("all", shadeModel);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Parallelpiped>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Parallelpiped>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ParallelpipedWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Parallelpiped>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Parallelpiped>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec parallelpipedOps[] = {
+    {"add",       1, ParallelpipedAddOp, 12, 12, "v0x v0y v0z v1x v1y v1z v2x v2y v2z name"},
+    {"color",     2, ParallelpipedColorOp, 5, 6, "r g b ?name?"},
+    {"culling",   2, ParallelpipedCullingOp, 3, 4, "bool ?name?"},
+    {"delete",    1, ParallelpipedDeleteOp, 2, 3, "?name?"},
+    {"edges",     1, ParallelpipedEdgeVisibilityOp, 3, 4, "bool ?name?"},
+    {"flipnorms", 1, ParallelpipedFlipNormalsOp, 3, 4, "bool ?name?"},
+    {"lighting",  3, ParallelpipedLightingOp, 3, 4, "bool ?name?"},
+    {"linecolor", 5, ParallelpipedLineColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, ParallelpipedLineWidthOp, 3, 4, "width ?name?"},
+    {"material",  1, ParallelpipedMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
+    {"opacity",   2, ParallelpipedOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    4, ParallelpipedOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"origin",    4, ParallelpipedOriginOp, 5, 6, "x y z ?name?"},
+    {"pos",       1, ParallelpipedPositionOp, 5, 6, "x y z ?name?"},
+    {"scale",     2, ParallelpipedScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"shading",   2, ParallelpipedShadingOp, 3, 4, "val ?name?"},
+    {"visible",   1, ParallelpipedVisibleOp, 3, 4, "bool ?name?"},
+    {"wireframe", 1, ParallelpipedWireframeOp, 3, 4, "bool ?name?"}
+};
+static int nParallelpipedOps = NumCmdSpecs(parallelpipedOps);
+
+static int
+ParallelpipedCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nParallelpipedOps, parallelpipedOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -12227,41 +12600,42 @@ void
 VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 {
     Tcl_MakeSafe(interp);
-    Tcl_CreateObjCommand(interp, "arc",         ArcCmd,         clientData, NULL);
-    Tcl_CreateObjCommand(interp, "arrow",       ArrowCmd,       clientData, NULL);
-    Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        clientData, NULL);
-    Tcl_CreateObjCommand(interp, "box",         BoxCmd,         clientData, NULL);
-    Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "clientinfo",  ClientInfoCmd,  clientData, NULL);
-    Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    clientData, NULL);
-    Tcl_CreateObjCommand(interp, "cone",        ConeCmd,        clientData, NULL);
-    Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   clientData, NULL);
-    Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   clientData, NULL);
-    Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    clientData, NULL);
-    Tcl_CreateObjCommand(interp, "cylinder",    CylinderCmd,    clientData, NULL);
-    Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     clientData, NULL);
-    Tcl_CreateObjCommand(interp, "disk",        DiskCmd,        clientData, NULL);
-    Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "group",       GroupCmd,       clientData, NULL);
-    Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   clientData, NULL);
-    Tcl_CreateObjCommand(interp, "image",       ImageCmd,       clientData, NULL);
-    Tcl_CreateObjCommand(interp, "imgflush",    ImageFlushCmd,  clientData, NULL);
-    Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "legend2",     LegendSimpleCmd,clientData, NULL);
-    Tcl_CreateObjCommand(interp, "lic",         LICCmd,         clientData, NULL);
-    Tcl_CreateObjCommand(interp, "line",        LineCmd,        clientData, NULL);
-    Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    clientData, NULL);
-    Tcl_CreateObjCommand(interp, "outline",     OutlineCmd,     clientData, NULL);
-    Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    clientData, NULL);
-    Tcl_CreateObjCommand(interp, "polygon",     PolygonCmd,     clientData, NULL);
-    Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, clientData, NULL);
-    Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    clientData, NULL);
-    Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "sphere",      SphereCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "streamlines", StreamlinesCmd, clientData, NULL);
-    Tcl_CreateObjCommand(interp, "text3d",      Text3DCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      clientData, NULL);
-    Tcl_CreateObjCommand(interp, "warp",        WarpCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "arc",           ArcCmd,           clientData, NULL);
+    Tcl_CreateObjCommand(interp, "arrow",         ArrowCmd,         clientData, NULL);
+    Tcl_CreateObjCommand(interp, "axis",          AxisCmd,          clientData, NULL);
+    Tcl_CreateObjCommand(interp, "box",           BoxCmd,           clientData, NULL);
+    Tcl_CreateObjCommand(interp, "camera",        CameraCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "clientinfo",    ClientInfoCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "colormap",      ColorMapCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cone",          ConeCmd,          clientData, NULL);
+    Tcl_CreateObjCommand(interp, "contour2d",     Contour2DCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "contour3d",     Contour3DCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cutplane",      CutplaneCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cylinder",      CylinderCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "dataset",       DataSetCmd,       clientData, NULL);
+    Tcl_CreateObjCommand(interp, "disk",          DiskCmd,          clientData, NULL);
+    Tcl_CreateObjCommand(interp, "glyphs",        GlyphsCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "group",         GroupCmd,         clientData, NULL);
+    Tcl_CreateObjCommand(interp, "heightmap",     HeightMapCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "image",         ImageCmd,         clientData, NULL);
+    Tcl_CreateObjCommand(interp, "imgflush",      ImageFlushCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "legend",        LegendCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "legend2",       LegendSimpleCmd,  clientData, NULL);
+    Tcl_CreateObjCommand(interp, "lic",           LICCmd,           clientData, NULL);
+    Tcl_CreateObjCommand(interp, "line",          LineCmd,          clientData, NULL);
+    Tcl_CreateObjCommand(interp, "molecule",      MoleculeCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "outline",       OutlineCmd,       clientData, NULL);
+    Tcl_CreateObjCommand(interp, "parallelpiped", ParallelpipedCmd, clientData, NULL);
+    Tcl_CreateObjCommand(interp, "polydata",      PolyDataCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "polygon",       PolygonCmd,       clientData, NULL);
+    Tcl_CreateObjCommand(interp, "pseudocolor",   PseudoColorCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "renderer",      RendererCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "screen",        ScreenCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "sphere",        SphereCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "streamlines",   StreamlinesCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "text3d",        Text3DCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "volume",        VolumeCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "warp",          WarpCmd,          clientData, NULL);
 }
 
 /**
@@ -12294,6 +12668,7 @@ void VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "line");
     Tcl_DeleteCommand(interp, "molecule");
     Tcl_DeleteCommand(interp, "outline");
+    Tcl_DeleteCommand(interp, "parallelpiped");
     Tcl_DeleteCommand(interp, "polydata");
     Tcl_DeleteCommand(interp, "polygon");
     Tcl_DeleteCommand(interp, "pseudocolor");

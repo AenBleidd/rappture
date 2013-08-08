@@ -27,6 +27,7 @@
 #include "LIC.h"
 #include "Line.h"
 #include "Molecule.h"
+#include "Parallelpiped.h"
 #include "PolyData.h"
 #include "PseudoColor.h"
 #include "Sphere.h"
@@ -124,6 +125,11 @@ Renderer::getGraphicsObjectHashmap<Outline>()
 { return _outlines; }
 
 template<>
+Renderer::ParallelpipedHashmap &
+Renderer::getGraphicsObjectHashmap<Parallelpiped>()
+{ return _parallelpipeds; }
+
+template<>
 Renderer::PolyDataHashmap &
 Renderer::getGraphicsObjectHashmap<PolyData>()
 { return _polyDatas; }
@@ -172,6 +178,7 @@ template Cylinder *Renderer::getGraphicsObject(const DataSetId&);
 template Disk *Renderer::getGraphicsObject(const DataSetId&);
 template Group *Renderer::getGraphicsObject(const DataSetId&);
 template Line *Renderer::getGraphicsObject(const DataSetId&);
+template Parallelpiped *Renderer::getGraphicsObject(const DataSetId&);
 template Polygon *Renderer::getGraphicsObject(const DataSetId&);
 template Sphere *Renderer::getGraphicsObject(const DataSetId&);
 template Text3D *Renderer::getGraphicsObject(const DataSetId&);
@@ -286,6 +293,9 @@ Renderer::getGenericGraphicsObject(const DataSetId& id)
         return gobj;
     }
     if ((gobj = getGraphicsObject<Line>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<Parallelpiped>(id)) != NULL) {
         return gobj;
     }
     if ((gobj = getGraphicsObject<Polygon>(id)) != NULL) {
@@ -2934,6 +2944,45 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
     } while (doAll && ++itr != _molecules.end());
 
     _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Parallelpiped and associate it with an ID
+ */
+bool Renderer::addParallelpiped(const DataSetId& id,
+                                double vec1[3], double vec2[3], double vec3[3],
+                                bool flipNormals)
+{
+    Parallelpiped *gobj;
+    if ((gobj = getGraphicsObject<Parallelpiped>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Parallelpiped>(id);
+    }
+
+    gobj = new Parallelpiped();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setVectors(vec1, vec2, vec3);
+    if (flipNormals)
+        gobj->flipNormals(flipNormals);
+
+    getGraphicsObjectHashmap<Parallelpiped>()[id] = gobj;
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+    return true;
 }
 
 /**
