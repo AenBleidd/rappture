@@ -685,28 +685,28 @@ outline pos <x> <y> <z> <?datasetName?>
 outline scale <sx> <sy> <sz> <?datasetName?>
 outline visible <bool> <?datasetName?>
 
-parallelpiped add <v0x> <v0y> <v0z> <v1x> <v1y> <v1z> <v2x> <v2y> <v2z> <name>
-              Specify parallelpiped using 3 basis vectors.  The 3 vectors should
-              be given in order to create a right-handed coordinate system, i.e.
-              (v0 cross v1) dot v2 should be positive.
-parallelpiped color <r> <g> <b> <?name?>
-parallelpiped culling <bool> <?name?>
-parallelpiped delete <?name?>
-parallelpiped edges <bool> <?name?>
-parallelpiped flipnorm <bool> <?name?>
-parallelpiped lighting <bool> <?name?>
-parallelpiped linecolor <r> <g> <b> <?name?>
-parallelpiped linewidth <val> <?name?>
-parallelpiped material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
-parallelpiped opacity <val> <?name?>
-parallelpiped orient <qw> <qx> <qy> <qz> <?name?>
-parallelpiped origin <x> <y> <z> <?name?>
-parallelpiped pos <x> <y> <z> <?name?>
-parallelpiped scale <sx> <sy> <sz> <?name?>
-parallelpiped shading <val> <?name?>
-              val = flat|smooth
-parallelpiped visible <bool> <?name?>
-parallelpiped wireframe <bool> <?name?>
+parallelepiped add <v0x> <v0y> <v0z> <v1x> <v1y> <v1z> <v2x> <v2y> <v2z> <name>
+               Specify parallelepiped using 3 basis vectors.  The 3 vectors should
+               be given in order to create a right-handed coordinate system, i.e.
+               (v0 cross v1) dot v2 should be positive.
+parallelepiped color <r> <g> <b> <?name?>
+parallelepiped culling <bool> <?name?>
+parallelepiped delete <?name?>
+parallelepiped edges <bool> <?name?>
+parallelepiped flipnorm <bool> <?name?>
+parallelepiped lighting <bool> <?name?>
+parallelepiped linecolor <r> <g> <b> <?name?>
+parallelepiped linewidth <val> <?name?>
+parallelepiped material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+parallelepiped opacity <val> <?name?>
+parallelepiped orient <qw> <qx> <qy> <qz> <?name?>
+parallelepiped origin <x> <y> <z> <?name?>
+parallelepiped pos <x> <y> <z> <?name?>
+parallelepiped scale <sx> <sy> <sz> <?name?>
+parallelepiped shading <val> <?name?>
+               val = flat|smooth
+parallelepiped visible <bool> <?name?>
+parallelepiped wireframe <bool> <?name?>
 
 polydata add <?datasetName?>
 polydata color <r> <g> <b> <?datasetName?>

@@ -27,7 +27,7 @@
 #include "LIC.h"
 #include "Line.h"
 #include "Molecule.h"
-#include "Parallelpiped.h"
+#include "Parallelepiped.h"
 #include "PolyData.h"
 #include "PseudoColor.h"
 #include "Sphere.h"
@@ -125,9 +125,9 @@ Renderer::getGraphicsObjectHashmap<Outline>()
 { return _outlines; }
 
 template<>
-Renderer::ParallelpipedHashmap &
-Renderer::getGraphicsObjectHashmap<Parallelpiped>()
-{ return _parallelpipeds; }
+Renderer::ParallelepipedHashmap &
+Renderer::getGraphicsObjectHashmap<Parallelepiped>()
+{ return _parallelepipeds; }
 
 template<>
 Renderer::PolyDataHashmap &
@@ -178,7 +178,7 @@ template Cylinder *Renderer::getGraphicsObject(const DataSetId&);
 template Disk *Renderer::getGraphicsObject(const DataSetId&);
 template Group *Renderer::getGraphicsObject(const DataSetId&);
 template Line *Renderer::getGraphicsObject(const DataSetId&);
-template Parallelpiped *Renderer::getGraphicsObject(const DataSetId&);
+template Parallelepiped *Renderer::getGraphicsObject(const DataSetId&);
 template Polygon *Renderer::getGraphicsObject(const DataSetId&);
 template Sphere *Renderer::getGraphicsObject(const DataSetId&);
 template Text3D *Renderer::getGraphicsObject(const DataSetId&);
@@ -295,7 +295,7 @@ Renderer::getGenericGraphicsObject(const DataSetId& id)
     if ((gobj = getGraphicsObject<Line>(id)) != NULL) {
         return gobj;
     }
-    if ((gobj = getGraphicsObject<Parallelpiped>(id)) != NULL) {
+    if ((gobj = getGraphicsObject<Parallelepiped>(id)) != NULL) {
         return gobj;
     }
     if ((gobj = getGraphicsObject<Polygon>(id)) != NULL) {
@@ -2947,19 +2947,19 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
 }
 
 /**
- * \brief Create a new Parallelpiped and associate it with an ID
+ * \brief Create a new Parallelepiped and associate it with an ID
  */
-bool Renderer::addParallelpiped(const DataSetId& id,
-                                double vec1[3], double vec2[3], double vec3[3],
-                                bool flipNormals)
+bool Renderer::addParallelepiped(const DataSetId& id,
+                                 double vec1[3], double vec2[3], double vec3[3],
+                                 bool flipNormals)
 {
-    Parallelpiped *gobj;
-    if ((gobj = getGraphicsObject<Parallelpiped>(id)) != NULL) {
+    Parallelepiped *gobj;
+    if ((gobj = getGraphicsObject<Parallelepiped>(id)) != NULL) {
         WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
-        deleteGraphicsObject<Parallelpiped>(id);
+        deleteGraphicsObject<Parallelepiped>(id);
     }
 
-    gobj = new Parallelpiped();
+    gobj = new Parallelepiped();
  
     gobj->setDataSet(NULL, this);
 
@@ -2978,7 +2978,7 @@ bool Renderer::addParallelpiped(const DataSetId& id,
     if (flipNormals)
         gobj->flipNormals(flipNormals);
 
-    getGraphicsObjectHashmap<Parallelpiped>()[id] = gobj;
+    getGraphicsObjectHashmap<Parallelepiped>()[id] = gobj;
 
     sceneBoundsChanged();
     _needsRedraw = true;
