@@ -5,8 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef VTKVIS_PARALLELPIPED_H
-#define VTKVIS_PARALLELPIPED_H
+#ifndef VTKVIS_PARALLELEPIPED_H
+#define VTKVIS_PARALLELEPIPED_H
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataMapper.h>
@@ -20,19 +20,19 @@
 namespace VtkVis {
 
 /**
- * \brief VTK PolyData Parallelpiped
+ * \brief VTK PolyData Parallelepiped
  *
- * This class creates a mesh parallelpiped
+ * This class creates a mesh parallelepiped
  */
-class Parallelpiped : public Shape
+class Parallelepiped : public Shape
 {
 public:
-    Parallelpiped();
-    virtual ~Parallelpiped();
+    Parallelepiped();
+    virtual ~Parallelepiped();
 
     virtual const char *getClassName() const
     {
-        return "Parallelpiped";
+        return "Parallelepiped";
     }
 
     void setVectors(double vec1[3], double vec2[3], double vec3[3]);

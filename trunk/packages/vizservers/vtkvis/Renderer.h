@@ -44,7 +44,7 @@
 #include "Line.h"
 #include "Molecule.h"
 #include "Outline.h"
-#include "Parallelpiped.h"
+#include "Parallelepiped.h"
 #include "PolyData.h"
 #include "Polygon.h"
 #include "PseudoColor.h"
@@ -809,10 +809,10 @@ public:
                               DataSet::DataAttributeType type,
                               const char *name, double range[2] = NULL);
 
-    // Parallelpipeds
+    // Parallelepipeds
 
-    bool addParallelpiped(const DataSetId& id, double vec1[3], double vec2[3], double vec3[3],
-                          bool flipNormals = false);
+    bool addParallelepiped(const DataSetId& id, double vec1[3], double vec2[3], double vec3[3],
+                           bool flipNormals = false);
 
     // PolyData meshes
 
@@ -980,7 +980,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, Line *> LineHashmap;
     typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
     typedef std::tr1::unordered_map<DataSetId, Outline *> OutlineHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Parallelpiped *> ParallelpipedHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Parallelepiped *> ParallelepipedHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
     typedef std::tr1::unordered_map<DataSetId, Polygon *> PolygonHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
@@ -1120,7 +1120,7 @@ private:
     LineHashmap _lines;
     MoleculeHashmap _molecules;
     OutlineHashmap _outlines;
-    ParallelpipedHashmap _parallelpipeds;
+    ParallelepipedHashmap _parallelepipeds;
     PolyDataHashmap _polyDatas;
     PolygonHashmap _polygons;
     PseudoColorHashmap _pseudoColors;
