@@ -196,6 +196,7 @@ Renderer::~Renderer()
     deleteAllGraphicsObjects<Line>();
     deleteAllGraphicsObjects<Molecule>();
     deleteAllGraphicsObjects<Outline>();
+    deleteAllGraphicsObjects<Parallelpiped>();
     deleteAllGraphicsObjects<PolyData>();
     deleteAllGraphicsObjects<Polygon>();
     deleteAllGraphicsObjects<PseudoColor>();
@@ -2435,6 +2436,7 @@ void Renderer::setObjectAspects(double aspectRatio)
     setGraphicsObjectAspect<Line>(aspectRatio);
     setGraphicsObjectAspect<Molecule>(aspectRatio);
     setGraphicsObjectAspect<Outline>(aspectRatio);
+    setGraphicsObjectAspect<Parallelpiped>(aspectRatio);
     setGraphicsObjectAspect<PolyData>(aspectRatio);
     setGraphicsObjectAspect<Polygon>(aspectRatio);
     setGraphicsObjectAspect<PseudoColor>(aspectRatio);
@@ -3356,6 +3358,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Molecule>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Outline>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Parallelpiped>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<PolyData>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Polygon>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<PseudoColor>(bounds, onlyVisible);
@@ -3428,6 +3431,7 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectUnscaledBounds<Molecule>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Outline>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<PolyData>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Parallelpiped>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Polygon>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<PseudoColor>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Sphere>(bounds, onlyVisible);
@@ -4576,6 +4580,7 @@ void Renderer::setCameraClippingPlanes()
     setGraphicsObjectClippingPlanes<Line>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Molecule>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Outline>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Parallelpiped>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<PolyData>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Polygon>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<PseudoColor>(_activeClipPlanes);

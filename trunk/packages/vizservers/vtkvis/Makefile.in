@@ -146,6 +146,7 @@ SERVER_SRCS	= \
 		Line.cpp \
 		Molecule.cpp \
 		Outline.cpp \
+		Parallelpiped.cpp \
 		PolyData.cpp \
 		Polygon.cpp \
 		PPMWriter.cpp \
@@ -229,14 +230,15 @@ Line.o: Line.h Shape.h GraphicsObject.h DataSet.h Renderer.h Trace.h
 md5.o: md5.h
 Molecule.o: Molecule.h MoleculeData.h GraphicsObject.h DataSet.h Renderer.h ColorMap.h Trace.h
 Outline.o: Outline.h GraphicsObject.h DataSet.h Trace.h
+Parallelpiped.o: Parallelpiped.h Shape.h GraphicsObject.h DataSet.h Renderer.h Trace.h
 PolyData.o: PolyData.h GraphicsObject.h DataSet.h Renderer.h Trace.h
 Polygon.o: Polygon.h Shape.h GraphicsObject.h DataSet.h Renderer.h Trace.h
 PPMWriter.o: PPMWriter.h ResponseQueue.h Trace.h
 PseudoColor.o: PseudoColor.h GraphicsObject.h DataSet.h Renderer.h ColorMap.h Trace.h
 ReadBuffer.o: ReadBuffer.h Trace.h
-Renderer.o: Renderer.h RendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h Math.h DataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h Image.h LIC.h Line.h Molecule.h Outline.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Text3D.h Volume.h Warp.h ColorMap.h Trace.h
-RendererCmd.o: Renderer.h RendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h DataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h Image.h LIC.h Line.h Molecule.h Outline.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Text3D.h Volume.h Warp.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
-RendererGraphicsObjs.o: Renderer.h RendererGraphicsObjs.h DataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h Image.h LIC.h Line.h Molecule.h Outline.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Text3D.h Volume.h Warp.h ColorMap.h Trace.h
+Renderer.o: Renderer.h RendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h Math.h DataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h Image.h LIC.h Line.h Molecule.h Outline.h Parallelpiped.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Text3D.h Volume.h Warp.h ColorMap.h Trace.h
+RendererCmd.o: Renderer.h RendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h DataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h Image.h LIC.h Line.h Molecule.h Outline.h Parallelpiped.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Text3D.h Volume.h Warp.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RendererGraphicsObjs.o: Renderer.h RendererGraphicsObjs.h DataSet.h Arc.h Arrow.h Box.h Cone.h Contour2D.h Contour3D.h Cutplane.h Cylinder.h Disk.h Glyphs.h Group.h HeightMap.h Image.h LIC.h Line.h Molecule.h Outline.h Parallelpiped.h PolyData.h Polygon.h PseudoColor.h Sphere.h Streamlines.h Text3D.h Volume.h Warp.h ColorMap.h Trace.h
 RenderServer.o: RenderServer.h RendererCmd.h Renderer.h vtkRpCubeAxesActor.h vtkRpAxisFollower.h vtkRpAxisActor.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
 ResponseQueue.o: ResponseQueue.h Trace.h
 Shape.o: Shape.h GraphicsObject.h DataSet.h Renderer.h Trace.h
