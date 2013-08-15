@@ -867,25 +867,34 @@ itcl::body Rappture::Field::Build {} {
             # data.  Assume that it's 3D.  Pass it straight
             # off to the NanoVis visualizer.
             #
-	    set _viewer "nanovis"
+            set _viewer "nanovis"
             set _dim 3
-            set _type "dx"
             set _comp2dims($cname) "3D"
-            set contents [$_field get -decode no $cname.$type]
-            if { $contents == "" } {
-                puts stderr "WARNING: no data for \"$_path.$cname.$type\""
-                continue;               # Ignore this component
-            }
-            set _comp2dx($cname) $contents
             if 0 {
-                set hdr "@@RP-ENC:zb64\n"
-                set data  [$_field get -decode no $cname.$type]
-                set data "$hdr$data"
-                set data  [Rappture::encoding::decode $data]
-                set data  [Rappture::DxToVtk $data]
+                set vtkdata  [$_field get -decode yes $cname.$type]
+                if { $vtkdata == "" } {
+                    puts stderr "WARNING: no data for \"$_path.$cname.$type\""
+                    continue;               # Ignore this component
+                }
+                set vtkdata  [Rappture::DxToVtk $vtkdata]
                 set f [open /tmp/$_path.$cname.vtk "w"]
-                puts $f $data
+                puts $f $vtkdata
                 close $f
+                ReadVtkDataSet $cname $vtkdata
+                set _type "vtk"
+                set _comp2vtk($cname) $vtkdata
+            } else {
+                set contents [$_field get -decode no $cname.$type]
+                if { $contents == "" } {
+                    puts stderr "WARNING: no data for \"$_path.$cname.$type\""
+                    continue;               # Ignore this component
+                }
+                set _type "dx"
+                set _comp2dx($cname) $contents
+            }
+            set viewer [$_field get "about.view"]
+            if { $viewer != "" } {
+                set _viewer $viewer
             }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
