@@ -108,6 +108,58 @@ GetUniformFieldValues(Tcl_Interp *interp, int nPoints, int *counts, char **strin
 }
 
 static int
+GetStructuredGridFieldValues(Tcl_Interp *interp, int nPoints, char **stringPtr, 
+                             const char *endPtr, Tcl_Obj *objPtr) 
+{
+    int i;
+    const char *p;
+    char mesg[2000];
+    double *array, scale, vmin, vmax;
+
+    p = *stringPtr;
+    array = malloc(sizeof(double) * nPoints);
+    if (array == NULL) {
+        return TCL_ERROR;
+    }
+    vmin = DBL_MAX, vmax = -DBL_MAX;
+    for (i = 0; i < nPoints; i++) {
+        double value;
+        char *nextPtr;
+
+        if (p >= endPtr) {
+            Tcl_AppendResult(interp, "unexpected EOF in reading points",
+                             (char *)NULL);
+            return TCL_ERROR;
+        }
+        value = strtod(p, &nextPtr);
+        if (nextPtr == p) {
+            Tcl_AppendResult(interp, "bad value found in reading points",
+                             (char *)NULL);
+            return TCL_ERROR;
+        }
+        p = nextPtr;
+        array[i] = value;
+        if (value < vmin) {
+            vmin = value;
+        } 
+        if (value > vmax) {
+            vmax = value;
+        }
+    }
+    scale = 1.0 / (vmax - vmin);
+    for (i = 0; i < nPoints; i++) {
+#ifdef notdef
+        sprintf(mesg, "%g\n", (array[i] - vmin) * scale);
+#endif
+        sprintf(mesg, "%g\n", array[i]);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+    }
+    free(array);
+    *stringPtr = (char *)p;
+    return TCL_OK;
+}
+
+static int
 GetCloudFieldValues(Tcl_Interp *interp, int nXYPoints, int nZPoints, char **stringPtr, 
                     const char *endPtr, Tcl_Obj *objPtr) 
 {
@@ -243,21 +295,28 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     char *p, *pend;
     char *string;
     char mesg[2000];
+    double dv0[3], dv1[3], dv2[3];
     double dx, dy, dz;
     double origin[3];
     int count[3];
     int length, nAxes, nPoints, nXYPoints;
     char *name;
     int isUniform;
-    int i, iz;
+    int isStructuredGrid;
+    int i, ix, iy, iz;
 
     name = "myScalars";
+    points = NULL;
     nAxes = nPoints = nXYPoints = 0;
     dx = dy = dz = 0.0; /* Suppress compiler warning. */
     origin[0] = origin[1] = origin[2] = 0.0; /* May not have an origin line. */
+    dv0[0] = dv0[1] = dv0[2] = 0.0;
+    dv1[0] = dv1[1] = dv1[2] = 0.0;
+    dv2[0] = dv2[1] = dv2[2] = 0.0;
     count[0] = count[1] = count[2] = 0; /* Suppress compiler warning. */
     isUniform = 1; /* Default to expecting uniform grid */
-    
+    isStructuredGrid = 0;
+
     if (objc != 2) {
         Tcl_AppendResult(interp, "wrong # arguments: should be \"",
                          Tcl_GetString(objv[0]), " string\"", (char *)NULL);
@@ -307,25 +366,45 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                         (char *)NULL);
                 return TCL_ERROR;
             }
+            switch (nAxes) {
+            case 0:
+                dv0[0] = ddx;
+                dv0[1] = ddy;
+                dv0[2] = ddz;
+                break;
+            case 1:
+                dv1[0] = ddx;
+                dv1[1] = ddy;
+                dv1[2] = ddz;
+                break;
+            case 2:
+                dv2[0] = ddx;
+                dv2[1] = ddy;
+                dv2[2] = ddz;
+                break;
+            default:
+                break;
+            }
+
             if (ddx != 0.0) {
                 if (ddy != 0.0 || ddz != 0.0) {
-                    Tcl_AppendResult(interp, "invalid delta statement", 
-                                     (char *)NULL);
-                    return TCL_ERROR;
+                    /* Not axis aligned or skewed grid */
+                    isUniform = 0;
+                    isStructuredGrid = 1;
                 }
                 dx = ddx;
             } else if (ddy != 0.0) {
                 if (ddx != 0.0 || ddz != 0.0) {
-                    Tcl_AppendResult(interp, "invalid delta statement", 
-                                     (char *)NULL);
-                    return TCL_ERROR;
+                    /* Not axis aligned or skewed grid */
+                    isUniform = 0;
+                    isStructuredGrid = 1;
                 }
                 dy = ddy;
             } else if (ddz != 0.0) {
                 if (ddx != 0.0 || ddy != 0.0) {
-                    Tcl_AppendResult(interp, "invalid delta statement", 
-                                     (char *)NULL);
-                    return TCL_ERROR;
+                    /* Not axis aligned or skewed grid */
+                    isUniform = 0;
+                    isStructuredGrid = 1;
                 }
                 dz = ddz;
             }
@@ -359,13 +438,15 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             fprintf(stderr, "found class array type rank 0 nPoints=%d\n", 
                 nPoints);
 #endif
-            if (isUniform && nPoints != count[0]*count[1]*count[2]) {
+            if ((isUniform || isStructuredGrid) &&
+                nPoints != count[0]*count[1]*count[2]) {
                 sprintf(mesg, "inconsistent data: expected %d points"
                         " but found %d points", count[0]*count[1]*count[2], 
                         nPoints);
                 Tcl_AppendResult(interp, mesg, (char *)NULL);
                 return TCL_ERROR;
-            } else if (!isUniform && nPoints != nXYPoints * count[2]) {
+            } else if (!(isUniform || isStructuredGrid) &&
+                       nPoints != nXYPoints * count[2]) {
                 sprintf(mesg, "inconsistent data: expected %d points"
                         " but found %d points", nXYPoints * count[2], 
                         nPoints);
@@ -374,6 +455,11 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             }
             if (isUniform) {
                 if (GetUniformFieldValues(interp, nPoints, count, &p, pend, fieldObjPtr) 
+                    != TCL_OK) {
+                    return TCL_ERROR;
+                }
+            } else if (isStructuredGrid) {
+                if (GetStructuredGridFieldValues(interp, nPoints, &p, pend, fieldObjPtr) 
                     != TCL_OK) {
                     return TCL_ERROR;
                 }
@@ -401,6 +487,40 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendToObj(objPtr, mesg, -1);
         sprintf(mesg, "SPACING %g %g %g\n", dx, dy, dz);
         Tcl_AppendToObj(objPtr, mesg, -1);
+        sprintf(mesg, "POINT_DATA %d\n", nPoints);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        sprintf(mesg, "SCALARS %s double 1\n", name);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        sprintf(mesg, "LOOKUP_TABLE default\n");
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        Tcl_AppendObjToObj(objPtr, fieldObjPtr);
+    } else if (isStructuredGrid) {
+#ifdef notdef
+        fprintf(stderr, "dv0 %g %g %g\n", dv0[0], dv0[1], dv0[2]);
+        fprintf(stderr, "dv1 %g %g %g\n", dv1[0], dv1[1], dv1[2]);
+        fprintf(stderr, "dv2 %g %g %g\n", dv2[0], dv2[1], dv2[2]);
+#endif
+        objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
+        Tcl_AppendToObj(objPtr, "Converted from DX file\n", -1);
+        Tcl_AppendToObj(objPtr, "ASCII\n", -1);
+        Tcl_AppendToObj(objPtr, "DATASET STRUCTURED_GRID\n", -1);
+        sprintf(mesg, "DIMENSIONS %d %d %d\n", count[0], count[1], count[2]);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        for (ix = 0; ix < count[0]; ix++) {
+            for (iy = 0; iy < count[1]; iy++) {
+                for (iz = 0; iz < count[2]; iz++) {
+                    double x, y, z;
+                    x = origin[0] + dv2[0] * iz + dv1[0] * iy + dv0[0] * ix;
+                    y = origin[1] + dv2[1] * iz + dv1[1] * iy + dv0[1] * ix;
+                    z = origin[2] + dv2[2] * iz + dv1[2] * iy + dv0[2] * ix;
+                    sprintf(mesg, "%g %g %g\n", x, y, z);
+                    Tcl_AppendToObj(pointsObjPtr, mesg, -1);
+                }
+            }
+        }
+        sprintf(mesg, "POINTS %d double\n", nPoints);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        Tcl_AppendObjToObj(objPtr, pointsObjPtr);
         sprintf(mesg, "POINT_DATA %d\n", nPoints);
         Tcl_AppendToObj(objPtr, mesg, -1);
         sprintf(mesg, "SCALARS %s double 1\n", name);
