@@ -877,9 +877,11 @@ itcl::body Rappture::Field::Build {} {
                     continue;               # Ignore this component
                 }
                 set vtkdata  [Rappture::DxToVtk $vtkdata]
-                set f [open /tmp/$_path.$cname.vtk "w"]
-                puts $f $vtkdata
-                close $f
+                if 0 {
+                    set f [open /tmp/$_path.$cname.vtk "w"]
+                    puts $f $vtkdata
+                    close $f
+                }
                 ReadVtkDataSet $cname $vtkdata
                 set _type "vtk"
                 set _comp2vtk($cname) $vtkdata
