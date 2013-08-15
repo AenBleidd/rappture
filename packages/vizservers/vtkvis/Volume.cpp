@@ -13,6 +13,8 @@
 #include <vtkVolumeProperty.h>
 #include <vtkGPUVolumeRayCastMapper.h>
 #include <vtkVolumeTextureMapper3D.h>
+#include <vtkRectilinearGrid.h>
+#include <vtkStructuredGrid.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkPolyData.h>
 #include <vtkCellType.h>
@@ -120,8 +122,9 @@ void Volume::update()
         _volumeMapper->SetInput(ds);
 #endif
         vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
-    } else if (_dataSet->isCloud()) {
-        // DataSet is a 3D point cloud
+    } else if (_dataSet->isCloud() ||
+               vtkUnstructuredGrid::SafeDownCast(ds) == NULL) {
+        // DataSet is a 3D point cloud, rectilinear grid or structured grid
         vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
 #ifdef USE_VTK6
         splatter->SetInputData(ds);
@@ -130,8 +133,13 @@ void Volume::update()
 #endif
         int dims[3];
         dims[0] = dims[1] = dims[2] = 64;
-        TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
-              dims[0], dims[1], dims[2]);
+        if (vtkStructuredGrid::SafeDownCast(ds) != NULL) {
+            vtkStructuredGrid::SafeDownCast(ds)->GetDimensions(dims);
+        } else if (vtkRectilinearGrid::SafeDownCast(ds) != NULL) {
+            vtkRectilinearGrid::SafeDownCast(ds)->GetDimensions(dims);
+        }
+        TRACE("Generating volume with dims (%d,%d,%d) from %d points",
+              dims[0], dims[1], dims[2], ds->GetNumberOfPoints());
         splatter->SetSampleDimensions(dims);
         splatter->Update();
         TRACE("Done generating volume");
@@ -143,9 +151,10 @@ void Volume::update()
 #endif
         _volumeMapper->SetInputConnection(splatter->GetOutputPort());
         vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
-    } else if (vtkUnstructuredGrid::SafeDownCast(ds) != NULL) {
+    } else {
         // Unstructured grid with cells (not a cloud)
         vtkUnstructuredGrid *ugrid = vtkUnstructuredGrid::SafeDownCast(ds);
+        assert(ugrid != NULL);
         // DataSet is unstructured grid
         // Only works if cells are all tetrahedra
         _volumeMapper = vtkSmartPointer<vtkProjectedTetrahedraMapper>::New();
@@ -176,10 +185,6 @@ void Volume::update()
 
         vtkUnstructuredGridVolumeMapper::SafeDownCast(_volumeMapper)->
             SetBlendModeToComposite();
-    } else {
-        ERROR("Unsupported DataSet type: %s", _dataSet->getVtkType());
-        _dataSet = NULL;
-        return;
     }
 
     TRACE("Using mapper type: %s", _volumeMapper->GetClassName());
