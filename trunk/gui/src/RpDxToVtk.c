@@ -305,7 +305,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int isStructuredGrid;
     int i, ix, iy, iz;
 
-    name = "myScalars";
+    name = "component";
     points = NULL;
     nAxes = nPoints = nXYPoints = 0;
     dx = dy = dz = 0.0; /* Suppress compiler warning. */
@@ -506,9 +506,9 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendToObj(objPtr, "DATASET STRUCTURED_GRID\n", -1);
         sprintf(mesg, "DIMENSIONS %d %d %d\n", count[0], count[1], count[2]);
         Tcl_AppendToObj(objPtr, mesg, -1);
-        for (ix = 0; ix < count[0]; ix++) {
+        for (iz = 0; iz < count[2]; iz++) {
             for (iy = 0; iy < count[1]; iy++) {
-                for (iz = 0; iz < count[2]; iz++) {
+                for (ix = 0; ix < count[0]; ix++) {
                     double x, y, z;
                     x = origin[0] + dv2[0] * iz + dv1[0] * iy + dv0[0] * ix;
                     y = origin[1] + dv2[1] * iz + dv1[1] * iy + dv0[1] * ix;
