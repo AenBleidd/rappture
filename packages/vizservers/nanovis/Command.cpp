@@ -54,6 +54,9 @@
 #include "CmdProc.h"
 #include "FlowCmd.h"
 #include "dxReader.h"
+#ifdef USE_VTK
+#include "VtkDataSetReader.h"
+#endif
 #include "VtkReader.h"
 #include "BMPWriter.h"
 #include "PPMWriter.h"
@@ -1272,14 +1275,18 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         volume->name(tag);
     } else if ((nBytes > 14) && (strncmp(bytes, "# vtk DataFile", 14) == 0)) {
         TRACE("VTK loading...");
-        std::stringstream fdata;
-        fdata.write(bytes, nBytes);
         if (nBytes <= 0) {
             ERROR("data buffer is empty");
             abort();
         }
         Rappture::Outcome context;
+#ifdef USE_VTK
+        volume = load_vtk_volume_stream(context, tag, bytes, nBytes);
+#else
+        std::stringstream fdata;
+        fdata.write(bytes, nBytes);
         volume = load_vtk_volume_stream(context, tag, fdata);
+#endif
         if (volume == NULL) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
@@ -1291,12 +1298,12 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             nBytes -= 5;
         }
         TRACE("DX loading...");
-        std::stringstream fdata;
-        fdata.write(bytes, nBytes);
         if (nBytes <= 0) {
             ERROR("data buffer is empty");
             abort();
         }
+        std::stringstream fdata;
+        fdata.write(bytes, nBytes);
         Rappture::Outcome context;
         volume = load_dx_volume_stream(context, tag, fdata);
         if (volume == NULL) {

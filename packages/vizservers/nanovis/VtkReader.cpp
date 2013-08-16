@@ -15,6 +15,7 @@
 
 #include "ReaderCommon.h"
 
+#include "config.h"
 #include "nanovis.h"
 #include "VtkReader.h"
 #include "Volume.h"
