@@ -2,6 +2,7 @@ TRACE			= #yes
 USE_THREADS		= yes
 USE_POINTSET_RENDERER	= #yes
 USE_PARTICLE_SYSTEM	= #yes
+USE_VTK			= yes
 
 SHELL = /bin/sh
 
@@ -52,6 +53,22 @@ VRMATH_INC_SPEC	= -I$(srcdir)/$(VRMATH_DIR)/include
 VRMATH_LIB	= $(VRMATH_DIR)/vrmath.a
 VRMATH_LIB_SPEC	= $(VRMATH_LIB)
 
+VTK_LIB_DIR	= @VTK_LIB_DIR@
+VTK_INC_SPEC	= @VTK_INC_SPEC@
+VTK_LIB_SPEC    = \
+		-lvtkIOCore-6.0 \
+		-lvtkIOLegacy-6.0 \
+		-lvtkFiltersCore-6.0 \
+		-lvtkImagingHybrid-6.0 \
+		-lvtkImagingCore-6.0 \
+		-lvtkCommonCore-6.0 \
+		-lvtkCommonDataModel-6.0 \
+		-lvtkCommonExecutionModel-6.0  \
+		-lvtkCommonMisc-6.0  \
+		-lvtkCommonSystem-6.0 \
+		-lvtkCommonTransforms-6.0 \
+		-lvtkCommonMath-6.0
+
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
 RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
@@ -72,6 +89,7 @@ LIBS		= \
 		$(MAT_LIB_SPEC) \
 		$(UTIL_LIB_SPEC) \
 		$(VRMATH_LIB_SPEC) \
+		$(VTK_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
@@ -84,6 +102,7 @@ INCLUDES	= \
 		$(IMG_INC_SPEC) \
 		$(MAT_INC_SPEC) \
 		$(VRMATH_INC_SPEC) \
+		$(VTK_INC_SPEC) \
 		$(TCL_INC_SPEC) \
 		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
@@ -102,6 +121,9 @@ DEFINES		+= -DUSE_THREADS
 endif
 ifdef USE_POINTSET_RENDERER
 DEFINES         += -DUSE_POINTSET_RENDERER
+endif
+ifdef USE_VTK
+DEFINES		+= -DUSE_VTK
 endif
 CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
@@ -203,6 +225,11 @@ OBJS += 	BucketSort.o \
 shaders +=      $(srcdir)/shaders/pointsvp.cg
 endif
 
+ifdef USE_VTK
+OBJS += 	DataSetResample.o \
+		VtkDataSetReader.o
+endif
+
 .PHONY: all install install-resources install-shaders install-nanovis docs clean-docs clean distclean graphics imgloaders newmat11 util vrmath
 
 all: newmat11 graphics imgloaders util vrmath nanovis 
@@ -286,14 +313,15 @@ ColorTableShader.o: ColorTableShader.cpp ColorTableShader.h Shader.h
 Command.o: Command.cpp nanovis.h config.h define.h FlowCmd.h CmdProc.h Trace.h PlaneRenderer.h PPMWriter.h BMPWriter.h dxReader.h Grid.h HeightMap.h Camera.h ZincBlendeReconstructor.h OrientationIndicator.h Unirect.h Volume.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h Plane.h
+DataSetResample.o: DataSetResample.cpp DataSetResample.h
 Flow.o: Flow.cpp Flow.h FlowCmd.h FlowTypes.h FlowBox.h FlowParticles.h LIC.h VelocityArrowsSlice.h Switch.h Unirect.h Volume.h TransferFunction.h Trace.h
 FlowBox.o: FlowBox.cpp FlowBox.h FlowTypes.h Switch.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 FlowCmd.o: FlowCmd.cpp FlowCmd.h FlowParticles.h FlowBox.h FlowTypes.h Command.h PPMWriter.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h LIC.h Unirect.h Volume.h VelocityArrowsSlice.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 FlowParticles.o: FlowParticles.cpp FlowParticles.h FlowTypes.h FlowCmd.h Switch.h Trace.h ParticleRenderer.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h $(UTIL_DIR)/Fonts.h $(VRMATH_DIR)/include/vrmath/Color4f.h $(VRMATH_DIR)/include/vrmath/Vector4f.h
-HeightMap.o: HeightMap.cpp HeightMap.h
-LIC.o: LIC.cpp LIC.h
+HeightMap.o: HeightMap.cpp HeightMap.h Shader.h
+LIC.o: LIC.cpp LIC.h Shader.h
 OrientationIndicator.o: OrientationIndicator.cpp OrientationIndicator.h
 ParticleAdvectionShader.o: ParticleAdvectionShader.cpp ParticleAdvectionShader.h Shader.h
 ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
@@ -326,7 +354,8 @@ Volume.o: Volume.cpp Volume.h config.h define.h
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h Volume.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h ConvexPolygon.h Volume.h nanovis.h Trace.h Plane.h StdVertexShader.h Shader.h
 VolumeShader.o: VolumeShader.cpp VolumeShader.h Shader.h
-VtkReader.o: VtkReader.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h ReaderCommon.h nanovis.h
+VtkDataSetReader.o: VtkDataSetReader.cpp VtkDataSetReader.h DataSetResample.h $(VRMATH_DIR)/include/vrmath/Vector3f.h ReaderCommon.h Trace.h Volume.h nanovis.h config.h
+VtkReader.o: VtkReader.h Trace.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h ReaderCommon.h nanovis.h config.h
 ZincBlendeReconstructor.o: ZincBlendeReconstructor.cpp ZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h config.h define.h
 ZincBlendeVolumeShader.o: ZincBlendeVolumeShader.cpp ZincBlendeVolumeShader.h VolumeShader.h Shader.h
