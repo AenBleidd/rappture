@@ -11,13 +11,18 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <ctype.h>
 #include <math.h>
 #include <limits.h>
 #include <float.h>
 #include "tcl.h"
+
+#define DO_WEDGES
 
 static INLINE char *
 SkipSpaces(char *string) 
@@ -234,7 +239,7 @@ GetPoints(Tcl_Interp *interp, double *array, int nXYPoints,
         return TCL_ERROR;
     }
     for (i = 0; i < nXYPoints; i++) {
-        double x, y, z;
+        double x, y;
         char *nextPtr;
 
         if (p >= endPtr) {
@@ -256,7 +261,8 @@ GetPoints(Tcl_Interp *interp, double *array, int nXYPoints,
             return TCL_ERROR;
         }
         p = nextPtr;
-        z = strtod(p, &nextPtr);
+        /* z is unused */
+        strtod(p, &nextPtr);
         if (nextPtr == p) {
             Tcl_AppendResult(interp, "bad value found in reading points",
                              (char *)NULL);
@@ -270,6 +276,29 @@ GetPoints(Tcl_Interp *interp, double *array, int nXYPoints,
 
     *stringPtr = (char *)p;
     return TCL_OK;
+}
+
+static void
+Normalize(double v[3])
+{
+    double len = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+    v[0] /= len;
+    v[1] /= len;
+    v[2] /= len;
+}
+
+static double
+Dot(double v1[3], double v2[3])
+{
+    return (v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]);
+}
+
+static void
+Cross(double v1[3], double v2[3], double vout[3])
+{
+    vout[0] = v1[1]*v2[2] - v1[2]*v2[1];
+    vout[1] = v1[2]*v2[0] - v1[0]*v2[2];
+    vout[2] = v1[0]*v2[1] - v1[1]*v2[0];
 }
 
 /* 
@@ -291,7 +320,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
            Tcl_Obj *const *objv) 
 {
     double *points;
-    Tcl_Obj *objPtr, *pointsObjPtr, *fieldObjPtr;
+    Tcl_Obj *objPtr, *pointsObjPtr, *fieldObjPtr, *cellsObjPtr;
     char *p, *pend;
     char *string;
     char mesg[2000];
@@ -299,7 +328,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     double dx, dy, dz;
     double origin[3];
     int count[3];
-    int length, nAxes, nPoints, nXYPoints;
+    int length, nAxes, nPoints, nXYPoints, nCells;
     char *name;
     int isUniform;
     int isStructuredGrid;
@@ -307,7 +336,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
     name = "component";
     points = NULL;
-    nAxes = nPoints = nXYPoints = 0;
+    nAxes = nPoints = nXYPoints = nCells = 0;
     dx = dy = dz = 0.0; /* Suppress compiler warning. */
     origin[0] = origin[1] = origin[2] = 0.0; /* May not have an origin line. */
     dv0[0] = dv0[1] = dv0[2] = 0.0;
@@ -328,6 +357,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         length -= 5;
     }
     pointsObjPtr = Tcl_NewStringObj("", -1);
+    cellsObjPtr = Tcl_NewStringObj("", -1);
     fieldObjPtr = Tcl_NewStringObj("", -1);
     for (p = string, pend = p + length; p < pend; /*empty*/) {
         char *line;
@@ -538,7 +568,6 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_AppendToObj(pointsObjPtr, mesg, -1);
             }
         }
-        free(points);
 
         objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
         Tcl_AppendToObj(objPtr, "Converted from DX file\n", -1);
@@ -547,6 +576,115 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         sprintf(mesg, "POINTS %d double\n", nPoints);
         Tcl_AppendToObj(objPtr, mesg, -1);
         Tcl_AppendObjToObj(objPtr, pointsObjPtr);
+#ifdef DO_WEDGES
+        {
+            double xmin, xmax, ymin, ymax;
+            xmin = xmax = points[0];
+            ymin = ymax = points[1];
+            for (i = 1; i < nXYPoints; i++) {
+                double x, y;
+                x = points[i*2];
+                y = points[i*2+1];
+                if (x < xmin) xmin = x;
+                if (x > xmax) xmax = x;
+                if (y < ymin) ymin = y;
+                if (y > ymax) ymax = y;
+            }
+
+            char fpts[128];
+            sprintf(fpts, "/tmp/tmppts%d", getpid());
+            char fcells[128];
+            sprintf(fcells, "/tmp/tmpcells%d", getpid());
+
+            FILE *ftmp = fopen(fpts, "w");
+            // save corners of bounding box first, to work around meshing
+            // problems in voronoi utility
+            int numBoundaryPoints = 4;
+
+            // Bump out the bounds by an epsilon to avoid problem when
+            // corner points are already nodes
+            double XEPS = (xmax - xmin) / 10.0f;
+            double YEPS = (ymax - ymin) / 10.0f;
+
+            fprintf(ftmp, "%g %g\n", xmin - XEPS, ymin - YEPS);
+            fprintf(ftmp, "%g %g\n", xmax + XEPS, ymin - YEPS);
+            fprintf(ftmp, "%g %g\n", xmax + XEPS, ymax + YEPS);
+            fprintf(ftmp, "%g %g\n", xmin - XEPS, ymax + YEPS);
+
+            for (i = 0; i < nXYPoints; i++) {
+                fprintf(ftmp, "%g %g\n", points[i*2], points[i*2+1]);
+            }
+            fclose(ftmp);
+#ifdef notdef
+            double normal[3];
+            normal[0] = normal[1] = 0.0;
+            if (dx >= 0) {
+                normal[2] = 1.0;
+            } else {
+                normal[2] = -1.0;
+            }
+#endif
+            char cmdstr[512];
+            sprintf(cmdstr, "voronoi -t < %s > %s", fpts, fcells);
+            if (system(cmdstr) == 0) {
+                int c0, c1, c2;
+                ftmp = fopen(fcells, "r");
+                while (!feof(ftmp)) {
+                    if (fscanf(ftmp, "%d %d %d", &c0, &c1, &c2) == 3) {
+                        c0 -= numBoundaryPoints;
+                        c1 -= numBoundaryPoints;
+                        c2 -= numBoundaryPoints;
+                        // skip boundary points we added
+                        if (c0 >= 0 && c1 >= 0 && c2 >= 0) {
+#ifdef notdef
+                            /* Winding of base triangle should point to 
+                               outside of cell using right hand rule */
+                            double v1[3], v2[3], c[3];
+                            v1[0] = points[c1*2] - points[c0*2];
+                            v1[1] = points[c1*2+1] - points[c0*2+1];
+                            v1[2] = 0;
+                            v2[0] = points[c2*2] - points[c0*2];
+                            v2[1] = points[c2*2+1] - points[c0*2+1];
+                            v2[2] = 0;
+                            Cross(v1, v2, c);
+                            if (Dot(normal, c) > 0) {
+                                int tmp = c0;
+                                c0 = c2;
+                                c2 = tmp;
+                            }
+#endif
+                            for (iz = 0; iz < count[2] - 1; iz++) {
+                                int base = nXYPoints * iz;
+                                int top = base + nXYPoints;
+                                nCells++;
+                                sprintf(mesg, "%d %d %d %d %d %d %d\n", 6,
+                                        base + c0, base + c1, base + c2,
+                                        top + c0, top + c1, top + c2);
+                                Tcl_AppendToObj(cellsObjPtr, mesg, -1);
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                fclose(ftmp);
+             } else {
+                fprintf(stderr, "voronoi mesher failed");
+            }
+            unlink(fpts);
+            unlink(fcells);
+        }
+        free(points);
+        sprintf(mesg, "CELLS %d %d\n", nCells, 7*nCells);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        Tcl_AppendObjToObj(objPtr, cellsObjPtr);
+        sprintf(mesg, "CELL_TYPES %d\n", nCells);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+        sprintf(mesg, "%d\n", 13);
+        for (i = 0; i < nCells; i++) {
+            Tcl_AppendToObj(objPtr, mesg, -1);
+        }
+#endif
         sprintf(mesg, "POINT_DATA %d\n", nPoints);
         Tcl_AppendToObj(objPtr, mesg, -1);
         sprintf(mesg, "SCALARS %s double 1\n", name);
@@ -557,6 +695,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     Tcl_DecrRefCount(pointsObjPtr);
+    Tcl_DecrRefCount(cellsObjPtr);
     Tcl_DecrRefCount(fieldObjPtr);
     Tcl_SetObjResult(interp, objPtr);
     return TCL_OK;
