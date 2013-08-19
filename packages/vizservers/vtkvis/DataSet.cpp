@@ -163,7 +163,7 @@ bool DataSet::setData(vtkDataSetReader *reader)
     if (_dataSet == NULL)
         return false;
 
-    if (vtkUnstructuredGrid::SafeDownCast(_dataSet) != NULL) {
+    if (vtkUnstructuredGrid::SafeDownCast(_dataSet) != NULL && !isCloud()) {
         vtkSmartPointer<vtkExtractUnstructuredGrid> filter = vtkSmartPointer<vtkExtractUnstructuredGrid>::New();
 #ifdef USE_VTK6
         filter->SetInputData(_dataSet);
