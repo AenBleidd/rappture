@@ -39,7 +39,7 @@ public:
 
     void set(const Vector2f& v);
 
-    float dot() const;
+    double dot() const;
 
     double length() const;
 
@@ -66,7 +66,7 @@ inline void Vector2f::set(const Vector2f& v)
     y = v.y;
 }
 
-inline float Vector2f::dot() const
+inline double Vector2f::dot() const
 {
     return (x * x + y * y);
 }

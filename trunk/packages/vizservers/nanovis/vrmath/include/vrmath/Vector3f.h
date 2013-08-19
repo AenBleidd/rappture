@@ -57,7 +57,7 @@ public:
 
     Vector3f scale(const Vector3f& scale) const;
 
-    Vector3f scale(float scale) const;
+    Vector3f scale(double scale) const;
 
     bool operator==(const Vector3f& v) const;
 
@@ -66,11 +66,11 @@ public:
     Vector3f operator-() const;
 
     // scalar ops
-    Vector3f operator+(float scalar) const;
-    Vector3f operator-(float scalar) const;
-    Vector3f operator*(float scalar) const;
-    Vector3f operator/(float scalar) const;
-    Vector3f& operator*=(float scalar);
+    Vector3f operator+(double scalar) const;
+    Vector3f operator-(double scalar) const;
+    Vector3f operator*(double scalar) const;
+    Vector3f operator/(double scalar) const;
+    Vector3f& operator*=(double scalar);
 
     // vector ops
     Vector3f operator+(const Vector3f& op2) const;
@@ -112,27 +112,27 @@ inline Vector3f Vector3f::operator-() const
     return Vector3f(-x, -y, -z);
 }
 
-inline Vector3f Vector3f::operator+(float scalar) const
+inline Vector3f Vector3f::operator+(double scalar) const
 {
     return Vector3f(x + scalar, y + scalar, z + scalar);
 }
 
-inline Vector3f Vector3f::operator-(float scalar) const
+inline Vector3f Vector3f::operator-(double scalar) const
 {
     return Vector3f(x - scalar, y - scalar, z - scalar);
 }
 
-inline Vector3f Vector3f::operator*(float scalar) const
+inline Vector3f Vector3f::operator*(double scalar) const
 {
     return Vector3f(x * scalar, y * scalar, z * scalar);
 }
 
-inline Vector3f Vector3f::operator/(float scalar) const
+inline Vector3f Vector3f::operator/(double scalar) const
 {
     return Vector3f(x / scalar, y / scalar, z / scalar);
 }
 
-inline Vector3f& Vector3f::operator*=(float scalar)
+inline Vector3f& Vector3f::operator*=(double scalar)
 {
     x *= scalar;
     y *= scalar;
@@ -167,7 +167,7 @@ inline Vector3f& Vector3f::operator-=(const Vector3f& op2)
 }
 
 #if 0
-inline Vector3f operator*(float scale, const Vector3f& value)
+inline Vector3f operator*(double scale, const Vector3f& value)
 {
     return Vector3f(value.x * scale, value.y * scale, value.z * scale);
 }
@@ -230,15 +230,15 @@ inline Vector3f Vector3f::cross(const Vector3f& op2) const
 
 inline Vector3f Vector3f::normalize() const
 {
-    float len = length();
-    if (len > 1.0e-6) {
+    double len = length();
+    if (len > 0.0) {
         return Vector3f(x / len, y / len, z / len);
     } else {
         return *this;
     }
 }
 
-inline Vector3f Vector3f::scale(float scale) const
+inline Vector3f Vector3f::scale(double scale) const
 {
     return Vector3f(x * scale, y * scale, z * scale);
 }
