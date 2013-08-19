@@ -65,19 +65,19 @@ public:
         return (x * op2.x) + (y * op2.y) + (z * op2.z) + (w * op2.w);
     }
 
-    Vector4f operator*(float op2) const
+    Vector4f operator*(double op2) const
     {
         return Vector4f(x * op2, y * op2, z * op2, w * op2);
     }
 
-    Vector4f operator/(float op2) const
+    Vector4f operator/(double op2) const
     {
         return Vector4f(x / op2, y / op2, z / op2, w / op2);
     }
 
     void divideByW();
 
-    float dot(const Vector4f& vec) const;
+    double dot(const Vector4f& vec) const;
 
     union {
         struct {
@@ -121,9 +121,9 @@ inline void Vector4f::set(const Vector3f& v, float w)
     this->w = w;
 }
 
-inline float Vector4f::dot(const Vector4f& v) const
+inline double Vector4f::dot(const Vector4f& v) const
 {
-    return (x * v.x + y * v.y + z * v.z + w * v.w);
+    return ((double)x * v.x + (double)y * v.y + (double)z * v.z + (double)w * v.w);
 }
 
 /**
