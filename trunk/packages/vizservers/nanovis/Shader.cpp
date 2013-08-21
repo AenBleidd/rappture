@@ -11,14 +11,33 @@
 
 #include <util/FilePath.h>
 
+#include "config.h"
 #include "Shader.h"
 #include "Trace.h"
 
 using namespace nv;
 using namespace nv::util;
 
+/**
+ * These correspond to NV_vertex_program3 and NV_fragment_program2:
+ * CG_PROFILE_VP40
+ * CG_PROFILE_FP40
+ *
+ * These correspond to ARB_vertex_program and ARB_fragment_program:
+ * CG_PROFILE_ARBVP1
+ * CG_PROFILE_ARBFP1
+ *
+ * Generic GLSL targets:
+ * CG_PROFILE_GLSLV
+ * CG_PROFILE_GLSLF
+ */
+#ifdef USE_ARB_PROGRAMS
+CGprofile Shader::_defaultVertexProfile = CG_PROFILE_ARBVP1;
+CGprofile Shader::_defaultFragmentProfile = CG_PROFILE_ARBFP1;
+#else
 CGprofile Shader::_defaultVertexProfile = CG_PROFILE_VP40;
 CGprofile Shader::_defaultFragmentProfile = CG_PROFILE_FP40;
+#endif
 CGcontext Shader::_cgContext = NULL;
 
 void Shader::init()

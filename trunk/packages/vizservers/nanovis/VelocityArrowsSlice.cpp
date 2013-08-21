@@ -64,8 +64,11 @@ VelocityArrowsSlice::VelocityArrowsSlice() :
 
     _queryVelocityFP.loadFragmentProgram("queryvelocity.cg");
 
-    _particleShader.loadVertexProgram("velocityslicevp.cg");
-    _particleShader.loadFragmentProgram("velocityslicefp.cg");
+    // Delay loading of shaders only required for glyph style rendering
+    if (_renderMode == GLYPHS) {
+        _particleShader.loadVertexProgram("velocityslicevp.cg");
+        _particleShader.loadFragmentProgram("velocityslicefp.cg");
+    }
 
     createRenderTarget();
 
@@ -361,7 +364,7 @@ void VelocityArrowsSlice::render()
                     TRACE("***vec: (%g, %g, %g) length: %g***", vel.x, vel.y, vel.z, length);
                     continue;
                 }
-                if (length > 1.0e-6) {
+                if (length > 0.0) {
                     Vector3f vnorm = vel.normalize();
                     Vector3f rotationAxis = refVec.cross(vnorm);
                     double angle = rad2deg(acos(refVec.dot(vnorm)));
@@ -413,6 +416,15 @@ void VelocityArrowsSlice::render()
         glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, _maxPointSize);
         glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 
+        // FIXME: This vertex shader won't compile with ARB_vertex_program,
+        // so it should use GLSL
+        if (!_particleShader.isVertexProgramLoaded()) {
+            _particleShader.loadVertexProgram("velocityslicevp.cg");
+        }
+        if (!_particleShader.isFragmentProgramLoaded()) {
+            _particleShader.loadFragmentProgram("velocityslicefp.cg");
+        }
+
         _particleShader.bind();
         _particleShader.setVPTextureParameter("vfield", _vectorFieldGraphicsID);
         _particleShader.setFPTextureParameter("arrows", _arrowsTex->id());
@@ -457,7 +469,7 @@ VelocityArrowsSlice::setVectorField(Volume *volume)
     _vectorFieldGraphicsID = volume->textureID();
     Vector3f bmin, bmax;
     volume->getBounds(bmin, bmax);
-    _origin = bmin;
+    _origin.set(bmin.x, bmin.y, bmin.z);
     _scale.set(bmax.x-bmin.x, bmax.y-bmin.y, bmax.z-bmin.z);
 
     _dirty = true;
