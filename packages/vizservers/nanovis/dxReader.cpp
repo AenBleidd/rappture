@@ -210,7 +210,7 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         }
     }
 
-    TRACE("found nx=%d ny=%d nxy=%d nz=%d\ndx=%f dy=%f dz=%f\nx0=%f y0=%f z0=%f", 
+    TRACE("found nx=%d ny=%d nxy=%d nz=%d\ndx=%g dy=%g dz=%g\nx0=%g y0=%g z0=%g", 
           nx, ny, nxy, nz, dx, dy, dz, x0, y0, z0);
 
     lx = (nx - 1) * dx;
