@@ -339,7 +339,7 @@ PPMWriter.o: PPMWriter.cpp PPMWriter.h
 ReaderCommon.o: ReaderCommon.cpp ReaderCommon.h GradientFilter.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 RegularVolumeShader.o: RegularVolumeShader.cpp RegularVolumeShader.h VolumeShader.h Shader.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
-Shader.o: Shader.cpp Shader.h
+Shader.o: Shader.cpp Shader.h config.h
 ShaderGL.o: ShaderGL.cpp ShaderGL.h
 StdVertexShader.o: StdVertexShader.cpp StdVertexShader.h Shader.h
 Switch.o: Switch.cpp Switch.h
