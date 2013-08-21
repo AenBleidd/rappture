@@ -503,12 +503,20 @@ bool NanoVis::init(const char* path)
         return false;
     }
 #endif
-    // FIXME: should use ARB programs or (preferably) a GLSL profile for portability
+    // FIXME: should use GLSL for portability
+#ifdef USE_ARB_PROGRAMS
+    if (!GLEW_ARB_vertex_program ||
+        !GLEW_ARB_fragment_program) {
+        ERROR("ARB_vertex_program and ARB_fragment_program extensions are required");
+        return false;
+    }
+#else
     if (!GLEW_NV_vertex_program3 ||
         !GLEW_NV_fragment_program2) {
         ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required");
         return false;
     }
+#endif
 
     if (!FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s", path);

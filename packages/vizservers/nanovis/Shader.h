@@ -48,6 +48,16 @@ public:
      */
     void loadFragmentProgram(const char *fileName);
 
+    bool isVertexProgramLoaded()
+    {
+        return (getVP() == NULL);
+    }
+
+    bool isFragmentProgramLoaded()
+    {
+        return (getFP() == NULL);
+    }
+
     void setVPParameter1f(const char *name, float val)
     {
         Parameter param = getVPParam(name);
@@ -282,7 +292,6 @@ private:
 
 
     void resetPrograms();
-
 
     CGprogram getVP()
     {

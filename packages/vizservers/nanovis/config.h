@@ -37,6 +37,13 @@
 #define USE_HALF_FLOAT
 
 /*
+ * If defined, use ARB_vertex_program and ARB_fragment_program as Cg
+ * profile target, otherwise NV_vertex_program3 and NV_fragment_program2
+ * are required
+ */
+//#define USE_ARB_PROGRAMS
+
+/*
  * Keep statistics
  */
 #define KEEPSTATS
