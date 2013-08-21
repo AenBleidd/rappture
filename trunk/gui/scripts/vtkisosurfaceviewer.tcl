@@ -86,8 +86,8 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildIsosurfaceTab {}
-    private method DrawLegend {}
     private method Combo { option }
+    private method DrawLegend {}
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
@@ -1524,7 +1524,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
 	    set title $fname
 	}
     }
-    # If there's a title too, substract one more line
+    # If there's a title too, subtract one more line
     if { $title != "" } {
         incr h -$lineht 
     }
