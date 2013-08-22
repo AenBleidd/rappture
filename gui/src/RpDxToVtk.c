@@ -23,6 +23,7 @@
 #include "tcl.h"
 
 #define DO_WEDGES
+//#define CHECK_WINDINGS
 
 static INLINE char *
 SkipSpaces(char *string) 
@@ -56,7 +57,7 @@ GetUniformFieldValues(Tcl_Interp *interp, int nPoints, int *counts, char **strin
     int i;
     const char *p;
     char mesg[2000];
-    double *array, scale, vmin, vmax;
+    double *array;
     int iX, iY, iZ;
 
     p = *stringPtr;
@@ -64,7 +65,6 @@ GetUniformFieldValues(Tcl_Interp *interp, int nPoints, int *counts, char **strin
     if (array == NULL) {
         return TCL_ERROR;
     }
-    vmin = DBL_MAX, vmax = -DBL_MAX;
     iX = iY = iZ = 0;
     for (i = 0; i < nPoints; i++) {
         double value;
@@ -92,18 +92,8 @@ GetUniformFieldValues(Tcl_Interp *interp, int nPoints, int *counts, char **strin
             }
         }
         array[loc] = value;
-        if (value < vmin) {
-            vmin = value;
-        } 
-        if (value > vmax) {
-            vmax = value;
-        }
     }
-    scale = 1.0 / (vmax - vmin);
     for (i = 0; i < nPoints; i++) {
-#ifdef notdef
-        sprintf(mesg, "%g\n", (array[i] - vmin) * scale);
-#endif
         sprintf(mesg, "%g\n", array[i]);
         Tcl_AppendToObj(objPtr, mesg, -1);
     }
@@ -119,14 +109,13 @@ GetStructuredGridFieldValues(Tcl_Interp *interp, int nPoints, char **stringPtr,
     int i;
     const char *p;
     char mesg[2000];
-    double *array, scale, vmin, vmax;
+    double *array;
 
     p = *stringPtr;
     array = malloc(sizeof(double) * nPoints);
     if (array == NULL) {
         return TCL_ERROR;
     }
-    vmin = DBL_MAX, vmax = -DBL_MAX;
     for (i = 0; i < nPoints; i++) {
         double value;
         char *nextPtr;
@@ -144,18 +133,8 @@ GetStructuredGridFieldValues(Tcl_Interp *interp, int nPoints, char **stringPtr,
         }
         p = nextPtr;
         array[i] = value;
-        if (value < vmin) {
-            vmin = value;
-        } 
-        if (value > vmax) {
-            vmax = value;
-        }
     }
-    scale = 1.0 / (vmax - vmin);
     for (i = 0; i < nPoints; i++) {
-#ifdef notdef
-        sprintf(mesg, "%g\n", (array[i] - vmin) * scale);
-#endif
         sprintf(mesg, "%g\n", array[i]);
         Tcl_AppendToObj(objPtr, mesg, -1);
     }
@@ -171,7 +150,7 @@ GetCloudFieldValues(Tcl_Interp *interp, int nXYPoints, int nZPoints, char **stri
     int i;
     const char *p;
     char mesg[2000];
-    double *array, scale, vmin, vmax;
+    double *array;
     int iXY, iZ;
     int nPoints;
 
@@ -182,7 +161,6 @@ GetCloudFieldValues(Tcl_Interp *interp, int nXYPoints, int nZPoints, char **stri
     if (array == NULL) {
         return TCL_ERROR;
     }
-    vmin = DBL_MAX, vmax = -DBL_MAX;
     iXY = iZ = 0;
     for (i = 0; i < nPoints; i++) {
         double value;
@@ -207,18 +185,8 @@ GetCloudFieldValues(Tcl_Interp *interp, int nXYPoints, int nZPoints, char **stri
             ++iXY;
         }
         array[loc] = value;
-        if (value < vmin) {
-            vmin = value;
-        } 
-        if (value > vmax) {
-            vmax = value;
-        }
     }
-    scale = 1.0 / (vmax - vmin);
     for (i = 0; i < nPoints; i++) {
-#ifdef notdef
-        sprintf(mesg, "%g\n", (array[i] - vmin) * scale);
-#endif
         sprintf(mesg, "%g\n", array[i]);
         Tcl_AppendToObj(objPtr, mesg, -1);
     }
@@ -277,7 +245,7 @@ GetPoints(Tcl_Interp *interp, double *array, int nXYPoints,
     *stringPtr = (char *)p;
     return TCL_OK;
 }
-
+#if defined(DO_WEDGES) && defined(CHECK_WINDINGS)
 static void
 Normalize(double v[3])
 {
@@ -300,7 +268,7 @@ Cross(double v1[3], double v2[3], double vout[3])
     vout[1] = v1[2]*v2[0] - v1[0]*v2[2];
     vout[2] = v1[0]*v2[1] - v1[1]*v2[0];
 }
-
+#endif
 /* 
  *  DxToVtk string
  *
@@ -564,7 +532,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
          */
         for (iz = 0; iz < count[2]; iz++) {
             for (i = 0; i < nXYPoints; i++) {
-                sprintf(mesg, "%g %g %g\n", points[i*2], points[i*2+1], origin[2] + dz * iz);
+                sprintf(mesg, "%g %g %g\n", points[i*2], points[i*2+1], (origin[2] + dz * iz));
                 Tcl_AppendToObj(pointsObjPtr, mesg, -1);
             }
         }
@@ -615,7 +583,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 fprintf(ftmp, "%g %g\n", points[i*2], points[i*2+1]);
             }
             fclose(ftmp);
-#ifdef notdef
+#ifdef CHECK_WINDINGS
             double normal[3];
             normal[0] = normal[1] = 0.0;
             if (dx >= 0) {
@@ -636,7 +604,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                         c2 -= numBoundaryPoints;
                         // skip boundary points we added
                         if (c0 >= 0 && c1 >= 0 && c2 >= 0) {
-#ifdef notdef
+#ifdef CHECK_WINDINGS
                             /* Winding of base triangle should point to 
                                outside of cell using right hand rule */
                             double v1[3], v2[3], c[3];
@@ -674,7 +642,6 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             unlink(fpts);
             unlink(fcells);
         }
-        free(points);
         sprintf(mesg, "CELLS %d %d\n", nCells, 7*nCells);
         Tcl_AppendToObj(objPtr, mesg, -1);
         Tcl_AppendObjToObj(objPtr, cellsObjPtr);
@@ -685,6 +652,9 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_AppendToObj(objPtr, mesg, -1);
         }
 #endif
+        if (points != NULL) {
+            free(points);
+        }
         sprintf(mesg, "POINT_DATA %d\n", nPoints);
         Tcl_AppendToObj(objPtr, mesg, -1);
         sprintf(mesg, "SCALARS %s double 1\n", name);
