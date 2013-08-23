@@ -775,7 +775,7 @@ CutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     std::vector<Volume *> ivol;
-    if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
+    if (GetVolumes(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
     std::vector<Volume *>::iterator iter;
