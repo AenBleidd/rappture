@@ -762,17 +762,21 @@ itcl::body Rappture::Field::Build {} {
         } elseif {[$_field element $cname.opendx] != ""} {
             global env
             if { [info exists env(VTKVOLUME)] } {
-                set type "vtkvolume"
-            } else {
-                set type "opendx"
-            }
+                set viewer "vtkvolume"
+                if { $viewer != "" } {
+                    set _viewer $viewer
+                }
+            } 
+            set type "opendx"
         } elseif {[$_field element $cname.dx] != ""} {
             global env
             if { [info exists env(VTKVOLUME)] } {
-                set type "vtkvolume"
-            } else {
-                set type "dx"
+                set viewer "vtkvolume"
+                if { $viewer != "" } {
+                    set _viewer $viewer
+                }
             }
+            set type "dx"
         } elseif {[$_field element $cname.ucd] != ""} {
             set type "ucd"
 	}
@@ -870,7 +874,7 @@ itcl::body Rappture::Field::Build {} {
             set _viewer "nanovis"
             set _dim 3
             set _comp2dims($cname) "3D"
-            if 0 {
+            if 1 {
                 set vtkdata  [$_field get -decode yes $cname.$type]
                 if { $vtkdata == "" } {
                     puts stderr "WARNING: no data for \"$_path.$cname.$type\""
