@@ -70,7 +70,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
             puts stderr "unknown render mode \"$flags(-mode)\""
         }
     }
-    if {"" != $servers && $flags(-mode) != "vtk"} {
+    if { "" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "nanovis" {
                 itk_component add renderer {
@@ -167,7 +167,9 @@ itcl::body Rappture::Field3DResult::get {} {
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field3DResult::delete {args} {
-    eval $itk_component(renderer) delete $args
+    if { [info exists itk_component(renderer)] } {
+        eval $itk_component(renderer) delete $args
+    }
 }
 
 # ----------------------------------------------------------------------

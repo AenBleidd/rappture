@@ -244,6 +244,11 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     } else {
         set color $attrs(-color)
     }
+    if { ![info exists attrs(-width)] } {
+        set linewidth 1
+    } else {
+        set linewidth $attrs(-width)
+    }
     if { $color == "auto" || $color == "autoreset" } {
         if { $color == "autoreset" } {
             set _nextColorIndex 0
@@ -274,11 +279,18 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     foreach cname [$dataobj components] {
         set tag $dataobj-$cname
         set elem $_comp2elem($tag) 
-        if { $type == "bar" } {
-            $g bar configure $elem -foreground $color -background $color \
-                -hide no
-        } else {
-            $g line configure $elem -color $color -hide no
+        switch -- $type {
+            "bar" {
+                $g bar configure $elem -foreground $color -background $color \
+                    -hide no
+            } 
+            "scatter" {
+                $g line configure $elem -color $color -hide no
+            }
+            default {
+                $g line configure $elem -color $color -hide no \
+                    -linewidth $linewidth
+            }
         }
         if { [lsearch $_viewable $elem] < 0 } {
             lappend _viewable $elem
@@ -1585,7 +1597,7 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
         set barwidth $attrs(-barwidth)
     }
     if { ![info exists attrs(-width)] } {
-        set linewidth 1
+        set linewidth 11
     } else {
         set linewidth $attrs(-width)
     }
@@ -1654,8 +1666,15 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                 }
             }
         } else {
+            if 0 {
             set elem $_comp2elem($tag)
             switch -- $type {
+                "scatter" {
+                    $g line configure $elem \
+                        -symbol $sym \
+                        -pixels $pixels \
+                        -linewidth 0 
+                } 
                 "line" {
                     $g line configure $elem \
                         -symbol $sym \
@@ -1668,6 +1687,7 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -barwidth $barwidth \
                         -label $label 
                 }
+            }
             }
         }
     }
