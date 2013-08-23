@@ -1597,7 +1597,7 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
         set barwidth $attrs(-barwidth)
     }
     if { ![info exists attrs(-width)] } {
-        set linewidth 11
+        set linewidth 1
     } else {
         set linewidth $attrs(-width)
     }
