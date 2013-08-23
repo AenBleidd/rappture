@@ -765,9 +765,30 @@ CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+CutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    std::vector<Volume *> ivol;
+    if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    std::vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+        (*iter)->cutplanesVisible(state);
+    }
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec cutplaneOps[] = {
     {"position", 1, CutplanePositionOp, 4, 0, "relval axis ?indices?",},
     {"state",    1, CutplaneStateOp,    4, 0, "bool axis ?indices?",},
+    {"visible",  1, CutplaneVisibleOp,  3, 0, "bool ?indices?",},
 };
 static int nCutplaneOps = NumCmdSpecs(cutplaneOps);
 

@@ -280,7 +280,7 @@ VolumeRenderer::renderAll()
         // vice versa.
 
         for (int j = 0; j < volume->getCutplaneCount(); j++) {
-            if (!volume->isCutplaneEnabled(j)) {
+            if (!volume->cutplanesVisible() || !volume->isCutplaneEnabled(j)) {
                 continue;
             }
             Vector4f texcoord1, texcoord2, texcoord3, texcoord4;

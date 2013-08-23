@@ -154,6 +154,16 @@ public:
 
     void disableCutplane(int index);
 
+    void cutplanesVisible(bool state)
+    {
+        _cutplanesVisible = state;
+    }
+
+    bool cutplanesVisible() const
+    {
+        return _cutplanesVisible;
+    }
+
     void setCutplanePosition(int index, float location);
 
     CutPlane *getCutplane(int index);
@@ -386,6 +396,7 @@ protected:
 
     double _nonZeroMin;
 
+    bool _cutplanesVisible;
     std::vector<CutPlane> _plane; ///< cut planes
 
     Texture3D *_tex;		///< OpenGL texture storing the volume
