@@ -218,22 +218,16 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         axis-xgrid              0
         axis-ygrid              0
         axis-zgrid              0
-        axis-xcutplane          0
-        axis-ycutplane          0
-        axis-zcutplane          0
-        axis-xposition          0
-        axis-yposition          0
-        axis-zposition          0
         axesVisible             1
         axisLabels              1
         cutplaneEdges           0
-        cutplane-xvisible       0
-        cutplane-yvisible       0
-        cutplane-zvisible       0
+        cutplane-xvisible       1
+        cutplane-yvisible       1
+        cutplane-zvisible       1
         cutplane-xposition      50
         cutplane-yposition      50
         cutplane-zposition      50
-        cutplaneVisible         1
+        cutplaneVisible         0
         cutplaneLighting        1
         cutplaneWireframe       0
         cutplane-opacity        100
@@ -336,7 +330,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
             -variable [itcl::scope _settings(cutplaneVisible)] \
             -command [itcl::code $this AdjustSetting cutplaneVisible] 
     }
-    $itk_component(cutplane) select
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
@@ -1018,18 +1011,21 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                 }
                 foreach { label units components } \
                     [$_first fieldinfo $fname] break
-                $itk_component(field) choices insert end "$fname" "$label"
-                $itk_component(fieldmenu) add radiobutton -label "$label" \
-                    -value $label -variable [itcl::scope _curFldLabel] \
-                    -selectcolor red \
-                    -activebackground $itk_option(-plotbackground) \
-                    -activeforeground $itk_option(-plotforeground) \
-                    -font "Arial 8" \
-                    -command [itcl::code $this Combo invoke]
-                set _fields($fname) [list $label $units $components]
-                if { $_curFldName == "" } {
-                    set _curFldName $fname
-                    set _curFldLabel $label
+                # Only scalar fields are valid
+                if {$components == 1} {
+                    $itk_component(field) choices insert end "$fname" "$label"
+                    $itk_component(fieldmenu) add radiobutton -label "$label" \
+                        -value $label -variable [itcl::scope _curFldLabel] \
+                        -selectcolor red \
+                        -activebackground $itk_option(-plotbackground) \
+                        -activeforeground $itk_option(-plotforeground) \
+                        -font "Arial 8" \
+                        -command [itcl::code $this Combo invoke]
+                    set _fields($fname) [list $label $units $components]
+                    if { $_curFldName == "" } {
+                        set _curFldName $fname
+                        set _curFldLabel $label
+                    }
                 }
             }
         }
@@ -1420,7 +1416,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
-                    set _colorMode vmag
+                    puts stderr "Can't use a vector field in a volume"
+                    return
                 } else {
                     set _colorMode scalar
                 }
@@ -1430,8 +1427,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            SendCmd "volume colormode $_colorMode ${name} $dataset"
-            SendCmd "cutplane colormode $_colorMode ${name} $dataset"
+            foreach dataset [CurrentDatasets -visible $_first] {
+                #SendCmd "volume colormode $_colorMode ${fname} $dataset"
+                SendCmd "cutplane colormode $_colorMode ${fname} $dataset"
+            }
             SendCmd "camera reset"
             DrawLegend
         }
@@ -1810,6 +1809,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X-axis cutplane on/off"
+    $itk_component(xCutButton) select
 
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
@@ -1837,6 +1837,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y-axis cutplane on/off"
+    $itk_component(yCutButton) select
 
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
@@ -1864,6 +1865,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z-axis cutplane on/off"
+    $itk_component(zCutButton) select
 
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \
@@ -1877,7 +1879,6 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
     }
     $itk_component(zCutScale) set 50
     $itk_component(zCutScale) configure -state disabled
-    #$itk_component(zCutScale) configure -state disabled
     Rappture::Tooltip::for $itk_component(zCutScale) \
         "@[itcl::code $this Slice tooltip z]"
 
@@ -2023,16 +2024,7 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj comp } {
     array set settings $style
     SendCmd "volume add $tag"
     SendCmd "cutplane add $tag"
-    SendCmd "cutplane edges 0 $tag"
-    SendCmd "cutplane wireframe 0 $tag"
-    SendCmd "cutplane lighting 1 $tag"
-    SendCmd "cutplane linewidth 1 $tag"
-    #SendCmd "cutplane linecolor 1 1 1 $tag"
-    #SendCmd "cutplane visible $tag"
-    foreach axis { x y z } {
-        SendCmd "cutplane slice $axis 0.5 $tag"
-        SendCmd "cutplane axis $axis 0 $tag"
-    }
+    SendCmd "cutplane visible 0 $tag"
 
     SendCmd "volume lighting $settings(-lighting) $tag"
     set _settings(volumeLighting) $settings(-lighting)
@@ -2223,7 +2215,6 @@ itcl::body Rappture::VtkVolumeViewer::Slice {option args} {
     switch -- $option {
         "move" {
             set axis [lindex $args 0]
-            set oldval $_settings(axis-${axis}position)
             set newval [lindex $args 1]
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"Slice move x|y|z newval\""
