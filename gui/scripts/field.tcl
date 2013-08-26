@@ -762,19 +762,13 @@ itcl::body Rappture::Field::Build {} {
         } elseif {[$_field element $cname.opendx] != ""} {
             global env
             if { [info exists env(VTKVOLUME)] } {
-                set viewer "vtkvolume"
-                if { $viewer != "" } {
-                    set _viewer $viewer
-                }
+                set _viewer "vtkvolume"
             } 
             set type "opendx"
         } elseif {[$_field element $cname.dx] != ""} {
             global env
             if { [info exists env(VTKVOLUME)] } {
-                set viewer "vtkvolume"
-                if { $viewer != "" } {
-                    set _viewer $viewer
-                }
+                set _viewer "vtkvolume"
             }
             set type "dx"
         } elseif {[$_field element $cname.ucd] != ""} {
@@ -871,19 +865,30 @@ itcl::body Rappture::Field::Build {} {
             # data.  Assume that it's 3D.  Pass it straight
             # off to the NanoVis visualizer.
             #
-            set _viewer "nanovis"
+            set viewer [$_field get "about.view"]
+            if { $viewer != "" } {
+                set _viewer $viewer
+            }
+            if { $_viewer == "" } {
+                set _viewer "nanovis"
+            }
             set _dim 3
             set _comp2dims($cname) "3D"
-            if 1 {
+            if { $_viewer != "nanovis" } {
                 set vtkdata  [$_field get -decode yes $cname.$type]
                 if { $vtkdata == "" } {
                     puts stderr "WARNING: no data for \"$_path.$cname.$type\""
                     continue;               # Ignore this component
                 }
+                if 0 {
+                    set f [open /tmp/$_path.$cname.dx "w"]
+                    puts -nonewline $f $vtkdata
+                    close $f
+                }
                 set vtkdata  [Rappture::DxToVtk $vtkdata]
                 if 0 {
                     set f [open /tmp/$_path.$cname.vtk "w"]
-                    puts $f $vtkdata
+                    puts -nonewline $f $vtkdata
                     close $f
                 }
                 ReadVtkDataSet $cname $vtkdata
@@ -897,10 +902,6 @@ itcl::body Rappture::Field::Build {} {
                 }
                 set _type "dx"
                 set _comp2dx($cname) $contents
-            }
-            set viewer [$_field get "about.view"]
-            if { $viewer != "" } {
-                set _viewer $viewer
             }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
