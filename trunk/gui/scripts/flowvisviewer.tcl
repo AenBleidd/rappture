@@ -2184,7 +2184,7 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
 
 itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     foreach { key value } {
-        light2side      0
+        light2side      1
         light           40
         transp          50
         opacity         100
