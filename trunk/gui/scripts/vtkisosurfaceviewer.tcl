@@ -234,7 +234,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         axisZGrid		0
         cutplaneEdges           0
         cutplaneLighting        1
-        cutplanePreinterp       0
+        cutplanePreinterp       1
         cutplaneOpacity		100
         cutplaneVisible		0
         cutplaneWireframe	0
@@ -2128,15 +2128,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
 	$itk_component(colormap) value $style(-color)
     }
     SendCmd "cutplane add $tag"
-    SendCmd "cutplane edges 0 $tag"
-    SendCmd "cutplane wireframe 0 $tag"
-    SendCmd "cutplane lighting 1 $tag"
-    SendCmd "cutplane linewidth 1 $tag"
+    SendCmd "cutplane visible 0 $tag"
 
-    foreach axis { x y z } {
-        SendCmd "cutplane slice $axis 0.5 $tag"
-        SendCmd "cutplane axis $axis 0 $tag"
-    }
     # This is too complicated.  We want to set the colormap, number of
     # isolines and opacity for the dataset.  They can be the default values,
     # the style hints loaded with the dataset, or set by user controls.  As
