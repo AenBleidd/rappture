@@ -1450,10 +1450,9 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    set c $itk_component(legend)
     set w 12
     set h [expr {$_height - 3 * ($lineht + 2)}]
-    if { $h < 1} {
+    if { $h < 1 } {
         return
     }
     # Set the legend on the first volume dataset.
