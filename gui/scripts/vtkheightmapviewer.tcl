@@ -1659,7 +1659,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     if { $title != "" } {
         incr h -$lineht 
     }
-    if { $h < 1} {
+    if { $h < 1 } {
         return
     }
     # Set the legend on the first heightmap dataset.
@@ -2421,8 +2421,6 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     $c coords vmax $x $y
     incr y $lineht
     $c coords colormap $x $y
-    set ix [image width $_image(legend)]
-    set ih [image height $_image(legend)]
     $c coords sensor [expr $x - $iw] $y $x [expr $y + $ih]
     $c raise sensor
     $c coords vmin $x [expr {$h - 2}]

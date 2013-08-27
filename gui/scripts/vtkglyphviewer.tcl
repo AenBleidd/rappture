@@ -1485,10 +1485,9 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     set fname $_curFldName
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    set c $itk_component(view)
     set w 12
     set h [expr {$_height - 2 * ($lineht + 2)}]
-    if { $h < 1} {
+    if { $h < 1 } {
         return
     }
     if { [string match "component*" $fname] } {
@@ -2225,8 +2224,6 @@ itcl::body Rappture::VtkGlyphViewer::Slice {option args} {
     switch -- $option {
         "move" {
             set axis [lindex $args 0]
-	    set a [string toupper $axis]
-            set oldval $_settings(cutplane${a}Position)
             set newval [lindex $args 1]
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"Slice move x|y|z newval\""

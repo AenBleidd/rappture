@@ -1504,10 +1504,9 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    set c $itk_component(legend)
     set w 12
     set h [expr {$_height - 3 * ($lineht + 2)}]
-    if { $h < 1} {
+    if { $h < 1 } {
         return
     }
     # Set the legend on the first streamlines dataset.
@@ -2360,7 +2359,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Slice {option args} {
     switch -- $option {
         "move" {
             set axis [lindex $args 0]
-            set oldval $_settings(axis-${axis}position)
             set newval [lindex $args 1]
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"Slice move x|y|z newval\""

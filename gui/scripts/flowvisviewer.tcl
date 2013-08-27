@@ -252,11 +252,12 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         $this-step              0
         $this-streams           0
         $this-volume            1
-        $this-xcutplane         0
+        $this-cutplaneVisible   0
+        $this-xcutplane         1
         $this-xcutposition      0
-        $this-ycutplane         0
+        $this-ycutplane         1
         $this-ycutposition      0
-        $this-zcutplane         0
+        $this-zcutplane         1
         $this-zcutposition      0
     }]
 
@@ -317,6 +318,17 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     Rappture::Tooltip::for $itk_component(volume) \
         "Toggle the volume cloud on/off"
     pack $itk_component(volume) -padx 2 -pady 2
+
+    itk_component add cutplane {
+        Rappture::PushButton $f.cutplane \
+            -onimage [Rappture::icon cutbutton] \
+            -offimage [Rappture::icon cutbutton] \
+            -variable [itcl::scope _settings($this-cutplaneVisible)] \
+            -command [itcl::code $this AdjustSetting cutplaneVisible] 
+    }
+    Rappture::Tooltip::for $itk_component(cutplane) \
+        "Show/Hide cutplanes"
+    pack $itk_component(cutplane) -padx 2 -pady 2
 
     if { [catch {
         BuildViewTab
@@ -1237,8 +1249,14 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     set _first [lindex [get] 0]
 
+    foreach axis {x y z} {
+        # Turn off cutplanes for all volumes
+        SendCmd "cutplane state 0 $axis"
+    }
+
     # Reset the camera and other view parameters
-    InitSettings light2side light transp isosurface grid axes volume outline
+    InitSettings light2side light transp isosurface grid axes volume outline \
+        cutplaneVisible xcutplane ycutplane zcutplane
     
     # nothing to send -- activate the proper volume
     if {"" != $_first} {
@@ -1294,7 +1312,6 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     # sync the state of slicers
     set vols [CurrentVolumeIds -cutplanes]
     foreach axis {x y z} {
-        SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
         set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
         SendCmd "cutplane position $pos $axis $vols"
     }
@@ -1705,6 +1722,12 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 set tag $_first-$comp
                 SendCmd "$tag configure -volume $_settings($this-volume)"
             }
+        }
+        "cutplaneVisible" {
+            set bool $_settings($this-$what)
+            set datasets [CurrentVolumeIds -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane visible $bool $tag"
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
             set axis [string range $what 0 0]
@@ -2303,6 +2326,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X cut plane on/off"
+    $itk_component(xCutButton) select
 
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
@@ -2330,6 +2354,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y cut plane on/off"
+    $itk_component(yCutButton) select
 
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
@@ -2357,6 +2382,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z cut plane on/off"
+    $itk_component(zCutButton) select
 
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \

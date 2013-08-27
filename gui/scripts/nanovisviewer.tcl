@@ -219,11 +219,12 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-xpan              $_view(xpan)
         $this-ypan              $_view(ypan)
         $this-volume            1
-        $this-xcutplane         0
+        $this-cutplaneVisible   0
+        $this-xcutplane         1
         $this-xcutposition      0
-        $this-ycutplane         0
+        $this-ycutplane         1
         $this-ycutposition      0
-        $this-zcutplane         0
+        $this-zcutplane         1
         $this-zcutposition      0
     }]
 
@@ -284,6 +285,17 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(volume) \
         "Toggle the volume cloud on/off"
     pack $itk_component(volume) -padx 2 -pady 2
+
+    itk_component add cutplane {
+        Rappture::PushButton $f.cutplane \
+            -onimage [Rappture::icon cutbutton] \
+            -offimage [Rappture::icon cutbutton] \
+            -variable [itcl::scope _settings($this-cutplaneVisible)] \
+            -command [itcl::code $this AdjustSetting cutplaneVisible] 
+    }
+    Rappture::Tooltip::for $itk_component(cutplane) \
+        "Show/Hide cutplanes"
+    pack $itk_component(cutplane) -padx 2 -pady 2
 
     if { [catch {
         BuildViewTab
@@ -943,12 +955,15 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         SendCmd "camera reset"
 	PanCamera
 	SendCmd "camera zoom $_view(zoom)"
-        InitSettings light2side light transp isosurface grid axes 
-	
+
         foreach axis {x y z} {
             # Turn off cutplanes for all volumes
             SendCmd "cutplane state 0 $axis"
         }
+
+        InitSettings light2side light transp isosurface grid axes \
+            cutplaneVisible xcutplane ycutplane zcutplane
+
 	if {"" != $_first} {
 	    set axis [$_first hints updir]
 	    if { "" != $axis } {
@@ -1267,6 +1282,12 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         "volume" {
             set datasets [CurrentDatasets -cutplanes] 
             SendCmd "volume data state $_settings($this-volume) $datasets"
+        }
+        "cutplaneVisible" {
+            set bool $_settings($this-$what)
+            set datasets [CurrentDatasets -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane visible $bool $tag"
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
             set axis [string range $what 0 0]
@@ -1825,6 +1846,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X cut plane on/off"
+    $itk_component(xCutButton) select
 
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
@@ -1852,6 +1874,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y cut plane on/off"
+    $itk_component(yCutButton) select
 
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
@@ -1879,6 +1902,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z cut plane on/off"
+    $itk_component(zCutButton) select
 
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \
