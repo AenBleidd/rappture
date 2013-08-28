@@ -962,7 +962,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         }
 
         InitSettings light2side light transp isosurface grid axes \
-            cutplaneVisible xcutplane ycutplane zcutplane
+            xcutplane ycutplane zcutplane
 
 	if {"" != $_first} {
 	    set axis [$_first hints updir]
@@ -976,7 +976,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	}
     }
     # Outline seems to need to be reset every update.
-    InitSettings outline
+    InitSettings outline cutplaneVisible
     # nothing to send -- activate the proper ivol
     SendCmd "volume state 0"
     if {"" != $_first} {
@@ -1836,6 +1836,12 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         -icon [Rappture::icon cutbutton]]
     $inner configure -borderwidth 4
 
+    checkbutton $inner.visible \
+        -text "Show Cutplanes" \
+        -variable [itcl::scope _settings($this-cutplaneVisible)] \
+        -command [itcl::code $this AdjustSetting cutplaneVisible] \
+        -font "Arial 9"
+
     # X-value slicer...
     itk_component add xCutButton {
         Rappture::PushButton $inner.xbutton \
@@ -1916,20 +1922,20 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
     }
     $itk_component(zCutScale) set 50
     $itk_component(zCutScale) configure -state disabled
-    #$itk_component(zCutScale) configure -state disabled
     Rappture::Tooltip::for $itk_component(zCutScale) \
         "@[itcl::code $this SlicerTip z]"
 
     blt::table $inner \
-        1,1 $itk_component(xCutButton) \
-        1,2 $itk_component(yCutButton) \
-        1,3 $itk_component(zCutButton) \
-        0,1 $itk_component(xCutScale) \
-        0,2 $itk_component(yCutScale) \
-        0,3 $itk_component(zCutScale) 
+        0,1 $inner.visible              -anchor w -pady 2 -cspan 4 \
+        1,1 $itk_component(xCutScale) \
+        1,2 $itk_component(yCutScale) \
+        1,3 $itk_component(zCutScale) \
+        2,1 $itk_component(xCutButton) \
+        2,2 $itk_component(yCutButton) \
+        2,3 $itk_component(zCutButton)
 
-    blt::table configure $inner r0 r1 c* -resize none
-    blt::table configure $inner r2 c4 -resize expand
+    blt::table configure $inner r0 r1 r2 c* -resize none
+    blt::table configure $inner r3 c4 -resize expand
     blt::table configure $inner c0 -width 2
     blt::table configure $inner c1 c2 c3 -padx 2
 }
