@@ -382,7 +382,8 @@ bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarNa
     bool ret = true;
     bool needRangeUpdate = false;
     do {
-        if (strcmp(itr->second->getActiveScalarsName(), scalarName) != 0) {
+        const char *name = itr->second->getActiveScalarsName();
+        if (name == NULL || (strcmp(name, scalarName) != 0)) {
             if (!itr->second->setActiveScalars(scalarName)) {
                 ret = false;
             } else {
