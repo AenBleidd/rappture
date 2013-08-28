@@ -721,11 +721,13 @@ NanoVis::collectBounds(bool onlyVisible)
         grid->zAxis.setScale(sceneBounds.min.z, sceneBounds.max.z);
     }
 
+#if 0
     if (!onlyVisible || grid->isVisible()) {
         BBox bbox;
         grid->getBounds(bbox.min, bbox.max);
         sceneBounds.extend(bbox);
     }
+#endif
 
     if (sceneBounds.isEmpty()) {
         sceneBounds.min.set(-0.5, -0.5, -0.5);
