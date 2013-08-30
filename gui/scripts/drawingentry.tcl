@@ -1073,8 +1073,11 @@ itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
     }
 
     # Activate the popup and call for the output.
-    set x [expr {round($x + [winfo rootx $itk_component(drawing)])}]
-    set y [expr {round($y + [winfo rooty $itk_component(drawing)])}]
+    set rootx [winfo rootx $itk_component(drawing)] 
+    set rooty [winfo rooty $itk_component(drawing)]
+
+    set x [expr {round($x + $rootx)}]
+    set y [expr {round($y + $rooty)}]
     $popup activate @$x,$y above
 }
 
