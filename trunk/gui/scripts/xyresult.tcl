@@ -1503,7 +1503,8 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
                 set _limits($tag) $max
             }
             if  { [$dataobj hints ${axis}scale] == "log" } {
-                set _limits(${axis}log) 1
+                set tag ${label}-log
+                set _limits($tag) 1
             }
             if { ![info exists _label2axis($label)] } {
                 switch [incr anum($axis)] {
@@ -1526,7 +1527,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
     } 
     # Next set the axes based on what we've found.
     foreach label [array names _label2axis] {
-        set logscale [info exists _limits(${label}log)] 
+        set logscale [info exists _limits(${label}-log)] 
         set amin ""
         if { [info exists _limits(${label}-min)] } {
             set amin $_limits(${label}-min)

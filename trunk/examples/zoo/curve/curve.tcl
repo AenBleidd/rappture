@@ -43,12 +43,12 @@ foreach factor {1 2} {
     $driver put output.curve(multi$factor).xaxis.description \
         "Frequency of the input source."
     $driver put output.curve(multi$factor).xaxis.units "Hz"
-    $driver put output.curve(multi$factor).xaxis.scale "log"
+    #$driver put output.curve(multi$factor).xaxis.scale "log"
     $driver put output.curve(multi$factor).yaxis.label "Current"
     $driver put output.curve(multi$factor).yaxis.description \
         "Current through the pull-down resistor."
     $driver put output.curve(multi$factor).yaxis.units "uA"
-    $driver put output.curve(multi$factor).yaxis.log "log"
+    $driver put output.curve(multi$factor).yaxis.scale "log"
 
     for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
         set y [expr {pow(2.0,$factor*$x)/$x}]
