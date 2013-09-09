@@ -123,6 +123,11 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _currentNumIsolines -1
     private variable _currentOpacity ""
 
+    private variable _maxScale 100;     # This is the # of times the x-axis
+                                        # and y-axis ranges can differ before
+                                        # automatically turning on
+                                        # -stretchtofit
+
     private variable _click        ;    # info used for rotate operations
     private variable _limits       ;    # Holds overall limits for all dataobjs 
                                         # using the viewer.
@@ -644,6 +649,15 @@ itcl::body Rappture::VtkHeightmapViewer::scale {args} {
             }
             set _limits($fname) [list $fmin $fmax]
         }
+    }
+    # Check if the range of the x and y axes requires that we stretch
+    # the contour to fit the plotting area.  This can happen when the
+    # x and y scales differ greatly (> 100x)
+    foreach {xmin xmax} $_limits(x) break
+    foreach {ymin ymax} $_limits(y) break
+    if { (($xmax - $xmin) > (($ymax -$ymin) * $_maxScale)) ||
+         ((($xmax - $xmin) * $_maxScale) < ($ymax -$ymin)) } {
+        set _settings(stretchToFit) 1
     }
 }
 
@@ -2262,6 +2276,10 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     }
     if { $_currentColormap == "" } {
         $itk_component(colormap) value $style(-color)
+    }
+    if { [info exists style(-stretchtofit)] } {
+        set _settings(stretchToFit) $style(-stretchtofit)
+        AdjustSetting stretchToFit
     }
     set _currentOpacity $style(-opacity)
     if { $_currentNumIsolines != $style(-levels) } {
