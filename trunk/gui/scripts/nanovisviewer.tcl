@@ -219,6 +219,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-xpan              $_view(xpan)
         $this-ypan              $_view(ypan)
         $this-volume            1
+        $this-ambient           20
+        $this-diffuse           80
+        $this-light2side        1
+        $this-opacity           100
+        $this-specularLevel     30
+        $this-specularExponent  90
+        $this-thickness         350
+        $this-transp            50
         $this-cutplaneVisible   0
         $this-xcutplane         1
         $this-xcutposition      0
@@ -961,7 +969,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             SendCmd "cutplane state 0 $axis"
         }
 
-        InitSettings light2side light transp isosurface grid axes \
+        InitSettings light2side ambient diffuse specularLevel specularExponent \
+            transp isosurface grid axes \
             xcutplane ycutplane zcutplane
 
 	if {"" != $_first} {
@@ -1210,16 +1219,24 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        light {
-            set val $_settings($this-light)
-            set diffuse [expr {0.01*$val}]
-            set ambient [expr {1.0-$diffuse}]
-            set specularLevel 0.3
-            set specularExp 90.0
-            SendCmd "volume shading ambient $ambient"
-            SendCmd "volume shading diffuse $diffuse"
-            SendCmd "volume shading specularLevel $specularLevel"
-            SendCmd "volume shading specularExp $specularExp"
+        ambient {
+            set val $_settings($this-ambient)
+            set val [expr {0.01*$val}]
+            SendCmd "volume shading ambient $val"
+        }
+        diffuse {
+            set val $_settings($this-diffuse)
+            set val [expr {0.01*$val}]
+            SendCmd "volume shading diffuse $val"
+        }
+        specularLevel {
+            set val $_settings($this-specularLevel)
+            set val [expr {0.01*$val}]
+            SendCmd "volume shading specularLevel $val"
+        }
+        specularExponent {
+            set val $_settings($this-specularExponent)
+            SendCmd "volume shading specularExp $val"
         }
         light2side {
             set val $_settings($this-light2side)
@@ -1729,16 +1746,6 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
 }
 
 itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
-    foreach { key value } {
-        light2side      1
-        light           40
-        transp          50
-        opacity         100
-        thickness       350
-    } {
-        set _settings($this-$key) $value
-    }
-
     set inner [$itk_component(main) insert end \
         -title "Volume Settings" \
         -icon [Rappture::icon volume-on]]
@@ -1756,25 +1763,35 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -variable [itcl::scope _settings($this-light2side)] \
         -command [itcl::code $this AdjustSetting light2side]
 
-    label $inner.dim -text "Glow" -font $fg
-    ::scale $inner.light -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-light)] \
+    label $inner.ambient_l -text "Ambient" -font $fg
+    ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings($this-ambient)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting light]
-    label $inner.bright -text "Surface" -font $fg
+        -showvalue off -command [itcl::code $this AdjustSetting ambient]
 
-    label $inner.fog -text "Clear" -font $fg
+    label $inner.diffuse_l -text "Diffuse" -font $fg
+    ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings($this-diffuse)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this AdjustSetting diffuse]
+
+    label $inner.specularLevel_l -text "Specular" -font $fg
+    ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings($this-specularLevel)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this AdjustSetting specularLevel]
+
+    label $inner.specularExponent_l -text "Shininess" -font $fg
+    ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
+        -variable [itcl::scope _settings($this-specularExponent)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this AdjustSetting specularExponent]
+
+    label $inner.clear -text "Clear" -font $fg
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
         -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting transp]
-    label $inner.plastic -text "Opaque" -font $fg
-
-    label $inner.clear -text "Clear" -font $fg
-    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-opacity)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting opacity]
     label $inner.opaque -text "Opaque" -font $fg
 
     label $inner.thin -text "Thin" -font $fg
@@ -1816,18 +1833,23 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         0,0 $inner.vol -cspan 4 -anchor w -pady 2 \
         1,0 $inner.shading -cspan 4 -anchor w -pady {10 2} \
         2,0 $inner.light2side -cspan 4 -anchor w -pady 2 \
-        3,0 $inner.dim -anchor e -pady 2 \
-        3,1 $inner.light -cspan 2 -pady 2 -fill x \
-        3,3 $inner.bright -anchor w -pady 2 \
-        4,0 $inner.fog -anchor e -pady 2 \
-        4,1 $inner.transp -cspan 2 -pady 2 -fill x \
-        4,3 $inner.plastic -anchor w -pady 2 \
-        5,0 $inner.thin -anchor e -pady 2 \
-        5,1 $inner.thickness -cspan 2 -pady 2 -fill x\
-        5,3 $inner.thick -anchor w -pady 2
+        3,0 $inner.ambient_l -anchor e -pady 2 \
+        3,1 $inner.ambient -cspan 3 -pady 2 -fill x \
+        4,0 $inner.diffuse_l -anchor e -pady 2 \
+        4,1 $inner.diffuse -cspan 3 -pady 2 -fill x \
+        5,0 $inner.specularLevel_l -anchor e -pady 2 \
+        5,1 $inner.specularLevel -cspan 3 -pady 2 -fill x \
+        6,0 $inner.specularExponent_l -anchor e -pady 2 \
+        6,1 $inner.specularExponent -cspan 3 -pady 2 -fill x \
+        7,0 $inner.clear -anchor e -pady 2 \
+        7,1 $inner.transp -cspan 2 -pady 2 -fill x \
+        7,3 $inner.opaque -anchor w -pady 2 \
+        8,0 $inner.thin -anchor e -pady 2 \
+        8,1 $inner.thickness -cspan 2 -pady 2 -fill x\
+        8,3 $inner.thick -anchor w -pady 2
 
     blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r6 -resize expand
+    blt::table configure $inner r9 -resize expand
 }
 
 itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
