@@ -8,6 +8,9 @@
  *   George A. Howlett <gah@purdue.edu>
  */
 
+#ifndef USE_THREADS
+#include <unistd.h>
+#endif
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
