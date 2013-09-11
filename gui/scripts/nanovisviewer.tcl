@@ -1757,6 +1757,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     checkbutton $inner.vol -text "Show volume" -font $fg \
         -variable [itcl::scope _settings($this-volume)] \
         -command [itcl::code $this AdjustSetting volume]
+
     label $inner.shading -text "Shading:" -font $fg
 
     checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
@@ -1845,7 +1846,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         7,1 $inner.transp -cspan 2 -pady 2 -fill x \
         7,3 $inner.opaque -anchor w -pady 2 \
         8,0 $inner.thin -anchor e -pady 2 \
-        8,1 $inner.thickness -cspan 2 -pady 2 -fill x\
+        8,1 $inner.thickness -cspan 2 -pady 2 -fill x \
         8,3 $inner.thick -anchor w -pady 2
 
     blt::table configure $inner c0 c1 c3 r* -resize none
