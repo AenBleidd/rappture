@@ -217,7 +217,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     array set _settings {
         axisFlymode		"static"
         axisMinorTicks		1
-        stretchToFit		0
+        stretchToFit		1
         axisLabels              1
         axisVisible		1
         axisXGrid		0
@@ -292,7 +292,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         usual
         ignore -highlightthickness
     }
-    pack $itk_component(reset) -side top -padx 2 -pady 2
+    pack $itk_component(reset) -side top -padx 2 -pady { 2 0 }
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
@@ -304,7 +304,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         usual
         ignore -highlightthickness
     }
-    pack $itk_component(zoomin) -side top -padx 2 -pady 2
+    pack $itk_component(zoomin) -side top -padx 2 -pady { 2 0 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
@@ -316,7 +316,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         usual
         ignore -highlightthickness
     }
-    pack $itk_component(zoomout) -side top -padx 2 -pady 2
+    pack $itk_component(zoomout) -side top -padx 2 -pady { 2 0 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     itk_component add mode {
@@ -328,7 +328,18 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     }
     Rappture::Tooltip::for $itk_component(mode) \
         "Toggle the surface/contour on/off"
-    pack $itk_component(mode) -padx 2 -pady 2
+    pack $itk_component(mode) -padx 2 -pady { 2 0 }
+
+    itk_component add stretchtofit {
+        Rappture::PushButton $f.stretchtofit \
+            -onimage [Rappture::icon stretchtofit] \
+            -offimage [Rappture::icon stretchtofit] \
+            -variable [itcl::scope _settings(stretchToFit)] \
+            -command [itcl::code $this AdjustSetting stretchToFit] \
+    }
+    Rappture::Tooltip::for $itk_component(stretchtofit) \
+        "Stretch plot to fit window on/off"
+    pack $itk_component(stretchtofit) -padx 2 -pady 2
 
     if { [catch {
         BuildContourTab
@@ -633,6 +644,8 @@ itcl::body Rappture::VtkHeightmapViewer::scale {args} {
                 set amax $max
             }
             set _limits($axis) [list $amin $amax]
+            set units [$dataobj hints ${axis}units]
+            set found($units) 1
         }
         foreach { fname lim } [$dataobj fieldlimits] {
             if { ![info exists _limits($fname)] } {
@@ -650,14 +663,18 @@ itcl::body Rappture::VtkHeightmapViewer::scale {args} {
             set _limits($fname) [list $fmin $fmax]
         }
     }
-    # Check if the range of the x and y axes requires that we stretch
-    # the contour to fit the plotting area.  This can happen when the
-    # x and y scales differ greatly (> 100x)
-    foreach {xmin xmax} $_limits(x) break
-    foreach {ymin ymax} $_limits(y) break
-    if { (($xmax - $xmin) > (($ymax -$ymin) * $_maxScale)) ||
-         ((($xmax - $xmin) * $_maxScale) < ($ymax -$ymin)) } {
+    if { [array size found] > 1 } {
         set _settings(stretchToFit) 1
+    } else {
+        # Check if the range of the x and y axes requires that we stretch
+        # the contour to fit the plotting area.  This can happen when the
+        # x and y scales differ greatly (> 100x)
+        foreach {xmin xmax} $_limits(x) break
+        foreach {ymin ymax} $_limits(y) break
+        if { (($xmax - $xmin) > (($ymax -$ymin) * $_maxScale)) ||
+             ((($xmax - $xmin) * $_maxScale) < ($ymax -$ymin)) } {
+            set _settings(stretchToFit) 1
+        }
     }
 }
 
@@ -1680,8 +1697,6 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     if { $_currentColormap != ""  } {
 	set cmap $_currentColormap
 	SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
-	#SendCmd "heightmap colormode scalar $_curFldName"
-	#SendCmd "dataset scalar $_curFldName"
     }
 }
 

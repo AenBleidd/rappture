@@ -26,7 +26,8 @@ itcl::class Rappture::Mesh {
     private variable _mesh ""    ;	# Lib obj representing this mesh
     private variable _dim	0;	# Dimension of mesh (1, 2, or 3)
     private variable _type "";		# Indicates the type of mesh.
-    private variable _units "m m m" ;	# System of units for x, y, z
+    private variable _axis2units;	# System of units for x, y, z
+    private variable _axis2labels;      # 
     private variable _limits        ;	# Array of mesh limits. Keys are 
 					# xmin, xmax, ymin, ymax, ...
     private variable _numPoints 0   ;	# # of points in mesh
@@ -45,6 +46,8 @@ itcl::class Rappture::Mesh {
     public method size {{what -points}}
     public method dimensions {}
     public method limits {which}
+    public method units { axis }
+    public method label { axis }
     public method hints {{key ""}}
     public method isvalid {} {
         return $_isValid
@@ -148,12 +151,21 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     foreach axis {x y z} {
         set _limits($axis) ""
     }
-    set u [$_mesh get units]
-    if {"" != $u} {
-        while {[llength $u] < 3} {
-            lappend u [lindex $u end]
+    set units [$_mesh get units]
+    set first [lindex $units 0]
+    foreach u $units axis { x y z } {
+        if { $u != "" } {
+            set _axis2units($axis) $u 
+        } else {
+            set _axis2units($axis) $first 
         }
-        set _units $u
+    }
+    foreach label [$_mesh get labels] axis { x y z } {
+        if { $label != "" } {
+            set _axis2labels($axis) $label
+        } else {
+            set _axis2labels($axis) [string toupper $axis]
+        }
     }
 
     # Meshes comes in a variety of flavors
@@ -236,6 +248,30 @@ itcl::body Rappture::Mesh::vtkdata {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::points {} {
     return ""
+}
+
+#
+# units --
+#
+#       Returns the units of the given axis.
+#
+itcl::body Rappture::Mesh::units { axis } {
+    if { ![info exists _axis2units($axis)] } {
+        return ""
+    }
+    return $_axis2units($axis)
+}
+
+#
+# label --
+#
+#       Returns the label of the given axis.
+#
+itcl::body Rappture::Mesh::label { axis } {
+    if { ![info exists axis2label($axis)] } {
+        return ""
+    }
+    return $axis2label($axis)
 }
 
 # ----------------------------------------------------------------------

@@ -26,6 +26,8 @@ itcl::class Rappture::Unirect3d {
     public method blob {}
     public method mesh {}
     public method values {}
+    public method units { axis }
+    public method label { axis }
     public method hints {{keyword ""}} 
     public method order {} {
         return _axisOrder;
@@ -215,6 +217,29 @@ itcl::body Rappture::Unirect3d::limits {which} {
     return [list $min $max]
 }
 
+#
+# units --
+#
+#       Returns the units of the given axis.
+#
+itcl::body Rappture::Unirect3d::units { axis } {
+    if { [info exists _hints({$axis}units)] } {
+        return $_hints(${axis}units)
+    }
+    return ""
+}
+
+#
+# label --
+#
+#       Returns the label of the given axis.
+#
+itcl::body Rappture::Unirect3d::label { axis } {
+    if { [info exists _hints({$axis}label)] } {
+        return $_hints(${axis}label)
+    }
+    return ""
+}
 
 # ----------------------------------------------------------------------
 # USAGE: hints ?<keyword>?

@@ -118,6 +118,10 @@ itcl::class Rappture::NanovisViewer {
     private method volume { tag name }
     private method GetVolumeInfo { w }
     private method SetOrientation { side }
+    private method BuildVolumeComponents {}
+    private method SwitchComponent { cname } 
+    private method InitComponentSettings { tag } 
+    private method GetDatasetsWithComponent { cname } 
 
     private variable _arcball ""
 
@@ -143,7 +147,9 @@ itcl::class Rappture::NanovisViewer {
     # defined but not loaded.  If 1 the transfer function has been named
     # and loaded.
     private variable _activeTfs
-    private variable _first ""     ;# This is the topmost volume.
+    private variable _first "" ;        # This is the topmost volume.
+    private variable _current "";       # Currently selected component 
+    private variable _volcomponents   ; # Array of components found 
 
     # This 
     # indicates which isomarkers and transfer
@@ -540,9 +546,13 @@ itcl::body Rappture::NanovisViewer::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
         set _limits($val) ""
     }
+    array unset _volcomponents 
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
             continue;                     # Object doesn't contain valid data.
+        }
+        foreach cname [$dataobj components] {
+            lappend _volcomponents($cname) $dataobj-$cname
         }
         foreach axis {x y z v} {
             foreach { min max } [$dataobj limits $axis] break
@@ -561,6 +571,7 @@ itcl::body Rappture::NanovisViewer::scale {args} {
             }
         }
     }
+    BuildVolumeComponents
 }
 
 # ----------------------------------------------------------------------
@@ -1219,35 +1230,54 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "current" {
+            set cname [$itk_component(volcomponents) value]
+            SwitchComponent $cname
+        }
         ambient {
             set val $_settings($this-ambient)
             set val [expr {0.01*$val}]
-            SendCmd "volume shading ambient $val"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading ambient $val $tag"
+            }
         }
         diffuse {
             set val $_settings($this-diffuse)
             set val [expr {0.01*$val}]
-            SendCmd "volume shading diffuse $val"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading diffuse $val $tag"
+            }
         }
         specularLevel {
             set val $_settings($this-specularLevel)
             set val [expr {0.01*$val}]
-            SendCmd "volume shading specularLevel $val"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading specularLevel $val $tag"
+            }
         }
         specularExponent {
             set val $_settings($this-specularExponent)
-            SendCmd "volume shading specularExp $val"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading specularExp $val $tag"
+            }
         }
         light2side {
+            set _settings($_current-light2side) $_settings($this-light2side)
             set val $_settings($this-light2side)
-            SendCmd "volume shading light2side $val"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading light2side $val $tag"
+            }
         }
         transp {
+            set _settings($_current-transp) $_settings($this-transp)
             set val $_settings($this-transp)
             set sval [expr { 0.01 * double($val) }]
-            SendCmd "volume shading opacity $sval"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading opacity $sval $tag"
+            }
         }
         opacity {
+            error "this should not be called"
             set val $_settings($this-opacity)
             set sval [expr { 0.01 * double($val) }]
             foreach tf [array names _activeTfs] {
@@ -1427,7 +1457,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     if { ![info exists _settings($tag-opacity)] } {
         set _settings($tag-opacity) $style(-opacity)
     }
-    set max 1.0 ;#$_settings($tag-opacity)
+    set max 1.0 ;                       #$_settings($tag-opacity)
 
     set isovalues {}
     foreach m $_isomarkers($tf) {
@@ -1754,11 +1784,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
-    checkbutton $inner.vol -text "Show volume" -font $fg \
-        -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this AdjustSetting volume]
-
-    label $inner.shading -text "Shading:" -font $fg
+    label $inner.shading_l -text "Lighting" -font "Arial 9 bold" 
 
     checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
         -variable [itcl::scope _settings($this-light2side)] \
@@ -1767,38 +1793,34 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     label $inner.ambient_l -text "Ambient" -font $fg
     ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-ambient)] \
-        -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting ambient]
 
     label $inner.diffuse_l -text "Diffuse" -font $fg
     ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-diffuse)] \
-        -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting diffuse]
 
     label $inner.specularLevel_l -text "Specular" -font $fg
     ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-specularLevel)] \
-        -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting specularLevel]
 
     label $inner.specularExponent_l -text "Shininess" -font $fg
     ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
         -variable [itcl::scope _settings($this-specularExponent)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting specularExponent]
+        -showvalue off \
+        -command [itcl::code $this AdjustSetting specularExponent]
 
-    label $inner.clear -text "Clear" -font $fg
-    ::scale $inner.transp -from 0 -to 100 -orient horizontal \
+    label $inner.transp_l -text "Transparency" -font $fg
+    ::scale $inner.transp -from 100 -to 0 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
-        -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting transp]
-    label $inner.opaque -text "Opaque" -font $fg
+
+    label $inner.tf -text "Transfer Function" -font "Arial 9 bold" 
 
     label $inner.thin -text "Thin" -font $fg
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
         -variable [itcl::scope _settings($this-thickness)] \
-        -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting thickness]
     label $inner.thick -text "Thick" -font $fg
 
@@ -1830,27 +1852,40 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting colormap]
 
-    blt::table $inner \
-        0,0 $inner.vol -cspan 4 -anchor w -pady 2 \
-        1,0 $inner.shading -cspan 4 -anchor w -pady {10 2} \
-        2,0 $inner.light2side -cspan 4 -anchor w -pady 2 \
-        3,0 $inner.ambient_l -anchor e -pady 2 \
-        3,1 $inner.ambient -cspan 3 -pady 2 -fill x \
-        4,0 $inner.diffuse_l -anchor e -pady 2 \
-        4,1 $inner.diffuse -cspan 3 -pady 2 -fill x \
-        5,0 $inner.specularLevel_l -anchor e -pady 2 \
-        5,1 $inner.specularLevel -cspan 3 -pady 2 -fill x \
-        6,0 $inner.specularExponent_l -anchor e -pady 2 \
-        6,1 $inner.specularExponent -cspan 3 -pady 2 -fill x \
-        7,0 $inner.clear -anchor e -pady 2 \
-        7,1 $inner.transp -cspan 2 -pady 2 -fill x \
-        7,3 $inner.opaque -anchor w -pady 2 \
-        8,0 $inner.thin -anchor e -pady 2 \
-        8,1 $inner.thickness -cspan 2 -pady 2 -fill x \
-        8,3 $inner.thick -anchor w -pady 2
+    label $inner.volcomponents_l -text "Component" -font "Arial 9" 
+    itk_component add volcomponents {
+        Rappture::Combobox $inner.volcomponents -editable no
+    }
+    $itk_component(volcomponents) value "BCGYR"
+    bind $inner.volcomponents <<Value>> \
+        [itcl::code $this AdjustSetting current]
 
-    blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r9 -resize expand
+    blt::table $inner \
+        0,1 $inner.volcomponents_l -anchor e \
+        0,2 $inner.volcomponents             -cspan 3 -fill x \
+        1,0 $inner.shading_l -anchor w -cspan 5 \
+        2,1 $inner.ambient_l       -anchor e -pady 2 \
+        2,2 $inner.ambient                   -cspan 3 -fill x \
+        3,1 $inner.diffuse_l       -anchor e -pady 2 \
+        3,2 $inner.diffuse                   -cspan 3 -fill x \
+        4,1 $inner.specularLevel_l -anchor e -pady 2 \
+        4,2 $inner.specularLevel             -cspan 3 -fill x \
+        5,1 $inner.specularExponent_l -anchor e -pady 2 \
+        5,2 $inner.specularExponent          -cspan 3 -fill x \
+        6,1 $inner.light2side -cspan 3 -anchor w \
+        7,0 $inner.tf -anchor w              -cspan 5 \
+        8,1 $inner.transp_l -anchor e -pady 2 \
+        8,2 $inner.transp                    -cspan 3 -fill x \
+        9,1 $inner.colormap_l       -anchor e \
+        9,2 $inner.colormap                  -cspan 3 -fill x \
+        10,1 $inner.thin             -anchor e \
+        10,2 $inner.thickness                 -cspan 2 -fill x \
+        10,4 $inner.thick -anchor w  
+
+    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner r* -pady { 2 0 }
+    blt::table configure $inner c2 c3 r11 -resize expand
+    blt::table configure $inner c0 -width .1i
 }
 
 itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
@@ -2188,3 +2223,60 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
     set _settings($this-zoom) $_view(zoom)
 }
 
+
+itcl::body Rappture::NanovisViewer::InitComponentSettings { tag } { 
+    # Initialize dataset's settings from global settings.
+    set _settings($tag-light2side)       $_settings($this-light2side)
+    set _settings($tag-ambient)          $_settings($this-ambient)
+    set _settings($tag-diffuse)          $_settings($this-diffuse)
+    set _settings($tag-specularLevel)    $_settings($this-specularLevel)
+    set _settings($tag-specularExponent) $_settings($this-specularExponent)
+    set _settings($tag-transp)           $_settings($this-transp)
+    set _settings($tag-opacity)          $_settings($this-opacity)
+    set _settings($tag-outline)          $_settings($this-outline)
+    #set _settings($tag-colormap)   $_settings($this-colormap)
+}
+
+# Reset global settings from dataset's settings.
+itcl::body Rappture::NanovisViewer::SwitchComponent { cname } { 
+    if { ![info exists _settings($cname-light)] } {
+        InitComponentSettings $cname
+    }
+    # Setting variable changes widget, except for colormap
+    set _settings($this-light2side)       $_settings($cname-light2side)
+    set _settings($this-ambient)          $_settings($cname-ambient)
+    set _settings($this-diffuse)          $_settings($cname-diffuse)
+    set _settings($this-specularLevel)    $_settings($cname-specularLevel)
+    set _settings($this-specularExponent) $_settings($cname-specularExponent)
+    set _settings($this-transp)           $_settings($cname-transp)
+    set _settings($this-opacity)          $_settings($cname-opacity)
+    set _settings($this-outline)          $_settings($cname-outline)
+    #set _settings($this-colormap)        $_settings($tag-colormap)
+    #$itk_component(colormap) value       $_settings($this-colormap)
+    set _current $cname;                # Reset the current dataset
+}
+
+# Reset global settings from dataset's settings.
+itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} { 
+    $itk_component(volcomponents) choices delete 0 end
+    set names [lsort [array names _volcomponents]]
+    foreach name $names {
+        $itk_component(volcomponents) choices insert end $name $name
+    }
+    $itk_component(volcomponents) value [lindex $names 0]
+}
+
+# Reset global settings from dataset's settings.
+itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } { 
+    if { ![info exists _volcomponents($cname)] } {
+        return ""
+    }
+    set list ""
+    foreach tag $_volcomponents($cname) {
+        if { ![info exists _serverDatasets($tag)] } {
+            continue
+        }
+        lappend list $tag
+    }
+    return $list
+}
