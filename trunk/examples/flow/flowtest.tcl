@@ -62,7 +62,6 @@ set elements [subst {
     unirect3d(jwire).zaxis.min	0
     unirect3d(jwire).zaxis.max	1519.05
     unirect3d(jwire).zaxis.numpoints  22
-    unirect3d(jwire).components 3
     $f2.about.label "Flow 2d half"
     $f2.component.flow.axis z
     $f2.component.flow.position 0%
@@ -87,7 +86,6 @@ set elements [subst {
     unirect2d(half).yaxis.min	-22
     unirect2d(half).yaxis.max	21.6
     unirect2d(half).yaxis.numpoints  109
-    unirect2d(half).components 2
     $f3.about.label "SiO2"
     $f3.component.flow.axis z
     $f3.component.flow.position 0%
