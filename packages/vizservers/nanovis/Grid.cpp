@@ -164,7 +164,8 @@ void Grid::render()
         glGetIntegerv(GL_VIEWPORT, viewport);
         
         _font->begin();
-        if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
+        if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
+            wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, viewport[3] - (int) wy, 0);
             const char *name = xAxis.name();
@@ -174,7 +175,8 @@ void Grid::render()
             _font->draw(name);
         }
         
-        if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
+        if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
+            wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, viewport[3] - (int)wy, 0);
             const char *name = yAxis.name();
@@ -184,7 +186,8 @@ void Grid::render()
             _font->draw(name);
         }
         
-        if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &wx, &wy, &wz)) {
+        if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &wx, &wy, &wz) &&
+            wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
             const char *name = zAxis.name();
@@ -199,7 +202,8 @@ void Grid::render()
         for (result = xAxis.firstMajor(iter); result; result = iter.next()) {
             float x;
             x = xAxis.map(iter.getValue());
-            if (gluProject(x, 0.0f, 1.06f, mv, prjm, viewport, &wx, &wy, &wz)) {
+            if (gluProject(x, 0.0f, 1.06f, mv, prjm, viewport, &wx, &wy, &wz) &&
+                wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
                 glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
@@ -210,7 +214,8 @@ void Grid::render()
         for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
             y = yAxis.map(iter.getValue());
-            if (gluProject(1.06f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz)) {
+            if (gluProject(1.06f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz) &&
+                wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
                 glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
@@ -221,7 +226,8 @@ void Grid::render()
         for (result = zAxis.firstMajor(iter); result; result = iter.next()) {
             float z;
             z = zAxis.map(iter.getValue());
-            if (gluProject(1.06f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz)) {
+            if (gluProject(1.06f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz) &&
+                wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
                 glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
