@@ -158,6 +158,7 @@ itcl::class Rappture::Field {
     protected method GetAssociation { cname } 
     protected method GetTypeAndSize { cname } 
     protected method ReadVtkDataSet { cname contents } 
+    private method InitHints {} 
 
     private method VerifyVtkDataSet { contents } 
     private variable _values ""
@@ -205,6 +206,7 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
 
     # build up vectors for various components of the field
     Build
+    InitHints
 }
 
 # ----------------------------------------------------------------------
@@ -656,51 +658,6 @@ itcl::body Rappture::Field::controls {option args} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::hints {{keyword ""}} {
-    if { ![info exists _hints] } {
-	foreach {key path} {
-	    camera          camera.position
-	    color           about.color
-	    default         about.default
-	    group           about.group
-	    label           about.label
-	    scale           about.scale
-	    seeds           about.seeds
-	    style           about.style
-	    type            about.type
-	    xlabel          about.xaxis.label
-	    ylabel          about.yaxis.label
-	    zlabel          about.zaxis.label
-	    xunits          about.xaxis.units
-	    yunits          about.yaxis.units
-	    zunits          about.zaxis.units
-	    units           units
-	    updir           updir
-	    vectors         about.vectors
-	} {
-	    set str [$_field get $path]
-	    if { "" != $str } {
-		set _hints($key) $str
-	    }
-	}
-	foreach {key path} {
-	    toolid          tool.id
-	    toolname        tool.name
-	    toolcommand     tool.execute
-	    tooltitle       tool.title
-	    toolrevision    tool.version.application.revision
-	} {
-	    set str [$_xmlobj get $path]
-	    if { "" != $str } {
-		set _hints($key) $str
-	    }
-	}
-	# Set toolip and path hints
-	set _hints(path) $_path
-	if { [info exists _hints(group)] && [info exists _hints(label)] } {
-	    # pop-up help for each curve
-	    set _hints(tooltip) $_hints(label)
-	}
-    }
     if { $keyword != "" } {
         if {[info exists _hints($keyword)]} {
             return $_hints($keyword)
@@ -708,6 +665,74 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         return ""
     }
     return [array get _hints]
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: InitHints
+#
+# Returns a list of key/value pairs for various hints about plotting
+# this field.  If a particular <keyword> is specified, then it returns
+# the hint for that <keyword>, if it exists.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Field::InitHints {} {
+    foreach {key path} {
+        camera          camera.position
+        color           about.color
+        default         about.default
+        group           about.group
+        label           about.label
+        scale           about.scale
+        seeds           about.seeds
+        style           about.style
+        type            about.type
+        xlabel          about.xaxis.label
+        ylabel          about.yaxis.label
+        zlabel          about.zaxis.label
+        xunits          about.xaxis.units
+        yunits          about.yaxis.units
+        zunits          about.zaxis.units
+        units           units
+        updir           updir
+        vectors         about.vectors
+    } {
+        set str [$_field get $path]
+        if { "" != $str } {
+            set _hints($key) $str
+        }
+    }
+    foreach cname [components] {
+        if { ![info exists _comp2mesh($cname)] } {
+            continue
+        }
+        set mesh [lindex $_comp2mesh($cname) 0]
+        foreach axis {x y z} {
+            if { ![info exists _hints(${axis}units)] } {
+                set _hints(${axis}units) [$mesh units $axis]
+            }
+            if { ![info exists _hints(${axis}label)] } {
+                set _hints(${axis}label) [$mesh label $axis]
+            }
+        }
+    }
+    foreach {key path} {
+        toolid          tool.id
+        toolname        tool.name
+        toolcommand     tool.execute
+        tooltitle       tool.title
+        toolrevision    tool.version.application.revision
+    } {
+        set str [$_xmlobj get $path]
+        if { "" != $str } {
+            set _hints($key) $str
+        }
+    }
+    # Set toolip and path hints
+    set _hints(path) $_path
+    if { [info exists _hints(group)] && [info exists _hints(label)] } {
+        # pop-up help for each curve
+        set _hints(tooltip) $_hints(label)
+    }
 }
 
 # ----------------------------------------------------------------------

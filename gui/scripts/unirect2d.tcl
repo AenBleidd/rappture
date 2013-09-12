@@ -34,6 +34,10 @@ itcl::class Rappture::Unirect2d {
     private common _obj2ref      ;	# used for fetch/release ref counting
     private variable _isValid 0;        # Indicates if the data is valid.
 
+    private method GetString { obj path varName }
+    private method GetValue  { obj path varName }
+    private method GetSize   { obj path varName }
+
     constructor {xmlobj path} { 
 	# defined below 
     }
@@ -43,6 +47,8 @@ itcl::class Rappture::Unirect2d {
     public proc fetch {xmlobj path}
     public proc release {obj}
     public method limits {axis}
+    public method units { axis }
+    public method label { axis }
     public method blob {}
     public method hints {{keyword ""}} 
     public method mesh {}
@@ -58,11 +64,6 @@ itcl::class Rappture::Unirect2d {
     public method vtkdata {} {
 	return $_vtkdata
     }
-
-    private method GetString { obj path varName }
-    private method GetValue { obj path varName }
-    private method GetSize { obj path varName }
-    
 }
 
 #
@@ -87,7 +88,7 @@ itcl::body Rappture::Unirect2d::fetch {xmlobj path} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Rappture::Mesh::release <obj>
+# USAGE: Rappture::Unirect2d::release <obj>
 #
 # Clients call this when they're no longer using a Mesh fetched
 # previously by the "fetch" proc.  This decrements the reference
@@ -223,6 +224,29 @@ itcl::body Rappture::Unirect2d::limits {which} {
     return [list $min $max]
 }
 
+#
+# units --
+#
+#       Returns the units of the given axis.
+#
+itcl::body Rappture::Unirect2d::units { axis } {
+    if { [info exists _hints(${axis}units)] } {
+        return $_hints(${axis}units)
+    }
+    return ""
+}
+
+#
+# label --
+#
+#       Returns the label of the given axis.
+#
+itcl::body Rappture::Unirect2d::label { axis } {
+    if { [info exists _hints(${axis}label)] } {
+        return $_hints(${axis}label)
+    }
+    return ""
+}
 
 # ----------------------------------------------------------------------
 # USAGE: hints ?<keyword>?
@@ -240,7 +264,6 @@ itcl::body Rappture::Unirect2d::hints { {keyword ""} } {
         && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
         set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
     }
-    
     if {[info exists _hints(group)] && [info exists _hints(label)]} {
         # pop-up help for each curve
         set _hints(tooltip) $_hints(label)
@@ -253,7 +276,6 @@ itcl::body Rappture::Unirect2d::hints { {keyword ""} } {
     }
     return [array get _hints]
 }
-
 
 itcl::body Rappture::Unirect2d::GetSize { obj path varName } {
     set string [$obj get $path]
