@@ -935,7 +935,6 @@ VideoGoToN(vidPtr, n)
 {
     int nrel, nabs, seekFlags, gotframe;
     int64_t nseek;
-    AVCodecContext *vcodecCtx;
     AVStream *vstreamPtr;
 
     if (vidPtr == NULL) {
@@ -946,7 +945,6 @@ VideoGoToN(vidPtr, n)
         // "internal error: video stream is not open",
         return -1;
     }
-    vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
 
     nabs = n;
 
@@ -1539,7 +1537,6 @@ VideoTransformFrames2Duration(vidPtr, frame)
     int frame;
 {
     double duration;
-    AVCodecContext *vcodecCtx;
     AVStream *vstreamPtr;
     AVRational hundred;
     int64_t tval;
@@ -1558,7 +1555,6 @@ VideoTransformFrames2Duration(vidPtr, frame)
         return -1;
     }
 
-    vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
     vstreamPtr = vidPtr->pFormatCtx->streams[vidPtr->videoStream];
 
     tval = av_rescale_q((int64_t)frame, hundred, vstreamPtr->r_frame_rate);
@@ -1573,7 +1569,6 @@ VideoTransformDuration2Frames(vidPtr, duration)
     double duration;
 {
     int frames;
-    AVCodecContext *vcodecCtx;
     AVStream *vstreamPtr;
     AVRational hundred;
     int64_t tval;
@@ -1591,7 +1586,6 @@ VideoTransformDuration2Frames(vidPtr, duration)
         return -1;
     }
 
-    vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
     vstreamPtr = vidPtr->pFormatCtx->streams[vidPtr->videoStream];
 
     tval = (int64_t)(duration*100);
