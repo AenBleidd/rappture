@@ -20,6 +20,8 @@ itcl::class Rappture::Cloud {
     private variable _xmlobj "";        # ref to XML obj with device data
     private variable _cloud "";         # lib obj representing this cloud
     private variable _units "m m m" ;   # system of units for x, y, z
+    private variable _axis2label;       # 
+    private variable _axis2units;       # 
     private variable _limits;           # limits x, y, z
     private common _xp2obj ;            # Used for fetch/release ref counting
     private common _obj2ref ;           # Used for fetch/release ref counting
@@ -111,12 +113,21 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
     set _xmlobj $xmlobj
     set _cloud [$xmlobj element -as object $path]
 
-    set u [$_cloud get units]
-    if {"" != $u} {
-        while {[llength $u] < 3} {
-            lappend u [lindex $u end]
+    set _units [$_cloud get units]
+    set first [lindex $_units 0]
+    foreach u $_units axis { x y z } {
+        if { $u != "" } {
+            set _axis2units($axis) $u 
+        } else {
+            set _axis2units($axis) $first 
         }
-        set _units $u
+    }
+    foreach label [$_cloud get labels] axis { x y z } {
+        if { $label != "" } {
+            set _axis2labels($axis) $label
+        } else {
+            set _axis2labels($axis) [string toupper $axis]
+        }
     }
 
     set _numPoints 0
@@ -245,10 +256,10 @@ itcl::body Rappture::Cloud::limits { axis } {
 #       Returns the units of the given axis.
 #
 itcl::body Rappture::Cloud::units { axis } {
-    if { [info exists _hints(${axis}units)] } {
-        return $_hints(${axis}units)
+    if { ![info exists _axis2units($axis)] } {
+        return ""
     }
-    return ""
+    return $_axis2units($axis)
 }
 
 #
@@ -257,10 +268,10 @@ itcl::body Rappture::Cloud::units { axis } {
 #       Returns the label of the given axis.
 #
 itcl::body Rappture::Cloud::label { axis } {
-    if { [info exists _hints(${axis}label)] } {
-        return $_hints(${axis}label)
+    if { ![info exists axis2label($axis)] } {
+        return ""
     }
-    return ""
+    return $axis2label($axis)
 }
 
 # ----------------------------------------------------------------------
