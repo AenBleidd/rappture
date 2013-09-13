@@ -1702,7 +1702,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
     $inner.mode choices insert end \
         "static_triad"    "static" \
         "closest_triad"   "closest" \
-        "furthest_triad"  "furthest" \
+        "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
     $itk_component(axismode) value "static"
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisFlyMode]

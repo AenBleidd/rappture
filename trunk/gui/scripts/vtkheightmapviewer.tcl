@@ -217,7 +217,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     array set _settings {
         axisFlymode		"static"
         axisMinorTicks		1
-        stretchToFit		1
+        stretchToFit		0
         axisLabels              1
         axisVisible		1
         axisXGrid		0
@@ -1040,7 +1040,12 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	}
         
 	foreach axis { x y z } {
-	    set label [$_first hints ${axis}label]
+            if { $axis == "z" } {
+                set label [$_first hints label]
+            } else {
+                set label [$_first hints ${axis}label]
+            }
+ puts stderr "axis=$axis label=$label"
 	    if { $label == "" } {
 		if {$axis == "z"} {
                     if { [string match "component*" $_curFldName] } {
@@ -1052,6 +1057,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 		    set label [string toupper $axis]
 		}
 	    }
+ puts stderr "[list axis name $axis $label]"
 	    # May be a space in the axis label.
 	    SendCmd [list axis name $axis $label]
 
@@ -1440,7 +1446,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-	    set label [$_first hints zlabel]
+	    set label [$_first hints label]
 	    if { $label == "" } {
                 if { [string match "component*" $_curFldName] } {
                     set label Z
@@ -2076,7 +2082,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
     $inner.mode choices insert end \
         "static_triad"    "static" \
         "closest_triad"   "closest" \
-        "furthest_triad"  "furthest" \
+        "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
     $itk_component(axisflymode) value "static"
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisFlymode]

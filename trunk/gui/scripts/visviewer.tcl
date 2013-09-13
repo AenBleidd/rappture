@@ -627,7 +627,7 @@ itcl::body Rappture::VisViewer::WaitDialog { state } {
         }
         set inner [frame $itk_component(plotarea).view.splash]
         $inner configure -relief raised -bd 2 
-        label $inner.text1 -text "Rendering...\nPlease wait." \
+        label $inner.text1 -text "Working...\nPlease wait." \
             -font "Arial 10" 
         label $inner.icon 
         pack $inner -expand yes -anchor c

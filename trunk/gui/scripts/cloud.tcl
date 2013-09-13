@@ -19,7 +19,7 @@ namespace eval Rappture { # forward declaration }
 itcl::class Rappture::Cloud {
     private variable _xmlobj "";        # ref to XML obj with device data
     private variable _cloud "";         # lib obj representing this cloud
-    private variable _units "m m m" ;   # system of units for x, y, z
+    private variable _units "" ;        # system of units for x, y, z
     private variable _axis2label;       # 
     private variable _axis2units;       # 
     private variable _limits;           # limits x, y, z
@@ -115,13 +115,16 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
 
     set _units [$_cloud get units]
     set first [lindex $_units 0]
+    set list {}
     foreach u $_units axis { x y z } {
         if { $u != "" } {
             set _axis2units($axis) $u 
         } else {
             set _axis2units($axis) $first 
         }
+        lappend list $_axis2units($axis)
     }
+    set _units $list
     foreach label [$_cloud get labels] axis { x y z } {
         if { $label != "" } {
             set _axis2labels($axis) $label
@@ -147,8 +150,7 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
         foreach {x y z} $line break
         foreach axis {x y z} units $_units {
             set value [Rappture::Units::convert [set $axis] \
-                -context $units -to $units -units off]
-
+                        -context $units -to $units -units off]
             set $axis $value;           # Set the (x/y/z) coordinate to 
                                         # converted value.
             if { ![info exists _limits($axis)] } {
