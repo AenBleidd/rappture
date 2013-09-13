@@ -37,6 +37,8 @@ itcl::class Rappture::Cloud {
     }
     public method points {}
     public method mesh {}
+    public method units { axis }
+    public method label { axis }
     public method vtkdata {}
     public method size {}
     public method dimensions {}
@@ -235,6 +237,30 @@ itcl::body Rappture::Cloud::limits { axis } {
         error "bad axis \"$axis\": should be x, y, z"
     }
     return $_limits($axis)
+}
+
+#
+# units --
+#
+#       Returns the units of the given axis.
+#
+itcl::body Rappture::Cloud::units { axis } {
+    if { [info exists _hints(${axis}units)] } {
+        return $_hints(${axis}units)
+    }
+    return ""
+}
+
+#
+# label --
+#
+#       Returns the label of the given axis.
+#
+itcl::body Rappture::Cloud::label { axis } {
+    if { [info exists _hints(${axis}label)] } {
+        return $_hints(${axis}label)
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
