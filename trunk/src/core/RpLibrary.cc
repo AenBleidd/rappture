@@ -1873,7 +1873,6 @@ RpLibrary::put (    std::string path,
     scew_element *childNode = NULL;
     scew_element *tmpNode   = NULL;
     const char *contents    = NULL;
-    int retVal              = 1;
     int deleteTmpNode       = 0;
 
     if (this->root == NULL) {
@@ -1939,7 +1938,6 @@ RpLibrary::put (    std::string path,
                 if (scew_element_add_elem(retNode, new_elem)) {
                     // maybe we want to count the number of children
                     // that we have successfully added?
-                    retVal = 0;
                 }
                 else {
                     // adding new element failed

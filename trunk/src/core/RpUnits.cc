@@ -1334,7 +1334,6 @@ RpUnits::convert (  std::string val,
     std::string convVal = "";
     std::string type = "";     // junk var used because units2list requires it
     std::string retStr = "";
-    double origNumVal = 0;
     double numVal = 0;
     double toExp = 0;
     double fromExp = 0;
@@ -1364,7 +1363,6 @@ RpUnits::convert (  std::string val,
     //
 
     convErr = unitSlice(val,fromUnitsName,numVal);
-    origNumVal = numVal;
 
     if (convErr != 0) {
         // no conversion was done.

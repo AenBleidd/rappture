@@ -345,8 +345,7 @@ SeekOp (ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     else {
-        int c = 0;
-        c = VideoGoToN((VideoObj *)clientData, val);
+        VideoGoToN((VideoObj *)clientData, val);
     }
 
     VideoGetPositionCur((VideoObj *)clientData,&pos);
