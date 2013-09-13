@@ -439,6 +439,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     set _image(download) [image create photo]
 
     eval itk_initialize $args
+
+    EnableWaitDialog 500
     Connect
     update
 }
@@ -1771,7 +1773,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
     $inner.mode choices insert end \
         "static_triad"    "static" \
         "closest_triad"   "closest" \
-        "furthest_triad"  "furthest" \
+        "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
     $itk_component(axisMode) value "static"
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisMode]
