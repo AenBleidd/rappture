@@ -2697,11 +2697,11 @@ RpUnitsPreset::addPresetVolume () {
 
     // RpUnits* cubic_meter  = RpUnits::define("m3", NULL, RP_TYPE_VOLUME);
     // RpUnits* cubic_feet   = RpUnits::define("ft3", NULL, RP_TYPE_VOLUME);
-    RpUnits* us_gallon    = NULL;
-    RpUnits* liter        = NULL;
+    // RpUnits* us_gallon    = NULL;
+    // RpUnits* liter        = NULL;
 
-    us_gallon    = RpUnits::define("gal", NULL, RP_TYPE_VOLUME);
-    liter        = RpUnits::define("L", NULL, RP_TYPE_VOLUME, RPUNITS_METRIC);
+    RpUnits::define("gal", NULL, RP_TYPE_VOLUME);
+    RpUnits::define("L", NULL, RP_TYPE_VOLUME, RPUNITS_METRIC);
 
     /*
     // RpUnits::makeMetric(cubic_meter);
@@ -2782,9 +2782,7 @@ RpUnitsPreset::addPresetAngle () {
 int
 RpUnitsPreset::addPresetMass () {
 
-    RpUnits* gram  = NULL;
-
-    gram  = RpUnits::define("g", NULL, RP_TYPE_MASS, RPUNITS_METRIC,!RPUNITS_CASE_INSENSITIVE);
+    RpUnits::define("g", NULL, RP_TYPE_MASS, RPUNITS_METRIC,!RPUNITS_CASE_INSENSITIVE);
 
     return 0;
 }
@@ -2884,9 +2882,7 @@ RpUnitsPreset::addPresetConcentration () {
 int
 RpUnitsPreset::addPresetForce () {
 
-    RpUnits* newton = NULL;
-
-    newton = RpUnits::define("N",  NULL, RP_TYPE_FORCE, RPUNITS_METRIC);
+    RpUnits::define("N",  NULL, RP_TYPE_FORCE, RPUNITS_METRIC);
 
     return 0;
 }
@@ -2934,31 +2930,28 @@ RpUnitsPreset::addPresetMagnetic () {
 /// Add Misc related units to the dictionary
 /**
  * Defines the following units:
+ *   volt  (V)
  *   mole  (mol)
- *
+ *   herz  (Hz)
+ *   becquerel (Bq)
+ *   amu
+ *   bel (B)
+ *   amp
+ *   ohm
  * Return codes: 0 success, anything else is error
  */
 
 int
 RpUnitsPreset::addPresetMisc () {
 
-    RpUnits* volt      = NULL;
-    RpUnits* mole      = NULL;
-    RpUnits* hertz     = NULL;
-    RpUnits* becquerel = NULL;
-    RpUnits* amu       = NULL;
-    RpUnits* bel       = NULL;
-    RpUnits* amp       = NULL;
-    RpUnits* ohm       = NULL;
-
-    volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT, RPUNITS_METRIC);
-    mole      = RpUnits::define("mol",NULL, "quantity", RPUNITS_METRIC);
-    hertz     = RpUnits::define("Hz", NULL, "frequency", RPUNITS_METRIC);
-    becquerel = RpUnits::define("Bq", NULL, "radioactivity", RPUNITS_METRIC);
-    amu       = RpUnits::define("amu", NULL, "mass_unit", !RPUNITS_METRIC);
-    bel       = RpUnits::define("B", NULL, "audio_transmission", RPUNITS_METRIC);
-    amp       = RpUnits::define("amp", NULL, "electric_current", RPUNITS_METRIC);
-    ohm       = RpUnits::define("ohm", NULL, "electric_resistance", RPUNITS_METRIC);
+    RpUnits::define("V",  NULL, RP_TYPE_EPOT, RPUNITS_METRIC);
+    RpUnits::define("mol",NULL, "quantity", RPUNITS_METRIC);
+    RpUnits::define("Hz", NULL, "frequency", RPUNITS_METRIC);
+    RpUnits::define("Bq", NULL, "radioactivity", RPUNITS_METRIC);
+    RpUnits::define("amu", NULL, "mass_unit", !RPUNITS_METRIC);
+    RpUnits::define("B", NULL, "audio_transmission", RPUNITS_METRIC);
+    RpUnits::define("amp", NULL, "electric_current", RPUNITS_METRIC);
+    RpUnits::define("ohm", NULL, "electric_resistance", RPUNITS_METRIC);
 
     // RpUnits* percent   = RpUnits::define("%",  NULL, RP_TYPE_MISC);
 
@@ -2978,10 +2971,8 @@ RpUnitsPreset::addPresetMisc () {
 int
 RpUnitsPreset::addPresetPower () {
 
-    RpUnits* watt      = NULL;
-
     // watts are derived units = J/s = kg*m2/s3 = Newton*m/s and Amps*Volt
-    watt      = RpUnits::define("W",  NULL, RP_TYPE_POWER, RPUNITS_METRIC);
+    RpUnits::define("W",  NULL, RP_TYPE_POWER, RPUNITS_METRIC);
 
     return 0;
 }
