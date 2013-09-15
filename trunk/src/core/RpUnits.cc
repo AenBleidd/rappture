@@ -2932,7 +2932,7 @@ RpUnitsPreset::addPresetMagnetic () {
  * Defines the following units:
  *   volt  (V)
  *   mole  (mol)
- *   herz  (Hz)
+ *   hertz (Hz)
  *   becquerel (Bq)
  *   amu
  *   bel (B)
