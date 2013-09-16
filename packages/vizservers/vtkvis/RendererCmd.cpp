@@ -1316,7 +1316,7 @@ AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc,
            Tcl_Obj *const *objv)
 {
     const char *title = Tcl_GetString(objv[3]);
-    if (strlen(title) > 30) {
+    if (strlen(title) > 60) {
         Tcl_AppendResult(interp, "axis name \"", title,
                          "\" is too long", (char*)NULL);
         return TCL_ERROR;
@@ -1600,7 +1600,7 @@ AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
     const char *units = Tcl_GetString(objv[3]);
-    if (strlen(units) > 10) {
+    if (strlen(units) > 20) {
         Tcl_AppendResult(interp, "axis units name \"", units,
                          "\" is too long", (char*)NULL);
         return TCL_ERROR;
