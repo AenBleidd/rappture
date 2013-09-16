@@ -122,8 +122,11 @@ static int VideoWriteFrame (VideoObj *vidPtr, AVFrame *framePtr);
 
 static int VideoAllocImgBuffer (VideoObj *vidPtr, int width, int height);
 static int VideoFreeImgBuffer (VideoObj *vidPtr);
+
+#ifdef notdef
 static double VideoTransformFrames2Duration (VideoObj *vidPtr, int frame);
 static int VideoTransformDuration2Frames (VideoObj *vidPtr, double duration);
+#endif
 
 /*
  * ------------------------------------------------------------------------
@@ -1520,6 +1523,7 @@ VideoWriteFrame(vidPtr, framePtr)
     return numBytes;
 }
 
+#ifdef notdef
 /*
  * ------------------------------------------------------------------------
  *  VideoTransform()
@@ -1596,6 +1600,7 @@ VideoTransformDuration2Frames(vidPtr, duration)
 
     return frames;
 }
+#endif
 
 /*
  * ------------------------------------------------------------------------
