@@ -44,6 +44,10 @@
 # include <libavutil/avutil.h>
 #endif
 
+#ifdef HAVE_LIBAVUTIL_MATHEMATICS_H
+# include <libavutil/mathematics.h> /* for av_rescale_q and av_gcd */
+#endif
+
 #ifdef HAVE_FFMPEG_SWSCALE_H
 # include <ffmpeg/swscale.h>
 #endif
