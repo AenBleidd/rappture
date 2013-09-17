@@ -101,6 +101,7 @@ itcl::class Rappture::Field {
     public method extents {{cname -overall}}
     public method numComponents {cname}
     public method fieldlimits {}
+    public method valueLimits { cname }
     public method flowhints { cname }
     public method hints {{key ""}}
     public method isunirect2d {}
@@ -403,6 +404,13 @@ itcl::body Rappture::Field::blob {cname} {
         return [$_comp2unirect3d($cname) blob]
     }
     error "can't get field blob: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
+}
+
+itcl::body Rappture::Field::valueLimits { cname } {
+    if { [info exists _comp2limits($cname)] } {
+        return $_comp2limits($cname)
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -899,40 +907,40 @@ itcl::body Rappture::Field::Build {} {
             }
             set _dim 3
             set _comp2dims($cname) "3D"
-            if { $_viewer != "nanovis" } {
-                set vtkdata  [$_field get -decode yes $cname.$type]
-                if { $vtkdata == "" } {
-                    puts stderr "WARNING: no data for \"$_path.$cname.$type\""
-                    continue;               # Ignore this component
-                }
-                if 0 {
-                    set f [open /tmp/$_path.$cname.dx "w"]
-                    puts -nonewline $f $vtkdata
-                    close $f
-                }
-                set vtkdata  [Rappture::DxToVtk $vtkdata]
-                if 0 {
-                    set f [open /tmp/$_path.$cname.vtk "w"]
-                    puts -nonewline $f $vtkdata
-                    close $f
-                }
+            set data [$_field get -decode no $cname.$type]
+            set contents [Rappture::encoding::decode -as zb64 $data]
+            if { $contents == "" } {
+                puts stderr "WARNING: no data for \"$_path.$cname.$type\""
+                continue;               # Ignore this component
+            }
+            if 1 {
+                set f [open /tmp/$_path.$cname.dx "w"]
+                puts -nonewline $f $contents
+                close $f
+            }
+            if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
                 ReadVtkDataSet $cname $vtkdata
+            } else {
+                puts stderr "Can't parse dx data: $vtkdata"
+            }
+            if 1 {
+                set f [open /tmp/$_path.$cname.vtk "w"]
+                puts -nonewline $f $vtkdata
+                close $f
+            }
+            if { $_viewer != "nanovis" } {
                 set _type "vtk"
                 set _comp2vtk($cname) $vtkdata
             } else {
-                set contents [$_field get -decode no $cname.$type]
-                if { $contents == "" } {
-                    puts stderr "WARNING: no data for \"$_path.$cname.$type\""
-                    continue;               # Ignore this component
-                }
                 set _type "dx"
-                set _comp2dx($cname) $contents
+                set _comp2dx($cname) $data
             }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
                 set _comp2flowhints($cname) \
                     [Rappture::FlowHints ::\#auto $_field $cname $_units]
             }
+            set _dim 3
             incr _counter
         } elseif { $type == "ucd"} {
             set contents [$_field get $cname.ucd]

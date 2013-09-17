@@ -75,13 +75,13 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method isconnected {}
     public method limits { tf }
-    public method overmarker { m x }
+    public method overMarker { m x }
     public method parameters {title args} { 
         # do nothing 
     }
-    public method rmdupmarker { m x }
+    public method removeDuplicateMarker { m x }
     public method scale {args}
-    public method updatetransferfuncs {}
+    public method updateTransferFunctions {}
 
     protected method Connect {}
     protected method CurrentDatasets {{what -all}}
@@ -95,6 +95,7 @@ itcl::class Rappture::NanovisViewer {
     protected method ReceiveData { args }
     protected method ReceiveImage { args }
     protected method ReceiveLegend { tf vmin vmax size }
+    protected method DrawLegend { cname }
     protected method Rotate {option x y}
     protected method SendTransferFuncs {}
     protected method Slice {option args}
@@ -135,16 +136,16 @@ itcl::class Rappture::NanovisViewer {
                                    ;# to volumes in the server
     private variable _serverTfs    ;# contains all the transfer functions 
                                    ;# in the server.
-    private variable _recvdDatasets    ;# list of data objs to send to server
-    private variable _dataset2style    ;# maps dataobj-component to transfunc
-    private variable _style2datasets   ;# maps tf back to list of 
-                                    # dataobj-components using the tf.
+    private variable _recvdDatasets;    # list of data objs to send to server
+    private variable _dataset2style;    # maps dataobj-component to transfunc
+    private variable _style2datasets;   # maps tf back to list of 
+                                        # dataobj-components using the tf.
 
-    private variable _reset 1;		# Connection to server has been reset 
-    private variable _click        ;# info used for rotate operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
-    private variable _isomarkers    ;# array of isosurface level values 0..1
+    private variable _reset 1;		# Connection to server has been reset.
+    private variable _click;            # Info used for rotate operations.
+    private variable _limits;           # Autoscale min/max for all axes
+    private variable _view;             # View params for 3D view
+    private variable _isomarkers;       # Array of isosurface level values 0..1
     private variable  _settings
     # Array of transfer functions in server.  If 0 the transfer has been
     # defined but not loaded.  If 1 the transfer function has been named
@@ -219,8 +220,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
 
-    set _limits(vmin) 0.0
-    set _limits(vmax) 1.0
+    set _limits(v) [list 0.0 1.0]
     set _reset 1
 
     array set _settings [subst {
@@ -529,7 +529,6 @@ itcl::body Rappture::NanovisViewer::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if { $pos >= 0 } {
             set _dlist [lreplace $_dlist $pos $pos]
-            array unset _limits $dataobj*
             array unset _obj2ovride $dataobj-*
             array unset _dataset2style $dataobj-*
             set changed 1
@@ -551,9 +550,13 @@ itcl::body Rappture::NanovisViewer::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::scale {args} {
-    foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-        set _limits($val) ""
+    array set style {
+        -color BCGYR
+        -levels 6
+        -opacity 1.0
+        -markers ""
     }
+    array unset _limits 
     array unset _volcomponents 
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
@@ -568,20 +571,24 @@ itcl::body Rappture::NanovisViewer::scale {args} {
                 set _settings($cname-colormap) $style(-color)
             }
             lappend _volcomponents($cname) $dataobj-$cname
+            array unset limits
+            array set limits [$dataobj valueLimits $cname]
+            set _limits($cname) $limits(v)
         }
         foreach axis {x y z v} {
             foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
-                if {"" == $_limits(${axis}min)} {
-                    set _limits(${axis}min) $min
-                    set _limits(${axis}max) $max
+                if { ![info exists _limits($axis)] } {
+                    set _limits($axis) [list $min $max]
                 } else {
-                    if {$min < $_limits(${axis}min)} {
-                        set _limits(${axis}min) $min
+                    foreach {amin amax} $_limits($axis) break
+                    if {$min < $amin} {
+                        set amin $min
                     }
-                    if {$max > $_limits(${axis}max)} {
-                        set _limits(${axis}max) $max
+                    if {$max > $amax} {
+                        set amax $max
                     }
+                    set _limits($axis) [list $amin $amax]
                 }
             }
         }
@@ -759,26 +766,9 @@ itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
 }
 
 #
-# ReceiveLegend --
+# DrawLegend --
 #
-#       The procedure is the response from the render server to each "legend"
-#       command.  The server sends back a "legend" command invoked our
-#       the slave interpreter.  The purpose is to collect data of the image 
-#       representing the legend in the canvas.  In addition, the isomarkers
-#       of the active transfer function are displayed.
-#
-#       I don't know is this is the right place to display the isomarkers.
-#       I don't know all the different paths used to draw the plot. There's 
-#       "Rebuild", "add", etc.
-#
-itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
-    if { ![isconnected] } {
-        return
-    }
-    set bytes [ReceiveBytes $size]
-    $_image(legend) configure -data $bytes
-    ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-
+itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
@@ -788,26 +778,35 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
         $c create image 10 10 -anchor nw \
             -image $_image(legend) -tags transfunc
         $c create text $lx $ly -anchor sw \
-            -fill $itk_option(-plotforeground) -tags "limits vmin"
+            -fill $itk_option(-plotforeground) -tags "limits text vmin"
         $c create text [expr {$w-$lx}] $ly -anchor se \
-            -fill $itk_option(-plotforeground) -tags "limits vmax"
+            -fill $itk_option(-plotforeground) -tags "limits text vmax"
+        $c create text [expr {$w/2}] $ly -anchor s \
+            -fill $itk_option(-plotforeground) -tags "limits text title"
         $c lower transfunc
         $c bind transfunc <ButtonRelease-1> \
             [itcl::code $this AddIsoMarker %x %y]
     }
     # Display the markers used by the active transfer function.
 
-    array set limits [limits $tf]
-    $c itemconfigure vmin -text [format %.2g $limits(min)]
+    foreach {min max} $_limits($cname) break
+    $c itemconfigure vmin -text [format %.2g $min]
     $c coords vmin $lx $ly
 
-    $c itemconfigure vmax -text [format %.2g $limits(max)]
+    $c itemconfigure vmax -text [format %.2g $max]
     $c coords vmax [expr {$w-$lx}] $ly
 
+    set title [$_first hints label]
+    set units [$_first hints units]
+    if { $units != "" } {
+        set title "$title ($units)"
+    }
+    $c itemconfigure title -text $title
+    $c coords title [expr {$w/2}] $ly
 
     HideAllMarkers
-    if { [info exists _isomarkers($tf)] } {
-        foreach m $_isomarkers($tf) {
+    if { [info exists _isomarkers($cname)] } {
+        foreach m $_isomarkers($cname) {
             $m visible yes
         }
     }
@@ -829,6 +828,31 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
             SendCmd "cutplane position $pos $axis $tag"
         }
     }
+}
+
+#
+#
+# ReceiveLegend --
+#
+#       The procedure is the response from the render server to each "legend"
+#       command.  The server sends back a "legend" command invoked our
+#       the slave interpreter.  The purpose is to collect data of the image 
+#       representing the legend in the canvas.  In addition, the isomarkers
+#       of the active transfer function are displayed.
+#
+#       I don't know is this is the right place to display the isomarkers.
+#       I don't know all the different paths used to draw the plot. There's 
+#       "Rebuild", "add", etc.
+#
+itcl::body Rappture::NanovisViewer::ReceiveLegend { cname vmin vmax size } {
+    if { ![isconnected] } {
+        return
+    }
+    set bytes [ReceiveBytes $size]
+    $_image(legend) configure -data $bytes
+    ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
+
+    DrawLegend $_current
 }
 
 #
@@ -871,17 +895,15 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     if { $_settings($this-volume) && $dataobj == $_first } {
         SendCmd "volume state 1 $tag"
     }
-    set _limits($tag-min)  $info(min);  # Minimum value of the volume.
-    set _limits($tag-max)  $info(max);  # Maximum value of the volume.
-    set _limits(vmin)      $info(vmin); # Overall minimum value.
-    set _limits(vmax)      $info(vmax); # Overall maximum value.
+    set _limits($tag) [list $info(min)  $info(max)]
+    set _limits(v)    [list $info(vmin) $info(vmax)]
 
     unset _recvdDatasets($tag)
     if { [array size _recvdDatasets] == 0 } {
         # The active transfer function is by default the first component of
         # the first data object.  This assumes that the data is always
         # successfully transferred.
-        updatetransferfuncs
+        updateTransferFunctions
     }
 }
 
@@ -1007,7 +1029,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         # we display the proper transfer function in the legend.
         set cname [lindex [$_first components] 0]
         if { [info exists _serverDatasets($_first-$cname)] } {
-            updatetransferfuncs
+            updateTransferFunctions
         }
     }
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1097,8 +1119,6 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
 }
 
 itcl::body Rappture::NanovisViewer::PanCamera {} {
-    #set x [expr ($_view(xpan)) / $_limits(xrange)]
-    #set y [expr ($_view(ypan)) / $_limits(yrange)]
     set x $_view(xpan)
     set y $_view(ypan)
     SendCmd "camera pan $x $y"
@@ -1277,18 +1297,13 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         }
         opacity {
             error "this should not be called"
-            set val $_settings($this-opacity)
-            set sval [expr { 0.01 * double($val) }]
-            set _settings($this-opacity) $sval
-            set _settings($_current-opacity) $sval
-            updatetransferfuncs
+            set _settings($_current-opacity) $_settings($this-opacity)
+            updateTransferFunctions
         }
         thickness {
             set val $_settings($this-thickness)
             set _settings($_current-thickness) $val
-            # Scale values between 0.00001 and 0.01000
-            set sval [expr {0.0001*double($val)}]
-            updatetransferfuncs
+            updateTransferFunctions
         }
         "outline" {
             SendCmd "volume outline state $_settings($this-outline)"
@@ -1552,7 +1567,7 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
 # ----------------------------------------------------------------------
 # USAGE: UndateTransferFuncs 
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::updatetransferfuncs {} {
+itcl::body Rappture::NanovisViewer::updateTransferFunctions {} {
     $_dispatcher event -idle !send_transfunc
 }
 
@@ -1567,11 +1582,11 @@ itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
     set w [winfo width $c]
     $m relval [expr {double($x-10)/($w-20)}]
     lappend _isomarkers($cname) $m
-    updatetransferfuncs
+    updateTransferFunctions
     return 1
 }
 
-itcl::body Rappture::NanovisViewer::rmdupmarker { marker x } {
+itcl::body Rappture::NanovisViewer::removeDuplicateMarker { marker x } {
     set bool 0
     if { [info exists _isomarkers($_current)] } {
         set list {}
@@ -1590,12 +1605,12 @@ itcl::body Rappture::NanovisViewer::rmdupmarker { marker x } {
             lappend list $m
         }
         set _isomarkers($_current) $list
-        updatetransferfuncs
+        updateTransferFunctions
     }
     return $bool
 }
 
-itcl::body Rappture::NanovisViewer::overmarker { marker x } {
+itcl::body Rappture::NanovisViewer::overMarker { marker x } {
     if { [info exists _isomarkers($_current)] } {
         set marker [namespace tail $marker]
         foreach m $_isomarkers($_current) {
@@ -1616,18 +1631,16 @@ itcl::body Rappture::NanovisViewer::limits { cname } {
         return [array get _limits]
     }
     set min ""; set max ""
-    foreach tag $_style2datasets($cname) {
-        if { ![info exists _serverDatasets($tag)] } {
+    foreach tag [GetDatasetsWithComponent $cname] {
+        if { ![info exists _limits($tag)] } {
             continue
         }
-        if { ![info exists _limits($tag-min)] } {
-            continue
+        foreach {amin amax} $_limits($tag) break
+        if { $min == "" || $min > $amin } {
+            set min $amin
         }
-        if { $min == "" || $min > $_limits($tag-min) } {
-            set min $_limits($tag-min)
-        }
-        if { $max == "" || $max < $_limits($tag-max) } {
-            set max $_limits($tag-max)
+        if { $max == "" || $max < $amax } {
+            set max $amax
         }
     }
     if { $min != "" } {
@@ -1636,7 +1649,7 @@ itcl::body Rappture::NanovisViewer::limits { cname } {
     if { $max != "" } {
         set _limits(max) $max
     }
-    return [array get _limits]
+    return [list $_limits(min) $_limits(max)]
 }
 
 
@@ -1748,8 +1761,8 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -showvalue off \
         -command [itcl::code $this AdjustSetting specularExponent]
 
-    label $inner.transp_l -text "Transparency" -font $font
-    ::scale $inner.transp -from 100 -to 0 -orient horizontal \
+    label $inner.transp_l -text "Opacity" -font $font
+    ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
         -showvalue off -command [itcl::code $this AdjustSetting transp]
 
@@ -2014,9 +2027,6 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
     set val [$itk_component(${axis}CutScale) get]
-#    set val [expr {0.01*($val-50)
-#        *($_limits(${axis}max)-$_limits(${axis}min))
-#          + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
 }
 
