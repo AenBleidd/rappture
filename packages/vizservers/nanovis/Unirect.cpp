@@ -8,9 +8,6 @@
 
 #include <tcl.h>
 
-#include <RpField1D.h>
-#include <RpFieldRect3D.h>
-
 #include "Command.h"
 #include "Unirect.h"
 #include "Trace.h"
@@ -630,84 +627,6 @@ Rappture::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
         fclose(f);
     }
 #endif
-    return true;
-}
-
-bool
-Rappture::Unirect3d::resample(Rappture::Outcome &result, size_t nSamples)
-{
-    Rappture::Mesh1D xgrid(_xMin, _xMax, _xNum);
-    Rappture::Mesh1D ygrid(_yMin, _yMax, _yNum);
-    Rappture::Mesh1D zgrid(_zMin, _zMax, _zNum);
-    Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
-    Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
-    Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
-
-    size_t i, j;
-    for (i = 0, j = 0; i < _nValues; i += _nComponents, j++) {
-        double vx, vy, vz;
-
-        vx = _values[i];
-        vy = _values[i+1];
-        vz = _values[i+2];
-        
-        xfield.define(j, vx);
-        yfield.define(j, vy);
-        zfield.define(j, vz);
-    }
-    // Figure out a good mesh spacing
-    double dx, dy, dz;
-    double lx, ly, lz;
-    lx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
-    ly = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
-    lz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
-
-    double dmin;
-    dmin = pow((lx*ly*lz)/((nSamples-1)*(nSamples-1)*(nSamples-1)), 0.333);
-
-    /* Recompute new number of points for each axis. */
-    _xNum = (size_t)ceil(lx/dmin);
-    _yNum = (size_t)ceil(ly/dmin);
-    _zNum = (size_t)ceil(lz/dmin);
-
-#ifndef HAVE_NPOT_TEXTURES
-    // must be an even power of 2 for older cards
-    _xNum = (int)pow(2.0, ceil(log10((double)_xNum)/log10(2.0)));
-    _yNum = (int)pow(2.0, ceil(log10((double)_yNum)/log10(2.0)));
-    _zNum = (int)pow(2.0, ceil(log10((double)_zNum)/log10(2.0)));
-#endif
-
-    dx = lx/(double)(_xNum-1);
-    dy = ly/(double)(_yNum-1);
-    dz = lz/(double)(_zNum-1);
-
-    TRACE("lx:%lf ly:%lf lz:%lf dmin:%lf dx:%lf dy:%lf dz:%lf", lx, ly, lz, dmin, dx, dy, dz);
-
-    size_t n = _nComponents * _xNum * _yNum * _zNum;
-    _values = (float *)realloc(_values, sizeof(float) * n);
-    memset(_values, 0, sizeof(float) * n);
-
-    // Generate the uniformly sampled rectangle that we need for a volume
-    float *destPtr = _values;
-    for (size_t i = 0; i < _zNum; i++) {
-        double z;
-
-        z = _zMin + (i * dx);
-        for (size_t j = 0; j < _yNum; j++) {
-            double y;
-                
-            y = _yMin + (j * dy);
-            for (size_t k = 0; k < _xNum; k++) {
-                double x;
-
-                x = _xMin + (k * dz);
-                destPtr[0] = xfield.value(x, y, z);
-                destPtr[1] = yfield.value(x, y, z);
-                destPtr[2] = zfield.value(x, y, z);
-            }
-        }
-    }
-    _nValues = _xNum * _yNum * _zNum * _nComponents;
     return true;
 }
 

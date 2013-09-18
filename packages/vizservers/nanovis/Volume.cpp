@@ -30,13 +30,13 @@ bool Volume::updatePending = false;
 double Volume::valueMin = 0.0;
 double Volume::valueMax = 1.0;
 
-Volume::Volume(int w, int h, int d,
-               int n, float *data,
-               double v0, double v1, double nonZeroMin) :
+Volume::Volume(int width, int height, int depth,
+               int numComponents, float *data,
+               double vmin, double vmax, double nonZeroMin) :
     _id(0),
-    _width(w),
-    _height(h),
-    _depth(d),
+    _width(width),
+    _height(height),
+    _depth(depth),
     _transferFunc(NULL),
     _ambient(0.6f),
     _diffuse(0.4f),
@@ -45,7 +45,7 @@ Volume::Volume(int w, int h, int d,
     _lightTwoSide(false),
     _opacityScale(0.5f),
     _data(NULL),
-    _numComponents(n),
+    _numComponents(numComponents),
     _nonZeroMin(nonZeroMin),
     _cutplanesVisible(true),
     _tex(NULL),
@@ -62,7 +62,7 @@ Volume::Volume(int w, int h, int d,
 
     _outlineColor[0] = _outlineColor[1] = _outlineColor[2] = 1.0f;
 
-    _tex = new Texture3D(_width, _height, _depth, GL_FLOAT, GL_LINEAR, n);
+    _tex = new Texture3D(_width, _height, _depth, GL_FLOAT, GL_LINEAR, _numComponents);
     int fcount = _width * _height * _depth * _numComponents;
     _data = new float[fcount];
     memcpy(_data, data, fcount * sizeof(float));
@@ -70,7 +70,7 @@ Volume::Volume(int w, int h, int d,
 
     _id = _tex->id();
 
-    wAxis.setRange(v0, v1);
+    wAxis.setRange(vmin, vmax);
 
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.
@@ -90,12 +90,12 @@ Volume::~Volume()
     delete _tex;
 }
 
-void Volume::setData(float *data, double v0, double v1, double nonZeroMin)
+void Volume::setData(float *data, double vmin, double vmax, double nonZeroMin)
 {
     int fcount = _width * _height * _depth * _numComponents;
     memcpy(_data, data, fcount * sizeof(float));
     _tex->update(_data);
-    wAxis.setRange(v0, v1);
+    wAxis.setRange(vmin, vmax);
     _nonZeroMin = nonZeroMin;
     updatePending = true;
 }

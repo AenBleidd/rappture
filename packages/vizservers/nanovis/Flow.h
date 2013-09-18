@@ -82,8 +82,6 @@ public:
 
     void getBoxNames(std::vector<std::string>& names);
 
-    bool scaleVectorField();
-
     bool visible()
     {
         return !_sv.isHidden;
@@ -96,20 +94,30 @@ public:
 
     bool isDataLoaded()
     {
-        return (_data != NULL);
+        return (_volume != NULL);
     }
 
-    Rappture::Unirect3d *data()
+    void getVectorRange(double range[])
     {
-        return _data;
+        range[0] = _volume->wAxis.min();
+        range[1] = _volume->wAxis.max();
     }
 
-    void data(Rappture::Unirect3d *data)
+    void data(Rappture::Unirect3d *unirect)
     {
-        if (_data != NULL) {
-            delete _data;
-        }
-        _data = data;
+        float *vdata = getScaledVector(unirect);
+        _volume = makeVolume(unirect, vdata);
+        delete [] vdata;
+        initVolume();
+        scaleVectorField();
+        delete unirect;
+    }
+
+    void data(Volume *volume)
+    {
+        _volume = volume;
+        initVolume();
+        scaleVectorField();
     }
 
     FlowSliceAxis getAxis()
@@ -197,9 +205,13 @@ private:
     typedef std::tr1::unordered_map<ParticlesId, FlowParticles *> ParticlesHashmap;
     typedef std::tr1::unordered_map<BoxId, FlowBox *> BoxHashmap;
 
-    float *getScaledVector();
+    void initVolume();
 
-    Volume *makeVolume(float *data);
+    bool scaleVectorField();
+
+    float *getScaledVector(Rappture::Unirect3d *unirect);
+
+    Volume *makeVolume(Rappture::Unirect3d *unirect, float *data);
 
     void renderBoxes();
 
@@ -216,14 +228,6 @@ private:
      * When the command is deleted, so is
      * the flow. */
     Tcl_Command _cmdToken;
-
-    /**
-     * Uniform rectangular data
-     * representing the mesh and vector
-     * field values.  These values are
-     * kept to regenerate the volume
-     * associated with the flow. */
-    Rappture::Unirect3d *_data;
 
     /**
      * The volume associated with the

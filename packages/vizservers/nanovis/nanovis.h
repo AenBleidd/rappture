@@ -122,15 +122,13 @@ public:
 
     static void setVolumeRanges();
     static void setHeightmapRanges();
-    static bool mapFlows();
+    static bool setFlowRanges();
 
     static Flow *getFlow(const char *name);
     static Flow *createFlow(Tcl_Interp *interp, const char *name);
     static void deleteFlows(Tcl_Interp *interp);
     static void deleteFlow(const char *name);
-    static void getFlowBounds(vrmath::Vector3f& min,
-                              vrmath::Vector3f& max,
-                              bool onlyVisible = false);
+
     static void renderFlows();
     static void resetFlows();
     static bool updateFlows();

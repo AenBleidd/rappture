@@ -228,8 +228,6 @@ public:
 
     bool convert(Unirect2d *dataPtr);
 
-    bool resample(Rappture::Outcome &context, size_t nSamples = 30);
-
     bool isInitialized()
     {
         return _initialized;
@@ -246,7 +244,7 @@ private:
     float _yValueMin, _yValueMax;
     float _zValueMin, _zValueMax;
     double _magMin, _magMax;                /* Range of magnitudes of vector
-                                         * data. */
+                                             * data. */
     char *_xUnits;
     char *_yUnits;
     char *_zUnits;

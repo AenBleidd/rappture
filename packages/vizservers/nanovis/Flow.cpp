@@ -40,7 +40,6 @@ double Flow::magMax = -DBL_MAX;
 Flow::Flow(Tcl_Interp *interp, const char *name) :
     _interp(interp),
     _name(name),
-    _data(NULL),
     _volume(NULL)
 {
     memset(&_sv, 0, sizeof(FlowValues));
@@ -58,9 +57,6 @@ Flow::~Flow()
 
     Rappture::FreeSwitches(_switches, &_sv, 0);
 
-    if (_data != NULL) {
-        delete _data;
-    }
     if (_volume != NULL) {
         NanoVis::removeVolume(_volume);
         _volume = NULL;
@@ -90,7 +86,7 @@ Flow::getBounds(Vector3f& min,
     BBox allBounds;
     if (isDataLoaded()) {
         BBox bbox;
-        data()->getBounds(bbox.min, bbox.max);
+        _volume->getBounds(bbox.min, bbox.max);
         allBounds.extend(bbox);
     }
     for (BoxHashmap::iterator itr = _boxTable.begin();
@@ -114,14 +110,14 @@ Flow::getRelativePosition(FlowPosition *position)
     }
     switch (position->axis) {
     case AXIS_X:  
-        return (position->value - _data->xMin()) / 
-            (_data->xMax() - _data->xMin()); 
+        return (position->value - _volume->xAxis.min()) / 
+            (_volume->xAxis.max() - _volume->xAxis.min()); 
     case AXIS_Y:  
-        return (position->value - _data->yMin()) / 
-            (_data->yMax() - _data->yMin()); 
+        return (position->value - _volume->yAxis.min()) / 
+            (_volume->yAxis.max() - _volume->yAxis.min()); 
     case AXIS_Z:  
-        return (position->value - _data->zMin()) / 
-            (_data->zMax() - _data->zMin()); 
+        return (position->value - _volume->zAxis.min()) / 
+            (_volume->zAxis.max() - _volume->zAxis.min()); 
     }
     return 0.0;
 }
@@ -302,17 +298,10 @@ Flow::configure()
 bool
 Flow::scaleVectorField()
 {
-    float *vdata = getScaledVector();
-    if (_volume != NULL) {
-        TRACE("Updating existing volume: %s", _volume->name());
-        _volume->setData(vdata, magMin, magMax, 0);
-    } else {
-        _volume = makeVolume(vdata);
-        if (_volume == NULL) {
-            return false;
-        }
+    if (_volume == NULL) {
+        return false;
     }
-    delete [] vdata;
+
     // FIXME: LIC and arrows should be per-flow
     if (NanoVis::licRenderer != NULL) {
         NanoVis::licRenderer->setVectorField(_volume);
@@ -345,26 +334,26 @@ Flow::renderBoxes()
 }
 
 float *
-Flow::getScaledVector()
+Flow::getScaledVector(Rappture::Unirect3d *unirect)
 {
-    assert(_data->nComponents() == 3);
-    size_t n = _data->nValues() / _data->nComponents() * 4;
+    assert(unirect->nComponents() == 3);
+    size_t n = unirect->nValues() / unirect->nComponents() * 4;
     float *data = new float[n];
     memset(data, 0, sizeof(float) * n);
     float *dest = data;
-    const float *values = _data->values();
-    for (size_t iz = 0; iz < _data->zNum(); iz++) {
-        for (size_t iy = 0; iy < _data->yNum(); iy++) {
-            for (size_t ix = 0; ix < _data->xNum(); ix++) {
+    const float *values = unirect->values();
+    for (size_t iz = 0; iz < unirect->zNum(); iz++) {
+        for (size_t iy = 0; iy < unirect->yNum(); iy++) {
+            for (size_t ix = 0; ix < unirect->xNum(); ix++) {
                 double vx, vy, vz, vm;
                 vx = values[0];
                 vy = values[1];
                 vz = values[2];
                 vm = sqrt(vx*vx + vy*vy + vz*vz);
-                dest[0] = vm / magMax;
-                dest[1] = vx /(2.0 * magMax) + 0.5;
-                dest[2] = vy /(2.0 * magMax) + 0.5;
-                dest[3] = vz /(2.0 * magMax) + 0.5;
+                dest[0] = vm / unirect->magMax();
+                dest[1] = vx /(2.0 * unirect->magMax()) + 0.5;
+                dest[2] = vy /(2.0 * unirect->magMax()) + 0.5;
+                dest[3] = vz /(2.0 * unirect->magMax()) + 0.5;
                 values += 3;
                 dest += 4;
             }
@@ -374,36 +363,43 @@ Flow::getScaledVector()
 }
 
 Volume *
-Flow::makeVolume(float *data)
+Flow::makeVolume(Rappture::Unirect3d *unirect, float *data)
 {
     Volume *volume =
         NanoVis::loadVolume(_name.c_str(),
-                            _data->xNum(),
-                            _data->yNum(), 
-                            _data->zNum(),
+                            unirect->xNum(),
+                            unirect->yNum(), 
+                            unirect->zNum(),
                             4, data, 
-                            magMin, magMax, 0);
-    volume->xAxis.setRange(_data->xMin(), _data->xMax());
-    volume->yAxis.setRange(_data->yMin(), _data->yMax());
-    volume->zAxis.setRange(_data->zMin(), _data->zMax());
+                            unirect->magMin(),
+                            unirect->magMax(),
+                            0);
+    volume->xAxis.setRange(unirect->xMin(), unirect->xMax());
+    volume->yAxis.setRange(unirect->yMin(), unirect->yMax());
+    volume->zAxis.setRange(unirect->zMin(), unirect->zMax());
 
-    TRACE("mag=%g %g", magMin, magMax);
+    TRACE("mag=%g %g", unirect->magMin(), unirect->magMax());
 
-    volume->disableCutplane(0);
-    volume->disableCutplane(1);
-    volume->disableCutplane(2);
+    return volume;
+}
+
+void
+Flow::initVolume()
+{
+    _volume->disableCutplane(0);
+    _volume->disableCutplane(1);
+    _volume->disableCutplane(2);
 
     /* Initialize the volume with the previously configured values. */
-    volume->transferFunction(_sv.transferFunction);
-    volume->dataEnabled(_sv.showVolume);
-    volume->twoSidedLighting(_sv.twoSidedLighting);
-    volume->outline(_sv.showOutline);
-    volume->opacityScale(_sv.opacity);
-    volume->ambient(_sv.ambient);
-    volume->diffuse(_sv.diffuse);
-    volume->specularLevel(_sv.specular);
-    volume->specularExponent(_sv.specularExp);
+    _volume->transferFunction(_sv.transferFunction);
+    _volume->dataEnabled(_sv.showVolume);
+    _volume->twoSidedLighting(_sv.twoSidedLighting);
+    _volume->outline(_sv.showOutline);
+    _volume->opacityScale(_sv.opacity);
+    _volume->ambient(_sv.ambient);
+    _volume->diffuse(_sv.diffuse);
+    _volume->specularLevel(_sv.specular);
+    _volume->specularExponent(_sv.specularExp);
 
     Volume::updatePending = true;
-    return volume;
 }
