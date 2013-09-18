@@ -17,6 +17,7 @@ RM		= rm -f
 FILES		= \
 		$(srcdir)/demo3.tcl \
 		$(srcdir)/data-dx.tcl \
+		$(srcdir)/data-values.tcl \
 		$(srcdir)/tool.xml 
 
 destdir		= $(prefix)/examples/flow/demo3

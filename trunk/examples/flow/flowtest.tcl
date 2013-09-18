@@ -100,6 +100,20 @@ set elements [subst {
     $f3.component.flow.particles(right).position 90%
     $f3.component.style  "-color blue:red -levels 6 -opacity 1"
     $f3.component.extents 3
+    $f3.component.mesh output.mesh(sio2)
+    output.mesh(sio2).about.label "SiO2"
+    output.mesh(sio2).dim 3
+    output.mesh(sio2).units "um"
+    output.mesh(sio2).hide yes
+    output.mesh(sio2).grid.xaxis.min 0
+    output.mesh(sio2).grid.xaxis.max 29.75206608
+    output.mesh(sio2).grid.xaxis.numpoints 121
+    output.mesh(sio2).grid.yaxis.min -1.5
+    output.mesh(sio2).grid.yaxis.max 2.82
+    output.mesh(sio2).grid.yaxis.numpoints 25
+    output.mesh(sio2).grid.zaxis.min -1
+    output.mesh(sio2).grid.zaxis.max 4.304347828
+    output.mesh(sio2).grid.zaxis.numpoints 23
 }]
 
 puts stdout "Setting attributes..."
@@ -114,9 +128,12 @@ $driver put $f1.component.values $values
 source demo2/data-unirect2d.tcl
 $driver put $f2.component.values $values
 
-source demo3/data-dx.tcl
-set data [Rappture::encoding::encode -as zb64 "<DX>$dx"]
-$driver put $f3.component.dx $data
+#source demo3/data-dx.tcl
+#set data [Rappture::encoding::encode -as zb64 "<DX>$dx"]
+#$driver put $f3.component.dx $data
+
+source demo3/data-values.tcl
+$driver put $f3.component.values $values
 
 # save the updated XML describing the run...
 Rappture::result $driver
