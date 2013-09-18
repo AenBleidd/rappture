@@ -1080,7 +1080,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             append cmap "$x [Color2RGB $color] "
         }
     }
-    regsub -all "\n" $cmap " " cmap
+    #regsub -all "\n" $cmap " " cmap
     return $cmap
 }
 
