@@ -912,23 +912,23 @@ itcl::body Rappture::Field::Build {} {
                 puts stderr "WARNING: no data for \"$_path.$cname.$type\""
                 continue;               # Ignore this component
             }
+            set contents [Rappture::encoding::decode -as zb64 $data]
+            if 0 {
+                set f [open /tmp/$_path.$cname.dx "w"]
+                puts -nonewline $f $contents
+                close $f
+            }
+            if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
+                ReadVtkDataSet $cname $vtkdata
+            } else {
+                puts stderr "Can't parse dx data: $vtkdata"
+            }
+            if 0 {
+                set f [open /tmp/$_path.$cname.vtk "w"]
+                puts -nonewline $f $vtkdata
+                close $f
+            }
             if { $_viewer != "nanovis" } {
-                set contents [Rappture::encoding::decode -as zb64 $data]
-                if 0 {
-                    set f [open /tmp/$_path.$cname.dx "w"]
-                    puts -nonewline $f $contents
-                    close $f
-                }
-                if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
-                    ReadVtkDataSet $cname $vtkdata
-                } else {
-                    puts stderr "Can't parse dx data: $vtkdata"
-                }
-                if 0 {
-                    set f [open /tmp/$_path.$cname.vtk "w"]
-                    puts -nonewline $f $vtkdata
-                    close $f
-                }
                 set _type "vtk"
                 set _comp2vtk($cname) $vtkdata
             } else {
