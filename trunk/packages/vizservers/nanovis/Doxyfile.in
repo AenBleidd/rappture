@@ -598,7 +598,7 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = @srcdir@/newmat11 @srcdir@/CircularQueue.h @srcdir@/ParticleEmitter.h @srcdir@/ParticleEmitter.cpp @srcdir@/ParticleSystem.h @srcdir@/ParticleSystem.cpp @srcdir@/ParticleSystemFactory.h @srcdir@/ParticleSystemFactory.cpp @srcdir@/BucketSort.h @srcdir@/BucketSort.cpp @srcdir@/PCASplit.h @srcdir@/PCASplit.cpp @srcdir@/PointSet.h @srcdir@/PointSet.cpp @srcdir@/PointSetRenderer.h @srcdir@/PointSetRenderer.cpp @srcdir@/PointShader.h @srcdir@/PointShader.cpp
+EXCLUDE                = @srcdir@/bak @srcdir@/newmat11 @srcdir@/CircularQueue.h @srcdir@/ParticleEmitter.h @srcdir@/ParticleEmitter.cpp @srcdir@/ParticleSystem.h @srcdir@/ParticleSystem.cpp @srcdir@/ParticleSystemFactory.h @srcdir@/ParticleSystemFactory.cpp @srcdir@/BucketSort.h @srcdir@/BucketSort.cpp @srcdir@/PCASplit.h @srcdir@/PCASplit.cpp @srcdir@/PointSet.h @srcdir@/PointSet.cpp @srcdir@/PointSetRenderer.h @srcdir@/PointSetRenderer.cpp @srcdir@/PointShader.h @srcdir@/PointShader.cpp
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or
 # directories that are symbolic links (a Unix filesystem feature) are excluded

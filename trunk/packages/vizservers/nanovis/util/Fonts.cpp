@@ -92,8 +92,13 @@ Fonts::begin()
     glPushMatrix();
     glLoadIdentity();
 
+#if 0
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+#else
     glEnable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
+#endif
 }
 
 void 
@@ -222,6 +227,7 @@ Fonts::loadFont(const char *fontName, const char *fontFileName,
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+            glTexEnvi(GL_TEXTURE_2D, GL_TEXTURE_ENV_MODE, GL_MODULATE);
             glBindTexture(GL_TEXTURE_2D, 0);
 
             delete[] pTexMap;

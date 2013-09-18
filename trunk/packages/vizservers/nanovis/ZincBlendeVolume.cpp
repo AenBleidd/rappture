@@ -23,22 +23,23 @@
 using namespace nv;
 using namespace vrmath;
 
-ZincBlendeVolume::ZincBlendeVolume(int w, int h, int d, int n, 
+ZincBlendeVolume::ZincBlendeVolume(int width, int height, int depth,
+                                   int numComponents, 
                                    float *dataVolumeA, float *dataVolumeB,
-                                   double v0, double v1, double non_zeromin,
+                                   double vmin, double vmax, double nonZeroMin,
                                    const Vector3f& cellSz) :
-    Volume(w, h, d, n, dataVolumeA, v0, v1, non_zeromin),
+    Volume(width, height, depth, numComponents, dataVolumeA, vmin, vmax, nonZeroMin),
     cellSize(cellSz)
 {
     //label it as zincblende
     _volumeType = ZINCBLENDE;
 
-    //store member tex initialize in Volume() as zincblende_tex[0]
+    //store member tex initialize in Volume() as zincblendeTex[0]
     assert(_tex);
     zincblendeTex[0] = _tex;
 
     //now add another tex as zincblende_tex[1]
-    Texture3D *secondTex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
+    Texture3D *secondTex = new Texture3D(width, height, depth, GL_FLOAT, GL_LINEAR, numComponents);
     assert(secondTex);
     secondTex->initialize(dataVolumeB);
 

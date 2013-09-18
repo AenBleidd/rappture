@@ -14,6 +14,9 @@ merge(float *scalar, float *gradient, int size);
 extern void
 normalizeScalar(float *data, int count, int stride, double min, double max);
 
+extern void
+normalizeVector(float *data, int count, double min, double max);
+
 extern float *
 computeGradient(float *data,
                 int nx, int ny, int nz,

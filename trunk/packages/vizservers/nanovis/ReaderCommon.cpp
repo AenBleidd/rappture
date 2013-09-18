@@ -63,6 +63,30 @@ nv::normalizeScalar(float *data, int count, int stride, double vmin, double vmax
 }
 
 /**
+ * \brief Normalize data to [0,1] based on vmin,vmax range
+ * 
+ * Data outside of given range is clamped, and NaNs are set to
+ * -1 in the output
+ *
+ * \param data Float array of unnormalized data, will be normalized on return
+ * \param count Number of elts in array
+ * \param stride Stride between values in data array
+ * \param vmin Minimum value in data array
+ * \param vmax Maximum value in data array
+ */
+void
+nv::normalizeVector(float *data, int count, double vmin, double vmax)
+{
+    for (int p = 0; p < count; p++) {
+        int i = p * 4;
+        data[i  ] = data[i]/vmax;
+        data[i+1] = data[i+1]/(2.0 * vmax) + 0.5;
+        data[i+2] = data[i+2]/(2.0 * vmax) + 0.5;
+        data[i+3] = data[i+3]/(2.0 * vmax) + 0.5;
+    }
+}
+
+/**
  * \brief Compute Sobel filtered gradients for a 3D volume
  *
  * This technique is fairly expensive in terms of memory and

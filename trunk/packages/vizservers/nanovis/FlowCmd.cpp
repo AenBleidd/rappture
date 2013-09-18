@@ -29,6 +29,10 @@
 #include "CmdProc.h"
 #include "Command.h"
 #include "PPMWriter.h"
+#ifdef USE_VTK
+#include "VtkDataSetReader.h"
+#endif
+#include "VtkReader.h"
 #include "FlowCmd.h"
 #include "FlowTypes.h"
 #include "Flow.h"
@@ -242,31 +246,33 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     char *bytes = (char *)buf.bytes();
     size_t length = buf.size();
 
-    Rappture::Unirect3d *dataPtr;
-    dataPtr = new Rappture::Unirect3d(nComponents);
+    Rappture::Unirect3d *unirect = NULL;
+    Volume *volume = NULL;
 
     Flow *flow = (Flow *)clientData;
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-        if (!dataPtr->importDx(result, nComponents, length - 4, bytes + 4)) {
+        unirect = new Rappture::Unirect3d(nComponents);
+        if (!unirect->importDx(result, nComponents, length - 4, bytes + 4)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
-            delete dataPtr;
+            delete unirect;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-        if (dataPtr->parseBuffer(interp, buf) != TCL_OK) {
-            delete dataPtr;
+        unirect = new Rappture::Unirect3d(nComponents);
+        if (unirect->parseBuffer(interp, buf) != TCL_OK) {
+            delete unirect;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
+        unirect = new Rappture::Unirect3d(nComponents);
         Rappture::Unirect2d *u2dPtr;
         u2dPtr = new Rappture::Unirect2d(nComponents);
         if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete u2dPtr;
             return TCL_ERROR;
         }
-        dataPtr->convert(u2dPtr);
+        unirect->convert(u2dPtr);
         delete u2dPtr;
-#if 0
     } else if ((length > 14) && (strncmp(bytes, "# vtk DataFile", 14) == 0)) {
         TRACE("VTK loading...");
         std::stringstream fdata;
@@ -276,45 +282,58 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             abort();
         }
         Rappture::Outcome context;
-        volume = load_vtk_volume_stream(context, tag, fdata);
+#ifdef USE_VTK
+        volume = load_vtk_volume_stream(context, flow->name(), bytes, length);
+#else
+        std::stringstream fdata;
+        fdata.write(bytes, nBytes);
+        volume = load_vtk_volume_stream(context, flow->name(), fdata);
+#endif
         if (volume == NULL) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
         }
-#endif
     } else {
         TRACE("header is %.14s", buf.bytes());
-        if (!dataPtr->importDx(result, nComponents, length, bytes)) {
+        if (!unirect->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
-            delete dataPtr;
+            delete unirect;
             return TCL_ERROR;
         }
     }
-    if (dataPtr->nValues() == 0) {
-        delete dataPtr;
+    if (unirect != NULL && unirect->nValues() == 0) {
+        delete unirect;
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
+#if 0
     TRACE("nx = %d ny = %d nz = %d",
-          dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
+          unirect->xNum(), unirect->yNum(), unirect->zNum());
     TRACE("x0 = %lg y0 = %lg z0 = %lg",
-          dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+          unirect->xMin(), unirect->yMin(), unirect->zMin());
     TRACE("lx = %lg ly = %lg lz = %lg",
-          dataPtr->xMax() - dataPtr->xMin(),
-          dataPtr->yMax() - dataPtr->yMin(),
-          dataPtr->zMax() - dataPtr->zMin());
+          unirect->xMax() - unirect->xMin(),
+          unirect->yMax() - unirect->yMin(),
+          unirect->zMax() - unirect->zMin());
     TRACE("dx = %lg dy = %lg dz = %lg",
-          dataPtr->xNum() > 1 ? (dataPtr->xMax() - dataPtr->xMin())/(dataPtr->xNum()-1) : 0,
-          dataPtr->yNum() > 1 ? (dataPtr->yMax() - dataPtr->yMin())/(dataPtr->yNum()-1) : 0,
-          dataPtr->zNum() > 1 ? (dataPtr->zMax() - dataPtr->zMin())/(dataPtr->zNum()-1) : 0);
+          unirect->xNum() > 1 ? (unirect->xMax() - unirect->xMin())/(unirect->xNum()-1) : 0,
+          unirect->yNum() > 1 ? (unirect->yMax() - unirect->yMin())/(unirect->yNum()-1) : 0,
+          unirect->zNum() > 1 ? (unirect->zMax() - unirect->zMin())/(unirect->zNum()-1) : 0);
     TRACE("magMin = %lg magMax = %lg",
-          dataPtr->magMin(), dataPtr->magMax());
-    flow->data(dataPtr);
+          unirect->magMin(), unirect->magMax());
+#endif
+    if (unirect != NULL) {
+        flow->data(unirect);
+    } else {
+        flow->data(volume);
+    }
+    double range[2];
+    flow->getVectorRange(range);
     {
         char info[1024];
         int length = 
             sprintf(info, "nv>data tag %s min %g max %g\n",
-                    flow->name(), dataPtr->magMin(), dataPtr->magMax());
+                    flow->name(), range[0], range[1]);
 #ifdef USE_THREADS
         queueResponse(info, (size_t)length, Response::VOLATILE);
 #else
@@ -839,7 +858,7 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if (Flow::updatePending) {
-        NanoVis::mapFlows();
+        NanoVis::setFlowRanges();
     }
     NanoVis::renderLegend(tf, Flow::magMin, Flow::magMax, w, h, label);
     return TCL_OK;
@@ -964,7 +983,7 @@ FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     NanoVis::resetFlows();
     if (Flow::updatePending) {
-        NanoVis::mapFlows();
+        NanoVis::setFlowRanges();
     }
     for (int i = 0; i < nSteps; i++) {
         NanoVis::licRenderer->convolve();
@@ -996,7 +1015,7 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     assert(NanoVis::licRenderer != NULL);
     if (Flow::updatePending) {
-        NanoVis::mapFlows();
+        NanoVis::setFlowRanges();
     }
     NanoVis::licRenderer->convolve();
     NanoVis::advectFlows();

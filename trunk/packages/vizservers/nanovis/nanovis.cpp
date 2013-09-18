@@ -618,6 +618,9 @@ void NanoVis::update()
     }
 }
 
+/**
+ * \brief Called when new volumes are added to update ranges
+ */
 void
 NanoVis::setVolumeRanges()
 {
@@ -643,6 +646,9 @@ NanoVis::setVolumeRanges()
     TRACE("Leave");
 }
 
+/**
+ * \brief Called when new heightmaps are added to update ranges
+ */
 void
 NanoVis::setHeightmapRanges()
 {
@@ -675,10 +681,6 @@ NanoVis::setHeightmapRanges()
 void
 NanoVis::collectBounds(bool onlyVisible)
 {
-    if (Flow::updatePending) {
-        mapFlows();
-    }
-
     sceneBounds.makeEmpty();
 
     for (VolumeHashmap::iterator itr = volumeTable.begin();
@@ -705,9 +707,12 @@ NanoVis::collectBounds(bool onlyVisible)
         sceneBounds.extend(bbox);
     }
 
-    {
+    for (FlowHashmap::iterator itr = flowTable.begin();
+         itr != flowTable.end(); ++itr) {
+        Flow *flow = itr->second;
+
         BBox bbox;
-        getFlowBounds(bbox.min, bbox.max, onlyVisible);
+        flow->getBounds(bbox.min, bbox.max, onlyVisible);
         sceneBounds.extend(bbox);
     }
 
@@ -811,8 +816,11 @@ NanoVis::deleteFlows(Tcl_Interp *interp)
     flowTable.clear();
 }
 
+/**
+ * \brief Called when new flows are added to update ranges
+ */
 bool
-NanoVis::mapFlows()
+NanoVis::setFlowRanges()
 {
     TRACE("Enter");
 
@@ -826,18 +834,16 @@ NanoVis::mapFlows()
     for (FlowHashmap::iterator itr = flowTable.begin();
          itr != flowTable.end(); ++itr) {
         Flow *flow = itr->second;
-        double min, max;
         if (!flow->isDataLoaded()) {
             continue;
         }
-        Rappture::Unirect3d *data = flow->data();
-        min = data->magMin();
-        max = data->magMax();
-        if (min < Flow::magMin) {
-            Flow::magMin = min;
+        double range[2];
+        flow->getVectorRange(range);
+        if (range[0] < Flow::magMin) {
+            Flow::magMin = range[0];
         } 
-        if (max > Flow::magMax) {
-            Flow::magMax = max;
+        if (range[1] > Flow::magMax) {
+            Flow::magMax = range[1];
         }
     }
 
@@ -855,32 +861,10 @@ NanoVis::mapFlows()
         if (flow->visible()) {
             flow->initializeParticles();
         }
-        if (!flow->scaleVectorField()) {
-            return false;
-        }
     }
 
     Flow::updatePending = false;
     return true;
-}
-
-void
-NanoVis::getFlowBounds(Vector3f& min,
-                       Vector3f& max,
-                       bool onlyVisible)
-{
-    TRACE("Enter");
-
-    BBox allBounds;
-    for (FlowHashmap::iterator itr = flowTable.begin();
-         itr != flowTable.end(); ++itr) {
-        BBox bbox;
-        itr->second->getBounds(bbox.min, bbox.max, onlyVisible);
-        allBounds.extend(bbox);
-    }
-
-    min = allBounds.min;
-    max = allBounds.max;
 }
 
 void
@@ -927,7 +911,7 @@ NanoVis::render()
     TRACE("Enter");
 
     if (Flow::updatePending) {
-        mapFlows();
+        setFlowRanges();
     }
     if (HeightMap::updatePending) {
         setHeightmapRanges();

@@ -124,7 +124,7 @@ public:
         return _volumeType;
     }
 
-    void setData(float *data, double v0, double v1, double nonZeroMin);
+    void setData(float *data, double vmin, double vmax, double nonZeroMin);
 
     const float *data() const
     {

@@ -22,7 +22,7 @@ class ZincBlendeVolume : public Volume
 public:
     ZincBlendeVolume(int width, int height, int depth, int numComponents, 
                      float *dataVolumeA, float *dataVolumeB,
-                     double vmin, double vmax, double non_zeromin,
+                     double vmin, double vmax, double nonZeroMin,
                      const vrmath::Vector3f& cellSize);
 
     virtual ~ZincBlendeVolume();

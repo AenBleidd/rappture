@@ -19,7 +19,9 @@ using namespace nv;
 using namespace nv::util;
 
 #define NUMDIGITS	6
-#define GRID_TICK	0.05
+#define TICK_LENGTH	0.05
+#define LABEL_OFFSET	0.06
+#define TITLE_OFFSET	0.2
 
 Grid::Grid() :
     xAxis("X"), 
@@ -54,9 +56,11 @@ void Grid::render()
 
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
 #ifdef notdef
+    glEnable(GL_BLEND);
     glEnable(GL_LINE_SMOOTH);
+#else
+    glDisable(GL_BLEND);
 #endif
 
     glMatrixMode(GL_MODELVIEW);
@@ -72,11 +76,11 @@ void Grid::render()
     glBegin(GL_LINES);
     {
         glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(1.0f + GRID_TICK, 0.0f, 0.0f);
+        glVertex3f(1.0f + TICK_LENGTH/xAxis.range(), 0.0f, 0.0f);
         glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(0.0f, 1.0f + GRID_TICK, 0.0f);
+        glVertex3f(0.0f, 1.0f + TICK_LENGTH/yAxis.range(), 0.0f);
         glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(0.0f, 0.0f, 1.0f + GRID_TICK);
+        glVertex3f(0.0f, 0.0f, 1.0f + TICK_LENGTH/zAxis.range());
     }
     glEnd();
 
@@ -95,13 +99,13 @@ void Grid::render()
             glVertex3f(x, 0.0f, 0.0f);
             glVertex3f(x, 1.0f, 0.0f);
             glVertex3f(x, 0.0f, 0.0f);
-            glVertex3f(x, 0.0f, 1.0f + GRID_TICK);
+            glVertex3f(x, 0.0f, 1.0f + TICK_LENGTH/zAxis.range());
         }
         for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
             y = yAxis.map(iter.getValue());
             glVertex3f(0.0f, y, 0.0f);
-            glVertex3f(1.0f + GRID_TICK, y, 0.0f);
+            glVertex3f(1.0f + TICK_LENGTH/xAxis.range(), y, 0.0f);
             glVertex3f(0.0f, y, 0.0f);
             glVertex3f(0.0f, y, 1.0f);
         }
@@ -111,7 +115,7 @@ void Grid::render()
             glVertex3f(0.0f, 0.0f, z);
             glVertex3f(0.0f, 1.0f, z);
             glVertex3f(0.0f, 0.0f, z);
-            glVertex3f(1.0f + GRID_TICK, 0.0f, z);
+            glVertex3f(1.0f + TICK_LENGTH/xAxis.range(), 0.0f, z);
         }
     }
     glEnd();
@@ -162,9 +166,9 @@ void Grid::render()
         glGetDoublev(GL_MODELVIEW_MATRIX, mv);
         glGetDoublev(GL_PROJECTION_MATRIX, prjm);
         glGetIntegerv(GL_VIEWPORT, viewport);
-        
+
         _font->begin();
-        if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
+        if (gluProject(1.0 + TITLE_OFFSET/xAxis.range(), 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, viewport[3] - (int) wy, 0);
@@ -175,7 +179,7 @@ void Grid::render()
             _font->draw(name);
         }
         
-        if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
+        if (gluProject(0.0, 1.0 + TITLE_OFFSET/yAxis.range(), 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, viewport[3] - (int)wy, 0);
@@ -186,7 +190,7 @@ void Grid::render()
             _font->draw(name);
         }
         
-        if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &wx, &wy, &wz) &&
+        if (gluProject(0.0, 0.0, 1.0 + TITLE_OFFSET/zAxis.range(), mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
@@ -202,7 +206,7 @@ void Grid::render()
         for (result = xAxis.firstMajor(iter); result; result = iter.next()) {
             float x;
             x = xAxis.map(iter.getValue());
-            if (gluProject(x, 0.0f, 1.06f, mv, prjm, viewport, &wx, &wy, &wz) &&
+            if (gluProject(x, 0.0f, 1.0 + LABEL_OFFSET/zAxis.range(), mv, prjm, viewport, &wx, &wy, &wz) &&
                 wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
@@ -214,7 +218,7 @@ void Grid::render()
         for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
             y = yAxis.map(iter.getValue());
-            if (gluProject(1.06f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz) &&
+            if (gluProject(1.0 + LABEL_OFFSET/xAxis.range(), y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz) &&
                 wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
@@ -223,10 +227,10 @@ void Grid::render()
                 _font->draw(buff);
             }
         }
-        for (result = zAxis.firstMajor(iter); result; result = iter.next()) {
+        for (result = zAxis.firstMajor(iter) + LABEL_OFFSET/xAxis.range(); result; result = iter.next()) {
             float z;
             z = zAxis.map(iter.getValue());
-            if (gluProject(1.06f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz) &&
+            if (gluProject(1.0 + LABEL_OFFSET/xAxis.range(), 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz) &&
                 wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();

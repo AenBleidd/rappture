@@ -10,6 +10,8 @@
 #include <vtkSmartPointer.h>
 #include <vtkDataSet.h>
 #include <vtkImageData.h>
+#include <vtkPointData.h>
+#include <vtkDataArray.h>
 #include <vtkDataSetReader.h>
 #include <vtkCharArray.h>
 
@@ -103,14 +105,30 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, const cha
     float *data = new float[npts * 4];
     memset(data, 0, npts * 4);
 
+    bool isVectorData = (resampledDataSet->GetPointData()->GetVectors() != NULL);
+
     int ix = 0;
     int iy = 0;
     int iz = 0;
     for (int p = 0; p < npts; p++) {
         int nindex = p * 4;
-        double val = resampledDataSet->GetScalarComponentAsDouble(ix, iy, iz, 0);
-        data[nindex] = (float)val;
-        if (val < vmin) {
+        double val;
+        if (isVectorData) {
+            double vec[3];
+            int loc[3];
+            loc[0] = ix; loc[1] = iy; loc[2] = iz;
+            vtkIdType idx = resampledDataSet->ComputePointId(loc);
+            resampledDataSet->GetPointData()->GetVectors()->GetTuple(idx, vec);
+            val = sqrt(vec[0]*vec[0] + vec[1]*vec[1] * vec[2]*vec[2]);
+            data[nindex] = (float)val;
+            data[nindex+1] = (float)vec[0];
+            data[nindex+2] = (float)vec[1];
+            data[nindex+3] = (float)vec[2];
+        } else {
+            val = resampledDataSet->GetScalarComponentAsDouble(ix, iy, iz, 0);
+            data[nindex] = (float)val;
+        }
+         if (val < vmin) {
             vmin = val;
         } else if (val > vmax) {
             vmax = val;
@@ -128,10 +146,15 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, const cha
         }
     }
 
-    // scale all values [0-1], -1 => out of bounds
-    normalizeScalar(data, npts, 4, vmin, vmax);
-    computeSimpleGradient(data, nx, ny, nz,
-                          dx, dy, dz);
+    if (isVectorData) {
+        // Normalize magnitude [0,1] and vector components [0,1]
+        normalizeVector(data, npts, vmin, vmax);
+    } else {
+        // scale all values [0-1], -1 => out of bounds
+        normalizeScalar(data, npts, 4, vmin, vmax);
+        computeSimpleGradient(data, nx, ny, nz,
+                              dx, dy, dz);
+    }
 
     TRACE("nx = %i ny = %i nz = %i", nx, ny, nz);
     TRACE("x0 = %lg y0 = %lg z0 = %lg", x0, y0, z0);
