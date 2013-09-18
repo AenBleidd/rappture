@@ -99,7 +99,8 @@ set elements [subst {
     $f3.component.flow.particles(right).color khaki
     $f3.component.flow.particles(right).position 90%
     $f3.component.style  "-color blue:red -levels 6 -opacity 1"
-    $f3.component.extents 3
+    $f3.component.elemtype vectors
+    $f3.component.elemsize 3
     $f3.component.mesh output.mesh(sio2)
     output.mesh(sio2).about.label "SiO2"
     output.mesh(sio2).dim 3
