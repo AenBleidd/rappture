@@ -268,6 +268,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Rappture::Unirect2d *u2dPtr;
         u2dPtr = new Rappture::Unirect2d(nComponents);
         if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
+            delete unirect;
             delete u2dPtr;
             return TCL_ERROR;
         }
@@ -295,6 +296,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else {
         TRACE("header is %.14s", buf.bytes());
+        unirect = new Rappture::Unirect3d(nComponents);
         if (!unirect->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete unirect;

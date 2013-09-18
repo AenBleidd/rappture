@@ -285,9 +285,13 @@ Camera::resetClippingRange(const Vector3f& bboxMin, const Vector3f& bboxMax)
         _near = 0;
     }
 
+    TRACE("near: %g far: %g", _near, _far);
+
     // Extend the bounds a bit 
     _near = 0.99 * _near - (_far - _near) * 0.5;
     _far  = 1.01 * _far  + (_far - _near) * 0.5;
+
+    TRACE("after extend: near: %g far: %g", _near, _far);
 
     // Ensure near is closer than far
     _near = (_near >= _far) ? (0.01 * _far) : _near;

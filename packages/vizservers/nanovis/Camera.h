@@ -54,7 +54,7 @@ public:
         return _focalPoint;
     }
 
-    float getDistance() const
+    double getDistance() const
     {
         return vrmath::Vector3f(_focalPoint - _position).length();
     }
