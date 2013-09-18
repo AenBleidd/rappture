@@ -299,6 +299,7 @@ bool
 Flow::scaleVectorField()
 {
     if (_volume == NULL) {
+        ERROR("Called with NULL _volume");
         return false;
     }
 

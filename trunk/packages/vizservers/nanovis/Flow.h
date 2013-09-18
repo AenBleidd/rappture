@@ -108,9 +108,9 @@ public:
         float *vdata = getScaledVector(unirect);
         _volume = makeVolume(unirect, vdata);
         delete [] vdata;
+        delete unirect;
         initVolume();
         scaleVectorField();
-        delete unirect;
     }
 
     void data(Volume *volume)
