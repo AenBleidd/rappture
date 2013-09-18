@@ -908,27 +908,27 @@ itcl::body Rappture::Field::Build {} {
             set _dim 3
             set _comp2dims($cname) "3D"
             set data [$_field get -decode no $cname.$type]
-            set contents [Rappture::encoding::decode -as zb64 $data]
-            if { $contents == "" } {
+            if { $data == "" } {
                 puts stderr "WARNING: no data for \"$_path.$cname.$type\""
                 continue;               # Ignore this component
             }
-            if 1 {
-                set f [open /tmp/$_path.$cname.dx "w"]
-                puts -nonewline $f $contents
-                close $f
-            }
-            if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
-                ReadVtkDataSet $cname $vtkdata
-            } else {
-                puts stderr "Can't parse dx data: $vtkdata"
-            }
-            if 1 {
-                set f [open /tmp/$_path.$cname.vtk "w"]
-                puts -nonewline $f $vtkdata
-                close $f
-            }
             if { $_viewer != "nanovis" } {
+                set contents [Rappture::encoding::decode -as zb64 $data]
+                if 1 {
+                    set f [open /tmp/$_path.$cname.dx "w"]
+                    puts -nonewline $f $contents
+                    close $f
+                }
+                if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
+                    ReadVtkDataSet $cname $vtkdata
+                } else {
+                    puts stderr "Can't parse dx data: $vtkdata"
+                }
+                if 1 {
+                    set f [open /tmp/$_path.$cname.vtk "w"]
+                    puts -nonewline $f $vtkdata
+                    close $f
+                }
                 set _type "vtk"
                 set _comp2vtk($cname) $vtkdata
             } else {
