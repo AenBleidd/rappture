@@ -1045,7 +1045,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             } else {
                 set label [$_first hints ${axis}label]
             }
- puts stderr "axis=$axis label=$label"
 	    if { $label == "" } {
 		if {$axis == "z"} {
                     if { [string match "component*" $_curFldName] } {
@@ -1057,7 +1056,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 		    set label [string toupper $axis]
 		}
 	    }
- puts stderr "[list axis name $axis $label]"
 	    # May be a space in the axis label.
 	    SendCmd [list axis name $axis $label]
 
