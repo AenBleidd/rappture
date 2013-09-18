@@ -914,7 +914,7 @@ itcl::body Rappture::Field::Build {} {
             }
             if { $_viewer != "nanovis" } {
                 set contents [Rappture::encoding::decode -as zb64 $data]
-                if 1 {
+                if 0 {
                     set f [open /tmp/$_path.$cname.dx "w"]
                     puts -nonewline $f $contents
                     close $f
@@ -924,7 +924,7 @@ itcl::body Rappture::Field::Build {} {
                 } else {
                     puts stderr "Can't parse dx data: $vtkdata"
                 }
-                if 1 {
+                if 0 {
                     set f [open /tmp/$_path.$cname.vtk "w"]
                     puts -nonewline $f $vtkdata
                     close $f
