@@ -26,6 +26,7 @@ itcl::class Rappture::Unirect3d {
     public method blob {}
     public method mesh {}
     public method values {}
+    public method valuesObj {}
     public method units { axis }
     public method label { axis }
     public method hints {{keyword ""}} 
@@ -173,6 +174,16 @@ itcl::body Rappture::Unirect3d::values {} {
         return [$_values range 0 end]
     }
     return ""
+}
+
+# ----------------------------------------------------------------------
+# method valuesObj 
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Unirect3d::valuesObj {} {
+    return $_values
 }
 
 # ----------------------------------------------------------------------

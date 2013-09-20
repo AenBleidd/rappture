@@ -70,6 +70,7 @@ FILES		= \
 		$(srcdir)/imageresult.tcl \
 		$(srcdir)/integerentry.tcl \
 		$(srcdir)/isomarker.tcl \
+		$(srcdir)/transferfunctioneditor.tcl \
 		$(srcdir)/loader.tcl \
 		$(srcdir)/logger.tcl \
 		$(srcdir)/main.tcl \

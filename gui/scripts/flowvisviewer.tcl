@@ -43,6 +43,11 @@ itcl::class Rappture::FlowvisViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
 
+    private variable _volcomponents   ; # Array of components found 
+    private variable _componentsList   ; # Array of components found 
+    private method BuildVolumeComponents {}
+    private method GetDatasetsWithComponent { cname } 
+
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
     } {
@@ -62,7 +67,7 @@ itcl::class Rappture::FlowvisViewer {
     public method flow {option}
     public method get {args}
     public method isconnected {}
-    public method limits { tf }
+    public method limits { cname }
     public method overmarker { m x }
     public method parameters {title args} { 
         # do nothing 
@@ -231,8 +236,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
 
-    set _limits(vmin) 0.0
-    set _limits(vmax) 1.0
+    set _limits(v) [list 0.0 1.0]
     set _reset 1
 
     array set _settings [subst {
@@ -691,7 +695,7 @@ itcl::body Rappture::FlowvisViewer::get {args} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::delete {args} {
-     flow stop
+    flow stop
     if {[llength $args] == 0} {
         set args $_dlist
     }
@@ -741,29 +745,50 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::scale {args} {
-    foreach val {xmin xmax ymin ymax vmin vmax} {
-        set _limits($val) ""
+    array set style {
+        -color BCGYR
+        -levels 6
+        -opacity 1.0
+        -markers ""
     }
-    foreach obj $args {
-        foreach axis {x y v} {
-
-            foreach { min max } [$obj limits $axis] break
-
+    array unset _limits 
+    array unset _volcomponents 
+    foreach dataobj $args {
+        if { ![$dataobj isvalid] } {
+            continue;                     # Object doesn't contain valid data.
+        }
+        foreach cname [$dataobj components] {
+            if { ![info exists _volcomponents($cname)] } {
+                lappend _componentsList $cname
+                array set style [lindex [$dataobj components -style $cname] 0]
+                set cmap [ColorsToColormap $style(-color)]
+                set _cname2defaultcolormap($cname) $cmap
+                set _settings($cname-colormap) $style(-color)
+            }
+            lappend _volcomponents($cname) $dataobj-$cname
+            array unset limits
+            array set limits [$dataobj valueLimits $cname]
+            set _limits($cname) $limits(v)
+        }
+        foreach axis {x y z v} {
+            foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
-                if {"" == $_limits(${axis}min)} {
-                    set _limits(${axis}min) $min
-                    set _limits(${axis}max) $max
+                if { ![info exists _limits($axis)] } {
+                    set _limits($axis) [list $min $max]
                 } else {
-                    if {$min < $_limits(${axis}min)} {
-                        set _limits(${axis}min) $min
+                    foreach {amin amax} $_limits($axis) break
+                    if {$min < $amin} {
+                        set amin $min
                     }
-                    if {$max > $_limits(${axis}max)} {
-                        set _limits(${axis}max) $max
+                    if {$max > $amax} {
+                        set amax $max
                     }
+                    set _limits($axis) [list $amin $amax]
                 }
             }
         }
     }
+    #BuildVolumeComponents
 }
 
 # ----------------------------------------------------------------------
@@ -1131,11 +1156,11 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
     }
     # Display the markers used by the active transfer function.
     set tf $_obj2style($tag)
-    array set limits [limits $tf]
-    $c itemconfigure vmin -text [format %.2g $limits(vmin)]
+    foreach {vmin vmax} [limits $tf] break
+    $c itemconfigure vmin -text [format %.2g $vmin]
     $c coords vmin $lx $ly
 
-    $c itemconfigure vmax -text [format %.2g $limits(vmax)]
+    $c itemconfigure vmax -text [format %.2g $vmax]
     $c coords vmax [expr {$w-$lx}] $ly
 
     if { [info exists _isomarkers($tf)] } {
@@ -1175,8 +1200,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     set parts [split $tag -]
     set dataobj [lindex $parts 0]
     set _serverObjs($tag) 0
-    set _limits($tag-min)  $values(min);  # Minimum value of the volume.
-    set _limits($tag-max)  $values(max);  # Maximum value of the volume.
+    set _limits($tag) [list $values(min) $values(max)]
     unset _recvObjs($tag)
     if { [array size _recvObjs] == 0 } {
         updatetransferfuncs
@@ -1412,8 +1436,6 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
 }
 
 itcl::body Rappture::FlowvisViewer::PanCamera {} {
-    #set x [expr ($_view(xpan)) / $_limits(xrange)]
-    #set y [expr ($_view(ypan)) / $_limits(yrange)]
     set x $_view(xpan)
     set y $_view(ypan)
     SendCmd "camera pan $x $y"
@@ -1826,7 +1848,7 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
 #              color, levels, marker, opacity.  I think we're stuck doing it
 #              now.
 #
-itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
+itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
     array set style {
         -color BCGYR
         -levels 6
@@ -1834,14 +1856,13 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
         -light 40
         -transp 50
     }
-    array set style [lindex [$dataobj components -style $comp] 0]
+    array set style [lindex [$dataobj components -style $cname] 0]
     set _settings($this-light) $style(-light)
     set _settings($this-transp) $style(-transp)
     set _settings($this-opacity) [expr $style(-opacity) * 100]
-    set tf "$style(-color):$style(-levels):$style(-opacity)"
-    set _obj2style($dataobj-$comp) $tf
-    lappend _style2objs($tf) $dataobj $comp
-    return $tf
+    set _obj2style($dataobj-$cname) $cname
+    lappend _style2objs($cname) $dataobj $cname
+    return $cname
 }
 
 #
@@ -2117,38 +2138,35 @@ itcl::body Rappture::FlowvisViewer::overmarker { marker x } {
     return ""
 }
 
-itcl::body Rappture::FlowvisViewer::limits { tf } {
-    set _limits(vmin) 0.0
-    set _limits(vmax) 1.0
-    if { ![info exists _style2objs($tf)] } {
-        puts stderr "no style2objs for $tf tf=($tf)"
+itcl::body Rappture::FlowvisViewer::limits { cname } {
+    set _limits(v) [list 0.0 1.0]
+    if { ![info exists _style2objs($cname)] } {
+        puts stderr "no style2objs for $cname cname=($cname)"
         return [array get _limits]
     }
     set min ""; set max ""
-    foreach {dataobj comp} $_style2objs($tf) {
-        set tag $dataobj-$comp
+    foreach tag [GetDatasetsWithComponent $cname] {
         if { ![info exists _serverObjs($tag)] } {
             puts stderr "$tag not in serverObjs?"
             continue
         }
-        if { ![info exists _limits($tag-min)] } {
+        if { ![info exists _limits($tag)] } {
             puts stderr "$tag no min?"
             continue
         }
-        if { $min == "" || $min > $_limits($tag-min) } {
-            set min $_limits($tag-min)
+        foreach {vmin vmax} $_limits($tag) break
+        if { $min == "" || $min > $vmin } {
+            set min $vmin
         }
-        if { $max == "" || $max < $_limits($tag-max) } {
-            set max $_limits($tag-max)
+        if { $max == "" || $max < $vmax } {
+            set max $vmax
         }
     }
-    if { $min != "" } {
-        set _limits(vmin) $min
-    } 
-    if { $max != "" } {
-        set _limits(vmax) $max
+    if { $min != "" && $max != "" } {
+        set _limits(v) [list $min $max]
+        set _limits($cname) [list $min $max]
     }
-    return [array get _limits]
+    return $_limits($cname)
 }
 
 itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
@@ -2637,9 +2655,6 @@ itcl::body Rappture::FlowvisViewer::Slice {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::SlicerTip {axis} {
     set val [$itk_component(${axis}CutScale) get]
-#    set val [expr {0.01*($val-50)
-#        *($_limits(${axis}max)-$_limits(${axis}min))
-#          + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
 }
 
@@ -3092,4 +3107,29 @@ itcl::body Rappture::FlowvisViewer::SetOrientation { side } {
     set _settings($this-xpan) $_view(xpan)
     set _settings($this-ypan) $_view(ypan)
     set _settings($this-zoom) $_view(zoom)
+}
+
+# Reset global settings from dataset's settings.
+itcl::body Rappture::FlowvisViewer::BuildVolumeComponents {} { 
+    $itk_component(volcomponents) choices delete 0 end
+    foreach name $_componentsList {
+        $itk_component(volcomponents) choices insert end $name $name
+    }
+    set _current [lindex $_componentsList 0]
+    $itk_component(volcomponents) value $_current
+}
+
+# Reset global settings from dataset's settings.
+itcl::body Rappture::FlowvisViewer::GetDatasetsWithComponent { cname } { 
+    if { ![info exists _volcomponents($cname)] } {
+        return ""
+    }
+    set list ""
+    foreach tag $_volcomponents($cname) {
+        if { ![info exists _serverObjs($tag)] } {
+            continue
+        }
+        lappend list $tag
+    }
+    return $list
 }

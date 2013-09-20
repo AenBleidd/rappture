@@ -218,7 +218,12 @@ itcl::body Rappture::Field::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
 
     foreach name [array names _comp2xy] {
+        # Destroys both x and y vectors.
         eval blt::vector destroy $_comp2xy($name)
+    }
+    foreach name [array names _comp2dx] {
+        set vector [lindex $_comp2dx($name) 1]
+        eval blt::vector destroy $vector
     }
     foreach name [array names _comp2unirect2d] {
         itcl::delete object $_comp2unirect2d($name)
@@ -366,7 +371,8 @@ itcl::body Rappture::Field::values {cname} {
         return [$vector range 0 end]
     }
     if {[info exists _comp2dx($cname)]} {
-        return $_comp2dx($cname)  ;# return gzipped, base64-encoded DX data
+	set vector [lindex $_comp2dx($cname) 1]
+        return [$vector range 0 end]
     }
     if {[info exists _comp2unirect2d($cname)]} {
         return [$_comp2unirect2d($cname) values]
@@ -393,7 +399,7 @@ itcl::body Rappture::Field::blob {cname} {
 	error "blob not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
-        return $_comp2dx($cname)  ;# return gzipped, base64-encoded DX data
+        return [lindex $_comp2dx($cname) 0]
     }
     if {[info exists _comp2unirect2d($cname)]} {
         set blob [$_comp2unirect2d($cname) blob]
@@ -474,11 +480,7 @@ itcl::body Rappture::Field::limits {which} {
                 }
             }
             2D - 3D {
-                if {[info exists _comp2unirect3d($cname)]} {
-                    set limits [$_comp2unirect3d($cname) limits $which]
-                    foreach {axisMin axisMax} $limits break
-                    set axis v
-                } elseif {[info exists _comp2limits($cname)]} {
+                if {[info exists _comp2limits($cname)]} {
 		    array set limits $_comp2limits($cname) 
 		    switch -- $which {
                         x - xlin - xlog {
@@ -757,6 +759,10 @@ itcl::body Rappture::Field::Build {} {
     foreach name [array names _comp2xy] {
         eval blt::vector destroy $_comp2xy($name)
     }
+    foreach name [array names _comp2dx] {
+        set vector [lindex $_comp2dx($name) 1]
+        eval blt::vector destroy $vector
+    }
     array unset _comp2vtk
     foreach name [array names _comp2unirect2d] {
         eval itcl::delete object $_comp2unirect2d($name)
@@ -908,18 +914,19 @@ itcl::body Rappture::Field::Build {} {
             set _dim 3
             set _comp2dims($cname) "3D"
             set data [$_field get -decode no $cname.$type]
-            if { $data == "" } {
+            set contents [Rappture::encoding::decode -as zb64 $data]
+            if { $contents == "" } {
                 puts stderr "WARNING: no data for \"$_path.$cname.$type\""
                 continue;               # Ignore this component
             }
-            set contents [Rappture::encoding::decode -as zb64 $data]
+            set vector ""
             if 0 {
                 set f [open /tmp/$_path.$cname.dx "w"]
                 puts -nonewline $f $contents
                 close $f
             }
             if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
-                ReadVtkDataSet $cname $vtkdata
+                set vector [ReadVtkDataSet $cname $vtkdata]
             } else {
                 puts stderr "Can't parse dx data: $vtkdata"
             }
@@ -933,7 +940,7 @@ itcl::body Rappture::Field::Build {} {
                 set _comp2vtk($cname) $vtkdata
             } else {
                 set _type "dx"
-                set _comp2dx($cname) $data
+                set _comp2dx($cname) [list $data $vector]
             }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
@@ -1345,12 +1352,17 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set vmin 0
     set vmax 1
     set numArrays [$dataAttrs GetNumberOfArrays]
+    set vector [blt::vector create \#auto]
     if { $numArrays > 0 } {
 	set array [$dataAttrs GetArray 0]
         # Calling GetRange with component set to -1 will return 
         # either the scalar range or vector magnitude range
 	foreach {vmin vmax} [$array GetRange -1] break
 
+        set numTuples [$array GetNumberOfTuples]
+        for { set i 0 } { $i < $numTuples } { incr i } {
+            $vector append [$array GetComponent $i 0] 
+        }
 	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
 	    set array [$dataAttrs GetArray $i]
 	    set fname  [$dataAttrs GetArrayName $i]
@@ -1368,6 +1380,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set _comp2limits($cname) $limits
 
     rename $reader ""
+    return $vector
 }
 
 #
@@ -1503,6 +1516,15 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	set _comp2unirect3d($cname) \
 	    [Rappture::Unirect3d \#auto $_xmlobj $_field $cname $vectorsize]
 	set _comp2style($cname) [$_field get $cname.style]
+        set limits {}
+        foreach axis { x y z } {
+            lappend limits $axis [$_comp2unirect3d($cname) limits $axis]
+        }
+        # Get the data limits 
+        set vector [$_comp2unirect3d($cname) valuesObj]
+        lappend limits $cname [$vector limits]
+        lappend limits v      [$vector limits]
+        set _comp2limits($cname) $limits
 	if {[$_field element $cname.flow] != ""} {
 	    set _comp2flowhints($cname) \
 		[Rappture::FlowHints ::\#auto $_field $cname $_units]
@@ -1536,6 +1558,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         $xv set $_values
         lappend limits $cname [$xv limits]
         lappend limits v [$xv limits]
+        lappend limits z [$xv limits]
         blt::vector destroy $xv
         set _comp2limits($cname) $limits
 	incr _counter
