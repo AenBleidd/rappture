@@ -256,8 +256,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         $this-step              0
         $this-streams           0
         $this-volume            1
-        $this-ambient           20
-        $this-diffuse           80
+        $this-ambient           60
+        $this-diffuse           40
         $this-light2side        1
         $this-opacity           100
         $this-specularLevel     30
