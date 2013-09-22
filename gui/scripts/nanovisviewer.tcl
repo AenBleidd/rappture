@@ -215,10 +215,10 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _reset 1
 
     array set _settings [subst {
-        $this-ambient           20
+        $this-ambient           60
         $this-colormap          default
         $this-cutplaneVisible   0
-        $this-diffuse           80
+        $this-diffuse           40
         $this-light2side        1
         $this-opacity           100
         $this-qw                $_view(qw)
