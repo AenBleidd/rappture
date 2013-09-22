@@ -89,7 +89,6 @@ itcl::class Rappture::FlowvisViewer {
     protected method ReceiveImage { args }
     protected method ReceiveLegend { tf vmin vmax size }
     protected method Rotate {option x y}
-    protected method SendDataObjs {}
     protected method SendTransferFuncs {}
     protected method Slice {option args}
     protected method SlicerTip {axis}
@@ -135,7 +134,6 @@ itcl::class Rappture::FlowvisViewer {
     private variable _obj2ovride   ;# maps dataobj => style override
     private variable _serverObjs   ;# maps dataobj-component to volume ID 
                                     # in the server
-    private variable _sendobjs ""  ;# list of data objs to send to server
     private variable _recvObjs  ;# list of data objs to send to server
     private variable _obj2style    ;# maps dataobj-component to transfunc
     private variable _style2objs   ;# maps tf back to list of 
@@ -181,11 +179,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Draw legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this ResizeLegend]; list"
-
-    # Send dataobjs event
-    $_dispatcher register !send_dataobjs
-    $_dispatcher dispatch $this !send_dataobjs \
-        "[itcl::code $this SendDataObjs]; list"
 
     # Send transferfunctions event
     $_dispatcher register !send_transfunc
@@ -583,9 +576,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::destructor {} {
-    set _sendobjs ""  ;# stop any send in progress
     $_dispatcher cancel !rebuild
-    $_dispatcher cancel !send_dataobjs
     $_dispatcher cancel !send_transfunc
     image delete $_image(plot)
     image delete $_image(legend)
@@ -954,91 +945,6 @@ itcl::body Rappture::FlowvisViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     array unset _serverObjs
-    set _sendobjs ""
-}
-
-# ----------------------------------------------------------------------
-# USAGE: SendDataObjs
-#
-# Used internally to send a series of volume objects off to the
-# server.  Sends each object, a little at a time, with updates in
-# between so the interface doesn't lock up.
-# ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
-    blt::busy hold $itk_component(hull)
-    foreach dataobj $_sendobjs {
-        foreach comp [$dataobj components] {
-            # Send the data as one huge base64-encoded mess -- yuck!
-            set data [$dataobj blob $comp]
-            set nbytes [string length $data]
-            set extents [$dataobj extents $comp]
-
-            # I have a field. Is a vector field or a volume field?
-            if { $extents == 1 } {
-                set cmd "volume data follows $nbytes $dataobj-$comp\n"
-            } else {
-                set cmd [FlowCmd $dataobj $comp $nbytes $extents]
-                if { $cmd == "" } {
-                    puts stderr "no command"
-                    continue
-                }
-            }
-            f { ![SendBytes $cmd] } {
-                puts stderr "can't send"
-                return
-            }
-            if { ![SendBytes $data] } {
-                puts stderr "can't send"
-                return
-            }
-            NameTransferFunc $dataobj $comp
-            set _recvObjs($dataobj-$comp) 1
-        }
-    }
-    set _sendobjs ""
-    blt::busy release $itk_component(hull)
-
-    # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
-    StartBufferingCommands
-
-    # activate the proper volume
-    set _first [lindex [get] 0]
-    if { "" != $_first } {
-        set axis [$_first hints updir]
-        if {"" != $axis} {
-            SendCmd "up $axis"
-        }
-
-        if 0 {
-        set location [$_first hints camera]
-        if { $location != "" } {
-            array set _view $location
-        }
-        set _settings($this-qw)    $_view(qw)
-        set _settings($this-qx)    $_view(qx)
-        set _settings($this-qy)    $_view(qy)
-        set _settings($this-qz)    $_view(qz)
-        set _settings($this-xpan)  $_view(xpan)
-        set _settings($this-ypan)  $_view(ypan)
-        set _settings($this-zoom)  $_view(zoom)
-        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-        $_arcball quaternion $q
-        SendCmd "camera orient $q"
-        SendCmd "camera reset"
-        PanCamera
-        SendCmd "camera zoom $_view(zoom)"
-        }
-        # The active transfer function is by default the first component of
-        # the first data object.  This assumes that the data is always
-        # successfully transferred.
-        set comp [lindex [$_first components] 0]
-        set _activeTf [lindex $_obj2style($_first-$comp) 0]
-    }
-
-    SendCmd "flow reset"
-    StopBufferingCommands
 }
 
 # ----------------------------------------------------------------------
@@ -1247,8 +1153,16 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-            # Send the data as one huge base64-encoded mess -- yuck!
-            set data [$dataobj blob $comp]
+            set isvtk 0
+            # FIXME: Would like to use the type method of the dataobj
+            # but the returned value isn't well defined now
+            if {[catch {
+                # Send the data as one huge base64-encoded mess -- yuck!
+                set data [$dataobj blob $comp]
+            }]} {
+                set data [$dataobj vtkdata $comp]
+                set isvtk 1
+            }
             set nbytes [string length $data]
             if { $_reportClientInfo }  {
                 set info {}
@@ -1263,7 +1177,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             }
             set extents [$dataobj extents $comp]
             # I have a field. Is a vector field or a volume field?
-            if { $extents == 1 } {
+            if { !$isvtk && $extents == 1 } {
                 set cmd "volume data follows $nbytes $tag\n"
             } else {
                 set cmd [FlowCmd $dataobj $comp $nbytes $extents]
