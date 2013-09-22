@@ -72,14 +72,16 @@ GetUniformFieldValues(Tcl_Interp *interp, int nPoints, int *counts, char **strin
         int loc;
 
         if (p >= endPtr) {
-            Tcl_AppendResult(interp, "unexpected EOF in reading points",
+            Tcl_AppendResult(interp, "unexpected EOF in reading field values",
                              (char *)NULL);
+            free(array);
             return TCL_ERROR;
         }
         value = strtod(p, &nextPtr);
         if (nextPtr == p) {
-            Tcl_AppendResult(interp, "bad value found in reading points",
+            Tcl_AppendResult(interp, "bad value found in reading field values",
                              (char *)NULL);
+            free(array);
             return TCL_ERROR;
         }
         p = nextPtr;
@@ -121,14 +123,16 @@ GetStructuredGridFieldValues(Tcl_Interp *interp, int nPoints, char **stringPtr,
         char *nextPtr;
 
         if (p >= endPtr) {
-            Tcl_AppendResult(interp, "unexpected EOF in reading points",
+            Tcl_AppendResult(interp, "unexpected EOF in reading field values",
                              (char *)NULL);
+            free(array);
             return TCL_ERROR;
         }
         value = strtod(p, &nextPtr);
         if (nextPtr == p) {
-            Tcl_AppendResult(interp, "bad value found in reading points",
+            Tcl_AppendResult(interp, "bad value found in reading field values",
                              (char *)NULL);
+            free(array);
             return TCL_ERROR;
         }
         p = nextPtr;
@@ -168,14 +172,16 @@ GetCloudFieldValues(Tcl_Interp *interp, int nXYPoints, int nZPoints, char **stri
         int loc;
 
         if (p >= endPtr) {
-            Tcl_AppendResult(interp, "unexpected EOF in reading points",
+            Tcl_AppendResult(interp, "unexpected EOF in reading field values",
                              (char *)NULL);
+            free(array);
             return TCL_ERROR;
         }
         value = strtod(p, &nextPtr);
         if (nextPtr == p) {
-            Tcl_AppendResult(interp, "bad value found in reading points",
+            Tcl_AppendResult(interp, "bad value found in reading field values",
                              (char *)NULL);
+            free(array);
             return TCL_ERROR;
         }
         p = nextPtr;
@@ -245,6 +251,79 @@ GetPoints(Tcl_Interp *interp, double *array, int nXYPoints,
     *stringPtr = (char *)p;
     return TCL_OK;
 }
+
+static int
+GetUniformFieldVectors(Tcl_Interp *interp, int nPoints, int *counts,
+                       char **stringPtr, const char *endPtr, Tcl_Obj *objPtr) 
+{
+    int i;
+    const char *p;
+    char mesg[2000];
+    double *array;
+    int iX, iY, iZ;
+
+    p = *stringPtr;
+    array = malloc(sizeof(double) * nPoints * 3);
+    if (array == NULL) {
+        return TCL_ERROR;
+    }
+    iX = iY = iZ = 0;
+    for (i = 0; i < nPoints; i++) {
+        double x, y, z;
+        char *nextPtr;
+        int loc;
+
+        if (p >= endPtr) {
+            Tcl_AppendResult(interp, "unexpected EOF in reading vectors",
+                             (char *)NULL);
+            free(array);
+            return TCL_ERROR;
+        }
+        x = strtod(p, &nextPtr);
+        if (nextPtr == p) {
+            Tcl_AppendResult(interp, "bad value found in reading vectors",
+                             (char *)NULL);
+            free(array);
+            return TCL_ERROR;
+        }
+        p = nextPtr;
+        y = strtod(p, &nextPtr);
+        if (nextPtr == p) {
+            Tcl_AppendResult(interp, "bad value found in reading vectors",
+                             (char *)NULL);
+            free(array);
+            return TCL_ERROR;
+        }
+        p = nextPtr;
+        z = strtod(p, &nextPtr);
+        if (nextPtr == p) {
+            Tcl_AppendResult(interp, "bad value found in reading vectors",
+                             (char *)NULL);
+            free(array);
+            return TCL_ERROR;
+        }
+        p = nextPtr;
+        loc = iZ*counts[0]*counts[1] + iY*counts[0] + iX;
+        if (++iZ >= counts[2]) {
+            iZ = 0;
+            if (++iY >= counts[1]) {
+                iY = 0;
+                ++iX;
+            }
+        }
+        array[loc*3  ] = x;
+        array[loc*3+1] = y;
+        array[loc*3+2] = z;
+    }
+    for (i = 0; i < nPoints; i++) {
+        sprintf(mesg, "%g %g %g\n", array[i*3], array[i*3+1], array[i*3+2]);
+        Tcl_AppendToObj(objPtr, mesg, -1);
+    }
+    free(array);
+    *stringPtr = (char *)p;
+    return TCL_OK;
+}
+
 #if defined(DO_WEDGES) && defined(CHECK_WINDINGS)
 static void
 Normalize(double v[3])
@@ -300,6 +379,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     char *name;
     int isUniform;
     int isStructuredGrid;
+    int hasVectors;
     int i, ix, iy, iz;
 
     name = "component";
@@ -311,8 +391,9 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     dv1[0] = dv1[1] = dv1[2] = 0.0;
     dv2[0] = dv2[1] = dv2[2] = 0.0;
     count[0] = count[1] = count[2] = 0; /* Suppress compiler warning. */
-    isUniform = 1; /* Default to expecting uniform grid */
+    isUniform = 0;
     isStructuredGrid = 0;
+    hasVectors = 0;
 
     if (objc != 2) {
         Tcl_AppendResult(interp, "wrong # arguments: should be \"",
@@ -413,22 +494,58 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         } else if (sscanf(line, "object %*d class regulararray count %d", 
                           &count[2]) == 1) {
             // Z grid
-        } else if (sscanf(line, "object %*d class array type %*s rank 1 shape 3"
-                          " items %d data follows", &nXYPoints) == 1) {
-            // This is a 2D point cloud in xy with a uniform zgrid
             isUniform = 0;
+        } else if (sscanf(line, "object %*d class array type %*s shape 3 rank 1"
+                          " items %d data follows", &nPoints) == 1) {
 #ifdef notdef
-            fprintf(stderr, "found class array type shape 3 nPoints=%d\n",
-                    nPoints);
+                fprintf(stderr, "found class array type shape 3 nPoints=%d\n",
+                        nPoints);
 #endif
-            if (nXYPoints < 0) {
-                sprintf(mesg, "bad # points %d", nXYPoints);
-                Tcl_AppendResult(interp, mesg, (char *)NULL);
-                return TCL_ERROR;
+            if (isUniform) {
+                hasVectors = 1;
+                if (GetUniformFieldVectors(interp, nPoints, count, &p, pend, fieldObjPtr)
+                    != TCL_OK) {
+                    return TCL_ERROR;
+                }
+            } else {
+                // This is a 2D point cloud in xy with a uniform zgrid
+                isUniform = 0;
+                nXYPoints = nPoints;
+                if (nXYPoints < 0) {
+                    sprintf(mesg, "bad # points %d", nXYPoints);
+                    Tcl_AppendResult(interp, mesg, (char *)NULL);
+                    return TCL_ERROR;
+                }
+                points = malloc(sizeof(double) * nXYPoints * 2);
+                if (GetPoints(interp, points, nXYPoints, &p, pend) != TCL_OK) {
+                    return TCL_ERROR;
+                }
             }
-            points = malloc(sizeof(double) * nXYPoints * 2);
-            if (GetPoints(interp, points, nXYPoints, &p, pend) != TCL_OK) {
-                return TCL_ERROR;
+        } else if (sscanf(line, "object %*d class array type %*s rank 1 shape 3"
+                          " items %d data follows", &nPoints) == 1) {
+#ifdef notdef
+                fprintf(stderr, "found class array type shape 3 nPoints=%d\n",
+                        nPoints);
+#endif
+            if (isUniform) {
+                hasVectors = 1;
+                if (GetUniformFieldVectors(interp, nPoints, count, &p, pend, fieldObjPtr)
+                    != TCL_OK) {
+                    return TCL_ERROR;
+                }
+            } else {
+                // This is a 2D point cloud in xy with a uniform zgrid
+                isUniform = 0;
+                nXYPoints = nPoints;
+                if (nXYPoints < 0) {
+                    sprintf(mesg, "bad # points %d", nXYPoints);
+                    Tcl_AppendResult(interp, mesg, (char *)NULL);
+                    return TCL_ERROR;
+                }
+                points = malloc(sizeof(double) * nXYPoints * 2);
+                if (GetPoints(interp, points, nXYPoints, &p, pend) != TCL_OK) {
+                    return TCL_ERROR;
+                }
             }
         } else if (sscanf(line, "object %*d class array type %*s rank 0"
                           " %*s %d data follows", &nPoints) == 1) {
@@ -487,10 +604,15 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendToObj(objPtr, mesg, -1);
         sprintf(mesg, "POINT_DATA %d\n", nPoints);
         Tcl_AppendToObj(objPtr, mesg, -1);
-        sprintf(mesg, "SCALARS %s double 1\n", name);
-        Tcl_AppendToObj(objPtr, mesg, -1);
-        sprintf(mesg, "LOOKUP_TABLE default\n");
-        Tcl_AppendToObj(objPtr, mesg, -1);
+        if (hasVectors) {
+            sprintf(mesg, "VECTORS %s double\n", name);
+            Tcl_AppendToObj(objPtr, mesg, -1);
+        } else {
+            sprintf(mesg, "SCALARS %s double 1\n", name);
+            Tcl_AppendToObj(objPtr, mesg, -1);
+            sprintf(mesg, "LOOKUP_TABLE default\n");
+            Tcl_AppendToObj(objPtr, mesg, -1);
+        }
         Tcl_AppendObjToObj(objPtr, fieldObjPtr);
     } else if (isStructuredGrid) {
 #ifdef notdef
