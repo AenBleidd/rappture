@@ -308,23 +308,22 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
-#if 0
-    TRACE("nx = %d ny = %d nz = %d",
-          unirect->xNum(), unirect->yNum(), unirect->zNum());
-    TRACE("x0 = %lg y0 = %lg z0 = %lg",
-          unirect->xMin(), unirect->yMin(), unirect->zMin());
-    TRACE("lx = %lg ly = %lg lz = %lg",
-          unirect->xMax() - unirect->xMin(),
-          unirect->yMax() - unirect->yMin(),
-          unirect->zMax() - unirect->zMin());
-    TRACE("dx = %lg dy = %lg dz = %lg",
-          unirect->xNum() > 1 ? (unirect->xMax() - unirect->xMin())/(unirect->xNum()-1) : 0,
-          unirect->yNum() > 1 ? (unirect->yMax() - unirect->yMin())/(unirect->yNum()-1) : 0,
-          unirect->zNum() > 1 ? (unirect->zMax() - unirect->zMin())/(unirect->zNum()-1) : 0);
-    TRACE("magMin = %lg magMax = %lg",
-          unirect->magMin(), unirect->magMax());
-#endif
     if (unirect != NULL) {
+        TRACE("nx = %d ny = %d nz = %d",
+              unirect->xNum(), unirect->yNum(), unirect->zNum());
+        TRACE("x0 = %lg y0 = %lg z0 = %lg",
+              unirect->xMin(), unirect->yMin(), unirect->zMin());
+        TRACE("lx = %lg ly = %lg lz = %lg",
+              unirect->xMax() - unirect->xMin(),
+              unirect->yMax() - unirect->yMin(),
+              unirect->zMax() - unirect->zMin());
+        TRACE("dx = %lg dy = %lg dz = %lg",
+              unirect->xNum() > 1 ? (unirect->xMax() - unirect->xMin())/(unirect->xNum()-1) : 0,
+              unirect->yNum() > 1 ? (unirect->yMax() - unirect->yMin())/(unirect->yNum()-1) : 0,
+              unirect->zNum() > 1 ? (unirect->zMax() - unirect->zMin())/(unirect->zNum()-1) : 0);
+        TRACE("magMin = %lg magMax = %lg",
+              unirect->magMin(), unirect->magMax());
+
         flow->data(unirect);
     } else {
         flow->data(volume);

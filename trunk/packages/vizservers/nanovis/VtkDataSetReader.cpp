@@ -119,7 +119,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, const cha
             loc[0] = ix; loc[1] = iy; loc[2] = iz;
             vtkIdType idx = resampledDataSet->ComputePointId(loc);
             resampledDataSet->GetPointData()->GetVectors()->GetTuple(idx, vec);
-            val = sqrt(vec[0]*vec[0] + vec[1]*vec[1] * vec[2]*vec[2]);
+            val = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
             data[nindex] = (float)val;
             data[nindex+1] = (float)vec[0];
             data[nindex+2] = (float)vec[1];
@@ -156,6 +156,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, const cha
                               dx, dy, dz);
     }
 
+    TRACE("isVectorData: %s", isVectorData ? "yes" : "no");
     TRACE("nx = %i ny = %i nz = %i", nx, ny, nz);
     TRACE("x0 = %lg y0 = %lg z0 = %lg", x0, y0, z0);
     TRACE("lx = %lg ly = %lg lz = %lg", lx, ly, lz);
