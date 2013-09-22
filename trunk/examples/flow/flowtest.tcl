@@ -87,6 +87,7 @@ set elements [subst {
     unirect2d(half).yaxis.max	21.6
     unirect2d(half).yaxis.numpoints  109
     $f3.about.label "SiO2"
+    $f3.about.view "flowvis"
     $f3.component.flow.axis z
     $f3.component.flow.position 0%
     $f3.component.flow.volume yes
