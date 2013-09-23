@@ -925,6 +925,11 @@ itcl::body Rappture::Field::Build {} {
                 puts -nonewline $f $contents
                 close $f
             }
+            # This is temporary.  I put a check for this in the DxToVtk
+            # parser.  
+            if { [string range $contents  0 3] == "<DX>" } {
+                set contents [string range $contents 4 end]
+            }
             if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
                 set vector [ReadVtkDataSet $cname $vtkdata]
             } else {
@@ -935,7 +940,7 @@ itcl::body Rappture::Field::Build {} {
                 puts -nonewline $f $vtkdata
                 close $f
             }
-            if { $_viewer != "nanovis" } {
+            if { $_viewer != "nanovis" && $_viewer != "flowvis" } {
                 set _type "vtk"
                 set _comp2vtk($cname) $vtkdata
             } else {

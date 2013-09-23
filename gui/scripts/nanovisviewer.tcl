@@ -129,7 +129,6 @@ itcl::class Rappture::NanovisViewer {
     private variable _arcball ""
 
     private variable _dlist ""     ;# list of data objects
-    private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
     private variable _serverDatasets   ;# contains all the dataobj-component 
                                    ;# to volumes in the server
@@ -230,6 +229,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-thickness         350
         $this-transp            50
         $this-volume            1
+        $this-volumeVisible     1
         $this-xcutplane         1
         $this-xcutposition      0
         $this-xpan              $_view(xpan)
@@ -239,7 +239,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-zcutplane         1
         $this-zcutposition      0
         $this-zoom              $_view(zoom)    
-        $this-volumeVisible     1
     }]
 
     itk_component add 3dview {
@@ -447,7 +446,6 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
     set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
-        set _allDataObjs($dataobj) 1
         set _obj2ovride($dataobj-color) $params(-color)
         set _obj2ovride($dataobj-width) $params(-width)
         set _obj2ovride($dataobj-raise) $params(-raise)
@@ -805,10 +803,8 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
     $c itemconfigure title -text $title
     $c coords title [expr {$w/2}] $ly
 
-
     # The colormap may have changed. Resync the slicers with the colormap.
     set datasets [CurrentDatasets -cutplanes]
-    SendCmd "volume data state $_settings($this-volume) $datasets"
 
     # Adjust the cutplane for only the first component in the topmost volume
     # (i.e. the first volume designated in the field).
@@ -1323,10 +1319,21 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             }
         }
         "volume" {
-            set datasets [CurrentDatasets -cutplanes] 
-            SendCmd "volume data state $_settings($this-volume) $datasets"
+            # This is the global volume visibility control.  It controls the
+            # visibility of all the all volumes.  Whenever it's changed, you
+            # have to synchronize each of the local controls (see below) with
+            # this.
+            set datasets [CurrentDatasets] 
+            set bool $_settings($this-volume)
+            SendCmd "volume data state $bool $datasets"
+            foreach cname $_componentsList {
+                set _settings($cname-volumeVisible) $bool
+            }
+            set _settings($this-volumeVisible) $bool
         }
         "volumeVisible" {
+            # This is the component specific control.  It changes the 
+            # visibility of only the current component.
             set _settings($_current-volumeVisible) \
                 $_settings($this-volumeVisible)
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1671,7 +1678,9 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     set font [option get $itk_component(hull) font Font]
     #set bfont [option get $itk_component(hull) boldFont Font]
 
-    label $inner.shading_l -text "Lighting" -font "Arial 9 bold" 
+    label $inner.lighting_l \
+        -text "Lighting / Material Properties" \
+        -font "Arial 9 bold" 
 
     checkbutton $inner.light2side \
         -text "Two-sided lighting" \
@@ -1690,35 +1699,43 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -font $font
     ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-ambient)] \
-        -showvalue off -command [itcl::code $this AdjustSetting ambient]
+        -showvalue off -command [itcl::code $this AdjustSetting ambient] \
+        -troughcolor grey92
 
     label $inner.diffuse_l -text "Diffuse" -font $font
     ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-diffuse)] \
-        -showvalue off -command [itcl::code $this AdjustSetting diffuse]
+        -showvalue off -command [itcl::code $this AdjustSetting diffuse] \
+        -troughcolor grey92
 
     label $inner.specularLevel_l -text "Specular" -font $font
     ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-specularLevel)] \
-        -showvalue off -command [itcl::code $this AdjustSetting specularLevel]
+        -showvalue off -command [itcl::code $this AdjustSetting specularLevel] \
+        -troughcolor grey92
 
     label $inner.specularExponent_l -text "Shininess" -font $font
     ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
         -variable [itcl::scope _settings($this-specularExponent)] \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting specularExponent]
+        -command [itcl::code $this AdjustSetting specularExponent] \
+        -troughcolor grey92
 
     label $inner.transp_l -text "Opacity" -font $font
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
-        -showvalue off -command [itcl::code $this AdjustSetting transp]
+        -showvalue off -command [itcl::code $this AdjustSetting transp] \
+        -troughcolor grey92
 
-    label $inner.tf -text "Transfer Function" -font "Arial 9 bold" 
+    label $inner.transferfunction_l \
+        -text "Transfer Function" -font "Arial 9 bold" 
 
     label $inner.thin -text "Thin" -font $font
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
         -variable [itcl::scope _settings($this-thickness)] \
-        -showvalue off -command [itcl::code $this AdjustSetting thickness]
+        -showvalue off -command [itcl::code $this AdjustSetting thickness] \
+        -troughcolor grey92
+
     label $inner.thick -text "Thick" -font $font
 
     label $inner.colormap_l -text "Colormap" -font $font
@@ -1760,9 +1777,9 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         [itcl::code $this AdjustSetting current]
 
     blt::table $inner \
-        0,1 $inner.volcomponents_l -anchor e \
+        0,0 $inner.volcomponents_l -anchor e -cspan 2 \
         0,2 $inner.volcomponents             -cspan 3 -fill x \
-        1,0 $inner.shading_l -anchor w -cspan 5 \
+        1,1 $inner.lighting_l -anchor w -cspan 4 \
         2,1 $inner.ambient_l       -anchor e -pady 2 \
         2,2 $inner.ambient                   -cspan 3 -fill x \
         3,1 $inner.diffuse_l       -anchor e -pady 2 \
@@ -1773,11 +1790,11 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         5,2 $inner.specularExponent          -cspan 3 -fill x \
         6,1 $inner.light2side -cspan 3 -anchor w \
         7,1 $inner.visibility -cspan 3 -anchor w \
-        8,0 $inner.tf -anchor w              -cspan 5 \
+        8,1 $inner.transferfunction_l -anchor w              -cspan 4 \
         9,1 $inner.transp_l -anchor e -pady 2 \
         9,2 $inner.transp                    -cspan 3 -fill x \
         10,1 $inner.colormap_l       -anchor e \
-        10,2 $inner.colormap                  -cspan 3 -fill x \
+        10,2 $inner.colormap                  -padx 2 -cspan 3 -fill x \
         11,1 $inner.thin             -anchor e \
         11,2 $inner.thickness                 -cspan 2 -fill x \
         11,4 $inner.thick -anchor w  
@@ -2121,11 +2138,19 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
 }
 
 
+#
+# InitComponentSettings --
+#
+#       Initializes the volume settings for a specific component. This
+#       should match what's used as global settings above. This
+#       is called the first time we try to switch to a given component
+#       in SwitchComponent below.
+#
 itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } { 
     array set _settings [subst {
-        $cname-ambient           20
+        $cname-ambient           60
         $cname-colormap          default
-        $cname-diffuse           80
+        $cname-diffuse           40
         $cname-light2side        1
         $cname-opacity           100
         $cname-outline           0
@@ -2137,7 +2162,13 @@ itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
     }]
 }
 
-# Reset global settings from dataset's settings.
+#
+# SwitchComponent --
+#
+#       This is called when the current component is changed by the
+#       dropdown menu in the volume tab.  It synchronizes the global
+#       volume settings with the settings of the new current component.
+#
 itcl::body Rappture::NanovisViewer::SwitchComponent { cname } { 
     if { ![info exists _settings($cname-ambient)] } {
         InitComponentSettings $cname
@@ -2158,7 +2189,16 @@ itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
     set _current $cname;                # Reset the current component
 }
 
-# Reset global settings from dataset's settings.
+#
+# BuildVolumeComponents --
+#
+#       This is called from the "scale" method which is called when a
+#       new dataset is added or deleted.  It repopulates the dropdown
+#       menu of volume component names.  It sets the current component
+#       to the first component in the list (of components found).
+#       Finally, if there is only one component, don't display the
+#       label or the combobox in the volume settings tab.
+#
 itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} { 
     $itk_component(volcomponents) choices delete 0 end
     foreach name $_componentsList {
@@ -2166,9 +2206,28 @@ itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} {
     }
     set _current [lindex $_componentsList 0]
     $itk_component(volcomponents) value $_current
+    set parent [winfo parent $itk_component(volcomponents)]
+    if { [llength $_componentsList] <= 1 } {
+        # Unpack the components label and dropdown if there's only one
+        # component. 
+        blt::table forget $parent.volcomponents_l $parent.volcomponents
+    } else {
+        # Pack the components label and dropdown into the table there's 
+        # more than one component to select. 
+        blt::table $parent \
+            0,0 $parent.volcomponents_l -anchor e -cspan 2 \
+            0,2 $parent.volcomponents -cspan 3 -fill x 
+    }
 }
 
-# Reset global settings from dataset's settings.
+#
+# GetDatasetsWithComponents --
+#
+#       Returns a list of all the datasets (known by the combination of
+#       their data object and component name) that match the given 
+#       component name.  For example, this is used where we want to change 
+#       the settings of volumes that have the current component.
+#
 itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } { 
     if { ![info exists _volcomponents($cname)] } {
         return ""
@@ -2186,9 +2245,9 @@ itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } {
 #
 # HideAllMarkers --
 #
-#       Hide all the markers.  Can't simply delete and recreate markers
-#       from the <style> since the user may have create, deleted, or moved
-#       markers.
+#       Hide all the markers in all the transfer functions.  Can't simply 
+#       delete and recreate markers from the <style> since the user may 
+#       have create, deleted, or moved markers.
 #
 itcl::body Rappture::NanovisViewer::HideAllMarkers {} { 
     foreach cname [array names _transferFunctionEditors] {
