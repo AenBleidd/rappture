@@ -15,25 +15,20 @@
 # ======================================================================
 
 # TODO:
-#
-#  o How to describe vector values in a field?  
-#       <components>3</components>
-#       <values></values>
-#
-#    Does anything need to know the limits for each component of the vector?
-#
+#    Vector field limits are wrong: need to compute magnitude limits and
+#    component-wise limits.
 
 #
 # Possible field dataset types:
 #
 # 2D Datasets
 #	vtk		(range of z-axis is zero).
-#	unirect2d	(deprecated except where extents > 1)
+#	unirect2d	(deprecated)
 #	cloud		(x,y point coordinates) (deprecated)
 #	mesh 
 # 3D Datasets
 #	vtk 
-#	unirect3d
+#	unirect3d       (deprecated)
 #	cloud		(x,y,z coordinates) (deprecated)
 #	mesh 
 #	dx		(FIXME: make dx-to-vtk converter work)
@@ -49,16 +44,13 @@
 #	unirect2d   2	unirect3d + extents > 1	flow	flow		nanovis
 #	unirect3d   3	unirect2d + extents > 1	flow	flow		nanovis
 #	
-# With <views>, can specify which viewer for a specific datasets.  So it's OK
-# to if the same dataset can be viewed in more than one way.
+# With <views>, can specify which viewer for specific datasets.  So it's OK
+# for the same dataset to be viewed in more than one way.
 #  o Any 2D dataset can be viewed as a contour/heightmap. 
 #  o Any 3D dataset can be viewed as a isosurface.
-#  o Any 2D dataset with vector data can be streamlines.  
+#  o Any 2D dataset with vector data can be streamlines or flow.  
 #  o Any 3D uniform rectilinear dataset can be viewed as a volume.
 #  o Any 3D dataset with vector data can be streamlines or flow.
-#   
-#  Vector data 2/3 streamlines
-#  Scalar data 1/
 #
 # Need <views> to properly do things like qdot: volume with a polydata
 # transparent shell.  The view will combine the two objects <field> and
@@ -1101,7 +1093,9 @@ itcl::body Rappture::Field::style { cname } {
 #
 # type  --
 #
-# Returns the style associated with a component of the field.  
+# Returns the data storage type of the field.
+#
+# FIXME: What are the valid types?
 #
 itcl::body Rappture::Field::type {} {
     return $_type
@@ -1513,6 +1507,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         } else {
             set vectorsize 1 
         }
+        set _type unirect3d
 	set _dim 3
         if { $_viewer == "" } {
             set _viewer flowvis
@@ -1544,6 +1539,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         } else {
             set vectorsize 1 
         }
+        set _type unirect2d
 	set _dim 2
         if { $_viewer == "" } {
             set _viewer "flowvis"
@@ -1572,15 +1568,18 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     switch -- $element {
 	"cloud" {
 	    set mesh [Rappture::Cloud::fetch $_xmlobj $path]
+            set _type cloud
 	}
 	"mesh" {
 	    set mesh [Rappture::Mesh::fetch $_xmlobj $path]
+            set _type mesh
 	}	    
 	"unirect2d" {
             if { $_viewer == "" } {
                 set _viewer "heightmap"
             }
 	    set mesh [Rappture::Unirect2d::fetch $_xmlobj $path]
+            set _type unirect2d
 	}
     }
     if { ![$mesh isvalid] } {
@@ -1630,7 +1629,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     } 
     if {$_dim == 2} {
 	# 2D data: By default surface or contour plot using heightmap widget.
-	set _type "heightmap"
 	set v [blt::vector create \#auto]
 	$v set [$_field get $cname.values]
         if { [$v length] == 0 } {
@@ -1642,6 +1640,10 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	set _comp2dims($cname) "[$mesh dimensions]D"
 	set _comp2mesh($cname) [list $mesh $v]
 	set _comp2style($cname) [$_field get $cname.style]
+        if {[$_field element $cname.flow] != ""} {
+            set _comp2flowhints($cname) \
+                [Rappture::FlowHints ::\#auto $_field $cname $_units]
+        }
 	incr _counter
 	array unset _comp2limits $cname
 	lappend _comp2limits($cname) x [$mesh limits x]
@@ -1655,7 +1657,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         if { $_viewer == "" } {
             set _viewer "isosurface"
         }
-	set _type "isosurface"
 	set v [blt::vector create \#auto]
 	$v set [$_field get $cname.values]
         if { [$v length] == 0 } {
@@ -1664,6 +1665,10 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         set _comp2dims($cname) "[$mesh dimensions]D"
         set _comp2mesh($cname) [list $mesh $v]
         set _comp2style($cname) [$_field get $cname.style]
+        if {[$_field element $cname.flow] != ""} {
+            set _comp2flowhints($cname) \
+                [Rappture::FlowHints ::\#auto $_field $cname $_units]
+        }
         incr _counter
         lappend _comp2limits($cname) x [$mesh limits x]
         lappend _comp2limits($cname) y [$mesh limits y]
