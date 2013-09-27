@@ -11807,7 +11807,7 @@ VolumeBlendModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Volume::BLEND_ADDITIVE;
     } else {
         Tcl_AppendResult(interp, "bad blendmode option \"", string,
-                         "\": should be copmosite, max_intensity, min_intensity,  or additive", (char*)NULL);
+                         "\": should be copmosite, max_intensity, min_intensity, or additive", (char*)NULL);
         return TCL_ERROR;
     }
     if (objc == 4) {
