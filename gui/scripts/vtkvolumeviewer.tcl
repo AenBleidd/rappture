@@ -142,7 +142,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _fields 
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
 }
 
 itk::usual VtkVolumeViewer {
@@ -231,9 +231,13 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         cutplaneLighting        1
         cutplaneWireframe       0
         cutplane-opacity        100
+        volume-blendmode        composite
         volumeLighting          1
-        volume-material         80
-        volume-opacity          40
+        volume-ambient          40
+        volume-diffuse          60
+        volume-specularLevel    30
+        volume-specularExponent 90
+        volume-opacity          50
         volume-quality          50
         volumeVisible           1
         legendVisible           1
@@ -1032,7 +1036,9 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         $itk_component(field) value $_curFldLabel
     }
 
-    InitSettings volume-palette volume-material volume-quality volumeVisible \
+    InitSettings volume-palette \
+        volume-ambient volume-diffuse volume-specularLevel volume-specularExponent \
+        volume-opacity volume-quality volumeVisible \
         cutplaneVisible \
         cutplane-xposition cutplane-yposition cutplane-zposition \
         cutplane-xvisible cutplane-yvisible cutplane-zvisible
@@ -1295,21 +1301,47 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                     "Show the volume"
             }
         }
-        "volume-material" {
-            set val $_settings(volume-material)
+        "volume-blendmode" {
+            set val [$itk_component(blendmode) value]
+            set mode [$itk_component(blendmode) translate $val]
+            set _settings(volume-blendmode) $mode
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "volume blendmode $mode $dataset"
+            }
+        }
+        "volume-ambient" {
+            set val $_settings(volume-ambient)
+            set ambient [expr {0.01*$val}]
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "volume shading ambient $ambient $dataset"
+            }
+        }
+        "volume-diffuse" {
+            set val $_settings(volume-diffuse)
             set diffuse [expr {0.01*$val}]
-            set specular [expr {0.01*$val}]
-            #set power [expr {sqrt(160*$val+1.0)}]
-            set power [expr {$val+1.0}]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume shading diffuse $diffuse $dataset"
-                SendCmd "volume shading specular $specular $power $dataset"
+            }
+        }
+        "volume-specularLevel" - "volume-specularExponent" {
+            set val $_settings(volume-specularLevel)
+            set specularLevel [expr {0.01*$val}]
+            set specularExponent $_settings(volume-specularExponent)
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "volume shading specular $specularLevel $specularExponent $dataset"
             }
         }
         "volumeLighting" {
             set bool $_settings(volumeLighting)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume lighting $bool $dataset"
+            }
+        }
+        "volume-opacity" {
+            set val $_settings(volume-opacity)
+            set val [expr {0.01*$val}]
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "volume opacity $val $dataset"
             }
         }
         "volume-quality" {
@@ -1390,15 +1422,6 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "cutplane slice ${axis} ${pos} $dataset"
             }
             set _cutplanePending 0
-        }
-        "volume-palette" {
-            set palette [$itk_component(palette) value]
-            set _settings(volume-palette) $palette
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach {dataobj comp} [split $dataset -] break
-                ChangeColormap $dataobj $comp $palette
-            }
-            set _legendPending 1
         }
         "volume-palette" {
             set palette [$itk_component(palette) value]
@@ -1561,59 +1584,79 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
-
-    set fg [option get $itk_component(hull) font Font]
-    #set bfg [option get $itk_component(hull) boldFont Font]
+    set font [option get $itk_component(hull) font Font]
+    #set bfont [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
         -title "Volume Settings" \
         -icon [Rappture::icon volume-on]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.volume \
-        -text "Show Volume" \
+    checkbutton $inner.visibility \
+        -text "Visible" \
+        -font $font \
         -variable [itcl::scope _settings(volumeVisible)] \
-        -command [itcl::code $this AdjustSetting volumeVisible] \
-        -font "Arial 9"
+        -command [itcl::code $this AdjustSetting volumeVisible]
+
+    label $inner.lighting_l \
+        -text "Lighting / Material Properties" \
+        -font "Arial 9 bold" 
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
+        -font $font \
         -variable [itcl::scope _settings(volumeLighting)] \
-        -command [itcl::code $this AdjustSetting volumeLighting] \
-        -font "Arial 9"
+        -command [itcl::code $this AdjustSetting volumeLighting]
 
-    label $inner.dim_l -text "Dim" -font "Arial 9"
-    ::scale $inner.material -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(volume-material)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting volume-material]
-    label $inner.bright_l -text "Bright" -font "Arial 9"
+    label $inner.ambient_l \
+        -text "Ambient" \
+        -font $font
+    ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(volume-ambient)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volume-ambient] \
+        -troughcolor grey92
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9"
+    label $inner.diffuse_l -text "Diffuse" -font $font
+    ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(volume-diffuse)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volume-diffuse] \
+        -troughcolor grey92
+
+    label $inner.specularLevel_l -text "Specular" -font $font
+    ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(volume-specularLevel)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volume-specularLevel] \
+        -troughcolor grey92
+
+    label $inner.specularExponent_l -text "Shininess" -font $font
+    ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
+        -variable [itcl::scope _settings(volume-specularExponent)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volume-specularExponent] \
+        -troughcolor grey92
+
+    label $inner.opacity_l -text "Opacity" -font $font
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(volume-opacity)] \
-        -width 10 \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting volume-opacity]
+        -showvalue off -command [itcl::code $this AdjustSetting volume-opacity] \
+        -troughcolor grey92
 
-    label $inner.quality_l -text "Quality" -font "Arial 9"
+    label $inner.quality_l -text "Quality" -font $font
     ::scale $inner.quality -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(volume-quality)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting volume-quality]
+        -showvalue off -command [itcl::code $this AdjustSetting volume-quality] \
+        -troughcolor grey92
 
-    itk_component add field_l {
-        label $inner.field_l -text "Field" -font "Arial 9" 
-    } {
-        ignore -font
-    }
+    label $inner.field_l -text "Field" -font $font
     itk_component add field {
-        Rappture::Combobox $inner.field -width 10 -editable no
+        Rappture::Combobox $inner.field -editable no
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting field]
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" 
+    label $inner.transferfunction_l \
+        -text "Transfer Function" -font "Arial 9 bold" 
+
+    label $inner.palette_l -text "Colormap" -font $font
     itk_component add palette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
@@ -1639,21 +1682,47 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting volume-palette]
 
+    label $inner.blendmode_l -text "Blend Mode" -font "Arial 9" 
+    itk_component add blendmode {
+        Rappture::Combobox $inner.blendmode -editable no
+    }
+    $inner.blendmode choices insert end \
+        "composite"          "Composite"         \
+        "max_intensity"      "Maximum Intensity" \
+        "additive"           "Additive"
+
+    $itk_component(blendmode) value "composite"
+    bind $inner.blendmode <<Value>> \
+        [itcl::code $this AdjustSetting volume-blendmode]
+
     blt::table $inner \
-        0,0 $inner.field_l   -anchor w -pady 2  \
-        0,1 $inner.field     -anchor w -pady 2 -cspan 2 \
-        1,0 $inner.volume    -anchor w -pady 2 -cspan 4 \
-        2,0 $inner.lighting  -anchor w -pady 2 -cspan 4 \
-        3,0 $inner.dim_l     -anchor e -pady 2 \
-        3,1 $inner.material  -fill x   -pady 2 \
-        3,2 $inner.bright_l  -anchor w -pady 2 \
-        4,0 $inner.quality_l -anchor w -pady 2 -cspan 2 \
-        5,0 $inner.quality   -fill x   -pady 2 -cspan 2 \
-        7,0 $inner.palette_l -anchor w -pady 2  \
-        7,1 $inner.palette   -anchor w -pady 2 -cspan 2 \
+        0,0 $inner.field_l   -anchor e -cspan 2  \
+        0,2 $inner.field               -cspan 3 -fill x \
+        1,1 $inner.lighting_l -anchor w -cspan 4 \
+        2,1 $inner.lighting   -anchor w -cspan 3 \
+        3,1 $inner.ambient_l       -anchor e -pady 2 \
+        3,2 $inner.ambient                   -cspan 3 -fill x \
+        4,1 $inner.diffuse_l       -anchor e -pady 2 \
+        4,2 $inner.diffuse                   -cspan 3 -fill x \
+        5,1 $inner.specularLevel_l -anchor e -pady 2 \
+        5,2 $inner.specularLevel             -cspan 3 -fill x \
+        6,1 $inner.specularExponent_l -anchor e -pady 2 \
+        6,2 $inner.specularExponent          -cspan 3 -fill x \
+        7,1 $inner.visibility    -anchor w -cspan 3 \
+        8,1 $inner.quality_l -anchor e -pady 2 \
+        8,2 $inner.quality                     -cspan 3 -fill x \
+        9,1 $inner.transferfunction_l -anchor w              -cspan 4 \
+        10,1 $inner.opacity_l -anchor e -pady 2 \
+        10,2 $inner.opacity                    -cspan 3 -fill x \
+        11,1 $inner.palette_l -anchor e  \
+        11,2 $inner.palette                 -padx 2 -cspan 3 -fill x \
+        12,1 $inner.blendmode_l -anchor e  \
+        12,2 $inner.blendmode               -padx 2 -cspan 3 -fill x \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r8 -resize expand
+    blt::table configure $inner r* -pady { 2 0 }
+    blt::table configure $inner c2 c3 r13 -resize expand
+    blt::table configure $inner c0 -width .1i
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {

@@ -149,7 +149,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _cutplanePending 0
     private variable _legendPending 0
     private variable _field      ""
-    private variable _colorMode "vmag";	#  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar";	#  Mode of colormap (vmag or scalar)
     private variable _fieldNames {} 
     private variable _fields 
     private variable _curFldName ""
