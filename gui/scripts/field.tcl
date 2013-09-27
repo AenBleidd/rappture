@@ -959,13 +959,13 @@ itcl::body Rappture::Field::Build {} {
                 return 0
             }
             set vtkdata [DicomSeriesToVtk $cname $contents]
-            ReadVtkDataSet $cname $vtkdata
-            set _comp2vtk($cname) $vtkdata
-            set _comp2style($cname) [$_field get $cname.style]
-            incr _counter
             if { $_viewer == "" } {
                 set _viewer "nanovis"
             }
+            set _comp2vtk($cname) $vtkdata
+            set _comp2style($cname) [$_field get $cname.style]
+            set _dim 3
+            incr _counter
         } elseif { $type == "ucd"} {
             set contents [$_field get $cname.ucd]
             if { $contents == "" } {
@@ -1378,9 +1378,11 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         # either the scalar range or vector magnitude range
 	foreach {vmin vmax} [$array GetRange -1] break
 
-        set numTuples [$array GetNumberOfTuples]
+
+        if 0  {
         for { set i 0 } { $i < $numTuples } { incr i } {
             $vector append [$array GetComponent $i 0] 
+        }
         }
 	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
 	    set array [$dataAttrs GetArray $i]
@@ -1746,12 +1748,60 @@ itcl::body Rappture::Field::DicomSeriesToVtk { cname path } {
     }        
     $reader SetDirectoryName $path
     $reader Update
+    
+    set dataset [$reader GetOutput]
+    set limits {}
+    foreach {xmin xmax ymin ymax zmin zmax} [$dataset GetBounds] break
+    set _dim 0
+    if { $xmax > $xmin } {
+	incr _dim
+    }
+    if { $ymax > $ymin } {
+	incr _dim
+    }
+    if { $zmax > $zmin } {
+	incr _dim
+    }
+    set _comp2dims($cname) "${_dim}D"
+
+    lappend limits x [list $xmin $xmax] 
+    lappend limits y [list $ymin $ymax] 
+    lappend limits z [list $zmin $zmax]
+    set dataAttrs [$dataset GetPointData]
+    if { $dataAttrs == ""} {
+	puts stderr "WARNING: no point data found in \"$_path\""
+        rename $reader ""
+        return 0
+    }
+    set vmin 0
+    set vmax 1
+    set numArrays [$dataAttrs GetNumberOfArrays]
+    if { $numArrays > 0 } {
+	set array [$dataAttrs GetArray 0]
+        # Calling GetRange with component set to -1 will return 
+        # either the scalar range or vector magnitude range
+	foreach {vmin vmax} [$array GetRange -1] break
+	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
+	    set array [$dataAttrs GetArray $i]
+	    set fname  [$dataAttrs GetArrayName $i]
+	    foreach {min max} [$array GetRange -1] break
+	    lappend limits $fname [list $min $max]
+            set _fld2Units($fname) ""
+	    set _fld2Label($fname) $fname
+            # Let the VTK file override the <type> designated.
+            set _fld2Components($fname) [$array GetNumberOfComponents]
+            lappend _comp2fldName($cname) $fname
+	}
+    }
+    lappend limits v [list $vmin $vmax]
+    set _comp2limits($cname) $limits
 
     set tmpfile $cname[pid].vtk
     set writer $this-datasetwriter
     vtkDataSetWriter $writer
     $writer SetInputConnection [$reader GetOutputPort]
     $writer SetFileName $tmpfile
+    $writer SetFileTypeToBinary
     $writer Write
     rename $reader ""
     rename $writer ""
@@ -1760,7 +1810,7 @@ itcl::body Rappture::Field::DicomSeriesToVtk { cname path } {
     fconfigure $f -translation binary -encoding binary
     set vtkdata [read $f]
     close $f
-    #file delete $tmpfile
+    file delete $tmpfile
     return $vtkdata
 }
 

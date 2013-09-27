@@ -52,6 +52,8 @@ FILES		= \
 		$(srcdir)/field.tcl \
 		$(srcdir)/field2dresult.tcl \
 		$(srcdir)/field3dresult.tcl \
+		$(srcdir)/filechoiceentry.tcl \
+		$(srcdir)/filelistentry.tcl \
 		$(srcdir)/filexfer.tcl \
 		$(srcdir)/flowdial.tcl \
 		$(srcdir)/flowhints.tcl \

@@ -140,6 +140,14 @@ itcl::body Rappture::Controls::insert {pos path} {
             Rappture::ChoiceEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
+        filechoice {
+            Rappture::FileChoiceEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        filelist {
+            Rappture::FileListEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
         group {
             Rappture::GroupEntry $w $_owner $path
         }
