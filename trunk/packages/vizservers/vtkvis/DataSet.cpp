@@ -391,32 +391,36 @@ bool DataSet::setActiveScalars(const char *name)
 {
     bool found = false;
     if (_dataSet != NULL) {
-        if (_dataSet->GetPointData() != NULL) {
-            if (_dataSet->GetPointData()->SetActiveScalars(name) >= 0) {
-                TRACE("Set active point data scalars to %s", name);
-                found = true;
+        if (!hasField(name)) {
+            ERROR("No field named %s in %s", name, getName().c_str());
+        } else {
+            if (_dataSet->GetPointData() != NULL) {
+                if (_dataSet->GetPointData()->SetActiveScalars(name) >= 0) {
+                    TRACE("Set active point data scalars for %s to %s", getName().c_str(), name);
+                    found = true;
+                }
             }
-        }
-        if (_dataSet->GetCellData() != NULL) {
-            if (_dataSet->GetCellData()->SetActiveScalars(name) >= 0) {
-                TRACE("Set active cell data scalars to %s", name);
-                found = true;
+            if (_dataSet->GetCellData() != NULL) {
+                if (_dataSet->GetCellData()->SetActiveScalars(name) >= 0) {
+                    TRACE("Set active cell data scalars for %s to %s", getName().c_str(), name);
+                    found = true;
+                }
             }
         }
     }
 #ifdef WANT_TRACE
     if (_dataSet->GetPointData() != NULL) {
         if (_dataSet->GetPointData()->GetScalars() != NULL) {
-            TRACE("Point data scalars: %s", _dataSet->GetPointData()->GetScalars()->GetName());
+            TRACE("Point data scalars for %s: %s", getName().c_str(), _dataSet->GetPointData()->GetScalars()->GetName());
         } else {
-            TRACE("NULL point data scalars");
+            TRACE("NULL point data scalars for %s", getName().c_str());
         }
     }
     if (_dataSet->GetCellData() != NULL) {
         if (_dataSet->GetCellData()->GetScalars() != NULL) {
-            TRACE("Cell data scalars: %s", _dataSet->GetCellData()->GetScalars()->GetName());
+            TRACE("Cell data scalars for %s: %s", getName().c_str(), _dataSet->GetCellData()->GetScalars()->GetName());
         } else {
-            TRACE("NULL cell data scalars");
+            TRACE("NULL cell data scalars for %s", getName().c_str());
         }
     }
 #endif

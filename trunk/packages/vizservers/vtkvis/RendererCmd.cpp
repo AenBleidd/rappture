@@ -11791,6 +11791,35 @@ VolumeAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+VolumeBlendModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    Volume::BlendMode mode;
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'c') && (strcmp(string, "composite") == 0)) {
+        mode = Volume::BLEND_COMPOSITE;
+    } else if ((c == 'm') && (strcmp(string, "max_intensity") == 0)) {
+        mode = Volume::BLEND_MAX_INTENSITY;
+    } else if ((c == 'm') && (strcmp(string, "min_intensity") == 0)) {
+        mode = Volume::BLEND_MIN_INTENSITY;
+    } else if ((c == 'a') && (strcmp(string, "additive") == 0)) {
+        mode = Volume::BLEND_ADDITIVE;
+    } else {
+        Tcl_AppendResult(interp, "bad blendmode option \"", string,
+                         "\": should be copmosite, max_intensity, min_intensity,  or additive", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setVolumeBlendMode(dataSetName, mode);
+    } else {
+        g_renderer->setVolumeBlendMode("all", mode);
+    }
+    return TCL_OK;
+}
+
+static int
 VolumeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -12034,6 +12063,7 @@ VolumeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec volumeOps[] = {
     {"add",          1, VolumeAddOp,        2, 3, "?dataSetName?"},
+    {"blendmode",    1, VolumeBlendModeOp,  3, 4, "blendMode ?dataSetName?"},
     {"colormap",     1, VolumeColorMapOp,   3, 4, "colorMapName ?dataSetName?"},
     {"delete",       1, VolumeDeleteOp,     2, 3, "?dataSetName?"},
     {"lighting",     1, VolumeLightingOp,   3, 4, "bool ?dataSetName?"},

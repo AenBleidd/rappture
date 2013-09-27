@@ -28,9 +28,10 @@ namespace VtkVis {
 class Volume : public GraphicsObject {
 public:
     enum BlendMode {
-        COMPOSITE = 0,
-        MAX_INTENSITY,
-        MIN_INTENSITY
+        BLEND_COMPOSITE = 0,
+        BLEND_MAX_INTENSITY,
+        BLEND_MIN_INTENSITY,
+        BLEND_ADDITIVE
     };
 
     Volume();
@@ -58,6 +59,8 @@ public:
     virtual void updateRanges(Renderer *renderer);
 
     void setSampleDistance(float d);
+
+    void setBlendMode(BlendMode mode);
 
 private:
     virtual void initProp();
