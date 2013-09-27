@@ -939,6 +939,8 @@ public:
 
     // Volumes
 
+    void setVolumeBlendMode(const DataSetId& id, Volume::BlendMode mode);
+
     void setVolumeSampleDistance(const DataSetId& id, double distance);
 
     // Warps

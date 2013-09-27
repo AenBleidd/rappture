@@ -69,11 +69,15 @@ public:
         if (actor == NULL)
             return;
 
-        TRACE("slice # %d, (%d,%d), whole z: (%d,%d)",
+        TRACE("before slice # %d, (%d,%d), whole z: (%d,%d)",
               actor->GetSliceNumber(), actor->GetSliceNumberMin(), actor->GetSliceNumberMax(),
               actor->GetZSlice(), actor->GetWholeZMin(), actor->GetWholeZMax());
 
         actor->SetZSlice(z);
+
+        TRACE("after slice # %d, (%d,%d), whole z: (%d,%d)",
+              actor->GetSliceNumber(), actor->GetSliceNumberMin(), actor->GetSliceNumberMax(),
+              actor->GetZSlice(), actor->GetWholeZMin(), actor->GetWholeZMax());
     }
 
     void setWindow(double window)

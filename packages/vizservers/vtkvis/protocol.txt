@@ -891,6 +891,8 @@ text3d scale <sx> <sy> <sz> <?name?>
 text3d visible <bool> <?name?>
 
 volume add <?datasetName?>
+volume blendmode <mode> <?dataSetName?>
+       blendmode = composite|max_intensity|min_intensity|additive
 volume colormap <colorMapName> <?datasetName?>
 volume delete <?datasetName?>
 volume lighting <bool> <?datasetName?>

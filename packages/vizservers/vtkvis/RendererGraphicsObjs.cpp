@@ -4181,6 +4181,32 @@ void Renderer::setText3DText(const DataSetId& id, const char *text)
     _needsRedraw = true;
 }
 
+void Renderer::setVolumeBlendMode(const DataSetId& id, Volume::BlendMode mode)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        if (itr == _volumes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBlendMode(mode);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Set the sample rate for the volume shader
  *
