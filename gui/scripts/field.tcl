@@ -146,6 +146,7 @@ itcl::class Rappture::Field {
     private common _counter 0    ;# counter for unique vector names
 
     private method AvsToVtk { cname contents } 
+    private method DicomSeriesToVtk { cname contents } 
     private method BuildPointsOnMesh { cname } 
     private method ConvertToVtkData { cname } 
     protected method GetAssociation { cname } 
@@ -804,6 +805,8 @@ itcl::body Rappture::Field::Build {} {
             set type "dx"
         } elseif {[$_field element $cname.ucd] != ""} {
             set type "ucd"
+        } elseif {[$_field element $cname.dicom] != ""} {
+            set type "dicom"
 	}
         set _comp2style($cname) ""
         if { $type == "" } {
@@ -946,6 +949,23 @@ itcl::body Rappture::Field::Build {} {
             }
             set _dim 3
             incr _counter
+        } elseif { $type == "dicom"} {
+            set contents [$_field get $cname.dicom]
+            if { $contents == "" } {
+                continue;               # Ignore this compoennt
+            }
+            if { ![file isdir $contents] } {
+                puts stderr "dicom path \"$contents\" is not a directory."
+                return 0
+            }
+            set vtkdata [DicomSeriesToVtk $cname $contents]
+            ReadVtkDataSet $cname $vtkdata
+            set _comp2vtk($cname) $vtkdata
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
+            if { $_viewer == "" } {
+                set _viewer "nanovis"
+            }
         } elseif { $type == "ucd"} {
             set contents [$_field get $cname.ucd]
             if { $contents == "" } {
@@ -1710,6 +1730,37 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
     set vtkdata [read $f]
     close $f
     file delete $tmpfile
+    return $vtkdata
+}
+
+itcl::body Rappture::Field::DicomSeriesToVtk { cname path } {
+    package require vtk
+
+    set reader $this-datasetreader
+    vtkDICOMImageReader $reader
+
+    set files [glob -nocomplain $path/*.dcm]
+    if { [llength $files] == 0 } {
+        puts stderr "no dicom files found in \"$path\""
+        return 0
+    }        
+    $reader SetDirectoryName $path
+    $reader Update
+
+    set tmpfile $cname[pid].vtk
+    set writer $this-datasetwriter
+    vtkDataSetWriter $writer
+    $writer SetInputConnection [$reader GetOutputPort]
+    $writer SetFileName $tmpfile
+    $writer Write
+    rename $reader ""
+    rename $writer ""
+
+    set f [open "$tmpfile" "r"]
+    fconfigure $f -translation binary -encoding binary
+    set vtkdata [read $f]
+    close $f
+    #file delete $tmpfile
     return $vtkdata
 }
 
