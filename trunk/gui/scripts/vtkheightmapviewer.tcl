@@ -158,7 +158,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _fields 
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
 }
 
 itk::usual VtkHeightmapViewer {
