@@ -304,7 +304,7 @@ itcl::body Rappture::FileChoiceEntry::DoGlob { cwd patterns } {
             return
         }
     }
-    return $files
+    return [lsort -dictionary $files]
 }
 
 # 

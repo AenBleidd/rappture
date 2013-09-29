@@ -146,7 +146,7 @@ itcl::class Rappture::Field {
     private common _counter 0    ;# counter for unique vector names
 
     private method AvsToVtk { cname contents } 
-    private method DicomSeriesToVtk { cname contents } 
+    private method DicomToVtk { cname contents } 
     private method BuildPointsOnMesh { cname } 
     private method ConvertToVtkData { cname } 
     protected method GetAssociation { cname } 
@@ -954,17 +954,12 @@ itcl::body Rappture::Field::Build {} {
             if { $contents == "" } {
                 continue;               # Ignore this compoennt
             }
-            if { ![file isdir $contents] } {
-                puts stderr "dicom path \"$contents\" is not a directory."
-                return 0
-            }
-            set vtkdata [DicomSeriesToVtk $cname $contents]
+            set vtkdata [DicomToVtk $cname $contents]
             if { $_viewer == "" } {
-                set _viewer "nanovis"
+                set _viewer [expr {($_dim == 3) ? "nanovis" : "contour"}]
             }
             set _comp2vtk($cname) $vtkdata
             set _comp2style($cname) [$_field get $cname.style]
-            set _dim 3
             incr _counter
         } elseif { $type == "ucd"} {
             set contents [$_field get $cname.ucd]
@@ -1735,18 +1730,25 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
     return $vtkdata
 }
 
-itcl::body Rappture::Field::DicomSeriesToVtk { cname path } {
+itcl::body Rappture::Field::DicomToVtk { cname path } {
     package require vtk
 
+    if { ![file exists $path] } {
+        puts stderr "path \"$path\" doesn't exist."
+        return 0
+    }
     set reader $this-datasetreader
     vtkDICOMImageReader $reader
-
-    set files [glob -nocomplain $path/*.dcm]
-    if { [llength $files] == 0 } {
-        puts stderr "no dicom files found in \"$path\""
-        return 0
-    }        
-    $reader SetDirectoryName $path
+    if { [file isdir $path] } {
+        set files [glob -nocomplain $path/*.dcm]
+        if { [llength $files] == 0 } {
+            puts stderr "no dicom files found in \"$path\""
+            return 0
+        }        
+        $reader SetDirectoryName $path
+    } else {
+        $reader SetFileName $path
+    }
     $reader Update
     
     set dataset [$reader GetOutput]
@@ -1762,6 +1764,7 @@ itcl::body Rappture::Field::DicomSeriesToVtk { cname path } {
     if { $zmax > $zmin } {
 	incr _dim
     }
+
     set _comp2dims($cname) "${_dim}D"
 
     lappend limits x [list $xmin $xmax] 
