@@ -221,7 +221,6 @@ itcl::body Rappture::FileChoiceEntry::Rebuild {} {
             set first $tail
         }
         set root [file root $tail]
-	puts stderr "file=$file tail=$tail"
         $itk_component(choice) choices insert end $file $tail
         set _str2val($tail) $file
         set len [string length $tail]
@@ -238,6 +237,7 @@ itcl::body Rappture::FileChoiceEntry::Rebuild {} {
 # Sends a <<Value>> event to notify clients of the change.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FileChoiceEntry::NewValue {} {
+    puts stderr "new value in FileChoiceEntry"
     event generate $itk_component(hull) <<Value>>
 }
 
