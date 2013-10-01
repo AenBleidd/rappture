@@ -952,9 +952,13 @@ itcl::body Rappture::Field::Build {} {
         } elseif { $type == "dicom"} {
             set contents [$_field get $cname.dicom]
             if { $contents == "" } {
-                continue;               # Ignore this compoennt
+                continue;               # Ignore this component
             }
             set vtkdata [DicomToVtk $cname $contents]
+            set viewer [$_field get "about.view"]
+            if { $viewer != "" } {
+                set _viewer $viewer
+            }
             if { $_viewer == "" } {
                 set _viewer [expr {($_dim == 3) ? "nanovis" : "contour"}]
             }
@@ -964,7 +968,7 @@ itcl::body Rappture::Field::Build {} {
         } elseif { $type == "ucd"} {
             set contents [$_field get $cname.ucd]
             if { $contents == "" } {
-                continue;               # Ignore this compoennt
+                continue;               # Ignore this component
             }
             set vtkdata [AvsToVtk $cname $contents]
             ReadVtkDataSet $cname $vtkdata
@@ -973,6 +977,7 @@ itcl::body Rappture::Field::Build {} {
             incr _counter
         }
         set _isValidComponent($cname) 1
+        #puts stderr "Field $cname type is: $_type"
     }
     if { [array size _isValidComponent] == 0 } {
         puts stderr "WARNING: no valid components for field \"$_path\""
@@ -991,6 +996,7 @@ itcl::body Rappture::Field::Build {} {
             return 0
         }
     }
+
     # FIXME: about.scalars and about.vectors are temporary.  With views
     #        the label and units for each field will be specified there.
     #

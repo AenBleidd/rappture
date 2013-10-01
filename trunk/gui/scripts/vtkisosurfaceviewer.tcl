@@ -2116,17 +2116,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
 	-levels 10
     }
     array set style [$dataobj style $comp]
-    if { $dataobj != $_first } {
+    if { $dataobj != $_first || $style(-levels) == 1 } {
         set style(-opacity) 1
-    }
-    if { $_currentColormap == "" } {
-	set stylelist [$dataobj style $comp]
-	if { $stylelist != "" } {
-	    array set style $stylelist
-	    set stylelist [array get style]
-	    SetCurrentColormap $stylelist
-	}
-	$itk_component(colormap) value $style(-color)
     }
     SendCmd "cutplane add $tag"
     SendCmd "cutplane visible 0 $tag"
@@ -2150,6 +2141,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         set style(-color) $_settings(colormap)
     }
     if { $_currentColormap == "" } {
+        SetCurrentColormap $style(-color)
         $itk_component(colormap) value $style(-color)
     }
     set _currentOpacity $style(-opacity)
@@ -2496,6 +2488,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentColormap { name } {
     }
     set _currentColormap $name
     SendCmd "contour3d colormap $_currentColormap"
+    SendCmd "cutplane colormap $_currentColormap"
 }
 
 #
