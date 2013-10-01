@@ -960,7 +960,7 @@ itcl::body Rappture::Field::Build {} {
                 set _viewer $viewer
             }
             if { $_viewer == "" } {
-                set _viewer [expr {($_dim == 3) ? "nanovis" : "contour"}]
+                set _viewer [expr {($_dim == 3) ? "vtkvolume" : "contour"}]
             }
             set _comp2vtk($cname) $vtkdata
             set _comp2style($cname) [$_field get $cname.style]
