@@ -212,7 +212,11 @@ void Volume::updateRanges(Renderer *renderer)
 
     if (getVolume() != NULL) {
         getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(_dataRange));
+#ifdef USE_GPU_RAYCAST_MAPPER
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange, _opacity));
+#else
         getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange));
+#endif
     }
 }
 
@@ -233,7 +237,11 @@ void Volume::setColorMap(ColorMap *cmap)
 
     if (getVolume() != NULL) {
         getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(_dataRange));
+#ifdef USE_GPU_RAYCAST_MAPPER
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange, _opacity));
+#else
         getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange));
+#endif
     }
 }
 
@@ -255,9 +263,13 @@ void Volume::setOpacity(double opacity)
     // across the different mappers/algorithms.  This only works with the
     // 3D texture mapper, not the GPU raycast mapper
     if (getVolume() != NULL) {
+#ifdef USE_GPU_RAYCAST_MAPPER
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange, opacity));
+#else
         if (opacity < 1.0e-6)
             opacity = 1.0e-6;
         getVolume()->GetProperty()->SetScalarOpacityUnitDistance(1.0/opacity);
+#endif
     }
 }
 
