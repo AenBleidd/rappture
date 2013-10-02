@@ -18,6 +18,7 @@
 #include <vtkProp3DCollection.h>
 #include <vtkAssembly.h>
 #include <vtkActor.h>
+#include <vtkImageSlice.h>
 #include <vtkImageActor.h>
 #include <vtkVolume.h>
 #include <vtkProperty.h>
@@ -143,6 +144,16 @@ public:
     inline vtkActor *getActor()
     {
         return vtkActor::SafeDownCast(_prop);
+    }
+
+    /**
+     * \brief Cast the vktProp to a vtkImageSlice
+     *
+     * \return NULL or a vtkImageSlice pointer
+     */
+    inline vtkImageSlice *getImageSlice()
+    {
+        return vtkImageSlice::SafeDownCast(_prop);
     }
 
     /**
