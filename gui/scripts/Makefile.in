@@ -138,6 +138,7 @@ FILES		= \
 		$(srcdir)/vtkstreamlinesviewer.tcl \
 		$(srcdir)/vtkvolumeviewer.tcl \
 		$(srcdir)/vtkheightmapviewer.tcl \
+		$(srcdir)/vtkimageviewer.tcl \
 		$(srcdir)/xylegend.tcl \
 		$(srcdir)/xyprint.tcl \
 		$(srcdir)/xyresult.tcl

@@ -66,7 +66,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
         "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "auto" - "contour" - "heightmap" - "streamlines" - "vtkviewer" - "glyphs" {
+        "auto" - "contour" - "heightmap" - "streamlines" - "vtkviewer" - "glyphs" - "vtkimage" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
         }
         "vtk" {
@@ -98,6 +98,11 @@ itcl::body Rappture::Field2DResult::constructor {args} {
                 itk_component add renderer {
                     Rappture::VtkStreamlinesViewer $itk_interior.streamlines \
 			$servers
+                }
+            }
+            "vtkimage" {
+                itk_component add renderer {
+                    Rappture::VtkImageViewer $itk_interior.vtkimage $servers 
                 }
             }
             "vtkviewer" {
