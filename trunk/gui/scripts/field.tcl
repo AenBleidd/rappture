@@ -960,7 +960,7 @@ itcl::body Rappture::Field::Build {} {
                 set _viewer $viewer
             }
             if { $_viewer == "" } {
-                set _viewer [expr {($_dim == 3) ? "vtkvolume" : "contour"}]
+                set _viewer [expr {($_dim == 3) ? "vtkvolume" : "vtkimage"}]
             }
             set _comp2vtk($cname) $vtkdata
             set _comp2style($cname) [$_field get $cname.style]
@@ -1749,7 +1749,7 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
         set files [glob -nocomplain $path/*.dcm]
         if { [llength $files] == 0 } {
             puts stderr "no dicom files found in \"$path\""
-            return 0
+            #return 0
         }        
         $reader SetDirectoryName $path
     } else {
