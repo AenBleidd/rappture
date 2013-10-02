@@ -66,12 +66,11 @@ vtkSmartPointer<vtkColorTransferFunction>
 ColorMap::getColorTransferFunction(double range[2])
 {
     vtkSmartPointer<vtkColorTransferFunction> tf = vtkSmartPointer<vtkColorTransferFunction>::New();
-    tf->DeepCopy(_colorTF);
     double tmp[6];
-    for (int i = 0; i < tf->GetSize(); i++) {
-        tf->GetNodeValue(i, tmp);
+    for (int i = 0; i < _colorTF->GetSize(); i++) {
+        _colorTF->GetNodeValue(i, tmp);
         tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
-        tf->SetNodeValue(i, tmp);
+        tf->AddRGBPoint(tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
     }
     return tf;
 }
@@ -84,12 +83,11 @@ vtkSmartPointer<vtkPiecewiseFunction>
 ColorMap::getOpacityTransferFunction(double range[2])
 {
     vtkSmartPointer<vtkPiecewiseFunction> tf = vtkSmartPointer<vtkPiecewiseFunction>::New();
-    tf->DeepCopy(_opacityTF);
     double tmp[4];
-    for (int i = 0; i < tf->GetSize(); i++) {
-        tf->GetNodeValue(i, tmp);
+    for (int i = 0; i < _opacityTF->GetSize(); i++) {
+        _opacityTF->GetNodeValue(i, tmp);
         tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
-        tf->SetNodeValue(i, tmp);
+        tf->AddPoint(tmp[0], tmp[1], tmp[2], tmp[3]);
     }
     return tf;
 }
