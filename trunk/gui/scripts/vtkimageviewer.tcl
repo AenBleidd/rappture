@@ -227,7 +227,6 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
         opacity                 100
         outline			0
         saveOpacity		100
-        saveOutline		0
         stretchToFit		0
         view3D                  0
     }
@@ -1452,17 +1451,13 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             # Fix image scale: 0 for contours, 1 for images.
             if { $bool } {
                 set _settings(opacity) $_settings(saveOpacity)
-                set _settings(outline) 0
             } else {
                 set _settings(opacity) 100
-                set _settings(outline)  $_settings(saveOutline)
             }
             AdjustSetting opacity
-            AdjustSetting outline
-	    if { $bool } {
+ 	    if { $bool } {
 		$itk_component(opacity) configure -state normal
 		$itk_component(opacity_l) configure -state normal
-		$itk_component(outline) configure -state disabled
                 if {$_view(ortho)} {
                     SendCmd "camera mode ortho"
                 } else {
@@ -1471,7 +1466,6 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
 	    } else {
 		$itk_component(opacity) configure -state disabled
 		$itk_component(opacity_l) configure -state disabled
-		$itk_component(outline) configure -state normal
                 SendCmd "camera mode image"
             }
             if {$_settings(stretchToFit)} {
@@ -1522,13 +1516,8 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             }
         }
         "outline" {
-	    if { $_settings(view3D) } {
-		SendCmd "outline visible 0"
-            } else {
-                set _settings(saveOutline) $_settings(outline)
-                set bool $_settings(outline)
-                SendCmd "outline visible $bool"
-            }
+            set bool $_settings(outline)
+            SendCmd "outline visible $bool"
 	}
         "stretchToFit" {
 	    set bool $_settings($what)
@@ -1696,15 +1685,11 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
         -command [itcl::code $this AdjustSetting legendVisible] \
         -font "Arial 9"
 
-    itk_component add outline {
-        checkbutton $inner.outline \
-            -text "Outline" \
-            -variable [itcl::scope _settings(outline)] \
-            -command [itcl::code $this AdjustSetting outline] \
-            -font "Arial 9"
-    } {
-        ignore -font
-    }
+    checkbutton $inner.outline \
+        -text "Outline" \
+        -variable [itcl::scope _settings(outline)] \
+        -command [itcl::code $this AdjustSetting outline] \
+        -font "Arial 9"
 
     checkbutton $inner.backing \
         -text "Backing" \
