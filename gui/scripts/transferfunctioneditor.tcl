@@ -40,7 +40,7 @@ itcl::class Rappture::TransferFunctionEditor {
     private method GetOverlappingMarkers { x y } 
     private method GetScreenPosition { name } 
     private method LeaveTick { name } 
-    private method NewMarker { x y }
+    private method NewMarker { x y state }
     private method SetRelativeValue  { name x }
     private method GetRelativeValue  { name }
     private method RemoveDuplicateMarkers {name x y} 
@@ -69,7 +69,8 @@ itcl::body Rappture::TransferFunctionEditor::constructor {c name args} {
     set _canvas $c
     set _name $name
     set _limits [list 0.0 1.0] 
-    $c bind transfunc <ButtonRelease-1> [itcl::code $this NewMarker %x %y]
+    $c bind transfunc <ButtonRelease-1> \
+        [itcl::code $this NewMarker %x %y normal]
     eval configure $args
 }
 
@@ -97,17 +98,17 @@ itcl::body Rappture::TransferFunctionEditor::absoluteValues {} {
     return $list
 }
 
-itcl::body Rappture::TransferFunctionEditor::NewMarker { x y } { 
+itcl::body Rappture::TransferFunctionEditor::NewMarker { x y state } { 
     set name "tick[incr _nextId]"
     set w [winfo width $_canvas]
     set h [winfo height $_canvas]
 
     set _ticks($name) [$_canvas create image 0 $h \
                            -image $_normalIcon -anchor s \
-                           -tags "tick $_name $this" -state hidden]
+                           -tags "tick $_name $this" -state $state]
     set _labels($name) [$_canvas create text 0 $h \
                             -anchor n -fill white -font "Helvetica 8" \
-                            -tags "$this $_name" -state hidden]
+                            -tags "$this $_name" -state $state]
     set _id2name($_ticks($name)) $name
     $_canvas bind $_ticks($name) <Enter> [itcl::code $this EnterTick $name]
     $_canvas bind $_ticks($name) <Leave> [itcl::code $this LeaveTick $name]
@@ -140,7 +141,7 @@ itcl::body Rappture::TransferFunctionEditor::Activate { name } {
 
 itcl::body Rappture::TransferFunctionEditor::Deactivate { name } {
     if  { $_activePress || $_activeMotion } {
-        puts stderr "do nothing for Deactivate"
+        #puts stderr "do nothing for Deactivate"
     } else {
         $_canvas itemconfigure $_labels($name) -state hidden
         $_canvas itemconfigure $_ticks($name) -image $_normalIcon
@@ -303,7 +304,7 @@ itcl::body Rappture::TransferFunctionEditor::RemoveDuplicateMarkers {name x y} {
 
 itcl::body Rappture::TransferFunctionEditor::addMarkers { values } {
     foreach value $values {
-	set name [NewMarker 0 0]
+	set name [NewMarker 0 0 hidden]
 	SetRelativeValue $name $value
     }
     UpdateViewer
