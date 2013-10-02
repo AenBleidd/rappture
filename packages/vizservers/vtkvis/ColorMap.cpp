@@ -36,6 +36,43 @@ ColorMap::ColorMap(const std::string& name) :
     _opacityTF->ClampingOn();
 }
 
+ColorMap::ColorMap(const ColorMap& other) :
+    _name(other._name),
+    _controlPoints(other._controlPoints),
+    _opacityControlPoints(other._opacityControlPoints),
+    _needsBuild(other._needsBuild),
+    _numTableEntries(other._numTableEntries)
+{
+    _colorTF = vtkSmartPointer<vtkColorTransferFunction>::New();
+    _colorTF->ClampingOn();
+    _opacityTF = vtkSmartPointer<vtkPiecewiseFunction>::New();
+    _opacityTF->ClampingOn();
+    _colorTF->DeepCopy(other._colorTF);
+    _opacityTF->DeepCopy(other._opacityTF);
+    if (other._lookupTable != NULL) {
+        _lookupTable = vtkSmartPointer<vtkLookupTable>::New();
+        _lookupTable->DeepCopy(other._lookupTable);
+    }
+}
+
+ColorMap& ColorMap::operator=(const ColorMap& other)
+{
+    if (&other != this) {
+        _name = other._name;
+        _controlPoints = other._controlPoints;
+        _opacityControlPoints = other._opacityControlPoints;
+        _needsBuild = other._needsBuild;
+        _numTableEntries = other._numTableEntries;
+        _colorTF->DeepCopy(other._colorTF);
+        _opacityTF->DeepCopy(other._opacityTF);
+        if (other._lookupTable != NULL) {
+            _lookupTable = vtkSmartPointer<vtkLookupTable>::New();
+            _lookupTable->DeepCopy(other._lookupTable);
+        }
+    }
+    return *this;
+}
+
 ColorMap::~ColorMap()
 {
 }
@@ -69,8 +106,10 @@ ColorMap::getColorTransferFunction(double range[2])
     double tmp[6];
     for (int i = 0; i < _colorTF->GetSize(); i++) {
         _colorTF->GetNodeValue(i, tmp);
+        //TRACE("Norm: %d: %g %g,%g,%g", i, tmp[0], tmp[1], tmp[2], tmp[3]);
         tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
         tf->AddRGBPoint(tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
+        //TRACE("New : %d: %g %g,%g,%g", i, tmp[0], tmp[1], tmp[2], tmp[3]);
     }
     return tf;
 }
@@ -86,9 +125,13 @@ ColorMap::getOpacityTransferFunction(double range[2], double opacityScale)
     double tmp[4];
     for (int i = 0; i < _opacityTF->GetSize(); i++) {
         _opacityTF->GetNodeValue(i, tmp);
+        //TRACE("Norm: %d: %g %g", i, tmp[0], tmp[1]);
         tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
-        tmp[1] *= opacityScale;
+        if (opacityScale < 1.0) {
+            tmp[1] *= opacityScale;
+        }
         tf->AddPoint(tmp[0], tmp[1], tmp[2], tmp[3]);
+        //TRACE("New : %d: %g %g", i, tmp[0], tmp[1]);
     }
     return tf;
 }
