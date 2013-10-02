@@ -80,13 +80,14 @@ ColorMap::getColorTransferFunction(double range[2])
  * scaled to the given data range
  */
 vtkSmartPointer<vtkPiecewiseFunction>
-ColorMap::getOpacityTransferFunction(double range[2])
+ColorMap::getOpacityTransferFunction(double range[2], double opacityScale)
 {
     vtkSmartPointer<vtkPiecewiseFunction> tf = vtkSmartPointer<vtkPiecewiseFunction>::New();
     double tmp[4];
     for (int i = 0; i < _opacityTF->GetSize(); i++) {
         _opacityTF->GetNodeValue(i, tmp);
         tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
+        tmp[1] *= opacityScale;
         tf->AddPoint(tmp[0], tmp[1], tmp[2], tmp[3]);
     }
     return tf;
@@ -105,7 +106,7 @@ void ColorMap::addControlPoint(ControlPoint& cp)
 	cp.value = 1.0;
 
 #ifdef DEBUG
-    TRACE("New control point: %g  = %g %g %g",
+    TRACE("New control point: %g = %g %g %g",
 	  cp.value, cp.color[0], cp.color[1], cp.color[2]);
 #endif
     for (std::list<ControlPoint>::iterator itr = _controlPoints.begin();
@@ -136,7 +137,7 @@ void ColorMap::addOpacityControlPoint(OpacityControlPoint& cp)
 	cp.value = 1.0;
 
 #ifdef DEBUG
-    TRACE("New opacity control point: %g  = %g",
+    TRACE("New opacity control point: %g = %g",
 	  cp.value, cp.alpha);
 #endif
     for (std::list<OpacityControlPoint>::iterator itr = _opacityControlPoints.begin();
