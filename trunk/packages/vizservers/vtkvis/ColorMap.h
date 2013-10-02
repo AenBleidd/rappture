@@ -90,7 +90,7 @@ public:
 
     vtkSmartPointer<vtkColorTransferFunction> getColorTransferFunction(double range[2]);
 
-    vtkSmartPointer<vtkPiecewiseFunction> getOpacityTransferFunction(double range[2], opacityScale = 1.0);
+    vtkSmartPointer<vtkPiecewiseFunction> getOpacityTransferFunction(double range[2], double opacityScale = 1.0);
 
     void setNumberOfTableEntries(int numEntries);
 
