@@ -307,7 +307,6 @@ itcl::body Rappture::TransferFunctionEditor::addMarkers { values } {
 	set name [NewMarker 0 0 hidden]
 	SetRelativeValue $name $value
     }
-    UpdateViewer
 }
 
 itcl::body Rappture::TransferFunctionEditor::removeMarkers { names } {

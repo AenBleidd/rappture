@@ -538,6 +538,9 @@ itcl::body Rappture::VtkVolumeViewer::EventuallySetCutplane { axis args } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::add {dataobj {settings ""}} {
+    if { ![IsValidObject $dataobj] } {
+        return;                         # Ignore invalid objects.
+    }
     array set params {
         -color auto
         -width 1
@@ -688,20 +691,12 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
     }
     array unset _limits 
     array unset _volcomponents 
+
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
             continue;                     # Object doesn't contain valid data.
         }
-        foreach cname [$dataobj components] {
-            array unset limits
-            array set limits [$dataobj valueLimits $cname]
-            set _limits($cname) $limits(v)
-            if { ![info exists _volcomponents($cname)] } {
-                lappend _componentsList $cname
-                ComputeTransferFunction $cname
-            }
-            lappend _volcomponents($cname) $dataobj-$cname
-        }
+        # Determine limits for each axis.
         foreach axis {x y z v} {
             foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
@@ -719,26 +714,7 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
                 }
             }
         }
-    }
-    BuildVolumeComponents
-
-    foreach dataobj $args {
-        foreach axis { x y z } {
-            set lim [$dataobj limits $axis]
-            if { ![info exists _limits($axis)] } {
-                set _limits($axis) $lim
-                continue
-            }
-            foreach {min max} $lim break
-            foreach {amin amax} $_limits($axis) break
-            if { $amin > $min } {
-                set amin $min
-            }
-            if { $amax < $max } {
-                set amax $max
-            }
-            set _limits($axis) [list $amin $amax]
-        }
+        # Determine limits for each field.
         foreach { fname lim } [$dataobj fieldlimits] {
             if { ![info exists _limits($fname)] } {
                 set _limits($fname) $lim
@@ -754,7 +730,31 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
             }
             set _limits($fname) [list $fmin $fmax]
         }
+        # Get limits for each component.
+        foreach cname [$dataobj components] {
+            if { ![info exists _volcomponents($cname)] } {
+                lappend _componentsList $cname
+            }
+            lappend _volcomponents($cname) $dataobj-$cname
+            array unset limits
+            array set limits [$dataobj valueLimits $cname]
+            foreach {min max} $limits(v) break
+            if { ![info exists _limits($cname)] } {
+                set vmin $min
+                set vmax $max
+            } else {
+                if { $vmin > $min } {
+                    set vmin $min
+                }
+                if { $vmax < $max } {
+                    set vmax $max
+                }
+            }
+            set _limits($cname) [list $vmin $vmax]
+        }
     }
+    BuildVolumeComponents
+    updateTransferFunctions
 }
 
 # ----------------------------------------------------------------------
