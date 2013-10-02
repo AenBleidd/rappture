@@ -9,8 +9,11 @@
 #define VTKVIS_IMAGE_H
 
 #include <vtkSmartPointer.h>
+#include <vtkImageSlice.h>
 #include <vtkImageActor.h>
 #include <vtkImageMapper3D.h>
+#include <vtkImageResliceMapper.h>
+#include <vtkImageSliceMapper.h>
 #include <vtkLookupTable.h>
 #include <vtkPlaneCollection.h>
 
@@ -140,8 +143,8 @@ private:
 
     vtkImageProperty *getImageProperty()
     {
-        if (getImageActor() != NULL) {
-            return getImageActor()->GetProperty();
+        if (getImageSlice() != NULL) {
+            return getImageSlice()->GetProperty();
         } else {
             return NULL;
         }
@@ -149,8 +152,26 @@ private:
 
     vtkImageMapper3D *getImageMapper()
     {
-        if (getImageActor() != NULL) {
-            return getImageActor()->GetMapper();
+        if (getImageSlice() != NULL) {
+            return getImageSlice()->GetMapper();
+        } else {
+            return NULL;
+        }
+    }
+
+    vtkImageResliceMapper *getImageResliceMapper()
+    {
+        if (getImageSlice() != NULL) {
+            return vtkImageResliceMapper::SafeDownCast(getImageSlice()->GetMapper());
+        } else {
+            return NULL;
+        }
+    }
+
+    vtkImageSliceMapper *getImageSliceMapper()
+    {
+        if (getImageSlice() != NULL) {
+            return vtkImageSliceMapper::SafeDownCast(getImageSlice()->GetMapper());
         } else {
             return NULL;
         }

@@ -8,14 +8,18 @@
 #include <vtkSmartPointer.h>
 #include <vtkImageData.h>
 #include <vtkImageActor.h>
+#include <vtkImageSlice.h>
 #include <vtkImageProperty.h>
 #include <vtkImageMapper3D.h>
+#include <vtkImageResliceMapper.h>
 #include <vtkLookupTable.h>
 
 #include "Image.h"
 #include "Trace.h"
 
 using namespace VtkVis;
+
+#define USE_RESLICE_MAPPER
 
 Image::Image() :
     GraphicsObject(),
@@ -31,7 +35,11 @@ Image::~Image()
 void Image::initProp()
 {
     if (_prop == NULL) {
+#ifdef USE_RESLICE_MAPPER
+        _prop = vtkSmartPointer<vtkImageSlice>::New();
+#else
         _prop = vtkSmartPointer<vtkImageActor>::New();
+#endif
         vtkImageProperty *property = getImageProperty();
         property->SetInterpolationTypeToLinear();
         property->SetBackingColor(_color[0], _color[1], _color[2]);
@@ -63,10 +71,35 @@ void Image::update()
     initProp();
 
     vtkImageActor *actor = getImageActor();
-    actor->SetInputData(imageData);
-    actor->InterpolateOn();
-
     vtkImageMapper3D *mapper = getImageMapper();
+    if (mapper == NULL) {
+        TRACE("Creating mapper");
+        vtkSmartPointer<vtkImageResliceMapper> newMapper = vtkSmartPointer<vtkImageResliceMapper>::New();
+        getImageSlice()->SetMapper(newMapper);
+        mapper = getImageMapper();
+        assert(mapper != NULL);
+    }
+    if (actor != NULL) {
+        TRACE("Have actor");
+        actor->SetInputData(imageData);
+        actor->InterpolateOn();
+    } else {
+        TRACE("No actor");
+        mapper->SetInputData(imageData);
+    }
+
+    mapper->SliceAtFocalPointOn();
+    mapper->SliceFacesCameraOn();
+
+    vtkImageResliceMapper *resliceMapper = getImageResliceMapper();
+    if (resliceMapper) {
+        TRACE("Mapper is a vtkImageResliceMapper");
+        resliceMapper->AutoAdjustImageQualityOff();
+        resliceMapper->ResampleToScreenPixelsOff();
+    } else {
+        TRACE("Mapper is a %s", mapper->GetClassName());
+    }
+
     mapper->Update();
 }
 
