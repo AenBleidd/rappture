@@ -188,8 +188,12 @@ camera zoom <z>
 clientinfo <list>
 
 colormap add <colorMapName> <colorMap> <opacityMap>
+         (Re-)define a colormap.  If colorMapName doesn't exist, it is created,
+         otherwise the colormap is redefined and all users will be updated.
 	 colorMap = Tcl list of {value r g b} control points
          opacityMap = Tcl list of {value alpha} control points
+colormap define <colorMapName> <colorMap> <opacityMap>
+         (Re-)define a colormap (same as 'add')
 colormap delete <?colorMapName?>
 colormap res <numberOfTableEntries>
          Set the "resolution" or number of lookup table entries in the colormap

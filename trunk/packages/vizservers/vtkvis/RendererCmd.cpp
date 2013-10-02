@@ -2508,7 +2508,8 @@ ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec colorMapOps[] = {
     {"add",    1, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
-    {"delete", 1, ColorMapDeleteOp,          2, 3, "?colorMapName?"},
+    {"define", 3, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
+    {"delete", 3, ColorMapDeleteOp,          2, 3, "?colorMapName?"},
     {"res",    1, ColorMapNumTableEntriesOp, 3, 4, "numTableEntries ?colorMapName?"}
 };
 static int nColorMapOps = NumCmdSpecs(colorMapOps);
@@ -7164,10 +7165,12 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     range[0] = DBL_MAX;
     range[1] = -DBL_MAX;
 
+    bool opaque = true;
+
     if (objc == 9) {
         const char *dataSetName = Tcl_GetString(objv[8]);
         if (!g_renderer->renderColorMap(colorMapName, dataSetName, legendType, fieldName, title,
-                                        range, width, height, true, numLabels, imgData)) {
+                                        range, width, height, opaque, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              colorMapName, "\" or dataset \"",
                              dataSetName, "\" was not found", (char*)NULL);
@@ -7175,7 +7178,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else {
         if (!g_renderer->renderColorMap(colorMapName, "all", legendType, fieldName, title,
-                                        range, width, height, true, numLabels, imgData)) {
+                                        range, width, height, opaque, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              colorMapName, "\" was not found", (char*)NULL);
             return TCL_ERROR;
@@ -7236,7 +7239,9 @@ LegendSimpleCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
-    if (!g_renderer->renderColorMap(colorMapName, width, height, true, imgData)) {
+    bool opaque = true;
+
+    if (!g_renderer->renderColorMap(colorMapName, width, height, opaque, imgData)) {
         Tcl_AppendResult(interp, "Color map \"",
                          colorMapName, "\" was not found", (char*)NULL);
         return TCL_ERROR;
@@ -7272,6 +7277,7 @@ LegendSimpleCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 #  endif
 # endif // USE_THREADS
 #endif // DEBUG
+
     return TCL_OK;
 }
 
@@ -11935,11 +11941,15 @@ VolumeSampleRateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     double distance;
     double maxFactor = 4.0;
+#if 1
+    distance = 1.0 / (quality * (maxFactor - 1.0) + 1.0);
+#else
     if (quality >= 0.5) {
         distance = 1.0 / ((quality - 0.5) * (maxFactor - 1.0) * 2.0 + 1.0);
     } else {
         distance = ((0.5 - quality) * (maxFactor - 1.0) * 2.0 + 1.0);
     }
+#endif
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
         g_renderer->setVolumeSampleDistance(name, distance);
