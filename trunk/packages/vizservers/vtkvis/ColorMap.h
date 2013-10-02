@@ -82,6 +82,11 @@ public:
     };
 
     ColorMap(const std::string& name);
+
+    ColorMap(const ColorMap& other);
+
+    ColorMap& operator=(const ColorMap& other);
+
     virtual ~ColorMap();
 
     const std::string& getName();
