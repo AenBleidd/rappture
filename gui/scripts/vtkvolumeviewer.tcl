@@ -77,8 +77,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method ParseLevelsOption { cname levels }
     private method ParseMarkersOption { cname markers }
     private method BuildVolumeComponents {}
-    private variable _serverDatasets   ;# contains all the dataobj-component 
-                                   ;# to volumes in the server
+
     private variable _current "";       # Currently selected component 
     private variable _volcomponents   ; # Array of components found 
     private variable _componentsList   ; # Array of components found 
@@ -462,7 +461,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
     Connect
-    update
 }
 
 # ----------------------------------------------------------------------
@@ -933,9 +931,6 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveImage { args } {
     } elseif { $info(type) == "print" } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
-    }
-    if { $_legendPending } {
-        RequestLegend
     }
 }
 
@@ -2827,14 +2822,7 @@ itcl::body Rappture::VtkVolumeViewer::GetDatasetsWithComponent { cname } {
     if { ![info exists _volcomponents($cname)] } {
         return ""
     }
-    set list ""
-    foreach tag $_volcomponents($cname) {
-        if { ![info exists _serverDatasets($tag)] } {
-            continue
-        }
-        lappend list $tag
-    }
-    return $list
+    return $_volcomponents($cname)
 }
 
 #
