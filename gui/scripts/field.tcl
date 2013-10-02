@@ -1805,7 +1805,7 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
     lappend limits v [list $vmin $vmax]
     set _comp2limits($cname) $limits
 
-    set tmpfile $cname[pid].vtk
+    set tmpfile $this-$cname.vtk
     set writer $this-datasetwriter
     vtkDataSetWriter $writer
     $writer SetInputConnection [$reader GetOutputPort]

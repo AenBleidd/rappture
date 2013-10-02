@@ -63,6 +63,7 @@ itcl::class Rappture::VtkVolumeViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
+    private method SetOrientation { side }
     private method HideAllMarkers {} 
     private method GetColormap { cname color } 
     private method ResetColormap { cname color }
@@ -1554,7 +1555,7 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     set w [winfo width $c]
     set h [winfo height $c]
     set h [expr {$h-$lineht-20}]
-    puts stderr "legend w=$w h=$h"
+    set w [expr {$w-20}]
     # Set the legend on the first volume dataset.
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
@@ -1776,7 +1777,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting volumeColormap]
 
-    label $inner.blendmode_l -text "Blend Mode" -font "Arial 9" 
+    label $inner.blendmode_l -text "Blend Mode" -font $font
     itk_component add blendmode {
         Rappture::Combobox $inner.blendmode -editable no
     }
@@ -1794,7 +1795,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         0,2 $inner.volcomponents             -cspan 3 -fill x \
         1,0 $inner.field_l   -anchor e -cspan 2  \
         1,2 $inner.field               -cspan 3 -fill x \
-        2,1 $inner.lighting_l -anchor w -cspan 4 \
+        2,0 $inner.lighting_l -anchor w -cspan 4 \
         3,1 $inner.lighting   -anchor w -cspan 3 \
         4,1 $inner.ambient_l       -anchor e -pady 2 \
         4,2 $inner.ambient                   -cspan 3 -fill x \
@@ -1807,7 +1808,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         8,1 $inner.visibility    -anchor w -cspan 3 \
         9,1 $inner.quality_l -anchor e -pady 2 \
         9,2 $inner.quality                     -cspan 3 -fill x \
-        10,1 $inner.transferfunction_l -anchor w              -cspan 4 \
+        10,0 $inner.transferfunction_l -anchor w              -cspan 4 \
         11,1 $inner.opacity_l -anchor e -pady 2 \
         11,2 $inner.opacity                    -cspan 3 -fill x \
         12,1 $inner.colormap_l -anchor e  \
@@ -1895,8 +1896,21 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
+    label $inner.view_l -text "view" -font "Arial 9"
+    set f [frame $inner.view]
+    foreach side { front back left right top bottom } {
+        button $f.$side  -image [Rappture::icon view$side] \
+            -command [itcl::code $this SetOrientation $side]
+        Rappture::Tooltip::for $f.$side "Change the view to $side"
+        pack $f.$side -side left
+    }
+    blt::table $inner \
+        0,0 $inner.view_l -anchor e -pady 2 \
+        0,1 $inner.view -anchor w -pady 2
+
+    set row 1
+
     set labels { qx qy qz qw xpan ypan zoom }
-    set row 0
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
@@ -1919,7 +1933,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner r* c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -2220,7 +2234,7 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title vmin vmax s
             set _image(legend) [image create photo]
         }
         $_image(legend) configure -data $bytes
-        puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
+        #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
         if { [catch {DrawLegend} errs] != 0 } {
             puts stderr errs=$errs
         }
@@ -2633,7 +2647,7 @@ itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
     set cmap [GetColormap $cname $color]
     set _cname2transferFunction($cname) [list $cmap $wmap]
     SendCmd [list colormap add $cname $cmap $wmap]
-    DrawLegend
+    EventuallyRequestLegend
 }
 
 # ----------------------------------------------------------------------
@@ -2647,7 +2661,31 @@ itcl::body Rappture::VtkVolumeViewer::updateTransferFunctions {} {
     foreach cname [array names _volcomponents] {
         ComputeTransferFunction $cname
     }
-    DrawLegend
+    EventuallyRequestLegend
+}
+
+itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } { 
+    array set positions {
+        front "1 0 0 0"
+        back  "0 0 1 0"
+        left  "0.707107 0 -0.707107 0"
+        right "0.707107 0 0.707107 0"
+        top   "0.707107 -0.707107 0 0"
+        bottom "0.707107 0.707107 0 0"
+    }
+    foreach name { qw qx qy qz } value $positions($side) {
+        set _view($name) $value
+    } 
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
+    SendCmd "camera reset"
+    set _view(xpan) 0
+    set _view(ypan) 0
+    set _view(zoom) 1.0
+    set _settings($this-xpan) $_view(xpan)
+    set _settings($this-ypan) $_view(ypan)
+    set _settings($this-zoom) $_view(zoom)
 }
 
 #
