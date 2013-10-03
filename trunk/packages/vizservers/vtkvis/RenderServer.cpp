@@ -466,7 +466,7 @@ writerThread(void *clientData)
         Response *response = queue->dequeue();
         if (response == NULL)
             continue;
-        if (fwrite(response->message(), sizeof(char), response->length(),
+        if (fwrite(response->message(), sizeof(unsigned char), response->length(),
                    g_fOut) != response->length()) {
             ERROR("short write while trying to write %ld bytes", 
                   response->length());

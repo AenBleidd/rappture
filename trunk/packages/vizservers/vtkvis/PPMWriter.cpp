@@ -79,7 +79,7 @@ VtkVis::queuePPM(ResponseQueue *queue, const char *cmdName,
     size_t bytesPerRow = width * 3;
     unsigned char *destRowPtr = mesg + length - bytesPerRow;
     int y;
-    unsigned char *srcRowPtr = const_cast<unsigned char *>(data);
+    const unsigned char *srcRowPtr = data;
     for (y = 0; y < height; y++) {
         memcpy(destRowPtr, srcRowPtr, bytesPerRow);
         srcRowPtr += bytesPerRow;
@@ -154,7 +154,7 @@ VtkVis::writePPM(int fd, const char *cmdName,
     // Image data
     size_t bytesPerRow = width * 3;
     int y;
-    unsigned char *srcRowPtr = const_cast<unsigned char *>(data);
+    const unsigned char *srcRowPtr = data;
     for (y = height + 1; y >= 2; y--) {
         iov[y].iov_base = srcRowPtr;
         iov[y].iov_len = bytesPerRow;
