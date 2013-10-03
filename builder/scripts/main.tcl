@@ -868,6 +868,7 @@ proc main_saveas {{option "start"}} {
 
                 # /apps/rappture/current for 32-bit systems
                 # /apps/share64/rappture/current for 64-bit systems
+		puts stderr "TOOLDIR=[file dir [info nameofexecutable]]"
                 if {$tcl_platform(wordSize) == 8
                       && [file isdirectory /apps/share64/rappture/current]} {
                     set dir /apps/share64/rappture/current

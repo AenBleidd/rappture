@@ -1365,7 +1365,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
         "volumeVisible" {
             set bool $_settings(volumeVisible)
-            set _settings($cname-volumeVisible)
+            set _settings($_current-volumeVisible)
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume visible $bool $tag"
             }
@@ -1381,14 +1381,14 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set val [$itk_component(blendmode) value]
             set mode [$itk_component(blendmode) translate $val]
             set _settings(volumeBlendMode) $mode
-            set _settings($cname-volumeBlendMode) $mode
+            set _settings($_current-volumeBlendMode) $mode
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume blendmode $mode $tag"
             }
         }
         "volumeAmbient" {
             set val $_settings(volumeAmbient)
-            set _settings($cname-volumnAmbient) $val
+            set _settings($_current-volumnAmbient) $val
             set ambient [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading ambient $ambient $tag"
@@ -1396,7 +1396,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "volumeDiffuse" {
             set val $_settings(volumeDiffuse)
-            set _settings($cname-volumeDiffuse) $val
+            set _settings($_current-volumeDiffuse) $val
             set diffuse [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading diffuse $diffuse $tag"
@@ -1404,7 +1404,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "volumeSpecularLevel" - "volumeSpecularExponent" {
             set val $_settings(volumeSpecularLevel)
-            set _settings($cname-volumnSpecularLevel) $val
+            set _settings($_current-volumnSpecularLevel) $val
             set level [expr {0.01*$val}]
             set exp $_settings(volumeSpecularExponent)
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1413,14 +1413,14 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "volumeLighting" {
             set bool $_settings(volumeLighting)
-            set _settings($cname-volumeLighting) $bool
+            set _settings($_current-volumeLighting) $bool
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume lighting $bool $tag"
             }
         }
         "volumeOpacity" {
             set val $_settings(volumeOpacity)
-            set _settings($cname-volumeOpacity) $val
+            set _settings($_current-volumeOpacity) $val
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume opacity $val $tag"
@@ -1428,7 +1428,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "volumeQuality" {
             set val $_settings(volumeQuality)
-            set _settings($cname-volumeQuality) $val
+            set _settings($_current-volumeQuality) $val
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume quality $val $tag"
