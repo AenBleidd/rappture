@@ -63,20 +63,20 @@ itcl::class Rappture::VtkVolumeViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
-    private method SetOrientation { side }
-    private method HideAllMarkers {} 
-    private method GetColormap { cname color } 
-    private method ResetColormap { cname color }
-    private method InitComponentSettings { cname } 
-    private method SwitchComponent { cname } 
-    private method GetDatasetsWithComponent { cname } 
+    private method BuildVolumeComponents {}
     private method ComputeAlphamap { cname } 
     private method ComputeTransferFunction { cname }
-    private method SetInitialTransferFunction { dataobj cname }
-    private method SendTransferFunctions {}
+    private method GetColormap { cname color } 
+    private method GetDatasetsWithComponent { cname } 
+    private method HideAllMarkers {} 
+    private method InitComponentSettings { cname } 
     private method ParseLevelsOption { cname levels }
     private method ParseMarkersOption { cname markers }
-    private method BuildVolumeComponents {}
+    private method ResetColormap { cname color }
+    private method SendTransferFunctions {}
+    private method SetInitialTransferFunction { dataobj cname }
+    private method SetOrientation { side }
+    private method SwitchComponent { cname } 
 
     private variable _current "";       # Currently selected component 
     private variable _volcomponents   ; # Array of components found 
@@ -109,7 +109,6 @@ itcl::class Rappture::VtkVolumeViewer {
 
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildColormap { name colors }
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildVolumeTab {}
@@ -128,8 +127,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private method MotionLegend { x y } 
     private method PanCamera {}
     private method RequestLegend {}
-    private method SetColormap { dataobj comp }
-    private method ChangeColormap { dataobj comp color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
@@ -248,14 +245,14 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         cutplaneEdges           0
         cutplaneLighting        1
         cutplaneOpacity         100
+        cutplanePositionX       50
+        cutplanePositionY       50
+        cutplanePositionZ       50
         cutplaneVisible         0
         cutplaneVisibleX        1
         cutplaneVisibleY        1
         cutplaneVisibleZ        1
         cutplaneWireframe       0
-        cutplaneXPosition       50
-        cutplaneYPosition       50
-        cutplaneZPosition       50
         legendVisible           1
         volumeAmbient           40
         volumeBlendMode         composite
@@ -1368,8 +1365,9 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
         "volumeVisible" {
             set bool $_settings(volumeVisible)
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume visible $bool $dataset"
+            set _settings($cname-volumeVisible)
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume visible $bool $tag"
             }
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(volume) \
@@ -1383,50 +1381,57 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set val [$itk_component(blendmode) value]
             set mode [$itk_component(blendmode) translate $val]
             set _settings(volumeBlendMode) $mode
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume blendmode $mode $dataset"
+            set _settings($cname-volumeBlendMode) $mode
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume blendmode $mode $tag"
             }
         }
         "volumeAmbient" {
             set val $_settings(volumeAmbient)
+            set _settings($cname-volumnAmbient) $val
             set ambient [expr {0.01*$val}]
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume shading ambient $ambient $dataset"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading ambient $ambient $tag"
             }
         }
         "volumeDiffuse" {
             set val $_settings(volumeDiffuse)
+            set _settings($cname-volumeDiffuse) $val
             set diffuse [expr {0.01*$val}]
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume shading diffuse $diffuse $dataset"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading diffuse $diffuse $tag"
             }
         }
         "volumeSpecularLevel" - "volumeSpecularExponent" {
             set val $_settings(volumeSpecularLevel)
-            set specularLevel [expr {0.01*$val}]
-            set specularExponent $_settings(volumeSpecularExponent)
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume shading specular $specularLevel $specularExponent $dataset"
+            set _settings($cname-volumnSpecularLevel) $val
+            set level [expr {0.01*$val}]
+            set exp $_settings(volumeSpecularExponent)
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading specular $level $exp $tag"
             }
         }
         "volumeLighting" {
             set bool $_settings(volumeLighting)
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume lighting $bool $dataset"
+            set _settings($cname-volumeLighting) $bool
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume lighting $bool $tag"
             }
         }
         "volumeOpacity" {
             set val $_settings(volumeOpacity)
+            set _settings($cname-volumeOpacity) $val
             set val [expr {0.01*$val}]
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume opacity $val $dataset"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume opacity $val $tag"
             }
         }
         "volumeQuality" {
             set val $_settings(volumeQuality)
+            set _settings($cname-volumeQuality) $val
             set val [expr {0.01*$val}]
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "volume quality $val $dataset"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume quality $val $tag"
             }
         }
         "axesVisible" {
@@ -1568,79 +1573,6 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
             break;
         }
     }
-}
-
-#
-# ChangeColormap --
-#
-itcl::body Rappture::VtkVolumeViewer::ChangeColormap {dataobj comp color} {
-    set tag $dataobj-$comp
-    if { ![info exist _style($tag)] } {
-        error "no initial colormap"
-    }
-    array set style $_style($tag)
-    set style(-color) $color
-    set _style($tag) [array get style]
-    SetColormap $dataobj $comp
-}
-
-#
-# SetColormap --
-#
-itcl::body Rappture::VtkVolumeViewer::SetColormap { dataobj comp } {
-    array set style {
-        -color BCGYR
-        -levels 6
-        -opacity 1.0
-    }
-    set tag $dataobj-$comp
-    if { ![info exists _initialStyle($tag)] } {
-        # Save the initial component style.
-        set _initialStyle($tag) [$dataobj style $comp]
-    }
-
-    # Override defaults with initial style defined in xml.
-    array set style $_initialStyle($tag)
-
-    if { ![info exists _style($tag)] } {
-        set _style($tag) [array get style]
-    }
-    # Override initial style with current style.
-    array set style $_style($tag)
-
-    set name "$style(-color):$style(-levels):$style(-opacity)"
-    if { ![info exists _colormaps($name)] } {
-        BuildColormap $name [array get style]
-        set _colormaps($name) 1
-    }
-    if { ![info exists _dataset2style($tag)] ||
-         $_dataset2style($tag) != $name } {
-        SendCmd "volume colormap $name $tag"
-        SendCmd "cutplane colormap $name-opaque $tag"
-        set _dataset2style($tag) $name
-    }
-}
-
-#
-# BuildColormap --
-#
-itcl::body Rappture::VtkVolumeViewer::BuildColormap { name styles } {
-    array set style $styles
-    set cmap [ColorsToColormap $style(-color)]
-    if { [llength $cmap] == 0 } {
-        set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
-    }
-    if { ![info exists _settings(volumeOpacity)] } {
-        set _settings(volumeOpacity) $style(-opacity)
-    }
-    set max $_settings(volumeOpacity)
-
-    set opaqueWmap "0.0 1.0 1.0 1.0"
-    #set wmap "0.0 0.0 0.1 0.0 0.2 0.8 0.98 0.8 0.99 0.0 1.0 0.0"
-    # Approximate cubic opacity curve
-    set wmap "0.0 0.0 0.1 0.001 0.2 0.008 0.3 0.027 0.4 0.064 0.5 0.125 0.6 0.216 0.7 0.343 0.8 0.512 0.9 0.729 1.0 1.0"
-    SendCmd "colormap add $name { $cmap } { $wmap }"
-    SendCmd "colormap add $name-opaque { $cmap } { $opaqueWmap }"
 }
 
 # ----------------------------------------------------------------------
