@@ -34,4 +34,6 @@ prepend TK_LIBRARY ${libdir}/tk${tcl_version}
 
 prepend R_LIBS ${libdir}/R
 
+setenv RAPPTURE_PATH ${exec_prefix}
+
 tags DEVEL
