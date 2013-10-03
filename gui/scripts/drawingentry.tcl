@@ -580,7 +580,6 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     }
     set contents [XmlGetSubst $cpath.contents]
     set img ""
-    puts stderr "1. contents=$contents"
     if { [string compare -length 7 $contents "file://"] == 0 } {
 	set fileName [string range $contents 7 end]
         set path $fileName
@@ -604,7 +603,6 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	puts stderr  "don't know how to handle http"
 	return
     } else {
-        puts stderr "2. contents=$contents"
 	set img [image create photo -data $contents]
     }
     if {$img eq ""} {
