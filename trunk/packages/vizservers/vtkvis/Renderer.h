@@ -19,6 +19,8 @@
 #else
 #include <vtkCubeAxesActor.h>
 #endif
+#include <vtkAxesActor.h>
+#include <vtkAnnotatedCubeActor.h>
 #include <vtkScalarBarActor.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
@@ -274,6 +276,8 @@ public:
     void setUseTwoSidedLighting(bool state);
 
     void setUseDepthPeeling(bool state);
+
+    void setDepthPeelingParams(double occlusionRatio = 0.0, int maxPeels = 0);
 
     void eventuallyRender();
 
@@ -1043,6 +1047,8 @@ private:
 
     void sceneBoundsChanged();
 
+    void initOrientationMarkers();
+
     void initAxes();
 
     void resetAxes(double bounds[6] = NULL);
@@ -1140,6 +1146,8 @@ private:
 #else
     vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor;
 #endif
+    vtkSmartPointer<vtkAxesActor> _axesActor;
+    vtkSmartPointer<vtkAnnotatedCubeActor> _annotatedCubeActor;
     vtkSmartPointer<vtkScalarBarActor> _scalarBarActor;
     vtkSmartPointer<vtkRenderer> _renderer;
     vtkSmartPointer<vtkRenderer> _legendRenderer;

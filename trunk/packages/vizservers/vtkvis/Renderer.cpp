@@ -168,6 +168,7 @@ Renderer::Renderer() :
     _renderWindow->AddRenderer(_renderer);
     setViewAngle(_windowHeight);
     initAxes();
+    //initOrientationMarkers();
     initCamera();
     addColorMap("default", ColorMap::getDefault());
     addColorMap("grayDefault", ColorMap::getGrayDefault());
@@ -810,6 +811,18 @@ void Renderer::setAxesOrigin(double x, double y, double z, bool useCustom)
     _cubeAxesActor->SetUseAxisOrigin((useCustom ? 1 : 0));
 
     _needsRedraw = true;
+}
+
+
+void Renderer::initOrientationMarkers()
+{
+    if (_axesActor == NULL) {
+        _axesActor = vtkSmartPointer<vtkAxesActor>::New();
+    }
+    if (_annotatedCubeActor == NULL) {
+        _annotatedCubeActor = vtkSmartPointer<vtkAnnotatedCubeActor>::New();
+    }
+    _renderer->AddViewProp(_axesActor);
 }
 
 /**
@@ -4598,6 +4611,26 @@ void Renderer::setCameraClippingPlanes()
 void Renderer::setUseTwoSidedLighting(bool state)
 {
     _renderer->SetTwoSidedLighting(state ? 1 : 0);
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Control parameters of depth peeling algorithm
+ * 
+ * \param occlusionRatio define the threshold under which the algorithm 
+ * stops to iterate over peel layers. This is the ratio of the number of 
+ * pixels that have been touched by the last layer over the total number 
+ * of pixels of the viewport area. Initial value is 0.0, meaning rendering 
+ * have to be exact. Greater values may speed-up the rendering with small 
+ * impact on the quality.
+ * \param maxPeels define the maximum number of peeling layers. Initial 
+ * value is 100. A special value of 0 means no maximum limit. It has to be 
+ * a positive value.
+ */
+void Renderer::setDepthPeelingParams(double occlusionRatio, int maxPeels)
+{
+    _renderer->SetOcclusionRatio(occlusionRatio);
+    _renderer->SetMaximumNumberOfPeels(maxPeels);
     _needsRedraw = true;
 }
 
