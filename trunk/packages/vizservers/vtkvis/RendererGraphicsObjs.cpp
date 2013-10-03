@@ -1532,6 +1532,7 @@ void Renderer::setGlyphsScalingMode(const DataSetId& id,
  * The choice of glyphs to display can be based on sampling every
  * n-th point (ratio) or by random sample
  *
+ * \param id DataSet ID
  * \param max Maximum number of glyphs to display, negative means display all
  * \param random Flag to enable/disable random sampling
  * \param offset If random is false, this controls the first sample point
