@@ -1388,7 +1388,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "volumeAmbient" {
             set val $_settings(volumeAmbient)
-            set _settings($_current-volumnAmbient) $val
+            set _settings($_current-volumeAmbient) $val
             set ambient [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading ambient $ambient $tag"
@@ -1404,7 +1404,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "volumeSpecularLevel" - "volumeSpecularExponent" {
             set val $_settings(volumeSpecularLevel)
-            set _settings($_current-volumnSpecularLevel) $val
+            set _settings($_current-volumeSpecularLevel) $val
             set level [expr {0.01*$val}]
             set exp $_settings(volumeSpecularExponent)
             foreach tag [GetDatasetsWithComponent $_current] {
