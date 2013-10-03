@@ -99,6 +99,13 @@ itcl::body Rappture::TransferFunctionEditor::absoluteValues {} {
 }
 
 itcl::body Rappture::TransferFunctionEditor::NewMarker { x y state } { 
+    foreach id [$_canvas find overlapping \
+                    [expr $x-5] [expr $y-5] [expr $x+5] [expr $y+5]] {
+	if { [info exists _id2name($id)] } {
+            puts stderr "Too close to existing marker"
+	    return;                     # Too close to existing marker
+	}
+    }
     set name "tick[incr _nextId]"
     set w [winfo width $_canvas]
     set h [winfo height $_canvas]
@@ -120,6 +127,9 @@ itcl::body Rappture::TransferFunctionEditor::NewMarker { x y state } {
 	[itcl::code $this StopDrag $name %x %y]
 
     SetRelativeValue $name [expr {double($x-10)/($w-20)}]
+    if { $state == "normal" } {
+        UpdateViewer
+    }
     return $name
 }
 

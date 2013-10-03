@@ -93,7 +93,6 @@ itcl::class Rappture::VtkVolumeViewer {
     protected method CurrentDatasets {args}
     protected method Disconnect {}
     protected method DoResize {}
-    protected method DoReseed {}
     protected method DoRotate {}
     protected method AdjustSetting {what {value ""}}
     protected method InitSettings { args  }
@@ -164,7 +163,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
-    private variable _reseedPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
     private variable _legendPending 0
@@ -196,10 +194,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Reseed event
-    $_dispatcher register !reseed
-    $_dispatcher dispatch $this !reseed "[itcl::code $this DoReseed]; list"
-
     # Rotate event
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
@@ -211,17 +205,17 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     # X-Cutplane event
     $_dispatcher register !xcutplane
     $_dispatcher dispatch $this !xcutplane \
-        "[itcl::code $this AdjustSetting cutplane-xposition]; list"
+        "[itcl::code $this AdjustSetting cutplanePositionX]; list"
 
     # Y-Cutplane event
     $_dispatcher register !ycutplane
     $_dispatcher dispatch $this !ycutplane \
-        "[itcl::code $this AdjustSetting cutplane-yposition]; list"
+        "[itcl::code $this AdjustSetting cutplanePositionY]; list"
 
     # Z-Cutplane event
     $_dispatcher register !zcutplane
     $_dispatcher dispatch $this !zcutplane \
-        "[itcl::code $this AdjustSetting cutplane-zposition]; list"
+        "[itcl::code $this AdjustSetting cutplanePositionZ]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -246,33 +240,33 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     $_arcball quaternion $q
 
     array set _settings {
-        axis-xgrid              0
-        axis-ygrid              0
-        axis-zgrid              0
         axesVisible             1
+        axisGridX               0
+        axisGridY               0
+        axisGridZ               0
         axisLabels              1
         cutplaneEdges           0
-        cutplane-xvisible       1
-        cutplane-yvisible       1
-        cutplane-zvisible       1
-        cutplane-xposition      50
-        cutplane-yposition      50
-        cutplane-zposition      50
-        cutplaneVisible         0
         cutplaneLighting        1
+        cutplaneOpacity         100
+        cutplaneVisible         0
+        cutplaneVisibleX        1
+        cutplaneVisibleY        1
+        cutplaneVisibleZ        1
         cutplaneWireframe       0
-        cutplane-opacity        100
-        volume-blendmode        composite
-        volumeLighting          1
-        volumeAmbient          40
-        volumeDiffuse          60
-        volumeThickness        350
-        volume-specularLevel    30
-        volume-specularExponent 90
-        volume-opacity          50
-        volume-quality          50
-        volumeVisible           1
+        cutplaneXPosition       50
+        cutplaneYPosition       50
+        cutplaneZPosition       50
         legendVisible           1
+        volumeAmbient           40
+        volumeBlendMode         composite
+        volumeDiffuse           60
+        volumeLighting          1
+        volumeOpacity           50
+        volumeQuality           50
+        volumeSpecularExponent  90
+        volumeSpecularLevel     30
+        volumeThickness         350
+        volumeVisible           1
     }
 
     itk_component add view {
@@ -850,6 +844,7 @@ itcl::body Rappture::VtkVolumeViewer::Connect {} {
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
     }
+    $_dispatcher event -idle !rebuild
     return $result
 }
 
@@ -867,7 +862,6 @@ itcl::body Rappture::VtkVolumeViewer::isconnected {} {
 #
 itcl::body Rappture::VtkVolumeViewer::disconnect {} {
     Disconnect
-    set _reset 1
 }
 
 #
@@ -881,7 +875,6 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
 
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !resize
-    $_dispatcher cancel !reseed
     $_dispatcher cancel !rotate
     $_dispatcher cancel !xcutplane
     $_dispatcher cancel !ycutplane
@@ -895,6 +888,16 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     array unset _seeds 
     array unset _dataset2style 
     array unset _obj2datasets 
+
+    array unset _cname2style
+    array unset _parsedFunction
+    array unset _cname2transferFunction
+
+    set _resizePending 0
+    set _rotatePending 0
+    set _cutplanePending 0
+    set _legendPending 0
+    set _reset 1
 }
 
 # ----------------------------------------------------------------------
@@ -1015,7 +1018,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             SendCmd "camera mode persp"
         }
         DoRotate
-        InitSettings axis-xgrid axis-ygrid axis-zgrid axisFlyMode \
+        InitSettings axisGridX axisGridY axisGridZ axisFlyMode \
             axesVisible axisLabels
         PanCamera
     }
@@ -1107,15 +1110,16 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     }
 
     InitSettings volumeColormap \
-        volumeAmbient volumeDiffuse volume-specularLevel volume-specularExponent \
-        volume-opacity volume-quality volumeVisible \
+        volumeAmbient volumeDiffuse volumeSpecularLevel volumeSpecularExponent \
+        volumeOpacity volumeQuality volumeVisible \
         cutplaneVisible \
-        cutplane-xposition cutplane-yposition cutplane-zposition \
-        cutplane-xvisible cutplane-yvisible cutplane-zvisible
+        cutplanePositionX cutplanePositionY cutplanePositionZ \
+        cutplaneVisibleX cutplaneVisibleY cutplaneVisibleZ
 
     if { $_reset } {
         InitSettings volumeLighting
-        Zoom reset
+        SendCmd "camera reset"
+        SendCmd "camera zoom $_view(zoom)"
         set _reset 0
     }
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1355,6 +1359,10 @@ itcl::body Rappture::VtkVolumeViewer::InitSettings { args } {
 #
 itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
+        if { $_reset } {
+            # Just reconnect if we've been reset.
+            Connect
+        }
         return
     }
     switch -- $what {
@@ -1371,10 +1379,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                     "Show the volume"
             }
         }
-        "volume-blendmode" {
+        "volumeBlendMode" {
             set val [$itk_component(blendmode) value]
             set mode [$itk_component(blendmode) translate $val]
-            set _settings(volume-blendmode) $mode
+            set _settings(volumeBlendMode) $mode
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume blendmode $mode $dataset"
             }
@@ -1393,10 +1401,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume shading diffuse $diffuse $dataset"
             }
         }
-        "volume-specularLevel" - "volume-specularExponent" {
-            set val $_settings(volume-specularLevel)
+        "volumeSpecularLevel" - "volumeSpecularExponent" {
+            set val $_settings(volumeSpecularLevel)
             set specularLevel [expr {0.01*$val}]
-            set specularExponent $_settings(volume-specularExponent)
+            set specularExponent $_settings(volumeSpecularExponent)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume shading specular $specularLevel $specularExponent $dataset"
             }
@@ -1407,15 +1415,15 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume lighting $bool $dataset"
             }
         }
-        "volume-opacity" {
-            set val $_settings(volume-opacity)
+        "volumeOpacity" {
+            set val $_settings(volumeOpacity)
             set val [expr {0.01*$val}]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume opacity $val $dataset"
             }
         }
-        "volume-quality" {
-            set val $_settings(volume-quality)
+        "volumeQuality" {
+            set val $_settings(volumeQuality)
             set val [expr {0.01*$val}]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume quality $val $dataset"
@@ -1429,8 +1437,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set bool $_settings(axisLabels)
             SendCmd "axis labels all $bool"
         }
-        "axis-xgrid" - "axis-ygrid" - "axis-zgrid" {
-            set axis [string range $what 5 5]
+        "axisGridX" - "axisGridY" - "axisGridZ" {
+            set axis [string tolower [string range $what end end]]
             set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
         }
@@ -1464,15 +1472,15 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "cutplane lighting $bool $dataset"
             }
         }
-        "cutplane-opacity" {
+        "cutplaneOpacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "cutplane opacity $sval $dataset"
             }
         }
-        "cutplane-xvisible" - "cutplane-yvisible" - "cutplane-zvisible" {
-            set axis [string range $what 9 9]
+        "cutplaneVisibleX" - "cutplaneVisibleY" - "cutplaneVisibleZ" {
+            set axis [string tolower [string range $what end end]]
             set bool $_settings($what)
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
@@ -1485,8 +1493,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "cutplane axis $axis $bool $dataset"
             }
         }
-        "cutplane-xposition" - "cutplane-yposition" - "cutplane-zposition" {
-            set axis [string range $what 9 9]
+        "cutplanePositionX" - "cutplanePositionY" - "cutplanePositionZ" {
+            set axis [string tolower [string range $what end end]]
             set pos [expr $_settings($what) * 0.01]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "cutplane slice ${axis} ${pos} $dataset"
@@ -1622,10 +1630,10 @@ itcl::body Rappture::VtkVolumeViewer::BuildColormap { name styles } {
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(volume-opacity)] } {
-        set _settings(volume-opacity) $style(-opacity)
+    if { ![info exists _settings(volumeOpacity)] } {
+        set _settings(volumeOpacity) $style(-opacity)
     }
-    set max $_settings(volume-opacity)
+    set max $_settings(volumeOpacity)
 
     set opaqueWmap "0.0 1.0 1.0 1.0"
     #set wmap "0.0 0.0 0.1 0.0 0.2 0.8 0.98 0.8 0.99 0.0 1.0 0.0"
@@ -1705,26 +1713,26 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.specularLevel_l -text "Specular" -font $font
     ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(volume-specularLevel)] \
-        -showvalue off -command [itcl::code $this AdjustSetting volume-specularLevel] \
+        -variable [itcl::scope _settings(volumeSpecularLevel)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volumeSpecularLevel] \
         -troughcolor grey92
 
     label $inner.specularExponent_l -text "Shininess" -font $font
     ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
-        -variable [itcl::scope _settings(volume-specularExponent)] \
-        -showvalue off -command [itcl::code $this AdjustSetting volume-specularExponent] \
+        -variable [itcl::scope _settings(volumeSpecularExponent)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volumeSpecularExponent] \
         -troughcolor grey92
 
     label $inner.opacity_l -text "Opacity" -font $font
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(volume-opacity)] \
-        -showvalue off -command [itcl::code $this AdjustSetting volume-opacity] \
+        -variable [itcl::scope _settings(volumeOpacity)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volumeOpacity] \
         -troughcolor grey92
 
     label $inner.quality_l -text "Quality" -font $font
     ::scale $inner.quality -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(volume-quality)] \
-        -showvalue off -command [itcl::code $this AdjustSetting volume-quality] \
+        -variable [itcl::scope _settings(volumeQuality)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volumeQuality] \
         -troughcolor grey92
 
     label $inner.field_l -text "Field" -font $font
@@ -1783,7 +1791,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     $itk_component(blendmode) value "composite"
     bind $inner.blendmode <<Value>> \
-        [itcl::code $this AdjustSetting volume-blendmode]
+        [itcl::code $this AdjustSetting volumeBlendMode]
 
     blt::table $inner \
         0,0 $inner.volcomponents_l -anchor e -cspan 2 \
@@ -1844,18 +1852,18 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
 
     checkbutton $inner.gridx \
         -text "Show X Grid" \
-        -variable [itcl::scope _settings(axis-xgrid)] \
-        -command [itcl::code $this AdjustSetting axis-xgrid] \
+        -variable [itcl::scope _settings(axisGridX)] \
+        -command [itcl::code $this AdjustSetting axisGridX] \
         -font "Arial 9"
     checkbutton $inner.gridy \
         -text "Show Y Grid" \
-        -variable [itcl::scope _settings(axis-ygrid)] \
-        -command [itcl::code $this AdjustSetting axis-ygrid] \
+        -variable [itcl::scope _settings(axisGridY)] \
+        -command [itcl::code $this AdjustSetting axisGridY] \
         -font "Arial 9"
     checkbutton $inner.gridz \
         -text "Show Z Grid" \
-        -variable [itcl::scope _settings(axis-zgrid)] \
-        -command [itcl::code $this AdjustSetting axis-zgrid] \
+        -variable [itcl::scope _settings(axisGridZ)] \
+        -command [itcl::code $this AdjustSetting axisGridZ] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1969,19 +1977,19 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(cutplane-opacity)] \
+        -variable [itcl::scope _settings(cutplaneOpacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting cutplane-opacity]
-    $inner.opacity set $_settings(cutplane-opacity)
+        -command [itcl::code $this AdjustSetting cutplaneOpacity]
+    $inner.opacity set $_settings(cutplaneOpacity)
 
     # X-value slicer...
     itk_component add xCutButton {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane] \
             -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this AdjustSetting cutplane-xvisible] \
-            -variable [itcl::scope _settings(cutplane-xvisible)]
+            -command [itcl::code $this AdjustSetting cutplaneVisibleX] \
+            -variable [itcl::scope _settings(cutplaneVisibleX)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X-axis cutplane on/off"
@@ -1992,7 +2000,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
-            -variable [itcl::scope _settings(cutplane-xposition)]
+            -variable [itcl::scope _settings(cutplanePositionX)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -2008,8 +2016,8 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane] \
             -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this AdjustSetting cutplane-yvisible] \
-            -variable [itcl::scope _settings(cutplane-yvisible)]
+            -command [itcl::code $this AdjustSetting cutplaneVisibleY] \
+            -variable [itcl::scope _settings(cutplaneVisibleY)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y-axis cutplane on/off"
@@ -2020,7 +2028,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
-            -variable [itcl::scope _settings(cutplane-yposition)]
+            -variable [itcl::scope _settings(cutplanePositionY)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -2036,8 +2044,8 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane] \
             -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this AdjustSetting cutplane-zvisible] \
-            -variable [itcl::scope _settings(cutplane-zvisible)]
+            -command [itcl::code $this AdjustSetting cutplaneVisibleZ] \
+            -variable [itcl::scope _settings(cutplaneVisibleZ)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z-axis cutplane on/off"
@@ -2048,7 +2056,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
-            -variable [itcl::scope _settings(cutplane-zposition)]
+            -variable [itcl::scope _settings(cutplanePositionZ)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -2223,7 +2231,7 @@ itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title vmin vmax size } {
     set _legendPending 0
-    if { [IsConnected] } {
+    if { [isconnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
             set _image(legend) [image create photo]
@@ -2642,6 +2650,7 @@ itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
     set cmap [GetColormap $cname $color]
     set _cname2transferFunction($cname) [list $cmap $wmap]
     SendCmd [list colormap add $cname $cmap $wmap]
+    SendCmd [list cutplane colormap $cname]
     EventuallyRequestLegend
 }
 
