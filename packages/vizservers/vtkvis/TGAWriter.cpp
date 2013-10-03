@@ -72,8 +72,7 @@ VtkVis::queueTGA(ResponseQueue *queue, const char *cmdName,
     }
     memcpy(mesg, command, cmdLength);
     memcpy(mesg + cmdLength, header, headerLength);
-    memcpy(mesg + cmdLength + headerLength, 
-           const_cast<unsigned char *>(data), dataLength);
+    memcpy(mesg + cmdLength + headerLength, data, dataLength);
 
     Response *response = NULL;
     if (strncmp(cmdName, "nv>legend", 9) == 0) {
@@ -138,7 +137,7 @@ VtkVis::writeTGA(int fd, const char *cmdName,
     iov[1].iov_base = header;
     iov[1].iov_len = headerLength;
     // Image data **must be BGR(A)!**
-    iov[2].iov_base = const_cast<unsigned char *>(data);
+    iov[2].iov_base = data;
     iov[2].iov_len = dataLength;
 
     if (writev(fd, iov, nRecs) < 0) {
