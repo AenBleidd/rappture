@@ -101,6 +101,8 @@ void Image::update()
     }
 
     mapper->Update();
+
+    TRACE("Window: %g Level: %g", getWindow(), getLevel());
 }
 
 void Image::setColor(float color[3])

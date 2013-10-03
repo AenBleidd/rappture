@@ -83,6 +83,15 @@ public:
               actor->GetZSlice(), actor->GetWholeZMin(), actor->GetWholeZMax());
     }
 
+    double getWindow()
+    {
+        vtkImageProperty *property = getImageProperty();
+        if (property == NULL)
+            return 0.0;
+
+        return property->GetColorWindow();
+    }
+
     void setWindow(double window)
     {
         vtkImageProperty *property = getImageProperty();
@@ -90,6 +99,15 @@ public:
             return;
 
         property->SetColorWindow(window);
+    }
+
+    double getLevel()
+    {
+        vtkImageProperty *property = getImageProperty();
+        if (property == NULL)
+            return 0.0;
+
+        return property->GetColorLevel();
     }
 
     void setLevel(double level)
