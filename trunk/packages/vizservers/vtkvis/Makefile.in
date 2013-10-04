@@ -117,7 +117,7 @@ endif
 ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
 endif
-VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="5(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeFontConfig,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
+VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingFreeType_AUTOINIT="1(vtkRenderingFreeTypeFontConfig)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
 DEFINES         += -DUSE_VTK6 $(VTK_MOD_DEFS)
 ifdef NEW_SCALAR_BAR
 DEFINES		+= -DNEW_SCALAR_BAR
