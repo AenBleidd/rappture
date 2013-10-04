@@ -111,7 +111,7 @@ itcl::configbody Rappture::Animicon::images {
     set restart [isrunning]
     stop
 
-    catch {unset _frames}
+    array unset _frames
     if {[llength $itk_option(-images)] >= 1} {
         set w 0
         set h 0
