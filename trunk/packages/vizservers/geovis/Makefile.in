@@ -1,0 +1,136 @@
+DEBUG			= #yes
+TRACE			= #yes
+USE_OFFSCREEN_RENDERING	= #yes
+USE_THREADS		= yes
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+CC		= @CC@
+CXX		= @CXX@
+CFLAGS		= @CFLAGS@
+CXXFLAGS	= @CXXFLAGS@
+
+VPATH           = $(srcdir)
+
+INSTALL         = @INSTALL@
+INSTALL_PROGRAM = ${INSTALL} -m 0755
+INSTALL_DATA    = ${INSTALL} -m 0644
+INSTALL_SCRIPT  = ${INSTALL} -m 0644
+MKDIR_P		= @MKDIR_P@
+
+SVN_VERSION	= $(shell svnversion $(srcdir))
+STATSDIR	= @STATSDIR@
+
+GL_LIB_SPEC	= -lGL -lm
+PTHREAD_LIB_SPEC= -lpthread
+
+TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+TCL_INC_SPEC    = @TCL_INC_SPEC@
+
+OSG_LIB_DIR	= @OSG_LIB_DIR@
+OSG_INC_SPEC	= @OSG_INC_SPEC@
+OSG_LIB_SPEC    = \
+		-losg \
+		-losgDB \
+		-losgViewer
+
+LD_RUN_PATH	= $(libdir)
+
+LIBS		= \
+		$(TCL_LIB_SPEC) \
+		$(OSG_LIB_SPEC) \
+		$(GL_LIB_SPEC) \
+		$(PTHREAD_LIB_SPEC) \
+		-Wl,-rpath,$(LD_RUN_PATH) \
+		-Wl,--enable-new-dtags
+
+INCLUDES	= \
+		-I$(srcdir) \
+		$(TCL_INC_SPEC) \
+		$(OSG_INC_SPEC)
+
+#vtk uses deprecated strstream header (instead of sstream)
+EXTRA_CXXFLAGS	= -Wall -Wno-deprecated
+EXTRA_CFLAGS	= -Wall
+DEFINES		= -DSVN_VERSION=\"$(SVN_VERSION)\" -DSTATSDIR=\"$(STATSDIR)\"
+ifdef DEBUG
+DEFINES 	+= -DDEBUG
+CXXFLAGS	= -O0 -g
+endif
+ifdef TRACE
+DEFINES		+= -DWANT_TRACE
+endif
+ifdef USE_OFFSCREEN_RENDERING
+DEFINES         += -DUSE_OFFSCREEN_RENDERING
+endif
+ifdef USE_THREADS
+DEFINES         += -DUSE_THREADS
+endif
+
+CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(DEFINES) $(INCLUDES)
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+
+SERVER_SRCS	= \
+		CmdProc.cpp \
+		PPMWriter.cpp \
+		ReadBuffer.cpp \
+		Renderer.cpp \
+		RendererCmd.cpp \
+		RenderServer.cpp \
+		TGAWriter.cpp \
+		Trace.cpp
+
+ifdef USE_THREADS
+SERVER_SRCS+=ResponseQueue.cpp
+endif
+
+SERVER_OBJS=$(SERVER_SRCS:.cpp=.o)
+SERVER_OBJS+= md5.o
+SERVER=geovis
+
+.PHONY: all docs install clean clean-docs distclean
+
+all: $(SERVER)
+
+docs:
+	$(MKDIR_P) -m 0755 docs/doxygen
+	doxygen
+
+$(SERVER): $(SERVER_OBJS)
+	$(CXX) -o $@ $(SERVER_OBJS) $(LIBS)
+
+install: all
+	$(INSTALL_PROGRAM) $(SERVER) $(bindir)
+
+%.o: %.cpp
+	$(CXX) $(CXX_SWITCHES) -c $< -o $@
+
+%.o: %.c
+	$(CC) $(CC_SWITCHES) -c $< -o $@
+
+clean:
+	$(RM) *~ *.o $(SERVER)
+
+clean-docs:
+	$(RM) -r docs
+
+distclean: clean clean-docs
+	$(RM) Makefile Doxyfile
+
+CmdProc.o: CmdProc.h
+md5.o: md5.h
+PPMWriter.o: PPMWriter.h ResponseQueue.h Trace.h
+ReadBuffer.o: ReadBuffer.h Trace.h
+Renderer.o: Renderer.h Trace.h
+RendererCmd.o: Renderer.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RenderServer.o: RenderServer.h RendererCmd.h Renderer.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
+ResponseQueue.o: ResponseQueue.h Trace.h
+Trace.o: Trace.h
