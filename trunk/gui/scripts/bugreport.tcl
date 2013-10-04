@@ -145,9 +145,12 @@ proc Rappture::bugreport::activate {err} {
 
     set w [winfo reqwidth .bugreport]
     set h [winfo reqheight .bugreport]
-    set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
+    set rootx [winfo rootx .]
+    set rooty [winfo rooty .]
+
+   set x [expr {($rootx-$w)/2}]
     if {$x < 0} {set x 0}
-    set y [expr {([winfo screenheight .bugreport]-$h)/2}]
+    set y [expr {($rooty-$h)/2}]
     if {$y < 0} {set y 0}
 
     wm geometry .bugreport +$x+$y
