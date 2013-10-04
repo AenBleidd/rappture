@@ -561,6 +561,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
                 set vector [set ${axis}v]
                 set _limits($axis) [$vector limits]
 	    }
+            set _limits(z) [list 0 0]
             $zv seq 0 0 [$xv length]
             $all merge $xv $yv $zv
 	    append out "DATASET STRUCTURED_GRID\n"
@@ -588,6 +589,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    foreach axis {x y} {
 		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
 	    }
+            set _limits(z) [list 0 0]
 	} elseif { $_dim == 3 } {
 	    set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
 	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]

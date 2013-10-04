@@ -1669,10 +1669,12 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
 	incr _counter
 	array unset _comp2limits $cname
-	lappend _comp2limits($cname) x [$mesh limits x]
-	lappend _comp2limits($cname) y [$mesh limits y]
+        foreach axis { x y z } {
+            lappend _comp2limits($cname) $axis [$mesh limits $axis]
+        }
 	lappend _comp2limits($cname) $cname [$v limits]
 	lappend _comp2limits($cname) v [$v limits]
+	lappend _comp2limits($cname) z [$v limits]
 	return 1
     } 
     if {$_dim == 3} {
@@ -1693,9 +1695,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
                 [Rappture::FlowHints ::\#auto $_field $cname $_units]
         }
         incr _counter
-        lappend _comp2limits($cname) x [$mesh limits x]
-        lappend _comp2limits($cname) y [$mesh limits y]
-        lappend _comp2limits($cname) z [$mesh limits z]
+        foreach axis { x y z } {
+            lappend _comp2limits($cname) $axis [$mesh limits $axis]
+        }
         lappend _comp2limits($cname) $cname [$v limits]
         lappend _comp2limits($cname) v [$v limits]
 	return 1
