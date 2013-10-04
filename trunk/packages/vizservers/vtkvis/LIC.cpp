@@ -318,13 +318,6 @@ void LIC::update()
     getActor()->SetMapper(_mapper);
 
     _mapper->Update();
-#ifdef WANT_TRACE
-    if (_lic != NULL) {
-        TRACE("FBO status: %d LIC status: %d", _lic->GetFBOSuccess(), _lic->GetLICSuccess());
-    } else if (_painter != NULL) {
-        TRACE("LIC status: %d", _painter->GetLICSuccess());
-    }
-#endif
 }
 
 void LIC::setInterpolateBeforeMapping(bool state)
