@@ -31,23 +31,25 @@ itcl::class Rappture::Curve {
     }
 
     public method components {{pattern *}}
-    public method mesh {{what -overall}}
-    public method values {{what -overall}}
+    public method mesh {cname }
+    public method values { cname }
     public method limits {which}
     public method hints {{key ""}}
     public method xmarkers {}
     public method ymarkers {}
+    public method xErrorValues { cname }
+    public method yErrorValues { cname}
 
     protected method _build {}
 
-    private variable _xmlobj ""  ;# ref to lib obj with curve data
-    private variable _curve ""   ;# lib obj representing this curve
-    private variable _comp2xy    ;# maps component name => x,y vectors
-    private variable _hints      ;# cache of hints stored in XML
+    private variable _xmlobj ""  ;      # ref to lib obj with curve data
+    private variable _curve ""   ;      # lib obj representing this curve
+    private variable _comp2xy    ;      # maps component name => x,y vectors
+    private variable _hints      ;      # cache of hints stored in XML
 
-    private variable _xmarkers "";# list of {x,label,options} triplets.
-    private variable _ymarkers "";# list of {y,label,options} triplets.
-    private common _counter 0    ;# counter for unique vector names
+    private variable _xmarkers "";      # list of {x,label,options} triplets.
+    private variable _ymarkers "";      # list of {y,label,options} triplets.
+    private common _counter 0    ;      # counter for unique vector names
 }
 
 # ----------------------------------------------------------------------
@@ -59,7 +61,6 @@ itcl::body Rappture::Curve::constructor {xmlobj path} {
     }
     set _xmlobj $xmlobj
     set _curve [$xmlobj element -as object $path]
-
     # build up vectors for various components of the curve
     _build
 }
@@ -100,11 +101,11 @@ itcl::body Rappture::Curve::components {{pattern *}} {
 # If the name is not specified, then it returns the vectors for the
 # overall curve (sum of all components).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Curve::mesh {{what -overall}} {
-    if {[info exists _comp2xy($what)]} {
-        return [lindex $_comp2xy($what) 0]  ;# return xv
+itcl::body Rappture::Curve::mesh {cname} {
+    if {[info exists _comp2xy($cname)]} {
+        return [lindex $_comp2xy($cname) 0]  ;# return xv
     }
-    error "bad option \"$what\": should be [join [lsort [array names _comp2xy]] {, }]"
+    error "bad component \"$cname\": should be one of [join [lsort [array names _comp2xy]] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -114,11 +115,39 @@ itcl::body Rappture::Curve::mesh {{what -overall}} {
 # If the name is not specified, then it returns the vectors for the
 # overall curve (sum of all components).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Curve::values {{what -overall}} {
-    if {[info exists _comp2xy($what)]} {
-        return [lindex $_comp2xy($what) 1]  ;# return yv
+itcl::body Rappture::Curve::values {cname} {
+    if {[info exists _comp2xy($cname)]} {
+        return [lindex $_comp2xy($cname) 1]  ;# return yv
     }
-    error "bad option \"$what\": should be [join [lsort [array names _comp2xy]] {, }]"
+    error "bad component \"$cname\": should be one of [join [lsort [array names _comp2xy]] {, }]"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: xErrorValues <name>
+#
+# Returns the xvec for the specified curve component <name>.
+# If the name is not specified, then it returns the vectors for the
+# overall curve (sum of all components).
+# ----------------------------------------------------------------------
+itcl::body Rappture::Curve::xErrorValues { cname } {
+    if {[info exists _comp2xy($cname)]} {
+        return [lindex $_comp2xy($cname) 2]  ;# return xev
+    }
+    error "unknown component \"$cname\": should be one of [join [lsort [array names _comp2xy]] {, }]"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: yErrorValues <name>
+#
+# Returns the xvec for the specified curve component <name>.
+# If the name is not specified, then it returns the vectors for the
+# overall curve (sum of all components).
+# ----------------------------------------------------------------------
+itcl::body Rappture::Curve::yErrorValues { cname } {
+    if {[info exists _comp2xy($cname)]} {
+        return [lindex $_comp2xy($cname) 3]  ;# return yev
+    }
+    error "unknown component \"$cname\": should be one of [join [lsort [array names _comp2xy]] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -271,6 +300,8 @@ itcl::body Rappture::Curve::_build {} {
     foreach cname [$_curve children -type component] {
         set xv [blt::vector create \#auto]
         set yv [blt::vector create \#auto]
+        set xev [blt::vector create \#auto]
+        set yev [blt::vector create \#auto]
 
         set xydata [$_curve get $cname.xy]
         if { "" != $xydata} {
@@ -282,16 +313,19 @@ itcl::body Rappture::Curve::_build {} {
             $xv set [$_curve get $cname.xvector]
             $yv set [$_curve get $cname.yvector]
         }
-        if { (([$xv length] == 0) && ([$yv length] == 0))
-            || ([$xv length] != [$yv length]) } {
+        if { (([$xv length] == 0) && ([$yv length] == 0)) || 
+             ([$xv length] != [$yv length]) } {
             # FIXME: need to show an error about improper data.
             blt::vector destroy $xv $yv
             set xv ""; set yv ""
-        } else {
-            set _comp2xy($cname) [list $xv $yv]
-            incr _counter
+            continue;
         }
+        $xev set [$_curve get "$cname.xerrorbars"] 
+        $yev set [$_curve get "$cname.yerrorbars"] 
+        set _comp2xy($cname) [list $xv $yv $xev $yev]
+        incr _counter
     }
+
     # Creates lists of x and y marker data.
     set _xmarkers {}
     set _ymarkers {}
