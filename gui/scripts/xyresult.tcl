@@ -275,20 +275,21 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         }
     }
     set type [$dataobj hints type]
+    
     foreach cname [$dataobj components] {
         set tag $dataobj-$cname
         set elem $_comp2elem($tag) 
         switch -- $type {
             "bar" {
                 $g bar configure $elem -foreground $color -background $color \
-                    -hide no
+                    -hide no 
             } 
             "scatter" {
-                $g line configure $elem -color $color -hide no
+                $g line configure $elem -color $color -hide no 
             }
             default {
                 $g line configure $elem -color $color -hide no \
-                    -linewidth $linewidth
+                    -linewidth $linewidth 
             }
         }
         if { [lsearch $_viewable $elem] < 0 } {
@@ -522,9 +523,9 @@ itcl::body Rappture::XyResult::BuildMarkers { dataobj elem } {
         set id [$g marker create line -coords [list $xmin $at $xmax $at]]
         $g marker configure $id -element $elem
         $g marker bind $id <Enter> \
-            [itcl::code $this EnterMarker $g y-$label $at $xmin $at]
+            [itcl::code $this EnterMarker $g $label $at $xmin $at]
         $g marker bind $id <Leave> \
-            [itcl::code $this LeaveMarker $g y-$label]
+            [itcl::code $this LeaveMarker $g $label]
         set options [GetLineMarkerOptions $style]
         if { $options != "" } {
             eval $g marker configure $id $options
@@ -643,14 +644,8 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
             # for dealing with xy line plots
             set elem $info(name)
 
-            # Some elements are generated dynamically and therefore will
-            # not have a data object associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2comp($elem)]} {
-                foreach {dataobj cname} [split $_elem2comp($elem) -] break
-                foreach {mapx mapy} [GetAxes $dataobj] break
-            }
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
@@ -660,7 +655,6 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
 
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
-                
                 if {[info exists _elem2comp($elem)]} {
                     foreach {dataobj cname} [split $_elem2comp($elem) -] break
                     set yunits [$dataobj hints yunits]
@@ -681,14 +675,8 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
             # for dealing with xy scatter plot
             set elem $info(name)
 
-            # Some elements are generated dynamically and therefore will
-            # not have a data object associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2comp($elem)]} {
-                foreach {dataobj cname} [split $_elem2comp($elem) -] break
-                foreach {mapx mapy} [GetAxes $dataobj] break
-            }
 
             set tip ""
             set x [$g axis transform $mapx $info(x)]
@@ -1039,32 +1027,19 @@ itcl::body Rappture::XyResult::GetTextMarkerOptions {style} {
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::GetAxes {dataobj} {
-    # rebuild if needed, so we know about the axes
-    if 0 {
-        # Don't do this. Given dataobj may be deleted in the rebuild
-
-        # rebuild if needed, so we know about the axes
-        if {[$_dispatcher ispending !rebuild]} {
-            $_dispatcher cancel !rebuild
-            $_dispatcher event -now !rebuild
-        }
-    }
-    # what is the x axis?  x? x2? x3? ...
     set xlabel [$dataobj hints xlabel]
-    if {[info exists _label2axis(x-$xlabel)]} {
-        set mapx $_label2axis(x-$xlabel)
+    if {[info exists _label2axis($xlabel)]} {
+        set mapx $_label2axis($xlabel)
     } else {
         set mapx "x"
     }
 
-    # what is the y axis?  y? y2? y3? ...
     set ylabel [$dataobj hints ylabel]
-    if {[info exists _label2axis(y-$ylabel)]} {
-        set mapy $_label2axis(y-$ylabel)
+    if {[info exists _label2axis($ylabel)]} {
+        set mapy $_label2axis($ylabel)
     } else {
         set mapy "y"
     }
-
     return [list $mapx $mapy]
 }
 
@@ -1615,7 +1590,6 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
         set tag $dataobj-$cname
         set xv [$dataobj mesh $cname]
         set yv [$dataobj values $cname]
-
         set xev [$dataobj xErrorValues $cname]
         set yev [$dataobj yErrorValues $cname]
         if {([$xv length] <= 1) || ($linewidth == 0)} {
@@ -1669,6 +1643,8 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -xerror $xev -yerror $yev
                 }
             }
+        } else {
+            $g element configure $_comp2elem($tag) -mapx $mapx -mapy $mapy
         }
-    }
+    } 
 }
