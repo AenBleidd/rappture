@@ -85,14 +85,18 @@ proc Rappture::bugreport::activate {err} {
         update idletasks
         set w [winfo reqwidth .bugreport]
         set h [winfo reqheight .bugreport]
-        #gah@purdue: temporary hack to force view of dismiss button
-        incr h 300
-        set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
-        if {$x < 0} {set x "+0"} else {set x "+$x"}
-        set y [expr {([winfo screenheight .bugreport]-$h)/2}]
-        if {$y < 0} {set y "-0"} else {set y "+$y"}
 
-        wm geometry .bugreport $x$y
+        set rootx [winfo rootx .main]
+        set rooty [winfo rooty .main]
+        set mw [winfo reqwidth .main]
+        set mh [winfo reqheight .main]
+        
+        set x [expr { $rootx + (($mw-$w)/2) }]
+        if {$x < 0} {set x 0}
+        set y [expr { $rooty + (($mh-$h)/2) }]
+        if {$y < 0} {set y 0}
+        
+        wm geometry .bugreport +$x+$y
         raise .bugreport
         return
     }
@@ -145,12 +149,15 @@ proc Rappture::bugreport::activate {err} {
 
     set w [winfo reqwidth .bugreport]
     set h [winfo reqheight .bugreport]
-    set rootx [winfo rootx .]
-    set rooty [winfo rooty .]
 
-   set x [expr {($rootx-$w)/2}]
+    set rootx [winfo rootx .main]
+    set rooty [winfo rooty .main]
+    set mw [winfo reqwidth .main]
+    set mh [winfo reqheight .main]
+
+    set x [expr { $rootx + (($mw-$w)/2) }]
     if {$x < 0} {set x 0}
-    set y [expr {($rooty-$h)/2}]
+    set y [expr { $rooty + (($mh-$h)/2) }]
     if {$y < 0} {set y 0}
 
     wm geometry .bugreport +$x+$y
