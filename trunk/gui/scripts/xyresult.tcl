@@ -172,8 +172,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     set f [$itk_component(main) component frame]
     itk_component add plot {
         blt::graph $f.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 4 \
-            -rightmargin 10
+            -highlightthickness 0 -plotpadx 0 -plotpady 4 
     } {
         keep -background -foreground -cursor -font
     }
@@ -738,7 +737,7 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
         }
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
-            lappend allx x  ;# fix main x-axis too
+            lappend allx x  ;           # fix main x-axis too
             foreach axis $allx {
                 if {$axis == $mapx} {
                     $g axis configure $axis -color $itk_option(-foreground) \
@@ -751,7 +750,7 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
         }
         set ally [$g y2axis use]
         if {[llength $ally] > 0} {
-            lappend ally y  ;# fix main y-axis too
+            lappend ally y  ;           # fix main y-axis too
             foreach axis $ally {
                 if {$axis == $mapy} {
                     $g axis configure $axis -color $itk_option(-foreground) \
@@ -762,7 +761,6 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
                 }
             }
         }
-
         if {"" != $tip} {
             $g crosshairs configure -hide no -position @$x,$y
 
@@ -1516,7 +1514,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
                     }
                 }
                 $g axis configure $axisName -title $label -hide no \
-                    -checklimits no
+                    -checklimits no -showticks yes
                 set _label2axis($label) $axisName
                 
                 # If this axis has a description, add it as a tooltip
@@ -1525,7 +1523,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
             }
         }
     } 
-    # Next set the axes based on what we've found.
+    # Next, set the axes based on what we've found.
     foreach label [array names _label2axis] {
         set logscale [info exists _limits(${label}-log)] 
         set amin ""
@@ -1618,6 +1616,8 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
         set xv [$dataobj mesh $cname]
         set yv [$dataobj values $cname]
 
+        set xev [$dataobj xErrorValues $cname]
+        set yev [$dataobj yErrorValues $cname]
         if {([$xv length] <= 1) || ($linewidth == 0)} {
             set sym square
             set pixels 2
@@ -1642,7 +1642,8 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -dashes $dashes \
                         -mapx $mapx \
                         -mapy $mapy \
-                        -hide yes 
+                        -hide yes \
+                        -xerror $xev -yerror $yev
                 } 
                 "scatter" {                
                     $g line create $elem \
@@ -1654,7 +1655,8 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -dashes $dashes \
                         -mapx $mapx \
                         -mapy $mapy \
-                        -hide yes 
+                        -hide yes \
+                        -xerror $xev -yerror $yev
                 } 
                 "bar" {
                     $g bar create $elem \
@@ -1663,32 +1665,9 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -label $label \
                         -mapx $mapx \
                         -mapy $mapy \
-                        -hide yes
+                        -hide yes \
+                        -xerror $xev -yerror $yev
                 }
-            }
-        } else {
-            if 0 {
-            set elem $_comp2elem($tag)
-            switch -- $type {
-                "scatter" {
-                    $g line configure $elem \
-                        -symbol $sym \
-                        -pixels $pixels \
-                        -linewidth 0 
-                } 
-                "line" {
-                    $g line configure $elem \
-                        -symbol $sym \
-                        -pixels $pixels \
-                        -linewidth $linewidth \
-                        -dashes $dashes 
-                } 
-                "bar" {
-                    $g bar configure $elem \
-                        -barwidth $barwidth \
-                        -label $label 
-                }
-            }
             }
         }
     }
