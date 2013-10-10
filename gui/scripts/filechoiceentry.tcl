@@ -237,7 +237,6 @@ itcl::body Rappture::FileChoiceEntry::Rebuild {} {
 # Sends a <<Value>> event to notify clients of the change.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FileChoiceEntry::NewValue {} {
-    puts stderr "new value in FileChoiceEntry"
     event generate $itk_component(hull) <<Value>>
 }
 
