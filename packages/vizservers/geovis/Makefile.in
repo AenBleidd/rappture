@@ -39,16 +39,18 @@ TCL_INC_SPEC    = @TCL_INC_SPEC@
 OSG_LIB_DIR	= 
 OSG_INC_SPEC	= 
 OSG_LIB_SPEC    = \
-		-losg \
 		-losgDB \
 		-losgViewer \
+		-losg \
 		-lOpenThreads
 
 OSGEARTH_LIB_DIR  =
 OSGEARTH_INC_SPEC =
 OSGEARTH_LIB_SPEC = \
-		  -losgEarth \
-		  -losgEarthUtil
+		  -losgEarthFeatures \
+		  -losgEarthSymbology \
+		  -losgEarthUtil \
+		  -losgEarth
 
 LD_RUN_PATH	= $(libdir)
 

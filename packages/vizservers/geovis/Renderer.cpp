@@ -20,6 +20,8 @@
 #include <osgEarth/MapNode>
 #include <osgEarth/TerrainLayer>
 #include <osgEarth/ImageLayer>
+#include <osgEarth/ElevationLayer>
+#include <osgEarth/ModelLayer>
 #include <osgEarthUtil/EarthManipulator>
 
 #include "Renderer.h"
@@ -97,7 +99,7 @@ void Renderer::removeImageLayer(const char *name)
     _map->removeImageLayer(layer);
 }
 
-void Renderer::moveImageLayer(const char *name, int pos)
+void Renderer::moveImageLayer(const char *name, unsigned int pos)
 {
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     _map->moveImageLayer(layer, pos);
@@ -114,6 +116,46 @@ void Renderer::setImageLayerVisibility(const char *name, bool state)
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 4, 0)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     layer->setVisible(state);
+#endif
+}
+
+void Renderer::addElevationLayer(const char *name, const osgEarth::TileSourceOptions& opts)
+{
+    osgEarth::ElevationLayerOptions layerOpts(name, opts);
+    _map->addElevationLayer(new osgEarth::ElevationLayer(layerOpts));
+}
+
+void Renderer::removeElevationLayer(const char *name)
+{
+    osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
+    _map->removeElevationLayer(layer);
+}
+
+void Renderer::moveElevationLayer(const char *name, unsigned int pos)
+{
+    osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
+    _map->moveElevationLayer(layer, pos);
+}
+
+void Renderer::addModelLayer(const char *name, const osgEarth::ModelSourceOptions& opts)
+{
+    osgEarth::ModelLayerOptions layerOpts(name, opts);
+    _map->addModelLayer(new osgEarth::ModelLayer(layerOpts));
+}
+
+void Renderer::removeModelLayer(const char *name)
+{
+#if 1
+    osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
+    _map->removeModelLayer(layer);
+#endif
+}
+
+void Renderer::moveModelLayer(const char *name, unsigned int pos)
+{
+#if 1
+    osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
+    _map->moveModelLayer(layer, pos);
 #endif
 }
 
