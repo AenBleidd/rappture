@@ -176,6 +176,21 @@ CameraResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraRotateOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double x, y;
+
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->rotateCamera(x, y);
+    return TCL_OK;
+}
+
+static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -190,9 +205,10 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
-    {"orient", 3, CameraOrientOp, 6, 6, "qw qx qy qz"},
+    {"orient", 1, CameraOrientOp, 6, 6, "qw qx qy qz"},
     {"pan",    1, CameraPanOp, 4, 4, "panX panY"},
     {"reset",  2, CameraResetOp, 2, 3, "?all?"},
+    {"rotate", 2, CameraRotateOp, 4, 4, "azimuth elevation"},
     {"zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
@@ -295,6 +311,14 @@ ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+RendererLoadOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    g_renderer->loadEarthFile(Tcl_GetString(objv[2]));
+    return TCL_OK;
+}
+
+static int
 RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -303,7 +327,8 @@ RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec rendererOps[] = {
-    {"render",     1, RendererRenderOp, 2, 2, ""}
+    {"load",       1, RendererLoadOp, 3, 3, "path"},
+    {"render",     1, RendererRenderOp, 2, 2, ""},
 };
 static int nRendererOps = NumCmdSpecs(rendererOps);
 
