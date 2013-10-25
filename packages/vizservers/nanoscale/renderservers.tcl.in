@@ -4,7 +4,17 @@ set bindir "@bindir@"
 set libdir "@libdir@"
 set vtkdir "@VTK_LIB_DIR@"
 
+# GeoVis server --
+#     Map renderer
+#
+register_server geovis 2030 {
+    ${bindir}/geovis
+} {
+    LD_LIBRARY_PATH ${libdir}
+}
+
 # NanoVis server --
+#     Volume renderer
 #
 register_server nanovis 2000 {
     ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
@@ -12,26 +22,9 @@ register_server nanovis 2000 {
     LD_LIBRARY_PATH ${libdir}
 }
 
-# NanoVis server --
-#
-register_server nanovis-test 2015 {
-    ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
-} {
-    LD_LIBRARY_PATH ${libdir}
-}
-
-# VtkVis server --
-#    3D drawings (scene graphs), Contour and surface graphs.
-#
-register_server vtkvis 2010 {
-    ${bindir}/vtkvis
-} {
-    LD_LIBRARY_PATH ${libdir}:${vtkdir}
-}
-
 # Pymol server --
-#    Molecular layouts from PDB description.  
-#    Need PYMOL_SITE_PATH only for parallelpiped box.py location.
+#     Molecular layouts from PDB description.  
+#     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
 register_server pymol 2019 {
     ${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0
@@ -42,12 +35,21 @@ register_server pymol 2019 {
 
 #
 # Pymol server (threaded version of proxy) --
-#    Molecular layouts from PDB description.  
-#    Need PYMOL_SITE_PATH only for parallelpiped box.py location.
+#     Molecular layouts from PDB description.  
+#     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
 register_server pymol-threaded 2020 {
     ${bindir}/pymolproxy2 ${bindir}/pymol -p -q -i -x -X 0 -Y 0
 } {
     PYMOL_SITE_PATH ${libdir}/pymol
     LD_LIBRARY_PATH ${libdir}
+}
+
+# VtkVis server --
+#    VTK-based renderer
+#
+register_server vtkvis 2010 {
+    ${bindir}/vtkvis
+} {
+    LD_LIBRARY_PATH ${libdir}:${vtkdir}
 }
