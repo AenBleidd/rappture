@@ -16,6 +16,12 @@
 #include <sys/time.h>
 #endif
 
+#include <osgEarth/Version>
+#include <osgEarth/MapNode>
+#include <osgEarth/TerrainLayer>
+#include <osgEarth/ImageLayer>
+#include <osgEarthUtil/EarthManipulator>
+
 #include "Renderer.h"
 #include "Trace.h"
 
@@ -34,9 +40,24 @@ Renderer::Renderer() :
     _bgColor[1] = 0;
     _bgColor[2] = 0;
     _viewer = new osgViewer::Viewer();
-    _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
+    _viewer->setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
+    _viewer->getDatabasePager()->setUnrefImageDataAfterApplyPolicy(false, false);
+    _viewer->setReleaseContextAtEndOfFrameHint(false);
     setBackgroundColor(_bgColor);
+    _captureCallback = new ScreenCaptureCallback();
+    _viewer->getCamera()->setPostDrawCallback(_captureCallback.get());
+    _sceneRoot = new osg::Node;
+    _viewer->setSceneData(_sceneRoot.get());
+    _manipulator = new osgEarth::Util::EarthManipulator;
+    _viewer->setCameraManipulator(_manipulator);
+    _viewer->getCamera()->setNearFarRatio(0.00002);
+    _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
+    _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
     _viewer->realize();
+    if (_viewer->getViewerStats() != NULL) {
+        TRACE("Enabling stats");
+        _viewer->getViewerStats()->collectStats("scene", true);
+    }
 }
 
 Renderer::~Renderer()
@@ -44,6 +65,56 @@ Renderer::~Renderer()
     TRACE("Enter");
 
     TRACE("Leave");
+}
+
+void Renderer::loadEarthFile(const char *path)
+{
+    TRACE("Loading %s", path);
+    _sceneRoot = osgDB::readNodeFile(path);
+    osgEarth::MapNode *mapNode = osgEarth::MapNode::findMapNode(_sceneRoot.get());
+    if (mapNode == NULL) {
+        ERROR("Couldn't find MapNode");
+    } else {
+        _map = mapNode->getMap();
+    }
+    _viewer->setSceneData(_sceneRoot.get());
+    _manipulator->setNode(NULL);
+    _manipulator->setNode(_sceneRoot.get());
+    _manipulator->computeHomePosition();
+    _viewer->home();
+    _needsRedraw = true;
+}
+
+void Renderer::addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts)
+{
+    osgEarth::ImageLayerOptions layerOpts(name, opts);
+    _map->addImageLayer(new osgEarth::ImageLayer(layerOpts));
+}
+
+void Renderer::removeImageLayer(const char *name)
+{
+    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    _map->removeImageLayer(layer);
+}
+
+void Renderer::moveImageLayer(const char *name, int pos)
+{
+    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    _map->moveImageLayer(layer, pos);
+}
+
+void Renderer::setImageLayerOpacity(const char *name, double opacity)
+{
+    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    layer->setOpacity(opacity);
+}
+
+void Renderer::setImageLayerVisibility(const char *name, bool state)
+{
+#if OSGEARTH_MIN_VERSION_REQUIRED(2, 4, 0)
+    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    layer->setVisible(state);
+#endif
 }
 
 /**
@@ -61,8 +132,13 @@ void Renderer::setWindowSize(int width, int height)
 
     _windowWidth = width;
     _windowHeight = height;
-    _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
-
+    osgViewer::ViewerBase::Windows windows;
+    _viewer->getWindows(windows);
+    if (windows.size() == 1) {
+        windows[0]->setWindowRectangle(0, 0, _windowWidth, _windowHeight);
+    } else {
+        ERROR("Num windows: %lu", windows.size());
+    }
     _needsRedraw = true;
 }
 
@@ -86,7 +162,7 @@ void Renderer::setCameraOrientation(const double quat[4], bool absolute)
 void Renderer::resetCamera(bool resetOrientation)
 {
     TRACE("Enter: resetOrientation=%d", resetOrientation ? 1 : 0);
-
+    _viewer->home();
     _needsRedraw = true;
 }
 
@@ -108,6 +184,16 @@ void Renderer::panCamera(double x, double y, bool absolute)
     TRACE("Enter: %g %g, abs: %d",
           x, y, (absolute ? 1 : 0));
 
+    _manipulator->pan(x, y);
+    _needsRedraw = true;
+}
+
+void Renderer::rotateCamera(double x, double y, bool absolute)
+{
+    TRACE("Enter: %g %g, abs: %d",
+          x, y, (absolute ? 1 : 0));
+
+    _manipulator->rotate(x, y);
     _needsRedraw = true;
 }
 
@@ -122,6 +208,9 @@ void Renderer::zoomCamera(double z, bool absolute)
     TRACE("Enter: z: %g, abs: %d",
           z, (absolute ? 1 : 0));
 
+    // FIXME: zoom here wants y mouse coords in normalized viewport coords
+
+    _manipulator->zoom(0, z);
     _needsRedraw = true;
 }
 
@@ -158,8 +247,22 @@ bool Renderer::render()
     TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
 
     if (_needsRedraw) {
-        // TODO: render
+        double _runMaxFrameRate = 60.0;
+        double minFrameTime = _runMaxFrameRate>0.0 ? 1.0/_runMaxFrameRate : 0.0;
+        osg::Timer_t startFrameTick = osg::Timer::instance()->tick();
+        TRACE("Before frame()");
         _viewer->frame();
+        TRACE("After frame()");
+        osg::Timer_t endFrameTick = osg::Timer::instance()->tick();
+        double frameTime = osg::Timer::instance()->delta_s(startFrameTick, endFrameTick);
+        TRACE("Frame time: %g sec", frameTime);
+        if (frameTime < minFrameTime) {
+            TRACE("Sleeping for %g secs", minFrameTime-frameTime);
+            OpenThreads::Thread::microSleep(static_cast<unsigned int>(1000000.0*(minFrameTime-frameTime)));
+        }
+        if (_viewer->getViewerStats() != NULL) {
+            _viewer->getViewerStats()->report(std::cerr, _viewer->getViewerStats()->getLatestFrameNumber());
+        }
         _needsRedraw = false;
         return true;
     } else
@@ -169,7 +272,7 @@ bool Renderer::render()
 /**
  * \brief Read back the rendered framebuffer image
  */
-void Renderer::getRenderedFrame(osg::Image *image)
+osg::Image *Renderer::getRenderedFrame()
 {
-    
+    return _captureCallback->getImage();
 }

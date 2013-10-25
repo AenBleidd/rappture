@@ -52,7 +52,7 @@ ResponseQueue *GeoVis::g_queue = NULL;
 static void
 queueFrame(ResponseQueue *queue, const unsigned char *imgData)
 {
-#ifdef DEBUG
+#ifdef DEBUG_WRITE_FRAME_FILE
 
 #ifdef RENDER_TARGA
     writeTGAFile("/tmp/frame.tga",
@@ -65,8 +65,7 @@ queueFrame(ResponseQueue *queue, const unsigned char *imgData)
                  imgData,
                  g_renderer->getWindowWidth(),
                  g_renderer->getWindowHeight(),
-                 TARGA_BYTES_PER_PIXEL,
-                 true);
+                 TARGA_BYTES_PER_PIXEL);
 #endif  /*RENDER_TARGA*/
 
 #else
@@ -380,8 +379,7 @@ initService()
         logNameLen = 19+1;
         logName = (char *)calloc(logNameLen, sizeof(char));
         strncpy(logName, "/tmp/geovis_log.txt", logNameLen);
-    }
-    else {
+    } else {
         logNameLen = 16+strlen(user)+4+1;
         logName = (char *)calloc(logNameLen, sizeof(char));
         strncpy(logName, "/tmp/geovis_log_", logNameLen);
@@ -489,8 +487,13 @@ main(int argc, char *argv[])
             break;
 
         if (g_renderer->render()) {
-            TRACE("Rendering new frame");
-            g_renderer->getRenderedFrame(imgData.get());
+            TRACE("Rendered new frame");
+            imgData = g_renderer->getRenderedFrame();
+            if (imgData == NULL) {
+                ERROR("Empty image");
+            } else {
+                TRACE("Image: %d x %d", imgData->s(), imgData->t());
+            }
 #ifdef USE_THREADS
             queueFrame(g_queue, imgData->data());
 #else

@@ -1,5 +1,6 @@
 DEBUG			= #yes
-TRACE			= #yes
+DEBUG_WRITE_FRAME_FILE  = #yes
+TRACE			= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
 
@@ -35,17 +36,25 @@ PTHREAD_LIB_SPEC= -lpthread
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
-OSG_LIB_DIR	= @OSG_LIB_DIR@
-OSG_INC_SPEC	= @OSG_INC_SPEC@
+OSG_LIB_DIR	= 
+OSG_INC_SPEC	= 
 OSG_LIB_SPEC    = \
 		-losg \
 		-losgDB \
-		-losgViewer
+		-losgViewer \
+		-lOpenThreads
+
+OSGEARTH_LIB_DIR  =
+OSGEARTH_INC_SPEC =
+OSGEARTH_LIB_SPEC = \
+		  -losgEarth \
+		  -losgEarthUtil
 
 LD_RUN_PATH	= $(libdir)
 
 LIBS		= \
 		$(TCL_LIB_SPEC) \
+		$(OSGEARTH_LIB_SPEC) \
 		$(OSG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
 		$(PTHREAD_LIB_SPEC) \
@@ -55,6 +64,7 @@ LIBS		= \
 INCLUDES	= \
 		-I$(srcdir) \
 		$(TCL_INC_SPEC) \
+		$(OSGEARTH_INC_SPEC) \
 		$(OSG_INC_SPEC)
 
 #vtk uses deprecated strstream header (instead of sstream)
@@ -64,6 +74,9 @@ DEFINES		= -DSVN_VERSION=\"$(SVN_VERSION)\" -DSTATSDIR=\"$(STATSDIR)\"
 ifdef DEBUG
 DEFINES 	+= -DDEBUG
 CXXFLAGS	= -O0 -g
+endif
+ifdef DEBUG_WRITE_FRAME_FILE
+DEFINES 	+= -DDEBUG_WRITE_FRAME_FILE
 endif
 ifdef TRACE
 DEFINES		+= -DWANT_TRACE
