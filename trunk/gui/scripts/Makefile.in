@@ -60,6 +60,7 @@ FILES		= \
 		$(srcdir)/flowspeed.tcl \
 		$(srcdir)/flowvisviewer.tcl \
 		$(srcdir)/gauge.tcl \
+		$(srcdir)/geoviewer.tcl \
 		$(srcdir)/getopts.tcl \
 		$(srcdir)/grab.tcl \
 		$(srcdir)/groupentry.tcl \

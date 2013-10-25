@@ -24,6 +24,7 @@ SCRIPTS	= \
 		copy_rappture_examples \
 		encodedata \
 		$(srcdir)/launcher.tcl \
+		$(srcdir)/geoviewer-test \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
 		$(srcdir)/vtkglyphs-test \
