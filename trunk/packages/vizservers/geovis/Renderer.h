@@ -20,7 +20,10 @@
 
 #include <osgEarth/Map>
 #include <osgEarth/ImageLayer>
+#include <osgEarth/ElevationLayer>
+#include <osgEarth/ModelLayer>
 #include <osgEarth/TileSource>
+#include <osgEarth/ModelSource>
 #include <osgEarthUtil/EarthManipulator>
 
 #include "Types.h"
@@ -93,7 +96,7 @@ public:
 
     void removeImageLayer(const char *name);
 
-    void moveImageLayer(const char *name, int pos);
+    void moveImageLayer(const char *name, unsigned int pos);
 
     void setImageLayerOpacity(const char *name, double opacity);
 
@@ -101,11 +104,19 @@ public:
 
     // Elevation raster layers
 
-    
+    void addElevationLayer(const char *name, const osgEarth::TileSourceOptions& opts);
+
+    void removeElevationLayer(const char *name);
+
+    void moveElevationLayer(const char *name, unsigned int pos);
 
     // Model layers
 
-    
+    void addModelLayer(const char *name, const osgEarth::ModelSourceOptions& opts);
+
+    void removeModelLayer(const char *name);
+
+    void moveModelLayer(const char *name, unsigned int pos);
 
     // Render window
 
