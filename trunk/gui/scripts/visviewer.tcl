@@ -21,7 +21,7 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     private common _servers         ;# array of visualization server lists
-    set _servers(geovis)  "localhost:2030"
+    set _servers(geovis)  "localhost:2015"
     set _servers(nanovis) "localhost:2000"
     set _servers(pymol)   "localhost:2020"
     set _servers(vtkvis)  "localhost:2010"
