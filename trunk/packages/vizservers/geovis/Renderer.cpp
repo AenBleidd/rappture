@@ -58,13 +58,6 @@ Renderer::Renderer() :
     _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
     _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
     _viewer->realize();
-    if (_viewer->getEventQueue()->getUseFixedMouseInputRange()) {
-         osgGA::GUIEventAdapter* ea = _viewer->getEventQueue()->getCurrentEventState();
-         TRACE("Mouse range: %g %g %g %g", ea->getXmin(), ea->getXmax(), ea->getYmin(), ea->getYmax());
-    } else {
-        osgGA::GUIEventAdapter* ea = _viewer->getEventQueue()->getCurrentEventState();
-         TRACE("Not fixed mouse range: %g %g %g %g", ea->getXmin(), ea->getXmax(), ea->getYmin(), ea->getYmax());
-    }
     if (_viewer->getViewerStats() != NULL) {
         TRACE("Enabling stats");
         _viewer->getViewerStats()->collectStats("scene", true);
