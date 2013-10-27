@@ -70,6 +70,12 @@ itcl::class Rappture::GeoViewer {
     protected method DoRotate {}
     protected method AdjustSetting {what {value ""}}
     protected method FixSettings { args  }
+    protected method MouseClick { button x y }
+    protected method MouseDoubleClick { button x y }
+    protected method MouseDrag { button x y }
+    protected method MouseMotion { x y }
+    protected method MouseRelease { button x y }
+    protected method MouseScroll { direction }
     protected method Pan {option x y}
     protected method Pick {x y}
     protected method Rebuild {}
@@ -278,21 +284,43 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
 
     # Bindings for rotation via mouse
     bind $itk_component(view) <ButtonPress-1> \
-        [itcl::code $this Rotate click %x %y]
+        [itcl::code $this MouseClick 1 %x %y]
+        #[itcl::code $this Rotate click %x %y]
+    bind $itk_component(view) <Double-1> \
+        [itcl::code $this MouseDoubleClick 1 %x %y]
     bind $itk_component(view) <B1-Motion> \
-        [itcl::code $this Rotate drag %x %y]
+        [itcl::code $this MouseDrag 1 %x %y]
+        #[itcl::code $this Rotate drag %x %y]
     bind $itk_component(view) <ButtonRelease-1> \
-        [itcl::code $this Rotate release %x %y]
+        [itcl::code $this MouseRelease 1 %x %y]
+        #[itcl::code $this Rotate release %x %y]
     bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
-        [itcl::code $this Pan click %x %y]
+        [itcl::code $this MouseClick 2 %x %y]
+        #[itcl::code $this Pan click %x %y]
+    bind $itk_component(view) <Double-2> \
+        [itcl::code $this MouseDoubleClick 2 %x %y]
     bind $itk_component(view) <B2-Motion> \
-        [itcl::code $this Pan drag %x %y]
+        [itcl::code $this MouseDrag 2 %x %y]
+        #[itcl::code $this Pan drag %x %y]
     bind $itk_component(view) <ButtonRelease-2> \
-        [itcl::code $this Pan release %x %y]
+        [itcl::code $this MouseRelease 2 %x %y]
+        #[itcl::code $this Pan release %x %y]
+
+    bind $itk_component(view) <ButtonPress-3> \
+        [itcl::code $this MouseClick 3 %x %y]
+    bind $itk_component(view) <Double-3> \
+        [itcl::code $this MouseDoubleClick 3 %x %y]
+    bind $itk_component(view) <B3-Motion> \
+        [itcl::code $this MouseDrag 3 %x %y]
+    bind $itk_component(view) <ButtonRelease-3> \
+        [itcl::code $this MouseRelease 3 %x %y]
+
+    bind $itk_component(view) <Motion> \
+        [itcl::code $this MouseMotion %x %y]
 
     #bind $itk_component(view) <ButtonRelease-3> \
     #    [itcl::code $this Pick %x %y]
@@ -325,8 +353,11 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
 
     if {[string equal "x11" [tk windowingsystem]]} {
         # Bindings for zoom via mouse
-        bind $itk_component(view) <4> [itcl::code $this Zoom out]
-        bind $itk_component(view) <5> [itcl::code $this Zoom in]
+        #bind $itk_component(view) <4> [itcl::code $this Zoom out]
+        #bind $itk_component(view) <5> [itcl::code $this Zoom in]
+        bind $itk_component(view) <4> [itcl::code $this MouseScroll up]
+        bind $itk_component(view) <5> [itcl::code $this MouseScroll down]
+
     }
 
     set _image(download) [image create photo]
@@ -681,7 +712,7 @@ itcl::body Rappture::GeoViewer::Connect {} {
             SendCmd "clientinfo [list $info]"
         }
 
-        #SendCmd "renderer load /usr/share/osgearth/maps/gdal_tiff.earth"
+        SendCmd "renderer load /usr/share/osgearth/maps/gdal_tiff.earth"
 
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
@@ -768,8 +799,9 @@ itcl::body Rappture::GeoViewer::ReceiveDataset { args } {
     }
     set option [lindex $args 0]
     switch -- $option {
-        "latlong" {
-            
+        "coords" {
+            foreach { x y z } [lrange $args 1 end] break
+            puts stderr "Coords: $x $y $z"
         }
         "scalar" {
             set option [lindex $args 1]
@@ -959,6 +991,57 @@ itcl::body Rappture::GeoViewer::CurrentDatasets {args} {
     return $rlist
 }
 
+itcl::body Rappture::GeoViewer::MouseClick {button x y} {
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    set x [expr {(2.0 * double($x)/$w) - 1.0}]
+    set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    SendCmd "mouse click $button $x $y"
+}
+
+itcl::body Rappture::GeoViewer::MouseDoubleClick {button x y} {
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    set x [expr {(2.0 * double($x)/$w) - 1.0}]
+    set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    SendCmd "mouse dblclick $button $x $y"
+}
+
+itcl::body Rappture::GeoViewer::MouseDrag {button x y} {
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    set x [expr {(2.0 * double($x)/$w) - 1.0}]
+    set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    SendCmd "mouse drag $button $x $y"
+}
+
+itcl::body Rappture::GeoViewer::MouseRelease {button x y} {
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    set x [expr {(2.0 * double($x)/$w) - 1.0}]
+    set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    SendCmd "mouse release $button $x $y"
+}
+
+itcl::body Rappture::GeoViewer::MouseMotion {x y} {
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    set x [expr {(2.0 * double($x)/$w) - 1.0}]
+    set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    SendCmd "mouse motion $x $y"
+}
+
+itcl::body Rappture::GeoViewer::MouseScroll {direction} {
+    switch -- $direction {
+        "up" {
+            SendCmd "mouse scroll 1"
+        }
+        "down" {
+            SendCmd "mouse scroll -1"
+        }
+    }
+}
+
 # ----------------------------------------------------------------------
 # USAGE: Zoom in
 # USAGE: Zoom out
@@ -971,11 +1054,15 @@ itcl::body Rappture::GeoViewer::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
-            SendCmd "camera zoom $_view(zoom)"
+            #SendCmd "camera zoom $_view(zoom)"
+            set z -0.25
+            SendCmd "camera zoom $z"
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
-            SendCmd "camera zoom $_view(zoom)"
+            #SendCmd "camera zoom $_view(zoom)"
+            set z 0.25
+            SendCmd "camera zoom $z"
         }
         "reset" {
             array set _view {
