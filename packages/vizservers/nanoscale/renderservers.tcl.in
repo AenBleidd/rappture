@@ -7,7 +7,7 @@ set vtkdir "@VTK_LIB_DIR@"
 # GeoVis server --
 #     Map renderer
 #
-register_server geovis 2030 {
+register_server geovis 2015 {
     ${bindir}/geovis
 } {
     LD_LIBRARY_PATH ${libdir}
