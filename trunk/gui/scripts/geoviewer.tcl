@@ -379,15 +379,19 @@ itcl::body Rappture::GeoViewer::destructor {} {
 }
 
 itcl::body Rappture::GeoViewer::DoResize {} {
+    set sendResize 1
     if { $_width < 2 } {
         set _width 500
+        set sendResize 0
     }
     if { $_height < 2 } {
         set _height 500
+        set sendResize 0
     }
     set _start [clock clicks -milliseconds]
-    SendCmd "screen size $_width $_height"
-
+    if {$sendResize} {
+        SendCmd "screen size $_width $_height"
+    }
     set _resizePending 0
 }
 
