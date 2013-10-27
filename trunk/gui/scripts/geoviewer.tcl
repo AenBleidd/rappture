@@ -177,7 +177,6 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
         zoom            1.0 
         xpan            0
         ypan            0
-        ortho           0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -876,7 +875,7 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
-    SendCmd "dataset visible 0"
+    #SendCmd "dataset visible 0"
     set count 0
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
@@ -924,11 +923,6 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
         $_arcball quaternion $q 
         SendCmd "camera reset"
-        if { $_view(ortho)} {
-            SendCmd "camera mode ortho"
-        } else {
-            SendCmd "camera mode persp"
-        }
         DoRotate
         PanCamera
         Zoom reset
@@ -1452,15 +1446,6 @@ itcl::body Rappture::GeoViewer::BuildCameraTab {} {
         blt::table configure $inner r$row -resize none
         incr row
     }
-    checkbutton $inner.ortho \
-        -text "Orthographic Projection" \
-        -variable [itcl::scope _view(ortho)] \
-        -command [itcl::code $this camera set ortho] \
-        -font "Arial 9"
-    blt::table $inner \
-            $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
-    blt::table configure $inner r$row -resize none
-    incr row
 
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
@@ -1483,13 +1468,6 @@ itcl::body Rappture::GeoViewer::camera {option args} {
                 return
             }
             switch -- $who {
-                "ortho" {
-                    if {$_view(ortho)} {
-                        SendCmd "camera mode ortho"
-                    } else {
-                        SendCmd "camera mode persp"
-                    }
-                }
                 "xpan" - "ypan" {
                     PanCamera
                 }
@@ -1613,7 +1591,7 @@ itcl::body Rappture::GeoViewer::SetOrientation { side } {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
-    SendCmd "camera reset"
+    #SendCmd "camera reset"
     set _view(xpan) 0
     set _view(ypan) 0
     set _view(zoom) 1.0
