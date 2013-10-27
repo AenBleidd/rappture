@@ -311,6 +311,135 @@ ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MouseClickOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    int button;
+    double x, y;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &button) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->mouseClick(button, x, y);
+    return TCL_OK;
+}
+
+static int
+MouseDoubleClickOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    int button;
+    double x, y;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &button) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->mouseDoubleClick(button, x, y);
+    return TCL_OK;
+}
+
+static int
+MouseDragOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    int button;
+    double x, y;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &button) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->mouseDrag(button, x, y);
+    return TCL_OK;
+}
+
+static int
+MouseMotionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double x, y;
+
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->mouseMotion(x, y);
+    return TCL_OK;
+}
+
+static int
+MouseReleaseOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    int button;
+    double x, y;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &button) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->mouseRelease(button, x, y);
+    return TCL_OK;
+}
+
+static int
+MouseScrollOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    int direction;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &direction) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->mouseScroll(direction);
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec mouseOps[] = {
+    {"click",    1, MouseClickOp,       5, 5, "button x y"},
+    {"dblclick", 2, MouseDoubleClickOp, 5, 5, "button x y"},
+    {"drag",     2, MouseDragOp,        5, 5, "button x y"},
+    {"motion",   1, MouseMotionOp,      4, 4, "x y"},
+    {"release",  1, MouseReleaseOp,     5, 5, "button x y"},
+    {"scroll",   1, MouseScrollOp,      3, 3, "direction"},
+};
+static int nMouseOps = NumCmdSpecs(mouseOps);
+
+static int
+MouseCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+         Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nMouseOps, mouseOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 RendererLoadOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -535,6 +664,7 @@ GeoVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "camera",         CameraCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "clientinfo",     ClientInfoCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",       ImageFlushCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "mouse",          MouseCmd,          clientData, NULL);
     Tcl_CreateObjCommand(interp, "renderer",       RendererCmd,       clientData, NULL);
     Tcl_CreateObjCommand(interp, "screen",         ScreenCmd,         clientData, NULL);
 }
@@ -547,6 +677,7 @@ void GeoVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "camera");
     Tcl_DeleteCommand(interp, "clientinfo");
     Tcl_DeleteCommand(interp, "imgflush");
+    Tcl_DeleteCommand(interp, "mouse");
     Tcl_DeleteCommand(interp, "renderer");
     Tcl_DeleteCommand(interp, "screen");
 

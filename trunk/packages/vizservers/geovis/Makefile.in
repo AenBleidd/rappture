@@ -41,10 +41,11 @@ OSG_INC_SPEC	=
 OSG_LIB_SPEC    = \
 		-losgDB \
 		-losgViewer \
+		-losgGA \
 		-losg \
 		-lOpenThreads
 
-OSGEARTH_LIB_DIR  =
+OSGEARTH_LIB_DIR  = 
 OSGEARTH_INC_SPEC =
 OSGEARTH_LIB_SPEC = \
 		  -losgEarthFeatures \

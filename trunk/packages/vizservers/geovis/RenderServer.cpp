@@ -506,6 +506,18 @@ main(int argc, char *argv[])
             sendAck();
         }
 
+        double x, y, z;
+        if (g_renderer->getMousePoint(&x, &y, &z)) {
+            // send coords to client
+            size_t length;
+            char mesg[256];
+
+            length = snprintf(mesg, sizeof(mesg),
+                              "nv>dataset coords %g %g %g\n", x, y, z);
+
+            queueResponse(mesg, length, Response::VOLATILE);
+        }
+
         if (g_inBufPtr->status() == ReadBuffer::ENDFILE)
             break;
     }

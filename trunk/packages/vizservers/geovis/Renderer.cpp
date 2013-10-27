@@ -23,6 +23,7 @@
 #include <osgEarth/ElevationLayer>
 #include <osgEarth/ModelLayer>
 #include <osgEarthUtil/EarthManipulator>
+#include <osgEarthUtil/MouseCoordsTool>
 
 #include "Renderer.h"
 #include "Trace.h"
@@ -52,10 +53,18 @@ Renderer::Renderer() :
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator = new osgEarth::Util::EarthManipulator;
     _viewer->setCameraManipulator(_manipulator);
+    _coordsCallback = new MouseCoordsCallback();
     _viewer->getCamera()->setNearFarRatio(0.00002);
     _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
     _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
     _viewer->realize();
+    if (_viewer->getEventQueue()->getUseFixedMouseInputRange()) {
+         osgGA::GUIEventAdapter* ea = _viewer->getEventQueue()->getCurrentEventState();
+         TRACE("Mouse range: %g %g %g %g", ea->getXmin(), ea->getXmax(), ea->getYmin(), ea->getYmax());
+    } else {
+        osgGA::GUIEventAdapter* ea = _viewer->getEventQueue()->getCurrentEventState();
+         TRACE("Not fixed mouse range: %g %g %g %g", ea->getXmin(), ea->getXmax(), ea->getYmin(), ea->getYmax());
+    }
     if (_viewer->getViewerStats() != NULL) {
         TRACE("Enabling stats");
         _viewer->getViewerStats()->collectStats("scene", true);
@@ -79,6 +88,11 @@ void Renderer::loadEarthFile(const char *path)
     } else {
         _map = mapNode->getMap();
     }
+    if (_mouseCoordsTool.valid())
+        _viewer->removeEventHandler(_mouseCoordsTool);
+    _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
+    _mouseCoordsTool->addCallback(_coordsCallback);
+    _viewer->addEventHandler(_mouseCoordsTool);
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator->setNode(NULL);
     _manipulator->setNode(_sceneRoot.get());
@@ -193,6 +207,7 @@ void Renderer::setWindowSize(int width, int height)
  */
 void Renderer::setCameraOrientation(const double quat[4], bool absolute)
 {
+    _manipulator->setRotation(osg::Quat(quat[1], quat[2], quat[3], quat[0]));
     _needsRedraw = true;
 }
 
@@ -253,6 +268,42 @@ void Renderer::zoomCamera(double z, bool absolute)
     // FIXME: zoom here wants y mouse coords in normalized viewport coords
 
     _manipulator->zoom(0, z);
+    _needsRedraw = true;
+}
+
+void Renderer::mouseDoubleClick(int button, double x, double y)
+{
+    _viewer->getEventQueue()->mouseDoubleButtonPress((float)x, (float)y, button);
+    _needsRedraw = true;
+}
+
+void Renderer::mouseClick(int button, double x, double y)
+{
+    _viewer->getEventQueue()->mouseButtonPress((float)x, (float)y, button);
+    _needsRedraw = true;
+}
+
+void Renderer::mouseDrag(int button, double x, double y)
+{
+    _viewer->getEventQueue()->mouseMotion((float)x, (float)y);
+    _needsRedraw = true;
+}
+
+void Renderer::mouseRelease(int button, double x, double y)
+{
+    _viewer->getEventQueue()->mouseButtonRelease((float)x, (float)y, button);
+    _needsRedraw = true;
+}
+
+void Renderer::mouseMotion(double x, double y)
+{
+    _viewer->getEventQueue()->mouseMotion((float)x, (float)y);
+    _needsRedraw = true;
+}
+
+void Renderer::mouseScroll(int direction)
+{
+    _viewer->getEventQueue()->mouseScroll((direction > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN));
     _needsRedraw = true;
 }
 
