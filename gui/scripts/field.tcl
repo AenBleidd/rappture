@@ -1669,7 +1669,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
 	incr _counter
 	array unset _comp2limits $cname
-        foreach axis { x y z } {
+        foreach axis { x y } {
             lappend _comp2limits($cname) $axis [$mesh limits $axis]
         }
 	lappend _comp2limits($cname) $cname [$v limits]
