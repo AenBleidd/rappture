@@ -36,18 +36,18 @@ PTHREAD_LIB_SPEC= -lpthread
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
-OSG_LIB_DIR	= 
-OSG_INC_SPEC	= 
-OSG_LIB_SPEC    = \
+OSG_LIB_DIR     = @OSG_LIB_DIR@
+OSG_INC_SPEC    = @OSG_INC_SPEC@
+OSG_LIB_SPEC	= -L${OSG_LIB_DIR} \
 		-losgDB \
 		-losgViewer \
 		-losgGA \
 		-losg \
 		-lOpenThreads
 
-OSGEARTH_LIB_DIR  = 
-OSGEARTH_INC_SPEC =
-OSGEARTH_LIB_SPEC = \
+OSGEARTH_LIB_DIR  = $(OSG_LIB_DIR)
+OSGEARTH_INC_SPEC = $(OSG_INC_SPEC)
+OSGEARTH_LIB_SPEC = -L${OSG_LIB_DIR} \
 		  -losgEarthFeatures \
 		  -losgEarthSymbology \
 		  -losgEarthUtil \
@@ -56,9 +56,9 @@ OSGEARTH_LIB_SPEC = \
 LD_RUN_PATH	= $(libdir)
 
 LIBS		= \
-		$(TCL_LIB_SPEC) \
 		$(OSGEARTH_LIB_SPEC) \
 		$(OSG_LIB_SPEC) \
+		$(TCL_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
 		$(PTHREAD_LIB_SPEC) \
 		-Wl,-rpath,$(LD_RUN_PATH) \
@@ -66,9 +66,9 @@ LIBS		= \
 
 INCLUDES	= \
 		-I$(srcdir) \
-		$(TCL_INC_SPEC) \
 		$(OSGEARTH_INC_SPEC) \
-		$(OSG_INC_SPEC)
+		$(OSG_INC_SPEC) \
+		$(TCL_INC_SPEC)
 
 #vtk uses deprecated strstream header (instead of sstream)
 EXTRA_CXXFLAGS	= -Wall -Wno-deprecated
