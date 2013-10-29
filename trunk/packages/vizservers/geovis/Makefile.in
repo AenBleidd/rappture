@@ -70,8 +70,7 @@ INCLUDES	= \
 		$(OSG_INC_SPEC) \
 		$(TCL_INC_SPEC)
 
-#vtk uses deprecated strstream header (instead of sstream)
-EXTRA_CXXFLAGS	= -Wall -Wno-deprecated
+EXTRA_CXXFLAGS	= -Wall
 EXTRA_CFLAGS	= -Wall
 DEFINES		= -DSVN_VERSION=\"$(SVN_VERSION)\" -DSTATSDIR=\"$(STATSDIR)\"
 ifdef DEBUG
