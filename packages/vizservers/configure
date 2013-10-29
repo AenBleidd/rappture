@@ -1388,7 +1388,7 @@ Optional Packages:
   --with-vtk=VERSION      Version of VTK required
   --with-ffmpeg=DIR       location of ffmpeg [default=yes]
   --with-python=DIR       location of python [default=yes]
-  --with-statsdir=DIR     Write statics in DIR
+  --with-statsdir=DIR     Write statistics in DIR
   --with-x                use the X Window System
 
 Some influential environment variables:

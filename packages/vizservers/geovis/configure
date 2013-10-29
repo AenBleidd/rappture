@@ -1342,7 +1342,7 @@ Optional Packages:
                           include/rappture.h [default=/usr]
   --with-osg-includes=DIR OSG include files are in DIR
   --with-osg-libs=DIR     OSG libraries are in DIR
-  --with-statsdir=DIR     Write statics in DIR
+  --with-statsdir=DIR     Write statistics in DIR
   --with-x                use the X Window System
 
 Some influential environment variables:
