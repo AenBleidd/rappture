@@ -33,7 +33,7 @@ AC_ARG_WITH(
 AC_ARG_WITH(
     [statsdir],
     [AS_HELP_STRING([--with-statsdir=DIR],
-        [Write statics in DIR])],
+        [Write statistics in DIR])],
     [STATSDIR=$withval],
     [STATSDIR="/var/tmp/visservers"])
 
