@@ -211,12 +211,19 @@ public:
         return _coordsCallback->report(x, y, z);
     }
 
+    long getTimeout();
+
+    bool isPagerIdle();
+
 private:
     void initCamera();
 
     bool _needsRedraw;
     int _windowWidth, _windowHeight;
     float _bgColor[3];
+
+    double _minFrameTime;
+    double _lastFrameTime;
 
     osg::ref_ptr<osg::Node> _sceneRoot;
     osg::ref_ptr<osgEarth::MapNode> _mapNode;
