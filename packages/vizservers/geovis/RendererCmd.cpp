@@ -542,7 +542,8 @@ int
 GeoVis::processCommands(Tcl_Interp *interp,
                         ClientData clientData,
                         ReadBuffer *inBufPtr, 
-                        int fdOut)
+                        int fdOut,
+                        long timeout)
 {
     int ret = 1;
     int status = TCL_OK;
@@ -557,6 +558,11 @@ GeoVis::processCommands(Tcl_Interp *interp,
     tvPtr = NULL;                       /* Wait for the first read. This is so
                                          * that we don't spin when no data is
                                          * available. */
+    if (timeout >= 0L) {
+        tv.tv_sec = 0L;
+        tv.tv_usec = timeout;
+        tvPtr = &tv;
+    }
     while (inBufPtr->isLineAvailable() || 
            (select(1, &readFds, NULL, NULL, tvPtr) > 0)) {
         size_t numBytes;

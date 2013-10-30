@@ -483,7 +483,8 @@ main(int argc, char *argv[])
 
     // Start main server loop
     for (;;) {
-        if (processCommands(interp, NULL, g_inBufPtr, g_fdOut) < 0)
+        long timeout = g_renderer->getTimeout();
+        if (processCommands(interp, NULL, g_inBufPtr, g_fdOut, timeout) < 0)
             break;
 
         if (g_renderer->render()) {

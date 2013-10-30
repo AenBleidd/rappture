@@ -42,6 +42,8 @@ Renderer::Renderer() :
     _bgColor[0] = 0;
     _bgColor[1] = 0;
     _bgColor[2] = 0;
+    _minFrameTime = 1.0/30.0;
+    _lastFrameTime = _minFrameTime;
     _viewer = new osgViewer::Viewer();
     _viewer->setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
     _viewer->getDatabasePager()->setUnrefImageDataAfterApplyPolicy(false, false);
@@ -322,6 +324,21 @@ void Renderer::eventuallyRender()
     _needsRedraw = true;
 }
 
+long Renderer::getTimeout()
+{
+    if (_lastFrameTime < _minFrameTime) {
+        (long)1000000.0*(_minFrameTime - _lastFrameTime);
+    } else {
+        return 0L;
+    }
+}
+
+bool isPagerIdle()
+{
+    return (!_viewer->getDatabasePager()->requiresUpdateSceneGraph() &&
+            !_viewer->getDatabasePager()->getRequestsInProgress());
+}
+
 /**
  * \brief Cause the rendering to render a new image if needed
  *
@@ -332,20 +349,20 @@ bool Renderer::render()
 {
     TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
 
-    if (_needsRedraw) {
-        double _runMaxFrameRate = 60.0;
-        double minFrameTime = _runMaxFrameRate>0.0 ? 1.0/_runMaxFrameRate : 0.0;
+    if (_needsRedraw || !isPagerIdle()) {
         osg::Timer_t startFrameTick = osg::Timer::instance()->tick();
         TRACE("Before frame()");
         _viewer->frame();
         TRACE("After frame()");
         osg::Timer_t endFrameTick = osg::Timer::instance()->tick();
-        double frameTime = osg::Timer::instance()->delta_s(startFrameTick, endFrameTick);
-        TRACE("Frame time: %g sec", frameTime);
+        _lastFrameTime = osg::Timer::instance()->delta_s(startFrameTick, endFrameTick);
+        TRACE("Frame time: %g sec", _lastFrameTime);
+#if 0
         if (frameTime < minFrameTime) {
             TRACE("Sleeping for %g secs", minFrameTime-frameTime);
             OpenThreads::Thread::microSleep(static_cast<unsigned int>(1000000.0*(minFrameTime-frameTime)));
         }
+#endif
         if (_viewer->getViewerStats() != NULL) {
             _viewer->getViewerStats()->report(std::cerr, _viewer->getViewerStats()->getLatestFrameNumber());
         }

@@ -27,7 +27,8 @@ extern ssize_t queueResponse(const void *bytes, size_t len,
 extern int processCommands(Tcl_Interp *interp,
                            ClientData clientData,
                            ReadBuffer *inBufPtr,
-                           int fdOut);
+                           int fdOut,
+                           long timeout = -1);
 
 extern int handleError(Tcl_Interp *interp,
                        ClientData clientData,
