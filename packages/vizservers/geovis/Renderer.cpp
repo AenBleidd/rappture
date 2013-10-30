@@ -333,7 +333,7 @@ long Renderer::getTimeout()
     }
 }
 
-bool isPagerIdle()
+bool Renderer::isPagerIdle()
 {
     return (!_viewer->getDatabasePager()->requiresUpdateSceneGraph() &&
             !_viewer->getDatabasePager()->getRequestsInProgress());
