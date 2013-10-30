@@ -327,7 +327,7 @@ void Renderer::eventuallyRender()
 long Renderer::getTimeout()
 {
     if (_lastFrameTime < _minFrameTime) {
-        (long)1000000.0*(_minFrameTime - _lastFrameTime);
+        return (long)1000000.0*(_minFrameTime - _lastFrameTime);
     } else {
         return 0L;
     }
