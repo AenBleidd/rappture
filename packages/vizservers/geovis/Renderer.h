@@ -32,7 +32,7 @@
 #include "Trace.h"
 
 // Controls if TGA format is sent to client
-#define RENDER_TARGA
+//#define RENDER_TARGA
 #define TARGA_BYTES_PER_PIXEL 3
 
 namespace GeoVis {
@@ -48,7 +48,7 @@ public:
 
     virtual void operator()(osg::RenderInfo &renderInfo) const
     {
-        TRACE("Enter");
+        TRACE("Enter ScreenCaptureCallback");
         int width, height;
         if (renderInfo.getCurrentCamera() == NULL) {
             ERROR("No camera");
@@ -87,17 +87,16 @@ public:
         _havePoint(false)
     {}
 
-    void set(const osgEarth::GeoPoint& p, osg::View* view, osgEarth::MapNode* mapNode)
+    void set(const osgEarth::GeoPoint& p, osg::View *view, osgEarth::MapNode *mapNode)
     {
-        // p.y(), p.x()
         _pt = p;
         _havePoint = true;
     }
 
-    void reset(osg::View* view, osgEarth::MapNode* mapNode)
+    void reset(osg::View *view, osgEarth::MapNode *mapNode)
     {
         // Out of range click
-        //_havePoint = false;
+        _havePoint = false;
     }
 
     bool report(double *x, double *y, double *z)
@@ -129,6 +128,12 @@ public:
     // Scene
 
     void loadEarthFile(const char *path);
+
+    void resetMap(osgEarth::MapOptions::CoordinateSystemType type, const char *profile = NULL);
+
+    // Map options
+
+    void setLighting(bool state);
 
     // Image raster layers
 
@@ -184,6 +189,8 @@ public:
 
     // Mouse events
 
+    void setThrowingEnabled(bool state);
+
     void mouseClick(int button, double x, double y);
 
     void mouseDoubleClick(int button, double x, double y);
@@ -206,6 +213,8 @@ public:
 
     osg::Image *getRenderedFrame();
 
+    bool mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint &pt);
+
     bool getMousePoint(double *x, double *y, double *z)
     {
         return _coordsCallback->report(x, y, z);
@@ -217,6 +226,8 @@ public:
 
 private:
     void initCamera();
+
+    osgGA::EventQueue *getEventQueue();
 
     bool _needsRedraw;
     int _windowWidth, _windowHeight;

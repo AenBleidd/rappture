@@ -32,6 +32,9 @@
 #ifdef USE_THREADS
 #include <pthread.h>
 #include "ResponseQueue.h"
+#ifdef USE_READ_THREAD
+#include "CommandQueue.h"
+#endif
 #endif 
 #include <md5.h>
 
@@ -46,7 +49,12 @@ FILE *GeoVis::g_fOut = stdout; ///< Output file handle
 FILE *GeoVis::g_fLog = NULL; ///< Trace logging file handle
 Renderer *GeoVis::g_renderer = NULL; ///< Main render worker
 ReadBuffer *GeoVis::g_inBufPtr = NULL; ///< Socket read buffer
-ResponseQueue *GeoVis::g_queue = NULL;
+#ifdef USE_THREADS
+ResponseQueue *GeoVis::g_outQueue = NULL;
+#ifdef USE_READER_THREAD
+CommandQueue *GeoVis::g_inQueue = NULL;
+#endif
+#endif
 
 #ifdef USE_THREADS
 static void
@@ -65,7 +73,8 @@ queueFrame(ResponseQueue *queue, const unsigned char *imgData)
                  imgData,
                  g_renderer->getWindowWidth(),
                  g_renderer->getWindowHeight(),
-                 TARGA_BYTES_PER_PIXEL);
+                 TARGA_BYTES_PER_PIXEL,
+                 true);
 #endif  /*RENDER_TARGA*/
 
 #else
@@ -82,7 +91,7 @@ queueFrame(ResponseQueue *queue, const unsigned char *imgData)
              g_renderer->getWindowWidth(),
              g_renderer->getWindowHeight());
 #endif  /*RENDER_TARGA*/
-#endif  /*DEBUG*/
+#endif  /*DEBUG_WRITE_FRAME_FILE*/
 }
 
 #else
@@ -90,16 +99,7 @@ queueFrame(ResponseQueue *queue, const unsigned char *imgData)
 static void
 writeFrame(int fd, const unsigned char *imgData)
 {
-#ifdef DEBUG
-    if (g_renderer->getCameraMode() == Renderer::IMAGE) {
-        double xywh[4];
-        g_renderer->getScreenWorldCoords(xywh);
-        TRACE("Image bbox: %g %g %g %g", 
-              xywh[0], 
-              (xywh[1] + xywh[3]), 
-              (xywh[0] + xywh[2]), 
-              xywh[1]);
-    }
+#ifdef DEBUG_WRITE_FRAME_FILE
 
 #ifdef RENDER_TARGA
     writeTGAFile("/tmp/frame.tga",
@@ -117,46 +117,20 @@ writeFrame(int fd, const unsigned char *imgData)
 #endif  /*RENDER_TARGA*/
 
 #else
-    if (g_renderer->getCameraMode() == Renderer::IMAGE) {
-        double xywh[4];
-        g_renderer->getCameraZoomRegion(xywh);
-        std::ostringstream oss;
-        oss.precision(12);
-        // Send upper left and lower right corners as bbox
-        oss << "nv>image -type image -bbox {"
-            << std::scientific
-            << xywh[0] << " "
-            << xywh[1] << " "
-            << xywh[2] << " "
-            << xywh[3] << "} -bytes";
 
 #ifdef RENDER_TARGA
-        writeTGA(fd, oss.str().c_str(),
-                 imgData,
-                 g_renderer->getWindowWidth(),
-                 g_renderer->getWindowHeight(),
-                 TARGA_BYTES_PER_PIXEL);
+    writeTGA(fd, "nv>image -type image -bytes",
+             imgData,
+             g_renderer->getWindowWidth(),
+             g_renderer->getWindowHeight(),
+             TARGA_BYTES_PER_PIXEL);
 #else
-        writePPM(fd, oss.str().c_str(),
-                 imgData->GetPointer(0),
-                 g_renderer->getWindowWidth(),
-                 g_renderer->getWindowHeight());
+    writePPM(fd, "nv>image -type image -bytes",
+             imgData,
+             g_renderer->getWindowWidth(),
+             g_renderer->getWindowHeight());
 #endif  /*RENDER_TARGA*/
-    } else {
-#ifdef RENDER_TARGA
-        writeTGA(fd, "nv>image -type image -bytes",
-                 imgData,
-                 g_renderer->getWindowWidth(),
-                 g_renderer->getWindowHeight(),
-                 TARGA_BYTES_PER_PIXEL);
-#else
-        writePPM(fd, "nv>image -type image -bytes",
-                 imgData,
-                 g_renderer->getWindowWidth(),
-                 g_renderer->getWindowHeight());
-#endif  /*RENDER_TARGA*/
-    }
-#endif  /*DEBUG*/
+#endif  /*DEBUG_WRITE_FRAME_FILE*/
 }
 #endif /*USE_THREADS*/
 
@@ -418,6 +392,20 @@ exitService()
 
 #ifdef USE_THREADS
 
+#ifdef USE_READ_THREAD
+static void *
+readerThread(void *clientData)
+{
+    Tcl_Interp *interp = (Tcl_Interp *)clientData;
+
+    TRACE("Starting reader thread");
+
+    queueCommands(interp, NULL, g_inBufPtr);
+
+    return NULL;
+}
+#endif
+
 static void *
 writerThread(void *clientData)
 {
@@ -470,10 +458,10 @@ main(int argc, char *argv[])
     Tcl_Interp *interp = Tcl_CreateInterp();
 
 #ifdef USE_THREADS
-    g_queue = new ResponseQueue();
+    g_outQueue = new ResponseQueue();
 
     pthread_t writerThreadId;
-    if (pthread_create(&writerThreadId, NULL, &writerThread, g_queue) < 0) {
+    if (pthread_create(&writerThreadId, NULL, &writerThread, g_outQueue) < 0) {
         ERROR("Can't create writer thread: %s", strerror(errno));
     }
 #endif
@@ -484,7 +472,8 @@ main(int argc, char *argv[])
     // Start main server loop
     for (;;) {
         long timeout = g_renderer->getTimeout();
-        if (processCommands(interp, NULL, g_inBufPtr, g_fdOut, timeout) < 0)
+        int cmdStatus = processCommands(interp, NULL, g_inBufPtr, g_fdOut, timeout);
+        if (cmdStatus < 0)
             break;
 
         if (g_renderer->render()) {
@@ -495,16 +484,21 @@ main(int argc, char *argv[])
             } else {
                 TRACE("Image: %d x %d", imgData->s(), imgData->t());
             }
+            if (imgData->s() == g_renderer->getWindowWidth() &&
+                imgData->t() == g_renderer->getWindowHeight()) {
 #ifdef USE_THREADS
-            queueFrame(g_queue, imgData->data());
+                queueFrame(g_outQueue, imgData->data());
 #else
-            writeFrame(g_fdOut, imgData->data());
+                writeFrame(g_fdOut, imgData->data());
 #endif
+            }
             g_stats.nFrames++;
-            g_stats.nFrameBytes += 0; // FIXME
+            g_stats.nFrameBytes += imgData->s() * imgData->t() * 3;
         } else {
-            TRACE("No render required");
-            sendAck();
+            //TRACE("No render required");
+            if (cmdStatus > 1) {
+                sendAck();
+            }
         }
 
         double x, y, z;
@@ -532,8 +526,8 @@ main(int argc, char *argv[])
     }
 
     TRACE("Deleting ResponseQueue");
-    delete g_queue;
-    g_queue = NULL;
+    delete g_outQueue;
+    g_outQueue = NULL;
 #endif
 
     TRACE("Stopping Tcl interpreter");

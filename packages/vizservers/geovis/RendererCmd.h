@@ -12,16 +12,18 @@
 #include <tcl.h>
 
 #include "ReadBuffer.h"
-#ifdef USE_THREADS
 #include "ResponseQueue.h"
-#endif
 
 namespace GeoVis {
 
-#ifdef USE_THREADS
 extern ssize_t queueResponse(const void *bytes, size_t len, 
                              Response::AllocationType allocType,
                              Response::ResponseType type = Response::DATA);
+
+#ifdef USE_READ_THREAD
+extern int queueCommands(Tcl_Interp *interp,
+                         ClientData clientData,
+                         ReadBuffer *inBufPtr);
 #endif
 
 extern int processCommands(Tcl_Interp *interp,

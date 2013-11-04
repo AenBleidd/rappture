@@ -16,6 +16,8 @@
 #include <sys/time.h>
 #endif
 
+#include <osgGA/StateSetManipulator>
+
 #include <osgEarth/Version>
 #include <osgEarth/MapNode>
 #include <osgEarth/TerrainLayer>
@@ -51,19 +53,50 @@ Renderer::Renderer() :
     setBackgroundColor(_bgColor);
     _captureCallback = new ScreenCaptureCallback();
     _viewer->getCamera()->setPostDrawCallback(_captureCallback.get());
-    _sceneRoot = new osg::Node;
+    osgEarth::MapOptions mapOpts;
+    mapOpts.coordSysType() = osgEarth::MapOptions::CSTYPE_PROJECTED;
+    mapOpts.profile() = osgEarth::ProfileOptions("global-geodetic");
+    osgEarth::Map *map = new osgEarth::Map(mapOpts);
+    _map = map;
+    osgEarth::MapNodeOptions mapNodeOpts;
+    mapNodeOpts.enableLighting() = false;
+    osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
+    _mapNode = mapNode;
+    _sceneRoot = mapNode;
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator = new osgEarth::Util::EarthManipulator;
-    _viewer->setCameraManipulator(_manipulator);
+    _viewer->setCameraManipulator(_manipulator.get());
+    _viewer->addEventHandler(new osgGA::StateSetManipulator(_viewer->getCamera()->getOrCreateStateSet()));
     _coordsCallback = new MouseCoordsCallback();
+    _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
+    _mouseCoordsTool->addCallback(_coordsCallback);
+    _viewer->addEventHandler(_mouseCoordsTool);
     _viewer->getCamera()->setNearFarRatio(0.00002);
     _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
     _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
     _viewer->realize();
+#ifdef DEBUG
     if (_viewer->getViewerStats() != NULL) {
         TRACE("Enabling stats");
         _viewer->getViewerStats()->collectStats("scene", true);
     }
+#endif
+#if 0
+    osgViewer::ViewerBase::Windows windows;
+    _viewer->getWindows(windows);
+    if (windows.size() == 1) {
+        windows[0]->setSyncToVBlank(false);
+    } else {
+        ERROR("Num windows: %lu", windows.size());
+    }
+#endif
+}
+
+osgGA::EventQueue *Renderer::getEventQueue()
+{
+    osgViewer::ViewerBase::Windows windows;
+    _viewer->getWindows(windows);
+    return windows[0]->getEventQueue();
 }
 
 Renderer::~Renderer()
@@ -76,24 +109,76 @@ Renderer::~Renderer()
 void Renderer::loadEarthFile(const char *path)
 {
     TRACE("Loading %s", path);
-    _sceneRoot = osgDB::readNodeFile(path);
-    osgEarth::MapNode *mapNode = osgEarth::MapNode::findMapNode(_sceneRoot.get());
+    osg::Node *node = osgDB::readNodeFile(path);
+    if (node == NULL) {
+        ERROR("Couldn't load %s", path);
+        return;
+    }
+    osgEarth::MapNode *mapNode = osgEarth::MapNode::findMapNode(node);
     if (mapNode == NULL) {
         ERROR("Couldn't find MapNode");
+        return;
     } else {
+        _sceneRoot = node;
         _map = mapNode->getMap();
     }
+    _mapNode = mapNode;
     if (_mouseCoordsTool.valid())
-        _viewer->removeEventHandler(_mouseCoordsTool);
+        _viewer->removeEventHandler(_mouseCoordsTool.get());
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
-    _mouseCoordsTool->addCallback(_coordsCallback);
-    _viewer->addEventHandler(_mouseCoordsTool);
+    _mouseCoordsTool->addCallback(_coordsCallback.get());
+    _viewer->addEventHandler(_mouseCoordsTool.get());
     _viewer->setSceneData(_sceneRoot.get());
+    _manipulator = new osgEarth::Util::EarthManipulator;
+    _viewer->setCameraManipulator(_manipulator.get());
     _manipulator->setNode(NULL);
     _manipulator->setNode(_sceneRoot.get());
     _manipulator->computeHomePosition();
     _viewer->home();
     _needsRedraw = true;
+}
+
+void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type, const char *profile)
+{
+    TRACE("Restting map with type %d, profile %s", type, profile);
+
+    osgEarth::MapOptions mapOpts;
+    mapOpts.coordSysType() = type;
+    if (profile != NULL) {
+        mapOpts.profile() = osgEarth::ProfileOptions(profile);
+    } else if (type == osgEarth::MapOptions::CSTYPE_PROJECTED) {
+        mapOpts.profile() = osgEarth::ProfileOptions("global-geodetic");
+    }
+    osgEarth::Map *map = new osgEarth::Map(mapOpts);
+    _map = map;
+    osgEarth::MapNodeOptions mapNodeOpts;
+    mapNodeOpts.enableLighting() = false;
+    osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
+    _mapNode = mapNode;
+    _sceneRoot = mapNode;
+    if (_mouseCoordsTool.valid())
+        _viewer->removeEventHandler(_mouseCoordsTool.get());
+    _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
+    _mouseCoordsTool->addCallback(_coordsCallback.get());
+    _viewer->addEventHandler(_mouseCoordsTool.get());
+    _viewer->setSceneData(_sceneRoot.get());
+    _manipulator = new osgEarth::Util::EarthManipulator;
+    _viewer->setCameraManipulator(_manipulator.get());
+    _manipulator->setNode(NULL);
+    _manipulator->setNode(_sceneRoot.get());
+    _manipulator->computeHomePosition();
+    _viewer->home();
+    _needsRedraw = true;
+}
+
+bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
+{
+    osg::Vec3d world;
+    if (_mapNode->getTerrain()->getWorldCoordsUnderMouse(_viewer.get(), mouseX, mouseY, world)) {
+        map.fromWorld(_mapNode->getMapSRS(), world);
+        return true;
+    }
+    return false;
 }
 
 void Renderer::addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts)
@@ -154,18 +239,14 @@ void Renderer::addModelLayer(const char *name, const osgEarth::ModelSourceOption
 
 void Renderer::removeModelLayer(const char *name)
 {
-#if 1
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
     _map->removeModelLayer(layer);
-#endif
 }
 
 void Renderer::moveModelLayer(const char *name, unsigned int pos)
 {
-#if 1
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
     _map->moveModelLayer(layer, pos);
-#endif
 }
 
 /**
@@ -266,39 +347,50 @@ void Renderer::zoomCamera(double z, bool absolute)
     _needsRedraw = true;
 }
 
+void Renderer::setThrowingEnabled(bool state)
+{
+    _manipulator->getSettings()->setThrowingEnabled(state);
+}
+
 void Renderer::mouseDoubleClick(int button, double x, double y)
 {
-    _viewer->getEventQueue()->mouseDoubleButtonPress((float)x, (float)y, button);
+    getEventQueue()->mouseDoubleButtonPress((float)x, (float)y, button);
     _needsRedraw = true;
 }
 
 void Renderer::mouseClick(int button, double x, double y)
 {
-    _viewer->getEventQueue()->mouseButtonPress((float)x, (float)y, button);
+    getEventQueue()->mouseButtonPress((float)x, (float)y, button);
     _needsRedraw = true;
 }
 
 void Renderer::mouseDrag(int button, double x, double y)
 {
-    _viewer->getEventQueue()->mouseMotion((float)x, (float)y);
+    getEventQueue()->mouseMotion((float)x, (float)y);
     _needsRedraw = true;
 }
 
 void Renderer::mouseRelease(int button, double x, double y)
 {
-    _viewer->getEventQueue()->mouseButtonRelease((float)x, (float)y, button);
+    getEventQueue()->mouseButtonRelease((float)x, (float)y, button);
     _needsRedraw = true;
 }
 
 void Renderer::mouseMotion(double x, double y)
 {
-    _viewer->getEventQueue()->mouseMotion((float)x, (float)y);
-    _needsRedraw = true;
+    //getEventQueue()->mouseMotion((float)x, (float)y);
+    return;
+    osgEarth::GeoPoint map;
+    if (mapMouseCoords(x, y, map)) {
+        _coordsCallback->set(map, _viewer.get(), _mapNode);
+    } else {
+        _coordsCallback->reset(_viewer.get(), _mapNode);
+    }
 }
 
 void Renderer::mouseScroll(int direction)
 {
-    _viewer->getEventQueue()->mouseScroll((direction > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN));
+    getEventQueue()->mouseScroll((direction > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN));
     _needsRedraw = true;
 }
 
@@ -335,8 +427,9 @@ long Renderer::getTimeout()
 
 bool Renderer::isPagerIdle()
 {
-    return (!_viewer->getDatabasePager()->requiresUpdateSceneGraph() &&
-            !_viewer->getDatabasePager()->getRequestsInProgress());
+    //return (!_viewer->getDatabasePager()->requiresUpdateSceneGraph() &&
+    //        !_viewer->getDatabasePager()->getRequestsInProgress());
+    return !_viewer->getDatabasePager()->requiresUpdateSceneGraph();
 }
 
 /**
@@ -347,9 +440,12 @@ bool Renderer::isPagerIdle()
  */
 bool Renderer::render()
 {
-    TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
+    if (_needsRedraw ||
+        //!isPagerIdle()
+        _viewer->checkNeedToDoFrame()
+        ) {
+        TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
 
-    if (_needsRedraw || !isPagerIdle()) {
         osg::Timer_t startFrameTick = osg::Timer::instance()->tick();
         TRACE("Before frame()");
         _viewer->frame();
@@ -363,9 +459,11 @@ bool Renderer::render()
             OpenThreads::Thread::microSleep(static_cast<unsigned int>(1000000.0*(minFrameTime-frameTime)));
         }
 #endif
+#ifdef WANT_TRACE
         if (_viewer->getViewerStats() != NULL) {
             _viewer->getViewerStats()->report(std::cerr, _viewer->getViewerStats()->getLatestFrameNumber());
         }
+#endif
         _needsRedraw = false;
         return true;
     } else
