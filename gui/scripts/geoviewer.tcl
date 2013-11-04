@@ -70,6 +70,8 @@ itcl::class Rappture::GeoViewer {
     protected method DoRotate {}
     protected method AdjustSetting {what {value ""}}
     protected method FixSettings { args  }
+    protected method KeyPress { key }
+    protected method KeyRelease { key }
     protected method MouseClick { button x y }
     protected method MouseDoubleClick { button x y }
     protected method MouseDrag { button x y }
@@ -280,6 +282,12 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
     blt::table $itk_component(plotarea) \
         0,0 $itk_component(view) -fill both -reqwidth $w 
     blt::table configure $itk_component(plotarea) c1 -resize none
+
+    # Bindings for keyboard events
+    bind $itk_component(view) <KeyPress> \
+        [itcl::code $this KeyPress %N]
+    bind $itk_component(view) <KeyRelease> \
+        [itcl::code $this KeyRelease %N]
 
     # Bindings for rotation via mouse
     bind $itk_component(view) <ButtonPress-1> \
@@ -985,6 +993,14 @@ itcl::body Rappture::GeoViewer::CurrentDatasets {args} {
         }
     }
     return $rlist
+}
+
+itcl::body Rappture::GeoViewer::KeyPress {k} {
+    SendCmd "key press $k"
+}
+
+itcl::body Rappture::GeoViewer::KeyRelease {k} {
+    SendCmd "key release $k"
 }
 
 itcl::body Rappture::GeoViewer::MouseClick {button x y} {
