@@ -331,6 +331,52 @@ ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+KeyPressOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    int key;
+    if (Tcl_GetIntFromObj(interp, objv[2], &key) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->keyPress(key);
+    return TCL_OK;
+}
+
+static int
+KeyReleaseOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    int key;
+    if (Tcl_GetIntFromObj(interp, objv[2], &key) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->keyRelease(key);
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec keyOps[] = {
+    {"press",    1, KeyPressOp,       3, 3, "key"},
+    {"release",  1, KeyReleaseOp,     3, 3, "key"},
+};
+static int nKeyOps = NumCmdSpecs(keyOps);
+
+static int
+KeyCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+         Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nKeyOps, keyOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -811,6 +857,8 @@ GeoVis::processCommands(Tcl_Interp *interp,
         tv.tv_sec = 0L;
         tv.tv_usec = timeout;
         tvPtr = &tv;
+    } else {
+        TRACE("Blocking on select()");
     }
     while (inBufPtr->isLineAvailable() || 
            (select(1, &readFds, NULL, NULL, tvPtr) > 0)) {
@@ -922,6 +970,7 @@ GeoVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "camera",         CameraCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "clientinfo",     ClientInfoCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",       ImageFlushCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "key",            KeyCmd,            clientData, NULL);
     Tcl_CreateObjCommand(interp, "map",            MapCmd,            clientData, NULL);
     Tcl_CreateObjCommand(interp, "mouse",          MouseCmd,          clientData, NULL);
     Tcl_CreateObjCommand(interp, "renderer",       RendererCmd,       clientData, NULL);
@@ -936,6 +985,7 @@ void GeoVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "camera");
     Tcl_DeleteCommand(interp, "clientinfo");
     Tcl_DeleteCommand(interp, "imgflush");
+    Tcl_DeleteCommand(interp, "key");
     Tcl_DeleteCommand(interp, "map");
     Tcl_DeleteCommand(interp, "mouse");
     Tcl_DeleteCommand(interp, "renderer");

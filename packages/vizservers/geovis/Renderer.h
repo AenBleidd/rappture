@@ -89,12 +89,14 @@ public:
 
     void set(const osgEarth::GeoPoint& p, osg::View *view, osgEarth::MapNode *mapNode)
     {
+        TRACE("%g %g %g", p.x(), p.y(), p.z());
         _pt = p;
         _havePoint = true;
     }
 
     void reset(osg::View *view, osgEarth::MapNode *mapNode)
     {
+        TRACE("Out of range");
         // Out of range click
         _havePoint = false;
     }
@@ -187,6 +189,12 @@ public:
 
     void zoomCamera(double z, bool absolute = false);
 
+    // Keyboard events
+
+    void keyPress(int key);
+
+    void keyRelease(int key);
+
     // Mouse events
 
     void setThrowingEnabled(bool state);
@@ -222,10 +230,12 @@ public:
 
     long getTimeout();
 
-    bool isPagerIdle();
-
 private:
     void initCamera();
+
+    bool isPagerIdle();
+
+    bool checkNeedToDoFrame();
 
     osgGA::EventQueue *getEventQueue();
 
