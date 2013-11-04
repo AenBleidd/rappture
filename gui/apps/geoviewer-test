@@ -68,48 +68,6 @@ option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-*-180-*
 Rappture::resources::load
 
 # ----------------------------------------------------------------------
-# Fake data object for sending VTK data file...
-# ----------------------------------------------------------------------
-itcl::class visData {
-    inherit Rappture::Drawing
-
-    constructor {args} {
-        Rappture::Drawing::constructor [Rappture::library standard] ""
-    } {
-        set _data [lindex $args 0]
-        set _type [lindex $args 1]
-    }
-
-    public method components {args} {
-        if {[llength $args] == 0} {
-            return "one"
-        }
-        return ""
-    }
-    public method data {args} {
-        return $_data
-    }
-    public method vtkdata {args} {
-        return $_data
-    }
-    public method values {args} {
-        return $_data
-    }
-    public method hints {args} {
-        return ""
-    }
-    public method type {args} {
-        return $_type
-    }
-    public method shape {args} {
-	return "sphere"
-    }
-
-    private variable _data ""
-    private variable _type ""
-}
-
-# ----------------------------------------------------------------------
 # USAGE: send_file
 #
 # Prompts the user for a text file, and then sends the text within
@@ -125,8 +83,9 @@ proc send_file {} {
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [visData #auto $info "polydata"]
-        $widgets(geoviewer) add $obj
+        set len [string length $info]
+        $widgets(command) insert 0 "map load data follows $len\n$info"
+        send_command
     }
 }
 
