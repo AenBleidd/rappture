@@ -15,6 +15,7 @@ namespace GeoVis {
 
 class Renderer;
 class ReadBuffer;
+class CommandQueue;
 class ResponseQueue;
 
 #define GEOVIS_VERSION_STRING "0.1"
@@ -48,7 +49,12 @@ extern FILE *g_fOut;
 extern FILE *g_fLog;
 extern Renderer *g_renderer;
 extern ReadBuffer *g_inBufPtr;
-extern ResponseQueue *g_queue;
+#ifdef USE_THREADS
+#ifdef USE_READ_THREAD
+extern CommandQueue *g_inQueue;
+#endif
+extern ResponseQueue *g_outQueue;
+#endif
 extern int g_statsFile;
 extern int writeToStatsFile(int f, const char *s, size_t length);
 extern int getStatsFile(Tcl_Interp * interp, Tcl_Obj *objPtr);

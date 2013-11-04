@@ -18,6 +18,8 @@
 #include <sys/uio.h>
 #include <tcl.h>
 
+#include <osgEarthDrivers/gdal/GDALOptions>
+
 #include "Trace.h"
 #include "CmdProc.h"
 #include "ReadBuffer.h"
@@ -27,29 +29,16 @@
 #include "Renderer.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
-#ifdef USE_THREADS
 #include "ResponseQueue.h"
+#ifdef USE_READ_THREAD
+#include "CommandQueue.h"
 #endif
 
 using namespace GeoVis;
 
 static int lastCmdStatus;
 
-ssize_t
-GeoVis::queueResponse(const void *bytes, size_t len, 
-                      Response::AllocationType allocType,
-                      Response::ResponseType type)
-{
-#ifdef USE_THREADS
-    Response *response = new Response(type);
-    response->setMessage((unsigned char *)bytes, len, allocType);
-    g_queue->enqueue(response);
-    return (ssize_t)len;
-#else
-    return SocketWrite(bytes, len);
-#endif
-}
-
+#ifndef USE_THREADS
 static ssize_t
 SocketWrite(const void *bytes, size_t len)
 {
@@ -65,6 +54,7 @@ SocketWrite(const void *bytes, size_t len)
     }
     return bytesWritten;
 }
+#endif
 
 static bool
 SocketRead(char *bytes, size_t len)
@@ -73,6 +63,21 @@ SocketRead(char *bytes, size_t len)
     status = g_inBufPtr->followingData((unsigned char *)bytes, len);
     TRACE("followingData status: %d", status);
     return (status == ReadBuffer::OK);
+}
+
+ssize_t
+GeoVis::queueResponse(const void *bytes, size_t len, 
+                      Response::AllocationType allocType,
+                      Response::ResponseType type)
+{
+#ifdef USE_THREADS
+    Response *response = new Response(type);
+    response->setMessage((unsigned char *)bytes, len, allocType);
+    g_outQueue->enqueue(response);
+    return (ssize_t)len;
+#else
+    return SocketWrite(bytes, len);
+#endif
 }
 
 static int
@@ -191,6 +196,20 @@ CameraRotateOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraThrowOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool state;
+
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setThrowingEnabled(state);
+    return TCL_OK;
+}
+
+static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -209,6 +228,7 @@ static Rappture::CmdSpec cameraOps[] = {
     {"pan",    1, CameraPanOp, 4, 4, "panX panY"},
     {"reset",  2, CameraResetOp, 2, 3, "?all?"},
     {"rotate", 2, CameraRotateOp, 4, 4, "azimuth elevation"},
+    {"throw",  1, CameraThrowOp, 3, 3, "bool"},
     {"zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
@@ -308,6 +328,197 @@ ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     lastCmdStatus = TCL_BREAK;
     return TCL_OK;
+}
+
+static int
+MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    osgEarth::Drivers::GDALOptions opts;
+    char *url =  Tcl_GetString(objv[3]);
+    char *name = Tcl_GetString(objv[4]);
+
+    opts.url() = url;
+
+    g_renderer->addImageLayer(name, opts);
+
+    return TCL_OK;
+}
+
+static int
+MapLayerDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    if (objc > 3) {
+        char *name = Tcl_GetString(objv[3]);
+        g_renderer->removeImageLayer(name);
+    } else {
+        g_renderer->removeImageLayer("all");
+    }
+
+    return TCL_OK;
+}
+
+static int
+MapLayerMoveOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    int pos;
+    if (Tcl_GetIntFromObj(interp, objv[3], &pos) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    char *name = Tcl_GetString(objv[4]);
+    if (pos < 0) {
+        Tcl_AppendResult(interp, "bad layer pos ", pos,
+                         ": must be positive", (char*)NULL);
+        return TCL_ERROR;
+    }
+    g_renderer->moveImageLayer(name, (unsigned int)pos);
+
+    return TCL_OK;
+}
+
+static int
+MapLayerOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    char *name = Tcl_GetString(objv[4]);
+    if (opacity < 0.0 || opacity > 1.0) {
+        Tcl_AppendResult(interp, "bad layer opacity ", opacity,
+                         ": must be [0,1]", (char*)NULL);
+        return TCL_ERROR;
+    }
+    g_renderer->setImageLayerOpacity(name, opacity);
+
+    return TCL_OK;
+}
+
+static int
+MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    char *name = Tcl_GetString(objv[4]);
+
+    g_renderer->setImageLayerVisibility(name, visible);
+
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec mapLayerOps[] = {
+    {"add",     1, MapLayerAddOp,       5, 5, "type url name"},
+    {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
+    {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
+    {"opacity", 1, MapLayerOpacityOp,   5, 5, "opacity ?name?"},
+    {"visible", 1, MapLayerVisibleOp,   5, 5, "bool ?name?"},
+};
+static int nMapLayerOps = NumCmdSpecs(mapLayerOps);
+
+static int
+MapLayerOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nMapLayerOps, mapLayerOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+MapLoadOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    char *opt = Tcl_GetString(objv[2]);
+    if (opt[0] == 'f' && strcmp(opt, "file") == 0) {
+        g_renderer->loadEarthFile(Tcl_GetString(objv[3]));
+    } else if (opt[0] == 'u' && strcmp(opt, "url") == 0) {
+        std::ostringstream path;
+        path << "server:" << Tcl_GetString(objv[3]);
+        g_renderer->loadEarthFile(path.str().c_str());
+    } else if (opt[0] == 'd' && strcmp(opt, "data") == 0) {
+        opt = Tcl_GetString(objv[3]);
+        if (opt[0] != 'f' || strcmp(opt, "follows") != 0) {
+            return TCL_ERROR;
+        }
+        int len;
+        if (Tcl_GetIntFromObj(interp, objv[4], &len) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        // Read Earth file from socket
+        char *buf = (char *)malloc((size_t)len);
+        SocketRead(buf, (size_t)len);
+        std::ostringstream path;
+        path << "/tmp/tmp" << getpid() << ".earth";
+        FILE *tmpFile = fopen(path.str().c_str(), "w");
+        fwrite(buf, len, 1, tmpFile);
+        fclose(tmpFile);
+        g_renderer->loadEarthFile(path.str().c_str());
+        unlink(path.str().c_str());
+        free(buf);
+    } else {
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    char *typeStr = Tcl_GetString(objv[2]);
+    osgEarth::MapOptions::CoordinateSystemType type;
+    if (typeStr[0] == 'g' && strcmp(typeStr, "geocentric") == 0) {
+        type = osgEarth::MapOptions::CSTYPE_GEOCENTRIC;
+    } else if (typeStr[0] == 'g' && strcmp(typeStr, "geocentric_cube") == 0) {
+        type = osgEarth::MapOptions::CSTYPE_GEOCENTRIC_CUBE;
+    } else if (typeStr[0] == 'p' && strcmp(typeStr, "projected") == 0) {
+        type = osgEarth::MapOptions::CSTYPE_PROJECTED;
+    } else {
+        Tcl_AppendResult(interp, "bad map type \"", typeStr,
+                         "\": must be geocentric, geocentric_cube or projected", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    char *profile = NULL;
+    if (objc > 3) {
+        profile = Tcl_GetString(objv[3]);
+    }
+
+    g_renderer->resetMap(type, profile);
+
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec mapOps[] = {
+    {"layer",    2, MapLayerOp,       3, 5, "op ?params...?"},
+    {"load",     2, MapLoadOp,        4, 5, "options"},
+    {"reset",    1, MapResetOp,       3, 4, "type ?profile?"},
+};
+static int nMapOps = NumCmdSpecs(mapOps);
+
+static int
+MapCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nMapOps, mapOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
@@ -440,14 +651,6 @@ MouseCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-RendererLoadOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-               Tcl_Obj *const *objv)
-{
-    g_renderer->loadEarthFile(Tcl_GetString(objv[2]));
-    return TCL_OK;
-}
-
-static int
 RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -456,7 +659,6 @@ RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec rendererOps[] = {
-    {"load",       1, RendererLoadOp, 3, 3, "path"},
     {"render",     1, RendererRenderOp, 2, 2, ""},
 };
 static int nRendererOps = NumCmdSpecs(rendererOps);
@@ -526,6 +728,53 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
+#ifdef USE_READ_THREAD
+int
+GeoVis::queueCommands(Tcl_Interp *interp,
+                      ClientData clientData,
+                      ReadBuffer *inBufPtr)
+{
+    Tcl_DString commandString;
+    Tcl_DStringInit(&commandString);
+    fd_set readFds;
+
+    FD_ZERO(&readFds);
+    FD_SET(inBufPtr->file(), &readFds);
+    while (inBufPtr->isLineAvailable() || 
+           (select(1, &readFds, NULL, NULL, NULL) > 0)) {
+        size_t numBytes;
+        unsigned char *buffer;
+
+        /* A short read is treated as an error here because we assume that we
+         * will always get commands line by line. */
+        if (inBufPtr->getLine(&numBytes, &buffer) != ReadBuffer::OK) {
+            /* Terminate the server if we can't communicate with the client
+             * anymore. */
+            if (inBufPtr->status() == ReadBuffer::ENDFILE) {
+                TRACE("Exiting server on EOF from client");
+                return -1;
+            } else {
+                ERROR("Exiting server, failed to read from client: %s",
+                      strerror(errno));
+                return -1;
+            }
+        }
+        Tcl_DStringAppend(&commandString, (char *)buffer, numBytes);
+        if (Tcl_CommandComplete(Tcl_DStringValue(&commandString))) {
+            // Add to queue
+            Command *command = new Command(Command::COMMAND);
+            command->setMessage((unsigned char *)Tcl_DStringValue(&commandString),
+                                Tcl_DStringLength(&commandString), Command::VOLATILE);
+            g_inQueue->enqueue(command);
+            Tcl_DStringSetLength(&commandString, 0);
+        }
+        FD_SET(inBufPtr->file(), &readFds);
+    }
+
+    return 1;
+}
+#endif
+
 /**
  * \brief Execute commands from client in Tcl interpreter
  * 
@@ -591,7 +840,7 @@ GeoVis::processCommands(Tcl_Interp *interp,
             g_stats.cmdTime += (MSECS_ELAPSED(start, finish) / 1.0e+3);
             g_stats.nCommands++;
             if (status == TCL_BREAK) {
-                return 1;               /* This was caused by a "imgflush"
+                return 2;               /* This was caused by a "imgflush"
                                          * command. Break out of the read loop
                                          * and allow a new image to be
                                          * rendered. */
@@ -600,6 +849,9 @@ GeoVis::processCommands(Tcl_Interp *interp,
                 if (handleError(interp, clientData, status, fdOut) < 0) {
                     return -1;
                 }
+            }
+            if (status == TCL_OK) {
+                ret = 3;
             }
         }
 
@@ -670,6 +922,7 @@ GeoVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "camera",         CameraCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "clientinfo",     ClientInfoCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",       ImageFlushCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "map",            MapCmd,            clientData, NULL);
     Tcl_CreateObjCommand(interp, "mouse",          MouseCmd,          clientData, NULL);
     Tcl_CreateObjCommand(interp, "renderer",       RendererCmd,       clientData, NULL);
     Tcl_CreateObjCommand(interp, "screen",         ScreenCmd,         clientData, NULL);
@@ -683,6 +936,7 @@ void GeoVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "camera");
     Tcl_DeleteCommand(interp, "clientinfo");
     Tcl_DeleteCommand(interp, "imgflush");
+    Tcl_DeleteCommand(interp, "map");
     Tcl_DeleteCommand(interp, "mouse");
     Tcl_DeleteCommand(interp, "renderer");
     Tcl_DeleteCommand(interp, "screen");
