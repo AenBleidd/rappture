@@ -1575,14 +1575,13 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	    [Rappture::FlowHints ::\#auto $_field $cname $_units]
 	set _values [$_field get $cname.values]
         set limits {}
-        foreach axis { x y } {
+        foreach axis { x y z } {
             lappend limits $axis [$_comp2unirect2d($cname) limits $axis]
         }
         set xv [blt::vector create \#auto]
         $xv set $_values
         lappend limits $cname [$xv limits]
         lappend limits v [$xv limits]
-        lappend limits z [$xv limits]
         blt::vector destroy $xv
         set _comp2limits($cname) $limits
 	incr _counter
@@ -1619,11 +1618,11 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
                 }
             }
         }
-        if { $dim  != 3 } {
+        if { $dim != 3 } {
             set _dim $dim
         }
     }
-        
+
     if {$_dim == 1} {
 	# 1D data: Create vectors for graph widget.
 	# Is this used anywhere?
@@ -1669,12 +1668,11 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
 	incr _counter
 	array unset _comp2limits $cname
-        foreach axis { x y } {
+        foreach axis { x y z } {
             lappend _comp2limits($cname) $axis [$mesh limits $axis]
         }
 	lappend _comp2limits($cname) $cname [$v limits]
 	lappend _comp2limits($cname) v [$v limits]
-	lappend _comp2limits($cname) z [$v limits]
 	return 1
     } 
     if {$_dim == 3} {
