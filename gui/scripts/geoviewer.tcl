@@ -715,8 +715,6 @@ itcl::body Rappture::GeoViewer::Connect {} {
             SendCmd "clientinfo [list $info]"
         }
 
-        SendCmd "renderer load /usr/share/osgearth/maps/gdal_tiff.earth"
-
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
@@ -990,42 +988,52 @@ itcl::body Rappture::GeoViewer::CurrentDatasets {args} {
 }
 
 itcl::body Rappture::GeoViewer::MouseClick {button x y} {
+    if {0} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     set x [expr {(2.0 * double($x)/$w) - 1.0}]
     set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    }
     SendCmd "mouse click $button $x $y"
 }
 
 itcl::body Rappture::GeoViewer::MouseDoubleClick {button x y} {
+    if {0} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     set x [expr {(2.0 * double($x)/$w) - 1.0}]
     set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    }
     SendCmd "mouse dblclick $button $x $y"
 }
 
 itcl::body Rappture::GeoViewer::MouseDrag {button x y} {
+    if {0} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     set x [expr {(2.0 * double($x)/$w) - 1.0}]
     set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    }
     SendCmd "mouse drag $button $x $y"
 }
 
 itcl::body Rappture::GeoViewer::MouseRelease {button x y} {
+    if {0} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     set x [expr {(2.0 * double($x)/$w) - 1.0}]
     set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    }
     SendCmd "mouse release $button $x $y"
 }
 
 itcl::body Rappture::GeoViewer::MouseMotion {x y} {
+    if {0} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     set x [expr {(2.0 * double($x)/$w) - 1.0}]
     set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    }
     SendCmd "mouse motion $x $y"
 }
 
