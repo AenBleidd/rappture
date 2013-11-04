@@ -286,25 +286,6 @@ proc show_comm {channel {data ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: activate_flow
-#
-# ----------------------------------------------------------------------
-proc activate_flow {} {
-    global widgets
-    # global img_storage_dir
-    # "flow capture 117 $img_storage_dir"
-
-    set info {flow vectorid 0
-              flow particle visible on
-              flow lic on
-              flow capture 100}
-
-    $widgets(command) insert 0 $info
-    send_command
-
-}
-
-# ----------------------------------------------------------------------
 # TOPLEVEL FOR IMAGES
 # ----------------------------------------------------------------------
 # USAGE: images_save
