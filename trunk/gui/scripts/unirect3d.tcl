@@ -199,17 +199,14 @@ itcl::body Rappture::Unirect3d::limits {which} {
         x - xlin - xlog {
             set min $_xMin
             set max $_xMax
-            set axis "xaxis"
         }
         y - ylin - ylog {
             set min $_yMin
             set max $_yMax
-            set axis "yaxis"
         }
         z - zlin - zlog {
             set min $_zMin
             set max $_zMax
-            set axis "zaxis"
         }
         v - vlin - vlog {
             if { [$_values length] > 0 } {
@@ -219,7 +216,6 @@ itcl::body Rappture::Unirect3d::limits {which} {
                 set min 0.0
                 set max 1.0
             }
-            set axis "vaxis"
         }
         default {
             error "unknown axis description \"$which\""

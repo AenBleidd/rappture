@@ -210,12 +210,14 @@ itcl::body Rappture::Unirect2d::limits {which} {
         x - xlin - xlog {
             set min $_xMin
             set max $_xMax
-            set axis "xaxis"
         }
         y - ylin - ylog {
             set min $_yMin
             set max $_yMax
-            set axis "yaxis"
+        }
+        z - zlin - zlog {
+            set min 0
+            set max 0
         }
         default {
             error "unknown axis description \"$which\""
