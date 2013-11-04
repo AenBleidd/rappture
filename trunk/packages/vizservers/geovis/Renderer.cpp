@@ -174,7 +174,7 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type, const c
 bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
 {
     osg::Vec3d world;
-    if (_mapNode->getTerrain()->getWorldCoordsUnderMouse(_viewer.get(), mouseX, mouseY, world)) {
+    if (_mapNode->getTerrain()->getWorldCoordsUnderMouse(_viewer->asView(), mouseX, mouseY, world)) {
         map.fromWorld(_mapNode->getMapSRS(), world);
         return true;
     }
@@ -347,6 +347,18 @@ void Renderer::zoomCamera(double z, bool absolute)
     _needsRedraw = true;
 }
 
+void Renderer::keyPress(int key)
+{
+    getEventQueue()->keyPress(key);
+    _needsRedraw = true;
+}
+
+void Renderer::keyRelease(int key)
+{
+    getEventQueue()->keyRelease(key);
+    _needsRedraw = true;
+}
+
 void Renderer::setThrowingEnabled(bool state)
 {
     _manipulator->getSettings()->setThrowingEnabled(state);
@@ -379,7 +391,7 @@ void Renderer::mouseRelease(int button, double x, double y)
 void Renderer::mouseMotion(double x, double y)
 {
     //getEventQueue()->mouseMotion((float)x, (float)y);
-    return;
+    //return;
     osgEarth::GeoPoint map;
     if (mapMouseCoords(x, y, map)) {
         _coordsCallback->set(map, _viewer.get(), _mapNode);
@@ -416,20 +428,44 @@ void Renderer::eventuallyRender()
     _needsRedraw = true;
 }
 
+/**
+ * \brief Get a timeout in usecs for select()
+ * 
+ * If the paging thread is idle, returns <0 indicating that the
+ * select call can block until data is available.  Otherwise,
+ * if the frame render time was faster than the target frame 
+ * rate, return the remaining frame time.
+ */
 long Renderer::getTimeout()
 {
+    if (!checkNeedToDoFrame())
+        // <0 means no timeout, block until socket has data
+        return -1L;
     if (_lastFrameTime < _minFrameTime) {
         return (long)1000000.0*(_minFrameTime - _lastFrameTime);
     } else {
+        // No timeout (poll)
         return 0L;
     }
 }
 
+/**
+ * \brief Check if paging thread is quiescent
+ */
 bool Renderer::isPagerIdle()
 {
-    //return (!_viewer->getDatabasePager()->requiresUpdateSceneGraph() &&
-    //        !_viewer->getDatabasePager()->getRequestsInProgress());
-    return !_viewer->getDatabasePager()->requiresUpdateSceneGraph();
+    return (!_viewer->getDatabasePager()->requiresUpdateSceneGraph() &&
+            !_viewer->getDatabasePager()->getRequestsInProgress());
+}
+
+/**
+ * \brief Check is frame call is necessary to render and/or update
+ * in response to events or timed actions
+ */
+bool Renderer::checkNeedToDoFrame()
+{
+    return (_needsRedraw ||
+            _viewer->checkNeedToDoFrame());
 }
 
 /**
@@ -440,10 +476,7 @@ bool Renderer::isPagerIdle()
  */
 bool Renderer::render()
 {
-    if (_needsRedraw ||
-        //!isPagerIdle()
-        _viewer->checkNeedToDoFrame()
-        ) {
+    if (checkNeedToDoFrame()) {
         TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
 
         osg::Timer_t startFrameTick = osg::Timer::instance()->tick();
