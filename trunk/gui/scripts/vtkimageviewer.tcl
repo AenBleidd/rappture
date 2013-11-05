@@ -223,12 +223,14 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
         colormapDiscrete        0
         field			"Default"
         legendVisible           0
+        level                   127.5
         numColors               256
         opacity                 100
         outline			0
         saveOpacity		100
         stretchToFit		0
         view3D                  0
+        window                  255.0
     }
     array set _changed {
         opacity                 0
@@ -1498,6 +1500,14 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             }
             StopBufferingCommands
         }
+        "window" {
+            set val $_settings(window)
+            SendCmd "image window $val"
+        }
+        "level" {
+            set val $_settings(level)
+            SendCmd "image level $val"
+        }
         "legendVisible" {
             if { !$_settings($what) } {
 		$itk_component(view) delete legend
@@ -1791,6 +1801,29 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
             -command [itcl::code $this AdjustSetting opacity]
     }
 
+    itk_component add window_l {
+        label $inner.window_l -text "Window" -font "Arial 9"
+    } {
+        ignore -font
+    }
+    itk_component add window {
+        ::scale $inner.window -from 0 -to 255 -orient horizontal \
+            -variable [itcl::scope _settings(window)] \
+            -showvalue off \
+            -command [itcl::code $this AdjustSetting window]
+    }
+    itk_component add level_l {
+        label $inner.level_l -text "Level" -font "Arial 9"
+    } {
+        ignore -font
+    }
+    itk_component add level {
+        ::scale $inner.level -from 0 -to 255 -orient horizontal \
+            -variable [itcl::scope _settings(level)] \
+            -showvalue off \
+            -command [itcl::code $this AdjustSetting level]
+    }
+
     frame $inner.separator1 -height 2 -relief sunken -bd 1
     frame $inner.separator2 -height 2 -relief sunken -bd 1
 
@@ -1812,9 +1845,13 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
         13,0 $inner.separator2 -padx 2 -fill x -cspan 2 \
         15,0 $inner.opacity_l -anchor w -pady 2 \
         15,1 $inner.opacity   -fill x   -pady 2 \
+        16,0 $inner.window_l -anchor w -pady 2 \
+        16,1 $inner.window   -fill x   -pady 2 \
+        17,0 $inner.level_l -anchor w -pady 2 \
+        17,1 $inner.level   -fill x   -pady 2 
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r17 c1 -resize expand
+    blt::table configure $inner r19 c1 -resize expand
 }
 
 itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
