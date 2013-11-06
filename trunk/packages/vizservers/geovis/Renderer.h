@@ -27,6 +27,7 @@
 #include <osgEarth/GeoData>
 #include <osgEarthUtil/EarthManipulator>
 #include <osgEarthUtil/MouseCoordsTool>
+#include <osgEarthUtil/AutoClipPlaneHandler>
 
 #include "Types.h"
 #include "Trace.h"
@@ -133,11 +134,18 @@ public:
 
     void resetMap(osgEarth::MapOptions::CoordinateSystemType type, const char *profile = NULL);
 
+    void clearMap();
+
     // Map options
 
     void setLighting(bool state);
 
     // Image raster layers
+
+    int getNumImageLayers() const
+    {
+        return (_map.valid() ? _map->getNumImageLayers() : 0);
+    }
 
     void addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts);
 
@@ -151,19 +159,33 @@ public:
 
     // Elevation raster layers
 
+    int getNumElevationLayers() const
+    {
+        return (_map.valid() ? _map->getNumElevationLayers() : 0);
+    }
+
     void addElevationLayer(const char *name, const osgEarth::TileSourceOptions& opts);
 
     void removeElevationLayer(const char *name);
 
     void moveElevationLayer(const char *name, unsigned int pos);
 
+    void setElevationLayerVisibility(const char *name, bool state);
+
     // Model layers
+
+    int getNumModelLayers() const
+    {
+        return (_map.valid() ? _map->getNumModelLayers() : 0);
+    }
 
     void addModelLayer(const char *name, const osgEarth::ModelSourceOptions& opts);
 
     void removeModelLayer(const char *name);
 
     void moveModelLayer(const char *name, unsigned int pos);
+
+    void setModelLayerVisibility(const char *name, bool state);
 
     // Render window
 
@@ -251,6 +273,7 @@ private:
     osg::ref_ptr<osgEarth::Map> _map;
     osg::ref_ptr<osgViewer::Viewer> _viewer;
     osg::ref_ptr<ScreenCaptureCallback> _captureCallback;
+    osg::ref_ptr<osgEarth::Util::AutoClipPlaneCullCallback> _clipPlaneCullCallback;
     osg::ref_ptr<osgEarth::Util::MouseCoordsTool> _mouseCoordsTool;
     osg::ref_ptr<MouseCoordsCallback> _coordsCallback;
     osg::ref_ptr<osgEarth::Util::EarthManipulator> _manipulator;
