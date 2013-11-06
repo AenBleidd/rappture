@@ -25,6 +25,7 @@
 #include <osgEarth/ElevationLayer>
 #include <osgEarth/ModelLayer>
 #include <osgEarthUtil/EarthManipulator>
+#include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/MouseCoordsTool>
 
 #include "Renderer.h"
@@ -127,6 +128,14 @@ void Renderer::loadEarthFile(const char *path)
         _viewer->removeEventHandler(_mouseCoordsTool.get());
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
     _mouseCoordsTool->addCallback(_coordsCallback.get());
+    if (_clipPlaneCullCallback.valid()) {
+        _viewer->getCamera()->removeCullCallback(_clipPlaneCullCallback.get());
+        _clipPlaneCullCallback = NULL;
+    }
+    if (_map->isGeocentric()) {
+        _clipPlaneCullCallback = new osgEarth::Util::AutoClipPlaneCullCallback(mapNode);
+        _viewer->getCamera()->addCullCallback(_clipPlaneCullCallback.get());
+    }
     _viewer->addEventHandler(_mouseCoordsTool.get());
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator = new osgEarth::Util::EarthManipulator;
@@ -161,6 +170,15 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type, const c
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
     _mouseCoordsTool->addCallback(_coordsCallback.get());
     _viewer->addEventHandler(_mouseCoordsTool.get());
+
+    if (_clipPlaneCullCallback.valid()) {
+        _viewer->getCamera()->removeCullCallback(_clipPlaneCullCallback.get());
+        _clipPlaneCullCallback = NULL;
+    }
+    if (_map->isGeocentric()) {
+        _clipPlaneCullCallback = new osgEarth::Util::AutoClipPlaneCullCallback(mapNode);
+        _viewer->getCamera()->addCullCallback(_clipPlaneCullCallback.get());
+    }
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator = new osgEarth::Util::EarthManipulator;
     _viewer->setCameraManipulator(_manipulator.get());
@@ -169,6 +187,13 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type, const c
     _manipulator->computeHomePosition();
     _viewer->home();
     _needsRedraw = true;
+}
+
+void Renderer::clearMap()
+{
+    if (_map.valid()) {
+        _map->clear();
+    }
 }
 
 bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
@@ -190,26 +215,34 @@ void Renderer::addImageLayer(const char *name, const osgEarth::TileSourceOptions
 void Renderer::removeImageLayer(const char *name)
 {
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
-    _map->removeImageLayer(layer);
+    if (layer != NULL) {
+        _map->removeImageLayer(layer);
+    }
 }
 
 void Renderer::moveImageLayer(const char *name, unsigned int pos)
 {
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
-    _map->moveImageLayer(layer, pos);
+    if (layer != NULL) {
+        _map->moveImageLayer(layer, pos);
+    }
 }
 
 void Renderer::setImageLayerOpacity(const char *name, double opacity)
 {
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
-    layer->setOpacity(opacity);
+    if (layer != NULL) {
+        layer->setOpacity(opacity);
+    }
 }
 
 void Renderer::setImageLayerVisibility(const char *name, bool state)
 {
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 4, 0)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
-    layer->setVisible(state);
+    if (layer != NULL) {
+        layer->setVisible(state);
+    }
 #endif
 }
 
@@ -222,13 +255,27 @@ void Renderer::addElevationLayer(const char *name, const osgEarth::TileSourceOpt
 void Renderer::removeElevationLayer(const char *name)
 {
     osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
-    _map->removeElevationLayer(layer);
+    if (layer != NULL) {
+        _map->removeElevationLayer(layer);
+    }
 }
 
 void Renderer::moveElevationLayer(const char *name, unsigned int pos)
 {
     osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
-    _map->moveElevationLayer(layer, pos);
+    if (layer != NULL) {
+        _map->moveElevationLayer(layer, pos);
+    }
+}
+
+void Renderer::setElevationLayerVisibility(const char *name, bool state)
+{
+#if OSGEARTH_MIN_VERSION_REQUIRED(2, 4, 0)
+    osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
+    if (layer != NULL) {
+        layer->setVisible(state);
+    }
+#endif
 }
 
 void Renderer::addModelLayer(const char *name, const osgEarth::ModelSourceOptions& opts)
@@ -240,13 +287,27 @@ void Renderer::addModelLayer(const char *name, const osgEarth::ModelSourceOption
 void Renderer::removeModelLayer(const char *name)
 {
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
-    _map->removeModelLayer(layer);
+    if (layer != NULL) {
+        _map->removeModelLayer(layer);
+    }
 }
 
 void Renderer::moveModelLayer(const char *name, unsigned int pos)
 {
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
-    _map->moveModelLayer(layer, pos);
+    if (layer != NULL) {
+        _map->moveModelLayer(layer, pos);
+    }
+}
+
+void Renderer::setModelLayerVisibility(const char *name, bool state)
+{
+#if OSGEARTH_MIN_VERSION_REQUIRED(2, 4, 0)
+    osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
+    if (layer != NULL) {
+        layer->setVisible(state);
+    }
+#endif
 }
 
 /**

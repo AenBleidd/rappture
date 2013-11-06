@@ -18,7 +18,15 @@
 #include <sys/uio.h>
 #include <tcl.h>
 
+#include <osgEarthFeatures/FeatureModelSource>
+#include <osgEarthSymbology/Color>
+#include <osgEarthSymbology/Style>
+#include <osgEarthSymbology/StyleSheet>
+#include <osgEarthSymbology/LineSymbol>
+
 #include <osgEarthDrivers/gdal/GDALOptions>
+#include <osgEarthDrivers/model_feature_geom/FeatureGeomModelOptions>
+#include <osgEarthDrivers/feature_ogr/OGRFeatureOptions>
 
 #include "Trace.h"
 #include "CmdProc.h"
@@ -380,14 +388,45 @@ static int
 MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
-    osgEarth::Drivers::GDALOptions opts;
-    char *url =  Tcl_GetString(objv[3]);
-    char *name = Tcl_GetString(objv[4]);
+    char *type = Tcl_GetString(objv[3]);
+    if (type[0] == 'i' && strcmp(type, "image") == 0) {
+        osgEarth::Drivers::GDALOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *name = Tcl_GetString(objv[5]);
 
-    opts.url() = url;
+        opts.url() = url;
 
-    g_renderer->addImageLayer(name, opts);
+        g_renderer->addImageLayer(name, opts);
+    } else if (type[0] == 'e' && strcmp(type, "elevation") == 0) {
+        osgEarth::Drivers::GDALOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *name = Tcl_GetString(objv[5]);
 
+        opts.url() = url;
+
+        g_renderer->addElevationLayer(name, opts);
+    } else if (type[0] == 'm' && strcmp(type, "model") == 0) {
+        osgEarth::Drivers::OGRFeatureOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *name = Tcl_GetString(objv[5]);
+        opts.url() = url;
+
+        osgEarth::Symbology::Style style;
+        osgEarth::Symbology::LineSymbol *ls = style.getOrCreateSymbol<osgEarth::Symbology::LineSymbol>();
+        ls->stroke()->color() = osgEarth::Symbology::Color::Black;
+        ls->stroke()->width() = 2.0f;
+
+        osgEarth::Drivers::FeatureGeomModelOptions geomOpts;
+        geomOpts.featureOptions() = opts;
+        geomOpts.styles() = new osgEarth::Symbology::StyleSheet();
+        geomOpts.styles()->addStyle(style);
+        geomOpts.enableLighting() = false;
+        g_renderer->addModelLayer(name, geomOpts);
+    } else {
+        Tcl_AppendResult(interp, "unknown map layer type \"", type,
+                         "\": should be 'image', 'elevation' or 'model'", (char*)NULL);
+        return TCL_ERROR;
+    }
     return TCL_OK;
 }
 
@@ -398,8 +437,10 @@ MapLayerDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (objc > 3) {
         char *name = Tcl_GetString(objv[3]);
         g_renderer->removeImageLayer(name);
+        g_renderer->removeElevationLayer(name);
+        g_renderer->removeModelLayer(name);
     } else {
-        g_renderer->removeImageLayer("all");
+        g_renderer->clearMap();
     }
 
     return TCL_OK;
@@ -420,6 +461,8 @@ MapLayerMoveOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     g_renderer->moveImageLayer(name, (unsigned int)pos);
+    g_renderer->moveElevationLayer(name, (unsigned int)pos);
+    g_renderer->moveModelLayer(name, (unsigned int)pos);
 
     return TCL_OK;
 }
@@ -454,12 +497,14 @@ MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     char *name = Tcl_GetString(objv[4]);
 
     g_renderer->setImageLayerVisibility(name, visible);
+    g_renderer->setElevationLayerVisibility(name, visible);
+    g_renderer->setModelLayerVisibility(name, visible);
 
     return TCL_OK;
 }
 
 static Rappture::CmdSpec mapLayerOps[] = {
-    {"add",     1, MapLayerAddOp,       5, 5, "type url name"},
+    {"add",     1, MapLayerAddOp,       6, 6, "type url name"},
     {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
     {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
     {"opacity", 1, MapLayerOpacityOp,   5, 5, "opacity ?name?"},
@@ -547,7 +592,7 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec mapOps[] = {
-    {"layer",    2, MapLayerOp,       3, 5, "op ?params...?"},
+    {"layer",    2, MapLayerOp,       3, 6, "op ?params...?"},
     {"load",     2, MapLoadOp,        4, 5, "options"},
     {"reset",    1, MapResetOp,       3, 4, "type ?profile?"},
 };
