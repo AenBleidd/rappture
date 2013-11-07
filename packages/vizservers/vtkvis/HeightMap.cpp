@@ -577,25 +577,25 @@ void HeightMap::setAspect(double aspect)
         // Square
         switch (_sliceAxis) {
         case X_AXIS: {
-            if (size[1] > size[2] && size[2] > 1.0e-6) {
+            if (size[1] > size[2] && size[2] > 0.0) {
                 scale[2] = size[1] / size[2];
-            } else if (size[2] > size[1] && size[1] > 1.0e-6) {
+            } else if (size[2] > size[1] && size[1] > 0.0) {
                 scale[1] = size[2] / size[1];
             }
         }
             break;
         case Y_AXIS: {
-            if (size[0] > size[2] && size[2] > 1.0e-6) {
+            if (size[0] > size[2] && size[2] > 0.0) {
                 scale[2] = size[0] / size[2];
-            } else if (size[2] > size[0] && size[0] > 1.0e-6) {
+            } else if (size[2] > size[0] && size[0] > 0.0) {
                 scale[0] = size[2] / size[0];
             }
         }
             break;
         case Z_AXIS: {
-            if (size[0] > size[1] && size[1] > 1.0e-6) {
+            if (size[0] > size[1] && size[1] > 0.0) {
                 scale[1] = size[0] / size[1];
-            } else if (size[1] > size[0] && size[0] > 1.0e-6) {
+            } else if (size[1] > size[0] && size[0] > 0.0) {
                 scale[0] = size[1] / size[0];
             }
         }
@@ -605,15 +605,15 @@ void HeightMap::setAspect(double aspect)
         switch (_sliceAxis) {
         case X_AXIS: {
             if (aspect > 1.0) {
-                if (size[2] > size[1]) {
+                if (size[2] > size[1] && size[1] > 0.0) {
                     scale[1] = (size[2] / aspect) / size[1];
-                } else {
+                } else if (size[2] > 0.0) {
                     scale[2] = (size[1] * aspect) / size[2];
                 }
             } else {
-                if (size[1] > size[2]) {
+                if (size[1] > size[2] && size[2] > 0.0) {
                     scale[2] = (size[1] * aspect) / size[2];
-                } else {
+                } else if (size[1] > 0.0) {
                     scale[1] = (size[2] / aspect) / size[1];
                 }
             }
@@ -621,15 +621,15 @@ void HeightMap::setAspect(double aspect)
             break;
         case Y_AXIS: {
             if (aspect > 1.0) {
-                if (size[0] > size[2]) {
+                if (size[0] > size[2] && size[2] > 0.0) {
                     scale[2] = (size[0] / aspect) / size[2];
-                } else {
+                } else if (size[0] > 0.0) {
                     scale[0] = (size[2] * aspect) / size[0];
                 }
             } else {
-                if (size[2] > size[0]) {
+                if (size[2] > size[0] && size[0] > 0.0) {
                     scale[0] = (size[2] * aspect) / size[0];
-                } else {
+                } else if (size[2] > 0.0) {
                     scale[2] = (size[0] / aspect) / size[2];
                 }
             }
@@ -637,15 +637,15 @@ void HeightMap::setAspect(double aspect)
             break;
         case Z_AXIS: {
             if (aspect > 1.0) {
-                if (size[0] > size[1]) {
+                if (size[0] > size[1] && size[1] > 0.0) {
                     scale[1] = (size[0] / aspect) / size[1];
-                } else {
+                } else if (size[0] > 0.0) {
                     scale[0] = (size[1] * aspect) / size[0];
                 }
             } else {
-                if (size[1] > size[0]) {
+                if (size[1] > size[0] && size[0] > 0.0) {
                     scale[0] = (size[1] * aspect) / size[0];
-                } else {
+                } else if (size[1] > 0.0) {
                     scale[1] = (size[0] / aspect) / size[1];
                 }
             }
