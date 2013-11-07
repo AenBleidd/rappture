@@ -509,8 +509,8 @@ glyphs quality <val> <?dataSetName?>
 glyphs scale <sx> <sy> <sz> <?dataSetName?>
 glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|line|octahedron|point|sphere|tetrahedron> <?datasetName?>
 glyphs smode <scalar|vmag|vcomp|off> <fieldName> <?dataSetName?>
-       Set the scaling mode: use the scalar field, vector magnitude 
-       (uniform scale), vector components, or disable scaling
+       Set the scaling mode: use the scalar field, vector magnitude, 
+       vector components, or disable scaling
 glyphs visible <bool> <?datasetName?>
 glyphs wireframe <bool> <?datasetName?>
 

@@ -29,6 +29,7 @@
 #include <vtkPlaneCollection.h>
 
 #include "DataSet.h"
+#include "Math.h"
 #include "Trace.h"
 
 namespace VtkVis {
@@ -230,19 +231,9 @@ public:
     virtual void setOrientation(double quat[4])
     {
         if (getProp3D() != NULL) {
-            double angle = vtkMath::DegreesFromRadians(2.0 * acos(quat[0]));
-            double axis[3];
-            if (angle < 1.0e-6) {
-                axis[0] = 1;
-                axis[1] = 0;
-                axis[2] = 0;
-            } else {
-                double denom = sqrt(1. - quat[0] * quat[0]);
-                axis[0] = quat[1] / denom;
-                axis[1] = quat[2] / denom;
-                axis[2] = quat[3] / denom;
-            }
-            setOrientation(angle, axis);
+            double angleAxis[4];
+            quatToAngleAxis(quat, angleAxis);
+            setOrientation(angleAxis[0], &angleAxis[1]);
         }
     }
 
@@ -311,25 +302,25 @@ public:
             // Square
             switch (plane) {
             case PLANE_XY: {
-                if (size[0] > size[1] && size[1] > 1.0e-6) {
+                if (size[0] > size[1] && size[1] > 0.0) {
                     scale[1] = size[0] / size[1];
-                } else if (size[1] > size[0] && size[0] > 1.0e-6) {
+                } else if (size[1] > size[0] && size[0] > 0.0) {
                     scale[0] = size[1] / size[0];
                 }
             }
                 break;
             case PLANE_ZY: {
-                if (size[1] > size[2] && size[2] > 1.0e-6) {
+                if (size[1] > size[2] && size[2] > 0.0) {
                     scale[2] = size[1] / size[2];
-                } else if (size[2] > size[1] && size[1] > 1.0e-6) {
+                } else if (size[2] > size[1] && size[1] > 0.0) {
                     scale[1] = size[2] / size[1];
                 }
             }
                 break;
             case PLANE_XZ: {
-                if (size[0] > size[2] && size[2] > 1.0e-6) {
+                if (size[0] > size[2] && size[2] > 0.0) {
                     scale[2] = size[0] / size[2];
-                } else if (size[2] > size[0] && size[0] > 1.0e-6) {
+                } else if (size[2] > size[0] && size[0] > 0.0) {
                     scale[0] = size[2] / size[0];
                 }
             }
@@ -341,15 +332,15 @@ public:
             switch (plane) {
             case PLANE_XY: {
                 if (aspect > 1.0) {
-                    if (size[0] > size[1]) {
+                    if (size[0] > size[1] && size[1] > 0.0) {
                         scale[1] = (size[0] / aspect) / size[1];
-                    } else {
+                    } else if (size[0] > 0.0) {
                         scale[0] = (size[1] * aspect) / size[0];
                     }
                 } else {
-                    if (size[1] > size[0]) {
+                    if (size[1] > size[0] && size[0] > 0.0) {
                         scale[0] = (size[1] * aspect) / size[0];
-                    } else {
+                    } else if (size[1] > 0.0) {
                         scale[1] = (size[0] / aspect) / size[1];
                     }
                 }
@@ -357,15 +348,15 @@ public:
                 break;
             case PLANE_ZY: {
                 if (aspect > 1.0) {
-                    if (size[2] > size[1]) {
+                    if (size[2] > size[1] && size[1] > 0.0) {
                         scale[1] = (size[2] / aspect) / size[1];
-                    } else {
+                    } else if (size[2] > 0.0) {
                         scale[2] = (size[1] * aspect) / size[2];
                     }
                 } else {
-                    if (size[1] > size[2]) {
+                    if (size[1] > size[2] && size[2] > 0.0) {
                         scale[2] = (size[1] * aspect) / size[2];
-                    } else {
+                    } else if (size[1] > 0.0) {
                         scale[1] = (size[2] / aspect) / size[1];
                     }
                 }
@@ -373,15 +364,15 @@ public:
                 break;
             case PLANE_XZ: {
                 if (aspect > 1.0) {
-                    if (size[0] > size[2]) {
+                    if (size[0] > size[2] && size[2] > 0.0) {
                         scale[2] = (size[0] / aspect) / size[2];
-                    } else {
+                    } else if (size[0] > 0.0) {
                         scale[0] = (size[2] * aspect) / size[0];
                     }
                 } else {
-                    if (size[2] > size[0]) {
+                    if (size[2] > size[0] && size[0] > 0.0) {
                         scale[0] = (size[2] * aspect) / size[0];
-                    } else {
+                    } else if (size[2] > 0.0) {
                         scale[2] = (size[0] / aspect) / size[2];
                     }
                 }
