@@ -227,7 +227,7 @@ void Grid::render()
                 _font->draw(buff);
             }
         }
-        for (result = zAxis.firstMajor(iter) + LABEL_OFFSET/xAxis.range(); result; result = iter.next()) {
+        for (result = zAxis.firstMajor(iter); result; result = iter.next()) {
             float z;
             z = zAxis.map(iter.getValue());
             if (gluProject(1.0 + LABEL_OFFSET/xAxis.range(), 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz) &&
