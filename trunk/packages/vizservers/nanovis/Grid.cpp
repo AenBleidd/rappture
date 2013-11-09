@@ -66,8 +66,40 @@ void Grid::render()
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    glTranslatef(xAxis.min(), yAxis.min(), zAxis.min());
-    glScalef(xAxis.range(), yAxis.range(), zAxis.range());
+    double xLen = xAxis.range();
+    double yLen = yAxis.range();
+    double zLen = zAxis.range();
+    double avgLen = 0.;
+    double denom = 0.;
+    if (xLen > 0.0) {
+        avgLen += xLen;
+        denom += 1.0;
+    }
+    if (yLen > 0.0) {
+        avgLen += yLen;
+        denom += 1.0;
+    }
+    if (zLen > 0.0) {
+        avgLen += zLen;
+        denom += 1.0;
+    }
+    if (denom > 0.0) {
+        avgLen /= denom;
+    } else {
+        avgLen = 1.0;
+    }
+    float xTickLen = (TICK_LENGTH * avgLen) / xLen;
+    float yTickLen = (TICK_LENGTH * avgLen) / yLen;
+    float zTickLen = (TICK_LENGTH * avgLen) / zLen;
+    float xLabelOfs = (LABEL_OFFSET * avgLen) / xLen;
+    //float yLabelOfs = (LABEL_OFFSET * avgLen) / yLen;
+    float zLabelOfs = (LABEL_OFFSET * avgLen) / zLen;
+    float xTitleOfs = (TITLE_OFFSET * avgLen) / xLen;
+    float yTitleOfs = (TITLE_OFFSET * avgLen) / yLen;
+    float zTitleOfs = (TITLE_OFFSET * avgLen) / zLen;
+
+    glTranslated(xAxis.min(), yAxis.min(), zAxis.min());
+    glScaled(xLen, yLen, zLen);
 
     glLineWidth(2.0f);
     glColor4f(_axisColor.r, _axisColor.g, _axisColor.b, 
@@ -76,11 +108,11 @@ void Grid::render()
     glBegin(GL_LINES);
     {
         glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(1.0f + TICK_LENGTH/xAxis.range(), 0.0f, 0.0f);
+        glVertex3f(1.0f + xTickLen, 0.0f, 0.0f);
         glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(0.0f, 1.0f + TICK_LENGTH/yAxis.range(), 0.0f);
+        glVertex3f(0.0f, 1.0f + yTickLen, 0.0f);
         glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(0.0f, 0.0f, 1.0f + TICK_LENGTH/zAxis.range());
+        glVertex3f(0.0f, 0.0f, 1.0f + zTickLen);
     }
     glEnd();
 
@@ -99,13 +131,13 @@ void Grid::render()
             glVertex3f(x, 0.0f, 0.0f);
             glVertex3f(x, 1.0f, 0.0f);
             glVertex3f(x, 0.0f, 0.0f);
-            glVertex3f(x, 0.0f, 1.0f + TICK_LENGTH/zAxis.range());
+            glVertex3f(x, 0.0f, 1.0f + zTickLen);
         }
         for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
             y = yAxis.map(iter.getValue());
             glVertex3f(0.0f, y, 0.0f);
-            glVertex3f(1.0f + TICK_LENGTH/xAxis.range(), y, 0.0f);
+            glVertex3f(1.0f + xTickLen, y, 0.0f);
             glVertex3f(0.0f, y, 0.0f);
             glVertex3f(0.0f, y, 1.0f);
         }
@@ -115,7 +147,7 @@ void Grid::render()
             glVertex3f(0.0f, 0.0f, z);
             glVertex3f(0.0f, 1.0f, z);
             glVertex3f(0.0f, 0.0f, z);
-            glVertex3f(1.0f + TICK_LENGTH/xAxis.range(), 0.0f, z);
+            glVertex3f(1.0f + xTickLen, 0.0f, z);
         }
     }
     glEnd();
@@ -168,7 +200,7 @@ void Grid::render()
         glGetIntegerv(GL_VIEWPORT, viewport);
 
         _font->begin();
-        if (gluProject(1.0 + TITLE_OFFSET/xAxis.range(), 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
+        if (gluProject(1.0 + xTitleOfs, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, viewport[3] - (int) wy, 0);
@@ -179,7 +211,7 @@ void Grid::render()
             _font->draw(name);
         }
         
-        if (gluProject(0.0, 1.0 + TITLE_OFFSET/yAxis.range(), 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
+        if (gluProject(0.0, 1.0 + yTitleOfs, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, viewport[3] - (int)wy, 0);
@@ -190,7 +222,7 @@ void Grid::render()
             _font->draw(name);
         }
         
-        if (gluProject(0.0, 0.0, 1.0 + TITLE_OFFSET/zAxis.range(), mv, prjm, viewport, &wx, &wy, &wz) &&
+        if (gluProject(0.0, 0.0, 1.0 + zTitleOfs, mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
             glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
@@ -206,7 +238,7 @@ void Grid::render()
         for (result = xAxis.firstMajor(iter); result; result = iter.next()) {
             float x;
             x = xAxis.map(iter.getValue());
-            if (gluProject(x, 0.0f, 1.0 + LABEL_OFFSET/zAxis.range(), mv, prjm, viewport, &wx, &wy, &wz) &&
+            if (gluProject(x, 0.0f, 1.0 + zLabelOfs, mv, prjm, viewport, &wx, &wy, &wz) &&
                 wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
@@ -218,7 +250,7 @@ void Grid::render()
         for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
             y = yAxis.map(iter.getValue());
-            if (gluProject(1.0 + LABEL_OFFSET/xAxis.range(), y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz) &&
+            if (gluProject(1.0 + xLabelOfs, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz) &&
                 wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
@@ -230,7 +262,7 @@ void Grid::render()
         for (result = zAxis.firstMajor(iter); result; result = iter.next()) {
             float z;
             z = zAxis.map(iter.getValue());
-            if (gluProject(1.0 + LABEL_OFFSET/xAxis.range(), 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz) &&
+            if (gluProject(1.0 + xLabelOfs, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz) &&
                 wz >= 0.0 && wz <= 1.0) {
                 char buff[20];
                 glLoadIdentity();
