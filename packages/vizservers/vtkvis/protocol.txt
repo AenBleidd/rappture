@@ -2,7 +2,7 @@
 ================================================================================
 Protocol for vtkvis render server.  
 
-Commands take the general form of command and arguments using Tcl syntax and are 
+Commands take the general form of command and arguments using Tcl syntax and are
 terminated by a newline.  Some command arguments expect a Tcl list which can be
 sent by enclosing the list in curly braces to prevent the interpreter from 
 splitting the list into multiple arguments.  Likewise, strings with spaces 
@@ -124,8 +124,8 @@ axis range <axis> <min> <max>
      <min> = minimum value of axis for labels
      <max> = maximum value of axis for labels
 axis scale <axis> <scale>
-     Set axis range to be computed based on scaling the axis bounds by the
-     given scale factor.
+     Set axis range to be computed based on scaling the axis bounds by the given
+     scale factor.
      <axis> = x|y|z|all
      <scale> = scale factor where range = bounds * scale
 axis tcolor <axis> <r> <g> <b> <?opacity?>
@@ -246,8 +246,16 @@ renderer clipplane <axis> <ratio> <direction>
          0 = min_bound, 1 = max_bound, regardless of direction.  Sign of 
          direction determines normal of clipping plane.  User clip planes do not
          apply if camera mode is image.
-renderer depthpeel <bool>
+renderer depthpeel <bool> <?occlusionRatio?> <?maxPeels?>
          Set use of depth peeling algorithm for transparency
+         <occlusionRatio> = [0,0.5] Value of 0 means exact rendering, higher
+         values can speed rendering at the cost of some quality.  From VTK docs:
+         "the threshold under which the algorithm stops to iterate over peel 
+         layers. This is the ratio of the number of pixels that have been 
+         touched by the last layer over the total number of pixels of the 
+         viewport area."
+         <maxPeels> = 0 means unlimited passes, positive value limits the number
+         of rendering passes 
 renderer light2side <bool>
          Toggle use of two-sided lighting (controls if backfaces are lit with a
          flipped normal)
