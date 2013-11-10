@@ -10193,6 +10193,32 @@ RendererDepthPeelingOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     g_renderer->setUseDepthPeeling(state);
+    if (objc > 3) {
+        if (objc < 5) {
+             Tcl_AppendResult(interp, "wrong # args: should be \"", Tcl_GetString(objv[0]),
+                              " ", Tcl_GetString(objv[1]), " bool ?occlusionRatio maxPeels?\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+        double occlusionRatio;
+        int maxPeels;
+        if (Tcl_GetDoubleFromObj(interp, objv[3], &occlusionRatio) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (occlusionRatio < 0.0 || occlusionRatio > 0.5) {
+            Tcl_AppendResult(interp, "bad occlusionRatio value \"", Tcl_GetString(objv[3]),
+                             "\": should be [0,0.5]", (char*)NULL);
+            return TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[4], &maxPeels) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (maxPeels < 0) {
+            Tcl_AppendResult(interp, "bad maxPeels value \"", Tcl_GetString(objv[3]),
+                             "\": must be zero or greater", (char*)NULL);
+            return TCL_ERROR;
+        }
+        g_renderer->setDepthPeelingParams(occlusionRatio, maxPeels);
+    }
     return TCL_OK;
 }
 
@@ -10234,7 +10260,7 @@ RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec rendererOps[] = {
     {"clipplane",  1, RendererClipPlaneOp, 5, 5, "axis ratio direction"},
-    {"depthpeel",  1, RendererDepthPeelingOp, 3, 3, "bool"},
+    {"depthpeel",  1, RendererDepthPeelingOp, 3, 5, "bool ?occlusionRatio maxPeels?"},
     {"light2side", 6, RendererTwoSidedLightingOp, 3, 3, "bool"},
     {"lights",     6, RendererLightsOp, 4, 4, "idx bool"}, 
     {"render",     1, RendererRenderOp, 2, 2, ""}

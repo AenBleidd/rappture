@@ -1,7 +1,7 @@
 DEBUG			= #yes
 TRACE			= #yes
 USE_CUSTOM_AXES		= yes
-USE_FONT_CONFIG         = #yes
+USE_FONT_CONFIG         = yes
 USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
@@ -124,11 +124,12 @@ endif
 ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
 endif
-VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingFreeType_AUTOINIT="1(vtkRenderingFreeTypeFontConfig)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
-DEFINES         += -DUSE_VTK6 $(VTK_MOD_DEFS)
 ifdef NEW_SCALAR_BAR
 DEFINES		+= -DNEW_SCALAR_BAR
 endif
+
+VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingFreeType_AUTOINIT="1(vtkRenderingFreeTypeFontConfig)" -DvtkRenderingVolume_AUTOINIT="1(vtkRenderingVolumeOpenGL)"
+DEFINES         += -DUSE_VTK6 $(VTK_MOD_DEFS)
 
 CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(DEFINES) $(INCLUDES)
 CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
