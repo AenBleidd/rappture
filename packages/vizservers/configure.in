@@ -306,7 +306,6 @@ AC_SUBST(VTK_LIB_DIR)
 
 AC_OUTPUT([
    Makefile \
-   geovis/Makefile \
    nanoscale/Makefile \
    nanoscale/renderservers.tcl \
    nanovis/Doxyfile \
