@@ -892,8 +892,16 @@ itcl::body Rappture::Controls::_resize {} {
                 if {$h > $maxh} { set maxh $h }
             }
 
+            # Turn off propagation temporarily so that we don't keep
+            # recursing back into this routine when we change the frame's
+            # dimensions below.
             grid propagate $_frame no
+
             $_frame configure -width $maxw -height $maxh
+
+            # Turn progagation back on so that the parent widget recognizes
+            # when the widget changes size or is unpacked.
+            grid propagate $_frame yes
         }
         vertical - horizontal - sentence* {
             # in other modes, just use normal size propagation

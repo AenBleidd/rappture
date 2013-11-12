@@ -25,6 +25,7 @@ itcl::class ::Rappture::VisViewer {
     set _servers(nanovis) "localhost:2000"
     set _servers(pymol)   "localhost:2020"
     set _servers(vtkvis)  "localhost:2010"
+    set _servers(vmdmds)  "localhost:2018"
 
     protected variable _serverType "???";# Type of server.
     protected variable _sid ""      ;   # socket connection to server
