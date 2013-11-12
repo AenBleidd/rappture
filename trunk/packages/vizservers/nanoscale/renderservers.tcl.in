@@ -1,7 +1,32 @@
-
+#
+# This file is read by nanoscale to determine the ports to listen
+# to and the how to start the associated render server.
+#
+# Render servers
+#
+#	Server			Port		Usage
+#	======			====		=====
+#	nanovis			2000		production
+#	vtkvis			2010		production
+#	geovis			2015		testing
+#	vmdshow			2018		testing
+#	pymol			2019		testing
+#	pymol			2020		production
+#
+# The syntax is
+#	register_server <name> <port> <command> <variables>
+#
+# This registers a server by the given name at the given port.
+# When a connection is made to that port, the command is run
+# with the environment variables initialized.  
+#
+# Note: Don't set DISPLAY here. nanoscale itself sets the DISPLAY
+#	variable.
+#
 set exec_prefix "@exec_prefix@"
 set bindir "@bindir@"
 set libdir "@libdir@"
+# This can be removed when we're sure moving to VTK 6
 set vtkdir "@VTK_LIB_DIR@"
 
 # GeoVis server (port 2015) --
@@ -24,6 +49,7 @@ register_server nanovis 2000 {
 
 # VtkVis server (port 2010)--
 #    3D drawings (scene graphs), Contour and surface graphs.
+#    Can remove ":${vtkdir} when moving to VTK 6.
 #
 register_server vtkvis 2010 {
     ${bindir}/vtkvis
