@@ -4,7 +4,7 @@ set bindir "@bindir@"
 set libdir "@libdir@"
 set vtkdir "@VTK_LIB_DIR@"
 
-# GeoVis server --
+# GeoVis server (port 2015) --
 #     Map renderer
 #
 register_server geovis 2015 {
@@ -13,7 +13,7 @@ register_server geovis 2015 {
     LD_LIBRARY_PATH ${libdir}
 }
 
-# NanoVis server --
+# NanoVis server (port 2000) --
 #     Volume renderer
 #
 register_server nanovis 2000 {
@@ -22,7 +22,16 @@ register_server nanovis 2000 {
     LD_LIBRARY_PATH ${libdir}
 }
 
-# Pymol server --
+# VtkVis server (port 2010)--
+#    3D drawings (scene graphs), Contour and surface graphs.
+#
+register_server vtkvis 2010 {
+    ${bindir}/vtkvis
+} {
+    LD_LIBRARY_PATH ${libdir}:${vtkdir}
+}
+
+# Pymol experimental server (port 2019) --
 #     Molecular layouts from PDB description.  
 #     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
@@ -33,8 +42,8 @@ register_server pymol 2019 {
     LD_LIBRARY_PATH ${libdir}
 }
 
-#
-# Pymol server (threaded version of proxy) --
+
+# Pymol server (threaded version of proxy) (port 2010) --
 #     Molecular layouts from PDB description.  
 #     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
@@ -45,11 +54,10 @@ register_server pymol-threaded 2020 {
     LD_LIBRARY_PATH ${libdir}
 }
 
-# VtkVis server --
-#    VTK-based renderer
+# vmd server (used for mdshowcase)
 #
-register_server vtkvis 2010 {
-    ${bindir}/vtkvis
+register_server vmdshow 2018 {
+    /usr/bin/vmd -startup ${libdir}/vmd/vmdserver.tcl -args -stdio
 } {
-    LD_LIBRARY_PATH ${libdir}:${vtkdir}
+    LD_LIBRARY_PATH ${libdir}
 }
