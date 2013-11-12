@@ -38,7 +38,7 @@ itcl::class Rappture::Curve {
     public method xmarkers {}
     public method ymarkers {}
     public method xErrorValues { cname }
-    public method yErrorValues { cname}
+    public method yErrorValues { cname }
 
     protected method _build {}
 
