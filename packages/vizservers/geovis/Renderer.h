@@ -185,6 +185,8 @@ public:
 
     void moveModelLayer(const char *name, unsigned int pos);
 
+    void setModelLayerOpacity(const char *name, double opacity);
+
     void setModelLayerVisibility(const char *name, bool state);
 
     // Render window

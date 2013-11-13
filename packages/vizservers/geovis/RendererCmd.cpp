@@ -482,6 +482,7 @@ MapLayerOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     g_renderer->setImageLayerOpacity(name, opacity);
+    g_renderer->setModelLayerOpacity(name, opacity);
 
     return TCL_OK;
 }

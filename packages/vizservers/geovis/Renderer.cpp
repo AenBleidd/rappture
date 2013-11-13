@@ -300,6 +300,16 @@ void Renderer::moveModelLayer(const char *name, unsigned int pos)
     }
 }
 
+void Renderer::setModelLayerOpacity(const char *name, double opacity)
+{
+#if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 0)
+    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    if (layer != NULL) {
+        layer->setOpacity(opacity);
+    }
+#endif
+}
+
 void Renderer::setModelLayerVisibility(const char *name, bool state)
 {
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 4, 0)
