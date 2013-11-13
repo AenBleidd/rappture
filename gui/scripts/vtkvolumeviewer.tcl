@@ -2566,8 +2566,6 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     set wmap [ComputeAlphamap $cname]
     set _cname2transferFunction($cname) [list $cmap $wmap]
     SendCmd [list colormap add $cname $cmap $wmap]
-
-    SendCmd [list colormap add grayscale { 0 0 0 0 1 1 1 1 } { 0 1 1 1 }]
 }
 
 #
@@ -2584,8 +2582,7 @@ itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
     set cmap [GetColormap $cname $color]
     set _cname2transferFunction($cname) [list $cmap $wmap]
     SendCmd [list colormap add $cname $cmap $wmap]
-    #SendCmd [list cutplane colormap $cname]
-    SendCmd [list cutplane colormap grayscale]
+    SendCmd [list cutplane colormap $cname]
     EventuallyRequestLegend
 }
 
