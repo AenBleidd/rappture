@@ -729,17 +729,17 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
             array set limits [$dataobj valueLimits $cname]
             foreach {min max} $limits(v) break
             if { ![info exists _limits($cname)] } {
-                set vmin $min
-                set vmax $max
+                set _limits($cname) [list $min $max]
             } else {
-                if { $vmin > $min } {
+                foreach {vmin vmax} $_limits($cname) break
+                if { $min < $vmin } {
                     set vmin $min
                 }
-                if { $vmax < $max } {
+                if { $max > $vmax } {
                     set vmax $max
                 }
+                set _limits($cname) [list $vmin $vmax]
             }
-            set _limits($cname) [list $vmin $vmax]
         }
     }
     BuildVolumeComponents
@@ -1365,7 +1365,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
         "volumeVisible" {
             set bool $_settings(volumeVisible)
-            set _settings($_current-volumeVisible)
+            set _settings($_current-volumeVisible) $bool
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume visible $bool $tag"
             }
