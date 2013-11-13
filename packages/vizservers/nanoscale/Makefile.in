@@ -23,7 +23,7 @@ INSTALL_DATA    = ${INSTALL} -m 0444
 INSTALL_SCRIPT  = ${INSTALL} -m 0444
 RM		= rm -f
 
-SERVER_OBJS	= server2.o
+SERVER_OBJS	= server.o
 CLIENT_OBJS	= client.o clientlib.o
 
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@

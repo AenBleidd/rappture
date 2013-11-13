@@ -1,171 +1,284 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <sys/types.h>
+
+#define _GNU_SOURCE
 #include <sys/socket.h>
-#include <sys/wait.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <getopt.h>
+
+#include <stdio.h>
+#include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
+#include <getopt.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <syslog.h>
+#include <unistd.h>
+#include <fcntl.h>
 
-// The initial request load for a new renderer.
-#define INITIAL_LOAD 100000000.0
+#include <tcl.h>
 
-// The factor that the load is divided by every second.
-#define LOAD_DROP_OFF 2.0
+#include "config.h"
 
-// The broadcast interval (in seconds)
-#define BROADCAST_INTERVAL 5
+#define TRUE	1
+#define FALSE	0
 
-// The load of a remote machine must be less than this factor to
-// justify redirection.
-#define LOAD_REDIRECT_FACTOR 0.8
+#ifndef SERVERSFILE
+#define SERVERSFILE  "/opt/hubzero/rappture/render/lib/renderservers.tcl"
+#endif
 
-// Maxium number of services we support
-#define MAX_SERVICES 100
+#define ERROR(...)      SysLog(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
+#define TRACE(...)      SysLog(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
+#define WARN(...)       SysLog(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
+#define INFO(...)       SysLog(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
 
-float load = 0;             // The present load average for this system.
-int memory_in_use = 0;      // Total memory in use by this system. 
-int children = 0;           // Number of children running on this system.
-int send_fd;                // The file descriptor we broadcast through.
-struct sockaddr_in send_addr;  // The subnet address we broadcast to.
-fd_set saved_rfds;          // Descriptors we're reading from.
-fd_set pipe_rfds;           // Descriptors that are pipes to children.
-fd_set service_rfds[MAX_SERVICES];
-int maxCards = 1;
-int dispNum = -1;
-char displayVar[200];
-
-struct host_info {
-    struct in_addr in_addr;
-    float          load;
-    int            children;
+static const char *syslogLevels[] = {
+    "emergency",			/* System is unusable */
+    "alert",				/* Action must be taken immediately */
+    "critical",				/* Critical conditions */
+    "error",				/* Error conditions */
+    "warning",				/* Warning conditions */
+    "notice",				/* Normal but significant condition */
+    "info",				/* Informational */
+    "debug",				/* Debug-level messages */
 };
 
-struct child_info {
-    int   memory;
-    int   pipefd;
-    float requests;
-};
-
-struct host_info host_array[100];
-struct child_info child_array[100];
-
-/*
- * min()/max() macros that also do
- * strict type-checking.. See the
- * "unnecessary" pointer comparison.
+/* RenderServer --
+ *
+ *	Contains information to describe/execute a render server.
  */
-#define min(x,y) ({				\
-	    typeof(x) _x = (x);			\
-	    typeof(y) _y = (y);			\
-	    (void) (&_x == &_y);		\
-	    _x < _y ? _x : _y; })
+typedef struct {
+    const char *name;			/* Name of server. */
+    int port;				/* Port to listen to. */
+    int numCmdArgs;			/* # of args in command.  */
+    int numEnvArgs;			/* # of args in environment.  */
+    char *const *cmdArgs;		/* Command to execute for server. */
+    char *const *envArgs;		/* Environment strings to set. */
+    int listenerFd;			/* Descriptor of the listener socket. */
+} RenderServer;
 
-#define max(x,y) ({				\
-	    typeof(x) _x = (x);			\
-	    typeof(y) _y = (y);			\
-	    (void) (&_x == &_y);		\
-	    _x > _y ? _x : _y; })
-
+static Tcl_HashTable serverTable;	/* Table of render servers
+					 * representing services available to
+					 * clients.  A new instance is forked
+					 * and executed each time a new
+					 * request is accepted. */
+static int debug = FALSE;
+static pid_t serverPid;
 
 static void
-close_child(int pipe_fd)
+SysLog(int priority, const char *path, int lineNum, const char* fmt, ...)
 {
-    int i;
-    for(i=0; i<sizeof(child_array)/sizeof(child_array[0]); i++) {
-	if (child_array[i].pipefd == pipe_fd) {
-	    children--;
-	    memory_in_use -= child_array[i].memory;
-	    child_array[i].memory = 0;
-	    FD_CLR(child_array[i].pipefd, &saved_rfds);
-	    FD_CLR(child_array[i].pipefd, &pipe_rfds);
-	    close(child_array[i].pipefd);
-	    child_array[i].pipefd = 0;
-	    break;
-	}
+#define MSG_LEN (2047)
+    char message[MSG_LEN+1];
+    const char *s;
+    int length;
+    va_list lst;
+
+    va_start(lst, fmt);
+    s = strrchr(path, '/');
+    if (s == NULL) {
+        s = path;
+    } else {
+        s++;
     }
-  
-    printf("processes=%d, memory=%d, load=%f\n",
-	   children, memory_in_use, load);
-
-}
-
-void note_request(int fd, float value)
-{
-    int c;
-    for(c=0; c < sizeof(child_array)/sizeof(child_array[0]); c++) {
-	if (child_array[c].pipefd == fd) {
-	    child_array[c].requests += value;
-#ifdef DEBUGGING
-	    printf("Updating requests from pipefd %d to %f\n",
-		   child_array[c].pipefd,
-		   child_array[c].requests);
-#endif
-	    return;
-	}
+    length = snprintf(message, MSG_LEN, "nanoscale (%d %d) %s: %s:%d ", 
+	serverPid, getpid(), syslogLevels[priority],  s, lineNum);
+    length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
+    message[MSG_LEN] = '\0';
+    if (debug) {
+	fprintf(stderr, "%s\n", message);
+    } else {
+	syslog(priority, message, length);
     }
 }
 
-volatile int sigalarm_set;
-
 static void 
-sigalarm_handler(int signum)
-{
-    sigalarm_set = 1;
-}
-
-static void 
-help(const char *argv0)
+Help(const char *program)
 {
     fprintf(stderr,
-	    "Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
-	    argv0);
+	"Syntax: %s [-d] [-f serversFile] [-x numVideoCards]\n", program);
     exit(1);
 }
 
-static void
-clear_service_fd(int fd)
+/* 
+ * RegisterServerCmd --
+ *
+ *	Registers a render server to be run when a client connects
+ *	on the designated port. The form of the commands is
+ *
+ *          register_server <name> <port> <cmd> <environ>
+ *
+ *	where 
+ *
+ *	    name	Token for the render server.
+ *	    port	Port to listen to accept connections.
+ *	    cmd		Command to be run to start the render server.
+ *          environ	Name-value pairs of representing environment 
+ *			variables.
+ *
+ *	Note that "cmd" and "environ" are variable and backslash 
+ *	substituted.  A listener socket automatically is established on 
+ *	the given port to accept client requests.  
+ *	
+ *	Example:
+ *
+ *	    register_server myServer 12345 {
+ *		 /path/to/myserver arg arg
+ *	    } {
+ *	         LD_LIBRARY_PATH $libdir/myServer
+ *          }
+ *
+ */
+static int
+RegisterServerCmd(ClientData clientData, Tcl_Interp *interp, int objc,
+		  Tcl_Obj *const *objv)
 {
-    int n;
+    Tcl_Obj *objPtr;
+    const char *serverName;
+    int bool, isNew;
+    int f;
+    int port;
+    int numCmdArgs, numEnvArgs;
+    char *const *cmdArgs;
+    char *const *envArgs;
+    struct sockaddr_in addr;
+    RenderServer *serverPtr;
+    Tcl_HashEntry *hPtr;
 
-    for(n = 0; n < MAX_SERVICES; n++) {
-	if (FD_ISSET(fd, &service_rfds[n]))
-	    FD_CLR(fd, &service_rfds[n]);
+    if ((objc < 4) || (objc > 5)) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", 
+		Tcl_GetString(objv[0]), " serverName port cmd ?environ?", 
+		(char *)NULL);
+	return TCL_ERROR;
     }
+    serverName = Tcl_GetString(objv[1]);
+    if (Tcl_GetIntFromObj(interp, objv[2], &port) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    hPtr = Tcl_CreateHashEntry(&serverTable, (char *)((long)port), &isNew);
+    if (!isNew) {
+	Tcl_AppendResult(interp, "a server is already listening on port ", 
+		Tcl_GetString(objv[2]), (char *)NULL);
+	return TCL_ERROR;
+    }
+    objPtr = Tcl_SubstObj(interp, objv[3], 
+			  TCL_SUBST_VARIABLES | TCL_SUBST_BACKSLASHES);
+    if (Tcl_SplitList(interp, Tcl_GetString(objPtr), &numCmdArgs, 
+	(const char ***)&cmdArgs) != TCL_OK) {
+	return TCL_ERROR;
+    }
+
+    /* Create a socket for listening. */
+    f = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (f < 0) {
+	Tcl_AppendResult(interp, "can't create listerner socket for \"",
+		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
+  
+    /* If the render server instance should be killed, drop the socket address
+     * reservation immediately, don't linger. */
+    bool = TRUE;
+    if (setsockopt(f, SOL_SOCKET, SO_REUSEADDR, &bool, sizeof(bool)) < 0) {
+	Tcl_AppendResult(interp, "can't create set socket option for \"",
+		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
+
+    /* Bind this address to the socket. */
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    if (bind(f, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+	Tcl_AppendResult(interp, "can't bind to socket for \"",
+		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
+    /* Listen on the specified port. */
+    if (listen(f, 5) < 0) {
+	Tcl_AppendResult(interp, "can't listen to socket for \"",
+		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
+    numEnvArgs = 0;
+    envArgs = NULL;
+    if (objc == 5) {
+	objPtr = Tcl_SubstObj(interp, objv[4], 
+		TCL_SUBST_VARIABLES | TCL_SUBST_BACKSLASHES);
+	if (Tcl_SplitList(interp, Tcl_GetString(objPtr), &numEnvArgs, 
+		(const char ***)&envArgs) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	if (numEnvArgs & 0x1) {
+	    Tcl_AppendResult(interp, "odd # elements in enviroment list", 
+			     (char *)NULL);
+	    return TCL_ERROR;
+	}
+    }
+    serverPtr = malloc(sizeof(RenderServer));
+    memset(serverPtr, 0, sizeof(RenderServer));
+    if (serverPtr == NULL) {
+	Tcl_AppendResult(interp, "can't allocate structure for \"",
+		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
+    serverPtr->name = strdup(serverName);
+    serverPtr->cmdArgs = cmdArgs;
+    serverPtr->numCmdArgs = numCmdArgs;
+    serverPtr->listenerFd = f;
+    serverPtr->envArgs = envArgs;
+    serverPtr->numEnvArgs = numEnvArgs;
+    Tcl_SetHashValue(hPtr, serverPtr);
+    return TCL_OK;
+}
+
+static int 
+ParseServersFile(const char *fileName)
+{
+    Tcl_Interp *interp;
+
+    interp = Tcl_CreateInterp();
+    Tcl_MakeSafe(interp);
+    Tcl_CreateObjCommand(interp, "register_server", RegisterServerCmd, NULL, 
+			 NULL);
+    if (Tcl_EvalFile(interp, fileName) != TCL_OK) {
+	ERROR("Can't add server: %s", Tcl_GetString(Tcl_GetObjResult(interp)));
+	return FALSE;
+    }
+    Tcl_DeleteInterp(interp);
+    return TRUE;
 }
 
 int 
-main(int argc, char *argv[])
+main(int argc, char **argv)
 {
-    char server_command[MAX_SERVICES][1000];
-    int nservices = 0;
-    int command_argc[MAX_SERVICES];
-    char **command_argv[MAX_SERVICES];
-    int val;
-    int listen_fd[MAX_SERVICES];
-    int status;
-    struct sockaddr_in listen_addr;
-    struct sockaddr_in recv_addr;
-    int listen_port[MAX_SERVICES];
-    int recv_port = -1;
-    int debug_flag = 0;
-    int n;
+#ifdef SA_NOCLDWAIT
+    struct sigaction action;
+#endif
+    fd_set serverFds;
+    int maxFd;				/* Highest file descriptor in use. */
+    char display[200];			/* String used to manage the X 
+					 * DISPLAY variable for each render 
+					 * server instance. */
+    int maxCards;			/* Maximum number of video cards, each
+					 * represented by a different X
+					 * screen.  */
+    int screenNum;			/* Current X screen number. */
+    Tcl_HashEntry *hPtr;
+    Tcl_HashSearch iter;
+    const char *fileName;		/* Path to servers file. */
+ 
+    serverPid = getpid();
+    screenNum = 0;
+    maxCards = 1;
+    fileName = SERVERSFILE;
+    debug = FALSE;
 
-    listen_port[0] = -1;
-    server_command[0][0] = 0;
+    strcpy(display, ":0.0");
+    Tcl_InitHashTable(&serverTable, TCL_ONE_WORD_KEYS);
 
-    strcpy(displayVar, "DISPLAY=:0.0");
-    if (putenv(displayVar) < 0) {
-	perror("putenv");
-    }
-    while(1) {
+    /* Process command line switches. */
+    for (;;) {
 	int c;
 	int option_index = 0;
 	struct option long_options[] = {
@@ -173,394 +286,197 @@ main(int argc, char *argv[])
 	    { 0,0,0,0 },
 	};
 
-	c = getopt_long(argc, argv, "+b:c:l:s:x:d", long_options, 
-			&option_index);
-	if (c == -1)
+	c = getopt_long(argc, argv, "x:f:d", long_options, &option_index);
+	if (c == -1) {
 	    break;
+	}
 
 	switch(c) {
-	case 'x': /* Number of video cards */
+	case 'x':			/* Number of video cards */
 	    maxCards = strtoul(optarg, 0, 0);
 	    if ((maxCards < 1) || (maxCards > 10)) {
-		fprintf(stderr, "bad number of max videocards specified\n");
+		fprintf(stderr, "Bad number of max videocards specified\n");
 		return 1;
 	    }
 	    break;
-	case 'd':
-	    debug_flag = 1;
+	case 'd':			/* Debug  */
+	    debug = TRUE;
 	    break;
-	case 'b':
-	    recv_port = strtoul(optarg, 0, 0);
-	    break;
-	case 'c':
-	    strncpy(server_command[nservices], optarg, sizeof(server_command[0]));
 
-	    if (listen_port[nservices] == -1) {
-		fprintf(stderr,"Must specify -l port before each -c command.\n");
-		return 1;
-	    }
+	case 'f':			/* Server file path. */
+	    fileName = strdup(optarg);
+	    break;
 
-	    nservices++;
-	    listen_port[nservices] = -1;
-	    break;
-	case 'l':
-	    listen_port[nservices] = strtoul(optarg,0,0);
-	    break;
-	case 's':
-	    send_addr.sin_addr.s_addr = htonl(inet_network(optarg));
-	    if (send_addr.sin_addr.s_addr == -1) {
-		fprintf(stderr,"Invalid subnet broadcast address");
-		return 1;
-	    }
-	    break;
 	default:
 	    fprintf(stderr,"Don't know what option '%c'.\n", c);
-	    return 1;
-	}
-    }
-    if (nservices == 0 ||
-	recv_port == -1 ||
-	server_command[0][0]=='\0') {
-	int i;
-	for (i = 0; i < argc; i++) {
-	    fprintf(stderr, "argv[%d]=(%s)\n", i, argv[i]);
-	}
-	help(argv[0]);
-	return 1;
-    }
-
-    for(n = 0; n < nservices; n++) {
-	// Parse the command arguments...
-
-	command_argc[n]=0;
-	command_argv[n] = malloc((command_argc[n]+2) * sizeof(char *));
-	command_argv[n][command_argc[n]] = strtok(server_command[n], " \t");
-	command_argc[n]++;
-	while( (command_argv[n][command_argc[n]] = strtok(NULL, " \t"))) {
-	    command_argv[n] = realloc(command_argv[n], (command_argc[n]+2) * sizeof(char *));
-	    command_argc[n]++;
-	}
-
-	// Create a socket for listening.
-	listen_fd[n] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (listen_fd[n] < 0) {
-	    perror("socket");
+	    Help(argv[0]);
 	    exit(1);
 	}
-  
-	// If program is killed, drop the socket address reservation immediately.
-	val = 1;
-	status = setsockopt(listen_fd[n], SOL_SOCKET, SO_REUSEADDR, &val, 
-			    sizeof(val));
-	if (status < 0) {
-	    perror("setsockopt");
-	    // Not fatal.  Keep on going.
-	}
-
-	// Bind this address to the socket.
-	listen_addr.sin_family = AF_INET;
-	listen_addr.sin_port = htons(listen_port[n]);
-	listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	status = bind(listen_fd[n], (struct sockaddr *)&listen_addr,
-		      sizeof(listen_addr));
-	if (status < 0) {
-	    perror("bind");
-	    exit(1);
-	}
-
-	// Listen on the specified port.
-	status = listen(listen_fd[n],5);
-	if (status < 0) {
-	    perror("listen");
-	}
     }
 
-    // Create a socket for broadcast.
-    send_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (send_fd < 0) {
-	perror("socket");
+    if (!debug) {
+	/* Detach this process from the controlling terminal process. The
+	 * current directory becomes /tmp and redirect stdin/stdout/stderr to
+	 * /dev/null. */
+	if (daemon(0,0) < 0) {
+	    ERROR("Can't daemonize nanoscale: %s", strerror(errno));
+	    exit(1);
+	}
+    }
+    serverPid = getpid();
+    if (!ParseServersFile(fileName)) {
+	exit(1);
+    }    
+
+    if (serverTable.numEntries == 0) {
+	ERROR("No servers designated.");
 	exit(1);
     }
+    signal(SIGPIPE, SIG_IGN);
+#ifdef SA_NOCLDWAIT
+    memset(&action, 0, sizeof(action));
+    action.sa_flags = SA_NOCLDWAIT;
+    sigaction(SIGCHLD, &action, 0);
+#else
+    signal(SIGCHLD, SIG_IGN);
+#endif
 
-    // If program is killed, drop the socket address reservation immediately.
-    val = 1;
-    status = setsockopt(send_fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-    if (status < 0) {
-	perror("setsockopt");
-	// Not fatal.  Keep on going.
-    }
-
-    // We're going to broadcast through this socket.
-    val = 1;
-    status = setsockopt(send_fd, SOL_SOCKET, SO_BROADCAST, &val, sizeof(val));
-    if (status < 0) {
-	perror("setsockopt");
-	// Not fatal.  Keep on going.
-    }
-
-    // Bind this address to the socket.
-    recv_addr.sin_family = AF_INET;
-    recv_addr.sin_port = htons(recv_port);
-    recv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    status = bind(send_fd, (struct sockaddr *)&recv_addr,
-		  sizeof(recv_addr));
-    if (status < 0) {
-	perror("bind");
-	exit(1);
-    }
-
-    // Set up the address that we broadcast to.
-    send_addr.sin_family = AF_INET;
-    send_addr.sin_port = htons(recv_port);
-
-    // Set up a signal handler for the alarm interrupt.
-    // It doesn't do anything other than interrupt select() below.
-    if (signal(SIGALRM, sigalarm_handler) == SIG_ERR) {
-	perror("signal SIGALRM");
-    }
-
-    struct itimerval itvalue = {
-	{1, 0}, {1, 0}
-    };
-    status = setitimer(ITIMER_REAL, &itvalue, NULL);
-    if (status != 0) {
-	perror("setitimer");
-    }
-
-    // We're ready to go.  Before going into the main loop,
-    // broadcast a load announcement to other machines.
-    int maxfd = send_fd;
-    FD_ZERO(&saved_rfds);
-    FD_ZERO(&pipe_rfds);
-
-    for(n = 0; n < nservices; n++) {
-	FD_ZERO(&service_rfds[n]);
-	FD_SET(listen_fd[n], &saved_rfds);
-	if (listen_fd[n] > maxfd)
-	    maxfd = listen_fd[n];
-    }
-
-    FD_SET(send_fd, &saved_rfds);
-
-    if (!debug_flag) {
-	if ( daemon(0,0) != 0 ) {
-	    perror("daemon");
-	    exit(1);
+    /* Build the array of servers listener file descriptors. */
+    FD_ZERO(&serverFds);
+    maxFd = -1;
+    for (hPtr = Tcl_FirstHashEntry(&serverTable, &iter); hPtr != NULL;
+	 hPtr = Tcl_NextHashEntry(&iter)) {
+	RenderServer *serverPtr;
+	
+	serverPtr = Tcl_GetHashValue(hPtr);
+	FD_SET(serverPtr->listenerFd, &serverFds);
+	if (serverPtr->listenerFd > maxFd) {
+	    maxFd = serverPtr->listenerFd;
 	}
     }
 
-    while(1) {
-	fd_set rfds = saved_rfds;
-      
-	status = select(maxfd+1, &rfds, NULL, NULL, 0);
-	if (status <= 0) {
-	    if (sigalarm_set) {
-		sigalarm_set = 0;
+    for (;;) {
+	fd_set readFds;
+
+	/* Reset using the array of server file descriptors. */
+	memcpy(&readFds, &serverFds, sizeof(serverFds));
+	if (select(maxFd+1, &readFds, NULL, NULL, 0) <= 0) {
+	    ERROR("Select failed: %s", strerror(errno));
+	    break;			/* Error on select. */
+	}
+	for (hPtr = Tcl_FirstHashEntry(&serverTable, &iter); hPtr != NULL;
+	     hPtr = Tcl_NextHashEntry(&iter)) {
+	    RenderServer *serverPtr;
+	    pid_t child;
+	    int f;
+	    socklen_t length;
+	    struct sockaddr_in newaddr;
+
+	    serverPtr = Tcl_GetHashValue(hPtr);
+	    if (!FD_ISSET(serverPtr->listenerFd, &readFds)) {
+		continue;		
 	    }
-	    continue;
-	}
-      
-	int accepted = 0;
-	for(n = 0; n < nservices; n++) {
-	    if (FD_ISSET(listen_fd[n], &rfds)) {
-		// Accept a new connection.
-		struct sockaddr_in newaddr;
-		unsigned int addrlen = sizeof(newaddr);
-		int newfd = accept(listen_fd[n], (struct sockaddr *)&newaddr, &addrlen);
-		if (newfd < 0) {
-		    perror("accept");
-		    continue;
-		}
-	      
-		printf("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
-		FD_SET(newfd, &saved_rfds);
-		maxfd = max(maxfd, newfd);
-		FD_SET(newfd, &service_rfds[n]);
-		accepted = 1; 
+	    /* Rotate the display's screen number.  If we have multiple video
+	     * cards, try to spread the jobs out among them.  */
+	    screenNum++;
+	    if (screenNum >= maxCards) {
+		screenNum = 0;
 	    }
-	}
-      
-	if (accepted)
-	    continue;
-      
-	if (FD_ISSET(send_fd, &rfds)) {
-	    int buffer[1000];
-	    struct sockaddr_in peer_addr;
-	    unsigned int len = sizeof(peer_addr);
-	    status = recvfrom(send_fd, buffer, sizeof(buffer), 0,
-			      (struct sockaddr*)&peer_addr, &len);
-	    if (status < 0) {
-		perror("recvfrom");
+	    /* Accept the new connection. */
+	    length = sizeof(newaddr);
+#ifdef HAVE_ACCEPT4
+	    f = accept4(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+			&length, SOCK_CLOEXEC);
+#else
+	    f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+		       &length);
+#endif
+	    if (f < 0) {
+		ERROR("Can't accept server \"%s\": %s", serverPtr->name, 
+		      strerror(errno));
+		exit(1);
+	    }
+#ifndef HAVE_ACCEPT4
+	    int flags = fcntl(f, F_GETFD);
+	    flags |= FD_CLOEXEC;
+	    if (fcntl(f, F_SETFD, flags) < 0) {
+		ERROR("Can't set FD_CLOEXEC on socket \"%s\": %s", 
+			serverPtr->name, strerror(errno));
+		exit(1);
+	    }
+#endif
+	    INFO("Connecting \"%s\" to %s\n", serverPtr->name, 
+		 inet_ntoa(newaddr.sin_addr));
+
+	    /* Fork the new process.  Connect I/O to the new socket. */
+	    child = fork();
+	    if (child < 0) {
+		ERROR("Can't fork \"%s\": %s", serverPtr->name, 
+		      strerror(errno));
 		continue;
-	    }
-	    if (status != 8) {
-		fprintf(stderr,"Bogus message from %s\n",
-			inet_ntoa(peer_addr.sin_addr));
-		continue;
-	    }
-	    float peer_load = ntohl(buffer[0]);
-	    int peer_procs = ntohl(buffer[1]);
-	    //printf("Load for %s is %f (%d processes).\n",
-	    //       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
-	    int h;
-	    int free_index=-1;
-	    int found = 0;
-	    for(h=0; h<sizeof(host_array)/sizeof(host_array[0]); h++) {
-		if (host_array[h].in_addr.s_addr == peer_addr.sin_addr.s_addr) {
-		    if (host_array[h].children != peer_procs) {
-			printf("Load for %s is %f (%d processes).\n",
-			       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
-		    }
-		    host_array[h].load = peer_load;
-		    host_array[h].children = peer_procs;
-		    found = 1;
-		    break;
+	    } 
+	    if (child == 0) {		/* Child process. */
+		int i;
+		int errFd;
+		
+		umask(0);
+		if ((!debug) && (setsid() < 0)) {
+		    ERROR("Can't setsid \"%s\": %s", serverPtr->name, 
+			  strerror(errno));
+		    exit(1);
 		}
-		if (host_array[h].in_addr.s_addr == 0 && free_index == -1) {
-		    free_index = h;
+		if ((!debug) && ((chdir("/")) < 0)) {
+		    ERROR("Can't change to root directory for \"%s\": %s", 
+			  serverPtr->name, strerror(errno));
+		    exit(1);
 		}
-	    }
-	    if (!found) {
-		host_array[free_index].in_addr.s_addr = peer_addr.sin_addr.s_addr;
-		host_array[free_index].load = peer_load;
-	    }
-	    continue;
-	}
-      
-	int i;
-	for(i=0; i< maxfd +1; i++) {
-	    if (FD_ISSET(i,&rfds)) {
-	      
-		// If this is a pipe, get the load.  Update.
-		if (FD_ISSET(i,&pipe_rfds)) {
-		    float value;
-		    status = read(i, &value, sizeof(value));
-		    if (status != 4) {
-			//fprintf(stderr,"error reading pipe, child ended?\n");
-			close_child(i);
-			/*close(i);
-			  FD_CLR(i, &saved_rfds);
-			  FD_CLR(i, &pipe_rfds); */
-		    } else {
-			note_request(i,value);
-		    }
-		    continue;
-		}
-	      
-		// This must be a descriptor that we're waiting to from for
-		// the memory footprint.  Get it.
-		int msg;
-		status = read(i, &msg, 4);
-		if (status != 4) {
-		    fprintf(stderr,"Bad status on read (%d).", status);
-		    FD_CLR(i, &saved_rfds);
-		    clear_service_fd(i);
-		    close(i);
-		    continue;
-		}
-	      
-		// find the new memory increment
-		int newmemory = ntohl(msg);
-	      
-		memory_in_use += newmemory;
-		load += 2*INITIAL_LOAD;
-		printf("Accepted new job with memory %d\n", newmemory);
-		//printf("My load is now %f\n", load);
-	      
-		// accept the connection.
-		msg = 0;
-		if (write(i, &msg, 4) != 4) {
-		    fprintf(stderr, "short write for hostname\n");
-		}
-	      
-		int pair[2];
-		status = pipe(pair);
-		if (status != 0) {
-		    perror("pipe");
-		}
-	      
-		// Make the child side of the pipe non-blocking...
-		status = fcntl(pair[1], F_SETFL, O_NONBLOCK);
-		if (status < 0) {
-		    perror("fcntl");
-		}
-		dispNum++;
-		if (dispNum >= maxCards) {
-		    dispNum = 0;
-		}
-		// Fork the new process.  Connect i/o to the new socket.
-		status = fork();
-		if (status < 0) {
-		    perror("fork");
-		} else if (status == 0) {
-		  
-		    for(n = 0; n < MAX_SERVICES; n++) {
-			if (FD_ISSET(i, &service_rfds[n])) {
-			    int status = 0;
 
-			    if (!debug_flag) {
-				// disassociate
-				status = daemon(0,1);
-			    }
-			    
-			    if (status == 0) { 
-				int fd;
+		/* Dup the descriptors and start the server.  */
 
-				dup2(i, 0);  // stdin
-				dup2(i, 1);  // stdout
-				dup2(i, 2);  // stderr
-				dup2(pair[1],3);
-				// read end of pipe moved, and left open to
-				// prevent SIGPIPE
-				dup2(pair[0],4); 
-			      
-				for(fd=5; fd<FD_SETSIZE; fd++)
-				    close(fd);
-			      
-				if (maxCards > 1) {
-				    displayVar[11] = dispNum + '0';
-				}
-				execvp(command_argv[n][0], command_argv[n]);
-			    }
-			    _exit(errno);
-			}
-		    }
-		    _exit(EINVAL);
-		  
-		} else {
-		    int c;
-		    // reap initial child which will exit immediately
-		    // (grandchild continues)
-		    waitpid(status, NULL, 0); 
-		    for(c=0; c<sizeof(child_array)/sizeof(child_array[0]); c++) {
-			if (child_array[c].pipefd == 0) {
-			    child_array[c].memory = newmemory;
-			    child_array[c].pipefd = pair[0];
-			    child_array[c].requests = INITIAL_LOAD;
-			    status = close(pair[1]);
-			    if (status != 0) {
-				perror("close pair[1]");
-			    }
-			    FD_SET(pair[0], &saved_rfds);
-			    FD_SET(pair[0], &pipe_rfds);
-			    maxfd = max(pair[0], maxfd);
-			    break;
-			}
-		    }
-		  
-		    children++;
+		if (dup2(f, 0) < 0)  {	/* Stdin */
+		    ERROR("%s: can't dup stdin: %s", serverPtr->name, 
+			strerror(errno));
+		    exit(1);
 		}
-	      
-	      
-		FD_CLR(i, &saved_rfds);
-		clear_service_fd(i);
-		close(i);
-		break;
+		if (dup2(f, 1) < 0) {	/* Stdout */
+		    ERROR("%s: can't dup stdout: %s", serverPtr->name, 
+			  strerror(errno));
+		    exit(1);
+		}
+		errFd = open("/dev/null", O_WRONLY, 0600);
+		if (errFd < 0) {
+		    ERROR("%s: can't open /dev/null for read/write: %s", 
+			  serverPtr->name, strerror(errno));
+		    exit(1);
+		}
+		if (dup2(errFd, 2) < 0) { /* Stderr */
+		    ERROR("%s: can't dup stderr for \"%s\": %s", 
+			  serverPtr->name, strerror(errno));
+		    exit(1);
+		}
+		for(i = 3; i <= FD_SETSIZE; i++) {
+		    close(i);		/* Close all the other descriptors. */
+		}
+
+		/* Set the screen number in the DISPLAY variable. */
+		display[3] = screenNum + '0';
+		setenv("DISPLAY", display, 1);
+		/* Set the enviroment, if necessary. */
+		for (i = 0; i < serverPtr->numEnvArgs; i += 2) {
+		    setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 1);
+		}
+		INFO("Executing %s: client %s, %s on DISPLAY=%s", 
+			serverPtr->name, inet_ntoa(newaddr.sin_addr), 
+			serverPtr->cmdArgs[0], display);
+		/* Replace the current process with the render server. */
+		execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
+		ERROR("Can't execute \"%s\": %s", serverPtr->cmdArgs[0], 
+		      strerror(errno));
+		exit(1);
+	    } else {
+		close(f);
 	    }
-	  
-	} // for all connected_fds
-      
-    } // while(1)
-  
+	} 
+    }
+    exit(1);
 }
-
