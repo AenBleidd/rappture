@@ -1,0 +1,93 @@
+================================================================================
+================================================================================
+Protocol for geovis render server.  
+
+Commands take the general form of command and arguments using Tcl syntax and are 
+terminated by a newline.  Some command arguments expect a Tcl list which can be
+sent by enclosing the list in curly braces to prevent the interpreter from 
+splitting the list into multiple arguments.  Likewise, strings with spaces 
+should be quoted or enclosed in curly braces.  In the documentation below,
+arguments are indicated by angle brackets and optional arguments are surrounded
+by question marks -- the brackets and question marks are not part of the
+protocol and should not be included in argument strings.  The arguments shown 
+in angle brackets should be replaced with a string (where there are fixed 
+choices this document indicates valid values by separating them with pipe 
+symbols), a list in Tcl syntax, or a numeric value.  Boolean arguments can take
+the form of 0|1, true|false, or yes|no.  Since the protocol commands are 
+executed in a Tcl interpreter, Tcl code such as math expressions in expr 
+commands enclosed in square brackets are also allowed.  Since the interpreter
+is a "safe" interpreter, some Tcl commands that could cause security issues may 
+not be available for use.
+
+When binary data is to be sent, it should follow the newline after a command 
+that indicates incoming data including a byte count argument.
+================================================================================
+================================================================================
+Requests:
+================================================================================
+
+== General dataset, scene and renderer commands ==
+
+camera orient <quatW> <quatX> <quatY> <quatZ>
+       Set scene orientation using a quaternion
+camera pan <x> <y>
+       <x,y> viewport coordinates (window center at 0,0).  Positive x pan
+       means pan object to right (camera to left).  Positive y pan means
+       pan object down (camera up).  For example a pan of 0.5, 0.5 would
+       move the object center to the lower right corner of the window
+camera reset <?all?>
+       Option all resets orientation/rotation as well as pan/zoom/clip range
+camera rotate <x> <y>
+       Specify relative rotation in viewport coordinates
+camera zoom <z>
+       Specify zoom ratio.  z > 1 is a zoom in, z < 1 is zoom out. z = 1
+       resets to default.
+
+clientinfo <list>
+
+mouse click <button> <x> <y>
+mouse dblclick <button> <x> <y>
+mouse drag <button> <x> <y>
+mouse motion <x> <y>
+mouse release <button> <x> <y>
+mouse scroll <direction>
+
+renderer render
+         Force a new image to be rendered
+
+screen bgcolor <r> <g> <b>
+screen size <width> <height>
+
+map layer add <type> <url> <layerName>
+    Add a GDAL image layer from a file or URL
+    <type> = image|terrain|model
+map layer delete <layerName>
+map layer opacity <opacity> <layerName>
+map layer move <pos> <layerName>
+map layer visible <bool> <layerName>
+map load data follows <nbytes>
+    Send an .earth file over the wire
+map load file <path>
+    Load an .earth file from a filesystem mounted on the server
+map load url <url>
+    Load an .earth file from a network address
+map reset <type> <?profile?>
+    type = geocentric|projected
+    profile = Well known profile string, e.g. 'global-geodetic' (default)
+              'global-mercator'
+
+================================================================================
+Replies:
+================================================================================
+nv>image -type image -bytes <nbytes>
+  <binary RGB data>
+nv>dataset coords <x> <y> <z>
+nv>ok -token <seqnum>
+   Reply indicated commands through <seqnum> (numbered beginning at 1) have been
+   processed, but no new image was rendered
+================================================================================
+Error Replies:
+================================================================================
+nv>viserror -bytes <nbytes>
+   <multi-line error string of nbytes>
+================================================================================
