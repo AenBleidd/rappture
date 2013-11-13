@@ -33,9 +33,6 @@ endif
 
 .PHONY: all install clean distclean $(SUBDIRS)
 
-FILES		= \
-		start_viz.sh
-
 all: $(SUBDIRS)
 
 $(SUBDIRS):
