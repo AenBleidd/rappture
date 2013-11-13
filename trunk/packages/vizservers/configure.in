@@ -318,5 +318,4 @@ AC_OUTPUT([
    pymolproxy/Makefile \
    vtkvis/Doxyfile \
    vtkvis/Makefile \
-   start_viz.sh \
    start_nanoscale.sh])
