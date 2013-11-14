@@ -63,6 +63,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     }
     public method scale {args}
 
+    protected method CameraReset {}
     protected method Connect {}
     protected method CurrentDatasets {args}
     protected method Disconnect {}
@@ -287,7 +288,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         button $f.reset -borderwidth 1 -padx 1 -pady 1 \
             -highlightthickness 0 \
             -image [Rappture::icon reset-view] \
-            -command [itcl::code $this Zoom reset]
+            -command [itcl::code $this CameraReset]
     } {
         usual
         ignore -highlightthickness
@@ -1149,6 +1150,30 @@ itcl::body Rappture::VtkHeightmapViewer::CurrentDatasets {args} {
     return $rlist
 }
 
+itcl::body Rappture::VtkHeightmapViewer::CameraReset {} {
+    array set _view {
+        qw      0.36
+        qx      0.25
+        qy      0.50
+        qz      0.70
+        zoom    1.0
+        xpan    0
+        ypan    0 
+    }
+    if { $_first != "" } {
+        set location [$_first hints camera]
+        if { $location != "" } {
+            array set _view $location
+        }
+    }
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    if {$_settings(isHeightmap) } {
+        DoRotate
+    }
+    SendCmd "camera reset"
+}
+
 # ----------------------------------------------------------------------
 # USAGE: Zoom in
 # USAGE: Zoom out
@@ -1169,24 +1194,9 @@ itcl::body Rappture::VtkHeightmapViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qw      0.36
-                qx      0.25
-                qy      0.50
-                qz      0.70
                 zoom    1.0
                 xpan    0
                 ypan    0 
-            }
-            if { $_first != "" } {
-                set location [$_first hints camera]
-                if { $location != "" } {
-                    array set _view $location
-                }
-            }
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-            $_arcball quaternion $q
-            if {$_settings(isHeightmap) } {
-                DoRotate
             }
             SendCmd "camera reset"
         }
@@ -1468,7 +1478,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             ResetAxes
             SendCmd "dataset scalar $_curFldName"
             SendCmd "heightmap colormode scalar $_curFldName"
-            SendCmd "camera reset"
+            Zoom reset
             UpdateContourList
             DrawLegend
         }
@@ -1548,7 +1558,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 bind $c <B1-Motion> {}
                 bind $c <ButtonRelease-1> {}
             }
-            SendCmd "camera reset"
+            Zoom reset
             # Fix the mouse bindings for rotation/panning and the 
             # camera mode. Ideally we'd create a bindtag for these.
             if { $bool } {
@@ -1644,6 +1654,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    } else {
 		SendCmd "camera aspect native"
 	    }
+            Zoom reset
 	}
         "wireframe" {
             set bool $_settings($what)
