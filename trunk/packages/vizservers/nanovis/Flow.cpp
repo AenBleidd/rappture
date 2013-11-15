@@ -55,7 +55,7 @@ Flow::~Flow()
 {
     TRACE("Enter");
 
-    Rappture::FreeSwitches(_switches, &_sv, 0);
+    FreeSwitches(_switches, &_sv, 0);
 
     if (_volume != NULL) {
         NanoVis::removeVolume(_volume);
@@ -335,7 +335,7 @@ Flow::renderBoxes()
 }
 
 float *
-Flow::getScaledVector(Rappture::Unirect3d *unirect)
+Flow::getScaledVector(Unirect3d *unirect)
 {
     assert(unirect->nComponents() == 3);
     size_t n = unirect->nValues() / unirect->nComponents() * 4;
@@ -364,7 +364,7 @@ Flow::getScaledVector(Rappture::Unirect3d *unirect)
 }
 
 Volume *
-Flow::makeVolume(Rappture::Unirect3d *unirect, float *data)
+Flow::makeVolume(Unirect3d *unirect, float *data)
 {
     Volume *volume =
         NanoVis::loadVolume(_name.c_str(),

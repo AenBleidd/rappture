@@ -48,8 +48,8 @@ public:
 
     int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     {
-        if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv, 
-                                    SWITCH_DEFAULTS) < 0) {
+        if (nv::ParseSwitches(interp, _switches, objc, objv, &_sv, 
+                              SWITCH_DEFAULTS) < 0) {
             return TCL_ERROR;
         }
         return TCL_OK;
@@ -68,7 +68,7 @@ public:
 private:
     std::string _name;          ///< Name of this box in the hash table.
     FlowBoxValues _sv;
-    static Rappture::SwitchSpec _switches[];
+    static SwitchSpec _switches[];
 };
 
 }

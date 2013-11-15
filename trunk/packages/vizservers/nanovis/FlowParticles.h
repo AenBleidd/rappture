@@ -51,8 +51,8 @@ public:
 
     int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     {
-        if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv, 
-                                    SWITCH_DEFAULTS) < 0) {
+        if (nv::ParseSwitches(interp, _switches, objc, objv, &_sv, 
+                              SWITCH_DEFAULTS) < 0) {
             return TCL_ERROR;
         }
         return TCL_OK;
@@ -96,7 +96,7 @@ private:
     Volume *_volume;
     FlowParticlesValues _sv;
 
-    static Rappture::SwitchSpec _switches[];
+    static SwitchSpec _switches[];
 };
 
 }

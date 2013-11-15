@@ -40,7 +40,7 @@ FlowBox::FlowBox(const char *name) :
 FlowBox::~FlowBox()
 {
     TRACE("Freeing switches");
-    Rappture::FreeSwitches(_switches, &_sv, 0);
+    FreeSwitches(_switches, &_sv, 0);
 }
 
 void

@@ -35,7 +35,7 @@
 #include <tcl.h>
 #include "Switch.h"
 
-namespace Rappture {
+namespace nv {
 
 static void
 DoHelp(Tcl_Interp *interp, SwitchSpec *specs)
