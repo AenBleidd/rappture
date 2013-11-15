@@ -1,6 +1,6 @@
 DEBUG			= #yes
 DEBUG_WRITE_FRAME_FILE  = #yes
-TRACE			= yes
+TRACE			= #yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
 USE_READ_THREAD         = #yes
