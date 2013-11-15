@@ -7,7 +7,6 @@
 #include <iostream>
 #include <float.h>
 
-#include <RpOutcome.h>
 #include <RpField1D.h>
 #include <RpFieldRect3D.h>
 
@@ -183,7 +182,7 @@ static inline void deleteFieldData(void *data, FieldType type)
 }
 
 Volume *
-nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iostream& fin)
+nv::load_vtk_volume_stream(const char *tag, std::iostream& fin)
 {
     TRACE("Enter tag:%s", tag);
 
@@ -207,7 +206,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
-            result.error("Error in data stream");
+            ERROR("Error in data stream");
             return NULL;
         }
         for (start = line; *start == ' ' || *start == '\t'; start++)
@@ -222,12 +221,12 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                 if (strncmp(str, "STRUCTURED_POINTS", 17) == 0) {
                     isRect = 1;
                 } else {
-                    result.addError("Unsupported DataSet type '%s'", str);
+                    ERROR("Unsupported DataSet type '%s'", str);
                     return NULL;
                 }
             } else if (sscanf(start, "DIMENSIONS %d %d %d", &nx, &ny, &nz) == 3) {
                 if (nx <= 0 || ny <= 0 || nz <= 0) {
-                    result.error("Found non-positive dimensions");
+                    ERROR("Found non-positive dimensions");
                     return NULL;
                 }
                 // found dimensions
@@ -235,29 +234,29 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                 // found origin
             } else if (sscanf(start, "SPACING %lg %lg %lg", &dx, &dy, &dz) == 3) {
                 if ((nx > 1 && dx == 0.0) || (ny > 1 && dy == 0.0) || (nz > 1 && dz == 0.0)) {
-                    result.error("Found zero spacing for dimension");
+                    ERROR("Found zero spacing for dimension");
                     return NULL;
                 }
                 // found cell spacing
             } else if (sscanf(start, "POINT_DATA %d", &npts) == 1) {
                 if (npts < 1 || npts != nx * ny * nz) {
-                    result.addError("Error in data stream: unexpected number of point data: %d", npts);
+                    ERROR("Error in data stream: unexpected number of point data: %d", npts);
                     return NULL;
                 }
                 if (isBinary < 0 || fin.eof()) {
                     // Should know if ASCII or BINARY by now
-                    result.error("Error in data stream");
+                    ERROR("Error in data stream");
                     return NULL;
                 }
                 fin.getline(line, sizeof(line) - 1);
                 if (fin.fail()) {
-                    result.error("Error in data stream");
+                    ERROR("Error in data stream");
                     return NULL;
                 }
                 for (start = line; *start == ' ' || *start == '\t'; start++)
                     ;  // skip leading blanks
                 if (sscanf(start, "SCALARS %s %s", str, type) != 2) {
-                    result.error("Error in data stream");
+                    ERROR("Error in data stream");
                     return NULL;
                 }
                 if (strncmp(type, "double", 6) == 0) {
@@ -267,7 +266,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                 } else if (strncmp(type, "unsigned_char", 13) == 0) {
                     ftype = UCHAR;
                     if (!isBinary) {
-                        result.addError("unsigned char only supported in binary VTK files");
+                        ERROR("unsigned char only supported in binary VTK files");
                         return NULL;
                     }
                 } else if (strncmp(type, "short", 5) == 0) {
@@ -279,16 +278,16 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                 } else if (strncmp(type, "unsigned_int", 12) == 0) {
                     ftype = UINT;
                 } else {
-                    result.addError("Unsupported scalar type: '%s'", type);
+                    ERROR("Unsupported scalar type: '%s'", type);
                     return NULL;
                 }
                 if (fin.eof()) {
-                    result.error("Error in data stream");
+                    ERROR("Error in data stream");
                     return NULL;
                 }
                 fin.getline(line, sizeof(line) - 1);
                 if (fin.fail()) {
-                    result.error("Error in data stream");
+                    ERROR("Error in data stream");
                     return NULL;
                 }
                 for (start = line; *start == ' ' || *start == '\t'; start++)
@@ -296,12 +295,12 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                 if (sscanf(start, "LOOKUP_TABLE %s", str) == 1) {
                     // skip lookup table, but don't read ahead
                     if (fin.eof()) {
-                        result.error("Error in data stream");
+                        ERROR("Error in data stream");
                         return NULL;
                     }
                 } else {
                     // Lookup table line is required
-                    result.error("Missing LOOKUP_TABLE");
+                    ERROR("Missing LOOKUP_TABLE");
                     return NULL;
                 }
                 // found start of field data
@@ -310,7 +309,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                     fin.read((char *)fieldData, npts * typeSize(ftype));
                     if (fin.fail()) {
                         deleteFieldData(fieldData, ftype);
-                        result.error("Error in data stream");
+                        ERROR("Error in data stream");
                         return NULL;
                     }
                     numRead = npts;
@@ -320,7 +319,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
                         readFieldValue(fieldData, numRead++, ftype, fin);
                         if (fin.fail()) {
                             deleteFieldData(fieldData, ftype);
-                            result.error("Error in data stream");
+                            ERROR("Error in data stream");
                             return NULL;
                         }
                     }
@@ -333,7 +332,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
 
     if (isRect < 0 || numRead != npts || npts < 1) {
         deleteFieldData(fieldData, ftype);
-        result.error("Error in data stream");
+        ERROR("Error in data stream");
         return NULL;
     }
 
@@ -468,7 +467,7 @@ nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, std::iost
 #endif // DOWNSAMPLE_DATA
     } else {
         deleteFieldData(fieldData, ftype);
-        result.error("Unsupported DataSet");
+        ERROR("Unsupported DataSet");
         return NULL;
     }
 

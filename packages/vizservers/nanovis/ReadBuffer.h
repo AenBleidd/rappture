@@ -35,8 +35,6 @@ public:
 
     BufferStatus followingData(unsigned char *out, size_t numBytes);
 
-    BufferStatus followingData(Rappture::Buffer& out, size_t numBytes);
-
     /**
      * \brief Check if buffer contains data ending in a newline
      * 

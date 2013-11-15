@@ -32,6 +32,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>                     /* Needed for getpid, gethostname,
                                          * write, etc. */
@@ -39,7 +40,6 @@
 
 #include <RpField1D.h>
 #include <RpEncode.h>
-#include <RpOutcome.h>
 #include <RpBuffer.h>
 
 #include <vrmath/Vector3f.h>
@@ -56,8 +56,9 @@
 #include "dxReader.h"
 #ifdef USE_VTK
 #include "VtkDataSetReader.h"
-#endif
+#else
 #include "VtkReader.h"
+#endif
 #include "BMPWriter.h"
 #include "PPMWriter.h"
 #include "Grid.h"
@@ -148,15 +149,6 @@ nv::SocketRead(char *bytes, size_t len)
 {
     ReadBuffer::BufferStatus status;
     status = g_inBufPtr->followingData((unsigned char *)bytes, len);
-    TRACE("followingData status: %d", status);
-    return (status == ReadBuffer::OK);
-}
-
-bool
-nv::SocketRead(Rappture::Buffer &buf, size_t len)
-{
-    ReadBuffer::BufferStatus status;
-    status = g_inBufPtr->followingData(buf, len);
     TRACE("followingData status: %d", status);
     return (status == ReadBuffer::OK);
 }
@@ -533,14 +525,16 @@ GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
 
 /**
  * Read the requested number of bytes from standard input into the given
- * buffer.  The buffer is then decompressed and decoded.
+ * buffer.  The buffer must have already been allocated for nBytes.  The 
+ * buffer is then decompressed and decoded.
  */
 int
 nv::GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 {
-    if (!SocketRead(buf, nBytes)) {
+    if (!SocketRead((char *)buf.bytes(), nBytes)) {
         return TCL_ERROR;
     }
+    buf.count(nBytes);
     Rappture::Outcome err;
     TRACE("Checking header[%.13s]", buf.bytes());
     if (strncmp (buf.bytes(), "@@RP-ENC:", 9) == 0) {
@@ -1279,7 +1273,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
         TRACE("ZincBlende Stream loading...");
-        volume = (Volume *)ZincBlendeReconstructor::getInstance()->loadFromMemory(const_cast<char *>(bytes));
+        volume = (Volume *)ZincBlendeReconstructor::getInstance()->loadFromMemory(bytes);
         if (volume == NULL) {
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;
@@ -1300,16 +1294,15 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             ERROR("data buffer is empty");
             abort();
         }
-        Rappture::Outcome context;
 #ifdef USE_VTK
-        volume = load_vtk_volume_stream(context, tag, bytes, nBytes);
+        volume = load_vtk_volume_stream(tag, bytes, nBytes);
 #else
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
-        volume = load_vtk_volume_stream(context, tag, fdata);
+        volume = load_vtk_volume_stream(tag, fdata);
 #endif
         if (volume == NULL) {
-            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
+            Tcl_AppendResult(interp, "Failed to load VTK file", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
@@ -1325,10 +1318,9 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
-        Rappture::Outcome context;
-        volume = load_dx_volume_stream(context, tag, fdata);
+        volume = load_dx_volume_stream(tag, fdata);
         if (volume == NULL) {
-            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
+            Tcl_AppendResult(interp, "Failed to load DX file", (char*)NULL);
             return TCL_ERROR;
         }
     }
@@ -1764,7 +1756,7 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Unirect2d data(1);
-    if (data.parseBuffer(interp, buf) != TCL_OK) {
+    if (data.parseBuffer(interp, buf.bytes(), buf.size()) != TCL_OK) {
         return TCL_ERROR;
     }
     if (data.nValues() == 0) {

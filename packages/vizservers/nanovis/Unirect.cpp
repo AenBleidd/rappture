@@ -41,9 +41,9 @@ getline(char **stringPtr, char *endPtr)
 }
 
 int
-nv::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+nv::Unirect2d::parseBuffer(Tcl_Interp *interp, const char *bytes, size_t len)
 {
-    Tcl_Obj *objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+    Tcl_Obj *objPtr = Tcl_NewStringObj(bytes, len);
     Tcl_Obj **objv;
     int objc;
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
@@ -58,10 +58,10 @@ nv::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 }
 
 int
-nv::Unirect3d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+nv::Unirect3d::parseBuffer(Tcl_Interp *interp, const char *bytes, size_t len)
 {
     Tcl_Obj *objPtr;
-    objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+    objPtr = Tcl_NewStringObj(bytes, len);
     Tcl_Obj **objv;
     int objc;
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
@@ -486,7 +486,7 @@ nv::Unirect2d::loadData(Tcl_Interp *interp, int objc,
 }
 
 bool
-nv::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
+nv::Unirect3d::importDx(size_t nComponents,
                         size_t length, char *string) 
 {
     int nx, ny, nz, npts;
@@ -509,8 +509,8 @@ nv::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
         if (sscanf(line, "object %*d class gridpositions counts %d %d %d", 
                    &nx, &ny, &nz) == 3) {
             if ((nx < 0) || (ny < 0) || (nz < 0)) {
-                result.addError("invalid grid size: x=%d, y=%d, z=%d", 
-                        nx, ny, nz);
+                ERROR("invalid grid size: x=%d, y=%d, z=%d", 
+                      nx, ny, nz);
                 return false;
             }
         } else if (sscanf(line, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
@@ -527,29 +527,29 @@ nv::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
         } else if (sscanf(line, "object %*d class array type %*s shape 3"
                 " rank 1 items %d data follows", &npts) == 1) {
             if (npts < 0) {
-                result.addError("bad # points %d", npts);
+                ERROR("bad # points %d", npts);
                 return false;
             }
             TRACE("#points=%d", npts);
             if (npts != nx*ny*nz) {
-                result.addError("inconsistent data: expected %d points"
-                                " but found %d points", nx*ny*nz, npts);
+                ERROR("inconsistent data: expected %d points"
+                      " but found %d points", nx*ny*nz, npts);
                 return false;
             }
             break;
         } else if (sscanf(line, "object %*d class array type %*s rank 0"
                 " times %d data follows", &npts) == 1) {
             if (npts != nx*ny*nz) {
-                result.addError("inconsistent data: expected %d points"
-                                " but found %d points", nx*ny*nz, npts);
+                ERROR("inconsistent data: expected %d points"
+                      " but found %d points", nx*ny*nz, npts);
                 return false;
             }
             break;
         }
     }
     if (npts != nx*ny*nz) {
-        result.addError("inconsistent data: expected %d points"
-                        " but found %d points", nx*ny*nz, npts);
+        ERROR("inconsistent data: expected %d points"
+              " but found %d points", nx*ny*nz, npts);
         return false;
     }
 
@@ -604,8 +604,8 @@ nv::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
     }
     /* Make sure that we read all of the expected points. */
     if (_nValues != (size_t)npts) {
-        result.addError("inconsistent data: expected %d points"
-                        " but found %d points", npts, _nValues);
+        ERROR("inconsistent data: expected %d points"
+              " but found %d points", npts, _nValues);
         free(_values);
         _values = NULL;
         return false;

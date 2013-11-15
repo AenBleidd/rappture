@@ -56,6 +56,7 @@ VRMATH_LIB_SPEC	= $(VRMATH_LIB)
 VTK_VERSION     = @VTK_VERSION@
 VTK_LIB_DIR	= @VTK_LIB_DIR@
 VTK_INC_DIR     = @VTK_INC_DIR@
+ifdef USE_VTK
 VTK_INC_SPEC	= -I$(VTK_INC_DIR)/vtk-$(VTK_VERSION)
 VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
 		-lvtkIOCore-$(VTK_VERSION) \
@@ -70,6 +71,10 @@ VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
 		-lvtkCommonSystem-$(VTK_VERSION) \
 		-lvtkCommonTransforms-$(VTK_VERSION) \
 		-lvtkCommonMath-$(VTK_VERSION)
+else
+VTK_INC_SPEC    =
+VTK_LIB_SPEC    =
+endif
 
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
@@ -173,7 +178,6 @@ OBJS		= \
 		VolumeInterpolator.o \
 		VolumeRenderer.o \
 		VolumeShader.o \
-		VtkReader.o \
 		ZincBlendeReconstructor.o \
 		ZincBlendeVolume.o \
 		ZincBlendeVolumeShader.o \
@@ -230,6 +234,8 @@ endif
 ifdef USE_VTK
 OBJS += 	DataSetResample.o \
 		VtkDataSetReader.o
+else
+OBJS +=         VtkReader.o
 endif
 
 .PHONY: all install install-resources install-shaders install-nanovis docs clean-docs clean distclean graphics imgloaders newmat11 util vrmath

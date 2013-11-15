@@ -16,9 +16,11 @@
 #include <unistd.h>
 #include <poll.h>
 
+#include <sstream>
+
 #include <tcl.h>
 
-#include <RpOutcome.h>
+#include <RpBuffer.h>
 
 #include <vrmath/Vector3f.h>
 
@@ -31,8 +33,9 @@
 #include "PPMWriter.h"
 #ifdef USE_VTK
 #include "VtkDataSetReader.h"
-#endif
+#else
 #include "VtkReader.h"
+#endif
 #include "FlowCmd.h"
 #include "FlowTypes.h"
 #include "Flow.h"
@@ -134,77 +137,6 @@ SwitchSpec FlowBox::_switches[] = {
     {SWITCH_END}
 };
 
-static int
-FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
-               Tcl_Obj *const *objv)
-{
-    Rappture::Outcome result;
-
-    const char *fileName;
-    fileName = Tcl_GetString(objv[3]);
-    TRACE("File: %s", fileName);
-
-    int nComponents;
-    if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if ((nComponents < 1) || (nComponents > 4)) {
-        Tcl_AppendResult(interp, "bad # of components \"", 
-                         Tcl_GetString(objv[4]), "\"", (char *)NULL);
-        return TCL_ERROR;
-    }
-    Rappture::Buffer buf;
-    if (!buf.load(result, fileName)) {
-        Tcl_AppendResult(interp, "can't load data from \"", fileName, "\": ",
-                         result.remark(), (char *)NULL);
-        return TCL_ERROR;
-    }
-
-    Unirect3d *dataPtr;
-    dataPtr = new Unirect3d(nComponents);
-    Flow *flow = (Flow *)clientData;
-    size_t length = buf.size();
-    char *bytes = (char *)buf.bytes();
-    if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-        if (!dataPtr->importDx(result, nComponents, length-4, bytes+4)) {
-            Tcl_AppendResult(interp, result.remark(), (char *)NULL);
-            delete dataPtr;
-            return TCL_ERROR;
-        }
-    } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-        if (dataPtr->parseBuffer(interp, buf) != TCL_OK) {
-            delete dataPtr;
-            return TCL_ERROR;
-        }
-    } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
-        Unirect2d *u2dPtr;
-        u2dPtr = new Unirect2d(nComponents);
-        if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
-            delete u2dPtr;
-            return TCL_ERROR;
-        }
-        dataPtr->convert(u2dPtr);
-        delete u2dPtr;
-    } else {
-        TRACE("header is %.14s", buf.bytes());
-        if (!dataPtr->importDx(result, nComponents, length, bytes)) {
-            Tcl_AppendResult(interp, result.remark(), (char *)NULL);
-            delete dataPtr;
-            return TCL_ERROR;
-        }
-    }
-    if (dataPtr->nValues() == 0) {
-        delete dataPtr;
-        Tcl_AppendResult(interp, "no data found in \"", fileName, "\"",
-                         (char *)NULL);
-        return TCL_ERROR;
-    }
-    flow->data(dataPtr);
-    Flow::updatePending = true;
-    NanoVis::eventuallyRedraw();
-    return TCL_OK;
-}
-
 /**
  * $flow data follows nbytes nComponents
  */
@@ -212,8 +144,6 @@ static int
 FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
-    Rappture::Outcome result;
-
     TRACE("Enter");
 
     int nBytes;
@@ -252,14 +182,14 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Flow *flow = (Flow *)clientData;
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
         unirect = new Unirect3d(nComponents);
-        if (!unirect->importDx(result, nComponents, length - 4, bytes + 4)) {
-            Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+        if (!unirect->importDx(nComponents, length - 4, bytes + 4)) {
+            Tcl_AppendResult(interp, "Failed to load DX file", (char *)NULL);
             delete unirect;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
         unirect = new Unirect3d(nComponents);
-        if (unirect->parseBuffer(interp, buf) != TCL_OK) {
+        if (unirect->parseBuffer(interp, bytes, length) != TCL_OK) {
             delete unirect;
             return TCL_ERROR;
         }
@@ -267,7 +197,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         unirect = new Unirect3d(nComponents);
         Unirect2d *u2dPtr;
         u2dPtr = new Unirect2d(nComponents);
-        if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
+        if (u2dPtr->parseBuffer(interp, bytes, length) != TCL_OK) {
             delete unirect;
             delete u2dPtr;
             return TCL_ERROR;
@@ -276,29 +206,26 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         delete u2dPtr;
     } else if ((length > 14) && (strncmp(bytes, "# vtk DataFile", 14) == 0)) {
         TRACE("VTK loading...");
-        std::stringstream fdata;
-        fdata.write(bytes, length);
         if (length <= 0) {
             ERROR("data buffer is empty");
             abort();
         }
-        Rappture::Outcome context;
 #ifdef USE_VTK
-        volume = load_vtk_volume_stream(context, flow->name(), bytes, length);
+        volume = load_vtk_volume_stream(flow->name(), bytes, length);
 #else
         std::stringstream fdata;
-        fdata.write(bytes, nBytes);
-        volume = load_vtk_volume_stream(context, flow->name(), fdata);
+        fdata.write(bytes, length);
+        volume = load_vtk_volume_stream(flow->name(), fdata);
 #endif
         if (volume == NULL) {
-            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
+            Tcl_AppendResult(interp, "Failed to load VTK file", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
         TRACE("header is %.14s", buf.bytes());
         unirect = new Unirect3d(nComponents);
-        if (!unirect->importDx(result, nComponents, length, bytes)) {
-            Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+        if (!unirect->importDx(nComponents, length, bytes)) {
+            Tcl_AppendResult(interp, "Failed to load DX file", (char *)NULL);
             delete unirect;
             return TCL_ERROR;
         }
@@ -349,7 +276,6 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec flowDataOps[] = {
-    {"file",    2, FlowDataFileOp,    5, 5, "fileName nComponents",},
     {"follows", 2, FlowDataFollowsOp, 5, 5, "size nComponents",},
 };
 static int nFlowDataOps = NumCmdSpecs(flowDataOps);
@@ -1195,13 +1121,13 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
                          Tcl_PosixError(interp), (char *)NULL);
         return TCL_ERROR;
     }
-    Rappture::Buffer data;
+    char *data = NULL;
     size_t total = 0;
     for (;;) {
         ssize_t numRead;
         char buffer[BUFSIZ]; 
         
-        numRead = fread(buffer, sizeof(unsigned char), BUFSIZ, f);
+        numRead = fread(buffer, sizeof(char), BUFSIZ, f);
         total += numRead;
         if (numRead == 0) {             // EOF
             break;
@@ -1213,21 +1139,24 @@ MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
                 Tcl_PosixError(interp), (char *)NULL);
             return TCL_ERROR;
         }
-        if (!data.append(buffer, numRead)) {
+        data = (char *)realloc(data, total);
+        if (data == NULL) {
             ERROR("Can't append movie data to buffer %d bytes",
                   numRead);
             Tcl_AppendResult(interp, "can't append movie data to buffer",
                              (char *)NULL);
             return TCL_ERROR;
         }
+        memcpy(data + (total - numRead), buffer, numRead);
     }
-    if (data.size() == 0) {
+    if (total == 0) {
         ERROR("ffmpeg returned 0 bytes");
     }
     // Send zero length to client so it can deal with error
     sprintf(cmd,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
-            token, (unsigned long)data.size());
-    nv::sendDataToClient(cmd, data.bytes(), data.size());
+            token, total);
+    // Memory is freed by this call
+    nv::sendDataToClient(cmd, data, total);
     return TCL_OK;
 }
 

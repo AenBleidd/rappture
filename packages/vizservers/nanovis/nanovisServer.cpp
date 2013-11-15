@@ -283,8 +283,13 @@ serverStats(int code)
 
 #endif
 
+/**
+ * \brief Send a command with data payload
+ *
+ * data pointer is freed on completion of the response
+ */
 void
-nv::sendDataToClient(const char *command, const char *data, size_t dlen)
+nv::sendDataToClient(const char *command, char *data, size_t dlen)
 {
 #ifdef USE_THREADS
     char *buf = (char *)malloc(strlen(command) + dlen);
@@ -300,12 +305,13 @@ nv::sendDataToClient(const char *command, const char *data, size_t dlen)
     iov[0].iov_base = const_cast<char *>(command);
     iov[0].iov_len = strlen(command);
     // Data
-    iov[1].iov_base = const_cast<char *>(data);
+    iov[1].iov_base = data;
     iov[1].iov_len = dlen;
     if (writev(nv::g_fdOut, iov, numRecords) < 0) {
         ERROR("write failed: %s", strerror(errno));
     }
     delete [] iov;
+    free(data);
 #endif
 }
 

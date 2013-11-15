@@ -36,8 +36,6 @@ extern ssize_t SocketWrite(const void *bytes, size_t len);
 
 extern bool SocketRead(char *bytes, size_t len);
 
-extern bool SocketRead(Rappture::Buffer &buf, size_t len);
-
 extern int processCommands(Tcl_Interp *interp,
                            ReadBuffer *inBufPtr,
                            int fdOut);

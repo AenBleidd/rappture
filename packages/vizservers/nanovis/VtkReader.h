@@ -8,16 +8,12 @@
 
 #include <iostream>
 
-namespace Rappture {
-class Outcome;
-}
-
 namespace nv {
 
 class Volume;
 
 extern Volume *
-load_vtk_volume_stream(Rappture::Outcome& status, const char *tag, std::iostream& fin);
+load_vtk_volume_stream(const char *tag, std::iostream& fin);
 
 }
 

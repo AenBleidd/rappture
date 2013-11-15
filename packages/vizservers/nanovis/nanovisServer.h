@@ -54,7 +54,7 @@ namespace nv {
     extern int getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr);
     extern int writeToStatsFile(int f, const char *s, size_t length);
 #endif
-    extern void sendDataToClient(const char *command, const char *data,
+    extern void sendDataToClient(const char *command, char *data,
                                  size_t dlen);
 }
 

@@ -34,7 +34,7 @@ public:
      */
     ZincBlendeVolume *loadFromStream(std::istream& stream);
 
-    ZincBlendeVolume *loadFromMemory(void *dataBlock);
+    ZincBlendeVolume *loadFromMemory(const void *dataBlock);
 
     /**
      * @brief Create ZincBlendVolume with output data of NEMO-3D
@@ -66,9 +66,9 @@ private:
      * @brief Get a line from file. It is used for reading header because header is written in ascii.
      */
     void getLine(std::istream& stream);
-    void getLine(unsigned char*& stream);
+    void getLine(const unsigned char*& stream);
 
-    char buff[255];
+    char _buff[255];
 
     /// A ZincBlendeReconstructor Singleton instance
     static ZincBlendeReconstructor *_instance;

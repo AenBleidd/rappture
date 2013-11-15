@@ -109,8 +109,6 @@ flow video <token> <?switches...?>
           -specularLevel <val>
           -transferfunction <name>
           -volume <bool>
-<flowObj> data file <fileName> <numComponents>
-          Load a data file.  fileName is path to file on server
 <flowObj> data follows <nbytes> <numComponents>
           Send flow data.  Data bytes follow the newline after the command
 <flowObj> legend <w> <h>

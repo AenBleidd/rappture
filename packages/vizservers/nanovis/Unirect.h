@@ -11,7 +11,7 @@
 
 #include <tcl.h>
 
-#include <rappture.h>
+#include <RpBuffer.h>
 
 #include <vrmath/Vector3f.h>
 
@@ -221,10 +221,9 @@ public:
 
     int loadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
 
-    int parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
+    int parseBuffer(Tcl_Interp *interp, const char *bytes, size_t len);
 
-    bool importDx(Rappture::Outcome &result, size_t nComponents, 
-                  size_t length, char *string);
+    bool importDx(size_t nComponents, size_t length, char *string);
 
     bool convert(Unirect2d *dataPtr);
 
@@ -381,7 +380,7 @@ public:
 
     int loadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
 
-    int parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
+    int parseBuffer(Tcl_Interp *interp, const char *bytes, size_t len);
 
     bool isInitialized()
     {
