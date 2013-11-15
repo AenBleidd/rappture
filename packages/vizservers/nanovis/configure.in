@@ -36,7 +36,7 @@ AC_ARG_WITH(
     [AS_HELP_STRING([--with-vtk=VERSION],
         [Version of VTK required @<:@default=6.0@:>@])],
     [with_vtk=$withval],
-    [with_vtk=yes])
+    [with_vtk=""])
 
 AC_ARG_WITH(
     [ffmpeg],
