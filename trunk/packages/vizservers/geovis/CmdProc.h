@@ -5,12 +5,12 @@
  * Author: George A. Howlett <gah@purdue.edu>
  */
 
-#ifndef RAPPTURE_CMDPROC_H
-#define RAPPTURE_CMDPROC_H
+#ifndef GEOVIS_CMDPROC_H
+#define GEOVIS_CMDPROC_H
 
 #include <tcl.h>
 
-namespace Rappture {
+namespace GeoVis {
 
 /**
  * \brief Structure to specify a set of operations for a Tcl command.
@@ -42,7 +42,7 @@ extern Tcl_ObjCmdProc *
 GetOpFromObj(Tcl_Interp *interp, int nSpecs, 
              CmdSpec *specs, int operPos, int objc, Tcl_Obj *const *objv, int flags);
 
-#define NumCmdSpecs(s) (sizeof(s) / sizeof(Rappture::CmdSpec))
+#define NumCmdSpecs(s) (sizeof(s) / sizeof(GeoVis::CmdSpec))
 
 }
 
