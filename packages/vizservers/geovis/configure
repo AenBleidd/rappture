@@ -635,9 +635,6 @@ SHLIB_SUFFIX
 SHLIB_LDFLAGS
 SHLIB_LD
 SHLIB_CFLAGS
-RP_LIB_DIR
-RP_INC_SPEC
-RP_DIR
 LD_RPATH
 CFLAGS_OPTIMIZE
 CFLAGS_DEBUG
@@ -704,7 +701,6 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_tcllib
-with_rappture
 with_osg_includes
 with_osg_libs
 with_statsdir
@@ -1338,8 +1334,6 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-tcllib=DIR       location of Tcl binary library libtclstubs.a
                           [default=/usr/lib]
-  --with-rappture=DIR     location of rappture files lib/librappture.a and
-                          include/rappture.h [default=/usr]
   --with-osg-includes=DIR OSG include files are in DIR
   --with-osg-libs=DIR     OSG libraries are in DIR
   --with-statsdir=DIR     Write statistics in DIR
@@ -2299,15 +2293,6 @@ if test "${with_tcllib+set}" = set; then :
   withval=$with_tcllib; with_tcllib=$withval
 else
   with_tcllib=""
-fi
-
-
-
-# Check whether --with-rappture was given.
-if test "${with_rappture+set}" = set; then :
-  withval=$with_rappture; with_rappture=$withval
-else
-  with_rappture=yes
 fi
 
 
@@ -5058,8 +5043,7 @@ LD_RPATH="";
 
 #
 # Need to check for the following dependencies:
-#	Rappture headers and library (done)
-#       Tcl headers and library (done)
+#       Tcl headers and library
 #       GL headers and library
 #       pthread library
 #       OpenSceneGraph libraries
@@ -5069,9 +5053,7 @@ LD_RPATH="";
 TCL_VERSION="8.4"
 for dir in \
  ${exec_prefix} \
- ${exec_prefix}/lib \
- ${with_rappture} \
- ${with_rappture}/lib ; do
+ ${exec_prefix}/lib ; do
   tclconfig="${dir}/tclConfig.sh"
   if test -f "$tclconfig" ; then
     . $tclconfig
@@ -5089,36 +5071,6 @@ if test "x$with_tcllib" != "x" ; then
 fi
 if test "x$with_tclinclude" != "x" ; then
    TCL_INC_SPEC="-I${with_tclinclude}"
-fi
-
-RP_DIR=""
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for rappture" >&5
-$as_echo_n "checking for rappture... " >&6; }
-if test "$with_rappture" == "yes" ; then
-  for dir in "$exec_prefix" "/usr" ; do
-    if test -r "$dir/include/rappture2/rappture2.h" -a \
-     -r "$dir/lib/librappture.a"; then
-      RP_DIR="$dir"
-      RP_INC_SPEC="-I$dir/include -I$dir/include/rappture2"
-      RP_LIB_DIR="$dir/lib"
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $dir" >&5
-$as_echo "$dir" >&6; }
-      break
-    fi
-  done
-else
-  if test ! -d "$with_rappture" ; then
-    as_fn_error $? "--with-rappture: no such directory $with_rappture" "$LINENO" 5
-  fi
-  RP_DIR=$with_rappture
-  RP_INC_SPEC="-I$with_rappture/include -I$with_rappture/include/rappture2"
-  RP_LIB_DIR="$with_rappture/lib"
-fi
-if test "x${RP_DIR}" = "x" ; then
-  as_fn_error $? "cannot find rappture.h and librappture2.a, try using --with-rappture" "$LINENO" 5
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $with_rappture" >&5
-$as_echo "$with_rappture" >&6; }
 fi
 
 OSG_INC_SPEC=-I${incdir}
@@ -5432,9 +5384,6 @@ _ACEOF
 
 fi
 done
-
-
-
 
 
 

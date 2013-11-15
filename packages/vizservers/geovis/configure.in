@@ -10,13 +10,6 @@ AC_ARG_WITH(
     [with_tcllib=""])
 
 AC_ARG_WITH(
-    [rappture],
-    [AS_HELP_STRING([--with-rappture[=DIR]],
-        [location of rappture files lib/librappture.a and include/rappture.h @<:@default=/usr@:>@])],
-    [with_rappture=$withval],
-    [with_rappture=yes])
-
-AC_ARG_WITH(
     [osg-includes],
     [AS_HELP_STRING([--with-osg-includes=DIR],
         [OSG include files are in DIR])],
@@ -80,8 +73,7 @@ LD_RPATH="";
 
 #
 # Need to check for the following dependencies:
-#	Rappture headers and library (done)
-#       Tcl headers and library (done)
+#       Tcl headers and library
 #       GL headers and library
 #       pthread library
 #       OpenSceneGraph libraries
@@ -91,9 +83,7 @@ LD_RPATH="";
 TCL_VERSION="8.4"
 for dir in \
  ${exec_prefix} \
- ${exec_prefix}/lib \
- ${with_rappture} \
- ${with_rappture}/lib ; do
+ ${exec_prefix}/lib ; do
   tclconfig="${dir}/tclConfig.sh"
   if test -f "$tclconfig" ; then
     . $tclconfig
@@ -111,33 +101,6 @@ if test "x$with_tcllib" != "x" ; then
 fi
 if test "x$with_tclinclude" != "x" ; then
    TCL_INC_SPEC="-I${with_tclinclude}"
-fi
-
-RP_DIR=""
-AC_MSG_CHECKING([for rappture])
-if test "$with_rappture" == "yes" ; then
-  for dir in "$exec_prefix" "/usr" ; do
-    if test -r "$dir/include/rappture2/rappture2.h" -a \
-     -r "$dir/lib/librappture.a"; then
-      RP_DIR="$dir"
-      RP_INC_SPEC="-I$dir/include -I$dir/include/rappture2"
-      RP_LIB_DIR="$dir/lib"
-      AC_MSG_RESULT([$dir])
-      break
-    fi
-  done
-else
-  if test ! -d "$with_rappture" ; then 
-    AC_MSG_ERROR([--with-rappture: no such directory $with_rappture])
-  fi
-  RP_DIR=$with_rappture
-  RP_INC_SPEC="-I$with_rappture/include -I$with_rappture/include/rappture2"
-  RP_LIB_DIR="$with_rappture/lib"
-fi
-if test "x${RP_DIR}" = "x" ; then
-  AC_MSG_ERROR([cannot find rappture.h and librappture2.a, try using --with-rappture])
-else
-  AC_MSG_RESULT([$with_rappture])
 fi
 
 OSG_INC_SPEC=-I${incdir}
@@ -161,9 +124,6 @@ AC_CHECK_FUNCS([accept4])
 AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
 AC_SUBST(LD_RPATH)
-AC_SUBST(RP_DIR)
-AC_SUBST(RP_INC_SPEC)
-AC_SUBST(RP_LIB_DIR)
 AC_SUBST(SHLIB_CFLAGS)
 AC_SUBST(SHLIB_LD)
 AC_SUBST(SHLIB_LDFLAGS)

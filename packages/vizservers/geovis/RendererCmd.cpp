@@ -231,7 +231,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec cameraOps[] = {
+static CmdSpec cameraOps[] = {
     {"orient", 1, CameraOrientOp, 6, 6, "qw qx qy qz"},
     {"pan",    1, CameraPanOp, 4, 4, "panX panY"},
     {"reset",  2, CameraResetOp, 2, 3, "?all?"},
@@ -247,8 +247,8 @@ CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nCameraOps, cameraOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nCameraOps, cameraOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -364,7 +364,7 @@ KeyReleaseOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec keyOps[] = {
+static CmdSpec keyOps[] = {
     {"press",    1, KeyPressOp,       3, 3, "key"},
     {"release",  1, KeyReleaseOp,     3, 3, "key"},
 };
@@ -376,8 +376,8 @@ KeyCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nKeyOps, keyOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nKeyOps, keyOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -504,7 +504,7 @@ MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec mapLayerOps[] = {
+static CmdSpec mapLayerOps[] = {
     {"add",     1, MapLayerAddOp,       6, 6, "type url name"},
     {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
     {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
@@ -519,8 +519,8 @@ MapLayerOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nMapLayerOps, mapLayerOps,
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nMapLayerOps, mapLayerOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -592,7 +592,7 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec mapOps[] = {
+static CmdSpec mapOps[] = {
     {"layer",    2, MapLayerOp,       3, 6, "op ?params...?"},
     {"load",     2, MapLoadOp,        4, 5, "options"},
     {"reset",    1, MapResetOp,       3, 4, "type ?profile?"},
@@ -605,8 +605,8 @@ MapCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nMapOps, mapOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nMapOps, mapOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -718,7 +718,7 @@ MouseScrollOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec mouseOps[] = {
+static CmdSpec mouseOps[] = {
     {"click",    1, MouseClickOp,       5, 5, "button x y"},
     {"dblclick", 2, MouseDoubleClickOp, 5, 5, "button x y"},
     {"drag",     2, MouseDragOp,        5, 5, "button x y"},
@@ -734,8 +734,8 @@ MouseCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nMouseOps, mouseOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nMouseOps, mouseOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -750,7 +750,7 @@ RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec rendererOps[] = {
+static CmdSpec rendererOps[] = {
     {"render",     1, RendererRenderOp, 2, 2, ""},
 };
 static int nRendererOps = NumCmdSpecs(rendererOps);
@@ -761,8 +761,8 @@ RendererCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nRendererOps, rendererOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nRendererOps, rendererOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -800,7 +800,7 @@ ScreenSizeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec screenOps[] = {
+static CmdSpec screenOps[] = {
     {"bgcolor", 1, ScreenBgColorOp, 5, 5, "r g b"},
     {"size", 1, ScreenSizeOp, 4, 4, "width height"}
 };
@@ -812,8 +812,8 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nScreenOps, screenOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nScreenOps, screenOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
