@@ -39,10 +39,11 @@ PTHREAD_LIB_SPEC= -lpthread
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
+VTK_VERSION     = @VTK_VERSION@
 VTK_LIB_DIR	= @VTK_LIB_DIR@
-VTK_INC_SPEC	= @VTK_INC_SPEC@
-VTK_VERSION     = 6.0
-VTK_LIB_SPEC    = \
+VTK_INC_DIR     = @VTK_INC_DIR@
+VTK_INC_SPEC	= -I$(VTK_INC_DIR)/vtk-$(VTK_VERSION)
+VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
 		-lvtkDomainsChemistry-$(VTK_VERSION) \
 		-lvtkIOCore-$(VTK_VERSION) \
 		-lvtkIOLegacy-$(VTK_VERSION) \
@@ -83,7 +84,7 @@ VTK_LIB_SPEC += \
 		-lvtkRenderingHybridOpenGL-$(VTK_VERSION)
 endif
 
-LD_RUN_PATH	= $(libdir)
+LD_RUN_PATH	= $(VTK_LIB_DIR):$(libdir)
 
 LIBS		= \
 		$(TCL_LIB_SPEC) \

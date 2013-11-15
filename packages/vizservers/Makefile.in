@@ -18,18 +18,6 @@ RM		= rm -f
 VPATH		= $(srcdir)
 
 SUBDIRS         = @SUBDIRS@
-VTK_LIB_DIR	= @VTK_LIB_DIR@
-CG_LIB_DIR	= @CG_LIB_DIR@
-
-SUBDIRS		= nanoscale pymolproxy
-
-ifneq ($(VTK_LIB_DIR),)
-  SUBDIRS += vtkvis
-endif
-
-ifneq ($(CG_LIB_DIR),)
-  SUBDIRS += nanovis
-endif
 
 .PHONY: all install clean distclean $(SUBDIRS)
 

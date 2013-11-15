@@ -66,6 +66,7 @@ private:
 
     Axis _sliceAxis;
     ColorMap *_colorMap;
+    int _resolution;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;

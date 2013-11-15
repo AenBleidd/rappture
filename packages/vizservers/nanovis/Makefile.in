@@ -53,21 +53,23 @@ VRMATH_INC_SPEC	= -I$(srcdir)/$(VRMATH_DIR)/include
 VRMATH_LIB	= $(VRMATH_DIR)/vrmath.a
 VRMATH_LIB_SPEC	= $(VRMATH_LIB)
 
+VTK_VERSION     = @VTK_VERSION@
 VTK_LIB_DIR	= @VTK_LIB_DIR@
-VTK_INC_SPEC	= @VTK_INC_SPEC@
-VTK_LIB_SPEC    = \
-		-lvtkIOCore-6.0 \
-		-lvtkIOLegacy-6.0 \
-		-lvtkFiltersCore-6.0 \
-		-lvtkImagingHybrid-6.0 \
-		-lvtkImagingCore-6.0 \
-		-lvtkCommonCore-6.0 \
-		-lvtkCommonDataModel-6.0 \
-		-lvtkCommonExecutionModel-6.0  \
-		-lvtkCommonMisc-6.0  \
-		-lvtkCommonSystem-6.0 \
-		-lvtkCommonTransforms-6.0 \
-		-lvtkCommonMath-6.0
+VTK_INC_DIR     = @VTK_INC_DIR@
+VTK_INC_SPEC	= -I$(VTK_INC_DIR)/vtk-$(VTK_VERSION)
+VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
+		-lvtkIOCore-$(VTK_VERSION) \
+		-lvtkIOLegacy-$(VTK_VERSION) \
+		-lvtkFiltersCore-$(VTK_VERSION) \
+		-lvtkImagingHybrid-$(VTK_VERSION) \
+		-lvtkImagingCore-$(VTK_VERSION) \
+		-lvtkCommonCore-$(VTK_VERSION) \
+		-lvtkCommonDataModel-$(VTK_VERSION) \
+		-lvtkCommonExecutionModel-$(VTK_VERSION)  \
+		-lvtkCommonMisc-$(VTK_VERSION)  \
+		-lvtkCommonSystem-$(VTK_VERSION) \
+		-lvtkCommonTransforms-$(VTK_VERSION) \
+		-lvtkCommonMath-$(VTK_VERSION)
 
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
@@ -77,7 +79,7 @@ RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
-LD_RUN_PATH     = $(libdir):@LD_RPATH@
+LD_RUN_PATH     = $(VTK_LIB_DIR):$(libdir):@LD_RPATH@
 
 SVN_VERSION	= $(shell svnversion $(srcdir))
 STATSDIR	= @STATSDIR@
