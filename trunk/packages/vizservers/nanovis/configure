@@ -2281,7 +2281,7 @@ fi
 if test "${with_vtk+set}" = set; then :
   withval=$with_vtk; with_vtk=$withval
 else
-  with_vtk=yes
+  with_vtk=""
 fi
 
 
