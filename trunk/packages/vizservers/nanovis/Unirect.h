@@ -11,8 +11,6 @@
 
 #include <tcl.h>
 
-#include <RpBuffer.h>
-
 #include <vrmath/Vector3f.h>
 
 #include "Trace.h"
