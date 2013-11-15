@@ -49,89 +49,89 @@
 using namespace nv;
 using namespace vrmath;
 
-static Rappture::SwitchParseProc AxisSwitchProc;
-static Rappture::SwitchCustom axisSwitch = {
+static SwitchParseProc AxisSwitchProc;
+static SwitchCustom axisSwitch = {
     AxisSwitchProc, NULL, 0,
 };
 
-static Rappture::SwitchParseProc ColorSwitchProc;
-static Rappture::SwitchCustom colorSwitch = {
+static SwitchParseProc ColorSwitchProc;
+static SwitchCustom colorSwitch = {
     ColorSwitchProc, NULL, 0,
 };
 
-static Rappture::SwitchParseProc PointSwitchProc;
-static Rappture::SwitchCustom pointSwitch = {
+static SwitchParseProc PointSwitchProc;
+static SwitchCustom pointSwitch = {
     PointSwitchProc, NULL, 0,
 };
 
-static Rappture::SwitchParseProc PositionSwitchProc;
-static Rappture::SwitchCustom positionSwitch = {
+static SwitchParseProc PositionSwitchProc;
+static SwitchCustom positionSwitch = {
     PositionSwitchProc, NULL, 0,
 };
 
-static Rappture::SwitchParseProc TransferFunctionSwitchProc;
-static Rappture::SwitchCustom transferFunctionSwitch = {
+static SwitchParseProc TransferFunctionSwitchProc;
+static SwitchCustom transferFunctionSwitch = {
     TransferFunctionSwitchProc, NULL, 0,
 };
 
-Rappture::SwitchSpec Flow::_switches[] = {
-    {Rappture::SWITCH_FLOAT, "-ambient", "value",
+SwitchSpec Flow::_switches[] = {
+    {SWITCH_FLOAT, "-ambient", "value",
      offsetof(FlowValues, ambient), 0},
-    {Rappture::SWITCH_BOOLEAN, "-arrows", "boolean",
+    {SWITCH_BOOLEAN, "-arrows", "boolean",
      offsetof(FlowValues, showArrows), 0},
-    {Rappture::SWITCH_CUSTOM, "-axis", "axis",
+    {SWITCH_CUSTOM, "-axis", "axis",
      offsetof(FlowValues, slicePos.axis), 0, 0, &axisSwitch},
-    {Rappture::SWITCH_FLOAT, "-diffuse", "value",
+    {SWITCH_FLOAT, "-diffuse", "value",
      offsetof(FlowValues, diffuse), 0},
-    {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
+    {SWITCH_BOOLEAN, "-hide", "boolean",
      offsetof(FlowValues, isHidden), 0},
-    {Rappture::SWITCH_BOOLEAN, "-light2side", "boolean",
+    {SWITCH_BOOLEAN, "-light2side", "boolean",
      offsetof(FlowValues, twoSidedLighting), 0},
-    {Rappture::SWITCH_FLOAT, "-opacity", "value",
+    {SWITCH_FLOAT, "-opacity", "value",
      offsetof(FlowValues, opacity), 0},
-    {Rappture::SWITCH_BOOLEAN, "-outline", "boolean",
+    {SWITCH_BOOLEAN, "-outline", "boolean",
      offsetof(FlowValues, showOutline), 0},
-    {Rappture::SWITCH_CUSTOM, "-position", "number",
+    {SWITCH_CUSTOM, "-position", "number",
      offsetof(FlowValues, slicePos), 0, 0, &positionSwitch},
-    {Rappture::SWITCH_BOOLEAN, "-slice", "boolean",
+    {SWITCH_BOOLEAN, "-slice", "boolean",
      offsetof(FlowValues, sliceVisible), 0},
-    {Rappture::SWITCH_FLOAT, "-specularExp", "value",
+    {SWITCH_FLOAT, "-specularExp", "value",
      offsetof(FlowValues, specularExp), 0},
-    {Rappture::SWITCH_FLOAT, "-specularLevel", "value",
+    {SWITCH_FLOAT, "-specularLevel", "value",
      offsetof(FlowValues, specular), 0},
-    {Rappture::SWITCH_CUSTOM, "-transferfunction", "name",
+    {SWITCH_CUSTOM, "-transferfunction", "name",
      offsetof(FlowValues, transferFunction), 0, 0, &transferFunctionSwitch},
-    {Rappture::SWITCH_BOOLEAN, "-volume", "boolean",
+    {SWITCH_BOOLEAN, "-volume", "boolean",
      offsetof(FlowValues, showVolume), 0},
-    {Rappture::SWITCH_END}
+    {SWITCH_END}
 };
 
-Rappture::SwitchSpec FlowParticles::_switches[] = {
-    {Rappture::SWITCH_CUSTOM, "-axis", "axis",
+SwitchSpec FlowParticles::_switches[] = {
+    {SWITCH_CUSTOM, "-axis", "axis",
      offsetof(FlowParticlesValues, position.axis), 0, 0, &axisSwitch},
-    {Rappture::SWITCH_CUSTOM, "-color", "{r g b a}",
+    {SWITCH_CUSTOM, "-color", "{r g b a}",
      offsetof(FlowParticlesValues, color), 0, 0,  &colorSwitch},
-    {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
+    {SWITCH_BOOLEAN, "-hide", "boolean",
      offsetof(FlowParticlesValues, isHidden), 0},
-    {Rappture::SWITCH_CUSTOM, "-position", "number",
+    {SWITCH_CUSTOM, "-position", "number",
      offsetof(FlowParticlesValues, position), 0, 0, &positionSwitch},
-    {Rappture::SWITCH_FLOAT, "-size", "float",
+    {SWITCH_FLOAT, "-size", "float",
      offsetof(FlowParticlesValues, particleSize), 0},
-    {Rappture::SWITCH_END}
+    {SWITCH_END}
 };
 
-Rappture::SwitchSpec FlowBox::_switches[] = {
-    {Rappture::SWITCH_CUSTOM, "-color", "{r g b a}",
+SwitchSpec FlowBox::_switches[] = {
+    {SWITCH_CUSTOM, "-color", "{r g b a}",
      offsetof(FlowBoxValues, color), 0, 0,  &colorSwitch},
-    {Rappture::SWITCH_CUSTOM, "-corner1", "{x y z}",
+    {SWITCH_CUSTOM, "-corner1", "{x y z}",
      offsetof(FlowBoxValues, corner1), 0, 0, &pointSwitch},
-    {Rappture::SWITCH_CUSTOM, "-corner2", "{x y z}",
+    {SWITCH_CUSTOM, "-corner2", "{x y z}",
      offsetof(FlowBoxValues, corner2), 0, 0, &pointSwitch},
-    {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
+    {SWITCH_BOOLEAN, "-hide", "boolean",
      offsetof(FlowBoxValues, isHidden), 0},
-    {Rappture::SWITCH_FLOAT, "-linewidth", "number",
+    {SWITCH_FLOAT, "-linewidth", "number",
      offsetof(FlowBoxValues, lineWidth), 0},
-    {Rappture::SWITCH_END}
+    {SWITCH_END}
 };
 
 static int
@@ -160,8 +160,8 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    Rappture::Unirect3d *dataPtr;
-    dataPtr = new Rappture::Unirect3d(nComponents);
+    Unirect3d *dataPtr;
+    dataPtr = new Unirect3d(nComponents);
     Flow *flow = (Flow *)clientData;
     size_t length = buf.size();
     char *bytes = (char *)buf.bytes();
@@ -177,8 +177,8 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
-        Rappture::Unirect2d *u2dPtr;
-        u2dPtr = new Rappture::Unirect2d(nComponents);
+        Unirect2d *u2dPtr;
+        u2dPtr = new Unirect2d(nComponents);
         if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete u2dPtr;
             return TCL_ERROR;
@@ -246,27 +246,27 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     char *bytes = (char *)buf.bytes();
     size_t length = buf.size();
 
-    Rappture::Unirect3d *unirect = NULL;
+    Unirect3d *unirect = NULL;
     Volume *volume = NULL;
 
     Flow *flow = (Flow *)clientData;
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-        unirect = new Rappture::Unirect3d(nComponents);
+        unirect = new Unirect3d(nComponents);
         if (!unirect->importDx(result, nComponents, length - 4, bytes + 4)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete unirect;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-        unirect = new Rappture::Unirect3d(nComponents);
+        unirect = new Unirect3d(nComponents);
         if (unirect->parseBuffer(interp, buf) != TCL_OK) {
             delete unirect;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
-        unirect = new Rappture::Unirect3d(nComponents);
-        Rappture::Unirect2d *u2dPtr;
-        u2dPtr = new Rappture::Unirect2d(nComponents);
+        unirect = new Unirect3d(nComponents);
+        Unirect2d *u2dPtr;
+        u2dPtr = new Unirect2d(nComponents);
         if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete unirect;
             delete u2dPtr;
@@ -296,7 +296,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else {
         TRACE("header is %.14s", buf.bytes());
-        unirect = new Rappture::Unirect3d(nComponents);
+        unirect = new Unirect3d(nComponents);
         if (!unirect->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete unirect;
@@ -348,7 +348,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec flowDataOps[] = {
+static CmdSpec flowDataOps[] = {
     {"file",    2, FlowDataFileOp,    5, 5, "fileName nComponents",},
     {"follows", 2, FlowDataFollowsOp, 5, 5, "size nComponents",},
 };
@@ -360,8 +360,8 @@ FlowDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nFlowDataOps, flowDataOps,
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nFlowDataOps, flowDataOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -686,7 +686,7 @@ FlowParticlesNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec flowParticlesOps[] = {
+static CmdSpec flowParticlesOps[] = {
     {"add",        1, FlowParticlesAddOp,        4, 0, "name ?switches?",},
     {"configure",  1, FlowParticlesConfigureOp,  4, 0, "name ?switches?",},
     {"delete",     1, FlowParticlesDeleteOp,     4, 0, "name ?name...?"},
@@ -710,8 +710,8 @@ FlowParticlesOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
-    proc = Rappture::GetOpFromObj(interp, nFlowParticlesOps, flowParticlesOps, 
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nFlowParticlesOps, flowParticlesOps, 
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -793,7 +793,7 @@ FlowBoxNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec flowBoxOps[] = {
+static CmdSpec flowBoxOps[] = {
     {"add",        1, FlowBoxAddOp,        4, 0, "name ?switches?",},
     {"configure",  1, FlowBoxConfigureOp,  4, 0, "name ?switches?",},
     {"delete",     1, FlowBoxDeleteOp,     4, 0, "name ?name...?"},
@@ -815,8 +815,8 @@ FlowBoxOp(ClientData clientData, Tcl_Interp *interp, int objc,
           Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
-    proc = Rappture::GetOpFromObj(interp, nFlowBoxOps, flowBoxOps, 
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nFlowBoxOps, flowBoxOps, 
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -865,7 +865,7 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec flowInstOps[] = {
+static CmdSpec flowInstOps[] = {
     {"box",         1, FlowBoxOp,        2, 0, "oper ?args?"},
     {"configure",   1, FlowConfigureOp,  2, 0, "?switches?"},
     {"data",        1, FlowDataOp,       2, 0, "oper ?args?"},
@@ -887,8 +887,8 @@ nv::FlowInstObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                    Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
-    proc = Rappture::GetOpFromObj(interp, nFlowInstOps, flowInstOps, 
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nFlowInstOps, flowInstOps, 
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1090,25 +1090,25 @@ struct FlowVideoSwitches {
     Tcl_Obj *formatObjPtr;
 };
 
-static Rappture::SwitchParseProc VideoFormatSwitchProc;
-static Rappture::SwitchCustom videoFormatSwitch = {
+static SwitchParseProc VideoFormatSwitchProc;
+static SwitchCustom videoFormatSwitch = {
     VideoFormatSwitchProc, NULL, 0,
 };
 
-static Rappture::SwitchSpec flowVideoSwitches[] = {
-    {Rappture::SWITCH_INT, "-bitrate", "value",
+static SwitchSpec flowVideoSwitches[] = {
+    {SWITCH_INT, "-bitrate", "value",
      offsetof(FlowVideoSwitches, bitRate), 0},
-    {Rappture::SWITCH_CUSTOM, "-format", "string",
+    {SWITCH_CUSTOM, "-format", "string",
      offsetof(FlowVideoSwitches, formatObjPtr), 0, 0, &videoFormatSwitch},
-    {Rappture::SWITCH_FLOAT, "-framerate", "value",
+    {SWITCH_FLOAT, "-framerate", "value",
      offsetof(FlowVideoSwitches, frameRate), 0},
-    {Rappture::SWITCH_INT, "-height", "integer",
+    {SWITCH_INT, "-height", "integer",
      offsetof(FlowVideoSwitches, height), 0},
-    {Rappture::SWITCH_INT, "-numframes", "count",
+    {SWITCH_INT, "-numframes", "count",
      offsetof(FlowVideoSwitches, numFrames), 0},
-    {Rappture::SWITCH_INT, "-width", "integer",
+    {SWITCH_INT, "-width", "integer",
      offsetof(FlowVideoSwitches, width), 0},
-    {Rappture::SWITCH_END}
+    {SWITCH_END}
 };
 
 static bool
@@ -1246,7 +1246,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     switches.numFrames = 100;
     switches.formatObjPtr = Tcl_NewStringObj("mpeg1video", 10);
     Tcl_IncrRefCount(switches.formatObjPtr);
-    if (Rappture::ParseSwitches(interp, flowVideoSwitches, 
+    if (ParseSwitches(interp, flowVideoSwitches, 
                 objc - 3, objv + 3, &switches, SWITCH_DEFAULTS) < 0) {
         return TCL_ERROR;
     }
@@ -1298,7 +1298,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     tmpFileName[length] = '\0';
     rmdir(tmpFileName);
-    Rappture::FreeSwitches(flowVideoSwitches, &switches, 0);
+    FreeSwitches(flowVideoSwitches, &switches, 0);
     return result;
 }
 #else
@@ -1313,7 +1313,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 #endif /* HAVE_FFMPEG */
 
-static Rappture::CmdSpec flowCmdOps[] = {
+static CmdSpec flowCmdOps[] = {
     {"add",      1, FlowAddOp,     3, 0, "name ?option value...?",},
     {"delete",   1, FlowDeleteOp,  3, 0, "name ?name...?",},
     {"exists",   1, FlowExistsOp,  3, 3, "name",},
@@ -1331,8 +1331,8 @@ FlowCmdProc(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nFlowCmdOps, flowCmdOps, 
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nFlowCmdOps, flowCmdOps, 
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }

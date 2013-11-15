@@ -4,8 +4,8 @@
  *
  * Author: George A. Howlett <gah@purdue.edu>
  */
-#ifndef RAPPTURE_UNIRECT_H
-#define RAPPTURE_UNIRECT_H
+#ifndef NV_UNIRECT_H
+#define NV_UNIRECT_H
 
 #include <float.h>
 
@@ -17,7 +17,7 @@
 
 #include "Trace.h"
 
-namespace Rappture {
+namespace nv {
 
 class Unirect2d;
 

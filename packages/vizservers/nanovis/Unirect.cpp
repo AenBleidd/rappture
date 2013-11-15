@@ -41,7 +41,7 @@ getline(char **stringPtr, char *endPtr)
 }
 
 int
-Rappture::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+nv::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 {
     Tcl_Obj *objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
     Tcl_Obj **objv;
@@ -58,7 +58,7 @@ Rappture::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 }
 
 int
-Rappture::Unirect3d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+nv::Unirect3d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 {
     Tcl_Obj *objPtr;
     objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
@@ -77,8 +77,8 @@ Rappture::Unirect3d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 }
 
 int 
-Rappture::Unirect3d::loadData(Tcl_Interp *interp, int objc, 
-                              Tcl_Obj *const *objv)
+nv::Unirect3d::loadData(Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
 {
     int num[3], nValues;
     float min[3], max[3];
@@ -311,8 +311,8 @@ Rappture::Unirect3d::loadData(Tcl_Interp *interp, int objc,
 }
 
 int 
-Rappture::Unirect2d::loadData(Tcl_Interp *interp, int objc, 
-                              Tcl_Obj *const *objv)
+nv::Unirect2d::loadData(Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
 {
     if ((objc & 0x01) == 0) {
         Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
@@ -486,8 +486,8 @@ Rappture::Unirect2d::loadData(Tcl_Interp *interp, int objc,
 }
 
 bool
-Rappture::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
-                              size_t length, char *string) 
+nv::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
+                        size_t length, char *string) 
 {
     int nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -631,7 +631,7 @@ Rappture::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
 }
 
 void
-Rappture::Unirect3d::getVectorRange()
+nv::Unirect3d::getVectorRange()
 {
     assert(_nComponents == 3);
     _magMax = -DBL_MAX, _magMin = DBL_MAX;
@@ -655,7 +655,7 @@ Rappture::Unirect3d::getVectorRange()
 }
 
 bool 
-Rappture::Unirect3d::convert(Rappture::Unirect2d *dataPtr)
+nv::Unirect3d::convert(nv::Unirect2d *dataPtr)
 {
     _initialized = false;
 

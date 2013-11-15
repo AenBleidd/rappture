@@ -287,10 +287,10 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
         (char *)NULL);
         return NULL;
     }
-    if ((nv::GetFloatFromObj(interp, objv[0], &xMin) != TCL_OK) ||
-        (nv::GetFloatFromObj(interp, objv[1], &yMin) != TCL_OK) ||
-        (nv::GetFloatFromObj(interp, objv[2], &xMax) != TCL_OK) ||
-        (nv::GetFloatFromObj(interp, objv[3], &yMax) != TCL_OK) ||
+    if ((GetFloatFromObj(interp, objv[0], &xMin) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[1], &yMin) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[2], &xMax) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &yMax) != TCL_OK) ||
         (Tcl_GetIntFromObj(interp, objv[4], &xNum) != TCL_OK) ||
         (Tcl_GetIntFromObj(interp, objv[5], &yNum) != TCL_OK)) {
         return NULL;
@@ -319,7 +319,7 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
 
     int i;
     for (i = 0; i < nValues; i++) {
-        if (nv::GetFloatFromObj(interp, elem[i], heights + i) != TCL_OK) {
+        if (GetFloatFromObj(interp, elem[i], heights + i) != TCL_OK) {
             delete [] heights;
             return NULL;
         }
@@ -650,7 +650,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec cameraOps[] = {
+static CmdSpec cameraOps[] = {
     {"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
     {"orient",  1, CameraOrientOp,   6, 6, "qw qx qy qz",},
     {"pan",     2, CameraPanOp,      4, 4, "x y",},
@@ -666,8 +666,8 @@ CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nCameraOps, cameraOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nCameraOps, cameraOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -785,7 +785,7 @@ CutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec cutplaneOps[] = {
+static CmdSpec cutplaneOps[] = {
     {"position", 1, CutplanePositionOp, 4, 0, "relval axis ?indices?",},
     {"state",    1, CutplaneStateOp,    4, 0, "bool axis ?indices?",},
     {"visible",  1, CutplaneVisibleOp,  3, 0, "bool ?indices?",},
@@ -813,8 +813,8 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nCutplaneOps, cutplaneOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nCutplaneOps, cutplaneOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -850,7 +850,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 #ifdef KEEPSTATS
     /* Use the initial client key value pairs as the parts for a generating
      * a unique file name. */
-    int f = nv::getStatsFile(interp, objv[1]);
+    int f = getStatsFile(interp, objv[1]);
     if (f < 0) {
         Tcl_AppendResult(interp, "can't open stats file: ", 
                          Tcl_PosixError(interp), (char *)NULL);
@@ -886,14 +886,14 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DStringInit(&ds);
     /* date */
     Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj("date", 4));
-    strcpy(buf, ctime(&nv::g_stats.start.tv_sec));
+    strcpy(buf, ctime(&g_stats.start.tv_sec));
     buf[strlen(buf) - 1] = '\0';
     Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj(buf, -1));
     /* date_secs */
     Tcl_ListObjAppendElement(interp, listObjPtr, 
                 Tcl_NewStringObj("date_secs", 9));
     Tcl_ListObjAppendElement(interp, listObjPtr, 
-                Tcl_NewLongObj(nv::g_stats.start.tv_sec));
+                Tcl_NewLongObj(g_stats.start.tv_sec));
     /* Client arguments. */
     if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
         return TCL_ERROR;
@@ -906,8 +906,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DStringAppend(&ds, string, length);
     Tcl_DStringAppend(&ds, "\n", 1);
 #ifdef KEEPSTATS
-    result = nv::writeToStatsFile(f, Tcl_DStringValue(&ds), 
-                                  Tcl_DStringLength(&ds));
+    result = writeToStatsFile(f, Tcl_DStringValue(&ds), 
+                              Tcl_DStringLength(&ds));
 #else
     TRACE("clientinfo: %s", Tcl_DStringValue(&ds));
 #endif
@@ -992,7 +992,7 @@ ScreenSizeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec screenOps[] = {
+static CmdSpec screenOps[] = {
     {"bgcolor",  1, ScreenBgColorOp,  5, 5, "r g b",},
     {"size",     1, ScreenSizeOp, 4, 4, "width height",},
 };
@@ -1004,8 +1004,8 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nScreenOps, screenOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nScreenOps, screenOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1181,9 +1181,9 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
             /* FIXME: this function requires 4-byte aligned RGB rows,
              * but screen buffer is now 1 byte aligned for PPM images.
              */
-            nv::writeBMPFile(frameNum, dirName,
-                             NanoVis::screenBuffer,
-                             NanoVis::winWidth, NanoVis::winHeight);
+            writeBMPFile(frameNum, dirName,
+                         NanoVis::screenBuffer,
+                         NanoVis::winWidth, NanoVis::winHeight);
         }
     }
     return TCL_OK;
@@ -1230,7 +1230,7 @@ VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeAnimationOps[] = {
+static CmdSpec volumeAnimationOps[] = {
     {"capture",   2, VolumeAnimationCaptureOp,  4, 5, "numframes ?filename?",},
     {"clear",     2, VolumeAnimationClearOp,    3, 3, "",},
     {"start",     3, VolumeAnimationStartOp,    3, 3, "",},
@@ -1246,8 +1246,8 @@ VolumeAnimationOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nVolumeAnimationOps, 
-                volumeAnimationOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nVolumeAnimationOps, 
+                        volumeAnimationOps, CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1382,7 +1382,7 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeDataOps[] = {
+static CmdSpec volumeDataOps[] = {
     {"follows",   1, VolumeDataFollowsOp, 5, 5, "nbytes tag",},
     {"state",     1, VolumeDataStateOp,   4, 0, "bool ?indices?",},
 };
@@ -1394,8 +1394,8 @@ VolumeDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nVolumeDataOps, volumeDataOps,
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nVolumeDataOps, volumeDataOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1486,7 +1486,7 @@ VolumeOutlineStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeOutlineOps[] = {
+static CmdSpec volumeOutlineOps[] = {
     {"color",     1, VolumeOutlineColorOp,  6, 0, "r g b ?indices?",},
     {"state",     1, VolumeOutlineStateOp,  4, 0, "bool ?indices?",},
     {"visible",   1, VolumeOutlineStateOp,  4, 0, "bool ?indices?",},
@@ -1499,8 +1499,8 @@ VolumeOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nVolumeOutlineOps, volumeOutlineOps,
-        Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nVolumeOutlineOps, volumeOutlineOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1678,7 +1678,7 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeShadingOps[] = {
+static CmdSpec volumeShadingOps[] = {
     {"ambient",       1, VolumeShadingAmbientOp,     4, 0, "value ?indices?",},
     {"diffuse",       1, VolumeShadingDiffuseOp,     4, 0, "value ?indices?",},
     {"isosurface",    1, VolumeShadingIsosurfaceOp,  4, 0, "bool ?indices?",},
@@ -1696,8 +1696,8 @@ VolumeShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nVolumeShadingOps, volumeShadingOps,
-        Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nVolumeShadingOps, volumeShadingOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1723,7 +1723,7 @@ VolumeStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeOps[] = {
+static CmdSpec volumeOps[] = {
     {"animation", 2, VolumeAnimationOp,   3, 0, "oper ?args?",},
     {"data",      2, VolumeDataOp,        3, 0, "oper ?args?",},
     {"delete",    2, VolumeDeleteOp,      3, 0, "?name...?",},
@@ -1741,8 +1741,8 @@ VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nVolumeOps, volumeOps,
-        Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nVolumeOps, volumeOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1763,7 +1763,7 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    Rappture::Unirect2d data(1);
+    Unirect2d data(1);
     if (data.parseBuffer(interp, buf) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -1817,7 +1817,7 @@ HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec heightMapDataOps[] = {
+static CmdSpec heightMapDataOps[] = {
     {"follows",  1, HeightMapDataFollowsOp, 5, 5, "size heightmapName",},
     {"visible",  1, HeightMapDataVisibleOp, 4, 0, "bool ?heightmapNames...?",},
 };
@@ -1829,8 +1829,8 @@ HeightMapDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nHeightMapDataOps, heightMapDataOps,
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nHeightMapDataOps, heightMapDataOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1878,7 +1878,7 @@ HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec heightMapLineContourOps[] = {
+static CmdSpec heightMapLineContourOps[] = {
     {"color",   1, HeightMapLineContourColorOp,   6, 0, "r g b ?heightmapNames...?",},
     {"visible", 1, HeightMapLineContourVisibleOp, 4, 0, "bool ?heightmapNames...?",},
 };
@@ -1890,8 +1890,8 @@ HeightMapLineContourOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nHeightMapLineContourOps,
-        heightMapLineContourOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = GetOpFromObj(interp, nHeightMapLineContourOps,
+                        heightMapLineContourOps, CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -2033,7 +2033,7 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec heightMapOps[] = {
+static CmdSpec heightMapOps[] = {
     {"create",       2, HeightMapCreateOp,      10, 10, "heightmapName xmin ymin xmax ymax xnum ynum values",},
     {"cull",         2, HeightMapCullOp,        3, 3, "mode",},
     {"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
@@ -2052,8 +2052,8 @@ HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nHeightMapOps, heightMapOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nHeightMapOps, heightMapOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -2135,7 +2135,7 @@ GridVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec gridOps[] = {
+static CmdSpec gridOps[] = {
     {"axiscolor",  5, GridAxisColorOp,  5, 6, "r g b ?a?",},
     {"axisname",   5, GridAxisNameOp,   5, 5, "index title units",},
     {"linecolor",  7, GridLineColorOp,  5, 6, "r g b ?a?",},
@@ -2149,8 +2149,8 @@ GridCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nGridOps, gridOps,
-                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    proc = GetOpFromObj(interp, nGridOps, gridOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }

@@ -40,7 +40,7 @@ FlowParticles::~FlowParticles()
         delete _renderer;
     }
     TRACE("Freeing switches");
-    Rappture::FreeSwitches(_switches, &_sv, 0);
+    FreeSwitches(_switches, &_sv, 0);
 }
 
 float

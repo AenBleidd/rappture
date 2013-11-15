@@ -9,7 +9,7 @@
 
 #include "CmdProc.h"
 
-using namespace Rappture;
+using namespace nv;
 
 /**
  * Performs a linear search on the array of command operation
@@ -114,16 +114,16 @@ BinaryOpSearch(CmdSpec *specs, int low, int high, const char *string,
  * the possible commands is returned in interp->result.
  */
 Tcl_ObjCmdProc *
-Rappture::GetOpFromObj(Tcl_Interp *interp,	/* Interpreter to report errors to */
-                       int nSpecs,		/* Number of specifications in array */
-                       CmdSpec *specs,		/* Op specification array */
-                       int operPos,		/* Position of operation in argument
-                                                 * list. */
-                       int objc,		/* Number of arguments in the argument
-                                                 * vector.  This includes any prefixed
-                                                 * arguments */ 
-                       Tcl_Obj *const *objv,	/* Argument vector */
-                       int flags)
+nv::GetOpFromObj(Tcl_Interp *interp,	/* Interpreter to report errors to */
+                 int nSpecs,		/* Number of specifications in array */
+                 CmdSpec *specs,		/* Op specification array */
+                 int operPos,		/* Position of operation in argument
+                                         * list. */
+                 int objc,		/* Number of arguments in the argument
+                                         * vector.  This includes any prefixed
+                                         * arguments */ 
+                 Tcl_Obj *const *objv,	/* Argument vector */
+                 int flags)
 {
     CmdSpec *specPtr;
     char *string;

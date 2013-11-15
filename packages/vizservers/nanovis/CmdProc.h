@@ -3,10 +3,10 @@
  * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
  */
-#ifndef RAPPTURE_CMDPROC_H
-#define RAPPTURE_CMDPROC_H
+#ifndef NV_CMDPROC_H
+#define NV_CMDPROC_H
 
-namespace Rappture {
+namespace nv {
 
 /**
  * Structure to specify a set of operations for a Tcl command.
@@ -37,7 +37,7 @@ extern Tcl_ObjCmdProc *
 GetOpFromObj(Tcl_Interp *interp, int nSpecs, 
              CmdSpec *specs, int operPos, int objc, Tcl_Obj *const *objv, int flags);
 
-#define NumCmdSpecs(s) (sizeof(s) / sizeof(Rappture::CmdSpec))
+#define NumCmdSpecs(s) (sizeof(s) / sizeof(nv::CmdSpec))
 
 }
 

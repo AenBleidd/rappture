@@ -27,14 +27,14 @@
  *	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef RAPPTURE_SWITCH_H
-#define RAPPTURE_SWITCH_H
+#ifndef NV_SWITCH_H
+#define NV_SWITCH_H
 
 #ifdef HAVE_STDDEF_H
 #  include <stddef.h>
 #endif /* HAVE_STDDEF_H */
 
-namespace Rappture {
+namespace nv {
 
 typedef int (SwitchParseProc)(ClientData clientData, Tcl_Interp *interp, 
                               const char *switchName, Tcl_Obj *valueObjPtr,
