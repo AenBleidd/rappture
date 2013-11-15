@@ -1,7 +1,6 @@
 AC_PREREQ([2.60])
-AC_INIT([vizservers], [0.1], [rappture@nanohub.org])
+AC_INIT([vtkvis], [1.7], [rappture@nanohub.org])
 AC_CONFIG_AUX_DIR(cf)
-AC_CONFIG_HEADERS([nanoscale/config.h])
 
 AC_ARG_WITH(
     [tcllib],
@@ -11,13 +10,32 @@ AC_ARG_WITH(
     [with_tcllib=""])
 
 AC_ARG_WITH(
+    [vtk-includes],
+    [AS_HELP_STRING([--with-vtk-includes=DIR],
+        [location of versioned VTK include dir])],
+    [with_vtk_includes=$withval],
+    [with_vtk_includes=""])
+
+AC_ARG_WITH(
+    [vtk-libs],
+    [AS_HELP_STRING([--with-vtk-libs=DIR],
+        [VTK libraries are in DIR])],
+    [with_vtk_libs=$withval],
+    [with_vtk_libs=""])
+
+AC_ARG_WITH(
+    [vtk],
+    [AS_HELP_STRING([--with-vtk=VERSION],
+        [Version of VTK required @<:@default=6.0@:>@])],
+    [with_vtk=$withval],
+    [with_vtk=""])
+
+AC_ARG_WITH(
     [statsdir],
     [AS_HELP_STRING([--with-statsdir=DIR],
         [Write statistics in DIR])],
     [STATSDIR=$withval],
     [STATSDIR="/var/tmp/visservers"])
-
-RP_LANG_PYTHON
 
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
@@ -41,10 +59,6 @@ else
     LIB_SEARCH_DIRS="-L ${libdir}"
 fi
 
-SC_CONFIG_CFLAGS
-
-AC_PATH_X
-
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_LN_S
@@ -57,23 +71,12 @@ AC_PROG_CXXCPP
 AC_PROG_CXX
 AC_LANG_CPLUSPLUS
 
-AC_C_BIGENDIAN
-
-# Save the values as shell variables so that we can substitute them
-# into bltHash.h for situtations where there's no bltInt.h.
-
-LD_RPATH="";
-
 #
 # Need to check for the following dependencies:
-#	Rappture headers and library (done)
-#       Tcl headers and library (done)
+#       Tcl headers and library
 #       GL headers and library
-#       GLuT headers and library
-#       GLEW header and library
-#       Cg headers and library
-#       CgGL headers and library
 #       pthread library
+#       vtk libraries
 #
 
 TCL_VERSION="8.4"
@@ -99,26 +102,48 @@ if test "x$with_tclinclude" != "x" ; then
    TCL_INC_SPEC="-I${with_tclinclude}"
 fi
 
-AC_CHECK_HEADER([GL/glew.h])
+# We are assuming that we're using VTK 6.0
+VTK_VERSION=6.0
+VTK_LIB_DIR=${libdir}
+VTK_INC_DIR=${incdir}
+
+if test "x$with_vtk_includes" != "x"; then
+   VTK_INC_DIR=$with_vtk_includes
+fi
+
+if test "x$with_vtk_libs" != "x"; then
+   VTK_LIB_DIR=$with_vtk_libs
+fi
+
+dnl Prefer our VTK installation over systems. --with-vtk overrides.
+if test "x$with_vtk" != "x" ; then
+   VTK_VERSION=$with_vtk
+fi
+
+if ! test -d "$VTK_INC_DIR/vtk-${VTK_VERSION}" ; then
+   AC_ERROR([Couldn't find VTK includes])
+else
+   VTK_INC_SPEC="-I${VTK_INC_DIR}/vtk-${VTK_VERSION}"
+fi
+
+save_CPPFLAGS=$CPPFLAGS
+CPPFLAGS=$VTK_INC_SPEC
+AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_WARN([cannot find vtkSmartPointer.h])])
+CPPFLAGS=$save_CPPFLAGS
 
 AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
 AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
 
 AC_CHECK_FUNCS([accept4])
 
-SUBDIRS="nanoscale pymolproxy"
-
-AC_SUBST(LD_RPATH)
 AC_SUBST(STATSDIR)
-AC_SUBST(SUBDIRS)
-AC_SUBST(PYTHON)
 AC_SUBST(TCL_INC_SPEC)
 AC_SUBST(TCL_LIB_SPEC)
 AC_SUBST(TCL_VERSION)
+AC_SUBST(VTK_VERSION)
+AC_SUBST(VTK_INC_DIR)
+AC_SUBST(VTK_LIB_DIR)
 
 AC_OUTPUT([
-   Makefile \
-   nanoscale/Makefile \
-   nanoscale/renderservers.tcl \
-   pymolproxy/Makefile \
-   start_nanoscale.sh])
+   Doxyfile \
+   Makefile])

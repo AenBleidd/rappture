@@ -11,7 +11,6 @@ EXTRA_CFLAGS =	-Wall
 INCLUDES =	$(TCL_INC_SPEC) -I$(srcdir)
 TCL_INC_SPEC =	@TCL_INC_SPEC@
 TCL_LIB_SPEC =	@TCL_LIB_SPEC@
-RP_LIB_DIR =	@RP_LIB_DIR@
 
 bindir =	@bindir@
 datadir =	@datadir@
@@ -23,7 +22,6 @@ mandir =	@mandir@
 prefix =	@prefix@
 srcdir =	@srcdir@
 
-RP_DIR =	@RP_DIR@
 INSTALL =	@INSTALL@
 MKDIR_P =	@MKDIR_P@
 VPATH =		$(srcdir)
@@ -37,7 +35,7 @@ FILES =		pymolproxy pymolproxy2
 PROXY_OBJS =	pymolproxy.o md5.o
 PROXY2_OBJS =	pymolproxy2.o md5.o 
 LIBS =		$(TCL_LIB_SPEC) \
-		-Wl,-rpath,$(RP_LIB_DIR) 
+		-Wl,-rpath,$(libdir) 
 
 SCRIPTS		= $(srcdir)/scripts/box.py
 

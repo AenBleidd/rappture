@@ -32,7 +32,8 @@ using namespace VtkVis;
 LIC::LIC() :
     GraphicsObject(),
     _sliceAxis(Z_AXIS),
-    _colorMap(NULL)
+    _colorMap(NULL),
+    _resolution(128)
 {
 }
 
@@ -229,10 +230,11 @@ void LIC::update()
         vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
         int xdim, ydim, zdim;
         double origin[3], spacing[3];
+        int res = _resolution;
         if (minDir == 0) {
             xdim = 1;
-            ydim = 128;
-            zdim = 128;
+            ydim = res;
+            zdim = res;
             origin[0] = bounds[0] + xSize/2.;
             origin[1] = bounds[2];
             origin[2] = bounds[4];
@@ -241,9 +243,9 @@ void LIC::update()
             spacing[2] = zSize/((double)(zdim-1));
             _sliceAxis = X_AXIS;
         } else if (minDir == 1) {
-            xdim = 128;
+            xdim = res;
             ydim = 1;
-            zdim = 128;
+            zdim = res;
             origin[0] = bounds[0];
             origin[1] = bounds[2] + ySize/2.;
             origin[2] = bounds[4];
@@ -252,8 +254,8 @@ void LIC::update()
             spacing[2] = zSize/((double)(zdim-1));
             _sliceAxis = Y_AXIS;
         } else {
-            xdim = 128;
-            ydim = 128;
+            xdim = res;
+            ydim = res;
             zdim = 1;
             origin[0] = bounds[0];
             origin[1] = bounds[2];
@@ -278,15 +280,26 @@ void LIC::update()
             _mapper->SetColorModeToMapScalars();
         }
         _lic->Update();
-        vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
-        cast->SetInputConnection(_probeFilter->GetOutputPort());
-        cast->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS,
-                                     _probeFilter->GetValidPointMaskArrayName());
-        cast->SetOutputScalarTypeToUnsignedChar();
-        vtkSmartPointer<vtkImageMask> mask = vtkSmartPointer<vtkImageMask>::New();
-        mask->SetInputConnection(0, _lic->GetOutputPort());
-        mask->SetInputConnection(1, cast->GetOutputPort());
-        _mapper->SetInputConnection(mask->GetOutputPort());
+        if (1) {
+            vtkSmartPointer<vtkImageData> imgData = _probeFilter->GetImageDataOutput();
+            imgData->GetPointData()->SetActiveScalars(_probeFilter->GetValidPointMaskArrayName());
+            vtkSmartPointer<vtkImageCast> maskCast = vtkSmartPointer<vtkImageCast>::New();
+            maskCast->SetInputData(imgData);
+            //maskCast->SetInputConnection(_probeFilter->GetOutputPort());
+            //maskCast->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS,
+            //                                 _probeFilter->GetValidPointMaskArrayName());
+            maskCast->SetOutputScalarTypeToUnsignedChar();
+            vtkSmartPointer<vtkImageCast> licCast = vtkSmartPointer<vtkImageCast>::New();
+            licCast->SetInputConnection(_lic->GetOutputPort());
+            licCast->SetOutputScalarTypeToDouble();
+            vtkSmartPointer<vtkImageMask> mask = vtkSmartPointer<vtkImageMask>::New();
+            mask->SetInputConnection(0, licCast->GetOutputPort());
+            mask->SetInputConnection(1, maskCast->GetOutputPort());
+            _mapper->SetInputConnection(mask->GetOutputPort());
+        } else {
+            // Mask not working in VTK 6.1?
+            _mapper->SetInputConnection(_lic->GetOutputPort());
+        }
     } else {
         // DataSet is a 3D PolyData with cells
         vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
@@ -370,7 +383,7 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
         double bounds[6];
         assert(vtkDataSet::SafeDownCast(_probeFilter->GetSource()) != NULL);
         _dataSet->getBounds(bounds);
-        int dim = 128;
+        int dim = _resolution;
 
         switch (axis) {
         case X_AXIS:

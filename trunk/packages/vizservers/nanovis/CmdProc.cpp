@@ -116,7 +116,7 @@ BinaryOpSearch(CmdSpec *specs, int low, int high, const char *string,
 Tcl_ObjCmdProc *
 nv::GetOpFromObj(Tcl_Interp *interp,	/* Interpreter to report errors to */
                  int nSpecs,		/* Number of specifications in array */
-                 CmdSpec *specs,		/* Op specification array */
+                 CmdSpec *specs,	/* Op specification array */
                  int operPos,		/* Position of operation in argument
                                          * list. */
                  int objc,		/* Number of arguments in the argument
