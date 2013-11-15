@@ -142,37 +142,6 @@ ReadBuffer::followingData(unsigned char *out, size_t numBytes)
     return ReadBuffer::OK;
 }
 
-ReadBuffer::BufferStatus
-ReadBuffer::followingData(Rappture::Buffer& out, size_t numBytes)
-{
-    TRACE("Enter");
-    while (numBytes > 0) {
-        size_t bytesLeft;
-
-        bytesLeft = _fill - _mark;
-        if (bytesLeft > 0) {
-            int size;
-
-            /* Pull bytes out of the buffer, updating the mark. */
-            size = (bytesLeft >  numBytes) ? numBytes : bytesLeft;
-            out.append((const char *)_bytes + _mark, size);
-            _mark += size;
-            numBytes -= size;
-        }
-        if (numBytes == 0) {
-            /* Received requested # bytes. */
-            return ReadBuffer::OK;
-        }
-        /* Didn't get enough bytes, need to read some more. */
-        _lastStatus = doFill();
-        if (_lastStatus == ReadBuffer::ERROR ||
-            _lastStatus == ReadBuffer::ENDFILE) {
-            return _lastStatus;
-        }
-    }
-    return ReadBuffer::OK;
-}
-
 /** 
  * \brief Returns the next available line (terminated by a newline)
  * 

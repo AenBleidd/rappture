@@ -28,7 +28,6 @@
 #include <sstream>
 #include <string>
 
-#include <RpOutcome.h>
 #include <RpField1D.h>
 #include <RpFieldRect3D.h>
 #include <RpFieldPrism3D.h>
@@ -57,8 +56,7 @@ using namespace nv;
  *  e.g. rank 1 shape 3 means a 3-component vector field
  */
 Volume *
-nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
-                          std::iostream& fin)
+nv::load_dx_volume_stream(const char *tag, std::iostream& fin)
 {
     TRACE("Enter tag:%s", tag);
 
@@ -82,7 +80,7 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
-            result.error("error in data stream");
+            ERROR("error in data stream");
             return NULL;
         }
         for (start = line; *start == ' ' || *start == '\t'; start++)
@@ -157,7 +155,7 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
                     }
                     ftri.close();
                 } else {
-                    result.error("triangularization failed");
+                    ERROR("triangularization failed");
                     return NULL;
                 }
                 unlink(fpts);
@@ -182,27 +180,27 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
                     count++;
                 }
                 if (count > 1) {
-                    result.addError("don't know how to handle multiple non-zero"
-                                    " delta values");
+                    ERROR("don't know how to handle multiple non-zero"
+                          " delta values");
                     return NULL;
                 }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows",
                               &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
-                    result.addError("inconsistent data: expected %d points"
-                                    " but found %d points", nx*ny*nz, npts);
+                    ERROR("inconsistent data: expected %d points"
+                          " but found %d points", nx*ny*nz, npts);
                     return NULL;
                 } else if (!isrect && (npts != nxy*nz)) {
-                    result.addError("inconsistent data: expected %d points"
-                                    " but found %d points", nxy*nz, npts);
+                    ERROR("inconsistent data: expected %d points"
+                          " but found %d points", nxy*nz, npts);
                     return NULL;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows",
                               &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
-                    result.addError("inconsistent data: expected %d points"
-                                    " but found %d points", nx*ny*nz, npts);
+                    ERROR("inconsistent data: expected %d points"
+                          " but found %d points", nx*ny*nz, npts);
                     return NULL;
                 }
                 break;
@@ -219,7 +217,7 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
 
     // read data points
     if (fin.eof()) {
-        result.error("data not found in stream");
+        ERROR("data not found in stream");
         return NULL;
     }
     Volume *volume = NULL;
@@ -246,7 +244,7 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         while (!fin.eof() && nread < npts) {
             fin.getline(line,sizeof(line)-1);
             if (fin.fail()) {
-                result.addError("error reading data points");
+                ERROR("error reading data points");
                 return NULL;
             }
             int n = sscanf(line, "%lg %lg %lg %lg %lg %lg",
@@ -286,8 +284,8 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
 
         // make sure that we read all of the expected points
         if (nread != npts) {
-            result.addError("inconsistent data: expected %d points"
-                            " but found %d points", npts, nread);
+            ERROR("inconsistent data: expected %d points"
+                  " but found %d points", npts, nread);
             return NULL;
         }
 
@@ -389,8 +387,8 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
         while (!fin.eof() && nread < npts) {
             fin >> dval;
             if (fin.fail()) {
-                result.addError("after %d of %d points: can't read number", 
-                                nread, npts);
+                ERROR("after %d of %d points: can't read number", 
+                      nread, npts);
                 return NULL;
             } else {
                 int nid = nxy*iz + ixy;
@@ -406,8 +404,8 @@ nv::load_dx_volume_stream(Rappture::Outcome& result, const char *tag,
 
         // make sure that we read all of the expected points
         if (nread != npts) {
-            result.addError("inconsistent data: expected %d points"
-                            " but found %d points", npts, nread);
+            ERROR("inconsistent data: expected %d points"
+                  " but found %d points", npts, nread);
             return NULL;
         }
 

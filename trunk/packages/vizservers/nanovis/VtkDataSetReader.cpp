@@ -15,8 +15,6 @@
 #include <vtkDataSetReader.h>
 #include <vtkCharArray.h>
 
-#include <RpOutcome.h>
-
 #include <vrmath/Vector3f.h>
 
 #include "ReaderCommon.h"
@@ -31,7 +29,7 @@
 using namespace nv;
 
 Volume *
-nv::load_vtk_volume_stream(Rappture::Outcome& result, const char *tag, const char *bytes, int nBytes)
+nv::load_vtk_volume_stream(const char *tag, const char *bytes, int nBytes)
 {
     TRACE("Enter tag:%s", tag);
 

@@ -60,13 +60,13 @@ ZincBlendeVolume *ZincBlendeReconstructor::loadFromStream(std::istream& stream)
     char str[5][20];
     do {
         getLine(stream);
-        if (buff[0] == '#') {
+        if (_buff[0] == '#') {
             continue;
-        } else if (strstr((const char*) buff, "object") != 0) {
+        } else if (strstr((const char*) _buff, "object") != 0) {
             TRACE("VERSION 1");
             version = 1;
             break;
-        } else if (strstr(buff, "record format") != 0) {
+        } else if (strstr(_buff, "record format") != 0) {
             TRACE("VERSION 2");
             version = 2;
             break;
@@ -76,18 +76,18 @@ ZincBlendeVolume *ZincBlendeReconstructor::loadFromStream(std::istream& stream)
     if (version == 1) {
 	float dummy;
 
-        sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4], &width, &height, &depth);
+        sscanf(_buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4], &width, &height, &depth);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
+        sscanf(_buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &dummy, &dummy);
+        sscanf(_buff, "%s%f%f%f", str[0], &(delta.x), &dummy, &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &dummy, &(delta.y), &dummy);
+        sscanf(_buff, "%s%f%f%f", str[0], &dummy, &(delta.y), &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &dummy, &dummy, &(delta.z));
+        sscanf(_buff, "%s%f%f%f", str[0], &dummy, &dummy, &(delta.z));
         do {
             getLine(stream);
-        } while (strcmp(buff, "<\\HDR>") != 0);
+        } while (strcmp(_buff, "<\\HDR>") != 0);
 
         width = width / 4;
         height = height / 4;
@@ -110,37 +110,37 @@ ZincBlendeVolume *ZincBlendeReconstructor::loadFromStream(std::istream& stream)
         double emptyvalue;
         do {
             getLine(stream);
-            if ((pt = strstr(buff, "delta")) != 0) {
+            if ((pt = strstr(_buff, "delta")) != 0) {
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
 #ifdef _LOADER_DEBUG_
                 TRACE("delta : %f %f %f", delta.x, delta.y, delta.z);
 #endif
-            } else if ((pt = strstr(buff, "datacount")) != 0) {
+            } else if ((pt = strstr(_buff, "datacount")) != 0) {
                 sscanf(pt, "%s%d", str[0], &datacount);
 #ifdef _LOADER_DEBUG_
                 TRACE("datacount = %d", datacount);
 #endif
-            } else if ((pt = strstr(buff, "datatype")) != 0) {
+            } else if ((pt = strstr(_buff, "datatype")) != 0) {
                 sscanf(pt, "%s%s", str[0], str[1]);
                 if (strcmp(str[1], "double64")) {
                 }
-            } else if ((pt = strstr(buff, "count")) != 0) {
+            } else if ((pt = strstr(_buff, "count")) != 0) {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
 #ifdef _LOADER_DEBUG_
                 TRACE("width height depth %d %d %d", width, height, depth);
 #endif
-            } else if ((pt = strstr(buff, "emptymark")) != 0) {
+            } else if ((pt = strstr(_buff, "emptymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
                 TRACE("emptyvalue %lf", emptyvalue);
 #endif
-            } else if ((pt = strstr(buff, "emprymark")) != 0) {
+            } else if ((pt = strstr(_buff, "emprymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
                 TRACE("emptyvalue %lf", emptyvalue);
 #endif
             }
-        } while (strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
+        } while (strcmp(_buff, "<\\HDR>") != 0 && strcmp(_buff, "</HDR>") != 0);
 
         data = malloc(width * height * depth * 8 * 4 * sizeof(double)); 
         memset(data, 0, width * height * depth * 8 * 4 * sizeof(double)); 
@@ -362,22 +362,22 @@ void ZincBlendeReconstructor::getLine(std::istream& sin)
     do {
         sin.get(ch);
         if (ch == '\n') break;
-        buff[index++] = ch;
+        _buff[index++] = ch;
         if (ch == '>') {
-            if (buff[1] == '\\')
+            if (_buff[1] == '\\')
                 break;
         }
     } while (!sin.eof());
 
-    buff[index] = '\0';
+    _buff[index] = '\0';
 
 #ifdef _LOADER_DEBUG_
-    TRACE("%s", buff);
+    TRACE("%s", _buff);
 #endif
 }
 
 ZincBlendeVolume *
-ZincBlendeReconstructor::loadFromMemory(void *dataBlock)
+ZincBlendeReconstructor::loadFromMemory(const void *dataBlock)
 {
     ZincBlendeVolume *volume = NULL;
     Vector3f origin, delta;
@@ -385,17 +385,17 @@ ZincBlendeReconstructor::loadFromMemory(void *dataBlock)
     void *data = NULL;
     int version = 1;
 
-    unsigned char *stream = (unsigned char *)dataBlock;
+    const unsigned char *stream = (const unsigned char *)dataBlock;
     char str[5][20];
     do {
         getLine(stream);
-        if (buff[0] == '#') {
+        if (_buff[0] == '#') {
             continue;
-        } else if (strstr((const char *)buff, "object") != 0) {
+        } else if (strstr((const char *)_buff, "object") != 0) {
             TRACE("VERSION 1");
             version = 1; 
             break;
-        } else if (strstr(buff, "record format") != 0) {
+        } else if (strstr(_buff, "record format") != 0) {
             TRACE("VERSION 2");
             version = 2; 
             break;
@@ -405,18 +405,18 @@ ZincBlendeReconstructor::loadFromMemory(void *dataBlock)
     if (version == 1) {
 	float dummy;
 
-        sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
+        sscanf(_buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
+        sscanf(_buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &dummy, &dummy);
+        sscanf(_buff, "%s%f%f%f", str[0], &(delta.x), &dummy, &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &dummy, &(delta.y), &dummy);
+        sscanf(_buff, "%s%f%f%f", str[0], &dummy, &(delta.y), &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &dummy, &dummy, &(delta.z));
+        sscanf(_buff, "%s%f%f%f", str[0], &dummy, &dummy, &(delta.z));
         do {
             getLine(stream);
-        } while (strcmp(buff, "<\\HDR>") != 0);
+        } while (strcmp(_buff, "<\\HDR>") != 0);
 
         width = width / 4;
         height = height / 4;
@@ -434,35 +434,35 @@ ZincBlendeReconstructor::loadFromMemory(void *dataBlock)
         double emptyvalue;
         do {
             getLine(stream);
-            if ((pt = strstr(buff, "delta")) != 0) {   
+            if ((pt = strstr(_buff, "delta")) != 0) {   
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
 #ifdef _LOADER_DEBUG_
                 TRACE("delta : %f %f %f", delta.x, delta.y, delta.z);
 #endif
-            } else if ((pt = strstr(buff, "datacount")) != 0) {
+            } else if ((pt = strstr(_buff, "datacount")) != 0) {
                 sscanf(pt, "%s%d", str[0], &datacount);
                 TRACE("datacount = %d", datacount);
-            } else if ((pt = strstr(buff, "datatype")) != 0) {
+            } else if ((pt = strstr(_buff, "datatype")) != 0) {
                 sscanf(pt, "%s%s", str[0], str[1]);
                 if (strcmp(str[1], "double64")) {
                 }
-            } else if ((pt = strstr(buff, "count")) != 0) {
+            } else if ((pt = strstr(_buff, "count")) != 0) {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
 #ifdef _LOADER_DEBUG_
                 TRACE("width height depth %d %d %d", width, height, depth);
 #endif
-            } else if ((pt = strstr(buff, "emptymark")) != 0) {
+            } else if ((pt = strstr(_buff, "emptymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
                 TRACE("emptyvalue %lf", emptyvalue);
 #endif
-            } else if ((pt = strstr(buff, "emprymark")) != 0) {
+            } else if ((pt = strstr(_buff, "emprymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
                 TRACE("emptyvalue %lf", emptyvalue);
 #endif
             }
-        } while (strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
+        } while (strcmp(_buff, "<\\HDR>") != 0 && strcmp(_buff, "</HDR>") != 0);
 
         if (datacount == -1) datacount = width * height * depth;
 
@@ -477,7 +477,7 @@ ZincBlendeReconstructor::loadFromMemory(void *dataBlock)
     return volume;
 }
 
-void ZincBlendeReconstructor::getLine(unsigned char*& stream)
+void ZincBlendeReconstructor::getLine(const unsigned char*& stream)
 {
     char ch;
     int index = 0;
@@ -485,16 +485,16 @@ void ZincBlendeReconstructor::getLine(unsigned char*& stream)
         ch = stream[0];
         ++stream;
         if (ch == '\n') break;
-        buff[index++] = ch;
+        _buff[index++] = ch;
         if (ch == '>') {
-            if (buff[1] == '\\')
+            if (_buff[1] == '\\')
                 break;
         }
     } while (1);
 
-    buff[index] = '\0';
+    _buff[index] = '\0';
 
 #ifdef _LOADER_DEBUG_
-    TRACE("%s", buff);
+    TRACE("%s", _buff);
 #endif
 }
