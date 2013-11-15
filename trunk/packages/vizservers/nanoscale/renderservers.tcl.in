@@ -26,8 +26,6 @@
 set exec_prefix "@exec_prefix@"
 set bindir "@bindir@"
 set libdir "@libdir@"
-# This can be removed when we're sure moving to VTK 6
-set vtkdir "@VTK_LIB_DIR@"
 
 # GeoVis server (port 2015) --
 #     Map renderer
@@ -54,7 +52,7 @@ register_server nanovis 2000 {
 register_server vtkvis 2010 {
     ${bindir}/vtkvis
 } {
-    LD_LIBRARY_PATH ${libdir}:${vtkdir}
+    LD_LIBRARY_PATH ${libdir}
 }
 
 # Pymol experimental server (port 2019) --
@@ -67,7 +65,6 @@ register_server pymol 2019 {
     PYMOL_SITE_PATH ${libdir}/pymol
     LD_LIBRARY_PATH ${libdir}
 }
-
 
 # Pymol server (threaded version of proxy) (port 2010) --
 #     Molecular layouts from PDB description.  

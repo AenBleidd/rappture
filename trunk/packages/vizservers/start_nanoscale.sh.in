@@ -28,5 +28,3 @@ ulimit -t $(expr ${minutes} \* 60 )
 cd /tmp
 
 exec ${bindir}/nanoscale -x ${numVideo} 
-
-
