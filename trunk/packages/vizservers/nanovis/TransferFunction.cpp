@@ -58,47 +58,47 @@ TransferFunction::update(int size, float *data)
 }
 
 void
-TransferFunction::sample(float fraction, float *key, int count, Vector3f *keyValue, Vector3f *ret)
+TransferFunction::sample(float fraction, float *keys, Vector3f *keyValues, int count, Vector3f *ret)
 {
     int limit = count - 1;
-    if (fraction <= key[0]) {
-        *ret = keyValue[0];
-    } else if (fraction >= key[limit]) {
-        *ret = keyValue[limit];
+    if (fraction <= keys[0]) {
+        *ret = keyValues[0];
+    } else if (fraction >= keys[limit]) {
+        *ret = keyValues[limit];
     } else {
         int n;
-        for (n = 0; n < limit; n++){
-            if (fraction >= key[n] && fraction < key[n+1]) break;
+        for (n = 0; n < limit; n++) {
+            if (fraction >= keys[n] && fraction < keys[n+1]) break;
         }
         if (n >= limit) {
-            *ret = keyValue[limit];
+            *ret = keyValues[limit];
         } else {
-            float inter = (fraction - key[n]) / (key[n + 1] - key[n]);
-            ret->set(inter * (keyValue[n + 1].x - keyValue[n].x) + keyValue[n].x,
-                     inter * (keyValue[n + 1].y - keyValue[n].y) + keyValue[n].y,
-                     inter * (keyValue[n + 1].z - keyValue[n].z) + keyValue[n].z);
+            float inter = (fraction - keys[n]) / (keys[n + 1] - keys[n]);
+            ret->set(inter * (keyValues[n + 1].x - keyValues[n].x) + keyValues[n].x,
+                     inter * (keyValues[n + 1].y - keyValues[n].y) + keyValues[n].y,
+                     inter * (keyValues[n + 1].z - keyValues[n].z) + keyValues[n].z);
         }
     }
 }
 
 void
-TransferFunction::sample(float fraction, float *key, int count, float *keyValue, float *ret)
+TransferFunction::sample(float fraction, float *keys, float *keyValues, int count, float *ret)
 {
     int limit = count - 1;
-    if (fraction <= key[0]) {
-        *ret = keyValue[0];
-    } else if (fraction >= key[limit]) {
-        *ret = keyValue[limit];
+    if (fraction <= keys[0]) {
+        *ret = keyValues[0];
+    } else if (fraction >= keys[limit]) {
+        *ret = keyValues[limit];
     } else {
         int n;
-        for (n = 0; n < limit; n++){
-            if (fraction >= key[n] && fraction < key[n+1]) break;
+        for (n = 0; n < limit; n++) {
+            if (fraction >= keys[n] && fraction < keys[n+1]) break;
         }
         if (n >= limit) {
-            *ret = keyValue[limit];
+            *ret = keyValues[limit];
         } else {
-            float inter = (fraction - key[n]) / (key[n + 1] - key[n]);
-            *ret = inter * (keyValue[n + 1] - keyValue[n]) + keyValue[n];
+            float inter = (fraction - keys[n]) / (keys[n + 1] - keys[n]);
+            *ret = inter * (keyValues[n + 1] - keyValues[n]) + keyValues[n];
         }
     }
 }

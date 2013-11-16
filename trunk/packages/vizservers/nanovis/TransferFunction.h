@@ -63,9 +63,9 @@ public:
         return _name.c_str();
     }
 
-    static void sample(float fraction, float *key, int count, vrmath::Vector3f *keyValue, vrmath::Vector3f *ret);
+    static void sample(float fraction, float *keys, vrmath::Vector3f *keyValues, int count, vrmath::Vector3f *ret);
 
-    static void sample(float fraction, float *key, int count, float *keyValue, float *ret);
+    static void sample(float fraction, float *keys, float *keyValues, int count, float *ret);
 
 protected :
     ~TransferFunction();

@@ -38,7 +38,6 @@
                                          * write, etc. */
 #include <tcl.h>
 
-#include <RpField1D.h>
 #include <RpEncode.h>
 #include <RpBuffer.h>
 
@@ -1037,12 +1036,11 @@ TransfuncCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
 
         // decode the data and store in a series of fields
-        Rappture::Field1D rFunc, gFunc, bFunc, wFunc;
-        int cmapc, wmapc, i;
+        int cmapc, amapc, i;
         Tcl_Obj **cmapv;
-        Tcl_Obj **wmapv;
+        Tcl_Obj **amapv;
 
-        wmapv = cmapv = NULL;
+        amapv = cmapv = NULL;
         if (Tcl_ListObjGetElements(interp, objv[3], &cmapc, &cmapv) != TCL_OK) {
             return TCL_ERROR;
         }
@@ -1051,14 +1049,18 @@ TransfuncCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 "{ v r g b ... }", (char*)NULL);
             return TCL_ERROR;
         }
-        if (Tcl_ListObjGetElements(interp, objv[4], &wmapc, &wmapv) != TCL_OK) {
+        if (Tcl_ListObjGetElements(interp, objv[4], &amapc, &amapv) != TCL_OK) {
             return TCL_ERROR;
         }
-        if ((wmapc % 2) != 0) {
+        if ((amapc % 2) != 0) {
             Tcl_AppendResult(interp, "wrong # elements in alphamap: should be ",
                 " { v w ... }", (char*)NULL);
             return TCL_ERROR;
         }
+
+        int numColors = cmapc/4;
+        float *colorKeys = new float[numColors];
+        Vector3f *colors = new Vector3f[numColors];
         for (i = 0; i < cmapc; i += 4) {
             int j;
             double q[4];
@@ -1074,37 +1076,51 @@ TransfuncCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                     return TCL_ERROR;
                 }
             }
-            rFunc.define(q[0], q[1]);
-            gFunc.define(q[0], q[2]);
-            bFunc.define(q[0], q[3]);
+
+            colorKeys[i/4] = (float)q[0];
+            colors[i/4].set((float)q[1], (float)q[2], (float)q[3]);
         }
-        for (i=0; i < wmapc; i += 2) {
+        int numAlphas = amapc/2;
+        float *alphaKeys = new float[numAlphas];
+        float *alphas = new float[numAlphas];
+        for (i=0; i < amapc; i += 2) {
             double q[2];
             int j;
 
             for (j=0; j < 2; j++) {
-                if (Tcl_GetDoubleFromObj(interp, wmapv[i+j], &q[j]) != TCL_OK) {
+                if (Tcl_GetDoubleFromObj(interp, amapv[i+j], &q[j]) != TCL_OK) {
                     return TCL_ERROR;
                 }
                 if ((q[j] < 0.0) || (q[j] > 1.0)) {
                     Tcl_AppendResult(interp, "bad alphamap value \"",
-                        Tcl_GetString(wmapv[i+j]),
+                        Tcl_GetString(amapv[i+j]),
                         "\": should be in the range 0-1", (char*)NULL);
                     return TCL_ERROR;
                 }
             }
-            wFunc.define(q[0], q[1]);
+
+            alphaKeys[i/2] = (float)q[0];
+            alphas[i/2] = (float)q[1];
         }
         // sample the given function into discrete slots
         const int nslots = 256;
         float data[4*nslots];
         for (i=0; i < nslots; i++) {
-            double x = double(i)/(nslots-1);
-            data[4*i]   = rFunc.value(x);
-            data[4*i+1] = gFunc.value(x);
-            data[4*i+2] = bFunc.value(x);
-            data[4*i+3] = wFunc.value(x);
+            float x = float(i)/(nslots-1);
+            Vector3f color;
+            float alpha;
+            TransferFunction::sample(x, colorKeys, colors, numColors, &color);
+            TransferFunction::sample(x, alphaKeys, alphas, numAlphas, &alpha);
+
+            data[4*i]   = color.r;
+            data[4*i+1] = color.g;
+            data[4*i+2] = color.b;
+            data[4*i+3] = alpha;
         }
+        delete [] colorKeys;
+        delete [] colors;
+        delete [] alphaKeys;
+        delete [] alphas;
         // find or create this transfer function
         NanoVis::defineTransferFunction(Tcl_GetString(objv[2]), nslots, data);
     } else {
