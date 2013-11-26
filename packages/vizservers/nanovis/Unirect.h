@@ -221,7 +221,9 @@ public:
 
     int parseBuffer(Tcl_Interp *interp, const char *bytes, size_t len);
 
+#ifdef USE_DX_READER
     bool importDx(size_t nComponents, size_t length, char *string);
+#endif
 
     bool convert(Unirect2d *dataPtr);
 

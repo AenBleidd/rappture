@@ -181,12 +181,17 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     Flow *flow = (Flow *)clientData;
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
+#ifdef USE_DX_READER
         unirect = new Unirect3d(nComponents);
         if (!unirect->importDx(nComponents, length - 4, bytes + 4)) {
             Tcl_AppendResult(interp, "Failed to load DX file", (char *)NULL);
             delete unirect;
             return TCL_ERROR;
         }
+#else
+        Tcl_AppendResult(interp, "Loading DX files is not supported by this server", (char*)NULL);
+        return TCL_ERROR;
+#endif
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
         unirect = new Unirect3d(nComponents);
         if (unirect->parseBuffer(interp, bytes, length) != TCL_OK) {
@@ -222,6 +227,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else {
+#ifdef USE_DX_READER
         TRACE("header is %.14s", buf.bytes());
         unirect = new Unirect3d(nComponents);
         if (!unirect->importDx(nComponents, length, bytes)) {
@@ -229,6 +235,10 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             delete unirect;
             return TCL_ERROR;
         }
+#else
+        Tcl_AppendResult(interp, "Loading DX files is not supported by this server", (char*)NULL);
+        return TCL_ERROR;
+#endif
     }
     if (unirect != NULL && unirect->nValues() == 0) {
         delete unirect;

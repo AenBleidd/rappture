@@ -52,7 +52,9 @@
 #include "Command.h"
 #include "CmdProc.h"
 #include "FlowCmd.h"
+#ifdef USE_DX_READER
 #include "dxReader.h"
+#endif
 #ifdef USE_VTK
 #include "VtkDataSetReader.h"
 #else
@@ -1322,6 +1324,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else {
+#ifdef USE_DX_READER
         // **Deprecated** OpenDX format
         if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
             bytes += 5;
@@ -1339,6 +1342,10 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_AppendResult(interp, "Failed to load DX file", (char*)NULL);
             return TCL_ERROR;
         }
+#else
+        Tcl_AppendResult(interp, "Loading DX files is not supported by this server", (char*)NULL);
+        return TCL_ERROR;
+#endif
     }
 
     if (volume != NULL) {

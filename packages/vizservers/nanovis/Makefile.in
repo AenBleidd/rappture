@@ -2,6 +2,7 @@ TRACE			= #yes
 USE_THREADS		= yes
 USE_POINTSET_RENDERER	= #yes
 USE_PARTICLE_SYSTEM	= #yes
+USE_DX_READER           = yes
 USE_VTK			= yes
 
 SHELL = /bin/sh
@@ -76,10 +77,25 @@ VTK_INC_SPEC    =
 VTK_LIB_SPEC    =
 endif
 
+NEED_RAPPTURE2  =
+ifdef USE_DX_READER
+NEED_RAPPTURE2  = yes
+endif
+ifndef USE_VTK
+NEED_RAPPTURE2  = yes
+endif
+
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
-RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
+RP_INC_SPEC     = -I$(RP_DIR)/include
+ifdef NEED_RAPPTURE2
+RP_INC_SPEC     += -I$(RP_DIR)/include/rappture2
+endif
+ifdef NEED_RAPPTURE2
 RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
+else
+RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture -lexpat -lz
+endif
 
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
@@ -122,6 +138,9 @@ EXTRA_CFLAGS    = -Wall
 DEFINES         = -DSVN_VERSION=\"$(SVN_VERSION)\" -DSTATSDIR=\"$(STATSDIR)\"
 ifdef TRACE
 DEFINES		+= -DWANT_TRACE
+endif
+ifdef USE_DX_READER
+DEFINES         += -DUSE_DX_READER
 endif
 ifdef USE_THREADS
 DEFINES		+= -DUSE_THREADS
@@ -181,7 +200,6 @@ OBJS		= \
 		ZincBlendeReconstructor.o \
 		ZincBlendeVolume.o \
 		ZincBlendeVolumeShader.o \
-		dxReader.o \
 		md5.o \
 		nanovis.o \
 		nanovisServer.o
@@ -207,6 +225,10 @@ shaders		= \
                 $(srcdir)/shaders/velocityslicevp.cg \
 		$(srcdir)/shaders/vertex_std.cg \
 		$(srcdir)/shaders/zincblende_volume.cg
+
+ifdef USE_DX_READER
+OBJS +=         dxReader.o
+endif
 
 ifdef USE_PARTICLE_SYSTEM
 OBJS +=		ParticleEmitter.o \
