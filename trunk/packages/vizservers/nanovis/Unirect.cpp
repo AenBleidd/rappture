@@ -485,6 +485,7 @@ nv::Unirect2d::loadData(Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+#ifdef USE_DX_READER
 bool
 nv::Unirect3d::importDx(size_t nComponents,
                         size_t length, char *string) 
@@ -629,6 +630,7 @@ nv::Unirect3d::importDx(size_t nComponents,
 #endif
     return true;
 }
+#endif
 
 void
 nv::Unirect3d::getVectorRange()
