@@ -2147,6 +2147,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set _currentOpacity $style(-opacity)
     if { $_currentNumContours != $style(-levels) } {
         set _currentNumContours $style(-levels)
+        if { $_currentNumContours < 1 } {
+            set _currentNumContours 1
+        }
         set _settings(numContours) $_currentNumContours
         $itk_component(numcontours) value $_currentNumContours
         UpdateContourList
