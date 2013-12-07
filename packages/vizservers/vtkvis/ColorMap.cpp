@@ -487,3 +487,69 @@ ColorMap *ColorMap::getElementDefault()
     _elementDefault = Molecule::createElementColorMap();
     return _elementDefault;
 }
+
+/**
+ * \brief Render (using CPU) color map to an image
+ */
+void ColorMap::renderColorMap(ColorMap *map, int width, int height,
+                              vtkUnsignedCharArray *imgData,
+                              bool opaque, float bgColor[3],
+                              bool bgr, int bytesPerPixel)
+{
+    int size = bytesPerPixel * width * height;
+    if (imgData->GetMaxId() + 1 != size) {
+        imgData->SetNumberOfComponents(bytesPerPixel);
+        imgData->SetNumberOfValues(size);
+    }
+    unsigned char *dst = imgData->GetPointer(0);
+    vtkLookupTable *table = map->getLookupTable();
+    if (height > width) {
+        for (int i = 0; i < height; i++) {
+            double x = (double)i/(height-1);
+            double rgb[3];
+            table->GetColor(x, rgb);
+            unsigned char color[3];
+            if (opaque) {
+                color[0] = (unsigned char)(255. * (bgr ? rgb[2] : rgb[0]));
+                color[1] = (unsigned char)(255. * rgb[1]);
+                color[2] = (unsigned char)(255. * (bgr ? rgb[0] : rgb[2]));
+            } else {
+                double opacity = table->GetOpacity(x);
+                color[0] = (unsigned char)(255. * (bgColor[0] * (1.0 - opacity) + (bgr ? rgb[2] : rgb[0]) * opacity));
+                color[1] = (unsigned char)(255. * (bgColor[1] * (1.0 - opacity) + rgb[1] * opacity));
+                color[2] = (unsigned char)(255. * (bgColor[2] * (1.0 - opacity) + (bgr ? rgb[0] : rgb[2]) * opacity));
+            }
+            for (int j = 0; j < width; j++) {
+                memcpy(dst, color, 3);
+                dst += 3;
+                if (bytesPerPixel == 4) {
+                    *(dst++) = (unsigned char)255.;
+                }
+            }
+        }
+    } else {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                double x = (double)j/(width-1);
+                double rgb[3];
+                table->GetColor(x, rgb);
+                unsigned char color[3];
+                if (opaque) {
+                    color[0] = (unsigned char)(255. * (bgr ? rgb[2] : rgb[0]));
+                    color[1] = (unsigned char)(255. * rgb[1]);
+                    color[2] = (unsigned char)(255. * (bgr ? rgb[0] : rgb[2]));
+                } else {
+                    double opacity = table->GetOpacity(x);
+                    color[0] = (unsigned char)(255. * (bgColor[0] * (1.0 - opacity) + (bgr ? rgb[2] : rgb[0]) * opacity));
+                    color[1] = (unsigned char)(255. * (bgColor[1] * (1.0 - opacity) + rgb[1] * opacity));
+                    color[2] = (unsigned char)(255. * (bgColor[2] * (1.0 - opacity) + (bgr ? rgb[0] : rgb[2]) * opacity));
+                }
+                memcpy(dst, color, 3);
+                dst += 3;
+                if (bytesPerPixel == 4) {
+                    *(dst++) = (unsigned char)255.;
+                }
+            }
+        }
+    }
+}
