@@ -6,7 +6,7 @@ USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
 USE_CPU_LEGEND_RENDER   = yes
-NEW_SCALAR_BAR          = #yes
+NEW_SCALAR_BAR          = yes
 
 bindir          = @bindir@
 datadir         = @datadir@
