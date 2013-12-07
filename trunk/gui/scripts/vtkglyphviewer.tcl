@@ -867,7 +867,6 @@ itcl::body Rappture::VtkGlyphViewer::ReceiveImage { args } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
     }
-    EventuallyRequestLegend
 }
 
 #
