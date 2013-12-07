@@ -497,7 +497,7 @@ itcl::body Rappture::VtkVolumeViewer::EventuallyResize { w h } {
 itcl::body Rappture::VtkVolumeViewer::EventuallyRequestLegend {} {
     if { !$_legendPending } {
         set _legendPending 1
-        $_dispatcher event -after 600 !legend
+        $_dispatcher event -idle !legend
     }
 }
 
@@ -997,8 +997,6 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     # generates a new call to Rebuild).   
     StartBufferingCommands
 
-    set _legendPending 1
-
     if { $_reset } {
         set _width $w
         set _height $h
@@ -1117,6 +1115,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         InitSettings volumeLighting
         SendCmd "camera reset"
         SendCmd "camera zoom $_view(zoom)"
+        RequestLegend
         set _reset 0
     }
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1516,7 +1515,6 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set _settings($this-colormap) $color
             set _settings($_current-colormap) $color
             ResetColormap $_current $color
-            set _legendPending 1
         }
         "field" {
             set label [$itk_component(field) value]
@@ -1553,10 +1551,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 # RequestLegend --
 #
 #       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.  It will be rotated
-#       to be vertical when drawn.
+#       is determined from the height of the canvas.
 #
 itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
+    set _legendPending 0
     set font "Arial 8"
     set lineht [font metrics $itk_option(-font) -linespace]
     set c $itk_component(legend)
@@ -2163,7 +2161,6 @@ itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title vmin vmax size } {
-    set _legendPending 0
     if { [isconnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
