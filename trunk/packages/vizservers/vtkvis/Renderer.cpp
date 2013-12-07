@@ -1918,7 +1918,15 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     ColorMap *colorMap = getColorMap(id);
     if (colorMap == NULL)
         return false;
-
+#ifdef LEGEND_SOFTWARE_RENDER
+    ColorMap::renderColorMap(colorMap, width, height, imgData, opaque, _bgColor,
+#ifdef RENDER_TARGA
+                             true, TARGA_BYTES_PER_PIXEL
+#else
+                             false
+#endif
+                             );
+#else
     if (_legendRenderWindow == NULL) {
         _legendRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
         _legendRenderWindow->SetMultiSamples(0);
@@ -2211,6 +2219,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
                                       !_legendRenderWindow->GetDoubleBuffer(),
                                       imgData);
 #endif
+#endif
     TRACE("Leave");
     return true;
 }
@@ -2224,7 +2233,15 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     ColorMap *colorMap = getColorMap(id);
     if (colorMap == NULL)
         return false;
-
+#ifdef LEGEND_SOFTWARE_RENDER
+    ColorMap::renderColorMap(colorMap, width, height, imgData, opaque, _bgColor,
+#ifdef RENDER_TARGA
+                             true, TARGA_BYTES_PER_PIXEL
+#else
+                             false
+#endif
+                             );
+#else
     if (_legendRenderWindow == NULL) {
         _legendRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
         _legendRenderWindow->SetMultiSamples(0);
@@ -2353,6 +2370,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     _legendRenderWindow->GetPixelData(0, 0, width-1, height-1,
                                       !_legendRenderWindow->GetDoubleBuffer(),
                                       imgData);
+#endif
 #endif
     TRACE("Leave");
     return true;

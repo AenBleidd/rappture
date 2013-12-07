@@ -16,6 +16,7 @@
 #include <vtkColorTransferFunction.h>
 #include <vtkPiecewiseFunction.h>
 #include <vtkLookupTable.h>
+#include <vtkUnsignedCharArray.h>
 
 namespace VtkVis {
 
@@ -113,6 +114,12 @@ public:
     static ColorMap *getGrayDefault();
     static ColorMap *getVolumeDefault();
     static ColorMap *getElementDefault();
+
+    static void renderColorMap(ColorMap *map, int width, int height,
+                               vtkUnsignedCharArray *imgData,
+                               bool opaque, float bgColor[3],
+                               bool bgr = false,
+                               int bytesPerPixel = 3);
 
 private:
     static ColorMap *_default;

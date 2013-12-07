@@ -5,6 +5,7 @@ USE_FONT_CONFIG         = yes
 USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
+USE_CPU_LEGEND_RENDER   = yes
 NEW_SCALAR_BAR          = #yes
 
 bindir          = @bindir@
@@ -124,6 +125,9 @@ DEFINES         += -DUSE_GPU_RAYCAST_MAPPER
 endif
 ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
+endif
+ifdef USE_CPU_LEGEND_RENDER
+DEFINES         += -DLEGEND_SOFTWARE_RENDER
 endif
 ifdef NEW_SCALAR_BAR
 DEFINES		+= -DNEW_SCALAR_BAR
