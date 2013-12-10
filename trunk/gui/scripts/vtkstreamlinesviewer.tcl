@@ -787,7 +787,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Connect {} {
     if { $result } {
         if { $_reportClientInfo }  {
             # Tell the server the viewer, hub, user and session.
-            # Do this immediately on connect before buffing any commands
+            # Do this immediately on connect before buffering any commands
             global env
 
             set info {}
