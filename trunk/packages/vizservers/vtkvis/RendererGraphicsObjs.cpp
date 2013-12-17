@@ -233,38 +233,6 @@ void Renderer::deleteGraphicsObject<Group>(const DataSetId& id)
     _needsRedraw = true;
 }
 
-/**
- * \brief Set the volume slice used for mapping volumetric data
- */
-template <>
-void Renderer::setGraphicsObjectVolumeSlice<HeightMap>(const DataSetId& id, Axis axis, double ratio)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        if (itr == _heightMaps.end())
-            return;
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->selectVolumeSlice(axis, ratio);
-     } while (doAll && ++itr != _heightMaps.end());
-
-    sceneBoundsChanged();
-    _needsRedraw = true;
-}
-
 }
 
 using namespace VtkVis;
