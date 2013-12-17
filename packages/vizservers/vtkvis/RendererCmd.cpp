@@ -4122,7 +4122,7 @@ CutplaneWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cutplaneOps[] = {
-    {"add",          2, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
+    {"add",          2, CutplaneAddOp, 2, 3, "?dataSetName?"},
     {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"ccolor",       2, CutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
     {"cloudstyle",   2, CutplaneCloudStyleOp, 3, 4, "style ?dataSetName?"},
