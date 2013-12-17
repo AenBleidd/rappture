@@ -167,6 +167,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _cutplaneCmd "imgcutplane"
+    private variable _activeVolumes;   # Array of volumes that are active.
 }
 
 itk::usual VtkVolumeViewer {
@@ -1023,6 +1024,12 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     set _first ""
 
     SendCmd "dataset visible 0"
+
+    # No volumes are active (i.e. in the working set of displayed volumes).
+    # A volume is always invisible if it's not in the working set.  A 
+    # volume in the working set may be visible/invisible depending upon the
+    # global visibility value.
+    array unset _activeVolumes
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1109,7 +1116,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         volumeOpacity volumeQuality volumeVisible \
         cutplaneVisible \
         cutplanePositionX cutplanePositionY cutplanePositionZ \
-        cutplaneVisibleX cutplaneVisibleY cutplaneVisibleZ
+        cutplaneVisibleX cutplaneVisibleY cutplaneVisibleZ 
 
     if { $_reset } {
         InitSettings volumeLighting
@@ -1365,8 +1372,19 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         "volumeVisible" {
             set bool $_settings(volumeVisible)
             set _settings($_current-volumeVisible) $bool
+            # Only the data objects in the array _obj2ovride(*-raise) are
+            # in the working set and can be displayed on screen. The global
+            # volume control determines whether they are visible.
+            #
+            # Note: The use of the current component is a hold over from 
+            #       nanovis.  If we can't display more than one volume,
+            #       we don't have to limit the effects to a specific 
+            #       component.
             foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume visible $bool $tag"
+                foreach {dataobj cname} [split $tag -] break
+                if { [info exists _obj2ovride($dataobj-raise)] } {
+                    SendCmd "volume visible $bool $tag"
+                }
             }
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(volume) \
