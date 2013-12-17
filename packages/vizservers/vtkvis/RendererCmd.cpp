@@ -7053,9 +7053,9 @@ ImageWindowOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setImageLevel(name, window);
+        g_renderer->setImageWindow(name, window);
     } else {
-        g_renderer->setImageLevel("all", window);
+        g_renderer->setImageWindow("all", window);
     }
     return TCL_OK;
 }
