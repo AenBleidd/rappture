@@ -3172,10 +3172,10 @@ void Renderer::_setCameraZoomRegion(double x, double y, double width, double hei
         _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
         _cameraClipPlanes[1]->SetNormal(1, 0, 0);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + _imgWorldDims[1]);
+        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + _imgWindowWorldDims[1]);
         _cameraClipPlanes[2]->SetNormal(0, 0, -1);
         // right
-        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWindowWorldDims[0], 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
 
         _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWindowWorldDims[0],
