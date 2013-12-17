@@ -166,7 +166,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _fields 
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
+    private variable _cutplaneCmd "imgcutplane"
 }
 
 itk::usual VtkVolumeViewer {
@@ -1455,32 +1455,47 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         "cutplaneEdges" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane edges $bool $dataset"
-            }
-        }
-        "cutplaneVisible" {
-            set bool $_settings($what)
-            foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane visible $bool $dataset"
+                if {$_cutplaneCmd != "imgcutplane"} {
+                    SendCmd "$_cutplaneCmd edges $bool $dataset"
+                }
             }
         }
         "cutplaneWireframe" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane wireframe $bool $dataset"
+                if {$_cutplaneCmd != "imgcutplane"} {
+                    SendCmd "$_cutplaneCmd wireframe $bool $dataset"
+                }
+            }
+        }
+        "cutplaneVisible" {
+            set bool $_settings($what)
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "$_cutplaneCmd visible $bool $dataset"
             }
         }
         "cutplaneLighting" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane lighting $bool $dataset"
+                if {$_cutplaneCmd != "imgcutplane"} {
+                    SendCmd "$_cutplaneCmd lighting $bool $dataset"
+                } else {
+                    if {$bool} {
+                        set ambient 0.0
+                        set diffuse 1.0
+                    } else {
+                        set ambient 1.0
+                        set diffuse 0.0
+                    }
+                    SendCmd "imgcutplane material $ambient $diffuse $dataset"
+                }
             }
         }
         "cutplaneOpacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane opacity $sval $dataset"
+                SendCmd "$_cutplaneCmd opacity $sval $dataset"
             }
         }
         "cutplaneVisibleX" - "cutplaneVisibleY" - "cutplaneVisibleZ" {
@@ -1494,14 +1509,14 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                     -troughcolor grey82
             }
             foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane axis $axis $bool $dataset"
+                SendCmd "$_cutplaneCmd axis $axis $bool $dataset"
             }
         }
         "cutplanePositionX" - "cutplanePositionY" - "cutplanePositionZ" {
             set axis [string tolower [string range $what end end]]
             set pos [expr $_settings($what) * 0.01]
             foreach dataset [CurrentDatasets -visible] {
-                SendCmd "cutplane slice ${axis} ${pos} $dataset"
+                SendCmd "$_cutplaneCmd slice ${axis} ${pos} $dataset"
             }
             set _cutplanePending 0
         }
@@ -1525,8 +1540,6 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 if { $components > 1 } {
                     puts stderr "Can't use a vector field in a volume"
                     return
-                } else {
-                    set _colorMode scalar
                 }
                 set _curFldName $fname
                 set _curFldLabel $label
@@ -1535,8 +1548,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 return
             }
             foreach dataset [CurrentDatasets -visible $_first] {
-                #SendCmd "volume colormode $_colorMode ${fname} $dataset"
-                SendCmd "cutplane colormode $_colorMode ${fname} $dataset"
+                SendCmd "dataset scalar $_curFldName $dataset"
             }
             SendCmd "camera reset"
             DrawLegend
@@ -1567,7 +1579,7 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
             SendCmdNoWait \
-                "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
+                "legend $_dataset2style($dataset) scalar $_curFldName {} $w $h 0"
             break;
         }
     }
@@ -2137,13 +2149,13 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     }
     array set settings $style
     SendCmd "volume add $tag"
-    SendCmd "cutplane add $tag"
-    SendCmd "cutplane visible 0 $tag"
+    SendCmd "$_cutplaneCmd add $tag"
+    SendCmd "$_cutplaneCmd visible 0 $tag"
     SendCmd "volume lighting $settings(-lighting) $tag"
     set _settings(volumeLighting) $settings(-lighting)
     SetInitialTransferFunction $dataobj $cname
     SendCmd "volume colormap $cname $tag"
-    SendCmd "cutplane colormap $cname-opaque $tag"
+    SendCmd "$_cutplaneCmd colormap $cname-opaque $tag"
 }
 
 itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {
