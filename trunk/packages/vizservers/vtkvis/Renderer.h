@@ -42,6 +42,7 @@
 #include "Group.h"
 #include "HeightMap.h"
 #include "Image.h"
+#include "ImageCutplane.h"
 #include "LIC.h"
 #include "Line.h"
 #include "Molecule.h"
@@ -511,7 +512,7 @@ public:
     template<class T>
     void setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, double ratio);
 
-    //   Prop/Prop3D properties
+    // Prop/Prop3D properties
 
     template<class T>
     void setGraphicsObjectOrientation(const DataSetId& id, double quat[4]);
@@ -537,7 +538,7 @@ public:
     template<class T>
     void setGraphicsObjectVisibility(const DataSetId& id, bool state);
 
-    //   Actor properties
+    // Actor properties
 
     template<class T>
     void setGraphicsObjectColor(const DataSetId& id, float color[3]);
@@ -772,6 +773,12 @@ public:
 
     void setImageZSlice(const DataSetId& id, int z);
 
+    // ImageCutplanes
+
+    void setImageCutplaneOutlineVisibility(const DataSetId& id, bool state);
+
+    void setImageCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state);
+
     // Lines
 
     bool addLine(const DataSetId& id, double pt1[3], double pt2[3]);
@@ -982,6 +989,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, Group *> GroupHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, Image *> ImageHashmap;
+    typedef std::tr1::unordered_map<DataSetId, ImageCutplane *> ImageCutplaneHashmap;
     typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
     typedef std::tr1::unordered_map<DataSetId, Line *> LineHashmap;
     typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
@@ -1124,6 +1132,7 @@ private:
     GroupHashmap _groups;
     HeightMapHashmap _heightMaps;
     ImageHashmap _images;
+    ImageCutplaneHashmap _imageCutplanes;
     LICHashmap _lics;
     LineHashmap _lines;
     MoleculeHashmap _molecules;

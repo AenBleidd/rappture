@@ -2076,11 +2076,11 @@ CameraAspectOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Renderer::Aspect aspect;
     const char *string = Tcl_GetString(objv[2]);
-    if ((strcmp(string, "native") == 0)) {
+    if (string[0] == 'n' && (strcmp(string, "native") == 0)) {
         aspect = Renderer::ASPECT_NATIVE;
-    } else if ((strcmp(string, "square") == 0)) {
+    } else if (string[0] == 's' && (strcmp(string, "square") == 0)) {
         aspect = Renderer::ASPECT_SQUARE;
-    } else if ((strcmp(string, "window") == 0)) {
+    } else if (string[0] == 'w' && (strcmp(string, "window") == 0)) {
         aspect = Renderer::ASPECT_WINDOW;
     } else {
         Tcl_AppendResult(interp, "bad camera aspect option \"", string,
@@ -2097,11 +2097,11 @@ CameraModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Renderer::CameraMode mode;
     const char *string = Tcl_GetString(objv[2]);
-    if ((strcmp(string, "persp") == 0)) {
+    if (string[0] == 'p' && (strcmp(string, "persp") == 0)) {
         mode = Renderer::PERSPECTIVE;
-    } else if ((strcmp(string, "ortho") == 0)) {
+    } else if (string[0] == 'o' && (strcmp(string, "ortho") == 0)) {
         mode = Renderer::ORTHO;
-    } else if ((strcmp(string, "image") == 0)) {
+    } else if (string[0] == 'i' && (strcmp(string, "image") == 0)) {
         mode = Renderer::IMAGE;
     } else {
         Tcl_AppendResult(interp, "bad camera mode option \"", string,
@@ -2282,16 +2282,16 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cameraOps[] = {
-    {"aspect", 1, CameraAspectOp, 3, 3, "aspect"},
-    {"get",    1, CameraGetOp, 2, 2, ""},
-    {"mode",   1, CameraModeOp, 3, 3, "mode"},
-    {"orient", 3, CameraOrientOp, 6, 6, "qw qx qy qz"},
-    {"ortho",  1, CameraOrthoOp, 7, 7, "coordMode x y width height"},
-    {"pan",    1, CameraPanOp, 4, 4, "panX panY"},
-    {"reset",  2, CameraResetOp, 2, 3, "?all?"},
-    {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
-    {"set",    1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
-    {"zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
+    {"aspect",  1, CameraAspectOp, 3, 3, "aspect"},
+    {"get",     1, CameraGetOp, 2, 2, ""},
+    {"mode",    1, CameraModeOp, 3, 3, "mode"},
+    {"orient",  3, CameraOrientOp, 6, 6, "qw qx qy qz"},
+    {"ortho",   1, CameraOrthoOp, 7, 7, "coordMode x y width height"},
+    {"pan",     1, CameraPanOp, 4, 4, "panX panY"},
+    {"reset",   2, CameraResetOp, 2, 3, "?all?"},
+    {"rotate",  2, CameraRotateOp, 5, 5, "angle angle angle"},
+    {"set",     1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
+    {"zoom",    1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
@@ -2484,7 +2484,7 @@ ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     int numEntries;
     if (Tcl_GetIntFromObj(interp, objv[2], &numEntries) != TCL_OK) {
         const char *str = Tcl_GetString(objv[2]);
-        if (strcmp(str, "default") == 0) {
+        if (str[0] == 'd' && strcmp(str, "default") == 0) {
             numEntries = -1;
         } else {
             Tcl_AppendResult(interp, "bad colormap resolution value \"", str,
@@ -4829,9 +4829,9 @@ DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
     const char *value = Tcl_GetString(objv[2]);
-    if (strcmp(value, "all") == 0) {
+    if (value[0] == 'a' && strcmp(value, "all") == 0) {
         g_renderer->setUseCumulativeDataRange(true);
-    } else if (strcmp(value, "explicit") == 0) {
+    } else if (value[0] == 'e' && strcmp(value, "explicit") == 0) {
         if (objc < 6 || objc > 9) {
             Tcl_AppendResult(interp, "wrong number of arguments for explicit maprange", (char*)NULL);
             return TCL_ERROR;
@@ -4848,11 +4848,11 @@ DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         int component = -1;
         if (objc > 6) {
             const char *fieldType = Tcl_GetString(objv[6]);
-            if (strcmp(fieldType, "point_data") == 0) {
+            if (fieldType[0] == 'p' && strcmp(fieldType, "point_data") == 0) {
                 type = DataSet::POINT_DATA;
-            } else if (strcmp(fieldType, "cell_data") == 0) {
+            } else if (fieldType[0] == 'c' && strcmp(fieldType, "cell_data") == 0) {
                 type = DataSet::CELL_DATA;
-            } else if (strcmp(fieldType, "field_data") == 0) {
+            } else if (fieldType[0] == 'f' && strcmp(fieldType, "field_data") == 0) {
                 type = DataSet::FIELD_DATA;
             } else {
                 Tcl_AppendResult(interp, "bad field type option \"", fieldType,
@@ -4871,9 +4871,9 @@ DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc,
             }
         }
         g_renderer->setCumulativeDataRange(range, fieldName, type, numComponents, component);
-    } else if (strcmp(value, "separate") == 0) {
+    } else if (value[0] == 's' && strcmp(value, "separate") == 0) {
         g_renderer->setUseCumulativeDataRange(false);
-    } else if (strcmp(value, "visible") == 0) {
+    } else if (value[0] == 'v' && strcmp(value, "visible") == 0) {
         g_renderer->setUseCumulativeDataRange(true, true);
     } else {
         Tcl_AppendResult(interp, "bad maprange option \"", value,
@@ -7104,6 +7104,294 @@ ImageCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = GetOpFromObj(interp, nImageOps, imageOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+ImageCutplaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        if (!g_renderer->addGraphicsObject<ImageCutplane>(name)) {
+            Tcl_AppendResult(interp, "Failed to create imgcutplane", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->addGraphicsObject<ImageCutplane>("all")) {
+            Tcl_AppendResult(interp, "Failed to create imgcutplane for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<ImageCutplane>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<ImageCutplane>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectColorMap<ImageCutplane>(dataSetName, colorMapName);
+    } else {
+        g_renderer->setGraphicsObjectColorMap<ImageCutplane>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<ImageCutplane>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<ImageCutplane>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    double ambient, diffuse;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setGraphicsObjectAmbient<ImageCutplane>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<ImageCutplane>(name, diffuse);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<ImageCutplane>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<ImageCutplane>("all", diffuse);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<ImageCutplane>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<ImageCutplane>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<ImageCutplane>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<ImageCutplane>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageCutplaneOutlineVisibility(name, state);
+    } else {
+        g_renderer->setImageCutplaneOutlineVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<ImageCutplane>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<ImageCutplane>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<ImageCutplane>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<ImageCutplane>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneSliceVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = Z_AXIS;
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName bool", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setImageCutplaneSliceVisibility(name, axis, state);
+    } else {
+        g_renderer->setImageCutplaneSliceVisibility("all", axis, state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<ImageCutplane>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<ImageCutplane>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ImageCutplaneVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                           Tcl_Obj *const *objv)
+{
+    double ratio;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &ratio) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = Z_AXIS;
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName ratio", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setGraphicsObjectVolumeSlice<ImageCutplane>(name, axis, ratio);
+    } else {
+        g_renderer->setGraphicsObjectVolumeSlice<ImageCutplane>("all", axis, ratio);
+    }
+    return TCL_OK;
+}
+
+static CmdSpec imageCutplaneOps[] = {
+    {"add",          2, ImageCutplaneAddOp, 2, 3, "?dataSetName?"},
+    {"axis",         2, ImageCutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
+    {"color",        5, ImageCutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     6, ImageCutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",       1, ImageCutplaneDeleteOp, 2, 3, "?dataSetName?"},
+    {"material",     1, ImageCutplaneMaterialOp, 4, 5, "ambientCoeff diffuseCoeff ?dataSetName?"},
+    {"opacity",      2, ImageCutplaneOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, ImageCutplaneOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"outline",      2, ImageCutplaneOutlineOp, 3, 4, "bool ?dataSetName?"},
+    {"pos",          2, ImageCutplanePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        2, ImageCutplaneScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"slice",        2, ImageCutplaneVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
+    {"visible",      1, ImageCutplaneVisibleOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nImageCutplaneOps = NumCmdSpecs(imageCutplaneOps);
+
+static int
+ImageCutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = GetOpFromObj(interp, nImageCutplaneOps, imageCutplaneOps,
                         CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -12684,6 +12972,7 @@ VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "group",          GroupCmd,          clientData, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",      HeightMapCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "image",          ImageCmd,          clientData, NULL);
+    Tcl_CreateObjCommand(interp, "imgcutplane",    ImageCutplaneCmd,  clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",       ImageFlushCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "legend",         LegendCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "legend2",        LegendSimpleCmd,   clientData, NULL);
@@ -12727,6 +13016,7 @@ void VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "group");
     Tcl_DeleteCommand(interp, "heightmap");
     Tcl_DeleteCommand(interp, "image");
+    Tcl_DeleteCommand(interp, "imgcutplane");
     Tcl_DeleteCommand(interp, "imgflush");
     Tcl_DeleteCommand(interp, "legend");
     Tcl_DeleteCommand(interp, "legend2");

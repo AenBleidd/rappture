@@ -105,6 +105,11 @@ Renderer::getGraphicsObjectHashmap<Image>()
 { return _images; }
 
 template<>
+Renderer::ImageCutplaneHashmap &
+Renderer::getGraphicsObjectHashmap<ImageCutplane>()
+{ return _imageCutplanes; }
+
+template<>
 Renderer::LICHashmap &
 Renderer::getGraphicsObjectHashmap<LIC>()
 { return _lics; }
@@ -292,6 +297,9 @@ Renderer::getGenericGraphicsObject(const DataSetId& id)
         return gobj;
     }
     if ((gobj = getGraphicsObject<Image>(id)) != NULL) {
+        return gobj;
+    }
+    if ((gobj = getGraphicsObject<ImageCutplane>(id)) != NULL) {
         return gobj;
     }
     if ((gobj = getGraphicsObject<LIC>(id)) != NULL) {
@@ -2422,6 +2430,68 @@ void Renderer::setImageZSlice(const DataSetId& id, int z)
         itr->second->setZSlice(z);
     } while (doAll && ++itr != _images.end());
 
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the visibility of cutplane outlines
+ */
+void Renderer::setImageCutplaneOutlineVisibility(const DataSetId& id, bool state)
+{
+    ImageCutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _imageCutplanes.begin();
+        if (itr == _imageCutplanes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _imageCutplanes.find(id);
+    }
+
+    if (itr == _imageCutplanes.end()) {
+        ERROR("ImageCutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOutlineVisibility(state);
+     } while (doAll && ++itr != _imageCutplanes.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the visibility of slices in one of the three axes
+ */
+void Renderer::setImageCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state)
+{
+    ImageCutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _imageCutplanes.begin();
+        if (itr == _imageCutplanes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _imageCutplanes.find(id);
+    }
+
+    if (itr == _imageCutplanes.end()) {
+        ERROR("ImageCutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSliceVisibility(axis, state);
+     } while (doAll && ++itr != _imageCutplanes.end());
+
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 

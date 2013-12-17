@@ -286,7 +286,7 @@ public:
 
         PrincipalPlane plane;
         if (!_dataSet->is2D(&plane)) {
-            TRACE("Not setting aspect for 3D object");
+            TRACE("Not setting aspect for 3D object %s", getClassName());
             return;
         }
 

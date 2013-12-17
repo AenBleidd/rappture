@@ -157,6 +157,7 @@ SERVER_SRCS	= \
 		Group.cpp \
 		HeightMap.cpp \
 		Image.cpp \
+		ImageCutplane.cpp \
 		LIC.cpp \
 		Line.cpp \
 		Molecule.cpp \
