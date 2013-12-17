@@ -1024,21 +1024,9 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 	}
         
 	foreach axis { x y z } {
-            if { $axis == "z" } {
-                set label [$_first hints label]
-            } else {
-                set label [$_first hints ${axis}label]
-            }
+            set label [$_first hints ${axis}label]
 	    if { $label == "" } {
-		if {$axis == "z"} {
-                    if { [string match "component*" $_curFldName] } {
-                        set label [string toupper $axis]
-                    } else {
-                        set label $_curFldLabel
-                    }
-		} else {
-		    set label [string toupper $axis]
-		}
+		set label [string toupper $axis]
 	    }
 	    # May be a space in the axis label.
 	    SendCmd [list axis name $axis $label]
@@ -1420,26 +1408,7 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-	    set label [$_first hints label]
-	    if { $label == "" } {
-                if { [string match "component*" $_curFldName] } {
-                    set label Z
-                } else {
-                    set label $_curFldLabel
-                }
-	    }
-	    # May be a space in the axis label.
-	    SendCmd [list axis name z $label]
 
-	    if { [$_first hints zunits] == "" } {
-		set units [lindex $_fields($_curFldName) 1]
-	    } else {
-		set units [$_first hints zunits]
-	    }
-	    if { $units != "" } {
-		# May be a space in the axis units.
-		SendCmd [list axis units z $units]
-	    }
             # Get the new limits because the field changed.
             SendCmd "dataset scalar $_curFldName"
             #SendCmd "image colormode scalar $_curFldName"
@@ -1465,16 +1434,13 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
                 } else {
                     SendCmd "camera mode persp"
                 }
+                SendCmd "camera aspect native"
 	    } else {
 		$itk_component(opacity) configure -state disabled
 		$itk_component(opacity_l) configure -state disabled
                 SendCmd "camera mode image"
-            }
-            if {$_settings(stretchToFit)} {
-                if {$scale == 0} {
+                if {$_settings(stretchToFit)} {
                     SendCmd "camera aspect window"
-                } else {
-                    SendCmd "camera aspect square"
                 }
             }
             if { $bool } {
@@ -1533,7 +1499,7 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
 	    set bool $_settings($what)
 	    if { $bool } {
 		if { $_settings(view3D) } {
-		    SendCmd "camera aspect square"
+		    SendCmd "camera aspect native"
 		} else {
 		    SendCmd "camera aspect window"
 		}
