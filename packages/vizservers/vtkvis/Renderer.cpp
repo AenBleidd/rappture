@@ -193,6 +193,7 @@ Renderer::~Renderer()
     deleteAllGraphicsObjects<Group>();
     deleteAllGraphicsObjects<HeightMap>();
     deleteAllGraphicsObjects<Image>();
+    deleteAllGraphicsObjects<ImageCutplane>();
     deleteAllGraphicsObjects<LIC>();
     deleteAllGraphicsObjects<Line>();
     deleteAllGraphicsObjects<Molecule>();
@@ -276,6 +277,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteGraphicsObject<Glyphs>(itr->second->getName());
         deleteGraphicsObject<HeightMap>(itr->second->getName());
         deleteGraphicsObject<Image>(itr->second->getName());
+        deleteGraphicsObject<ImageCutplane>(itr->second->getName());
         deleteGraphicsObject<LIC>(itr->second->getName());
         deleteGraphicsObject<Molecule>(itr->second->getName());
         deleteGraphicsObject<Outline>(itr->second->getName());
@@ -1581,6 +1583,7 @@ void Renderer::updateColorMap(ColorMap *cmap)
     updateGraphicsObjectColorMap<Glyphs>(cmap);
     updateGraphicsObjectColorMap<HeightMap>(cmap);
     updateGraphicsObjectColorMap<Image>(cmap);
+    updateGraphicsObjectColorMap<ImageCutplane>(cmap);
     updateGraphicsObjectColorMap<LIC>(cmap);
     updateGraphicsObjectColorMap<Molecule>(cmap);
     updateGraphicsObjectColorMap<PolyData>(cmap);
@@ -1607,6 +1610,8 @@ bool Renderer::colorMapUsed(ColorMap *cmap)
     if (graphicsObjectColorMapUsed<HeightMap>(cmap))
         return true;
     if (graphicsObjectColorMapUsed<Image>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<ImageCutplane>(cmap))
         return true;
     if (graphicsObjectColorMapUsed<LIC>(cmap))
         return true;
@@ -2464,6 +2469,7 @@ void Renderer::setObjectAspects(double aspectRatio)
     setGraphicsObjectAspect<Glyphs>(aspectRatio);
     setGraphicsObjectAspect<HeightMap>(aspectRatio);
     setGraphicsObjectAspect<Image>(aspectRatio);
+    setGraphicsObjectAspect<ImageCutplane>(aspectRatio);
     setGraphicsObjectAspect<LIC>(aspectRatio);
     setGraphicsObjectAspect<Line>(aspectRatio);
     setGraphicsObjectAspect<Molecule>(aspectRatio);
@@ -3386,6 +3392,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectBounds<Group>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<HeightMap>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Image>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<ImageCutplane>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectBounds<Molecule>(bounds, onlyVisible);
@@ -3458,6 +3465,7 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     mergeGraphicsObjectUnscaledBounds<Glyphs>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<HeightMap>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Image>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<ImageCutplane>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<LIC>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Line>(bounds, onlyVisible);
     mergeGraphicsObjectUnscaledBounds<Molecule>(bounds, onlyVisible);
@@ -3516,6 +3524,7 @@ void Renderer::updateFieldRanges()
     updateGraphicsObjectFieldRanges<Glyphs>();
     updateGraphicsObjectFieldRanges<HeightMap>();
     updateGraphicsObjectFieldRanges<Image>();
+    updateGraphicsObjectFieldRanges<ImageCutplane>();
     updateGraphicsObjectFieldRanges<LIC>();
     updateGraphicsObjectFieldRanges<Molecule>();
     updateGraphicsObjectFieldRanges<PolyData>();
@@ -4400,6 +4409,8 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
         setGraphicsObjectOpacity<HeightMap>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<Image>(id) != NULL)
         setGraphicsObjectOpacity<Image>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<ImageCutplane>(id) != NULL)
+        setGraphicsObjectOpacity<ImageCutplane>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<LIC>(id) != NULL)
         setGraphicsObjectOpacity<LIC>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
@@ -4458,6 +4469,8 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
         setGraphicsObjectVisibility<HeightMap>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<Image>(id) != NULL)
         setGraphicsObjectVisibility<Image>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<ImageCutplane>(id) != NULL)
+        setGraphicsObjectVisibility<ImageCutplane>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<LIC>(id) != NULL)
         setGraphicsObjectVisibility<LIC>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
@@ -4608,6 +4621,7 @@ void Renderer::setCameraClippingPlanes()
     setGraphicsObjectClippingPlanes<Group>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<HeightMap>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Image>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<ImageCutplane>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<LIC>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Line>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Molecule>(_activeClipPlanes);
