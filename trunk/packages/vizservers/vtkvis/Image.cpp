@@ -147,6 +147,134 @@ void Image::setColorMap(ColorMap *cmap)
     }
 }
 
+void Image::setAspect(double aspect)
+{
+    double bounds[6];
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+    ds->GetBounds(bounds);
+    double size[3];
+    size[0] = bounds[1] - bounds[0];
+    size[1] = bounds[3] - bounds[2];
+    size[2] = bounds[5] - bounds[4];
+    double scale[3];
+    scale[0] = scale[1] = scale[2] = 1.;
+
+    vtkImageMapper3D *mapper = getImageMapper();
+    if (mapper == NULL)
+        return;
+
+    mapper->Update();
+
+    double normal[3];
+    mapper->GetSlicePlane()->GetNormal(normal);
+
+    Axis sliceAxis = Z_AXIS;
+    if (fabs(normal[0]) == 1.0 &&
+        normal[1] == 0.0 &&
+        normal[2] == 0.0) {
+        sliceAxis = X_AXIS;
+    } else if (normal[0] == 0.0 &&
+               fabs(normal[1]) == 1.0 &&
+               normal[2] == 0.0) {
+        sliceAxis = Y_AXIS;
+    } else if (normal[0] == 0.0 &&
+               normal[1] == 0.0 &&
+               fabs(normal[2]) == 1.0) {
+        sliceAxis = Z_AXIS;
+    } else {
+        TRACE("Non orthogonal slice plane, setting native aspect");
+        aspect = 0.0;
+    }
+
+    if (aspect == 1.0) {
+        // Square
+        switch (sliceAxis) {
+        case X_AXIS: {
+            if (size[1] > size[2] && size[2] > 0.0) {
+                scale[2] = size[1] / size[2];
+            } else if (size[2] > size[1] && size[1] > 0.0) {
+                scale[1] = size[2] / size[1];
+            }
+        }
+            break;
+        case Y_AXIS: {
+            if (size[0] > size[2] && size[2] > 0.0) {
+                scale[2] = size[0] / size[2];
+            } else if (size[2] > size[0] && size[0] > 0.0) {
+                scale[0] = size[2] / size[0];
+            }
+        }
+            break;
+        case Z_AXIS: {
+            if (size[0] > size[1] && size[1] > 0.0) {
+                scale[1] = size[0] / size[1];
+            } else if (size[1] > size[0] && size[0] > 0.0) {
+                scale[0] = size[1] / size[0];
+            }
+        }
+            break;
+        }
+    } else if (aspect != 0.0) {
+        switch (sliceAxis) {
+        case X_AXIS: {
+            if (aspect > 1.0) {
+                if (size[2] > size[1] && size[1] > 0.0) {
+                    scale[1] = (size[2] / aspect) / size[1];
+                } else if (size[2] > 0.0) {
+                    scale[2] = (size[1] * aspect) / size[2];
+                }
+            } else {
+                if (size[1] > size[2] && size[2] > 0.0) {
+                    scale[2] = (size[1] * aspect) / size[2];
+                } else if (size[1] > 0.0) {
+                    scale[1] = (size[2] / aspect) / size[1];
+                }
+            }
+        }
+            break;
+        case Y_AXIS: {
+            if (aspect > 1.0) {
+                if (size[0] > size[2] && size[2] > 0.0) {
+                    scale[2] = (size[0] / aspect) / size[2];
+                } else if (size[0] > 0.0) {
+                    scale[0] = (size[2] * aspect) / size[0];
+                }
+            } else {
+                if (size[2] > size[0] && size[0] > 0.0) {
+                    scale[0] = (size[2] * aspect) / size[0];
+                } else if (size[2] > 0.0) {
+                    scale[2] = (size[0] / aspect) / size[2];
+                }
+            }
+        }
+            break;
+        case Z_AXIS: {
+            if (aspect > 1.0) {
+                if (size[0] > size[1] && size[1] > 0.0) {
+                    scale[1] = (size[0] / aspect) / size[1];
+                } else if (size[0] > 0.0) {
+                    scale[0] = (size[1] * aspect) / size[0];
+                }
+            } else {
+                if (size[1] > size[0] && size[0] > 0.0) {
+                    scale[0] = (size[1] * aspect) / size[0];
+                } else if (size[1] > 0.0) {
+                    scale[1] = (size[0] / aspect) / size[1];
+                }
+            }
+        }
+            break;
+        }
+    }
+
+    TRACE("%s dims %g,%g,%g", _dataSet->getName().c_str(),
+          size[0], size[1], size[2]);
+    TRACE("Setting scale to %g,%g,%g", scale[0], scale[1], scale[2]);
+    setScale(scale);
+    mapper->Modified();
+    mapper->Update();
+}
+
 void Image::setClippingPlanes(vtkPlaneCollection *planes)
 {
     vtkImageMapper3D *mapper = getImageMapper();

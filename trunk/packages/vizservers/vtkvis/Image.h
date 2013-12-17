@@ -31,6 +31,12 @@ namespace VtkVis {
 class Image : public GraphicsObject
 {
 public:
+    enum InterpType {
+        INTERP_NEAREST,
+        INTERP_LINEAR,
+        INTERP_CUBIC
+    };
+
     Image();
     virtual ~Image();
 
@@ -44,6 +50,8 @@ public:
     virtual void setColor(float color[3]);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    virtual void setAspect(double aspect);
 
     void updateColorMap()
     {
@@ -83,6 +91,15 @@ public:
               actor->GetZSlice(), actor->GetWholeZMin(), actor->GetWholeZMax());
     }
 
+    void setUseWindowLevel(bool state)
+    {
+        vtkImageProperty *property = getImageProperty();
+        if (property == NULL)
+            return;
+
+        property->SetUseLookupTableScalarRange((state ? 0 : 1));
+    }
+
     double getWindow()
     {
         vtkImageProperty *property = getImageProperty();
@@ -99,6 +116,7 @@ public:
             return;
 
         property->SetColorWindow(window);
+        property->UseLookupTableScalarRangeOff();
     }
 
     double getLevel()
@@ -117,16 +135,7 @@ public:
             return;
 
         property->SetColorLevel(level);
-    }
-
-    void setWindowAndLevel(double window, double level)
-    {
-        vtkImageProperty *property = getImageProperty();
-        if (property == NULL)
-            return;
-
-        property->SetColorWindow(window);
-        property->SetColorLevel(level);
+        property->UseLookupTableScalarRangeOff();
     }
 
     void setBacking(bool state)
@@ -154,6 +163,25 @@ public:
             return;
 
         mapper->SetBackground((state ? 1 : 0));
+    }
+
+    void setInterpolationType(InterpType type)
+    {
+        vtkImageProperty *property = getImageProperty();
+        if (property == NULL)
+            return;
+
+        switch (type) {
+        case INTERP_NEAREST:
+            property->SetInterpolationTypeToNearest();
+            break;
+        case INTERP_LINEAR:
+            property->SetInterpolationTypeToLinear();
+            break;
+        case INTERP_CUBIC:
+            property->SetInterpolationTypeToCubic();
+            break;
+        }
     }
 
 private:
