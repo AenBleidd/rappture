@@ -40,7 +40,6 @@ itcl::class Rappture::TransferFunctionEditor {
     private method GetOverlappingMarkers { x y } 
     private method GetScreenPosition { name } 
     private method LeaveTick { name } 
-    private method NewMarker { x y state }
     private method SetRelativeValue  { name x }
     private method GetRelativeValue  { name }
     private method RemoveDuplicateMarkers {name x y} 
@@ -61,6 +60,8 @@ itcl::class Rappture::TransferFunctionEditor {
     public method absoluteValues {}
     public method removeMarkers { list }
     public method addMarkers { values }
+    public method newMarker { x y state }
+    public method deleteMarker { x y }
     public method hideMarkers { {list {}} }
     public method showMarkers { {limits {}} }
 }
@@ -69,8 +70,6 @@ itcl::body Rappture::TransferFunctionEditor::constructor {c name args} {
     set _canvas $c
     set _name $name
     set _limits [list 0.0 1.0] 
-    $c bind transfunc <ButtonRelease-1> \
-        [itcl::code $this NewMarker %x %y normal]
     eval configure $args
 }
 
@@ -98,7 +97,19 @@ itcl::body Rappture::TransferFunctionEditor::absoluteValues {} {
     return $list
 }
 
-itcl::body Rappture::TransferFunctionEditor::NewMarker { x y state } { 
+itcl::body Rappture::TransferFunctionEditor::deleteMarker { x y } { 
+    foreach marker [GetOverlappingMarkers $x $y] {
+        $_canvas delete $_ticks($marker)
+        $_canvas delete $_labels($marker)
+        array unset _ticks $marker
+        array unset _labels $marker
+        array unset _values $marker
+        bell
+        UpdateViewer
+    }
+}
+
+itcl::body Rappture::TransferFunctionEditor::newMarker { x y state } { 
     foreach id [$_canvas find overlapping \
                     [expr $x-5] [expr $y-5] [expr $x+5] [expr $y+5]] {
 	if { [info exists _id2name($id)] } {
@@ -314,7 +325,7 @@ itcl::body Rappture::TransferFunctionEditor::RemoveDuplicateMarkers {name x y} {
 
 itcl::body Rappture::TransferFunctionEditor::addMarkers { values } {
     foreach value $values {
-	set name [NewMarker 0 0 hidden]
+	set name [newMarker 0 0 hidden]
 	SetRelativeValue $name $value
     }
 }
