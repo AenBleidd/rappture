@@ -27,6 +27,7 @@
 #include <osgEarthUtil/EarthManipulator>
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/MouseCoordsTool>
+#include <osgEarthDrivers/gdal/GDALOptions>
 
 #include "Renderer.h"
 #include "Trace.h"
@@ -59,6 +60,9 @@ Renderer::Renderer() :
     mapOpts.profile() = osgEarth::ProfileOptions("global-geodetic");
     osgEarth::Map *map = new osgEarth::Map(mapOpts);
     _map = map;
+    osgEarth::Drivers::GDALOptions bopts;
+    bopts.url() = "/usr/share/osgearth/data/world.tif";
+    addImageLayer("base", bopts);
     osgEarth::MapNodeOptions mapNodeOpts;
     mapNodeOpts.enableLighting() = false;
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);

@@ -23,6 +23,7 @@
 #include <osgEarthSymbology/Style>
 #include <osgEarthSymbology/StyleSheet>
 #include <osgEarthSymbology/LineSymbol>
+#include <osgEarthSymbology/RenderSymbol>
 
 #include <osgEarthDrivers/gdal/GDALOptions>
 #include <osgEarthDrivers/model_feature_geom/FeatureGeomModelOptions>
@@ -415,6 +416,10 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         osgEarth::Symbology::LineSymbol *ls = style.getOrCreateSymbol<osgEarth::Symbology::LineSymbol>();
         ls->stroke()->color() = osgEarth::Symbology::Color::Black;
         ls->stroke()->width() = 2.0f;
+
+        osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
+        rs->depthOffset()->enabled() = true;
+        rs->depthOffset()->minBias() = 1000;
 
         osgEarth::Drivers::FeatureGeomModelOptions geomOpts;
         geomOpts.featureOptions() = opts;
