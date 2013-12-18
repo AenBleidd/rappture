@@ -7177,6 +7177,23 @@ ImageCutplaneDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ImageCutplaneLevelOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double level;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &level) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageCutplaneLevel(name, level);
+    } else {
+        g_renderer->setImageCutplaneLevel("all", level);
+    }
+    return TCL_OK;
+}
+
+static int
 ImageCutplaneMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                         Tcl_Obj *const *objv)
 {
@@ -7368,12 +7385,30 @@ ImageCutplaneVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+ImageCutplaneWindowOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double window;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &window) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageCutplaneWindow(name, window);
+    } else {
+        g_renderer->setImageCutplaneWindow("all", window);
+    }
+    return TCL_OK;
+}
+
 static CmdSpec imageCutplaneOps[] = {
     {"add",          2, ImageCutplaneAddOp, 2, 3, "?dataSetName?"},
     {"axis",         2, ImageCutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"color",        5, ImageCutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     6, ImageCutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete",       1, ImageCutplaneDeleteOp, 2, 3, "?dataSetName?"},
+    {"level",        1, ImageCutplaneLevelOp, 3, 4, "level ?dataSetName?"},
     {"material",     1, ImageCutplaneMaterialOp, 4, 5, "ambientCoeff diffuseCoeff ?dataSetName?"},
     {"opacity",      2, ImageCutplaneOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, ImageCutplaneOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
@@ -7381,7 +7416,8 @@ static CmdSpec imageCutplaneOps[] = {
     {"pos",          2, ImageCutplanePositionOp, 5, 6, "x y z ?dataSetName?"},
     {"scale",        2, ImageCutplaneScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"slice",        2, ImageCutplaneVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
-    {"visible",      1, ImageCutplaneVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"visible",      1, ImageCutplaneVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"window",       1, ImageCutplaneWindowOp, 3, 4, "window ?dataSetName?"}
 };
 static int nImageCutplaneOps = NumCmdSpecs(imageCutplaneOps);
 

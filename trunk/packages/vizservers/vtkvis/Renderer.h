@@ -779,6 +779,10 @@ public:
 
     void setImageCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state);
 
+    void setImageCutplaneLevel(const DataSetId& id, double level);
+
+    void setImageCutplaneWindow(const DataSetId& id, double window);
+
     // Lines
 
     bool addLine(const DataSetId& id, double pt1[3], double pt2[3]);

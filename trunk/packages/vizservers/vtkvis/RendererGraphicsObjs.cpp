@@ -2495,6 +2495,58 @@ void Renderer::setImageCutplaneSliceVisibility(const DataSetId& id, Axis axis, b
     _needsRedraw = true;
 }
 
+void Renderer::setImageCutplaneLevel(const DataSetId& id, double level)
+{
+    ImageCutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _imageCutplanes.begin();
+        if (itr == _imageCutplanes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _imageCutplanes.find(id);
+    }
+    if (itr == _imageCutplanes.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLevel(level);
+    } while (doAll && ++itr != _imageCutplanes.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageCutplaneWindow(const DataSetId& id, double window)
+{
+    ImageCutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _imageCutplanes.begin();
+        if (itr == _imageCutplanes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _imageCutplanes.find(id);
+    }
+    if (itr == _imageCutplanes.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWindow(window);
+    } while (doAll && ++itr != _imageCutplanes.end());
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Create a new Line and associate it with an ID
  */
