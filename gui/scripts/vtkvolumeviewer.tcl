@@ -69,6 +69,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method GetColormap { cname color } 
     private method GetDatasetsWithComponent { cname } 
     private method HideAllMarkers {} 
+    private method AddNewMarker { x y } 
     private method InitComponentSettings { cname } 
     private method ParseLevelsOption { cname levels }
     private method ParseMarkersOption { cname markers }
@@ -77,6 +78,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method SetInitialTransferFunction { dataobj cname }
     private method SetOrientation { side }
     private method SwitchComponent { cname } 
+    private method RemoveMarker { x y }
 
     private variable _current "";       # Currently selected component 
     private variable _volcomponents   ; # Array of components found 
@@ -381,6 +383,10 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
+    bind $itk_component(legend) <KeyPress-Delete> \
+        [itcl::code $this RemoveMarker %x %y]
+    bind $itk_component(legend) <Enter> \
+        [list focus $itk_component(legend)]
 
     # Hack around the Tk panewindow.  The problem is that the requested 
     # size of the 3d view isn't set until an image is retrieved from
@@ -2217,16 +2223,17 @@ itcl::body Rappture::VtkVolumeViewer::DrawLegend {} {
     set h [winfo height $c]
     set lx 10
     set ly [expr {$h - 1}]
-    if {"" == [$c find withtag transfunc]} {
+    if {"" == [$c find withtag colorbar]} {
         $c create image 10 10 -anchor nw \
-            -image $_image(legend) -tags transfunc
+            -image $_image(legend) -tags colorbar
         $c create text $lx $ly -anchor sw \
             -fill $itk_option(-plotforeground) -tags "limits text vmin"
         $c create text [expr {$w-$lx}] $ly -anchor se \
             -fill $itk_option(-plotforeground) -tags "limits text vmax"
         $c create text [expr {$w/2}] $ly -anchor s \
             -fill $itk_option(-plotforeground) -tags "limits text title"
-        $c lower transfunc
+        $c lower colorbar
+        $c bind colorbar <ButtonRelease-1> [itcl::code $this AddNewMarker %x %y]
     }
 
     # Display the markers used by the current transfer function.
@@ -2629,6 +2636,22 @@ itcl::body Rappture::VtkVolumeViewer::updateTransferFunctions {} {
         ComputeTransferFunction $cname
     }
     EventuallyRequestLegend
+}
+
+itcl::body Rappture::VtkVolumeViewer::AddNewMarker { x y } {
+    if { ![info exists _transferFunctionEditors($_current)] } {
+        continue
+    }
+    # Add a new marker to the current transfer function
+    $_transferFunctionEditors($_current) newMarker $x $y normal
+}
+
+itcl::body Rappture::VtkVolumeViewer::RemoveMarker { x y } {
+    if { ![info exists _transferFunctionEditors($_current)] } {
+        continue
+    }
+    # Add a new marker to the current transfer function
+    $_transferFunctionEditors($_current) deleteMarker $x $y 
 }
 
 itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } { 

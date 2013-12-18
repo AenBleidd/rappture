@@ -104,6 +104,7 @@ itcl::class Rappture::NanovisViewer {
     private method GetDatasetsWithComponent { cname } 
     private method GetVolumeInfo { w }
     private method HideAllMarkers {} 
+    private method AddNewMarker { x y } 
     private method InitComponentSettings { cname } 
     private method InitSettings { args }
     private method NameToAlphamap { name } 
@@ -125,6 +126,7 @@ itcl::class Rappture::NanovisViewer {
     private method SwitchComponent { cname } 
     private method Zoom {option}
     private method ToggleVolume { tag name }
+    private method RemoveMarker { x y }
 
     private variable _arcball ""
 
@@ -332,6 +334,10 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     }
     bind $itk_component(legend) <Configure> \
         [itcl::code $this EventuallyRedrawLegend]
+    bind $itk_component(legend) <KeyPress-Delete> \
+        [itcl::code $this RemoveMarker %x %y]
+    bind $itk_component(legend) <Enter> \
+        [list focus $itk_component(legend)]
 
     # Hack around the Tk panewindow.  The problem is that the requested 
     # size of the 3d view isn't set until an image is retrieved from
@@ -772,16 +778,17 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
     set h [winfo height $c]
     set lx 10
     set ly [expr {$h - 1}]
-    if {"" == [$c find withtag transfunc]} {
+    if {"" == [$c find withtag colorbar]} {
         $c create image 10 10 -anchor nw \
-            -image $_image(legend) -tags transfunc
+            -image $_image(legend) -tags colorbar
         $c create text $lx $ly -anchor sw \
             -fill $itk_option(-plotforeground) -tags "limits text vmin"
         $c create text [expr {$w-$lx}] $ly -anchor se \
             -fill $itk_option(-plotforeground) -tags "limits text vmax"
         $c create text [expr {$w/2}] $ly -anchor s \
             -fill $itk_option(-plotforeground) -tags "limits text title"
-        $c lower transfunc
+        $c lower colorbar
+        $c bind colorbar <ButtonRelease-1> [itcl::code $this AddNewMarker %x %y]
     }
 
     # Display the markers used by the current transfer function.
@@ -1466,6 +1473,22 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
     set wmap [ComputeAlphamap $cname]
     set _cname2transferFunction($cname) [list $cmap $wmap]
     SendCmd [list transfunc define $cname $cmap $wmap]
+}
+
+itcl::body Rappture::NanovisViewer::AddNewMarker { x y } {
+    if { ![info exists _transferFunctionEditors($_current)] } {
+        continue
+    }
+    # Add a new marker to the current transfer function
+    $_transferFunctionEditors($_current) newMarker $x $y normal
+}
+
+itcl::body Rappture::NanovisViewer::RemoveMarker { x y } {
+    if { ![info exists _transferFunctionEditors($_current)] } {
+        continue
+    }
+    # Add a new marker to the current transfer function
+    $_transferFunctionEditors($_current) deleteMarker $x $y 
 }
 
 # ----------------------------------------------------------------------
@@ -2512,3 +2535,5 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
     # Multiply each component by the global opacity value.
     return ""
 }
+
+
