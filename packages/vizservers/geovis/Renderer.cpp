@@ -338,7 +338,7 @@ void Renderer::moveModelLayer(const char *name, unsigned int pos)
 void Renderer::setModelLayerOpacity(const char *name, double opacity)
 {
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 0)
-    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
     if (layer != NULL) {
         layer->setOpacity(opacity);
         _needsRedraw = true;
