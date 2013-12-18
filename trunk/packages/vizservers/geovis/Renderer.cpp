@@ -198,6 +198,7 @@ void Renderer::clearMap()
     if (_map.valid()) {
         _map->clear();
     }
+    _needsRedraw = true;
 }
 
 bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
@@ -214,6 +215,7 @@ void Renderer::addImageLayer(const char *name, const osgEarth::TileSourceOptions
 {
     osgEarth::ImageLayerOptions layerOpts(name, opts);
     _map->addImageLayer(new osgEarth::ImageLayer(layerOpts));
+    _needsRedraw = true;
 }
 
 void Renderer::removeImageLayer(const char *name)
@@ -221,6 +223,9 @@ void Renderer::removeImageLayer(const char *name)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     if (layer != NULL) {
         _map->removeImageLayer(layer);
+        _needsRedraw = true;
+    } else {
+        TRACE("Image layer not found: %s", name);
     }
 }
 
@@ -229,6 +234,9 @@ void Renderer::moveImageLayer(const char *name, unsigned int pos)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     if (layer != NULL) {
         _map->moveImageLayer(layer, pos);
+        _needsRedraw = true;
+    } else {
+        TRACE("Image layer not found: %s", name);
     }
 }
 
@@ -237,6 +245,9 @@ void Renderer::setImageLayerOpacity(const char *name, double opacity)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     if (layer != NULL) {
         layer->setOpacity(opacity);
+        _needsRedraw = true;
+    } else {
+        TRACE("Image layer not found: %s", name);
     }
 }
 
@@ -246,6 +257,9 @@ void Renderer::setImageLayerVisibility(const char *name, bool state)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     if (layer != NULL) {
         layer->setVisible(state);
+        _needsRedraw = true;
+    } else {
+        TRACE("Image layer not found: %s", name);
     }
 #endif
 }
@@ -254,6 +268,7 @@ void Renderer::addElevationLayer(const char *name, const osgEarth::TileSourceOpt
 {
     osgEarth::ElevationLayerOptions layerOpts(name, opts);
     _map->addElevationLayer(new osgEarth::ElevationLayer(layerOpts));
+    _needsRedraw = true;
 }
 
 void Renderer::removeElevationLayer(const char *name)
@@ -261,6 +276,9 @@ void Renderer::removeElevationLayer(const char *name)
     osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
     if (layer != NULL) {
         _map->removeElevationLayer(layer);
+        _needsRedraw = true;
+    } else {
+        TRACE("Elevation layer not found: %s", name);
     }
 }
 
@@ -269,6 +287,9 @@ void Renderer::moveElevationLayer(const char *name, unsigned int pos)
     osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
     if (layer != NULL) {
         _map->moveElevationLayer(layer, pos);
+        _needsRedraw = true;
+    } else {
+        TRACE("Elevation layer not found: %s", name);
     }
 }
 
@@ -278,6 +299,9 @@ void Renderer::setElevationLayerVisibility(const char *name, bool state)
     osgEarth::ElevationLayer *layer = _map->getElevationLayerByName(name);
     if (layer != NULL) {
         layer->setVisible(state);
+        _needsRedraw = true;
+    } else {
+        TRACE("Elevation layer not found: %s", name);
     }
 #endif
 }
@@ -286,6 +310,7 @@ void Renderer::addModelLayer(const char *name, const osgEarth::ModelSourceOption
 {
     osgEarth::ModelLayerOptions layerOpts(name, opts);
     _map->addModelLayer(new osgEarth::ModelLayer(layerOpts));
+    _needsRedraw = true;
 }
 
 void Renderer::removeModelLayer(const char *name)
@@ -293,6 +318,9 @@ void Renderer::removeModelLayer(const char *name)
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
     if (layer != NULL) {
         _map->removeModelLayer(layer);
+        _needsRedraw = true;
+    } else {
+        TRACE("Model layer not found: %s", name);
     }
 }
 
@@ -301,6 +329,9 @@ void Renderer::moveModelLayer(const char *name, unsigned int pos)
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
     if (layer != NULL) {
         _map->moveModelLayer(layer, pos);
+        _needsRedraw = true;
+    } else {
+        TRACE("Model layer not found: %s", name);
     }
 }
 
@@ -310,6 +341,9 @@ void Renderer::setModelLayerOpacity(const char *name, double opacity)
     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
     if (layer != NULL) {
         layer->setOpacity(opacity);
+        _needsRedraw = true;
+    } else {
+        TRACE("Model layer not found: %s", name);
     }
 #endif
 }
@@ -320,6 +354,9 @@ void Renderer::setModelLayerVisibility(const char *name, bool state)
     osgEarth::ModelLayer *layer = _map->getModelLayerByName(name);
     if (layer != NULL) {
         layer->setVisible(state);
+        _needsRedraw = true;
+    } else {
+        TRACE("Model layer not found: %s", name);
     }
 #endif
 }
