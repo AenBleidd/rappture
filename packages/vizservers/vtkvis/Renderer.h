@@ -765,12 +765,18 @@ public:
 
     void setImageBorder(const DataSetId& id, bool state);
 
+    // For ImageActor/ImageSliceMapper only
     void setImageExtents(const DataSetId& id, int extents[6]);
 
     void setImageLevel(const DataSetId& id, double level);
 
     void setImageWindow(const DataSetId& id, double window);
 
+    void setImageSlicePlane(const DataSetId& id, double normal[3], double origin[3]);
+
+    void setImageSliceFollowsCamera(const DataSetId& id, bool state);
+
+    // For ImageActor/ImageSliceMapper only
     void setImageZSlice(const DataSetId& id, int z);
 
     // ImageCutplanes

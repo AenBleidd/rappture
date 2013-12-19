@@ -6935,6 +6935,23 @@ ImageExtentsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ImageFollowCameraOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setImageSliceFollowsCamera(name, state);
+    } else {
+        g_renderer->setImageSliceFollowsCamera("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 ImageLevelOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -7027,6 +7044,28 @@ ImageScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ImageSlicePlaneOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double normal[3], origin[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &normal[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &normal[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &normal[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &origin[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[6], &origin[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[7], &origin[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[8]);
+        g_renderer->setImageSlicePlane(name, normal, origin);
+    } else {
+        g_renderer->setImageSlicePlane("all", normal, origin);
+    }
+    return TCL_OK;
+}
+
+static int
 ImageVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -7086,11 +7125,13 @@ static CmdSpec imageOps[] = {
     {"colormap",     6, ImageColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete",       1, ImageDeleteOp, 2, 3, "?dataSetName?"},
     {"extents",      1, ImageExtentsOp, 8, 9, "xmin xmax ymin ymax zmin zmax ?dataSetName?"},
+    {"follow",       1, ImageFollowCameraOp, 3, 4, "bool ?dataSetName?"},
     {"level",        1, ImageLevelOp, 3, 4, "val ?dataSetName?"},
     {"opacity",      2, ImageOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, ImageOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          1, ImagePositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",        1, ImageScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"scale",        2, ImageScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"slice",        2, ImageSlicePlaneOp, 8, 9, "nx ny nz ox oy oz ?dataSetName?"},
     {"visible",      1, ImageVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"window",       1, ImageWindowOp, 3, 4, "val ?dataSetName?"},
     {"zslice",       1, ImageZSliceOp, 3, 4, "val ?dataSetName?"}
