@@ -65,6 +65,29 @@ public:
         return _colorMap;
     }
 
+    void setSlicePlane(double normal[3], double origin[3])
+    {
+        setSliceFollowsCamera(false);
+
+        vtkImageMapper3D *mapper = getImageMapper();
+        vtkImageResliceMapper *resliceMapper = vtkImageResliceMapper::SafeDownCast(mapper);
+        if (resliceMapper != NULL) {
+            vtkSmartPointer<vtkPlane> plane = vtkSmartPointer<vtkPlane>::New();
+            plane->SetNormal(normal);
+            plane->SetOrigin(origin);
+            resliceMapper->SetSlicePlane(plane);
+        }
+    }
+
+    void setSliceFollowsCamera(bool state)
+    {
+        vtkImageMapper3D *mapper = getImageMapper();
+        if (mapper != NULL) {
+            mapper->SetSliceFacesCamera(state ? 1 : 0);
+            mapper->SetSliceAtFocalPoint(state ? 1 : 0);
+        }
+    }
+
     void setExtents(int extent[6])
     {
         vtkImageActor *actor = getImageActor();

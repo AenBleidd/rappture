@@ -2407,6 +2407,58 @@ void Renderer::setImageWindow(const DataSetId& id, double window)
     _needsRedraw = true;
 }
 
+void Renderer::setImageSlicePlane(const DataSetId& id, double normal[3], double origin[3])
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSlicePlane(normal, origin);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setImageSliceFollowsCamera(const DataSetId& id, bool state)
+{
+    ImageHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _images.begin();
+        if (itr == _images.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _images.find(id);
+    }
+    if (itr == _images.end()) {
+        ERROR("Image not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSliceFollowsCamera(state);
+    } while (doAll && ++itr != _images.end());
+
+    _needsRedraw = true;
+}
+
 void Renderer::setImageZSlice(const DataSetId& id, int z)
 {
     ImageHashmap::iterator itr;
