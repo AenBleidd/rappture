@@ -2635,6 +2635,10 @@ itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } {
 }
 
 itcl::body Rappture::VtkHeightmapViewer::UpdateContourList {} { 
+    if {$_currentNumIsolines == 0} {
+        set _contourList ""
+        return
+    }
     if { ![info exists _limits($_curFldName)] } {
         return
     }
