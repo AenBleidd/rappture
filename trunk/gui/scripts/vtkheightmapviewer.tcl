@@ -2001,7 +2001,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
     label $inner.numisolines_l -text "Number of Isolines" -font "Arial 9"
     itk_component add numisolines {
         Rappture::Spinint $inner.numisolines \
-            -min 1 -max 50 -font "arial 9"
+            -min 0 -max 50 -font "arial 9"
     }
     $itk_component(numisolines) value $_settings(numIsolines)
     bind $itk_component(numisolines) <<Value>> \
