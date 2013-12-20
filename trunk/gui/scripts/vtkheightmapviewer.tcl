@@ -1763,7 +1763,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
 #
 itcl::body Rappture::VtkHeightmapViewer::SetCurrentColormap { name } {
     # Keep track of the colormaps that we build.
-    if { ![info exists _colormaps($name)] } {
+    if { $name != "none" && ![info exists _colormaps($name)] } {
         BuildColormap $name 
         set _colormaps($name) 1
     }
@@ -2331,6 +2331,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     set color [$itk_component(isolinecolor) value]
     SendCmd "heightmap isolinecolor [Color2RGB $color] $tag"
     SendCmd "heightmap lighting $_settings(isHeightmap) $tag"
+    SendCmd "heightmap isolines $_settings(isolinesVisible) $tag"
+    SendCmd "heightmap surface $_settings(colormapVisible) $tag"
 }
 
 itcl::body Rappture::VtkHeightmapViewer::IsValidObject { dataobj } {

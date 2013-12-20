@@ -1122,7 +1122,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         volumeOpacity volumeQuality volumeVisible \
         cutplaneVisible \
         cutplanePositionX cutplanePositionY cutplanePositionZ \
-        cutplaneVisibleX cutplaneVisibleY cutplaneVisibleZ 
+        cutplaneVisibleX cutplaneVisibleY cutplaneVisibleZ
 
     if { $_reset } {
         InitSettings volumeLighting
