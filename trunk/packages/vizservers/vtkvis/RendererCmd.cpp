@@ -1679,10 +1679,10 @@ static CmdSpec axisOps[] = {
     {"range",      1, AxisRangeOp, 5, 5, "axis min max"},
     {"scale",      1, AxisScaleOp, 4, 4, "axis scale"},
     {"tcolor",     2, AxisTitleColorOp, 6, 7, "axis r g b ?opacity?"},
-    {"tickpos",    5, AxisTickPositionOp, 3, 3, "position"},
-    {"ticks",      5, AxisTicksVisibleOp, 4, 4, "axis bool"},
     {"tfont",      3, AxisTitleFontOp, 4, 4, "axis font"},
     {"tfsize",     3, AxisTitleFontSizeOp, 4, 4, "axis fontSize"},
+    {"tickpos",    5, AxisTickPositionOp, 3, 3, "position"},
+    {"ticks",      5, AxisTicksVisibleOp, 4, 4, "axis bool"},
     {"trot",       2, AxisTitleOrientationOp, 4, 4, "axis rot"},
     {"units",      1, AxisUnitsOp, 4, 4, "axis units"},
     {"visible",    1, AxisVisibleOp, 4, 4, "axis bool"}
