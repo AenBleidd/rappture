@@ -4203,7 +4203,7 @@ bool Renderer::is2D(const double bounds[6],
         return true;
     }
     *plane = PLANE_XY;
-    *offset = 0;
+    *offset = bounds[4] + (bounds[5] - bounds[4])/2.0;
     return false;
 }
 
