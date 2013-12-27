@@ -80,7 +80,10 @@ register_server pymol-threaded 2020 {
 # vmd server (used for mdshowcase)
 #
 register_server vmdshow 2018 {
-    /usr/bin/vmd -startup ${libdir}/vmd/vmdserver.tcl -args -stdio
+    ${libdir}/vmd/vmd_LINUXAMD64 -startup ${libdir}/vmd/vmdserver.tcl -args -stdio
 } {
+    VMDDIR ${libdir}/vmd
+    SURF_BIN ${libdir}/vmd/surf
     LD_LIBRARY_PATH ${libdir}
 }
+
