@@ -35,12 +35,14 @@ itcl::class ::Rappture::VisViewer {
     private variable _isOpen 0
     private variable _afterId -1
     private variable _icon 0
-    # Number of milliseconds to wait before idle timeout.  If greater than 0,
-    # automatically disconnect from the visualization server when idle timeout
-    # is reached.
+
+    # Number of milliseconds to wait before idle timeout.  If greater than
+    # 0, automatically disconnect from the visualization server when idle
+    # timeout is reached.
     private variable _idleTimeout 43200000; # 12 hours
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
+
     protected variable _maxConnects 100
     protected variable _outbuf       ;    # buffer for outgoing commands
     protected variable _buffering 0
@@ -284,7 +286,16 @@ itcl::body Rappture::VisViewer::Connect { servers } {
             RemoveServerFromList $_serverType $server
             continue
         }
-        puts stderr "render server is $data"
+        # The response should be in the form "serverName major.minor ...".
+        set pattern {^[A-Za-z]+ [0-9].[0-9].*}
+
+        while { ![regexp $pattern $data match] } {
+            puts stderr "$data"
+            if { [gets $_sid data] <= 0 } {
+                exit -1
+            }
+        }
+        puts stderr "Render server is $data"
         # We're connected. Cancel any pending serverDown events and
         # release the busy window over the hull.
         $_dispatcher cancel !serverDown
@@ -387,8 +398,8 @@ itcl::body Rappture::VisViewer::Flush {} {
 # SendHelper --
 #
 #   Helper routine called from a file event to send data when the
-#   connection is writable (i.e. not blocked).  Sets a magic
-#   variable _done($this) when we're done.
+#   connection is writable (i.e. not blocked).  Sets a magic variable
+#   _done($this) when we're done.
 #
 itcl::body Rappture::VisViewer::SendHelper {} {
     if { ![CheckConnection] } {
@@ -403,10 +414,10 @@ itcl::body Rappture::VisViewer::SendHelper {} {
 # SendHelper.old --
 #
 #   Helper routine called from a file event to send data when the
-#   connection is writable (i.e. not blocked).  Sends data in chunks 
-#   of 8k (or less).  Sets magic variable _done($this) to indicate
-#   that we're either finished (success) or could not send bytes to
-#   the server (failure).
+#   connection is writable (i.e. not blocked).  Sends data in chunks of 8k
+#   (or less).  Sets magic variable _done($this) to indicate that we're
+#   either finished (success) or could not send bytes to the server
+#   (failure).
 #
 itcl::body Rappture::VisViewer::SendHelper.old {} {
     if { ![CheckConnection] } {
@@ -454,8 +465,9 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     tkwait variable ::Rappture::VisViewer::_done($this)
     set _buffer(out) ""
     if { [IsConnected] } {
-        # The connection may have closed while we were writing to the server.
-        # This can happen if what we sent the server caused it to barf.
+        # The connection may have closed while we were writing to the
+        # server.  This can happen if what we sent the server caused it to
+        # barf.
         fileevent $_sid writable ""
         flush $_sid
     }
@@ -503,10 +515,10 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
 #
 # ReceiveHelper --
 #
-#   Helper routine called from a file event when the connection is 
-#   readable (i.e. a command response has been sent by the rendering 
-#   server.  Reads the incoming command and executes it in a safe 
-#   interpreter to handle the action.
+#   Helper routine called from a file event when the connection is readable
+#   (i.e. a command response has been sent by the rendering server.  Reads
+#   the incoming command and executes it in a safe interpreter to handle
+#   the action.
 #
 #       Note: This routine currently only handles command responses from
 #         the visualization server.  It doesn't handle non-blocking
@@ -560,8 +572,8 @@ itcl::body Rappture::VisViewer::ReceiveHelper {} {
 #
 # Color2RGB --
 #
-#   Converts a color name to a list of r,g,b values needed for the
-#   engine.  Each r/g/b component is scaled in the # range 0-1.
+#   Converts a color name to a list of r,g,b values needed for the engine.
+#   Each r/g/b component is scaled in the # range 0-1.
 #
 itcl::body Rappture::VisViewer::Color2RGB {color} {
     foreach {r g b} [winfo rgb $itk_component(hull) $color] break
@@ -588,10 +600,10 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 #
 # SendEcho --
 #
-#     Used internally to echo sent data to clients interested in this widget.
-#     If the -sendcommand option is set, then it is invoked in the global scope
-#     with the <channel> and <data> values as arguments.  Otherwise, this does
-#     nothing.
+#     Used internally to echo sent data to clients interested in this
+#     widget.  If the -sendcommand opti on is set, then it is invoked in
+#     the global scope with the <channel> and <data> values as arguments.
+#     Otherwise, this does nothing.
 #
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
     if { $_logging }  {
@@ -609,9 +621,9 @@ itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
 # ReceiveEcho --
 #
 #     Echoes received data to clients interested in this widget.  If the
-#     -receivecommand option is set, then it is invoked in the global
-#     scope with the <channel> and <data> values as arguments.  Otherwise,
-#     this does nothing.
+#     -receivecommand option is set, then it is invoked in the global scope
+#     with the <channel> and <data> values as arguments.  Otherwise, this
+#     does nothing.
 #
 itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
     #puts stderr "<<line $data"
