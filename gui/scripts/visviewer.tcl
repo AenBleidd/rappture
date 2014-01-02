@@ -287,7 +287,7 @@ itcl::body Rappture::VisViewer::Connect { servers } {
             continue
         }
         # The response should be in the form "serverName major.minor ...".
-        set pattern {^[A-Za-z]+ [0-9].[0-9].*}
+        set pattern {^[A-Za-z][A-Za-z0-9_]* [0-9]+\.[0-9].*}
 
         while { ![regexp $pattern $data match] } {
             puts stderr "$data"
