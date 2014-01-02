@@ -56,6 +56,9 @@ cutplane position <relval> <x|y|z> <?names?>
 cutplane state <bool> <x|y|z> <?names?>
          Set the axis (normal) of a volume cutplane.  Names is
          an optional list of volume names.
+cutplane visible <bool> <?names?>
+         Set visibility of all (x,y, and z) cutplanes for
+         named volume(s)
 
 flow add <name> <?option value...?>
          <name> is an object name to use in <flowObj> commands
