@@ -2428,6 +2428,7 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     set color [$itk_component(isolinecolor) value]
 
     # Draw the isolines on the legend.
+    array unset _isolines
     if { $color != "none"  && [info exists _limits($_curFldName)] && 
          $_settings(isolinesVisible) && $_currentNumIsolines > 0 } {
 
