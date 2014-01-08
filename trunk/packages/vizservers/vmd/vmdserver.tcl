@@ -8,7 +8,13 @@
 #  Copyright (c) 2013 - HUBzero Foundation, LLC
 # ======================================================================
 
+# The VMD TCL interpreter is by default interactive.  Turn this off
+# so that unknown commands like "scene" don't get exec-ed. 
 set ::tcl_interactive 0
+
+proc bgerror {mesg} {
+    puts stderr "SERVER ERROR: $mesg"
+}
 
 # parse command line args
 set Paradigm "socket"
@@ -29,19 +35,22 @@ while {[llength $argv] > 0} {
 image create photo SnapShot
 
 # set the screen to a good size
-#display resize 300 300
+set DisplaySize(w) 300
+set DisplaySize(h) 300
+display resize $DisplaySize(w) $DisplaySize(h)
+set DisplaySize(changed) 0
 
 # initialize work queue and epoch counter (see server_send_image)
 set Epoch 0
 set Work(queue) ""
 set Sendqueue ""
+set Scenes(@CURRENT) ""
 
 set parser [interp create -safe]
 
 foreach cmd {
   vmdinfo
   vmdbench
-  animate
   color
   axes
   display
@@ -63,7 +72,6 @@ foreach cmd {
   plugin
   render
   tkrender
-  rock
   rotate
   rotmat
   vmd_scale
@@ -100,42 +108,140 @@ proc cmd_tellme {fmt args} {
 $parser alias tellme cmd_tellme
 
 # ----------------------------------------------------------------------
-# USAGE: reset
-#
-# Executes the "command arg arg..." string in the server and substitutes
-# the result into the template string in place of each "%v" field.
-# Sends the result back to the client.
-# ----------------------------------------------------------------------
-proc cmd_reset {} {
-    global client
-
-    # reset the view so we get a good scale matrix below
-    display resetview
-
-    # reset scale -- figure out size by querying molinfo for first molecule
-    set nmol [lindex [molinfo list] 0]
-    if {$nmol ne ""} {
-        set matrix [molinfo $nmol get scale_matrix]
-        set sf [lindex [lindex [lindex $matrix 0] 0] 0]
-        vmd_scale to $sf
-        server_send_result $client "nv>scale $sf"
-    }
-
-    axes location off
-}
-$parser alias reset cmd_reset
-
-# ----------------------------------------------------------------------
 # USAGE: resize <w> <h>
 #
 # Resizes the visualization window to the given width <w> and height
 # <h>.  The next image sent should be this size.
 # ----------------------------------------------------------------------
 proc cmd_resize {w h} {
-    display resize $w $h
-    display update
+    global DisplayProps
+
+    # store the desired size in case we downscale
+    set DisplayProps(framew) $w
+    set DisplayProps(frameh) $h
+
+    server_safe_resize $w $h
 }
 $parser alias resize cmd_resize
+
+# ----------------------------------------------------------------------
+# USAGE: setview ?-rotate <mtx>? ?-scale <mtx>? ?-center <mtx>? ?-global <mtx>?
+#
+# Sets the view matrix for one or more components of the view.  This
+# is a convenient way of getting a view for a particular frame just
+# right in one shot.
+# ----------------------------------------------------------------------
+proc cmd_setview {args} {
+    if {[llength $args] == 8} {
+        # setting all matrices? then start clean
+        display resetview
+    }
+    foreach {key val} $args {
+        switch -- $key {
+            -rotate {
+                molinfo top set rotate_matrix [list $val]
+            }
+            -scale {
+                molinfo top set scale_matrix [list $val]
+            }
+            -center {
+                molinfo top set center_matrix [list $val]
+            }
+            -global {
+                molinfo top set global_matrix [list $val]
+            }
+            default {
+                error "bad option \"$key\": should be -rotate, -scale, -center, or -global"
+            }
+        }
+    }
+}
+$parser alias setview cmd_setview
+
+# ----------------------------------------------------------------------
+# USAGE: drag start|end
+#
+# Resizes the visualization window to the given width <w> and height
+# <h>.  The next image sent should be this size.
+# ----------------------------------------------------------------------
+proc cmd_drag {action} {
+    global DisplayProps
+
+    switch -- $action {
+        start {
+            # simplify rendering so it goes faster during drag operations
+            set neww [expr {round($DisplayProps(framew)/2.0)}]
+            set newh [expr {round($DisplayProps(frameh)/2.0)}]
+            server_safe_resize $neww $newh
+            display rendermode Normal
+            display shadows off
+
+            foreach nmol [molinfo list] {
+                set max [molinfo $nmol get numreps]
+                for {set nrep 0} {$nrep < $max} {incr nrep} {
+                    mol modstyle $nrep $nmol "Lines"
+                }
+            }
+        }
+        end {
+            # put original rendering options back
+            server_safe_resize $DisplayProps(framew) $DisplayProps(frameh)
+            display rendermode $DisplayProps(rendermode)
+            display shadows $DisplayProps(shadows)
+
+            # restore rendering methods for all representations
+            foreach nmol [molinfo list] {
+                set max [molinfo $nmol get numreps]
+                for {set nrep 0} {$nrep < $max} {incr nrep} {
+                    mol modstyle $nrep $nmol $DisplayProps(rep-$nmol-$nrep)
+                }
+            }
+        }
+        default {
+            error "bad option \"$action\": should be start or end"
+        }
+    }
+}
+$parser alias drag cmd_drag
+
+# ----------------------------------------------------------------------
+# USAGE: smoothreps <value>
+#
+# Changes the smoothing factor for all representations of the current
+# molecule.
+# ----------------------------------------------------------------------
+proc cmd_smoothreps {val} {
+    if {$val < 0} {
+        error "bad smoothing value \"$val\": should be >= 0"
+    }
+    foreach nmol [molinfo list] {
+        set max [molinfo $nmol get numreps]
+        for {set nrep 0} {$nrep < $max} {incr nrep} {
+            mol smoothrep $nmol $nrep $val
+        }
+    }
+}
+$parser alias smoothreps cmd_smoothreps
+
+# ----------------------------------------------------------------------
+# USAGE: animate <option> <args>...
+# USAGE: rock off
+# USAGE: rock x|y|z by <step> ?<n>?
+#
+# The usual VMD "animate" and "rock" commands are problematic for this
+# server.  If we're going to rock or play the animation, the client
+# will do it.  Intercept any "animate" and "rock" commands in the scene
+# scripts and do nothing.
+# ----------------------------------------------------------------------
+proc cmd_animate {args} {
+    # do nothing
+}
+$parser alias animate cmd_animate
+
+proc cmd_rock {args} {
+    # do nothing
+}
+$parser alias rock cmd_rock
 
 # ----------------------------------------------------------------------
 # USAGE: load <file> <file>...
@@ -149,9 +255,6 @@ proc cmd_load {args} {
         mol delete $nmol
     }
 
-    # clear any existing views
-    cmd_view forget
-
     # load new files
     set op "new"
     foreach file $args {
@@ -162,61 +265,103 @@ proc cmd_load {args} {
 $parser alias load cmd_load
 
 # ----------------------------------------------------------------------
-# USAGE: view define <name> <script>
-# USAGE: view show <name>
-# USAGE: view clear
-# USAGE: view forget ?<name> <name>...?
+# USAGE: scene define <name> <script>
+# USAGE: scene show <name> ?-send <initialViewCmd>?
+# USAGE: scene clear
+# USAGE: scene forget ?<name> <name>...?
 #
-# Used to define and manipulate views of the trajectory information
+# Used to define and manipulate scenes of the trajectory information
 # loaded previously by the "load" command.  The "define" operation
-# defines the script that loads a view called <name>.  The "show"
-# operation executes that script to show the view.  The "clear"
-# operation clears the current view (usually in preparation for 
-# showing another view).  The "forget" operation erases one or more
-# view definitions; if no names are specified, then all views are
+# defines the script that loads a scene called <name>.  The "show"
+# operation executes that script to show the scene.  The "clear"
+# operation clears the current scene (usually in preparation for 
+# showing another scene).  The "forget" operation erases one or more
+# scene definitions; if no names are specified, then all scenes are
 # forgotten.
 # ----------------------------------------------------------------------
-proc cmd_view {option args} {
-    global Views parser
+proc cmd_scene {option args} {
+    global Scenes Views DisplayProps parser
+
     switch -- $option {
         define {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"view define name script\""
+                error "wrong # args: should be \"scene define name script\""
             }
             set name [lindex $args 0]
             set script [lindex $args 1]
-            set Views($name) $script
+            set Scenes($name) $script
         }
         show {
-            if {[llength $args] != 1} {
-                error "wrong # args: should be \"view show name\""
+            if {[llength $args] < 1 || [llength $args] > 3} {
+                error "wrong # args: should be \"scene show name ?-send cmd?\""
             }
-	    set name [lindex $args 0]
-            if {![info exists Views($name)]} {
-                error "bad view name \"$name\": should be one of [join [array names Views] {, }]"
+            set name [lindex $args 0]
+            if {![info exists Scenes($name)]} {
+                error "bad scene name \"$name\": should be one of [join [array names Scenes] {, }]"
             }
 
-            # clear the old view
-            cmd_view clear
+            set sendcmd ""
+            foreach {key val} [lrange $args 1 end] {
+                switch -- $key {
+                    -send { set sendcmd $val }
+                    default { error "bad option \"$key\": should be -send" }
+                }
+            }
+
+            # clear the old scene
+            cmd_scene clear
 
             # use a safe interp to keep things safe
-            if {[catch {$parser eval $Views($name)} result]} {
-                error "$result\nwhile loading view \"$name\""
+            display resetview
+            if {[catch {$parser eval $Scenes($name)} result]} {
+                error "$result\nwhile loading scene \"$name\""
+            }
+
+            # capture display characteristics in case we ever need to reset
+            set DisplayProps(rendermode) [display get rendermode]
+            set DisplayProps(shadows) [display get shadows]
+
+            foreach nmol [molinfo list] {
+                set max [molinfo $nmol get numreps]
+                for {set nrep 0} {$nrep < $max} {incr nrep} {
+                    set style [lindex [molinfo $nmol get "{rep $nrep}"] 0]
+                    set DisplayProps(rep-$nmol-$nrep) $style
+                }
+            }
+
+            # store the scene name for later
+            set Scenes(@CURRENT) $name
+
+            # if -send arg was given, send back the view after the script
+            if {$sendcmd ne ""} {
+                cmd_tellme $sendcmd getview
             }
         }
         clear {
-            set numOfRep [lindex [mol list top] 12]
-            for {set i 1} {$i <= $numOfRep} {incr i} {
-                mol delrep top 0
+            foreach mol [molinfo list] {
+                set numOfRep [lindex [mol list $mol] 12]
+                for {set i 1} {$i <= $numOfRep} {incr i} {
+                    mol delrep 0 $mol
+                }
             }
-            cmd_reset
+            set Scenes(@CURRENT) ""
+            catch {unset Views}
+
+            # reset the server properties
+            axes location off
+            color Display Background black
+            display backgroundgradient off
         }
         forget {
             if {[llength $args] == 0} {
-                set args [array names Views]
+                set args [array names Scenes]
             }
             foreach name $args {
-                catch {unset Views($name)}
+                if {$name eq "@CURRENT"} continue
+                catch {unset Scenes($name)}
+                if {$name eq $Scenes(@CURRENT)} {
+                    set Scenes(@CURRENT) ""
+                }
             }
         }
         default {
@@ -224,10 +369,11 @@ proc cmd_view {option args} {
         }
     }
 }
-$parser alias view cmd_view
+$parser alias scene cmd_scene
 
 # ----------------------------------------------------------------------
-# USAGE: frames time <epochValue> <start> ?<finish>? ?<inc>?
+# USAGE: frames defview <frame> {matrixNames...} {matrixValues...}
+# USAGE: frames time <epochValue> <start> ?<finish>? ?<inc>? ?-defview?
 # USAGE: frames rotate <epochValue> <xa> <ya> <za> <number>
 # USAGE: frames max
 #
@@ -240,6 +386,11 @@ $parser alias view cmd_view
 # concerned with any earlier epochs, so the server can ignore pending
 # images that are out of date.  The server sends back the epoch with
 # all frames so the client can understand if the frames are relevant.
+#
+# The "defview" operation sets the default view associated with each
+# frame.  Animation scripts can change the default view to a series of
+# fly-through views.  This operation provides a way of storing those
+# views.
 #
 # For a "time" animation, the <start> is a number of a requested frame.
 # The <finish> is the last frame in the series.  The <inc> is the step
@@ -254,13 +405,22 @@ $parser alias view cmd_view
 # animation.
 # ----------------------------------------------------------------------
 proc cmd_frames {what args} {
-    global client Epoch Work
+    global client Epoch Work Views
 
     # check incoming parameters
     switch -- $what {
       time {
         set epochValue [lindex $args 0]
         set start [lindex $args 1]
+
+        set i [lsearch $args -defview]
+        if {$i >= 0} {
+            set defview 1
+            set args [lreplace $args $i $i]
+        } else {
+            set defview 0
+        }
+
         set finish [lindex $args 2]
         if {$finish eq ""} { set finish $start }
         set inc [lindex $args 3]
@@ -290,7 +450,7 @@ proc cmd_frames {what args} {
             # generate frames in play>> direction
             for {set n $start} {$n <= $finish} {incr n $inc} {
                 if {![info exists Work($n)]} {
-                    lappend Work(queue) [list epoch $epochValue frame $n num $n]
+                    lappend Work(queue) [list epoch $epochValue frame $n num $n defview $defview]
                     set Work($n) 1
                 }
             }
@@ -298,7 +458,7 @@ proc cmd_frames {what args} {
             # generate frames in <<play direction
             for {set n $start} {$n >= $finish} {incr n $inc} {
                 if {![info exists Work($n)]} {
-                    lappend Work(queue) [list epoch $epochValue frame $n num $n]
+                    lappend Work(queue) [list epoch $epochValue frame $n num $n defview $defview]
                     set Work($n) 1
                 }
             }
@@ -322,16 +482,64 @@ proc cmd_frames {what args} {
             return
         }
         set num [lindex $args 4]
-        if {![string is integer -strict $num] || $num <= 0} {
-            server_oops $client "bad number of rotation frames \"$num\" should be integer > 0"
+        if {![string is integer -strict $num] || $num < 2} {
+            server_oops $client "bad number of rotation frames \"$num\" should be integer > 1"
             return
         }
 
-        set rot [list $mx $my $mz]
+        #
+        # Compute the rotation matrix for each rotated view.
+        # Start with the current rotation matrix.  Rotate that around
+        # a vector perpendicular to the plane of rotation for the given
+        # angles (mx,my,mz).  Find vector that by rotating some vector
+        # such as (1,1,1) by the angles (mx,my,mz).  Do a couple of
+        # times and compute the differences between those vectors.
+        # Then, compute the cross product of the differences.  The
+        # result is the axis of rotation.
+        #
+        set lastrotx [trans axis x $mx deg]
+        set lastroty [trans axis y $my deg]
+        set lastrotz [trans axis z $mz deg]
+        set lastrot [transmult $lastrotx $lastroty $lastrotz]
+
+        set lastvec [list 1 1 1]
+        foreach v {1 2} {
+            foreach row $lastrot comp {x y z w} {
+                # multiply each row by last vector
+                set vec($comp) 0
+                for {set i 0} {$i < 3} {incr i} {
+                    set vec($comp) [expr {$vec($comp) + [lindex $row $i]}]
+                }
+            }
+            set vec${v}(x) [expr {$vec(x)-[lindex $lastvec 0]}]
+            set vec${v}(y) [expr {$vec(y)-[lindex $lastvec 1]}]
+            set vec${v}(z) [expr {$vec(z)-[lindex $lastvec 2]}]
+
+            set lastvec [list $vec(x) $vec(y) $vec(z)]
+            set lastrot [transmult $lastrot $lastrotx $lastroty $lastrotz]
+        }
+
+        set crx [expr {$vec1(y)*$vec2(z)-$vec1(z)*$vec2(y)}]
+        set cry [expr {$vec1(z)*$vec2(x)-$vec1(x)*$vec2(z)}]
+        set crz [expr {$vec1(x)*$vec2(y)-$vec1(y)*$vec2(x)}]
+
+        set angle [expr {360.0/$num}]
+        set rotby [transabout [list $crx $cry $crz] $angle deg]
+        set rotm [lindex [molinfo top get rotate_matrix] 0]
+
+        # compute cross product of (1,1,1,0) and rotated vector from above
+
         for {set n 0} {$n < $num} {incr n} {
-            lappend Work(queue) [list epoch $epochValue rotate $rot num $n]
+            lappend Work(queue) [list epoch $epochValue rotate $rotm num $n defview 0]
+            set rotm [transmult $rotby $rotm]
             set Work($n) 1
         }
+      }
+      defview {
+          if {[llength $args] != 3} { error "wrong # args: should be \"defview matrixNameList matrixValueList\"" }
+          set n [lindex $args 0]
+          if {![string is int $n]} { error "bad frame value \"$n\"" }
+          set Views($n) [lrange $args 1 end]
       }
       max {
         set nmol [lindex [molinfo list] 0]
@@ -341,7 +549,7 @@ proc cmd_frames {what args} {
         return 0
       }
       default {
-        error "bad option \"$what\": should be time, rotate, max"
+        error "bad option \"$what\": should be defview, time, rotate, max"
       }
     }
 
@@ -351,6 +559,48 @@ proc cmd_frames {what args} {
 $parser alias frames cmd_frames
 
 # ----------------------------------------------------------------------
+# USAGE: getview
+#
+# Used to query the scaling and centering of the initial view set
+# by VMD after a molecule is loaded.  Returns the following:
+#   <viewName> -rotate <mtx> -global <mtx> -scale <mtx> -center <mtx>
+# ----------------------------------------------------------------------
+proc cmd_getview {} {
+    global Scenes
+
+    if {[llength [molinfo list]] == 0} { return "" }
+    if {$Scenes(@CURRENT) eq ""} { return "" }
+
+    set rval [list $Scenes(@CURRENT)]  ;# start with the scene name
+
+    lappend rval -rotate [lindex [molinfo top get rotate_matrix] 0] \
+                 -scale [lindex [molinfo top get scale_matrix] 0] \
+                 -center [lindex [molinfo top get center_matrix] 0] \
+                 -global [lindex [molinfo top get global_matrix] 0]
+
+    return $rval
+}
+$parser alias getview cmd_getview
+
+#
+# USAGE: server_safe_resize <width> <height>
+#
+# Use this version instead of "display resize" whenever possible.
+# The VMD "display resize" goes into the event loop, so calling that
+# causes things to execute out of order.  Use this method instead to
+# store the change and actually resize later.
+#
+proc server_safe_resize {w h} {
+    global DisplaySize
+
+    if {$w != $DisplaySize(w) || $h != $DisplaySize(h)} {
+        set DisplaySize(w) $w
+        set DisplaySize(h) $h
+        set DisplaySize(changed) yes
+    }
+}
+
+# ----------------------------------------------------------------------
 # SERVER CORE
 # ----------------------------------------------------------------------
 proc server_accept {cid addr port} {
@@ -358,26 +608,34 @@ proc server_accept {cid addr port} {
     fconfigure $cid -buffering none -blocking 0
 
     # identify server type to this client
+    # The server identifier must be in the form <name> <version>.  The
+    # base connect method will ignore characters until it finds this line.
     puts $cid "vmd 0.1"
 }
 
 proc server_handle {cin cout} {
-    global parser buffer client
+    global parser buffer client 
 
-    if {[gets $cin request] < 0} {
+    if {[gets $cin line] < 0} {
         # when client drops connection, we can exit
         # nanoscale will spawn a new server next time we need it
         server_exit $cin $cout
     } else {
-        append buffer($cin) $request "\n"
+        append buffer($cin) $line "\n"
         if {[info complete $buffer($cin)]} {
+	    #puts stdout "command is ($buffer($cin))"
             set request $buffer($cin)
             set buffer($cin) ""
             set client $cout
             if {[catch {$parser eval $request} result] == 0} {
                 server_send_image -eventually
             } else {
+		puts stdout "last gets is ($line) cmd=($request) result=($result)"
                 server_oops $cout $result
+		if { [string match "invalid command*" $result] } {
+                    bgerror $result
+		    exit 1
+		}
             }
         }
     }
@@ -421,17 +679,12 @@ proc server_exit {cin cout} {
 # ----------------------------------------------------------------------
 # SERVER RESPONSES
 # ----------------------------------------------------------------------
-#
-
-#set the screen to a good size
-display resize 300 300
-
 
 # turn off constant updates -- only need them during server_send_image
 display update off
 
 proc server_send_image {{when -now}} {
-    global client Epoch Work Sendqueue
+    global client Epoch Work Views Sendqueue DisplaySize
 
     if {$when eq "-eventually"} {
         after cancel server_send_image
@@ -439,6 +692,14 @@ proc server_send_image {{when -now}} {
         return
     } elseif {$when ne "-now"} {
         error "bad option \"$when\" for server_send_image: should be -now or -eventually"
+    }
+
+    # is there a display resize pending? then resize and try again later
+    if {$DisplaySize(changed)} {
+        set DisplaySize(changed) 0
+        after idle [list display resize $DisplaySize(w) $DisplaySize(h)]
+        after 20 server_send_image
+        return
     }
 
     # loop through requests in the work queue and skip any from an older epoch
@@ -460,12 +721,18 @@ proc server_send_image {{when -now}} {
         if {[info exists item(frame)]} {
             animate goto $item(frame)
         } elseif {[info exists item(rotate)]} {
-            foreach {mx my mz} $item(rotate) break
-            rotate x by $mx
-            rotate y by $my
-            rotate z by $mz
+            molinfo top set rotate_matrix [list $item(rotate)]
+            # send rotation matrix back to the client so we can pause later
+            server_send_result $client [list nv>rotatemtx $item(num) $item(rotate)]
         } else {
             puts "ERROR: bad work frame: [array get item]"
+        }
+
+        # flag to use the stored default view? then set that
+        if {[info exists item(defview)] && $item(defview)} {
+            if {[info exists Views($item(frame))]} {
+                eval molinfo top set $Views($item(frame))
+            }
         }
         catch {unset Work($item(num))}
         break
@@ -511,4 +778,8 @@ if {$Paradigm eq "socket"} {
 }
 
 # vmd automatically drops into an event loop at this point...
+#
+# The VMD TCL interpreter is by default interactive.  Their version
+# of tkconsole always turns this on.  Turn this off
+# so that unknown commands like "scene" don't get exec-ed. 
 set ::tcl_interactive 0
