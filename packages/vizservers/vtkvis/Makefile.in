@@ -55,6 +55,7 @@ VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
 		-lvtkFiltersSources-$(VTK_VERSION) \
 		-lvtkFiltersGeneral-$(VTK_VERSION) \
 		-lvtkFiltersCore-$(VTK_VERSION) \
+		-lvtkImagingMath-$(VTK_VERSION) \
 		-lvtkImagingHybrid-$(VTK_VERSION) \
 		-lvtkImagingCore-$(VTK_VERSION) \
 		-lvtkInteractionStyle-$(VTK_VERSION) \
