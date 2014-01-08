@@ -155,6 +155,7 @@ itcl::class Rappture::Field {
     private method InitHints {} 
 
     private method VerifyVtkDataSet { contents } 
+    private method VectorLimits { vector vectorsize {comp -1} }
     private variable _values ""
 }
 
@@ -1374,21 +1375,20 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set numArrays [$dataAttrs GetNumberOfArrays]
     set vector [blt::vector create \#auto]
     if { $numArrays > 0 } {
-	set array [$dataAttrs GetArray 0]
-        # Calling GetRange with component set to -1 will return 
-        # either the scalar range or vector magnitude range
-	foreach {vmin vmax} [$array GetRange -1] break
-
-
-        if 0  {
-        for { set i 0 } { $i < $numTuples } { incr i } {
-            $vector append [$array GetComponent $i 0] 
-        }
-        }
 	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
 	    set array [$dataAttrs GetArray $i]
 	    set fname  [$dataAttrs GetArrayName $i]
 	    foreach {min max} [$array GetRange -1] break
+            if {$i == 0} {
+                if 0 {
+                set numTuples [$array GetNumberOfTuples]
+                for { set j 0 } { $j < $numTuples } { incr j } {
+                    $vector append [$array GetComponent $j 0] 
+                }
+                }
+                set vmin $min
+                set vmax $max
+            }
 	    lappend limits $fname [list $min $max]
             set _fld2Units($fname) ""
 	    set _fld2Label($fname) $fname
@@ -1545,8 +1545,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
         # Get the data limits 
         set vector [$_comp2unirect3d($cname) valuesObj]
-        lappend limits $cname [$vector limits]
-        lappend limits v      [$vector limits]
+        set minmax [VectorLimits $vector $vectorsize]
+        lappend limits $cname $minmax
+        lappend limits v      $minmax
         set _comp2limits($cname) $limits
 	if {[$_field element $cname.flow] != ""} {
 	    set _comp2flowhints($cname) \
@@ -1580,8 +1581,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
         set xv [blt::vector create \#auto]
         $xv set $_values
-        lappend limits $cname [$xv limits]
-        lappend limits v [$xv limits]
+        set minmax [VectorLimits $xv $vectorsize]
+        lappend limits $cname $minmax
+        lappend limits v $minmax
         blt::vector destroy $xv
         set _comp2limits($cname) $limits
 	incr _counter
@@ -1671,8 +1673,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         foreach axis { x y z } {
             lappend _comp2limits($cname) $axis [$mesh limits $axis]
         }
-	lappend _comp2limits($cname) $cname [$v limits]
-	lappend _comp2limits($cname) v [$v limits]
+        set minmax [VectorLimits $v $_comp2size($cname)]
+        lappend _comp2limits($cname) $cname $minmax
+        lappend _comp2limits($cname) v $minmax
 	return 1
     } 
     if {$_dim == 3} {
@@ -1696,8 +1699,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         foreach axis { x y z } {
             lappend _comp2limits($cname) $axis [$mesh limits $axis]
         }
-        lappend _comp2limits($cname) $cname [$v limits]
-        lappend _comp2limits($cname) v [$v limits]
+        set minmax [VectorLimits $v $_comp2size($cname)]
+        lappend _comp2limits($cname) $cname $minmax
+        lappend _comp2limits($cname) v $minmax
 	return 1
     }
     error "unhandled case in field dim=$_dim element=$element"
@@ -1786,14 +1790,14 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
     set vmax 1
     set numArrays [$dataAttrs GetNumberOfArrays]
     if { $numArrays > 0 } {
-	set array [$dataAttrs GetArray 0]
-        # Calling GetRange with component set to -1 will return 
-        # either the scalar range or vector magnitude range
-	foreach {vmin vmax} [$array GetRange -1] break
 	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
 	    set array [$dataAttrs GetArray $i]
 	    set fname  [$dataAttrs GetArrayName $i]
 	    foreach {min max} [$array GetRange -1] break
+            if {$i == 0} {
+                set vmin $min
+                set vmax $max
+            }
 	    lappend limits $fname [list $min $max]
             set _fld2Units($fname) ""
 	    set _fld2Label($fname) $fname
@@ -1862,4 +1866,48 @@ itcl::body Rappture::Field::GetAssociation { cname } {
             error "unknown field association \"$assoc\""
         }
     }
+}
+
+#
+# Compute the per-component limits or limits of vector magnitudes
+#
+itcl::body Rappture::Field::VectorLimits {vector vectorsize {comp -1}} {
+    if {$vectorsize == 1} {
+        set minmax [$vector limits]
+    } else {
+        set len [$vector length]
+        if {[expr $len % $vectorsize] != 0} {
+            error "Invalid vectorsize: $vectorsize"
+        }
+        if {$comp > $vectorsize-1} {
+            error "Invalid vector component: $comp"
+        }
+        set numTuples [expr ($len/$vectorsize)]
+        for {set i 0} {$i < $numTuples} {incr i} {
+            if {$comp >= 0} {
+                set idx [expr ($i * $vectorsize + $comp)]
+                set val [$vector index $idx]
+            } else {
+                set idx [expr ($i * $vectorsize)]
+                set mag 0
+                for {set j 0} {$j < $vectorsize} {incr j} {
+                    set val [$vector index $idx]
+                    set mag [expr ($mag + $val * $val)]
+                    incr idx
+                }
+                set val [expr (sqrt($mag))]
+            }
+            if (![info exists minmax]) {
+                set minmax [list $val $val]
+            } else {
+                if {$val < [lindex $minmax 0]} {
+                    lset minmax 0 $val
+                }
+                if {$val > [lindex $minmax 1]} {
+                    lset minmax 1 $val
+                }
+            }
+        }
+    }
+    return $minmax
 }
