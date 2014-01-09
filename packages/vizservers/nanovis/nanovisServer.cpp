@@ -47,8 +47,7 @@ int nv::g_statsFile = -1; ///< Stats output file descriptor.
 
 int nv::g_fdIn = STDIN_FILENO;     ///< Input file descriptor
 int nv::g_fdOut = STDOUT_FILENO;   ///< Output file descriptor
-FILE *nv::g_fIn = stdin;           ///< Input file handle
-FILE *nv::g_fOut = stdout;         ///< Output file handle
+FILE *nv::g_fOut = NULL;           ///< Output file handle
 FILE *nv::g_fLog = NULL;           ///< Trace logging file handle
 ReadBuffer *nv::g_inBufPtr = NULL; ///< Socket read buffer
 #ifdef USE_THREADS
@@ -318,7 +317,12 @@ nv::sendDataToClient(const char *command, char *data, size_t dlen)
 static void
 initService()
 {
-    TRACE("Enter");
+    g_fOut = fdopen(g_fdOut, "w");
+    // If running without socket, use stdout for debugging
+    if (g_fOut == NULL && g_fdOut != STDOUT_FILENO) {
+        g_fdOut = STDOUT_FILENO;
+        g_fOut = fdopen(g_fdOut, "w");
+    }
 
     const char* user = getenv("USER");
     char* logName = NULL;
@@ -337,17 +341,18 @@ initService()
 
     // open log and map stderr to log file
     g_fLog = fopen(logName, "w");
-    close(STDERR_FILENO);
     dup2(fileno(g_fLog), STDERR_FILENO);
-    // flush junk
-    fflush(stderr);
+    // If we are writing to socket, map stdout to log
+    if (g_fdOut != STDOUT_FILENO) {
+        dup2(fileno(g_fLog), STDOUT_FILENO);
+    }
+
+    fflush(stdout);
 
     // clean up malloc'd memory
     if (logName != NULL) {
         free(logName);
     }
-
-    TRACE("Leave");
 }
 
 static void
@@ -458,6 +463,7 @@ main(int argc, char **argv)
 {
     // Ignore SIGPIPE.  **Is this needed? **
     signal(SIGPIPE, SIG_IGN);
+    initService();
     initLog();
 
     memset(&g_stats, 0, sizeof(g_stats));
@@ -469,8 +475,8 @@ main(int argc, char **argv)
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    fprintf(stdout, "NanoVis %s (build %s)\n", NANOVIS_VERSION_STRING, SVN_VERSION);
-    fflush(stdout);
+    fprintf(g_fOut, "NanoVis %s (build %s)\n", NANOVIS_VERSION_STRING, SVN_VERSION);
+    fflush(g_fOut);
 
     g_inBufPtr = new ReadBuffer(g_fdIn, 1<<12);
 
@@ -507,51 +513,31 @@ main(int argc, char **argv)
 
     while (1) {
         static struct option long_options[] = {
-            {"infile",  required_argument, NULL, 0},
-            {"path",    required_argument, NULL, 2},
-            {"debug",   no_argument,       NULL, 3},
+            {"debug",   no_argument,       NULL, 'd'},
+            {"path",    required_argument, NULL, 'p'},
             {0, 0, 0, 0}
         };
         int option_index = 0;
-        int c;
-
-        c = getopt_long(argc, argv, ":dp:i:l:r:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "dp:", long_options, &option_index);
         if (c == -1) {
             break;
         }
         switch (c) {
-        case '?':
-            fprintf(stderr, "unknown option -%c\n", optopt);
-            return 1;
-        case ':':
-            if (optopt < 4) {
-                fprintf(stderr, "argument missing for --%s option\n", 
-                        long_options[optopt].name);
-            } else {
-                fprintf(stderr, "argument missing for -%c option\n", optopt);
-            }
-            return 1;
-        case 2:
-        case 'p':
-            path = optarg;
-            break;
-        case 3:
         case 'd':
+            TRACE("Debugging on");
             NanoVis::debugFlag = true;
             break;
-        case 0:
-        case 'i':
-            g_fIn = fopen(optarg, "r");
-            if (g_fIn == NULL) {
-                perror(optarg);
-                return 2;
-            }
+        case 'p':
+            TRACE("Resource path: '%s'", optarg);
+            path = optarg;
+            break;
+        case '?':
             break;
         default:
             fprintf(stderr,"unknown option '%c'.\n", c);
             return 1;
         }
-    }     
+    }
     if (path == NULL) {
         char *p;
 
@@ -564,18 +550,17 @@ main(int argc, char **argv)
             p = strrchr((char *)path, '/');
         }
         if (p == NULL) {
-            TRACE("path not specified");
+            ERROR("Resource path not specified, and could not determine a valid path");
             return 1;
         }
         *p = '\0';
         newPath = new char[(strlen(path) + 15) * 2 + 1];
         sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
         path = newPath;
+        TRACE("No resource path specified, using: %s", path);
     }
 
     FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
-
-    initService();
 
     if (!NanoVis::init(path)) {
         exitService(1);

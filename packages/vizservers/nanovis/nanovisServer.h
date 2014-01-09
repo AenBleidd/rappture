@@ -42,7 +42,6 @@ namespace nv {
     extern int g_statsFile;        ///< Stats file descriptor
     extern int g_fdIn;             ///< Input file descriptor
     extern int g_fdOut;            ///< Output file descriptor
-    extern FILE *g_fIn;            ///< Input file handle
     extern FILE *g_fOut;           ///< Output file handle
     extern FILE *g_fLog;           ///< Trace logging file handle
     extern ReadBuffer *g_inBufPtr; ///< Socket read buffer
