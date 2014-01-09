@@ -1053,7 +1053,7 @@ MakeImageFiles(char *tmpFileName,
                bool *cancelPtr)
 {
     struct pollfd pollResults;
-    pollResults.fd = fileno(nv::g_fIn);
+    pollResults.fd = nv::g_fdIn;
     pollResults.events = POLLIN;
 #define PENDING_TIMEOUT          10  /* milliseconds. */
     int timeout = PENDING_TIMEOUT;
