@@ -45,7 +45,7 @@ Stats GeoVis::g_stats;
 int GeoVis::g_statsFile = -1; ///< Stats output file descriptor.
 int GeoVis::g_fdIn = STDIN_FILENO; ///< Input file descriptor
 int GeoVis::g_fdOut = STDOUT_FILENO; ///< Output file descriptor
-FILE *GeoVis::g_fOut = stdout; ///< Output file handle
+FILE *GeoVis::g_fOut = NULL; ///< Output file handle
 FILE *GeoVis::g_fLog = NULL; ///< Trace logging file handle
 Renderer *GeoVis::g_renderer = NULL; ///< Main render worker
 ReadBuffer *GeoVis::g_inBufPtr = NULL; ///< Socket read buffer
@@ -343,7 +343,12 @@ serverStats(int code)
 static void
 initService()
 {
-    TRACE("Enter");
+    g_fOut = fdopen(g_fdOut, "w");
+    // If running without socket, use stdout for debugging
+    if (g_fOut == NULL && g_fdOut != STDOUT_FILENO) {
+        g_fdOut = STDOUT_FILENO;
+        g_fOut = fdopen(g_fdOut, "w");
+    }
 
     const char *user = getenv("USER");
     char *logName = NULL;
@@ -363,17 +368,18 @@ initService()
 
     // open log and map stderr to log file
     g_fLog = fopen(logName, "w");
-    close(STDERR_FILENO);
     dup2(fileno(g_fLog), STDERR_FILENO);
-    // flush junk
-    fflush(stderr);
+    // If we are writing to socket, map stdout to log
+    if (g_fdOut != STDOUT_FILENO) {
+        dup2(fileno(g_fLog), STDOUT_FILENO);
+    }
+
+    fflush(stdout);
 
     // clean up malloc'd memory
     if (logName != NULL) {
         free(logName);
     }
-
-    TRACE("Leave");
 }
 
 static void
