@@ -463,6 +463,47 @@ main(int argc, char **argv)
 {
     // Ignore SIGPIPE.  **Is this needed? **
     signal(SIGPIPE, SIG_IGN);
+
+    const char *resourcePath = NULL;
+    while (1) {
+        static struct option long_options[] = {
+            {"debug",   no_argument,       NULL, 'd'},
+            {"path",    required_argument, NULL, 'p'},
+            {0, 0, 0, 0}
+        };
+        int option_index = 0;
+        int c = getopt_long(argc, argv, "dp:i:o:", long_options, &option_index);
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+        case 'd':
+            NanoVis::debugFlag = true;
+            break;
+        case 'p':
+            resourcePath = optarg;
+            break;
+        case 'i': {
+            int fd = atoi(optarg);
+            if (fd >=0 && fd < 5) {
+                g_fdIn = fd;
+            }
+        }
+            break;
+        case 'o': {
+            int fd = atoi(optarg);
+            if (fd >=0 && fd < 5) {
+                g_fdOut = fd;
+            }
+        }
+            break;
+        case '?':
+            break;
+        default:
+            return 1;
+        }
+    }
+
     initService();
     initLog();
 
@@ -470,6 +511,20 @@ main(int argc, char **argv)
     gettimeofday(&g_stats.start, NULL);
 
     TRACE("Starting NanoVis Server");
+    if (NanoVis::debugFlag) {
+        TRACE("Debugging on");
+    }
+
+    // Sanity check: log descriptor can't be used for client IO
+    if (fileno(g_fLog) == g_fdIn) {
+        ERROR("Invalid input file descriptor");
+        return 1;
+    }
+    if (fileno(g_fLog) == g_fdOut) {
+        ERROR("Invalid output file descriptor");
+        return 1;
+    }
+    TRACE("File descriptors: in %d out %d log %d", g_fdIn, g_fdOut, fileno(g_fLog));
 
     /* This synchronizes the client with the server, so that the client 
      * doesn't start writing commands before the server is ready. It could
@@ -508,65 +563,38 @@ main(int argc, char **argv)
     glutDisplayFunc(NanoVis::render);
     glutReshapeFunc(reshape);
 
-    const char *path = NULL;
-    char *newPath = NULL;
-
-    while (1) {
-        static struct option long_options[] = {
-            {"debug",   no_argument,       NULL, 'd'},
-            {"path",    required_argument, NULL, 'p'},
-            {0, 0, 0, 0}
-        };
-        int option_index = 0;
-        int c = getopt_long(argc, argv, "dp:", long_options, &option_index);
-        if (c == -1) {
-            break;
-        }
-        switch (c) {
-        case 'd':
-            TRACE("Debugging on");
-            NanoVis::debugFlag = true;
-            break;
-        case 'p':
-            TRACE("Resource path: '%s'", optarg);
-            path = optarg;
-            break;
-        case '?':
-            break;
-        default:
-            fprintf(stderr,"unknown option '%c'.\n", c);
-            return 1;
-        }
-    }
-    if (path == NULL) {
+    char *newResourcePath = NULL;
+    if (resourcePath == NULL) {
         char *p;
 
         // See if we can derive the path from the location of the program.
         // Assume program is in the form <path>/bin/nanovis.
-        path = argv[0];
-        p = strrchr((char *)path, '/');
+        resourcePath = argv[0];
+        p = strrchr((char *)resourcePath, '/');
         if (p != NULL) {
             *p = '\0';
-            p = strrchr((char *)path, '/');
+            p = strrchr((char *)resourcePath, '/');
         }
         if (p == NULL) {
             ERROR("Resource path not specified, and could not determine a valid path");
             return 1;
         }
         *p = '\0';
-        newPath = new char[(strlen(path) + 15) * 2 + 1];
-        sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
-        path = newPath;
-        TRACE("No resource path specified, using: %s", path);
+        newResourcePath = new char[(strlen(resourcePath) + 15) * 2 + 1];
+        sprintf(newResourcePath, "%s/lib/shaders:%s/lib/resources", resourcePath, resourcePath);
+        resourcePath = newResourcePath;
+        TRACE("No resource path specified, using: %s", resourcePath);
+    } else {
+        TRACE("Resource path: '%s'", resourcePath);
     }
 
     FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
-    if (!NanoVis::init(path)) {
+    if (!NanoVis::init(resourcePath)) {
         exitService(1);
     }
-    if (newPath != NULL) {
-        delete [] newPath;
+    if (newResourcePath != NULL) {
+        delete [] newResourcePath;
     }
 
     Shader::init();

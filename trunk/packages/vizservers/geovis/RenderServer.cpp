@@ -443,6 +443,38 @@ main(int argc, char *argv[])
 {
     // Ignore SIGPIPE.  **Is this needed? **
     signal(SIGPIPE, SIG_IGN);
+
+    //const char *resourcePath = NULL;
+    while (1) {
+        int c = getopt(argc, argv, "p:i:o:");
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+        case 'p':
+            //resourcePath = optarg;
+            break;
+        case 'i': {
+            int fd = atoi(optarg);
+            if (fd >=0 && fd < 5) {
+                g_fdIn = fd;
+            }
+        }
+            break;
+        case 'o': {
+            int fd = atoi(optarg);
+            if (fd >=0 && fd < 5) {
+                g_fdOut = fd;
+            }
+        }
+            break;
+        case '?':
+            break;
+        default:
+            return 1;
+        }
+    }
+
     initService();
     initLog();
 
@@ -450,6 +482,17 @@ main(int argc, char *argv[])
     gettimeofday(&g_stats.start, NULL);
 
     TRACE("Starting GeoVis Server");
+
+    // Sanity check: log descriptor can't be used for client IO
+    if (fileno(g_fLog) == g_fdIn) {
+        ERROR("Invalid input file descriptor");
+        return 1;
+    }
+    if (fileno(g_fLog) == g_fdOut) {
+        ERROR("Invalid output file descriptor");
+        return 1;
+    }
+    TRACE("File descriptors: in %d out %d log %d", g_fdIn, g_fdOut, fileno(g_fLog));
 
     /* This synchronizes the client with the server, so that the client 
      * doesn't start writing commands before the server is ready. It could

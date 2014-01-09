@@ -491,6 +491,34 @@ main(int argc, char *argv[])
 {
     // Ignore SIGPIPE.  **Is this needed? **
     signal(SIGPIPE, SIG_IGN);
+
+    while (1) {
+        int c = getopt(argc, argv, "i:o:");
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+        case 'i': {
+            int fd = atoi(optarg);
+            if (fd >=0 && fd < 5) {
+                g_fdIn = fd;
+            }
+        }
+            break;
+        case 'o': {
+            int fd = atoi(optarg);
+            if (fd >=0 && fd < 5) {
+                g_fdOut = fd;
+            }
+        }
+            break;
+        case '?':
+            break;
+        default:
+            return 1;
+        }
+    }
+
     initService();
     initLog();
 
@@ -498,6 +526,17 @@ main(int argc, char *argv[])
     gettimeofday(&g_stats.start, NULL);
 
     TRACE("Starting VTKVis Server");
+
+    // Sanity check: log descriptor can't be used for client IO
+    if (fileno(g_fLog) == g_fdIn) {
+        ERROR("Invalid input file descriptor");
+        return 1;
+    }
+    if (fileno(g_fLog) == g_fdOut) {
+        ERROR("Invalid output file descriptor");
+        return 1;
+    }
+    TRACE("File descriptors: in %d out %d log %d", g_fdIn, g_fdOut, fileno(g_fLog));
 
 #ifdef WANT_TRACE
     vtksys::SystemInformation::SetStackTraceOnError(1);
