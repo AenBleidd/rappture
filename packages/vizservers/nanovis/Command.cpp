@@ -2236,7 +2236,7 @@ nv::processCommands(Tcl_Interp *interp,
                                          * that we don't spin when no data is
                                          * available. */
     while (inBufPtr->isLineAvailable() || 
-           (select(1, &readFds, NULL, NULL, tvPtr) > 0)) {
+           (select(inBufPtr->file()+1, &readFds, NULL, NULL, tvPtr) > 0)) {
         size_t numBytes;
         unsigned char *buffer;
 

@@ -45,8 +45,10 @@ using namespace nv::util;
 Stats nv::g_stats;
 int nv::g_statsFile = -1; ///< Stats output file descriptor.
 
-int nv::g_fdIn = STDIN_FILENO;     ///< Input file descriptor
-int nv::g_fdOut = STDOUT_FILENO;   ///< Output file descriptor
+#define CLIENT_READ     (3)
+#define CLIENT_WRITE    (4)
+int nv::g_fdIn = CLIENT_READ;     ///< Input file descriptor
+int nv::g_fdOut = CLIENT_WRITE;   ///< Output file descriptor
 FILE *nv::g_fOut = NULL;           ///< Output file handle
 FILE *nv::g_fLog = NULL;           ///< Trace logging file handle
 ReadBuffer *nv::g_inBufPtr = NULL; ///< Socket read buffer
@@ -83,13 +85,13 @@ sendAck()
 {
     std::ostringstream oss;
     oss << "nv>ok -token " << g_stats.nCommands <<  "\n";
-    int nBytes = oss.str().length();
+    size_t numBytes = oss.str().length();
 
     TRACE("Sending OK for commands through %lu", g_stats.nCommands);
 #ifdef USE_THREADS
-    queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::OK);
+    queueResponse(oss.str().c_str(), numBytes, Response::VOLATILE, Response::OK);
 #else
-    if (write(g_fdOut, oss.str().c_str(), nBytes) < 0) {
+    if (write(g_fdOut, oss.str().c_str(), numBytes) < 0) {
         ERROR("write failed: %s", strerror(errno));
         return -1;
     }
@@ -317,13 +319,15 @@ nv::sendDataToClient(const char *command, char *data, size_t dlen)
 static void
 initService()
 {
+    // Create a stream associated with the client read file descriptor.  If
+    // we're not using a socket (fdopen of descriptor 4 will return NULL),
+    // then use descriptor 1 and stdout respectively.
     g_fOut = fdopen(g_fdOut, "w");
     // If running without socket, use stdout for debugging
-    if (g_fOut == NULL && g_fdOut != STDOUT_FILENO) {
+    if (g_fOut == NULL) {
         g_fdOut = STDOUT_FILENO;
-        g_fOut = fdopen(g_fdOut, "w");
+        g_fOut = stdout;
     }
-
     const char* user = getenv("USER");
     char* logName = NULL;
     int logNameLen = 0;
@@ -338,16 +342,9 @@ initService()
         strncpy(logName, "/tmp/nanovis_log_", logNameLen);
         strncat(logName, user, strlen(user));
     }
-
-    // open log and map stderr to log file
+    // Nanoscale automatically redirects stdout and stderr to log files.
     g_fLog = fopen(logName, "w");
     dup2(fileno(g_fLog), STDERR_FILENO);
-    // If we are writing to socket, map stdout to log
-    if (g_fdOut != STDOUT_FILENO) {
-        dup2(fileno(g_fLog), STDOUT_FILENO);
-    }
-
-    fflush(stdout);
 
     // clean up malloc'd memory
     if (logName != NULL) {
@@ -530,8 +527,17 @@ main(int argc, char **argv)
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    fprintf(g_fOut, "NanoVis %s (build %s)\n", NANOVIS_VERSION_STRING, SVN_VERSION);
-    fflush(g_fOut);
+    char mesg[200];
+
+    sprintf(mesg, "NanoVis %s (build %s)\n", NANOVIS_VERSION_STRING, SVN_VERSION);
+    size_t numBytes;
+    ssize_t numWritten;
+
+    numBytes = strlen(mesg);
+    numWritten = write(g_fdOut, mesg, numBytes);
+    if ((ssize_t)numBytes != numWritten) {
+        ERROR("Short write in version string: %s", strerror(errno));
+    }
 
     g_inBufPtr = new ReadBuffer(g_fdIn, 1<<12);
 

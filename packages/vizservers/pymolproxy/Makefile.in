@@ -6,7 +6,8 @@ CC_SWITCHES =	$(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 CFLAGS =	@CFLAGS@ 
 DEFINES =	-DSTANDALONE \
 		-DSVN_VERSION=\"$(SVN_VERSION)\" \
-		-DSTATSDIR=\"$(STATSDIR)\"
+		-DSTATSDIR=\"$(STATSDIR)\" \
+		-DLOGDIR=\"$(LOGDIR)\" 
 EXTRA_CFLAGS =	-Wall 
 INCLUDES =	$(TCL_INC_SPEC) -I$(srcdir)
 TCL_INC_SPEC =	@TCL_INC_SPEC@
@@ -28,6 +29,7 @@ VPATH =		$(srcdir)
 
 SVN_VERSION	= $(shell svnversion $(srcdir))
 STATSDIR	= @STATSDIR@
+LOGDIR		= @LOGDIR@
 
 .PHONY: all install clean distclean
 
