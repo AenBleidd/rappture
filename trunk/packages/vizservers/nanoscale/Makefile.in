@@ -29,8 +29,12 @@ CLIENT_OBJS	= client.o clientlib.o
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 LD_RUN_PATH     = $(libdir)
+LOGDIR		= @LOGDIR@
+SVN_VERSION	= $(shell svnversion $(srcdir))
 
-DEFINES		= -DSERVERSFILE=\"$(libdir)/renderservers.tcl\"
+DEFINES =	-DSERVERSFILE=\"$(libdir)/renderservers.tcl\" \
+		-DSVN_VERSION=\"$(SVN_VERSION)\" \
+		-DLOGDIR=\"$(LOGDIR)\" 
 INCLUDES	= -I. $(TCL_INC_SPEC)
 LIBS		= $(TCL_LIB_SPEC) \
 		-Wl,-rpath,$(LD_RUN_PATH)

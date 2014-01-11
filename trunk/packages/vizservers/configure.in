@@ -17,6 +17,13 @@ AC_ARG_WITH(
     [STATSDIR=$withval],
     [STATSDIR="/var/tmp/visservers"])
 
+AC_ARG_WITH(
+    [logsdir],
+    [AS_HELP_STRING([--with-logsdir=DIR],
+        [Write log files in DIR])],
+    [LOGDIR=$withval],
+    [LOGDIR="/tmp"])
+
 RP_LANG_PYTHON
 
 #------------------------------------------------------------------------
@@ -105,10 +112,12 @@ AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
 AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
 
 AC_CHECK_FUNCS([accept4])
+AC_CHECK_FUNCS([mkstemps])
 
 SUBDIRS="nanoscale pymolproxy"
 
 AC_SUBST(LD_RPATH)
+AC_SUBST(LOGDIR)
 AC_SUBST(STATSDIR)
 AC_SUBST(SUBDIRS)
 AC_SUBST(PYTHON)

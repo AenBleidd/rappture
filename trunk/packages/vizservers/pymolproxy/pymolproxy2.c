@@ -90,8 +90,6 @@
 #define TRUE  1
 
 static int debug = FALSE;
-static char stderrFile[200];
-static FILE *fdebug;
 static FILE *frecord;
 static int recording = FALSE;
 static int pymolIsAlive = TRUE;
@@ -114,6 +112,12 @@ static int statsFile = -1;
 #define VIEWPORT_PENDING	(1<<10)
 
 #define IO_TIMEOUT (30000)
+#define CLIENT_READ		(3)
+#define CLIENT_WRITE		(4)
+
+#ifndef LOGDIR
+#define LOGDIR		"/tmp"
+#endif	/* LOGDIR */
 
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
@@ -225,10 +229,10 @@ PrintToLog TCL_VARARGS_DEF(const char *, arg1)
     va_list args;
     
     format = TCL_VARARGS_START(const char *, arg1, args);
-    fprintf(fdebug, "pymolproxy: ");
-    vfprintf(fdebug, format, args);
-    fprintf(fdebug, "\n");
-    fflush(fdebug);
+    fprintf(stderr, "pymolproxy: ");
+    vfprintf(stderr, format, args);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 }
 #endif
 
@@ -2096,7 +2100,7 @@ static CmdProc cmdProcs[] = {
 };
 
 static int
-InitProxy(PymolProxy *p, const char *fileName, char *const *argv)
+InitProxy(PymolProxy *p, char *const *argv)
 {
     int sin[2], sout[2];		/* Pipes to connect to server. */
     pid_t child;
@@ -2126,6 +2130,7 @@ InitProxy(PymolProxy *p, const char *fileName, char *const *argv)
 
     if (child == 0) {			/* Child process */
         int f;
+	char tmpname[200];
 
         /* 
          * Create a new process group, so we can later kill this process and
@@ -2138,13 +2143,16 @@ InitProxy(PymolProxy *p, const char *fileName, char *const *argv)
 
         dup2(sin[0],  0);		/* Server standard input */
         dup2(sout[1], 1);		/* Server standard output */
-	f = open(fileName, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+
+	/* Redirect child's stdout to a log file. */
+	sprintf(tmpname, "%s/PYMOL-%d-stderr.XXXXXX", LOGDIR, getpid());
+	f = mkstemp(tmpname);
 	if (f < 0) {
-	    ERROR("can't open server error file `%s': %s", fileName, 
+	    ERROR("can't open file `%s' to capture pymol stderr: %s", tmpname, 
 		  strerror(errno));
 	    exit(1);
 	}
-        dup2(f, 2);			/* Redirect stderr to a file */
+        dup2(f, 2);			/* Redirect stderr to a log file */
         
 	/* Close all other descriptors  */        
 	for (f = 3; f < FD_SETSIZE; f++) {
@@ -2175,7 +2183,7 @@ InitProxy(PymolProxy *p, const char *fileName, char *const *argv)
     p->flags      = CAN_UPDATE;
     p->frame      = 1;
     p->pid      = child;
-    InitReadBuffer(&p->client, "client", p->cout, 1<<16);
+    InitReadBuffer(&p->client, "client", CLIENT_READ, 1<<16);
     InitReadBuffer(&p->server, "server", p->sout, 1<<18);
 
     /* Create safe interpreter and add pymol-specific commands to it. */
@@ -2255,7 +2263,6 @@ FreeProxy(PymolProxy *p)
     if (WIFEXITED(result)) {
 	result = WEXITSTATUS(result);
     }
-    unlink(stderrFile);
     return result;
 }
 
@@ -2298,8 +2305,8 @@ ClientToServer(void *clientData)
 		    DEBUG("TCL_BREAK found");
 #endif
 		    break;		/* This was caused by a "imgflush"
-					 * command. Break out of the read loop
-					 * and allow a new image to be
+					 * command. Break out of the read
+					 * loop and allow a new image to be
 					 * rendered. */
 		}
 		if (p->flags & FORCE_UPDATE) {
@@ -2310,9 +2317,8 @@ ClientToServer(void *clientData)
 		}
 	    }
 	    tv.tv_sec = 0L;
-	    tv.tv_usec = 0L;	/* On successive reads, we break
-					 *  out * if no data is
-					 *  available. */
+	    tv.tv_usec = 0L;		/* On successive reads, we break
+					 * out if no data is available. */
 	    tvPtr = &tv;			
 	}
 #if READ_DEBUG
@@ -2404,14 +2410,12 @@ ServerToClient(void *clientData)
 	    {
 		struct timeval tv;
 		fd_set writeFds;
-		int fd;
 
 		tv.tv_sec = tv.tv_usec = 0L;
 		FD_ZERO(&writeFds);
-		fd = fileno(stdout);
-		FD_SET(fd, &writeFds);
-		if (select(fd+1, NULL, &writeFds, NULL, &tv) > 0) {
-		    WriteImages(&list, fd);
+		FD_SET(CLIENT_WRITE, &writeFds);
+		if (select(CLIENT_WRITE+1, NULL, &writeFds, NULL, &tv) > 0) {
+		    WriteImages(&list, CLIENT_WRITE);
 		}
 	    }
 	}
@@ -2427,12 +2431,10 @@ main(int argc, char **argv)
 {
     PymolProxy proxy;
     pthread_t thread1, thread2;
+    char version[200];
+    ssize_t numWritten;
+    size_t numBytes;
 
-    sprintf(stderrFile, "/tmp/pymol%d.stderr", getpid());
-    fdebug = stderr;
-    if (debug) {
-        fdebug = fopen("/tmp/pymolproxy.log", "w");
-    }    
     frecord = NULL;
     if (recording) {
 	char fileName[200];
@@ -2440,12 +2442,15 @@ main(int argc, char **argv)
 	sprintf(fileName, "/tmp/pymolproxy%d.py", getpid());
         frecord = fopen(fileName, "w");
     }    
-    fprintf(stdout, "PyMol 1.0 (build %s)\n", SVN_VERSION);
-    fflush(stdout);
-
+    sprintf(version, "PyMol 1.0 (build %s)\n", SVN_VERSION);
+    numBytes = strlen(version);
+    numWritten = write(CLIENT_WRITE, version, numBytes);
+    if (numWritten < numBytes) {
+        ERROR("Short write on version string", strerror(errno));
+    }
     INFO("Starting pymolproxy (threaded version)");
 
-    InitProxy(&proxy, stderrFile, argv + 1);
+    InitProxy(&proxy, argv + 1);
     if (pthread_create(&thread1, NULL, &ClientToServer, &proxy) < 0) {
         ERROR("Can't create reader thread: %s", strerror(errno));
     }

@@ -42,8 +42,10 @@ using namespace VtkVis;
 Stats VtkVis::g_stats;
 
 int VtkVis::g_statsFile = -1; ///< Stats output file descriptor.
-int VtkVis::g_fdIn = STDIN_FILENO; ///< Input file descriptor
-int VtkVis::g_fdOut = STDOUT_FILENO; ///< Output file descriptor
+#define CLIENT_READ     (3)
+#define CLIENT_WRITE    (4)
+int VtkVis::g_fdIn = CLIENT_READ; ///< Input file descriptor
+int VtkVis::g_fdOut = CLIENT_WRITE; ///< Output file descriptor
 FILE *VtkVis::g_fOut = NULL; ///< Output file handle
 FILE *VtkVis::g_fLog = NULL; ///< Trace logging file handle
 Renderer *VtkVis::g_renderer = NULL; ///< Main render worker
@@ -406,11 +408,14 @@ serverStats(int code)
 static void
 initService()
 {
+    // Create a stream associated with the client read file descriptor.  If
+    // we're not using a socket (fdopen of descriptor 4 will return NULL),
+    // then use descriptor 1 and stdout respectively.
     g_fOut = fdopen(g_fdOut, "w");
     // If running without socket, use stdout for debugging
     if (g_fOut == NULL && g_fdOut != STDOUT_FILENO) {
         g_fdOut = STDOUT_FILENO;
-        g_fOut = fdopen(g_fdOut, "w");
+        g_fOut = stdout;
     }
 
     const char *user = getenv("USER");
@@ -430,15 +435,10 @@ initService()
         strncat(logName, ".txt", 4);
     }
 
+    // Nanoscale automatically redirects stdout and stderr to log files.
     // open log and map stderr to log file
     g_fLog = fopen(logName, "w");
     dup2(fileno(g_fLog), STDERR_FILENO);
-    // If we are writing to socket, map stdout to log
-    if (g_fdOut != STDOUT_FILENO) {
-        dup2(fileno(g_fLog), STDOUT_FILENO);
-    }
-
-    fflush(stdout);
 
     // clean up malloc'd memory
     if (logName != NULL) {

@@ -27,6 +27,10 @@
 #define SERVERSFILE  "/opt/hubzero/rappture/render/lib/renderservers.tcl"
 #endif
 
+#ifndef LOGDIR
+#define LOGDIR		"/tmp"
+#endif
+
 #define ERROR(...)      SysLog(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
 #define TRACE(...)      SysLog(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
 #define WARN(...)       SysLog(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
@@ -417,8 +421,9 @@ main(int argc, char **argv)
 	    } 
 	    if (child == 0) {		/* Child process. */
 		int i;
-		int errFd;
-		
+		int newFd;
+		char tmpname[200];
+
 		umask(0);
 		if ((!debug) && (setsid() < 0)) {
 		    ERROR("Can't setsid \"%s\": %s", serverPtr->name, 
@@ -430,31 +435,49 @@ main(int argc, char **argv)
 			  serverPtr->name, strerror(errno));
 		    exit(1);
 		}
+		/* We could use the same log file for stdout and stderr. 
+		 * Right now they are separate files. */
 
-		/* Dup the descriptors and start the server.  */
-
-		if (dup2(f, 0) < 0)  {	/* Stdin */
+		/* Redirect child's stdout to a log file. */
+		sprintf(tmpname, "%s/%s-%d-stdout.XXXXXX", LOGDIR, 
+			serverPtr->name, getpid());
+		newFd = mkstemp(tmpname);
+		if (newFd < 0) { 
+		    ERROR("%s: can't open \"%s\": %s", serverPtr->name,
+			  tmpname, strerror(errno));
+		    exit(1);
+		} 
+		if (dup2(newFd, 1) < 0) { 
+		    ERROR("%s: can't dup stdout to \"%s\": %s", 
+			  serverPtr->name, tmpname, strerror(errno));
+		    exit(1);
+		}
+		/* Redirect child's stderr to a log file. */
+		sprintf(tmpname, "%s/%s-%d-stderr.XXXXXX", LOGDIR, 
+			serverPtr->name, getpid());
+		newFd = mkstemp(tmpname);
+		if (newFd < 0) { 
+		    ERROR("%s: can't open \"%s\": %s", serverPtr->name,
+			  tmpname, strerror(errno));
+		    exit(1);
+		} 
+		if (dup2(newFd, 2) < 0) {
+		    ERROR("%s: can't dup stderr to \"%s\": %s", 
+			  serverPtr->name, tmpname, strerror(errno));
+		    exit(1);
+		}
+		/* Dup the socket to descriptors 3 and 4 */
+		if (dup2(f, 3) < 0)  {	/* Stdin */
 		    ERROR("%s: can't dup stdin: %s", serverPtr->name, 
 			strerror(errno));
 		    exit(1);
 		}
-		if (dup2(f, 1) < 0) {	/* Stdout */
+		if (dup2(f, 4) < 0) {	/* Stdout */
 		    ERROR("%s: can't dup stdout: %s", serverPtr->name, 
 			  strerror(errno));
 		    exit(1);
 		}
-		errFd = open("/dev/null", O_WRONLY, 0600);
-		if (errFd < 0) {
-		    ERROR("%s: can't open /dev/null for read/write: %s", 
-			  serverPtr->name, strerror(errno));
-		    exit(1);
-		}
-		if (dup2(errFd, 2) < 0) { /* Stderr */
-		    ERROR("%s: can't dup stderr for \"%s\": %s", 
-			  serverPtr->name, strerror(errno));
-		    exit(1);
-		}
-		for(i = 3; i <= FD_SETSIZE; i++) {
+		for(i = 5; i <= FD_SETSIZE; i++) {
 		    close(i);		/* Close all the other descriptors. */
 		}
 

@@ -282,18 +282,9 @@ itcl::body Rappture::VisViewer::Connect { servers } {
         # Read back the server identification string.
         if { [gets $_sid data] <= 0 } {
             set _sid ""
-            puts stderr "reading from server"
+            puts stderr "reading from server data=($data)"
             RemoveServerFromList $_serverType $server
             continue
-        }
-        # The response should be in the form "serverName major.minor ...".
-        set pattern {^[A-Za-z][A-Za-z0-9_]* [0-9]+\.[0-9].*}
-
-        while { ![regexp $pattern $data match] } {
-            puts stderr "$data"
-            if { [gets $_sid data] <= 0 } {
-                exit -1
-            }
         }
         puts stderr "Render server is $data"
         # We're connected. Cancel any pending serverDown events and
