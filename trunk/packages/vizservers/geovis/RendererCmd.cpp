@@ -838,7 +838,7 @@ GeoVis::queueCommands(Tcl_Interp *interp,
     FD_ZERO(&readFds);
     FD_SET(inBufPtr->file(), &readFds);
     while (inBufPtr->isLineAvailable() || 
-           (select(1, &readFds, NULL, NULL, NULL) > 0)) {
+           (select(inBufPtr->file()+1, &readFds, NULL, NULL, NULL) > 0)) {
         size_t numBytes;
         unsigned char *buffer;
 
@@ -912,7 +912,7 @@ GeoVis::processCommands(Tcl_Interp *interp,
         TRACE("Blocking on select()");
     }
     while (inBufPtr->isLineAvailable() || 
-           (select(1, &readFds, NULL, NULL, tvPtr) > 0)) {
+           (select(inBufPtr->file()+1, &readFds, NULL, NULL, tvPtr) > 0)) {
         size_t numBytes;
         unsigned char *buffer;
 
