@@ -31,7 +31,7 @@ set libdir "@libdir@"
 #     Map renderer
 #
 register_server geovis 2015 {
-    ${bindir}/geovis
+    ${bindir}/geovis -i 3 -o 3
 } {
     LD_LIBRARY_PATH ${libdir}
 }
@@ -40,7 +40,7 @@ register_server geovis 2015 {
 #     Volume renderer
 #
 register_server nanovis 2000 {
-    ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
+    ${bindir}/nanovis -i 3 -o 3 -p ${libdir}/shaders:${libdir}/resources
 } {
     LD_LIBRARY_PATH ${libdir}
 }
@@ -50,7 +50,7 @@ register_server nanovis 2000 {
 #    Can remove ":${vtkdir} when moving to VTK 6.
 #
 register_server vtkvis 2010 {
-    ${bindir}/vtkvis
+    ${bindir}/vtkvis -i 3 -o 3
 } {
     LD_LIBRARY_PATH ${libdir}
 }
