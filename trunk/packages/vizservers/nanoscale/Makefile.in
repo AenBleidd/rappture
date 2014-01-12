@@ -32,7 +32,7 @@ LD_RUN_PATH     = $(libdir)
 LOGDIR		= @LOGDIR@
 SVN_VERSION	= $(shell svnversion $(srcdir))
 
-DEFINES =	-DSERVERSFILE=\"$(libdir)/renderservers.tcl\" \
+DEFINES		= -DSERVERSFILE=\"$(libdir)/renderservers.tcl\" \
 		-DSVN_VERSION=\"$(SVN_VERSION)\" \
 		-DLOGDIR=\"$(LOGDIR)\" 
 INCLUDES	= -I. $(TCL_INC_SPEC)
