@@ -718,7 +718,7 @@ ac_user_opts='
 enable_option_checking
 with_tcllib
 with_statsdir
-with_logsdir
+with_logdir
 with_python
 enable_64bit
 enable_64bit_vis
@@ -1364,7 +1364,7 @@ Optional Packages:
   --with-tcllib=DIR       location of Tcl binary library libtclstubs.a
                           [default=/usr/lib]
   --with-statsdir=DIR     Write statistics in DIR
-  --with-logsdir=DIR      Write log files in DIR
+  --with-logdir=DIR       Write log files in DIR
   --with-python=DIR       location of python [default=yes]
   --with-x                use the X Window System
 
@@ -2470,9 +2470,9 @@ fi
 
 
 
-# Check whether --with-logsdir was given.
-if test "${with_logsdir+set}" = set; then :
-  withval=$with_logsdir; LOGDIR=$withval
+# Check whether --with-logdir was given.
+if test "${with_logdir+set}" = set; then :
+  withval=$with_logdir; LOGDIR=$withval
 else
   LOGDIR="/tmp"
 fi

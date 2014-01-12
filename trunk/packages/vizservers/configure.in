@@ -18,8 +18,8 @@ AC_ARG_WITH(
     [STATSDIR="/var/tmp/visservers"])
 
 AC_ARG_WITH(
-    [logsdir],
-    [AS_HELP_STRING([--with-logsdir=DIR],
+    [logdir],
+    [AS_HELP_STRING([--with-logdir=DIR],
         [Write log files in DIR])],
     [LOGDIR=$withval],
     [LOGDIR="/tmp"])
