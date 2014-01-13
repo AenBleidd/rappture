@@ -56,9 +56,21 @@ typedef struct {
     int port;				/* Port to listen to. */
     int numCmdArgs;			/* # of args in command.  */
     int numEnvArgs;			/* # of args in environment.  */
-    char *const *cmdArgs;		/* Command to execute for server. */
+    char *const *cmdArgs;		/* Command to execute for
+					   server. */
     char *const *envArgs;		/* Environment strings to set. */
-    int listenerFd;			/* Descriptor of the listener socket. */
+    int listenerFd;			/* Descriptor of the listener
+					   socket. */
+    int inputFd;			/* Descriptor to dup input side of
+					 * server socket. */
+    int outputFd;			/* Descriptor to dup output side of
+					 * server socket. */
+    int logStdout;			/* Redirect server stdout to a
+					   file. */
+    int logStderr;			/* Redirect server stderr to a
+					   file. */
+    int combineLogs;			/* Combine server stdout/stderr in
+					 * same file. */
 } RenderServer;
 
 static Tcl_HashTable serverTable;	/* Table of render servers
@@ -104,6 +116,91 @@ Help(const char *program)
     exit(1);
 }
 
+static RenderServer *
+NewServer(Tcl_Interp *interp, const char *name)
+{
+    RenderServer *serverPtr;
+
+    serverPtr = malloc(sizeof(RenderServer));
+    memset(serverPtr, 0, sizeof(RenderServer));
+    if (serverPtr == NULL) {
+	Tcl_AppendResult(interp, "can't allocate structure for \"",
+		name, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return NULL;
+    }
+    serverPtr->name = strdup(name);
+    serverPtr->outputFd = STDOUT_FILENO;
+    serverPtr->inputFd = STDIN_FILENO;
+    serverPtr->combineLogs = TRUE;
+    serverPtr->logStdout = TRUE;
+    serverPtr->logStderr = TRUE;
+    return serverPtr;
+}
+
+static int
+ParseSwitches(Tcl_Interp *interp, RenderServer *serverPtr, int *objcPtr, 
+	      Tcl_Obj ***objvPtr)
+{
+    int i, objc;
+    Tcl_Obj **objv;
+
+    objc = *objcPtr;
+    objv = *objvPtr;
+    for (i = 3; i < objc; i += 2) {
+	const char *string;
+	char c;
+
+	string = Tcl_GetString(objv[i]);
+	if (string[0] != '-') {
+	    break;
+	}
+	c = string[1];
+	if ((c == 'i') && (strcmp(string, "-input") == 0)) {
+	    int f;
+
+	    if (Tcl_GetIntFromObj(interp, objv[i+1], &f) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    serverPtr->inputFd = 1;
+	} else if ((c == 'o') && (strcmp(string, "-output") == 0)) {
+	    int f;
+
+	    if (Tcl_GetIntFromObj(interp, objv[i+1], &f) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    serverPtr->outputFd = 1;
+	} else if ((c == 'l') && (strcmp(string, "-logstdout") == 0)) {
+	    int state;
+
+	    if (Tcl_GetBooleanFromObj(interp, objv[i+1], &state) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    serverPtr->logStdout = state;
+	} else if ((c == 'l') && (strcmp(string, "-logstderr") == 0)) {
+	    int state;
+
+	    if (Tcl_GetBooleanFromObj(interp, objv[i+1], &state) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    serverPtr->logStderr = state;
+	} else if ((c == 'c') && (strcmp(string, "-combinelogs") == 0)) {
+	    int state;
+
+	    if (Tcl_GetBooleanFromObj(interp, objv[i+1], &state) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    serverPtr->combineLogs = state;
+	} else {
+	    Tcl_AppendResult(interp, "unknown switch \"", string, "\"",
+			     (char *)NULL);
+	    return TCL_ERROR;
+	}
+    }
+    *objcPtr = objc - (i - 3);
+    *objvPtr = objv + (i - 3);
+    return TCL_OK;
+}
+
 /* 
  * RegisterServerCmd --
  *
@@ -126,7 +223,7 @@ Help(const char *program)
  *	
  *	Example:
  *
- *	    register_server myServer 12345 {
+ *	    register_server myServer 12345 ?switches? {
  *		 /path/to/myserver arg arg
  *	    } {
  *	         LD_LIBRARY_PATH $libdir/myServer
@@ -149,9 +246,9 @@ RegisterServerCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     RenderServer *serverPtr;
     Tcl_HashEntry *hPtr;
 
-    if ((objc < 4) || (objc > 5)) {
+    if (objc < 4) {
 	Tcl_AppendResult(interp, "wrong # args: should be \"", 
-		Tcl_GetString(objv[0]), " serverName port cmd ?environ?", 
+		Tcl_GetString(objv[0]), " serverName port ?flags? cmd ?environ?", 
 		(char *)NULL);
 	return TCL_ERROR;
     }
@@ -165,19 +262,47 @@ RegisterServerCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_GetString(objv[2]), (char *)NULL);
 	return TCL_ERROR;
     }
+    serverPtr = NewServer(interp, serverName);
+    if (serverPtr == NULL) {
+	return TCL_ERROR;
+    }
+    Tcl_SetHashValue(hPtr, serverPtr);
+    if (ParseSwitches(interp, serverPtr, &objc, (Tcl_Obj ***)&objv) != TCL_OK) {
+	goto error;
+    }
     objPtr = Tcl_SubstObj(interp, objv[3], 
 			  TCL_SUBST_VARIABLES | TCL_SUBST_BACKSLASHES);
     if (Tcl_SplitList(interp, Tcl_GetString(objPtr), &numCmdArgs, 
 	(const char ***)&cmdArgs) != TCL_OK) {
-	return TCL_ERROR;
+	goto error;
     }
+    serverPtr->cmdArgs = cmdArgs;
+    serverPtr->numCmdArgs = numCmdArgs;
+    
+    numEnvArgs = 0;
+    envArgs = NULL;
+    if (objc == 5) {
+	objPtr = Tcl_SubstObj(interp, objv[4], 
+		TCL_SUBST_VARIABLES | TCL_SUBST_BACKSLASHES);
+	if (Tcl_SplitList(interp, Tcl_GetString(objPtr), &numEnvArgs, 
+		(const char ***)&envArgs) != TCL_OK) {
+	    goto error;
+	}
+	if (numEnvArgs & 0x1) {
+	    Tcl_AppendResult(interp, "odd # elements in enviroment list", 
+			     (char *)NULL);
+	    goto error;
+	}
+    }
+    serverPtr->envArgs = envArgs;
+    serverPtr->numEnvArgs = numEnvArgs;
 
     /* Create a socket for listening. */
     f = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (f < 0) {
 	Tcl_AppendResult(interp, "can't create listerner socket for \"",
-		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
-	return TCL_ERROR;
+		serverPtr->name, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	goto error;
     }
   
     /* If the render server instance should be killed, drop the socket address
@@ -185,8 +310,8 @@ RegisterServerCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     bool = TRUE;
     if (setsockopt(f, SOL_SOCKET, SO_REUSEADDR, &bool, sizeof(bool)) < 0) {
 	Tcl_AppendResult(interp, "can't create set socket option for \"",
-		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
-	return TCL_ERROR;
+		serverPtr->name, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	goto error;
     }
 
     /* Bind this address to the socket. */
@@ -195,45 +320,21 @@ RegisterServerCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     if (bind(f, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 	Tcl_AppendResult(interp, "can't bind to socket for \"",
-		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
-	return TCL_ERROR;
+		serverPtr->name, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	goto error;
     }
     /* Listen on the specified port. */
     if (listen(f, 5) < 0) {
 	Tcl_AppendResult(interp, "can't listen to socket for \"",
-		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+		serverPtr->name, "\": ", Tcl_PosixError(interp), (char *)NULL);
 	return TCL_ERROR;
     }
-    numEnvArgs = 0;
-    envArgs = NULL;
-    if (objc == 5) {
-	objPtr = Tcl_SubstObj(interp, objv[4], 
-		TCL_SUBST_VARIABLES | TCL_SUBST_BACKSLASHES);
-	if (Tcl_SplitList(interp, Tcl_GetString(objPtr), &numEnvArgs, 
-		(const char ***)&envArgs) != TCL_OK) {
-	    return TCL_ERROR;
-	}
-	if (numEnvArgs & 0x1) {
-	    Tcl_AppendResult(interp, "odd # elements in enviroment list", 
-			     (char *)NULL);
-	    return TCL_ERROR;
-	}
-    }
-    serverPtr = malloc(sizeof(RenderServer));
-    memset(serverPtr, 0, sizeof(RenderServer));
-    if (serverPtr == NULL) {
-	Tcl_AppendResult(interp, "can't allocate structure for \"",
-		serverName, "\": ", Tcl_PosixError(interp), (char *)NULL);
-	return TCL_ERROR;
-    }
-    serverPtr->name = strdup(serverName);
-    serverPtr->cmdArgs = cmdArgs;
-    serverPtr->numCmdArgs = numCmdArgs;
     serverPtr->listenerFd = f;
-    serverPtr->envArgs = envArgs;
-    serverPtr->numEnvArgs = numEnvArgs;
-    Tcl_SetHashValue(hPtr, serverPtr);
+
     return TCL_OK;
+ error:
+    free(serverPtr);
+    return TCL_ERROR;
 }
 
 static int 
@@ -372,7 +473,7 @@ main(int argc, char **argv)
 	     hPtr = Tcl_NextHashEntry(&iter)) {
 	    RenderServer *serverPtr;
 	    pid_t child;
-	    int f;
+	    int sock;
 	    socklen_t length;
 	    struct sockaddr_in newaddr;
 
@@ -389,21 +490,21 @@ main(int argc, char **argv)
 	    /* Accept the new connection. */
 	    length = sizeof(newaddr);
 #ifdef HAVE_ACCEPT4
-	    f = accept4(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+	    sock = accept4(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
 			&length, SOCK_CLOEXEC);
 #else
-	    f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+	    sock = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
 		       &length);
 #endif
-	    if (f < 0) {
+	    if (sock < 0) {
 		ERROR("Can't accept server \"%s\": %s", serverPtr->name, 
 		      strerror(errno));
 		exit(1);
 	    }
 #ifndef HAVE_ACCEPT4
-	    int flags = fcntl(f, F_GETFD);
+	    int flags = fcntl(sock, F_GETFD);
 	    flags |= FD_CLOEXEC;
-	    if (fcntl(f, F_SETFD, flags) < 0) {
+	    if (fcntl(sock, F_SETFD, flags) < 0) {
 		ERROR("Can't set FD_CLOEXEC on socket \"%s\": %s", 
 			serverPtr->name, strerror(errno));
 		exit(1);
@@ -421,8 +522,6 @@ main(int argc, char **argv)
 	    } 
 	    if (child == 0) {		/* Child process. */
 		int i;
-		int newFd;
-		char tmpname[200];
 
 		umask(0);
 		if ((!debug) && (setsid() < 0)) {
@@ -435,49 +534,83 @@ main(int argc, char **argv)
 			  serverPtr->name, strerror(errno));
 		    exit(1);
 		}
-		/* We could use the same log file for stdout and stderr. 
-		 * Right now they are separate files. */
+		if (serverPtr->combineLogs) {
+		    char path[BUFSIZ];
+		    int newFd;
 
-		/* Redirect child's stdout to a log file. */
-		sprintf(tmpname, "%s/%s-%d-stdout.XXXXXX", LOGDIR, 
+		    sprintf(path, "%s/%s-%d.log", LOGDIR, 
 			serverPtr->name, getpid());
-		newFd = mkstemp(tmpname);
-		if (newFd < 0) { 
-		    ERROR("%s: can't open \"%s\": %s", serverPtr->name,
-			  tmpname, strerror(errno));
-		    exit(1);
-		} 
-		if (dup2(newFd, 1) < 0) { 
-		    ERROR("%s: can't dup stdout to \"%s\": %s", 
-			  serverPtr->name, tmpname, strerror(errno));
-		    exit(1);
-		}
-		/* Redirect child's stderr to a log file. */
-		sprintf(tmpname, "%s/%s-%d-stderr.XXXXXX", LOGDIR, 
+		    if (serverPtr->logStdout) {
+			newFd = open(path, O_WRONLY | O_CREAT| O_TRUNC, 0600);
+		    } else {
+			newFd = open("/dev/null", O_WRONLY, 0600);
+		    }
+		    if (newFd < 0) { 
+			ERROR("%s: can't open \"%s\": %s", serverPtr->name,
+			      path, strerror(errno));
+			exit(1);
+		    } 
+		    if (dup2(newFd, 1) < 0) { 
+			ERROR("%s: can't dup stdout to \"%s\": %s", 
+			      serverPtr->name, path, strerror(errno));
+			exit(1);
+		    }
+		    if (dup2(newFd, 2) < 0) {
+			ERROR("%s: can't dup stderr to \"%s\": %s", 
+			      serverPtr->name, path, strerror(errno));
+			exit(1);
+		    }
+		} else {
+		    char path[BUFSIZ];
+		    int newFd;
+
+		    sprintf(path, "%s/%s-%d.stdout", LOGDIR, 
 			serverPtr->name, getpid());
-		newFd = mkstemp(tmpname);
-		if (newFd < 0) { 
-		    ERROR("%s: can't open \"%s\": %s", serverPtr->name,
-			  tmpname, strerror(errno));
-		    exit(1);
+		    if (serverPtr->logStdout) {
+			newFd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+		    } else {
+			newFd = open("/dev/null", O_WRONLY, 0600);
+		    }
+		    if (newFd < 0) { 
+			ERROR("%s: can't open \"%s\": %s", serverPtr->name,
+			      path, strerror(errno));
+			exit(1);
+		    } 
+		    if (dup2(newFd, 1) < 0) { 
+			ERROR("%s: can't dup stdout to \"%s\": %s", 
+			      serverPtr->name, path, strerror(errno));
+			exit(1);
+		    }
+		    sprintf(path, "%s/%s-%d.stderr", LOGDIR, 
+			serverPtr->name, getpid());
+		    if (serverPtr->logStderr) {
+			newFd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+		    } else {
+			newFd = open("/dev/null", O_WRONLY, 0600);
+		    }
+		    if (newFd < 0) { 
+			ERROR("%s: can't open \"%s\": %s", serverPtr->name,
+			      path, strerror(errno));
+			exit(1);
+		    } 
+		    if (dup2(newFd, 1) < 0) { 
+			ERROR("%s: can't dup stderr to \"%s\": %s", 
+			      serverPtr->name, path, strerror(errno));
+			exit(1);
+		    }
 		} 
-		if (dup2(newFd, 2) < 0) {
-		    ERROR("%s: can't dup stderr to \"%s\": %s", 
-			  serverPtr->name, tmpname, strerror(errno));
-		    exit(1);
-		}
-		/* Dup the socket to descriptors 3 and 4 */
-		if (dup2(f, 3) < 0)  {	/* Stdin */
+		/* Dup the socket to descriptors, normally 3 and 4 */
+		if (dup2(sock, serverPtr->inputFd) < 0)  { /* Stdin */
 		    ERROR("%s: can't dup stdin: %s", serverPtr->name, 
 			strerror(errno));
 		    exit(1);
 		}
-		if (dup2(f, 4) < 0) {	/* Stdout */
+		if (dup2(sock, serverPtr->outputFd) < 0) { /* Stdout */
 		    ERROR("%s: can't dup stdout: %s", serverPtr->name, 
 			  strerror(errno));
 		    exit(1);
 		}
-		for(i = 5; i <= FD_SETSIZE; i++) {
+		for(i = serverPtr->outputFd + 1; i <= FD_SETSIZE; i++) {
 		    close(i);		/* Close all the other descriptors. */
 		}
 
@@ -497,7 +630,7 @@ main(int argc, char **argv)
 		      strerror(errno));
 		exit(1);
 	    } else {
-		close(f);
+		close(sock);
 	    }
 	} 
     }

@@ -23,6 +23,12 @@
 # Note: Don't set DISPLAY here. nanoscale itself sets the DISPLAY
 #	variable.
 #
+# Defaults:
+#   o Server reads from file descriptor 0.
+#   o Server writes to descriptor 1.
+#   o Server stdout and stderr are redirected to a log file.  
+#
+
 set exec_prefix "@exec_prefix@"
 set bindir "@bindir@"
 set libdir "@libdir@"
@@ -59,7 +65,7 @@ register_server vtkvis 2010 {
 #     Molecular layouts from PDB description.  
 #     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
-register_server pymol 2019 {
+register_server pymolproxy 2019 {
     ${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0
 } {
     PYMOL_SITE_PATH ${libdir}/pymol
@@ -70,7 +76,9 @@ register_server pymol 2019 {
 #     Molecular layouts from PDB description.  
 #     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
-register_server pymol-threaded 2020 {
+register_server pymolproxy-threaded 2020 \
+    -logstdout no -logstderr no \
+{
     ${bindir}/pymolproxy2 ${bindir}/pymol -p -q -i -x -X 0 -Y 0
 } {
     PYMOL_SITE_PATH ${libdir}/pymol
@@ -79,11 +87,15 @@ register_server pymol-threaded 2020 {
 
 # vmd server (used for mdshowcase)
 #
-register_server vmdshow 2018 {
-    ${libdir}/vmd/vmd_LINUXAMD64 -startup ${libdir}/vmd/vmdserver.tcl -args -stdio
+register_server vmdshow 2018 \
+    -input 3 -output 4 -combinelogs no \
+{
+    ${libdir}/vmd/vmd_LINUXAMD64 -startup ${libdir}/vmd/vmdserver.tcl \
+	-args -stdio 
 } {
     VMDDIR ${libdir}/vmd
     SURF_BIN ${libdir}/vmd/surf
     LD_LIBRARY_PATH ${libdir}
-}
+} 
+    
 
