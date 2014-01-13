@@ -463,7 +463,7 @@ GetLine(const char **stringPtr, const char *endPtr, int *lengthPtr)
 
 static int 
 SerialToAtom(Tcl_Interp *interp, Tcl_HashTable *tablePtr, const char *string,
-		PdbAtom **atomPtrPtr)
+             PdbAtom **atomPtrPtr)
 {
     int serial;
     long lserial;
