@@ -112,8 +112,8 @@ static int statsFile = -1;
 #define VIEWPORT_PENDING	(1<<10)
 
 #define IO_TIMEOUT (30000)
-#define CLIENT_READ		(3)
-#define CLIENT_WRITE		(4)
+#define CLIENT_READ		STDIN_FILENO
+#define CLIENT_WRITE		STDOUT_FILENO
 
 #ifndef LOGDIR
 #define LOGDIR		"/tmp"
@@ -2442,7 +2442,7 @@ main(int argc, char **argv)
 	sprintf(fileName, "/tmp/pymolproxy%d.py", getpid());
         frecord = fopen(fileName, "w");
     }    
-    sprintf(version, "PyMol 1.0 (build %s)\n", SVN_VERSION);
+    sprintf(version, "PymolProxy 1.0 (build %s)\n", SVN_VERSION);
     numBytes = strlen(version);
     numWritten = write(CLIENT_WRITE, version, numBytes);
     if (numWritten < numBytes) {
