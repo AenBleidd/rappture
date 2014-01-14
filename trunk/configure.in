@@ -121,6 +121,17 @@ if test "x${make_command}" = "x" ; then
 fi
 
 AC_ARG_ENABLE(
+    [lang],
+    [AS_HELP_STRING([--enable-lang], [build language bindings @<:@default=yes@:>@])],
+    [],
+    [enable_lang=yes])
+
+ENABLE_LANG=
+if test "$enable_lang" != "no" ; then
+    ENABLE_LANG="yes"
+fi
+
+AC_ARG_ENABLE(
     [gui],
     [AS_HELP_STRING([--enable-gui], [build code related to the graphical user interface @<:@default=yes@:>@])],
     [],
@@ -340,6 +351,7 @@ fi
 
 AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
+AC_SUBST(ENABLE_LANG)
 AC_SUBST(ENABLE_GUI)
 AC_SUBST(FFMPEG)
 AC_SUBST(HAVE_FFMPEG_LIBS)
