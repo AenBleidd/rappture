@@ -265,7 +265,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         volumeDiffuse           60
         volumeLighting          1
         volumeOpacity           50
-        volumeQuality           50
+        volumeQuality           80
         volumeSpecularExponent  90
         volumeSpecularLevel     30
         volumeThickness         350
@@ -1123,6 +1123,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
 
     InitSettings volumeColormap \
         volumeAmbient volumeDiffuse volumeSpecularLevel volumeSpecularExponent \
+        volumeBlendMode volumeThickness \
         volumeOpacity volumeQuality volumeVisible \
         cutplaneVisible \
         cutplanePositionX cutplanePositionY cutplanePositionZ \
@@ -1629,7 +1630,8 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
             SendCmdNoWait \
-                "legend $_dataset2style($dataset) scalar $_curFldName {} $w $h 0"
+                "legend2 $_dataset2style($dataset) $w $h"
+                #"legend $_dataset2style($dataset) scalar $_curFldName {} $w $h 0"
             break;
         }
     }
@@ -1856,7 +1858,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         "max_intensity"      "Maximum Intensity" \
         "additive"           "Additive"
 
-    $itk_component(blendmode) value "composite"
+    $itk_component(blendmode) value "[$itk_component(blendmode) label $_settings(volumeBlendMode)]"
     bind $inner.blendmode <<Value>> \
         [itcl::code $this AdjustSetting volumeBlendMode]
 
@@ -2794,12 +2796,12 @@ itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } {
         $cname-colormap                 default
         $cname-light2side               1
         $cname-outline                  0
-        $cname-volumeAmbient            60
+        $cname-volumeAmbient            40
         $cname-volumeBlendMode          composite
         $cname-volumeDiffuse            60
         $cname-volumeLighting           1
         $cname-volumeOpacity            50
-        $cname-volumeQuality            50
+        $cname-volumeQuality            80
         $cname-volumeSpecularExponent   90
         $cname-volumeSpecularLevel      30
         $cname-volumeThickness          350
