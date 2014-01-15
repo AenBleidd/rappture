@@ -147,6 +147,7 @@ itcl::class Rappture::Field {
 
     private method AvsToVtk { cname contents } 
     private method DicomToVtk { cname contents } 
+    private method DicomToVtk.old { cname contents } 
     private method BuildPointsOnMesh { cname } 
     private method ConvertToVtkData { cname } 
     protected method GetAssociation { cname } 
@@ -214,10 +215,6 @@ itcl::body Rappture::Field::destructor {} {
     foreach name [array names _comp2xy] {
         # Destroys both x and y vectors.
         eval blt::vector destroy $_comp2xy($name)
-    }
-    foreach name [array names _comp2dx] {
-        set vector [lindex $_comp2dx($name) 1]
-        eval blt::vector destroy $vector
     }
     foreach name [array names _comp2unirect2d] {
         itcl::delete object $_comp2unirect2d($name)
@@ -365,8 +362,7 @@ itcl::body Rappture::Field::values {cname} {
         return [$vector range 0 end]
     }
     if {[info exists _comp2dx($cname)]} {
-	set vector [lindex $_comp2dx($cname) 1]
-        return [$vector range 0 end]
+        error "method \"values\" is not implemented for dx data"
     }
     if {[info exists _comp2unirect2d($cname)]} {
         return [$_comp2unirect2d($cname) values]
@@ -393,7 +389,7 @@ itcl::body Rappture::Field::blob {cname} {
 	error "blob not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
-        return [lindex $_comp2dx($cname) 0]
+        return $_comp2dx($cname)
     }
     if {[info exists _comp2unirect2d($cname)]} {
         set blob [$_comp2unirect2d($cname) blob]
@@ -753,10 +749,6 @@ itcl::body Rappture::Field::Build {} {
     foreach name [array names _comp2xy] {
         eval blt::vector destroy $_comp2xy($name)
     }
-    foreach name [array names _comp2dx] {
-        set vector [lindex $_comp2dx($name) 1]
-        eval blt::vector destroy $vector
-    }
     array unset _comp2vtk
     foreach name [array names _comp2unirect2d] {
         eval itcl::delete object $_comp2unirect2d($name)
@@ -927,7 +919,7 @@ itcl::body Rappture::Field::Build {} {
                 set contents [string range $contents 4 end]
             }
             if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
-                set vector [ReadVtkDataSet $cname $vtkdata]
+                ReadVtkDataSet $cname $vtkdata
             } else {
                 puts stderr "Can't parse dx data: $vtkdata"
             }
@@ -941,7 +933,7 @@ itcl::body Rappture::Field::Build {} {
                 set _comp2vtk($cname) $vtkdata
             } else {
                 set _type "dx"
-                set _comp2dx($cname) [list $data $vector]
+                set _comp2dx($cname) $data
             }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
@@ -1373,19 +1365,12 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set vmin 0
     set vmax 1
     set numArrays [$dataAttrs GetNumberOfArrays]
-    set vector [blt::vector create \#auto]
     if { $numArrays > 0 } {
 	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
 	    set array [$dataAttrs GetArray $i]
 	    set fname  [$dataAttrs GetArrayName $i]
 	    foreach {min max} [$array GetRange -1] break
             if {$i == 0} {
-                if 0 {
-                set numTuples [$array GetNumberOfTuples]
-                for { set j 0 } { $j < $numTuples } { incr j } {
-                    $vector append [$array GetComponent $j 0] 
-                }
-                }
                 set vmin $min
                 set vmax $max
             }
@@ -1402,7 +1387,6 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set _comp2limits($cname) $limits
 
     rename $reader ""
-    return $vector
 }
 
 #
@@ -1741,6 +1725,46 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
 }
 
 itcl::body Rappture::Field::DicomToVtk { cname path } {
+    package require vtk
+
+    if { ![file exists $path] } {
+        puts stderr "path \"$path\" doesn't exist."
+        return 0
+    }
+
+    if { [file isdir $path] } {
+        set files [glob -nocomplain $path/*.dcm]
+        if { [llength $files] == 0 } {
+            set files [glob -nocomplain $path/*]
+            if { [llength $files] == 0 } {
+                puts stderr "no dicom files found in \"$path\""
+                return 0
+            }
+        }
+        array set data [Rappture::DicomToVtk files $files]
+        #array set data [Rappture::DicomToVtk dir $path]
+    } else {
+        array set data [Rappture::DicomToVtk files [list $path]]
+    }
+
+    foreach key [array names data] {
+        if {$key == "vtkdata"} {
+            if {1} {
+                set f [open /tmp/$cname.vtk "w"]
+                fconfigure $f -translation binary -encoding binary
+                puts -nonewline $f $data(vtkdata)
+                close $f
+            }
+        } else {
+            puts stderr "$key = \"$data($key)\""
+        }
+    }
+ 
+    ReadVtkDataSet $cname $data(vtkdata)
+    return $data(vtkdata)
+}
+
+itcl::body Rappture::Field::DicomToVtk.old { cname path } {
     package require vtk
 
     if { ![file exists $path] } {
