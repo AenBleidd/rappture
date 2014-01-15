@@ -259,6 +259,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         cutplaneVisibleZ        1
         cutplaneWireframe       0
         legendVisible           1
+        outline                 0
         volumeAmbient           40
         volumeBlendMode         composite
         volumeDiffuse           60
@@ -1023,7 +1024,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             SendCmd "camera mode persp"
         }
         DoRotate
-        InitSettings background axisGridX axisGridY axisGridZ axisFlyMode \
+        InitSettings outline background axisGridX axisGridY axisGridZ axisFlyMode \
             axesVisible axisLabels
         PanCamera
     }
@@ -1392,7 +1393,14 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "outline" {
             set bool $_settings(outline)
-	    SendCmd "outline visible $bool"
+            SendCmd "outline visible 0"
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "outline visible $bool $tag"
+            }
+        }
+        "legendVisible" {
+            set bool $_settings(legendVisible)
+            set _settings($_current-legendVisible) $bool
         }
         "volumeVisible" {
             set bool $_settings(volumeVisible)
@@ -2273,6 +2281,8 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     SetInitialTransferFunction $dataobj $cname
     SendCmd "volume colormap $cname $tag"
     SendCmd "$_cutplaneCmd colormap $cname-opaque $tag"
+    SendCmd "outline add $tag"
+    SendCmd "outline visible 0 $tag"
 }
 
 itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {
