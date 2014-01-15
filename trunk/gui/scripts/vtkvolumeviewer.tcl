@@ -63,6 +63,7 @@ itcl::class Rappture::VtkVolumeViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
+    private method BuildViewTab {}
     private method BuildVolumeComponents {}
     private method ComputeAlphamap { cname } 
     private method ComputeTransferFunction { cname }
@@ -245,6 +246,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         axisGridY               0
         axisGridZ               0
         axisLabels              1
+	background		black
         cutplaneEdges           0
         cutplaneLighting        1
         cutplaneOpacity         100
@@ -366,6 +368,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
 
     if { [catch {
+        BuildViewTab
         BuildVolumeTab
         BuildCutplaneTab
         BuildAxisTab
@@ -1020,7 +1023,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             SendCmd "camera mode persp"
         }
         DoRotate
-        InitSettings axisGridX axisGridY axisGridZ axisFlyMode \
+        InitSettings background axisGridX axisGridY axisGridZ axisFlyMode \
             axesVisible axisLabels
         PanCamera
     }
@@ -1375,6 +1378,18 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "background" {
+            set bgcolor [$itk_component(background) value]
+	    array set fgcolors {
+		"black" "white"
+		"white" "black"
+		"grey"	"black"
+	    }
+            configure -plotbackground $bgcolor \
+		-plotforeground $fgcolors($bgcolor)
+	    $itk_component(view) delete "legend"
+	    DrawLegend
+        }
         "volumeVisible" {
             set bool $_settings(volumeVisible)
             set _settings($_current-volumeVisible) $bool
@@ -1613,8 +1628,10 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkVolumeViewer::plotbackground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
-        SendCmd "screen bgcolor $r $g $b"
+        set color $itk_option(-plotbackground)
+        set rgb [Color2RGB $color]
+        SendCmd "screen bgcolor $rgb"
+        $itk_component(legend) configure -background $color
     }
 }
 
@@ -1623,10 +1640,83 @@ itcl::configbody Rappture::VtkVolumeViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set color $itk_option(-plotforeground)
+        set rgb [Color2RGB $color]
+	SendCmd "axis color all $rgb"
+        SendCmd "outline color $rgb"
+        SendCmd "cutplane color $rgb"
+        $itk_component(legend) itemconfigure labels -fill $color 
+        $itk_component(legend) itemconfigure limits -fill $color 
     }
+}
+
+itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
+    foreach { key value } {
+        grid            0
+        axes            1
+        outline         0
+        volume          1
+        legend          1
+        particles       1
+        lic             1
+    } {
+        set _settings($this-$key) $value
+    }
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "View Settings" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.axes \
+        -text "Axes" \
+        -variable [itcl::scope _settings(axesVisible)] \
+        -command [itcl::code $this AdjustSetting axesVisible] \
+        -font "Arial 9"
+
+    checkbutton $inner.outline \
+        -text "Outline" \
+        -variable [itcl::scope _settings(outline)] \
+        -command [itcl::code $this AdjustSetting outline] \
+        -font "Arial 9"
+
+    checkbutton $inner.legend \
+        -text "Legend" \
+        -variable [itcl::scope _settings(legendVisible)] \
+        -command [itcl::code $this AdjustSetting legendVisible] \
+        -font "Arial 9"
+
+    checkbutton $inner.volume \
+        -text "Volume" \
+        -variable [itcl::scope _settings(volumeVisible)] \
+        -command [itcl::code $this AdjustSetting volumeVisible] \
+        -font "Arial 9"
+
+    label $inner.background_l -text "Background" -font "Arial 9" 
+    itk_component add background {
+        Rappture::Combobox $inner.background -width 10 -editable no
+    }
+    $inner.background choices insert end \
+        "black"              "black"            \
+        "white"              "white"            \
+        "grey"               "grey"             
+
+    $itk_component(background) value $_settings(background)
+    bind $inner.background <<Value>> [itcl::code $this AdjustSetting background]
+
+    blt::table $inner \
+        0,0 $inner.axes  -cspan 2 -anchor w \
+        1,0 $inner.outline  -cspan 2 -anchor w \
+        2,0 $inner.volume  -cspan 2 -anchor w \
+        3,0 $inner.legend  -cspan 2 -anchor w \
+        4,0 $inner.background_l       -anchor e -pady 2 \
+        4,1 $inner.background                   -fill x \
+
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r5 -resize expand
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
