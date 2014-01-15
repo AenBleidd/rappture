@@ -1033,7 +1033,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     SendCmd "imgflush"
     set _first ""
 
-    SendCmd "dataset visible 0"
+    SendCmd "volume visible 0"
 
     # No volumes are active (i.e. in the working set of displayed volumes).
     # A volume is always invisible if it's not in the working set.  A 
@@ -1068,7 +1068,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                SendCmd "dataset visible 1 $tag"
+                SendCmd "volume visible 1 $tag"
             }
             break
         }
