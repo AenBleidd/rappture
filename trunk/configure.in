@@ -185,35 +185,57 @@ TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
 AC_ARG_WITH(
     [vtk],
-    [AS_HELP_STRING([--with-vtk[=DIR]],
-        [location of vtk library @<:@default=yes@:>@])],
+    [AS_HELP_STRING([--with-vtk[=version]],
+        [VTK library version @<:@default=6.0@:>@])],
     [], 
     [with_vtk=yes])
 
 AC_MSG_CHECKING([for vtk])
-VTKDIR=""
+VTK_VERSION=6.0
+VTK_TCL_DIR=""
 
 if test "$with_vtk" != "no" ; then
-  if test "$with_vtk" = "yes" ; then
+  if test "$with_vtk" != "yes" ; then
+    VTK_VERSION=$with_vtk
+  fi
+  if test "x$with_vtk" != "x" ; then
     for path in \
-     $libdir \
+     $libdir/tcltk \
+     $exec_prefix/lib/tcltk \
      $prefix/lib/tcltk \
+     $libdir \
      $prefix/lib \
      $exec_prefix/lib \
      /usr/lib
     do
-      for vtk in $path/vtk-* ; do 
-        if test -d "${vtk}" ; then
-          VTKDIR=${vtk}
-        fi
-      done
-      if test "x${VTKDIR}" != "x" ; then
+      if test -d "$path/vtk-$VTK_VERSION" ; then
+        VTK_TCL_DIR="$path/vtk-$VTK_VERSION"
+      fi
+      if test "x${VTK_TCL_DIR}" != "x" ; then
         break
       fi
     done
   fi
+else
+  if test "${ENABLE_GUI}" = "yes" ; then
+    AC_MSG_ERROR([Rappture GUI requires VTK])
+  fi
 fi
-AC_MSG_RESULT([$VTKDIR])
+AC_MSG_RESULT([$VTK_TCL_DIR])
+
+AC_ARG_ENABLE(
+    [vtkdicom],
+    [AS_HELP_STRING([--enable-vtkdicom],
+        [Use vtkDICOM package @<:@default=no@:>@])],
+    [], 
+    [enable_vtkdicom=no])
+
+AC_MSG_CHECKING([for vtkDICOM])
+ENABLE_VTK_DICOM=
+if test "$enable_vtkdicom" != "no" ; then
+    ENABLE_VTK_DICOM="yes"
+fi
+AC_MSG_RESULT([$enable_vtkdicom])
 
 RP_LANG_MATLAB
 RP_LANG_OCTAVE
@@ -353,6 +375,7 @@ AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
 AC_SUBST(ENABLE_LANG)
 AC_SUBST(ENABLE_GUI)
+AC_SUBST(ENABLE_VTK_DICOM)
 AC_SUBST(FFMPEG)
 AC_SUBST(HAVE_FFMPEG_LIBS)
 AC_SUBST(HAVE_INTTYPES_H)
@@ -433,7 +456,8 @@ AC_SUBST(TCL_SHLIB_LD)
 AC_SUBST(TCL_SHLIB_LDFLAGS)
 AC_SUBST(TK_XLIBSW)
 AC_SUBST(TK_VERSION)
-AC_SUBST(VTKDIR)
+AC_SUBST(VTK_TCL_DIR)
+AC_SUBST(VTK_VERSION)
 AC_SUBST(XSUBPP)
 
 ac_configure_args="--disable-threads --enable-shared"

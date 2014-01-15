@@ -29,14 +29,23 @@ TCL_VERSION     = @TCL_VERSION@
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TK_LIB_SPEC     = @TK_LIB_SPEC@
 TK_XLIBSW	= @TK_XLIBSW@
+VTK_VERSION     = @VTK_VERSION@
+ENABLE_VTK_DICOM= @ENABLE_VTK_DICOM@
+VTK_LIB_SPEC    = -lvtkIOCore-$(VTK_VERSION) -lvtkIOLegacy-$(VTK_VERSION) -lvtkIOImage-$(VTK_VERSION)
 
 CC_SWITCHES     = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES	= -I$(srcdir) \
-		  -I$(includedir)
+		  -I$(includedir) \
+		  -I$(includedir)/vtk-$(VTK_VERSION)
 version 	= @PACKAGE_VERSION@
-DEFINES 	= -DPACKAGE_VERSION=\"$(version)\"	
+DEFINES 	= -DPACKAGE_VERSION=\"$(version)\"
+
+ifeq ($(ENABLE_VTK_DICOM),yes)
+VTK_LIB_SPEC    += -lvtkDICOM
+DEFINES         += -DUSE_VTK_DICOM_PACKAGE
+endif
 
 RANLIB 		= @RANLIB@
 AR 		= ar
@@ -46,12 +55,13 @@ RM		= rm -f
 CDEBUGFLAGS     = -g -Wall
 
 LIBS		= \
-		-L$(libdir) $(TCL_LIB_SPEC) $(TK_LIB_SPEC) $(TK_XLIBSW) -lm
+		-L$(libdir) $(VTK_LIB_SPEC) $(TCL_LIB_SPEC) $(TK_LIB_SPEC) $(TK_XLIBSW) -lm
 
 OBJS 		= \
 		RapptureGUI_Init.o \
 		RpCanvHotspot.o \
 		RpCanvPlacard.o \
+		RpDicomToVtk.o \
 		RpDiffview.o \
 		RpReadPoints.o \
 		RpDxToVtk.o \
@@ -75,7 +85,7 @@ install: $(lib)
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o:
-	$(CC) $(CC_SWITCHES)-c $? 
+	$(CC) $(CC_SWITCHES) -c $? 
 
 clean: 
 	$(RM) $(OBJS) $(lib)
