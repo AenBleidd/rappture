@@ -216,6 +216,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _reset 1
 
     array set _settings [subst {
+	background		black
         $this-ambient           60
         $this-colormap          default
         $this-cutplaneVisible   0
@@ -1245,6 +1246,17 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             set cname [$itk_component(volcomponents) value]
             SwitchComponent $cname
         }
+        "background" {
+            set bgcolor [$itk_component(background) value]
+	    array set fgcolors {
+		"black" "white"
+		"white" "black"
+		"grey"	"black"
+	    }
+            configure -plotbackground $bgcolor \
+		-plotforeground $fgcolors($bgcolor)
+	    DrawLegend $_current
+        }
         ambient {
             set val $_settings($this-ambient)
             set val [expr {0.01*$val}]
@@ -1678,18 +1690,32 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         -command [itcl::code $this AdjustSetting volume] \
         -font "Arial 9"
 
+    label $inner.background_l -text "Background" -font "Arial 9" 
+    itk_component add background {
+        Rappture::Combobox $inner.background -width 10 -editable no
+    }
+    $inner.background choices insert end \
+        "black"              "black"            \
+        "white"              "white"            \
+        "grey"               "grey"             
+
+    $itk_component(background) value $_settings(background)
+    bind $inner.background <<Value>> [itcl::code $this AdjustSetting background]
+
     blt::table $inner \
         0,0 $inner.axes  -cspan 2 -anchor w \
         1,0 $inner.grid  -cspan 2 -anchor w \
         2,0 $inner.outline  -cspan 2 -anchor w \
         3,0 $inner.volume  -cspan 2 -anchor w \
-        4,0 $inner.legend  -cspan 2 -anchor w 
+        4,0 $inner.legend  -cspan 2 -anchor w \
+        5,0 $inner.background_l       -anchor e -pady 2 \
+        5,1 $inner.background                   -fill x \
 
     if 0 {
     bind $inner <Map> [itcl::code $this GetVolumeInfo $inner]
     }
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r5 -resize expand
+    blt::table configure $inner r6 -resize expand
 }
 
 itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
