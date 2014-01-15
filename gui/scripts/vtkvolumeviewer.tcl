@@ -1390,6 +1390,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 	    $itk_component(view) delete "legend"
 	    DrawLegend
         }
+        "outline" {
+            set bool $_settings(outline)
+	    SendCmd "outline visible $bool"
+        }
         "volumeVisible" {
             set bool $_settings(volumeVisible)
             set _settings($_current-volumeVisible) $bool
