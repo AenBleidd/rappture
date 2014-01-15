@@ -1544,14 +1544,13 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
             set _cutplanePending 0
         }
-        "thickness" {
-            set val $_settings($this-thickness)
-            set _settings($_current-thickness) $val
+        "volumeThickness" {
+            set _settings($_current-volumeThickness) $_settings(volumeThickness)
             updateTransferFunctions
         }
         "volumeColormap" {
             set color [$itk_component(colormap) value]
-            set _settings($this-colormap) $color
+            set _settings(colormap) $color
             set _settings($_current-colormap) $color
             ResetColormap $_current $color
         }
@@ -1713,12 +1712,12 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.thin -text "Thin" -font $font
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
-        -variable [itcl::scope _settings($this-thickness)] \
-        -showvalue off -command [itcl::code $this AdjustSetting thickness] \
+        -variable [itcl::scope _settings(volumeThickness)] \
+        -showvalue off -command [itcl::code $this AdjustSetting volumeThickness] \
         -troughcolor grey92
 
     label $inner.thick -text "Thick" -font $font
-
+    $inner.thickness set $_settings(volumeThickness)
 
     label $inner.colormap_l -text "Colormap" -font $font
     itk_component add colormap {
@@ -2688,17 +2687,19 @@ itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } {
 #
 itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } { 
     array set _settings [subst {
-        $cname-ambient           60
-        $cname-colormap          default
-        $cname-diffuse           40
-        $cname-light2side        1
-        $cname-opacity           100
-        $cname-outline           0
-        $cname-specularExponent  90
-        $cname-specularLevel     30
-        $cname-thickness         350
-        $cname-transp            50
-        $cname-volumeVisible     1
+        $cname-colormap                 default
+        $cname-light2side               1
+        $cname-outline                  0
+        $cname-volumeAmbient            60
+        $cname-volumeBlendMode          composite
+        $cname-volumeDiffuse            60
+        $cname-volumeLighting           1
+        $cname-volumeOpacity            50
+        $cname-volumeQuality            50
+        $cname-volumeSpecularExponent   90
+        $cname-volumeSpecularLevel      30
+        $cname-volumeThickness          350
+        $cname-volumeVisible            1
     }]
 }
 
@@ -2710,21 +2711,26 @@ itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } {
 #       volume settings with the settings of the new current component.
 #
 itcl::body Rappture::VtkVolumeViewer::SwitchComponent { cname } { 
-    if { ![info exists _settings($cname-ambient)] } {
+    if { ![info exists _settings(${cname}-volumeAmbient)] } {
         InitComponentSettings $cname
     }
     # _settings variables change widgets, except for colormap
-    set _settings($this-ambient)          $_settings($cname-ambient)
-    set _settings($this-colormap)         $_settings($cname-colormap)
-    set _settings($this-diffuse)          $_settings($cname-diffuse)
-    set _settings($this-light2side)       $_settings($cname-light2side)
-    set _settings($this-opacity)          $_settings($cname-opacity)
-    set _settings($this-outline)          $_settings($cname-outline)
-    set _settings($this-specularExponent) $_settings($cname-specularExponent)
-    set _settings($this-specularLevel)    $_settings($cname-specularLevel)
-    set _settings($this-thickness)        $_settings($cname-thickness)
-    set _settings($this-transp)           $_settings($cname-transp)
-    set _settings($this-volumeVisible)    $_settings($cname-volumeVisible)
+    foreach name {
+        light2side              
+        outline                 
+        volumeAmbient           
+        volumeBlendMode         
+        volumeDiffuse           
+        volumeLighting          
+        volumeOpacity           
+        volumeQuality           
+        volumeSpecularExponent  
+        volumeSpecularLevel     
+        volumeThickness         
+        volumeVisible           
+    } {
+        set _settings($name) $_settings(${cname}-${name})
+    }
     $itk_component(colormap) value        $_settings($cname-colormap)
     set _current $cname;                # Reset the current component
 }
@@ -2733,7 +2739,7 @@ itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
     if { ![info exists _transferFunctionEditors($cname)] } {
         return [list 0.0 0.0 1.0 1.0]
     }
-    if { ![info exists _settings($cname-ambient)] } {
+    if { ![info exists _settings($cname-volumeAmbient)] } {
         InitComponentSettings $cname
     }
     set max 1.0 ;                       #$_settings($tag-opacity)
@@ -2743,11 +2749,10 @@ itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
     # Ensure that the global opacity and thickness settings (in the slider
     # settings widgets) are used for the active transfer-function.  Update
     # the values in the _settings varible.
-    set opacity [expr { double($_settings($cname-opacity)) * 0.01 }]
+    set opacity [expr { double($_settings($cname-volumeOpacity)) * 0.01 }]
 
     # Scale values between 0.00001 and 0.01000
-    set delta [expr {double($_settings($cname-thickness)) * 0.0001}]
-    
+    set delta [expr {double($_settings($cname-volumeThickness)) * 0.0001}]
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
     set amap ""
