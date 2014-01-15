@@ -625,7 +625,8 @@ enable_option_checking=no
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 subdirs
-VTKDIR
+VTK_VERSION
+VTK_TCL_DIR
 TK_VERSION
 TK_XLIBSW
 TK_LIB_SPEC
@@ -683,6 +684,7 @@ INSTALL_PREFIX
 HAVE_RUBY_DEVEL
 HAVE_INTTYPES_H
 HAVE_FFMPEG_LIBS
+ENABLE_VTK_DICOM
 ENABLE_GUI
 ENABLE_LANG
 FFMPEG
@@ -821,6 +823,7 @@ enable_gui
 with_ffmpeg
 with_tclsh
 with_vtk
+enable_vtkdicom
 with_matlab
 with_octave
 with_mkoctfile3
@@ -1469,6 +1472,7 @@ Optional Features:
   --enable-lang           build language bindings [default=yes]
   --enable-gui            build code related to the graphical user interface
                           [default=yes]
+  --enable-vtkdicom       Use vtkDICOM package [default=no]
   --enable-shared         build and link with shared libraries --enable-shared
   --enable-symbols        build with debugging symbols --disable-symbols
 
@@ -1478,7 +1482,7 @@ Optional Packages:
   --with-install=DIR      location of installation [default=yes]
   --with-ffmpeg=DIR       location of ffmpeg [default=yes]
   --with-tclsh=DIR        location of tclsh [default=yes]
-  --with-vtk=DIR          location of vtk library [default=yes]
+  --with-vtk=version      VTK library version [default=6.0]
   --with-matlab=DIR       location of matlab and mex compiler [default=yes]
   --with-octave=DIR       path of default octave compiler `mkoctfile'
                           [default=yes]
@@ -7466,30 +7470,55 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for vtk" >&5
 $as_echo_n "checking for vtk... " >&6; }
-VTKDIR=""
+VTK_VERSION=6.0
+VTK_TCL_DIR=""
 
 if test "$with_vtk" != "no" ; then
-  if test "$with_vtk" = "yes" ; then
+  if test "$with_vtk" != "yes" ; then
+    VTK_VERSION=$with_vtk
+  fi
+  if test "x$with_vtk" != "x" ; then
     for path in \
-     $libdir \
+     $libdir/tcltk \
+     $exec_prefix/lib/tcltk \
      $prefix/lib/tcltk \
+     $libdir \
      $prefix/lib \
      $exec_prefix/lib \
      /usr/lib
     do
-      for vtk in $path/vtk-* ; do
-        if test -d "${vtk}" ; then
-          VTKDIR=${vtk}
-        fi
-      done
-      if test "x${VTKDIR}" != "x" ; then
+      if test -d "$path/vtk-$VTK_VERSION" ; then
+        VTK_TCL_DIR="$path/vtk-$VTK_VERSION"
+      fi
+      if test "x${VTK_TCL_DIR}" != "x" ; then
         break
       fi
     done
   fi
+else
+  if test "${ENABLE_GUI}" = "yes" ; then
+    as_fn_error $? "Rappture GUI requires VTK" "$LINENO" 5
+  fi
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $VTKDIR" >&5
-$as_echo "$VTKDIR" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $VTK_TCL_DIR" >&5
+$as_echo "$VTK_TCL_DIR" >&6; }
+
+# Check whether --enable-vtkdicom was given.
+if test "${enable_vtkdicom+set}" = set; then :
+  enableval=$enable_vtkdicom;
+else
+  enable_vtkdicom=no
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for vtkDICOM" >&5
+$as_echo_n "checking for vtkDICOM... " >&6; }
+ENABLE_VTK_DICOM=
+if test "$enable_vtkdicom" != "no" ; then
+    ENABLE_VTK_DICOM="yes"
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_vtkdicom" >&5
+$as_echo "$enable_vtkdicom" >&6; }
 
 
 
@@ -10098,7 +10127,9 @@ fi
 
 
 
+
 MAKE=${make_command}
+
 
 
 

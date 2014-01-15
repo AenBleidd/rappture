@@ -10,7 +10,7 @@ a conventional scientific application."
 exec_prefix=@prefix@
 libdir=@libdir@
 bindir=@bindir@
-vtkdir=@VTKDIR@
+vtk_tcl_dir=@VTK_TCL_DIR@
 python_version=@PYTHON_VERSION@
 tcl_version=@TCL_VERSION@
 octave_version=@OCTAVE_VERSION_MAJOR@
@@ -28,7 +28,7 @@ prepend PERL5LIB ${libdir}/perl
 prepend RUBYLIB ${libdir}/ruby
 prepend PYTHONPATH ${libdir}/python${python_version}/site-packages
 
-prepend TCLLIBPATH ${vtkdir}
+prepend TCLLIBPATH ${vtk_tcl_dir}
 prepend TCL_LIBRARY ${libdir}/tcl${tcl_version}
 prepend TK_LIBRARY ${libdir}/tk${tcl_version}
 

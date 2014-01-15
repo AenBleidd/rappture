@@ -24,6 +24,7 @@
 extern Tcl_AppInitProc Rappturegui_Init;
 extern Tcl_AppInitProc RpCanvHotspot_Init;
 extern Tcl_AppInitProc RpCanvPlacard_Init;
+extern Tcl_AppInitProc RpDicomToVtk_Init;
 extern Tcl_AppInitProc RpDxToVtk_Init;
 extern Tcl_AppInitProc RpPdbToVtk_Init;
 extern Tcl_AppInitProc RpDiffview_Init;
@@ -46,6 +47,9 @@ Rappturegui_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
     if (RpCanvPlacard_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (RpDicomToVtk_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     if (RpDxToVtk_Init(interp) != TCL_OK) {
