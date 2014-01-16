@@ -17,6 +17,7 @@ VPATH		= $(srcdir)
 PACKAGE_VERSION = @PACKAGE_VERSION@
 
 FILES		= \
+		$(srcdir)/auto.tcl \
 		$(srcdir)/main.tcl \
 		$(srcdir)/legend.tcl \
 		$(srcdir)/objview.tcl \

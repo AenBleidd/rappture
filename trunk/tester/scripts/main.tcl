@@ -16,7 +16,7 @@
 #
 #  USAGE: tester.tcl ?-tool tool.xml? ?-testdir tests?
 # ======================================================================
-#  AUTHOR:  Ben Rafferty, Purdue University
+#  AUTHORS:  Michael McLennan, Ben Rafferty, Purdue University
 #  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
@@ -135,7 +135,11 @@ if {$params(-testdir) == ""} {
 
 set installdir [file dirname [file normalize $params(-tool)]]
 set xmlobj [Rappture::library $params(-tool)]
-set ToolObj [Rappture::Tool ::#auto $xmlobj $installdir]
+set TaskObj [Rappture::Task ::#auto $xmlobj $installdir]
+
+# tasks in the tester run quietly and discard results
+$TaskObj configure -jobstats "" -resultdir ""
+
 set DiffShow ""  ;# used to track which diff objects are being displayed
 
 # ----------------------------------------------------------------------
@@ -295,7 +299,7 @@ text .testdiffs.body.info.text -width 10 -height 1 -wrap char
 # ----------------------------------------------------------------------
 set testtree [.pw pane 0].tree
 foreach file [glob -nocomplain -directory $params(-testdir) *.xml] {
-    set testobj [Rappture::Tester::Test ::#auto $ToolObj $file]
+    set testobj [Rappture::Tester::Test ::#auto $TaskObj $file]
     if {[$testobj getTestInfo test.label] eq ""} {
         puts stderr "ERROR:  Missing test label in $file"
         puts stderr "        skipping that test..."
