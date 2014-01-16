@@ -31,7 +31,8 @@ runtime_repo = https://nanohub.org/infrastructure/rappture-runtime/svn/trunk
 rappture_repo = https://nanohub.org/infrastructure/rappture/svn/trunk
 
 ENABLE_GUI	= @ENABLE_GUI@
-HAVE_FFMPEG     = @HAVE_FFMPEG_LIBS@
+ENABLE_LANG	= @ENABLE_LANG@
+HAVE_FFMPEG	= @HAVE_FFMPEG_LIBS@
 TARGETS		= src lib
 
 ifneq ($(ENABLE_LANG),)
