@@ -59,8 +59,8 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     }
 
-    vtkSmartPointer<vtkDICOMReader> reader = vtkSmartPointer<vtkDICOMReader>::New();
 #ifdef USE_VTK_DICOM_PACKAGE
+    vtkSmartPointer<vtkDICOMReader> reader = vtkSmartPointer<vtkDICOMReader>::New();
     vtkSmartPointer<vtkDICOMSorter> sorter = vtkSmartPointer<vtkDICOMSorter>::New();
     if (isDir) {
         vtkSmartPointer<vtkDirectory> dir = vtkSmartPointer<vtkDirectory>::New();
@@ -161,6 +161,8 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 #endif
     fprintf(stderr, "Number of data elements: %d\n", md->GetNumberOfDataElements());
 
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("num_files", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(md->GetNumberOfInstances()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("num_components", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(numComp));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("modality", -1));
@@ -193,9 +195,6 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(reader->GetTimeDimension()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("time_spacing", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetTimeSpacing()));
-
-    fprintf(stderr, "Time dim: %d, spacing: %g\n", reader->GetTimeDimension(), reader->GetTimeSpacing());
-    fprintf(stderr, "Number of files: %d\n", md->GetNumberOfInstances());
 #else
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("patient_name", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(reader->GetPatientName(), -1));
@@ -218,14 +217,7 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetRescaleOffset()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("gantry_angle", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetGantryAngle()));
-
-    fprintf(stderr, "Patient name: %s\n", reader->GetPatientName());
-    fprintf(stderr, "Transfer Syntax UID: %s\n", reader->GetTransferSyntaxUID());
-    fprintf(stderr, "Study UID: %s\n", reader->GetStudyUID());
-    fprintf(stderr, "Study ID: %s\n", reader->GetStudyID());
-    fprintf(stderr, "Components: %d\n", reader->GetNumberOfComponents());
-    fprintf(stderr, "Bits Allocated: %d\n", reader->GetBitsAllocated());
-    fprintf(stderr, "Pixel rep: %d (%s)\n", reader->GetPixelRepresentation(), reader->GetPixelRepresentation() ? "signed" : "unsigned");
+#if 0
     fprintf(stderr, "Position: %g %g %g\n",
             reader->GetImagePositionPatient()[0],
             reader->GetImagePositionPatient()[1],
@@ -237,8 +229,7 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             reader->GetImageOrientationPatient()[3], 
             reader->GetImageOrientationPatient()[4], 
             reader->GetImageOrientationPatient()[5]);
-    fprintf(stderr, "Rescale slope: %g, offset: %g\n", reader->GetRescaleSlope(), reader->GetRescaleOffset());
-    fprintf(stderr, "Gantry angle: %g\n", reader->GetGantryAngle());
+#endif
 #endif
 
     Tcl_ListObjAppendList(interp, objPtr, metaDataObj);
