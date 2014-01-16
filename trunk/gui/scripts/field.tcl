@@ -947,11 +947,11 @@ itcl::body Rappture::Field::Build {} {
             if { $contents == "" } {
                 continue;               # Ignore this component
             }
-            set vtkdata [DicomToVtk $cname $contents]
             set viewer [$_field get "about.view"]
             if { $viewer != "" } {
                 set _viewer $viewer
             }
+            set vtkdata [DicomToVtk $cname $contents]
             if { $_viewer == "" } {
                 set _viewer [expr {($_dim == 3) ? "vtkvolume" : "vtkimage"}]
             }
@@ -1741,8 +1741,9 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
                 return 0
             }
         }
-        array set data [Rappture::DicomToVtk files $files]
-        #array set data [Rappture::DicomToVtk dir $path]
+
+        #array set data [Rappture::DicomToVtk files $files]
+        array set data [Rappture::DicomToVtk dir $path]
     } else {
         array set data [Rappture::DicomToVtk files [list $path]]
     }
@@ -1759,8 +1760,12 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
             puts stderr "$key = \"$data($key)\""
         }
     }
- 
+
+    # Save viewer choice
+    set viewer $_viewer
     ReadVtkDataSet $cname $data(vtkdata)
+    # Restore viewer choice (ReadVtkDataSet wants to set it to contour/isosurface)
+    set _viewer $viewer
     return $data(vtkdata)
 }
 

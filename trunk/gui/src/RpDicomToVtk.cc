@@ -11,8 +11,6 @@
  * ======================================================================
  */
 
-#define USE_VTK_DICOM_PACKAGE
-
 #include <vtkSmartPointer.h>
 #include <vtkStringArray.h>
 #include <vtkIntArray.h>
@@ -45,11 +43,10 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     char *dirName = NULL;
-    vtkSmartPointer<vtkStringArray> pathArray;
+    vtkSmartPointer<vtkStringArray> pathArray = vtkSmartPointer<vtkStringArray>::New();
     if (isDir) {
         dirName = Tcl_GetString(objv[2]); 
     } else {
-        pathArray = vtkSmartPointer<vtkStringArray>::New();
         // Get path array from Tcl list
         int pathListc;
         Tcl_Obj **pathListv = NULL;
@@ -62,6 +59,7 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     }
 
+    vtkSmartPointer<vtkDICOMReader> reader = vtkSmartPointer<vtkDICOMReader>::New();
 #ifdef USE_VTK_DICOM_PACKAGE
     vtkSmartPointer<vtkDICOMSorter> sorter = vtkSmartPointer<vtkDICOMSorter>::New();
     if (isDir) {
@@ -69,13 +67,28 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         if (!dir->Open(dirName)) {
             return TCL_ERROR;
         }
-        // FIXME: dir->GetFiles() returns names, not full paths
-        sorter->SetInputFileNames(dir->GetFiles());
-        sorter->Update();
-    } else {
-        sorter->SetInputFileNames(pathArray);
-        sorter->Update();
+
+        int numFiles = dir->GetNumberOfFiles();
+        for (int i = 0; i < numFiles; i++) {
+            if (dir->GetFile(i)[0] == '.') {
+                continue;
+            }
+
+            std::string path(dirName);
+            path += "/";
+            path += dir->GetFile(i);
+
+            if (!dir->FileIsDirectory(path.c_str()) &&
+                reader->CanReadFile(path.c_str())) {
+                pathArray->InsertNextValue(path);
+            } else {
+                fprintf(stderr, "Skipping file %s\n", path.c_str());
+            }
+        }
     }
+
+    sorter->SetInputFileNames(pathArray);
+    sorter->Update();
 
     int numStudies = sorter->GetNumberOfStudies();
     int study = 0;
@@ -113,7 +126,6 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("series", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(series));
 
-    vtkSmartPointer<vtkDICOMReader> reader = vtkSmartPointer<vtkDICOMReader>::New();
     reader->SetFileNames(files);
 #else
     Tcl_Obj *objPtr = Tcl_NewListObj(0, NULL);
@@ -135,24 +147,56 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         fprintf(stderr, "Stack: %s\n", ids->GetValue(i).c_str());
     }
     vtkIntArray *fidxArray = reader->GetFileIndexArray();
+    vtkDICOMMetaData *md = reader->GetMetaData();
+    int numComp = fidxArray->GetNumberOfComponents();
+#if 0
     for (int i = 0; i < fidxArray->GetNumberOfTuples(); i++) {
         fprintf(stderr, "%d:", i);
         for (int j = 0; j < fidxArray->GetNumberOfComponents(); j++) {
-            fprintf(stderr, " %d", (int)fidxArray->GetComponent(i, j));
+            int idx = (int)fidxArray->GetComponent(i, j);
+            fprintf(stderr, " %d", idx);
         }
         fprintf(stderr, "\n");
     }
+#endif
+    fprintf(stderr, "Number of data elements: %d\n", md->GetNumberOfDataElements());
+
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("num_components", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(numComp));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("modality", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::Modality).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("patient_name", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::PatientName).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("transfer_syntax_uid", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::TransferSyntaxUID).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("study_uid", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::StudyInstanceUID).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("study_id", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::StudyID).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("series_number", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(md->GetAttributeValue(DC::SeriesNumber).AsInt()));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("series_in_study", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(md->GetAttributeValue(DC::SeriesInStudy).AsInt()));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("series_uid", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::SeriesInstanceUID).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("bits_allocated", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(md->GetAttributeValue(DC::BitsAllocated).AsInt()));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("bits_stored", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(md->GetAttributeValue(DC::BitsStored).AsInt()));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("pixel_representation", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(md->GetAttributeValue(DC::PixelRepresentation).AsString().c_str(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("rescale_slope", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(md->GetAttributeValue(DC::RescaleSlope).AsDouble()));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("rescale_intercept", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(md->GetAttributeValue(DC::RescaleIntercept).AsDouble()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("time_dimension", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(reader->GetTimeDimension()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("time_spacing", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetTimeSpacing()));
 
     fprintf(stderr, "Time dim: %d, spacing: %g\n", reader->GetTimeDimension(), reader->GetTimeSpacing());
-    vtkDICOMMetaData *md = reader->GetMetaData();
     fprintf(stderr, "Number of files: %d\n", md->GetNumberOfInstances());
 #else
-    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("descriptive_name", -1));
-    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(reader->GetDescriptiveName(), -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("patient_name", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(reader->GetPatientName(), -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("transfer_syntax_uid", -1));
@@ -161,6 +205,8 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(reader->GetStudyUID(), -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("study_id", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj(reader->GetStudyID(), -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("num_components", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(reader->GetNumberOfComponents()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("bits_allocated", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(reader->GetBitsAllocated()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("pixel_representation", -1));
@@ -168,10 +214,11 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                              Tcl_NewStringObj((reader->GetPixelRepresentation() ? "signed" : "unsigned"), -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("rescale_slope", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetRescaleSlope()));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("rescale_offset", -1));
+    Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetRescaleOffset()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("gantry_angle", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewDoubleObj(reader->GetGantryAngle()));
 
-    fprintf(stderr, "Descriptive name: %s\n", reader->GetDescriptiveName());
     fprintf(stderr, "Patient name: %s\n", reader->GetPatientName());
     fprintf(stderr, "Transfer Syntax UID: %s\n", reader->GetTransferSyntaxUID());
     fprintf(stderr, "Study UID: %s\n", reader->GetStudyUID());
