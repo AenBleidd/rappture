@@ -97,7 +97,6 @@ FILES		= \
 		$(srcdir)/progress.tcl \
 		$(srcdir)/pushbutton.tcl \
 		$(srcdir)/radiodial.tcl \
-		$(srcdir)/resources.tcl \
 		$(srcdir)/resultset.tcl \
 		$(srcdir)/resultselector.tcl \
 		$(srcdir)/resultviewer.tcl \

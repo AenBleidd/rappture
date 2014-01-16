@@ -23,16 +23,7 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-package require RapptureGUI
-set guidir $RapptureGUI::library
-
-package require RapptureBuilder
-set blddir $RapptureBuilder::library
-
-package require RapptureTester
-set testdir $RapptureTester::library
-
-set mainscript [file join $guidir scripts main.tcl]
+set mainscript ""
 set alist ""
 set toolxml ""
 
@@ -44,13 +35,22 @@ while {[llength $argv] > 0} {
     if {[string index $opt 0] == "-"} {
         switch -- $opt {
             -run {
+                package require RapptureGUI
+                set guidir $RapptureGUI::library
                 set mainscript [file join $guidir scripts main.tcl]
+                set reqpkgs Tk
             }
             -builder {
+                package require RapptureBuilder
+                set blddir $RapptureBuilder::library
                 set mainscript [file join $blddir scripts main.tcl]
+                set reqpkgs Tk
             }
             -tester {
+                package require RapptureTester
+                set testdir $RapptureTester::library
                 set mainscript [file join $testdir scripts main.tcl]
+                set reqpkgs Tk
             }
             -tool {
                 set toolxml [lindex $argv 0]
@@ -64,6 +64,13 @@ while {[llength $argv] > 0} {
             -tool - -testdir - -nosim {
                 lappend alist $opt [lindex $argv 0]
                 set argv [lrange $argv 1 end]
+            }
+            -auto {
+                # for the tester in automatic mode -- don't load Tk
+                package require RapptureTester
+                set testdir $RapptureTester::library
+                set mainscript [file join $testdir scripts auto.tcl]
+                set reqpkgs ""
             }
             -load {
                 lappend alist $opt
@@ -80,11 +87,19 @@ while {[llength $argv] > 0} {
                 puts stderr "usage:"
                 puts stderr "  rappture ?-run? ?-tool toolFile? ?-nosim 0/1? ?-load file file ...?"
                 puts stderr "  rappture -builder ?-tool toolFile?"
-                puts stderr "  rappture -tester ?-tool toolFile? ?-testdir directory?"
+                puts stderr "  rappture -tester ?-auto? ?-tool toolFile? ?-testdir directory?"
                 exit 1
             }
         }
     }
+}
+
+# If no arguments, assume that it's the -run option
+if {$mainscript eq ""} {
+    package require RapptureGUI
+    set guidir $RapptureGUI::library
+    set mainscript [file join $guidir scripts main.tcl]
+    set reqpkgs Tk
 }
 
 # Invoke the main program with the args
@@ -96,5 +111,7 @@ while {[llength $argv] > 0} {
 #	"exec" is needed, then the following could be replaced with 
 #	blt::bgexec.  It doesn't try to redirect stderr into a file.
 set argv $alist
-package require Tk
+foreach name $reqpkgs {
+    package require $name
+}
 source  $mainscript
