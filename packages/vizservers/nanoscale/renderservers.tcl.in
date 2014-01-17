@@ -101,6 +101,7 @@ register_server vmdshow 2018 \
 } {
     VMDDIR ${libdir}/vmd
     SURF_BIN ${libdir}/vmd/surf
+    MSMSSERVER ${libdir}/msms
     LD_LIBRARY_PATH ${libdir}
 } 
     
