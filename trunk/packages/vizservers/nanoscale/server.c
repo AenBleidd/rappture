@@ -1,4 +1,11 @@
-/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* ======================================================================
+ *  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+ * ----------------------------------------------------------------------
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
 #define _GNU_SOURCE
 #include <sys/socket.h>
 
@@ -491,10 +498,10 @@ main(int argc, char **argv)
             length = sizeof(newaddr);
 #ifdef HAVE_ACCEPT4
             sock = accept4(serverPtr->listenerFd, (struct sockaddr *)&newaddr,
-                        &length, SOCK_CLOEXEC);
+                           &length, SOCK_CLOEXEC);
 #else
             sock = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr,
-                       &length);
+                          &length);
 #endif
             if (sock < 0) {
                 ERROR("Can't accept server \"%s\": %s", serverPtr->name,
@@ -599,18 +606,22 @@ main(int argc, char **argv)
                         exit(1);
                     }
                 }
-                /* Dup the socket to descriptors, normally 3 and 4 */
-                if (dup2(sock, serverPtr->inputFd) < 0)  { /* Stdin */
-                    ERROR("%s: can't dup stdin: %s", serverPtr->name,
-                        strerror(errno));
-                    exit(1);
-                }
-                if (dup2(sock, serverPtr->outputFd) < 0) { /* Stdout */
-                    ERROR("%s: can't dup stdout: %s", serverPtr->name,
+                /* Dup the socket to descriptors, e.g. 3 and 4 */
+                if (dup2(sock, serverPtr->inputFd) < 0)  { /* input */
+                    ERROR("%s: can't dup socket to fd %d: %s",
+                          serverPtr->name, serverPtr->inputFd,
                           strerror(errno));
                     exit(1);
                 }
-                for(i = serverPtr->outputFd + 1; i <= FD_SETSIZE; i++) {
+                if (serverPtr->outputFd != serverPtr->inputFd) {
+                    if (dup2(sock, serverPtr->outputFd) < 0) { /* output */
+                        ERROR("%s: can't dup socket to fd %d: %s",
+                              serverPtr->name, serverPtr->outputFd,
+                              strerror(errno));
+                        exit(1);
+                    }
+                }
+                for (i = serverPtr->outputFd + 1; i <= FD_SETSIZE; i++) {
                     close(i);           /* Close all the other descriptors. */
                 }
 
