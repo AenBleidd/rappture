@@ -97,12 +97,10 @@ register_server vmdshow 2018 \
     -input 3 -output 4 -combinelogs no \
 {
     ${libdir}/vmd/vmd_LINUXAMD64 -startup ${libdir}/vmd/vmdserver.tcl \
-	-args -stdio 
+	-args -stdio
 } {
     VMDDIR ${libdir}/vmd
     SURF_BIN ${libdir}/vmd/surf
     MSMSSERVER ${libdir}/msms
     LD_LIBRARY_PATH ${libdir}
-} 
-    
-
+}
