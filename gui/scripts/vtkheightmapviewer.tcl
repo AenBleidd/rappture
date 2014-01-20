@@ -2611,7 +2611,7 @@ itcl::body Rappture::VtkHeightmapViewer::GetHeightmapScale {} {
 	set sval [expr { $val >= 50 ? double($val)/50.0 : 1.0/(2.0-(double($val)/50.0)) }]
 	return $sval
     }
-    set sval 0 
+    return 0 
 }
 
 itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } { 
