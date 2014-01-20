@@ -371,6 +371,8 @@ itcl::body Rappture::Task::run {args} {
             if {$resultdir eq "@default"} {
                 if {[info exists _resources(-resultdir)]} {
                     set rdir $_resources(-resultdir)
+                } else {
+                    set rdir "."
                 }
             } elseif {$resultdir ne ""} {
                 set rdir $resultdir
@@ -378,15 +380,15 @@ itcl::body Rappture::Task::run {args} {
 
             if {$status == 0 && $rdir ne ""} {
                 catch {
-                    if {![file exists $_resources(-resultdir)]} {
-                        _mkdir $_resources(-resultdir)
+                    file delete -force -- $file
+                    if {![file exists $rdir]} {
+                        _mkdir $rdir
                     }
                     set tail [file tail $file]
-                    set fid [open [file join $_resources(-resultdir) $tail] w]
+                    set fid [open [file join $rdir $tail] w]
                     puts $fid "<?xml version=\"1.0\"?>"
                     puts $fid [$result xml]
                     close $fid
-                    file delete -force -- $file
                 }
             } else {
                 # don't keep the file
