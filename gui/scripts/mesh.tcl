@@ -54,7 +54,7 @@ itcl::class Rappture::Mesh {
     }
     public proc fetch {xmlobj path}
     public proc release {obj}
-    public method vtkdata {}
+    public method vtkdata {{what -partial}}
     public method type {} {
 	return $_type
     }
@@ -237,8 +237,16 @@ itcl::body Rappture::Mesh::destructor {} {
 #	care) what type of mesh is used.  The field object will add field
 #	arrays before generating output to send to the remote render server.
 #
-itcl::body Rappture::Mesh::vtkdata {} {
-    return $_vtkdata
+itcl::body Rappture::Mesh::vtkdata {{what -partial}} {
+    if {$what == "-full"} {
+        append out "# vtk DataFile Version 3.0\n"
+	append out "[hints label]\n"
+	append out "ASCII\n"
+        append out $_vtkdata
+        return $out
+    } else {
+        return $_vtkdata
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1100,7 +1108,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
 # elements stored in the XML.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::ReadNodesElements {path} {
-    set type "nodeselements"
+    set _type "nodeselements"
     set count 0
 
     # Scan for nodes.  Each node represents a vertex.

@@ -343,18 +343,12 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             if { ![$dataobj isvalid] } {
                 return;                 # Ignore invalid mesh objects.
             }
-            switch -- [$dataobj dimensions] {
-                2 {
-                    set mode "mesh"
-                    if {![info exists _mode2widget($mode)]} {
-                        set w $itk_interior.mesh
-                        Rappture::MeshResult $w
-                        set _mode2widget($mode) $w
-                    }
-                }
-                default {
-                    error "can't handle [$dataobj dimensions]D field"
-                }
+            set mode "vtkmeshviewer"
+            if {![info exists _mode2widget($mode)]} {
+                set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+                set w $itk_interior.$mode
+                Rappture::VtkMeshViewer $w $servers
+                set _mode2widget($mode) $w
             }
         }
         ::Rappture::Table {
