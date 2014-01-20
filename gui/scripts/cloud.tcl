@@ -140,7 +140,6 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
             continue
         }
 
-        set _dim [llength $line]
         # make sure we have x,y,z
         while {[llength $line] < 3} {
             lappend line "0"
@@ -176,22 +175,18 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
     if { $_numPoints == 0 } {
         return
     }
-    # Check each axis to verify that data exists
+    set _dim 0
     foreach { xmin xmax } $_limits(x) break
-    if { $xmin >= $xmax } {
-        return 
+    if { $xmax > $xmin } {
+        incr _dim
     }
-    if { $_dim > 1 } {
-        foreach { ymin ymax } $_limits(y) break
-        if { $ymin >= $ymax } {
-            return 
-        }
+    foreach { ymin ymax } $_limits(y) break
+    if { $ymax > $ymin } {
+        incr _dim
     }
-    if { $_dim > 2 } {
-        foreach { zmin zmax } $_limits(z) break
-        if { $zmin >= $zmax } {
-            return 
-        }
+    foreach { zmin zmax } $_limits(z) break
+    if { $zmax > $zmin } {
+        incr _dim
     }
     set _isValid 1
 }
