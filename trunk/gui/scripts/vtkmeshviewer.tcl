@@ -890,11 +890,11 @@ puts stderr "dataobj: $dataobj"
         }
 
         foreach axis { x y z } {
-            set label [$_first hints ${axis}label]
+            set label [$_first label ${axis}]
             if { $label != "" } {
                 SendCmd "axis name $axis $label"
             }
-            set units [$_first hints ${axis}units]
+            set units [$_first units ${axis}]
             if { $units != "" } {
                 SendCmd "axis units $axis $units"
             }
@@ -1719,7 +1719,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     # Parse style string.
     set tag $dataobj
     set type [$dataobj type]
-#    set style [$dataobj style]
+    set color [$dataobj hints color]
     if { $dataobj != $_first } {
         set settings(-wireframe) 1
     }
@@ -1736,9 +1736,13 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
         -visible 1
     }
     # array set settings $style
+    if {$color != ""} {
+        set settings(-color) $color
+    }
     if {$type == "cloud"} {
         set settings(-cloudstyle) points
         set settings(-edges) 0
+        set settings(-edgecolor) white
     }
     SendCmd "polydata add $tag"
     SendCmd "polydata visible $settings(-visible) $tag"

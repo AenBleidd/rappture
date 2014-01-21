@@ -276,10 +276,10 @@ itcl::body Rappture::Mesh::units { axis } {
 #       Returns the label of the given axis.
 #
 itcl::body Rappture::Mesh::label { axis } {
-    if { ![info exists axis2label($axis)] } {
+    if { ![info exists _axis2labels($axis)] } {
         return ""
     }
-    return $axis2label($axis)
+    return $_axis2labels($axis)
 }
 
 # ----------------------------------------------------------------------
