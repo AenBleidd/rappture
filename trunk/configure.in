@@ -1,7 +1,6 @@
 
 AC_INIT([Rappture],[1.4],[rappture@nanohub.org])
 AC_CONFIG_AUX_DIR(cf)
-AC_CONFIG_HEADER(src/core/config.h)
 
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
@@ -37,10 +36,36 @@ fi
 
 AC_PROG_INSTALL
 AC_PROG_INSTALL
-AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_MKDIR_P
 AC_PROG_MAKE_SET
+
+AC_MSG_CHECKING([RAPPTURE_MAJOR_VERSION])
+RAPPTURE_MAJOR_VERSION=1
+AC_MSG_RESULT($RAPPTURE_MAJOR_VERSION)
+
+AC_MSG_CHECKING([RAPPTURE_MINOR_VERSION])
+RAPPTURE_MINOR_VERSION=4
+AC_MSG_RESULT($RAPPTURE_MINOR_VERSION)
+
+AC_MSG_CHECKING([RAPPTURE_RELEASE_SERIAL])
+RAPPTURE_RELEASE_SERIAL=0
+AC_MSG_RESULT($RAPPTURE_RELEASE_SERIAL)
+
+RAPPTURE_VERSION=${RAPPTURE_MAJOR_VERSION}.${RAPPTURE_MINOR_VERSION}
+
+AC_SUBST(VERSION)
+AC_SUBST(RAPPTURE_VERSION)
+AC_SUBST(RAPPTURE_MINOR_VERSION)
+AC_SUBST(RAPPTURE_MAJOR_VERSION)
+AC_SUBST(RAPPTURE_RELEASE_SERIAL)
+
+AC_PATH_X
+
+X_INCLUDES=${x_includes}
+X_LIBRARIES=${x_libraries}
+AC_SUBST(X_INCLUDES)
+AC_SUBST(X_LIBRARIES)
 
 # Check for C, C++, and FORTRAN 
 AC_PROG_CC
@@ -51,58 +76,7 @@ AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 AC_LANG([C])
 
 AC_HEADER_STDC
-AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
-
 AC_LANG([C++])
-
-AC_CHECK_FUNCS(sysinfo)
-AC_CHECK_FUNCS(gettimeofday)
-AC_CHECK_FUNC(localtime,,AC_MSG_ERROR(oops! no localtime ?!?))
-AC_CHECK_FUNC(getenv,,AC_MSG_ERROR(oops! no getenv ?!?))
-
-AC_CHECK_HEADERS(sys/sysinfo.h)
-
-AC_CHECK_LIB(ncurses, clrtoeol,,AC_MSG_ERROR([ncurses library missing?]))
-AC_CHECK_HEADERS(ncurses.h,,AC_MSG_WARN(ncurses headers missing ?))
-
-AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))
-AC_CHECK_HEADERS(algorithm,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(cctype,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(cfloat,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(cmath,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(cstdio,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(cstdlib,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(cstring,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(fstream,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(iostream,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(iterator,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(sstream,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(stack,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
-
-AC_CHECK_HEADERS(assert.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(ctype.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(errno.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(limits.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(string.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(stdlib.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(stddef.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(float.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(math.h,,AC_MSG_WARN(C headers missing ?))
-dnl AC_CHECK_HEADERS(ieeefp.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(malloc.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(memory.h,,AC_MSG_WARN(C headers missing ?))
-AC_CHECK_HEADERS(unistd.h,,AC_MSG_WARN(C headers missing ?))
-
-AC_CHECK_HEADERS(inttypes.h,,AC_MSG_WARN(C headers missing ?))
-if test "${ac_cv_header_inttypes_h}" = "yes" ; then
-  HAVE_INTTYPES_H=1
-else
-  HAVE_INTTYPES_H=0
-fi
-
 
 SC_CONFIG_CFLAGS
 
@@ -118,17 +92,6 @@ for m in "$MAKE" make gmake gnumake ; do
 done
 if test "x${make_command}" = "x" ; then
   AC_MSG_ERROR([Requires GNU make. You can specify a version with \$MAKE])
-fi
-
-AC_ARG_ENABLE(
-    [lang],
-    [AS_HELP_STRING([--enable-lang], [build language bindings @<:@default=yes@:>@])],
-    [],
-    [enable_lang=yes])
-
-ENABLE_LANG=
-if test "$enable_lang" != "no" ; then
-    ENABLE_LANG="yes"
 fi
 
 AC_ARG_ENABLE(
@@ -153,114 +116,9 @@ for dir in \
   fi
 done
 
-AC_ARG_WITH(
-    [ffmpeg],
-    [AS_HELP_STRING([--with-ffmpeg[=DIR]],
-      [location of ffmpeg @<:@default=yes@:>@])],
-    [],
-    [with_ffmpeg=yes])
-
-AC_ARG_WITH(
-    [tclsh],
-    [AS_HELP_STRING([--with-tclsh[=DIR]],
-        [location of tclsh @<:@default=yes@:>@])],
-    [],
-    [with_tclsh=yes])
-
-TCLSH=""
-if test "${with_tclsh}" != "no" ; then
-  tclsh="tclsh${TCL_VERSION}"
-  if test "${with_tclsh}" = "yes" ; then 
-    AC_PATH_PROG(TCLSH, ${tclsh}, [], [${exec_prefix}/bin:${PATH}])
-  else 
-    AC_PATH_PROG(TCLSH, ${tclsh}, [], [${with_tclsh}/bin:${with_tclsh}])
-  fi
-  if test "x${TCLSH}" = "x" ; then
-    AC_ERROR([can't find tclsh])
-  fi
-fi
-
-
-TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
-AC_ARG_WITH(
-    [vtk],
-    [AS_HELP_STRING([--with-vtk[=version]],
-        [VTK library version @<:@default=6.0@:>@])],
-    [], 
-    [with_vtk=yes])
-
-AC_MSG_CHECKING([for vtk])
-VTK_VERSION=6.0
-VTK_TCL_DIR=""
-
-if test "$with_vtk" != "no" ; then
-  if test "$with_vtk" != "yes" ; then
-    VTK_VERSION=$with_vtk
-  fi
-  if test "x$with_vtk" != "x" ; then
-    for path in \
-     $libdir/tcltk \
-     $exec_prefix/lib/tcltk \
-     $prefix/lib/tcltk \
-     $libdir \
-     $prefix/lib \
-     $exec_prefix/lib \
-     /usr/lib
-    do
-      if test -d "$path/vtk-$VTK_VERSION" ; then
-        VTK_TCL_DIR="$path/vtk-$VTK_VERSION"
-      fi
-      if test "x${VTK_TCL_DIR}" != "x" ; then
-        break
-      fi
-    done
-  fi
-else
-  if test "${ENABLE_GUI}" = "yes" ; then
-    AC_MSG_ERROR([Rappture GUI requires VTK])
-  fi
-fi
-AC_MSG_RESULT([$VTK_TCL_DIR])
-
-AC_ARG_ENABLE(
-    [vtkdicom],
-    [AS_HELP_STRING([--enable-vtkdicom],
-        [Use vtkDICOM package @<:@default=no@:>@])],
-    [], 
-    [enable_vtkdicom=no])
-
-AC_MSG_CHECKING([for vtkDICOM])
-ENABLE_VTK_DICOM=
-if test "$enable_vtkdicom" != "no" ; then
-    ENABLE_VTK_DICOM="yes"
-fi
-AC_MSG_RESULT([$enable_vtkdicom])
-
-RP_LANG_MATLAB
-RP_LANG_OCTAVE
-RP_LANG_PERL
-RP_LANG_PYTHON
-RP_LANG_JAVA
-RP_LANG_R
-RP_LANG_RUBY
-
 RP_BASE=`pwd`
 
 SC_ENABLE_SHARED
-
-#--------------------------------------------------------------------
-# This macro figures out what flags to use with the compiler/linker
-# when building shared/static debug/optimized objects.  This information
-# is all taken from the tclConfig.sh file.
-#--------------------------------------------------------------------
-
-if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
-  . ${exec_prefix}/lib/tclConfig.sh
-fi
-if test -f "${exec_prefix}/lib/tkConfig.sh" ; then
-  . ${exec_prefix}/lib/tkConfig.sh
-fi
 
 # -----------------------------------------------------------------------
 #
@@ -288,94 +146,9 @@ SIZEOF_INT="${ac_cv_sizeof_int}"
 
 SC_ENABLE_SYMBOLS
 
-
-#--------------------------------------------------------------------
-# search for ffmpeg libraries libavcodec, libavformat, libswscale
-#--------------------------------------------------------------------
-if test "${with_ffmpeg}" != "no" ; then
-  if test "${with_ffmpeg}" = "yes" ; then 
-    AC_PATH_PROG(FFMPEG, ffmpeg, [], $PATH)
-  else 
-    AC_PATH_PROG(FFMPEG, ffmpeg, [], [${with_ffmpeg}/bin:${with_ffmpeg}])
-  fi 
-  if test "${FFMPEG}x" != "x" ; then
-    AC_DEFINE(HAVE_FFMPEG, 1, [Render servers can use ffmpeg])
-  fi
-fi
-
-AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h libavutil/mathematics.h ffmpeg/swscale.h libswscale/swscale.h],,,[
-#define __STDC_CONSTANT_MACROS 1
-])
-
-HAVE_FFMPEG_LIBS=""
-if test "${with_ffmpeg}" != "no"; then
-  if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
-        "${ac_cv_header_libavcodec_avcodec_h}" = "yes" \) -a \
-     \( "${ac_cv_header_ffmpeg_avformat_h}" = "yes" -o \
-        "${ac_cv_header_libavformat_avformat_h}" = "yes" \) -a \
-     \( "${ac_cv_header_ffmpeg_avutil_h}" = "yes" -o \
-        "${ac_cv_header_libavutil_avutil_h}" = "yes" \) -a \
-     \( "${ac_cv_header_ffmpeg_swscale_h}" = "yes" -o \
-        "${ac_cv_header_libswscale_swscale_h}" = "yes" \) ]] ; then
-    HAVE_FFMPEG_LIBS="yes"
-    AC_DEFINE(BUILD_with_ffmpeg, 1, [Build rappture with ffmpeg widgets])
-  fi
-  AC_CHECK_LIB(avcodec, main,,AC_MSG_ERROR(librappture requires libavcodec))
-  AC_CHECK_LIB(avutil, main,,AC_MSG_ERROR(librappture requires libavutil))
-  AC_CHECK_LIB(avformat, main,,AC_MSG_ERROR(librappture requires libavformat))
-  AC_CHECK_LIB(swscale, main)
-  AC_CHECK_FUNCS(av_find_stream_info)
-  AC_CHECK_FUNCS(av_open_input_file)
-  AC_CHECK_FUNCS(avcodec_decode_video)
-  AC_CHECK_FUNCS(avcodec_decode_video2)
-  AC_CHECK_FUNCS(avcodec_open)
-  AC_CHECK_FUNCS(avcodec_open2)
-  AC_CHECK_FUNCS(avformat_find_stream_info)
-  AC_CHECK_FUNCS(avformat_open_input)
-  AC_CHECK_FUNCS(avio_close)
-  AC_CHECK_FUNCS(img_convert)
-  AC_CHECK_FUNCS(sws_getCachedContext)
-  AC_CHECK_FUNCS(sws_scale)
-  AC_CHECK_FUNCS(url_close)
-  AC_CHECK_FUNCS(av_close_input_file)
-  AC_CHECK_FUNCS(avformat_close_input)
-	
-  AC_CHECK_FUNC(avcodec_find_decoder,,
-    AC_MSG_ERROR(oops! no av_codec_find_decoder ?!?))
-  AC_CHECK_FUNC(avcodec_alloc_frame,,
-    AC_MSG_ERROR(oops! no avcode_alloc_frame ?!?))
-  AC_CHECK_FUNC(av_rescale_q,,AC_MSG_ERROR(oops! no av_rescale_q ?!?))
-  AC_CHECK_FUNC(av_read_frame,,AC_MSG_ERROR(oops! av_read_frame ?!?))
-  AC_CHECK_FUNC(av_free,,AC_MSG_ERROR(oops! no av_frame ?!?))
-  AC_CHECK_FUNC(avcodec_default_release_buffer,,
-    AC_MSG_ERROR(oops! no avcode_default_release_buffer ?!?))
-  AC_CHECK_FUNC(avpicture_get_size,,
-    AC_MSG_ERROR(oops! no avpicture_get_size ?!?))
-  AC_CHECK_FUNC(avpicture_fill,,AC_MSG_ERROR(oops! no avpicture_fill ?!?))
-  AC_CHECK_FUNCS(sws_getCachedContext)
-  AC_CHECK_FUNCS(img_convert)
-  AC_CHECK_FUNCS(sws_scale)
-  AC_TRY_COMPILE([
-#define __STDC_CONSTANT_MACROS 1
-#include <stdlib.h>
-#ifdef HAVE_FFMPEG_AVCODEC_H
-# include <ffmpeg/avcodec.h>
-#endif
-#ifdef HAVE_LIBAVCODEC_AVCODEC_H
-# include <libavcodec/avcodec.h>
-#endif
-int x = AVMEDIA_TYPE_VIDEO;
-],, ac_avmedia_type_video="yes", ac_avmedia_type_video="no")
-  if test "$ac_avmedia_type_video" == "yes" ; then
-    AC_DEFINE(HAVE_AVMEDIA_TYPE_VIDEO,1,[Define if AVMEDIA_TYPE_VIDEO enum exists. ])
-  fi
-fi
-
 AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
-AC_SUBST(ENABLE_LANG)
 AC_SUBST(ENABLE_GUI)
-AC_SUBST(ENABLE_VTK_DICOM)
 AC_SUBST(FFMPEG)
 AC_SUBST(HAVE_FFMPEG_LIBS)
 AC_SUBST(HAVE_INTTYPES_H)
@@ -456,8 +229,7 @@ AC_SUBST(TCL_SHLIB_LD)
 AC_SUBST(TCL_SHLIB_LDFLAGS)
 AC_SUBST(TK_XLIBSW)
 AC_SUBST(TK_VERSION)
-AC_SUBST(VTK_TCL_DIR)
-AC_SUBST(VTK_VERSION)
+AC_SUBST(VTKDIR)
 AC_SUBST(XSUBPP)
 
 ac_configure_args="--disable-threads --enable-shared"
@@ -466,134 +238,12 @@ AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
 dnl read Makefile.in and write Makefile
 AC_CONFIG_FILES([
     Makefile
-    packages/Makefile
-    src/Makefile
-    src/core/Makefile
-    src/core2/Makefile
-    src/objects/Makefile
-    src/objects/RpHash.h
-    gui/Makefile
-    gui/apps/Makefile
-    gui/apps/about
-    gui/apps/copy_rappture_examples
-    gui/apps/encodedata
-    gui/apps/rappture
-    gui/apps/rappture-csh.env
-    gui/apps/rappture.env
-    gui/apps/rappture.use
-    gui/apps/rerun
-    gui/apps/simsim
-    gui/apps/xmldiff
-    gui/pkgIndex.tcl
-    gui/scripts/Makefile
-    gui/src/Makefile
+    objects/Makefile
+    system/Makefile
     builder/Makefile
-    builder/pkgIndex.tcl
     builder/scripts/Makefile
-    tester/Makefile
-    tester/pkgIndex.tcl
-    tester/scripts/Makefile
-    lang/Makefile
-    lang/java/Makefile
-    lang/java/rappture/Makefile
-    lang/perl/Makefile
-    lang/perl/Makefile.PL
-    lang/python/Makefile
-    lang/python/setup.py
-    lang/matlab/Makefile
-    lang/octave/Makefile
-    lang/octave/octave2/Makefile
-    lang/octave/octave3/Makefile
-    lang/R/Makefile
-    lang/ruby/Makefile
-    lang/ruby/build.rb
-    lang/tcl/Makefile
-    lang/tcl/pkgIndex.tcl
-    lang/tcl/scripts/Makefile
-    lang/tcl/src/Makefile
-    lang/tcl/tests/Makefile
-    lib/Makefile
-    examples/3D/Makefile
-    examples/Makefile
-    examples/app-fermi/2.0/Makefile
-    examples/app-fermi/Makefile
-    examples/app-fermi/cee/Makefile
-    examples/app-fermi/fortran/Makefile
-    examples/app-fermi/java/Makefile
-    examples/app-fermi/matlab/Makefile
-    examples/app-fermi/matlab/compiled/Makefile
-    examples/app-fermi/matlab/uncompiled/Makefile
-    examples/app-fermi/octave/octave2/Makefile
-    examples/app-fermi/octave/octave3/Makefile
-    examples/app-fermi/octave/Makefile
-    examples/app-fermi/perl/Makefile
-    examples/app-fermi/python/Makefile
-    examples/app-fermi/ruby/Makefile
-    examples/app-fermi/tcl/Makefile
-    examples/app-fermi/wrapper/Makefile
-    examples/app-fermi/wrapper/cee/Makefile
-    examples/app-fermi/wrapper/perl/Makefile
-    examples/app-fermi/wrapper/python/Makefile
-    examples/app-fermi/wrapper/tcl/Makefile
-    examples/app-fermi/R/Makefile
-    examples/c-example/Makefile
-    examples/canvas/Makefile
-    examples/demo.bash
-    examples/flow/Makefile
-    examples/flow/demo1/Makefile
-    examples/flow/demo2/Makefile
-    examples/flow/demo3/Makefile
-    examples/graph/Makefile
-    examples/objects/Makefile
-    examples/objects/axis/Makefile
-    examples/objects/curve/Makefile
-    examples/objects/dxWriter/Makefile
-    examples/objects/floatBuffer/Makefile
-    examples/objects/histogram/Makefile
-    examples/objects/library/Makefile
-    examples/objects/number/Makefile
-    examples/objects/path/Makefile
-    examples/objects/plot/Makefile
-    examples/objects/scatter/Makefile
-    examples/objects/string/Makefile
-    examples/objects/tree/Makefile
-    examples/objects/xmlparser/Makefile
-    examples/zoo/Makefile
-    examples/zoo/binary/Makefile
-    examples/zoo/boolean/Makefile
-    examples/zoo/choice/Makefile
-    examples/zoo/curve/Makefile
-    examples/zoo/drawing/Makefile
-    examples/zoo/enable/Makefile
-    examples/zoo/field/Makefile
-    examples/zoo/group/Makefile
-    examples/zoo/histogram/Makefile
-    examples/zoo/image/Makefile
-    examples/zoo/image/docs/Makefile
-    examples/zoo/image/examples/Makefile
-    examples/zoo/integer/Makefile
-    examples/zoo/integer2/Makefile
-    examples/zoo/loader/Makefile
-    examples/zoo/loader/examples/Makefile
-    examples/zoo/log/Makefile
-    examples/zoo/mesh/Makefile
-    examples/zoo/note/Makefile
-    examples/zoo/note/docs/Makefile
-    examples/zoo/number/Makefile
-    examples/zoo/number2/Makefile
-    examples/zoo/parallelepiped/Makefile
-    examples/zoo/periodicelement/Makefile
-    examples/zoo/phase/Makefile
-    examples/zoo/sequence/Makefile
-    examples/zoo/sequence/examples/Makefile
-    examples/zoo/string/Makefile
-    examples/zoo/structure/Makefile
-    examples/zoo/structure/examples/Makefile
-    examples/zoo/table/Makefile
-    video/Makefile
-    video/pkgIndex.tcl
-    oldtest/Makefile
-    oldtest/src/Makefile
+    builder/scripts/tclIndex
+    builder/pkgIndex.tcl
 ])
 AC_OUTPUT
 	

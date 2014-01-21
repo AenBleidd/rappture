@@ -1,0 +1,27 @@
+object base {
+    attr label -title "Label" -type string -path about.label -tooltip "Short label for the object, indicating what it represents."
+
+    attr description -title "Description" -type string:lines=3 -expand yes -path about.description -tooltip "Brief description of the object, which appears in a tooltip when the user mouses over the value.  Avoid repeating the label.  Instead, add information about what the object represents for your simulator, what it affects as an input, or what it means as an output."
+
+    attr enable -title "Enable" -type string:validate=enable -path about.enable -only input -tooltip "Use this to enable/disable an input.  A value of \"false\" permanently disables the input.  More commonly, the value is an expression that indicates when the input should be enabled.\nEXAMPLE: input.choice(model) == \"dd\""
+
+
+    check label {
+        set lbl [string trim $attr(label)]
+        if {[string length $lbl] == 0} {
+            return [list warning "You should set a label that describes this value."]
+        }
+        if {[string equal -nocase $lbl $object(type)]} {
+            return [list warning "You should change the label to something that describes this value better than just its type."]
+        }
+    }
+
+    check description {
+        set desc [string trim $attr(description)]
+        if {[string length $desc] == 0} {
+            return [list warning "You should include a description of what this value represents, typical settings, etc."]
+        } elseif {[string equal $desc $attr(label)]} {
+            return [list warning "The description should be different from the label and give additional information about the value."]
+        }
+    }
+}

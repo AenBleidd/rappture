@@ -1,0 +1,52 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: string
+#
+#  A string is ASCII or binary data.  It can be used as either an
+#  input or an output.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object string -extends base {
+    palettes "Inputs" "Outputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_string
+
+    attr default -title "Default Value" -type string -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr size -title "Size" -type string:validate=size -path size -only input -tooltip "Sets the desired size for the string.  Strings are normally 1 line of text, but if the size is set to some WxH, then the entry area will be at least W chars wide and H lines tall.  For example, 40x5 says that the string should be 40 chars wide and 5 lines tall."
+
+    attr hints -title "Hint String" -type string -path about.hints -only input -tooltip "Sets a line of text displayed beneath the entry area for the string.  This is used to give a hint to the user about what should be entered in the string area."
+
+
+    storage {
+        private variable _val   ;# string value
+    }
+
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        set _val $val
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        return [string compare $_val $_val2]
+    }
+}

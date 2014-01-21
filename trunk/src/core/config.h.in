@@ -1,4 +1,4 @@
-/* src/core/config.h.in.  Generated from configure.in by autoheader.  */
+/* core/config.h.in.  Generated from configure.in by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
@@ -68,9 +68,6 @@
 
 /* Define to 1 if you have the <ctype.h> header file. */
 #undef HAVE_CTYPE_H
-
-/* Define to 1 if you have the <env.h> header file. */
-#undef HAVE_ENV_H
 
 /* Define to 1 if you have the <errno.h> header file. */
 #undef HAVE_ERRNO_H
@@ -162,18 +159,6 @@
 /* Define to 1 if you have the <ncurses.h> header file. */
 #undef HAVE_NCURSES_H
 
-/* Define to 1 if you have the <node.h> header file. */
-#undef HAVE_NODE_H
-
-/* Define to 1 if you have the <Python.h> header file. */
-#undef HAVE_PYTHON_H
-
-/* Define to 1 if you have the <ruby.h> header file. */
-#undef HAVE_RUBY_H
-
-/* Define to 1 if you have the <ruby/node.h> header file. */
-#undef HAVE_RUBY_NODE_H
-
 /* Define to 1 if you have the <sstream> header file. */
 #undef HAVE_SSTREAM
 
@@ -225,9 +210,6 @@
 /* Define to 1 if you have the <vector> header file. */
 #undef HAVE_VECTOR
 
-/* Define to 1 if you have the <version.h> header file. */
-#undef HAVE_VERSION_H
-
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
@@ -240,11 +222,11 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
-
-/* Define this macro to use ruby/node.h */
-#undef REALLY_HAVE_RUBY_NODE_H
 
 /* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT

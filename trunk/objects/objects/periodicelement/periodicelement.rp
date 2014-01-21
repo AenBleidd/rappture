@@ -1,0 +1,79 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: periodicelement
+#
+#  A set of mutually-exclusive choices, as in Model A or Model B.
+#  Usually used as an input to a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object periodicelement -extends base {
+    palettes "Inputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_periodicelement
+
+    attr default -title "Default Value" -type atomelem -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr returnvalue -title "Return value" -type atomprops -path returnvalue -only input -tooltip "Specifies how the selected element is reported to your program: name, symbol, number, or weight."
+
+    attr active -title "Allowed Elements" \
+	-type atomactive -path active -only input -tooltip "Specifies the set of elements that can be selected.\n\nCan allow or disallow one or more groups of elements on the periodic table: actinoid, alkali-metal, alkaline-earth-metal, halogen, lanthanoid, metalloid, noble-gas, other-non-metal, post-transition-metal, transition-metal, or unknown."
+
+    check default {
+        set defval [string trim $attr(default)]
+        if {[string length $defval] == 0} {
+            return [list error "Must have a default value for this periodicelement."]
+        }
+
+        # make sure that the given value is a valid element type
+        if {[Rappture::PeriodicTable::FindElement $defval] eq ""} {
+            return [list error "Bad value \"$defval\": must be a known element in the periodic table."]
+        }
+
+        # make sure that the given value isn't in conflict with allowed values
+        if {$attr(active) ne "" && [regexp {^(active|inactive): (.+)} $attr(active) match polarity vlist]} {
+            set found [eval Rappture::PeriodicTable::ElementIsType $attr(default) [split $vlist ,]]
+            if { (!$found && $polarity eq "active")
+                  || ($found && $polarity eq "inactive") } {
+                return [list error "Default value \"$attr(default)\" is not one of the allowed values"]
+            }
+        }
+    }
+
+    check returnvalue {
+        if {[string length [string trim $attr(returnvalue)]] == 0} {
+            return [list error "Must choose at least one return value to report the selected element to your program."]
+        }
+    }
+
+    storage {
+        private variable _val   ;# current periodicelement
+    }
+
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        set _val $val
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        return [string compare $_val $_val2]
+    }
+}

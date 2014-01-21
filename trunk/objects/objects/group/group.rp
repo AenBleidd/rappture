@@ -1,0 +1,37 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: group
+#
+#  A group keeps values together.  Right now, it is only recognized
+#  on the input side, but it should be recognized on the output side
+#  in the future.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object group -extends base {
+    palettes "Inputs" "Grouping"
+    help http://rappture.org/wiki/rp_xml_ele_group
+    terminal no
+
+    check label {
+        # it's okay to have a blank label for invisible groups
+    }
+
+    check description {
+        set label [string trim $attr(label)]
+        set desc [string trim $attr(description)]
+        if {$label ne ""} {
+            # label is set, so must have a good description
+            if {$desc eq ""} {
+                return [list warning "You should include a description of what this group represents."]
+            } elseif {$desc eq $label} {
+                return [list warning "The description should be different from the label and give additional information about this group."]
+            }
+        }
+    }
+}

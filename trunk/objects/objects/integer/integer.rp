@@ -1,0 +1,80 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: integer
+#
+#  A integer is an integral value.  It is usually used as an input,
+#  but it can also be an output from a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object integer -extends base {
+    palettes "Inputs" "Outputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_integer
+
+    attr default -title "Default Value" -type string:validate=int -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr min -title "Minimum Value" -type string:validate=int -path min -only input -tooltip "Sets the minimum value for this integer.  The value can be equal to the minimum, but no lower."
+
+    attr max -title "Maximum Value" -type string:validate=int -path max -only input -tooltip "Sets the maximum value for this integer.  The value can be equal to the maximum, but no higher."
+
+
+    check default {
+        if {[string length [string trim $attr(default)]] == 0} {
+            return [list error "Must have a default value for this integer."]
+        }
+        if {"" != $attr(min) && $attr(default) < $attr(min)} {
+            return [list error "Default value is less than the minimum that you've specified for this value."]
+        }
+        if {"" != $attr(max) && $attr(default) > $attr(max)} {
+            return [list error "Default value is greater than the maximum that you've specified for this value."]
+        }
+    }
+
+    check min {
+        if {"" != $attr(min) && "" != $attr(max) && $attr(min) >= $attr(max)} {
+            return [list error "Minimum value should be less than the maximum.  If you don't want to see a min/max range, you can clear out either or both values."]
+        }
+    }
+
+    storage {
+        private variable _val 0     ;# integer value
+    }
+
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        if {[string is integer -strict $val]} {
+            set _val $val
+        } else {
+            error "don't recognize value"
+        }
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        if {$_val < $_val2} {
+            return -1
+        } elseif {$_val > $_val2} {
+            return 1
+        } else {
+            return 0
+        }
+    }
+}
