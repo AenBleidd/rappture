@@ -1559,13 +1559,19 @@ void Renderer::setAxisLabelFormat(Axis axis, const char *format)
         TRACE("Setting axis %d label format to: '%s'", axis, format);
         if (axis == X_AXIS) {
             _cubeAxesActor->SetXLabelFormat(format);
+#ifdef USE_CUSTOM_AXES
             _cubeAxesActor->XAutoLabelFormatOff();
+#endif
         } else if (axis == Y_AXIS) {
             _cubeAxesActor->SetYLabelFormat(format);
+#ifdef USE_CUSTOM_AXES
             _cubeAxesActor->YAutoLabelFormatOff();
+#endif
         } else if (axis == Z_AXIS) {
             _cubeAxesActor->SetZLabelFormat(format);
+#ifdef USE_CUSTOM_AXES
             _cubeAxesActor->ZAutoLabelFormatOff();
+#endif
         }
         _needsRedraw = true;
     }
