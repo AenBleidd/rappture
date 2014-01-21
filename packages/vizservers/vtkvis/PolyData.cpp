@@ -238,7 +238,7 @@ void PolyData::update()
         // DataSet is NOT a vtkPolyData
         TRACE("DataSet is not a PolyData");
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-        gf->UseStripsOn();
+        //gf->UseStripsOn();
         gf->ReleaseDataFlagOn();
 #ifdef USE_VTK6
         gf->SetInputData(ds);
