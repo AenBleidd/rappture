@@ -1,0 +1,437 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: curve
+#
+#  A set of (x,y) points.  Usually used as the output from a simulation,
+#  although it could also be an input if we create an input editor
+#  to specify values.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object curve -extends base {
+    palettes "Outputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_curve
+
+    attr group -title "Plotting Group" -type string -path about.group -tooltip "If two or more curves share the same name for their plotting group, they are overlayed on the same plot.  The name for the plotting group becomes the name of the overall output, and the label for each curve appears in a tooltip when you mouse over its points."
+
+    attr xlabel -title "X-axis Label" -type string -path xaxis.label -tooltip "Label shown on the x-axis for the plot."
+
+    attr xdesc  -title "X-axis Description" -type string -path xaxis.description -tooltip "Description of the x-axis that appears in a tooltip window when you mouse over the x-axis.  This should not merely repeat what the label says, but explain what it means."
+
+    attr xunits -title "X-axis Units" -type units -path xaxis.units -tooltip "Units for the physical quantity that the x-axis represents."
+
+    attr ylabel -title "Y-axis Label" -type string -path yaxis.label -tooltip "Label shown on the y-axis for the plot."
+
+    attr ydesc  -title "Y-axis Description" -type string -path yaxis.description -tooltip "Description of the y-axis that appears in a tooltip window when you mouse over the y-axis.  This should not merely repeat what the label says, but explain what it means."
+
+    attr yunits -title "Y-axis Units" -type units -path yaxis.units -tooltip "Units for the physical quantity that the y-axis represents."
+
+
+    check xlabel {
+        if {[string length [string trim $attr(xlabel)]] == 0} {
+            return [list warning "Should set a label that describes the x-axis of this plot."]
+        }
+    }
+    check xdesc {
+        if {[string length [string trim $attr(xdesc)]] == 0} {
+            return [list warning "Should include a description of what the x-axis represents, physical meaning, expected range, etc."]
+        }
+    }
+
+    check ylabel {
+        if {[string length [string trim $attr(ylabel)]] == 0} {
+            return [list warning "Should set a label that describes the y-axis of this plot."]
+        }
+    }
+    check ydesc {
+        if {[string length [string trim $attr(ydesc)]] == 0} {
+            return [list warning "Should include a description of what the y-axis represents, physical meaning, expected range, etc."]
+        }
+    }
+
+    storage {
+        private variable _xvecs       ;# maps comp name => x-axis vector
+        private variable _yvecs       ;# maps comp name => y-axis vector
+        private variable _hints       ;# store "hints" based on attributes
+        private variable _xmarkers "" ;# list of {x,label,options} for markers
+        private variable _ymarkers "" ;# list of {y,label,options} for markers
+    }
+    clear {
+        foreach comp [array names _xvecs] {
+            blt::vector destroy $_xvecs($comp)
+            blt::vector destroy $_yvecs($comp)
+        }
+        catch {unset _xvecs}
+        catch {unset _yvecs}
+        catch {unset _hints}
+        set _xmarkers ""
+        set _ymarkers ""
+    }
+
+    # ------------------------------------------------------------------
+    # IMPORT: string
+    # ------------------------------------------------------------------
+    import string {val} {
+        set xv [blt::vector create \#auto]
+        set yv [blt::vector create \#auto]
+
+        set num 0
+        foreach line [split $val \n] {
+            if {[string index $line 0] eq "#"} {
+                # skip over lines that start with hash mark
+                continue
+            }
+
+            if {[string trim $line] eq ""} {
+                # blank line means new component
+                if {[$xv length] > 0} {
+                    # if we have something stored, save this and start another
+                    set cname "c[incr num]"
+                    set _xvecs($cname) $xv
+                    set _yvecs($cname) $yv
+                    set xv [blt::vector create \#auto]
+                    set yv [blt::vector create \#auto]
+                }
+                continue
+            }
+
+            set x [lindex $line 0]
+            if {![string is double -strict $x]} {
+                blt::vector destroy $xv $yv
+                error "bad value \"$x\": should be double number"
+            }
+
+            set y [lindex $line 1]; if {$y eq ""} { set y 0 }
+            if {![string is double -strict $y]} {
+                blt::vector destroy $xv $yv
+                error "bad value \"$y\": should be double number"
+            }
+
+            $xv append $x
+            $yv append $y
+        }
+
+        if {[$xv length] > 0} {
+            # if we have something stored, save the last component
+            set cname "c[incr num]"
+            set _xvecs($cname) $xv
+            set _yvecs($cname) $yv
+        }
+    }
+
+    # ------------------------------------------------------------------
+    # EXPORT: string
+    # ------------------------------------------------------------------
+    export string {var} {
+        upvar $var v
+        set v ""
+        set nseparators [expr {[array size _xvecs] - 1}]
+
+        foreach cname [array names _xvecs] {
+            foreach x [$_xvecs($cname) range 0 end] y [$_yvecs($cname) range 0 end] {
+                append v "$x\t$y\n"
+            }
+
+            # add blank lines between components
+            if {$nseparators > 0} {
+                append v "\n"
+                incr nseparators -1
+            }
+        }
+    }
+
+    # ------------------------------------------------------------------
+    # IMPORT: xml
+    # ------------------------------------------------------------------
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+
+        foreach cname [$xmlobj children -type component $path] {
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+
+            set xydata [$xmlobj get $path.$cname.xy]
+            if {[string length $xydata] > 0} {
+                set tmp [blt::vector create \#auto]
+                $tmp set $xydata
+                $tmp split $xv $yv
+                blt::vector destroy $tmp
+            } else {
+                $xv set [$xmlobj get $path.$cname.xvector]
+                $yv set [$xmlobj get $path.$cname.yvector]
+            }
+
+            set xlen [$xv length]
+            set ylen [$yv length]
+            if {$xlen == 0 && $ylen == 0} {
+                blt::vector destroy $xv $yv
+                error "can't find any data at $path.$cname"
+            } elseif {[$xv length] != [$yv length]} {
+                blt::vector destroy $xv $yv
+                error "mismatch between x- and y-axes: $xlen x values, versus $ylen y values"
+            }
+            set _xvecs($cname) $xv
+            set _yvecs($cname) $yv
+        }
+
+        foreach elem [$xmlobj children -type "marker" $path.xaxis] {
+            set at     [$xmlobj get $path.xaxis.$elem.at]
+            set label  [$xmlobj get $path.xaxis.$elem.label]
+            set styles [$xmlobj get $path.xaxis.$elem.style]
+            lappend _xmarkers [list $at $label $styles]
+        }
+        foreach elem [$xmlobj children -type "marker" $path.yaxis] {
+            set at     [$xmlobj get $path.yaxis.$elem.at]
+            set label  [$xmlobj get $path.yaxis.$elem.label]
+            set styles [$xmlobj get $path.yaxis.$elem.style]
+            lappend _ymarkers [list $at $label $styles]
+        }
+    }
+
+    # ------------------------------------------------------------------
+    # EXPORT: xml
+    # ------------------------------------------------------------------
+    export xml {xmlobj path} {
+        foreach cname [array names _xvecs] {
+            set data ""
+            foreach x [$_xvecs($cname) range 0 end] y [$_yvecs($cname) range 0 end] {
+                append data "$x $y\n"
+            }
+            if {$cname ne ""} {
+                set elem "component($cname)"
+            } else {
+                set elem "component"
+            }
+            $xmlobj put $path.$elem.xy $data
+        }
+    }
+
+    # ------------------------------------------------------------------
+    # COMPARE
+    # ------------------------------------------------------------------
+    compare {
+        if {[array size _xvecs] != [array size _xvecs2]} {
+            return 1  ;# different numbers of components
+        }
+        foreach cname [array names _xvecs] cname2 [array names _xvecs2] {
+            # take a quick look at the x vector
+            set xvlen [$_xvecs($cname) length]
+            if {$xvlen != [$_xvecs2($cname2) length]} {
+                return 1  ;# different lengths of this component
+            }
+
+            # take a quick look at the y vector
+            set yvlen [$_yvecs($cname) length]
+            if {$yvlen != [$_yvecs2($cname2) length]} {
+                return 1  ;# different lengths of this component
+            }
+
+            # scan through all values and see if they match
+            set xv $_xvecs($cname)
+            set xv2 $_xvecs2($cname2)
+            set scale [blt::vector expr {0.5*(abs(max($xv)-min($xv))
+                + abs(max($xv2)-min($xv2)))}]
+            foreach num [$xv range 0 end] num2 [$xv2 range 0 end] {
+                set result [cmpdbl $num $num2 $scale]
+                if {$result != 0} {
+                    return $result
+                }
+            }
+
+            # scan through all values and see if they match
+            set yv $_yvecs($cname)
+            set yv2 $_yvecs2($cname2)
+            set scale [blt::vector expr {0.5*(abs(max($yv)-min($yv))
+                + abs(max($yv2)-min($yv2)))}]
+            foreach num [$yv range 0 end] num2 [$yv2 range 0 end] {
+                set result [cmpdbl $num $num2 $scale]
+                if {$result != 0} {
+                    return $result
+                }
+            }
+        }
+        return 0  ;# same!
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: components ?<pattern>?
+    #
+    # Returns a list of names for the various components of this
+    # curve.  If the optional glob-style <pattern> is specified, then
+    # it returns only the component names matching the pattern.
+    # ------------------------------------------------------------------
+    method components {{pattern *}} {
+        set rlist ""
+        foreach cname [array names _xvecs] {
+            if {[string match $pattern $cname]} {
+                lappend rlist $cname
+            }
+        }
+        return $rlist
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: mesh <name>
+    #
+    # Returns the xvec for the specified curve component <name>.
+    # ------------------------------------------------------------------
+    method mesh {cname} {
+        if {[info exists _xvecs($cname)]} {
+            return $_xvecs($cname)  ;# return xv
+        }
+        error "bad option \"$cname\": should be [join [lsort [array names _xvecs]] {, }]"
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: values <name>
+    #
+    # Returns the yvec for the specified curve component <name>.
+    # ------------------------------------------------------------------
+    method values {cname} {
+        if {[info exists _yvecs($cname)]} {
+            return $_yvecs($cname)  ;# return yv
+        }
+        error "bad option \"$cname\": should be [join [lsort [array names _yvecs]] {, }]"
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: limits x|xlin|xlog|y|ylin|ylog
+    #
+    # Returns the {min max} limits for the specified axis.
+    # ------------------------------------------------------------------
+    method limits {which} {
+        set min ""
+        set max ""
+        switch -- $which {
+            x - xlin { set pos 0; set log 0; set axis xaxis }
+            xlog { set pos 0; set log 1; set axis xaxis }
+            y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
+            ylog - vlog { set pos 1; set log 1; set axis yaxis }
+            default {
+                error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+            }
+        }
+
+        blt::vector create tmp zero
+        foreach comp [array names _xvecs] {
+            set arrvar [lindex {_xvecs _yvecs} $pos]
+            set vname [set ${arrvar}($comp)]
+            $vname variable vec
+
+            if {$log} {
+                # on a log scale, use abs value and ignore 0's
+                $vname dup tmp
+                $vname dup zero
+                zero expr {tmp == 0}            ;# find the 0's
+                tmp expr {abs(tmp)}             ;# get the abs value
+                tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+                set vmin [blt::vector expr min(tmp)]
+                set vmax [blt::vector expr max(tmp)]
+            } else {
+                set vmin $vec(min)
+                set vmax $vec(max)
+            }
+
+            if {"" == $min} {
+                set min $vmin
+            } elseif {$vmin < $min} {
+                set min $vmin
+            }
+            if {"" == $max} {
+                set max $vmax
+            } elseif {$vmax > $max} {
+                set max $vmax
+            }
+        }
+        blt::vector destroy tmp zero
+
+        set val [attr get min]
+        if {$val ne "" && $min ne ""} {
+            if {$val > $min} {
+                # tool specified this min -- don't go any lower
+                set min $val
+            }
+        }
+
+        set val [attr get max]
+        if {$val ne "" && $max ne ""} {
+            if {$val < $max} {
+                # tool specified this max -- don't go any higher
+                set max $val
+            }
+        }
+
+        return [list $min $max]
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: xmarkers
+    #
+    # Returns the list of settings for each marker on the x-axis.
+    # If no markers have been specified the empty string is returned.
+    # ------------------------------------------------------------------
+    method xmarkers {} {
+        return $_xmarkers
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: ymarkers
+    #
+    # Returns the list of settings for each marker on the y-axis.
+    # If no markers have been specified the empty string is returned.
+    # ------------------------------------------------------------------
+    method ymarkers {} {
+        return $_ymarkers
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: hints ?keyword?
+    #
+    # This has been replaced by the "attrs" method in the ObjVal
+    # base class, but is provided here for backward-compatibility
+    # with the XyResult viewer.
+    #
+    # With no args, it returns a list of keywords and corresponding
+    # values for all attributes in this object.  If a particular
+    # keyword is specified, then it returns the value for that
+    # attribute.  There are a few more "hints" defined here beyond
+    # the object attributes.
+    # ------------------------------------------------------------------
+    method hints {{keyword ""}} {
+        # first time through, build all of these hint values
+        if {![info exists _hints]} {
+            # start with all of the usual attributes
+            foreach key [attr get] {
+                set _hints($key) [attr get $key]
+            }
+
+            # tweak them a little to produce the values needed for XyResult
+            if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+                  && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+                set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+            }
+            if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+                  && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+                set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+            }
+
+            if {[info exists _hints(group)] && [info exists _hints(label)]} {
+                # pop-up help for each curve
+                set _hints(tooltip) $_hints(label)
+            }
+        }
+        if {$keyword != ""} {
+            if {[info exists _hints($keyword)]} {
+                return $_hints($keyword)
+            }
+            return ""
+        }
+        return [array get _hints]
+    }
+}

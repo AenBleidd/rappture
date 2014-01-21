@@ -1,0 +1,55 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: histogram
+#
+#  A histogram is like a curve but in bar chart form.  Right now, it
+#  is only used as an output, but it could become an input in the
+#  future if we create an input editor for it.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object histogram -extends base {
+    palettes "Outputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_histogram
+
+    attr xlabel -title "X-axis Label" -type string -path xaxis.label -tooltip "Label shown on the x-axis for the plot."
+
+    attr xdesc  -title "X-axis Description" -type string -path xaxis.description -tooltip "Description of the x-axis that appears in a tooltip window when you mouse over the x-axis.  This should not merely repeat what the label says, but explain what it means."
+
+    attr xunits -title "X-axis Units" -type units -path xaxis.units -tooltip "Units for the physical quantity that the x-axis represents."
+
+    attr ylabel -title "Y-axis Label" -type string -path yaxis.label -tooltip "Label shown on the y-axis for the plot."
+
+    attr ydesc  -title "Y-axis Description" -type string -path yaxis.description -tooltip "Description of the y-axis that appears in a tooltip window when you mouse over the y-axis.  This should not merely repeat what the label says, but explain what it means."
+
+    attr yunits -title "Y-axis Units" -type units -path yaxis.units -tooltip "Units for the physical quantity that the y-axis represents."
+
+
+    check xlabel {
+        if {[string length [string trim $attr(xlabel)]] == 0} {
+            return [list warning "Should set a label that describes the x-axis of this plot."]
+        }
+    }
+    check xdesc {
+        if {[string length [string trim $attr(xdesc)]] == 0} {
+            return [list warning "Should include a description of what the x-axis represents, physical meaning, expected range, etc."]
+        }
+    }
+
+    check ylabel {
+        if {[string length [string trim $attr(ylabel)]] == 0} {
+            return [list warning "Should set a label that describes the y-axis of this plot."]
+        }
+    }
+    check ydesc {
+        if {[string length [string trim $attr(ydesc)]] == 0} {
+            return [list warning "Should include a description of what the y-axis represents, physical meaning, expected range, etc."]
+        }
+    }
+}

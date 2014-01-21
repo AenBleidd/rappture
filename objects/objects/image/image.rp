@@ -1,0 +1,92 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: image
+#
+#  An image is a picture of some sort.  It is usually used as an
+#  output, but could also be an input to an image manipulation program.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object image -extends base {
+    palettes "Inputs" "Outputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_image
+
+    attr default -title "Default Value" -type image -path default -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr resize -title "Resize" -type string:validate=imresize -path resize -only input -tooltip "Limits the size of the thumbnail shown for any image uploaded into this input.  Valid options are:  auto, none, width=XX, height=XX"
+
+    attr convert -title "Convert" -type string:validate=imformat -path convert -only input -tooltip "Causes the image to be converted to a particular image format before being passed along to your simulation program.  Valid options are:  bmp, gif, ico, jpeg, pcx, png, pgm, ppm, ps, pdf, sgi, sun, tga, tiff, xbm, xpm"
+
+
+    storage {
+        private variable _img ""  ;# image handle
+    }
+
+    clear {
+        if {$_img ne ""} {
+            image delete $_img
+            set _img ""
+        }
+    }
+
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        export_string bytes
+        $xmlobj put $path $bytes
+    }
+
+    import string {data} {
+        if {![regexp {^[a-zA-Z0-9+/=]+(\n[a-zA-Z0-9+/=]+)*$} $data]
+              || [catch {Rappture::encoding::decode -as b64 $data} bytes]} {
+            # oops! not base64 -- use data directly
+            set bytes $data
+        }
+        if {[string length $bytes] > 0} {
+            set _img [image create photo -data $bytes]
+        }
+    }
+
+    export string {var} {
+        upvar $var bytes
+        switch -- [attr get convert] {
+            bmp - gif - ico - jpeg - pcx - png - ppm -
+            ps - pdf - sgi - sun - tga - tiff - xbm -
+            xpm { set fmt [attr get convert] }
+            pgm { set fmt "ppm -grayscale" }
+            jpg { set fmt "jpeg" }
+            default { set fmt "png" }
+        }
+        set bytes [eval $_img data -format $fmt]
+
+        # image data gets returned in b64 format for binary types
+        # convert back to binary for those types
+        switch -- [attr get convert] {
+            bmp - gif - ico - jpeg - pcx - png - ppm -
+            ps - pdf - sgi - sun - tga - tiff {
+                set bytes [Rappture::encoding::decode -as b64 $bytes]
+            }
+        }
+    }
+
+    compare {
+        set bytes1 [$_img data -format png]
+        set bytes2 [$_img2 data -format png]
+        if {$bytes1 eq $bytes2} {
+            return 0
+        } elseif {[string length $bytes1] < [string length $bytes2]} {
+            return -1
+        } else {
+            return 1
+        }
+    }
+}

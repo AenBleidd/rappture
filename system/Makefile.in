@@ -34,9 +34,6 @@ CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES    = -I$(srcdir) \
-  -I../../../src/core \
-  -I$(srcdir)/../../../src/core \
-  -I$(srcdir)/../../../src/objects \
   -I$(includedir)
 RAPPTURE_VERSION = @PACKAGE_VERSION@
 SVN_VERSION     := $(shell svnversion $(srcdir))
@@ -54,7 +51,7 @@ LIBS = \
         -L../../../src/core -lrappture \
         $(TCL_LIB_SPEC) -lncurses -lexpat -lz -lm -lstdc++
 
-SYSTEM_OBJS = \
+OBJS = \
         RapptureSystem_Init.o \
         RpCurses.o \
         RpDaemon.o \
@@ -63,8 +60,7 @@ SYSTEM_OBJS = \
         RpRusage.o \
         RpSignal.o  \
         RpSlice.o  \
-        RpSysinfo.o  \
-        Switch.o 
+        RpSysinfo.o  
 
 ifeq ($(WIN32),"")
    SYSYTEM_OBJS += RpWinResource.o
@@ -74,33 +70,8 @@ ifeq ($(HAVE_LIBCURSES),yes)
    SYSTEM_OBJS += RpCurses.o
    LIBS += -lncurses 
 endif
-OBJS = \
-        Rappture_Init.o \
-        RpCurses.o \
-        RpDaemon.o \
-        RpEncodeTclInterface.o \
-        RpOp.o \
-        RpRlimit.o  \
-        RpRusage.o \
-        RpSignal.o  \
-        RpSlice.o  \
-        RpSysinfo.o  \
-        Switch.o \
-        RpUnitsTclInterface.o \
-        RpUtilsTclInterface.o
 
-ifeq ($(WIN32),"")
-   OBJS += RpWinResource.o
-endif
-
-ifeq ($(HAVE_LIBCURSES),yes)
-   OBJS += RpCurses.o
-   LIBS += -lncurses 
-endif
-
-# Not using     RpLibraryTclInterface.o \
-
-name        = Rappture$(RAPPTURE_VERSION)
+name        = RapptureSystem$(RAPPTURE_VERSION)
 libname     = $(name)
 lib         = $(libname)$(SHLIB_SUFFIX)
 destdir     = $(libdir)/$(name)

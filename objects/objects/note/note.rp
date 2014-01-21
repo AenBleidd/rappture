@@ -1,0 +1,31 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: note
+#
+#  A note is not an input or an output, but a documentation element
+#  that can be embedded within the tool--right now, only on the input
+#  side.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object note {
+    palettes "Inputs" "Documentation"
+
+    help http://rappture.org/wiki/rp_xml_ele_note
+
+    attr contents -title "HTML File" -type file -path contents -tooltip "Name of an HTML file loaded into the note area as documentation.  The file may contain embedded images and links, as long as those files reside in the same directory as the HTML file or have explicit http:// paths."
+
+
+    check contents {
+        set fname [string trim $attr(contents)]
+        if {[string length $fname] == 0
+              || [string equal $fname "select a file"]} {
+            return [list warning "Should set an HTML file with the contents of the note, or else delete the element."]
+        }
+    }
+}
