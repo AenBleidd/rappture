@@ -426,7 +426,6 @@ itcl::body Rappture::VtkMeshViewer::EventuallySetPolydataOpacity { args } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkMeshViewer::add {dataobj {settings ""}} {
-puts stderr "add $dataobj $settings"
     array set params {
         -color auto
         -width 1
@@ -465,7 +464,6 @@ puts stderr "add $dataobj $settings"
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkMeshViewer::delete {args} {
-puts stderr "delete $args"
     if { [llength $args] == 0} {
         set args $_dlist
     }
@@ -569,7 +567,6 @@ itcl::body Rappture::VtkMeshViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkMeshViewer::scale {args} {
-puts stderr "scale: $args"
     foreach dataobj $args {
         array set bounds [limits $dataobj]
         if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
@@ -849,7 +846,6 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
     SendCmd "dataset visible 0"
     set count 0
     foreach dataobj [get -objects] {
-puts stderr "dataobj: $dataobj"
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
