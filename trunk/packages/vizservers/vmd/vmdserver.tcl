@@ -606,11 +606,6 @@ proc server_safe_resize {w h} {
 proc server_accept {cid addr port} {
     fileevent $cid readable [list server_handle $cid $cid]
     fconfigure $cid -buffering none -blocking 0
-
-    # identify server type to this client
-    # The server identifier must be in the form <name> <version>.  The
-    # base connect method will ignore characters until it finds this line.
-    puts $cid "vmd 0.1"
 }
 
 proc server_handle {cin cout} {
@@ -623,17 +618,15 @@ proc server_handle {cin cout} {
     } else {
         append buffer($cin) $line "\n"
         if {[info complete $buffer($cin)]} {
-	    #puts stdout "command is ($buffer($cin))"
             set request $buffer($cin)
             set buffer($cin) ""
             set client $cout
             if {[catch {$parser eval $request} result] == 0} {
                 server_send_image -eventually
             } else {
-		puts stdout "last gets is ($line) cmd=($request) result=($result)"
                 server_oops $cout $result
 		if { [string match "invalid command*" $result] } {
-                    bgerror $result
+                    bgerror "I got a invalid command: $result"
 		    exit 1
 		}
             }
@@ -769,12 +762,11 @@ proc server_oops {cout mesg} {
 if {$Paradigm eq "socket"} {
     socket -server server_accept 2018
 } else {
-    fileevent stdin readable [list server_handle stdin stdout]
+    set cin $vmd_client(read)
+    set cout $vmd_client(write)
 
-    # identify server type to this client
-    puts stdout "vmd 0.1"
-    flush stdout
-    fconfigure stdout -buffering none -blocking 0
+    fileevent $cin readable [list server_handle $cin $cout]
+    fconfigure $cout -buffering none -blocking 0
 }
 
 # vmd automatically drops into an event loop at this point...
