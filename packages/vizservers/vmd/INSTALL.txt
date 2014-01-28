@@ -1,2 +1,10 @@
-Checkout vmdbuild directory from rappture-bat respository
-Follow instructions in INSTALL.txt there
+Checkout vmdbuild directory from rappture-bat repository
+
+  svn co https://nanohub.org/infrastructure/rappture-bat/svn/trunk/vmdbuild vmdbuild
+
+Follow instructions in INSTALL.txt there.  You'll need the vmdserver.tcl
+script from here.
+
+
+
+

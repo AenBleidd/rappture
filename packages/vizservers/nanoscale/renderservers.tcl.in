@@ -94,13 +94,14 @@ register_server pymolproxy-threaded 2020 \
 # vmd server (used for mdshowcase)
 #
 register_server vmdshow 2018 \
-    -input 3 -output 4 -combinelogs no \
+    -input 3 -output 4 -combinelogs yes \
 {
     ${libdir}/vmd/vmd_LINUXAMD64 -startup ${libdir}/vmd/vmdserver.tcl \
 	-args -stdio
 } {
     VMDDIR ${libdir}/vmd
     SURF_BIN ${libdir}/vmd/surf
-    MSMSSERVER ${libdir}/msms
+    MSMSSERVER ${libdir}/vmd/msms
     LD_LIBRARY_PATH ${libdir}
+    __GL_SYNC_TO_VBLANK 0
 }
