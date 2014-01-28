@@ -969,7 +969,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
-		if 1 { 
+		if 0 { 
 		    set f [open "/tmp/glyph.vtk" "w"]
 		    puts $f $bytes
 		    close $f
@@ -2052,24 +2052,29 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -edges 0
         -edgecolor black
         -linewidth 1.0
+        -ptsize 1.0
         -opacity 1.0
         -wireframe 0
         -lighting 1
         -outline 0
-	-levels 10
+        -shape "arrow"
+        -orientGlyphs 1
+        -scaleMode "vmag"
+        -quality 1
+    }
+    set numComponents [$dataobj numComponents $comp]
+    if {$numComponents == 3} {
+        set style(-shape) "arrow"
+        set style(-orientGlyphs) 1
+        set style(-scaleMode) "vmag"
+    } else {
+        set style(-shape) "sphere"
+        set style(-orientGlyphs) 0
+        set style(-scaleMode) "scalar"
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first } {
         set style(-opacity) 1
-    }
-    if { $_currentColormap == "" } {
-	set stylelist [$dataobj style $comp]
-	if { $stylelist != "" } {
-	    array set style $stylelist
-	    set stylelist [array get style]
-	    SetCurrentColormap $stylelist
-	}
-	$itk_component(colormap) value $style(-color)
     }
     if 0 {
     SendCmd "cutplane add $tag"
@@ -2094,7 +2099,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         $itk_component(colormap) value $style(-color)
     }
     set _currentOpacity $style(-opacity)
-    SendCmd "glyphs add arrow $tag"
+    SendCmd "glyphs add $style(-shape) $tag"
     SendCmd "glyphs edges $style(-edges) $tag"
     # normscale=1 and gscale=1 are defaults
     #SendCmd "glyphs normscale 1 $tag"
@@ -2106,10 +2111,16 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set _settings(glyphOutline) $style(-outline)
     set _settings(glyphEdges) $style(-edges)
     #SendCmd "glyphs color [Color2RGB $settings(-color)] $tag"
+    # Omitting field name for gorient and smode commands
+    # defaults to active scalars or vectors depending on mode
+    SendCmd "glyphs gorient $style(-orientGlyphs) {} $tag"
+    SendCmd "glyphs smode $style(-scaleMode) {} $tag"
+    SendCmd "glyphs quality $style(-quality) $tag"
     SendCmd "glyphs lighting $style(-lighting) $tag"
     set _settings(glyphLighting) $style(-lighting)
     SendCmd "glyphs linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "glyphs linewidth $style(-linewidth) $tag"
+    SendCmd "glyphs ptsize $style(-ptsize) $tag"
     SendCmd "glyphs opacity $_currentOpacity $tag"
     set _settings(glyphOpacity) $style(-opacity)
     SetCurrentColormap $style(-color) 
