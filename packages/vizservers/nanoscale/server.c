@@ -64,7 +64,7 @@ typedef struct {
     int numCmdArgs;                     /* # of args in command.  */
     int numEnvArgs;                     /* # of args in environment.  */
     char *const *cmdArgs;               /* Command to execute for
-                                           server. */
+                                         * server. */
     char *const *envArgs;               /* Environment strings to set. */
     int listenerFd;                     /* Descriptor of the listener
                                            socket. */
@@ -600,7 +600,7 @@ main(int argc, char **argv)
                               path, strerror(errno));
                         exit(1);
                     }
-                    if (dup2(newFd, 1) < 0) {
+                    if (dup2(newFd, 2) < 0) {
                         ERROR("%s: can't dup stderr to \"%s\": %s",
                               serverPtr->name, path, strerror(errno));
                         exit(1);
@@ -613,6 +613,8 @@ main(int argc, char **argv)
                           strerror(errno));
                     exit(1);
                 }
+                /* When are the input and output ports of the render server
+                 * the same?  It's an error when input == output. */
                 if (serverPtr->outputFd != serverPtr->inputFd) {
                     if (dup2(sock, serverPtr->outputFd) < 0) { /* output */
                         ERROR("%s: can't dup socket to fd %d: %s",
@@ -632,15 +634,20 @@ main(int argc, char **argv)
                 for (i = 0; i < serverPtr->numEnvArgs; i += 2) {
                     setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 1);
                 }
-                INFO("Executing %s: client %s, %s in=%d out=%d on DISPLAY=%s",
+                { 
+                    char *cmd;
+
+                    cmd = Tcl_Merge(serverPtr->numCmdArgs,
+                                    (const char *const *)serverPtr->cmdArgs);
+                    INFO("Executing %s: client=%s, \"%s\" in=%d out=%d on DISPLAY=%s",
                      serverPtr->name, inet_ntoa(newaddr.sin_addr),
-                     serverPtr->cmdArgs[0], serverPtr->inputFd,
-                     serverPtr->outputFd, display);
-                /* Replace the current process with the render server. */
-                execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
-                ERROR("Can't execute \"%s\": %s", serverPtr->cmdArgs[0],
-                      strerror(errno));
-                exit(1);
+                     cmd, serverPtr->inputFd, serverPtr->outputFd, display);
+                    /* Replace the current process with the render server. */
+                    execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
+                    ERROR("Can't execute \"%s\": %s", cmd, strerror(errno));
+                    Tcl_Free(cmd);
+                    exit(1);
+                }
             } else {
                 close(sock);
             }
