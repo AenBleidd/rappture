@@ -1,5 +1,5 @@
 #
-# This file is read by nanoscale to determine the ports to listen
+# This file is read by nanoscale to determine which ports to listen
 # to and the how to start the associated render server.
 #
 # Render servers
@@ -14,11 +14,15 @@
 #	pymol			2020		production
 #
 # The syntax is
-#	register_server <name> <port> <command> <variables>
+#	register_server <name> <port> ?<flags>? {
+#	    commands...
+#	} {
+#	    variables...
+#       } 
 #
-# This registers a server by the given name at the given port.
-# When a connection is made to that port, the command is run
-# with the environment variables initialized.  
+# Registers a server by <name> at port <port>.
+# When a connection is made to <port>, <command> is run.
+# Environment variables will be set before executing command.  
 #
 # Note: Don't set DISPLAY here. nanoscale itself sets the DISPLAY
 #	variable.
@@ -44,20 +48,32 @@ register_server geovis 2015 \
     LD_LIBRARY_PATH ${libdir}
 }
 
-# NanoVis server (port 2000) --
-#     Volume renderer
+# NanoVis --
+#	Server Type	Volume renderer
+#	Port		2000
+#	Threaded	yes
+# Notes: 
+#	o Continue to use default options until we offically upgrade 
+#	  nanovis to the latest release.  We are currently using a 1.2
+#	  version of nanovis.
+#	o Requires change to 1.2 nanovis.  Can't redirect stderr to log 
+#	  or X will complain about performing socket operation on non-socket
+#	  descriptor.
 #
-register_server nanovis 2000 \
-    -output 3 -logstdout no -logstderr no \
-{
-    ${bindir}/nanovis -o 3 -p ${libdir}/shaders:${libdir}/resources
+register_server nanovis 2000 {
+    ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
 } {
     LD_LIBRARY_PATH ${libdir}
 }
 
-# VtkVis server (port 2010)--
-#    3D drawings (scene graphs), Contour and surface graphs.
-#    Can remove ":${vtkdir} when moving to VTK 6.
+# VtkVis --
+#	Server type	3D drawings (scene graphs). Contour and surface graphs.
+#	Port		2010
+#	Threaded	yes
+# Notes:
+#	o Removed ${vtkdir} from LD_LIRBRARY_PATH. Not needed with VTK 6.
+#	o Using new features in nanoscale/vtkvis to use file descriptor 3
+#	  for server output.  No automatic logging of stdout and stderr.
 #
 register_server vtkvis 2010 \
     -output 3 -logstdout no -logstderr no \
@@ -67,22 +83,16 @@ register_server vtkvis 2010 \
     LD_LIBRARY_PATH ${libdir}
 }
 
-# Pymol experimental server (port 2019) --
-#     Molecular layouts from PDB description.  
-#     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
-#    
-register_server pymolproxy 2019 {
-    ${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0
-} {
-    PYMOL_SITE_PATH ${libdir}/pymol
-    LD_LIBRARY_PATH ${libdir}
-}
-
-# Pymol server (threaded version of proxy) (port 2010) --
-#     Molecular layouts from PDB description.  
-#     Need PYMOL_SITE_PATH only for parallelpiped box.py location.
-#    
-register_server pymolproxy-threaded 2020 \
+# PymolProxy -- 
+#	Server type	Molecular layouts using Pymol viewer.
+#	Port		2020
+#	Threaded	yes
+# Notes:
+#       o Need PYMOL_SITE_PATH for parallelpiped box.py location.
+#	o Makes no sense to log stdout and stderr of the proxy.
+#	o Renamed to just pymolproxy and removed non-threaded entry. 
+#
+register_server pymolproxy 2020 \
     -logstdout no -logstderr no \
 {
     ${bindir}/pymolproxy2 ${bindir}/pymol -p -q -i -x -X 0 -Y 0
@@ -91,8 +101,22 @@ register_server pymolproxy-threaded 2020 \
     LD_LIBRARY_PATH ${libdir}
 }
 
-# vmd server (used for mdshowcase)
-#
+# VmdShow -- 
+#	Server type	Molecular layouts using VMD viewer (for mdshowcase).
+#	Port		2018
+#	Threaded	no
+# Notes:
+#       o Commands are sent directly to the VMD process that uses custom
+#	  TCL code to process.
+#	o Redirect input to descriptor 3: Otherwise VMD will get select hit.
+#	o Redirect output to descriptor 4: Lots of information written to
+#	  stdout and stderr of VMD.  Captured in log file.
+#	o Executing binary without wrapper shell script. Requires VMDDIR set.
+#	o Meshing programs surf and msms require explicit environment variables.
+#	o __GL_SYNC_TO_VBLANK probably doesn't matter.
+#	o Client doesn't send data files to VMD, but file paths.  Unlikely
+#	  client will block on a large write.  
+#	
 register_server vmdshow 2018 \
     -input 3 -output 4 -combinelogs yes \
 {
