@@ -60,7 +60,9 @@ register_server geovis 2015 \
 #	  or X will complain about performing socket operation on non-socket
 #	  descriptor.
 #
-register_server nanovis 2000 {
+register_server nanovis 2000 \
+    -logstdout no -logstderr no \
+{
     ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
 } {
     LD_LIBRARY_PATH ${libdir}
