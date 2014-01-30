@@ -624,8 +624,12 @@ main(int argc, char **argv)
                         exit(1);
                     }
                 }
-                for (i = serverPtr->outputFd + 1; i <= FD_SETSIZE; i++) {
-                    close(i);           /* Close all the other descriptors. */
+                /* Close all the other descriptors. */
+                for (i = 3; i <= FD_SETSIZE; i++) {
+                    if (i != serverPtr->inputFd &&
+                        i != serverPtr->outputFd) {
+                        close(i);
+                    }
                 }
 
                 /* Set the screen number in the DISPLAY variable. */
@@ -641,8 +645,8 @@ main(int argc, char **argv)
                     cmd = Tcl_Merge(serverPtr->numCmdArgs,
                                     (const char *const *)serverPtr->cmdArgs);
                     INFO("Executing %s: client=%s, \"%s\" in=%d out=%d on DISPLAY=%s",
-                     serverPtr->name, inet_ntoa(newaddr.sin_addr),
-                     cmd, serverPtr->inputFd, serverPtr->outputFd, display);
+                         serverPtr->name, inet_ntoa(newaddr.sin_addr),
+                         cmd, serverPtr->inputFd, serverPtr->outputFd, display);
                     /* Replace the current process with the render server. */
                     execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
                     ERROR("Can't execute \"%s\": %s", cmd, strerror(errno));
