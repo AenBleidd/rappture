@@ -1333,7 +1333,7 @@ Optional Packages:
                           include/rappture.h [default=/usr]
   --with-vtk-includes=DIR VTK include files are in DIR
   --with-vtk-libs=DIR     VTK libraries are in DIR
-  --with-vtk=VERSION      Version of VTK required [default=6.0]
+  --with-vtk=VERSION      Version of VTK required [default=6.1]
   --with-ffmpeg=DIR       location of ffmpeg [default=yes]
   --with-statsdir=DIR     Write statistics in DIR
 
@@ -4705,7 +4705,7 @@ $as_echo "$with_rappture" >&6; }
 fi
 
 # We are assuming that we're using VTK 6.0
-VTK_VERSION=6.0
+VTK_VERSION=6.1
 VTK_LIB_DIR=${libdir}
 VTK_INC_DIR=${incdir}
 
