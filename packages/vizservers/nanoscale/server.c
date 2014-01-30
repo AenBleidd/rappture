@@ -613,8 +613,9 @@ main(int argc, char **argv)
                           strerror(errno));
                     exit(1);
                 }
-                /* When are the input and output ports of the render server
-                 * the same?  It's an error when input == output. */
+                /* If using a single descriptor for input and output, we don't
+                 * need to call dup2 again
+                 */
                 if (serverPtr->outputFd != serverPtr->inputFd) {
                     if (dup2(sock, serverPtr->outputFd) < 0) { /* output */
                         ERROR("%s: can't dup socket to fd %d: %s",
