@@ -26,7 +26,7 @@ AC_ARG_WITH(
 AC_ARG_WITH(
     [vtk],
     [AS_HELP_STRING([--with-vtk=VERSION],
-        [Version of VTK required @<:@default=6.0@:>@])],
+        [Version of VTK required @<:@default=6.1@:>@])],
     [with_vtk=$withval],
     [with_vtk=""])
 
@@ -103,7 +103,7 @@ if test "x$with_tclinclude" != "x" ; then
 fi
 
 # We are assuming that we're using VTK 6.0
-VTK_VERSION=6.0
+VTK_VERSION=6.1
 VTK_LIB_DIR=${libdir}
 VTK_INC_DIR=${incdir}
 
