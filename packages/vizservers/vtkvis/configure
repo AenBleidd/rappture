@@ -1322,7 +1322,7 @@ Optional Packages:
                           [default=/usr/lib]
   --with-vtk-includes=DIR location of versioned VTK include dir
   --with-vtk-libs=DIR     VTK libraries are in DIR
-  --with-vtk=VERSION      Version of VTK required [default=6.0]
+  --with-vtk=VERSION      Version of VTK required [default=6.1]
   --with-statsdir=DIR     Write statistics in DIR
 
 Some influential environment variables:
@@ -4144,7 +4144,7 @@ if test "x$with_tclinclude" != "x" ; then
 fi
 
 # We are assuming that we're using VTK 6.0
-VTK_VERSION=6.0
+VTK_VERSION=6.1
 VTK_LIB_DIR=${libdir}
 VTK_INC_DIR=${incdir}
 
