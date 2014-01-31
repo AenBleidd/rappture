@@ -18,15 +18,10 @@
 # ======================================================================
 #\
 bindir=`dirname $0` ; \
+. $bindir/rappture.env ; \
 exec $bindir/wish "$0" "$@"
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
-
-set installdir [file root $argv0]
-set libdir [file join $installdir "lib"]
-
-lappend auto_path $libdir $libdir/vtk $libdir/vtk/tcl
-
 package require Itcl
 package require Rappture
 package require RapptureGUI
@@ -347,10 +342,7 @@ menu .mbar.flow
 .mbar.flow add command -label "Activate Flow" -command {activate_flow}
 .mbar add cascade -label "Flow" -underline 0 -menu .mbar.flow
 
-
-
 . configure -menu .mbar
-
 
 Rappture::Panes .main -sashwidth 4 -sashrelief raised -sashpadding 4 \
     -width 6i -height 4i
@@ -361,8 +353,6 @@ set servers [Rappture::VisViewer::GetServerList "nanovis"]
 Rappture::NanovisViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
 set widgets(nanovis) $f.viewer
-
-puts stderr [winfo class $widgets(nanovis)]
 
 $f.viewer configure \
     -sendcommand show_comm \
