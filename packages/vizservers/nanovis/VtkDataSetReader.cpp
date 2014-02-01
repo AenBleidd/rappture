@@ -49,7 +49,7 @@ nv::load_vtk_volume_stream(const char *tag, const char *bytes, int nBytes)
             //reader->ReadAllColorScalarsOn();
             reader->ReadAllVectorsOn();
             //reader->ReadAllTensorsOn();
-            //reader->ReadAllFieldsOn();
+            reader->ReadAllFieldsOn();
             reader->SetLookupTableName("");
             reader->Update();
 
