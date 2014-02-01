@@ -1255,7 +1255,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
 	    }
             configure -plotbackground $bgcolor \
 		-plotforeground $fgcolors($bgcolor)
-	    DrawLegend $_current
+ 	    DrawLegend $_current
         }
         ambient {
             set val $_settings($this-ambient)
@@ -1508,9 +1508,10 @@ itcl::body Rappture::NanovisViewer::RemoveMarker { x y } {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::NanovisViewer::plotbackground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set color $itk_option(-plotbackground)
+        set rgb [Color2RGB $color]
+        SendCmd "screen bgcolor $rgb"
+        $itk_component(legend) configure -background $color
     }
 }
 
@@ -1519,9 +1520,13 @@ itcl::configbody Rappture::NanovisViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::NanovisViewer::plotforeground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set color $itk_option(-plotforeground)
+        set rgb [Color2RGB $color]
+        SendCmd "volume outline color $rgb"
+        SendCmd "grid axiscolor $rgb"
+        SendCmd "grid linecolor $rgb"
+        $itk_component(legend) itemconfigure labels -fill $color 
+        $itk_component(legend) itemconfigure limits -fill $color 
     }
 }
 

@@ -1900,9 +1900,10 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::FlowvisViewer::plotbackground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set color $itk_option(-plotbackground)
+        set rgb [Color2RGB $color]
+        SendCmd "screen bgcolor $rgb"
+        $itk_component(legend) configure -background $color
     }
 }
 
@@ -1911,9 +1912,13 @@ itcl::configbody Rappture::FlowvisViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::FlowvisViewer::plotforeground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set color $itk_option(-plotforeground)
+        set rgb [Color2RGB $color]
+        SendCmd "volume outline color $rgb"
+        SendCmd "grid axiscolor $rgb"
+        SendCmd "grid linecolor $rgb"
+        $itk_component(legend) itemconfigure labels -fill $color 
+        $itk_component(legend) itemconfigure limits -fill $color 
     }
 }
 
