@@ -81,6 +81,7 @@ Fonts::begin()
     glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _fonts[_fontIndex]._fontTextureID);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -220,14 +221,13 @@ Fonts::loadFont(const char *fontName, const char *fontFileName,
             // make texture map out of new buffer
             glGenTextures(1, &sFont._fontTextureID);
             glBindTexture(GL_TEXTURE_2D, sFont._fontTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 
-                         sFont._textureWidth, sFont._textureHeight, 0, 
-                         GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, pTexMap);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-            glTexEnvi(GL_TEXTURE_2D, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 
+                         sFont._textureWidth, sFont._textureHeight, 0, 
+                         GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, pTexMap);
             glBindTexture(GL_TEXTURE_2D, 0);
 
             delete[] pTexMap;

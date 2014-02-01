@@ -200,6 +200,10 @@ void Grid::render()
         glGetIntegerv(GL_VIEWPORT, viewport);
 
         _font->begin();
+
+        glColor4f(_axisColor.r, _axisColor.g, _axisColor.b, 
+                  _axisColor.a);
+
         if (gluProject(1.0 + xTitleOfs, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz) &&
             wz >= 0.0 && wz <= 1.0) {
             glLoadIdentity();
@@ -233,7 +237,8 @@ void Grid::render()
             _font->draw(name);
         }
         
-        glColor4f(1.0f, 1.0f, 0.0f, 1.0f); 
+        glColor4f(_majorColor.r, _majorColor.g, _majorColor.b, 
+                  _majorColor.a);
 
         for (result = xAxis.firstMajor(iter); result; result = iter.next()) {
             float x;
