@@ -1493,6 +1493,7 @@ itcl::body Rappture::NanovisViewer::AddNewMarker { x y } {
     }
     # Add a new marker to the current transfer function
     $_transferFunctionEditors($_current) newMarker $x $y normal
+    $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
 }
 
 itcl::body Rappture::NanovisViewer::RemoveMarker { x y } {
@@ -1568,6 +1569,7 @@ itcl::body Rappture::NanovisViewer::ParseLevelsOption { cname levels } {
     }
     set _parsedFunction($cname) 1
     $_transferFunctionEditors($cname) addMarkers $list
+    $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
 }
 
 #
@@ -1599,6 +1601,7 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
     }
     set _parsedFunction($cname) 1
     $_transferFunctionEditors($cname) addMarkers $list
+    $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
 }
 
 # ----------------------------------------------------------------------

@@ -68,13 +68,13 @@ itcl::class Rappture::FlowvisViewer {
     public method get {args}
     public method isconnected {}
     public method limits { cname }
-    public method overmarker { m x }
+    public method overMarker { m x }
     public method parameters {title args} { 
         # do nothing 
     }
-    public method rmdupmarker { m x }
+    public method removeDuplicateMarker { m x }
     public method scale {args}
-    public method updatetransferfuncs {}
+    public method updateTransferFunctions {}
 
     protected method Connect {}
     protected method CurrentVolumeIds {{what -all}}
@@ -1102,7 +1102,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     set _limits($tag) [list $values(min) $values(max)]
     unset _recvObjs($tag)
     if { [array size _recvObjs] == 0 } {
-        updatetransferfuncs
+        updateTransferFunctions
     }
 }
 
@@ -1630,7 +1630,7 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 set opacity [expr { 0.01 * double($_settings($this-opacity)) }]
                 set tf $_activeTf
                 set _settings($this-$tf-opacity) $opacity
-                updatetransferfuncs
+                updateTransferFunctions
             }
         }
 
@@ -1641,7 +1641,7 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 set sval [expr {0.0001*double($val)}]
                 set tf $_activeTf
                 set _settings($this-$tf-thickness) $sval
-                updatetransferfuncs
+                updateTransferFunctions
             }
         }
         "outline" {
@@ -1910,8 +1910,8 @@ itcl::configbody Rappture::FlowvisViewer::plotforeground {
         SendCmd "volume outline color $rgb"
         SendCmd "grid axiscolor $rgb"
         SendCmd "grid linecolor $rgb"
-        $itk_component(legend) itemconfigure labels -fill $color 
-        $itk_component(legend) itemconfigure limits -fill $color 
+        $itk_component(legend) itemconfigure labels -fill $color
+        $itk_component(legend) itemconfigure limits -fill $color
     }
 }
 
@@ -1945,12 +1945,14 @@ itcl::body Rappture::FlowvisViewer::ParseLevelsOption { tf levels } {
         for {set i 1} { $i <= $levels } {incr i} {
             set x [expr {double($i)/($levels+1)}]
             set m [Rappture::IsoMarker \#auto $c $this $tf]
+            $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
             $m relval $x
             lappend _isomarkers($tf) $m 
         }
     } else {
         foreach x $levels {
             set m [Rappture::IsoMarker \#auto $c $this $tf]
+            $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
             $m relval $x
             lappend _isomarkers($tf) $m 
         }
@@ -1978,11 +1980,13 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
             # ${n}% : Set relative value. 
             set value [expr {$value * 0.01}]
             set m [Rappture::IsoMarker \#auto $c $this $tf]
+            $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
             $m relval $value
             lappend _isomarkers($tf) $m
         } else {
             # ${n} : Set absolute value.
             set m [Rappture::IsoMarker \#auto $c $this $tf]
+            $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
             $m absval $value
             lappend _isomarkers($tf) $m
         }
@@ -1992,7 +1996,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
 # ----------------------------------------------------------------------
 # USAGE: UndateTransferFuncs 
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::updatetransferfuncs {} {
+itcl::body Rappture::FlowvisViewer::updateTransferFunctions {} {
     $_dispatcher event -after 100 !send_transfunc
 }
 
@@ -2003,14 +2007,15 @@ itcl::body Rappture::FlowvisViewer::AddIsoMarker { x y } {
     set tf $_activeTf 
     set c $itk_component(legend)
     set m [Rappture::IsoMarker \#auto $c $this $tf]
+    $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
     set w [winfo width $c]
     $m relval [expr {double($x-10)/($w-20)}]
     lappend _isomarkers($tf) $m
-    updatetransferfuncs
+    updateTransferFunctions
     return 1
 }
 
-itcl::body Rappture::FlowvisViewer::rmdupmarker { marker x } {
+itcl::body Rappture::FlowvisViewer::removeDuplicateMarker { marker x } {
     set tf [$marker transferfunc]
     set bool 0
     if { [info exists _isomarkers($tf)] } {
@@ -2030,12 +2035,12 @@ itcl::body Rappture::FlowvisViewer::rmdupmarker { marker x } {
             lappend list $m
         }
         set _isomarkers($tf) $list
-        updatetransferfuncs
+        updateTransferFunctions
     }
     return $bool
 }
 
-itcl::body Rappture::FlowvisViewer::overmarker { marker x } {
+itcl::body Rappture::FlowvisViewer::overMarker { marker x } {
     set tf [$marker transferfunc]
     if { [info exists _isomarkers($tf)] } {
         set marker [namespace tail $marker]

@@ -53,10 +53,10 @@ itcl::body Rappture::IsoMarker::constructor {c obj tf args} {
     set h [winfo height $_canvas]
     set _tick [$c create image 0 $h \
                    -image $_normalIcon -anchor s \
-                   -tags "$this $obj" -state hidden]
+                   -tags "tick $this $obj" -state hidden]
     set _label [$c create text 0 $h \
                     -anchor n -fill white -font "Helvetica 8" \
-                    -tags "$this $obj" -state hidden]
+                    -tags "labels $this $obj" -state hidden]
     $c bind $_tick <Enter>           [itcl::code $this EnterTick]
     $c bind $_tick <Leave>           [itcl::code $this LeaveTick]
     $c bind $_tick <ButtonPress-1>   [itcl::code $this StartDrag %x %y]
