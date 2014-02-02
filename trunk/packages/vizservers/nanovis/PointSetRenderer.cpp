@@ -78,7 +78,7 @@ void PointSetRenderer::renderCluster(ClusterList** bucket, int size, int level)
     glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
     glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, 100);
 #ifdef USE_TEXTURE 
-    glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+    glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 #endif
 
     bool setSize = false;
@@ -119,7 +119,7 @@ void PointSetRenderer::render(ClusterAccel *cluster, const Matrix4x4d& mat,
 
 #ifdef USE_TEXTURE 
     _pointTexture->activate();
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 #endif
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -157,7 +157,7 @@ void PointSetRenderer::render(ClusterAccel *cluster, const Matrix4x4d& mat,
     glDisable(GL_BLEND);
 
 #ifdef USE_TEXTURE 
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     _pointTexture->deactivate();
 #endif
 }

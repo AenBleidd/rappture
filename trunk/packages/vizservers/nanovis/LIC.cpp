@@ -55,24 +55,20 @@ LIC::LIC(FlowSliceAxis axis,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NPN, NPN, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     //initialize frame buffer objects
     //render buffer for projecting 3D velocity onto a 2D plane
     glGenFramebuffersEXT(1, &_velFbo);
-    glGenTextures(1, &_sliceVectorTex);
-
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _velFbo);
 
+    glGenTextures(1, &_sliceVectorTex);
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _sliceVectorTex);
     glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
-
     glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, _size, _size, 
                  0, GL_RGBA, GL_FLOAT, NULL);
 
@@ -81,16 +77,15 @@ LIC::LIC(FlowSliceAxis axis,
 
     //render buffer for the convolution
     glGenFramebuffersEXT(1, &_fbo);
-    glGenTextures(1, &_colorTex);
-
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
 
     //initialize color texture for lic
+    glGenTextures(1, &_colorTex);
     glBindTexture(GL_TEXTURE_2D, _colorTex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _width, _height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
@@ -208,7 +203,6 @@ LIC::makeMagnitudes()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NMESH, NMESH, 0, GL_RGBA, 
                  GL_UNSIGNED_BYTE, mag);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -327,7 +321,7 @@ LIC::convolve()
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
 
-    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_TEXTURE_BIT);
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -351,6 +345,7 @@ LIC::convolve()
     //_sa = 0.010*cos(_iframe*2.0*M_PI/200.0);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _patternTex);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     _sa = 0.01;
  
     glColor4f(1, 1, 1, 1);
@@ -434,8 +429,9 @@ LIC::render()
 
     //draw line integral convolution quad
 
-    glPushAttrib(GL_ENABLE_BIT | GL_LIGHTING_BIT);
+    glPushAttrib(GL_ENABLE_BIT | GL_LIGHTING_BIT | GL_TEXTURE_BIT);
     glBindTexture(GL_TEXTURE_2D, _colorTex);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     glEnable(GL_TEXTURE_2D);
     //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
     //glEnable(GL_LIGHTING);

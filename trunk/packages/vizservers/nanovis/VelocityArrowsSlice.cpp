@@ -407,14 +407,14 @@ void VelocityArrowsSlice::render()
 
         _arrowsTex->activate();
         glEnable(GL_TEXTURE_2D);
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
         GLfloat atten[] = {1, 0, 0};
         glPointParameterfvARB(GL_POINT_DISTANCE_ATTENUATION_ARB, atten);
         glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f);
         glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
         glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, _maxPointSize);
-        glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+        glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 
         // FIXME: This vertex shader won't compile with ARB_vertex_program,
         // so it should use GLSL
@@ -455,7 +455,7 @@ void VelocityArrowsSlice::render()
         _particleShader.unbind();
 
         glActiveTexture(GL_TEXTURE0);
-        glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_FALSE);
+        glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_FALSE);
         _arrowsTex->deactivate();
     }
 
