@@ -333,11 +333,8 @@ NanoVis::initOffscreenBuffer()
 
     glGenTextures(1, &_finalColorTex);
     glBindTexture(GL_TEXTURE_2D, _finalColorTex);
-
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #if defined(HAVE_FLOAT_TEXTURES) && defined(USE_HALF_FLOAT)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, winWidth, winHeight, 0,
                  GL_RGB, GL_INT, NULL);
@@ -407,11 +404,8 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
 
     glGenTextures(1, &_finalColorTex);
     glBindTexture(GL_TEXTURE_2D, _finalColorTex);
-
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
 #if defined(HAVE_FLOAT_TEXTURES) && defined(USE_HALF_FLOAT)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, winWidth, winHeight, 0,
                  GL_RGB, GL_INT, NULL);

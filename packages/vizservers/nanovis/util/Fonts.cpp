@@ -78,7 +78,7 @@ Fonts::draw(const char *pString, ...) const
 void 
 Fonts::begin()
 {
-    glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT);
+    glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT | GL_TEXTURE_BIT);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _fonts[_fontIndex]._fontTextureID);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -93,13 +93,8 @@ Fonts::begin()
     glPushMatrix();
     glLoadIdentity();
 
-#if 0
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-#else
     glEnable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
-#endif
 }
 
 void 

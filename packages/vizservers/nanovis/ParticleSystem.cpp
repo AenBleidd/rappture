@@ -1627,7 +1627,7 @@ void ParticleSystem::render()
 
             glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
             glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, 100.0f);
-            glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+            glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 
             cgGLBindProgram(_particleVP);
             cgGLBindProgram(_particleFP);
@@ -1682,12 +1682,12 @@ void ParticleSystem::render()
 #else
             glBindTexture(GL_TEXTURE_2D, ::SpotTexID);
             glEnable(GL_TEXTURE_2D);
-            //glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 60.0f );
-            glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f );
+            //glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 60.0f);
+            glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f);
 
-            glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 1.0f);
-            glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, 100.0f);
-            glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+            glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
+            glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, 100.0f);
+            glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 
             glEnableClientState(GL_VERTEX_ARRAY);
             //glEnableClientState(GL_COLOR_ARRAY);
