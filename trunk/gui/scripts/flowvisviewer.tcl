@@ -351,8 +351,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend \
-            -height 50 -highlightthickness 0 -background black
+        canvas $itk_component(plotarea).legend -height 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
@@ -1043,22 +1042,16 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
     set w [winfo width $c]
     set h [winfo height $c]
     set lx 10
-    # FIXME:  I don't know what I have to do this for the 2D flow
-    #         example.  Otherwise the canvas background is white.
-    #         I'll get to this when we add background changes into
-    #         nanvis.
-    $c configure -background black
     set ly [expr {$h - 1}]
-    if {"" == [$c find withtag transfunc]} {
+    if {"" == [$c find withtag colorbar]} {
         $c create image 10 10 -anchor nw \
-            -image $_image(legend) -tags transfunc
+            -image $_image(legend) -tags colorbar
         $c create text $lx $ly -anchor sw \
             -fill $itk_option(-plotforeground) -tags "limits vmin"
         $c create text [expr {$w-$lx}] $ly -anchor se \
             -fill $itk_option(-plotforeground) -tags "limits vmax"
-        $c lower transfunc
-        $c bind transfunc <ButtonRelease-1> \
-            [itcl::code $this AddIsoMarker %x %y]
+        $c lower colorbar
+        $c bind colorbar <ButtonRelease-1> [itcl::code $this AddIsoMarker %x %y]
     }
     # Display the markers used by the active transfer function.
     set tf $_obj2style($tag)
