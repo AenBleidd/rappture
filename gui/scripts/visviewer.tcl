@@ -452,8 +452,16 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     # before sending anything.
     set _done($this) 1
     set _buffer(out) $bytes
-    fileevent $_sid writable [itcl::code $this SendHelper]
-    tkwait variable ::Rappture::VisViewer::_done($this)
+    if {1} {
+        # Let's try this approach: allow a write to block so we don't
+        # re-enter SendBytes
+        SendHelper
+    } else {
+        # This can cause us to re-enter SendBytes during the tkwait, which 
+        # is not safe because the _buffer will be clobbered
+        fileevent $_sid writable [itcl::code $this SendHelper]
+        tkwait variable ::Rappture::VisViewer::_done($this)
+    }
     set _buffer(out) ""
     if { [IsConnected] } {
         # The connection may have closed while we were writing to the
