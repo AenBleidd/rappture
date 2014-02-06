@@ -50,8 +50,7 @@ FILES		= \
 		$(srcdir)/editor.tcl \
 		$(srcdir)/energyLevels.tcl \
 		$(srcdir)/field.tcl \
-		$(srcdir)/field2dresult.tcl \
-		$(srcdir)/field3dresult.tcl \
+		$(srcdir)/fieldresult.tcl \
 		$(srcdir)/filechoiceentry.tcl \
 		$(srcdir)/filelistentry.tcl \
 		$(srcdir)/filexfer.tcl \

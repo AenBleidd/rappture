@@ -306,36 +306,15 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
-                2D {
-		    set mode "field2d"
-		    set viewer [$dataobj viewer]
-		    set extents [$dataobj extents]
-		    if { $extents > 1 } {
-			set mode "flowvis"
-		    }
-                    if {![info exists _mode2widget($mode)]} {
-	                set w $itk_interior.$mode
-                        if { ![winfo exists $w] } {
-                            Rappture::Field2DResult $w -mode $viewer
-			}
-                        set _mode2widget($mode) $w
-                    }
-                }
-                3D {
+                default {
 		    set mode [$dataobj viewer]
-		    set extents [$dataobj extents]
-		    if { $extents > 1 } {
-			set mode "flowvis"
-		    }
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.$mode
-                        Rappture::Field3DResult $w -mode $mode
+                        if { ![winfo exists $w] } {
+                            Rappture::FieldResult $w -mode $mode
+                        }
                         set _mode2widget($mode) $w
                     }
-                }
-                default {
-                    puts stderr "WARNING: can't handle \"$dims\" dimension field"
-                    return
                 }
             }
         }
