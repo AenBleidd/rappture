@@ -492,7 +492,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                     }
                 }
 		set mode [$dataobj viewer]
-                FieldResult $w -mode $mode
+                Rappture::FieldResult $w -mode $mode
                 pack $w -expand yes -fill both
             }
             ::Rappture::LibraryObj {
