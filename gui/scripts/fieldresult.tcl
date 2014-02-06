@@ -1,8 +1,8 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
-#  COMPONENT: field3dresult - plot a field in a ResultSet
+#  COMPONENT: fieldresult - plot a field in a ResultSet
 #
-#  This widget visualizes scalar/vector fields on 3D meshes.
+#  This widget visualizes fields on meshes.
 #  It is normally used in the ResultViewer to show results from the
 #  run of a Rappture tool.  Use the "add" and "delete" methods to
 #  control the dataobjs showing on the plot.
@@ -15,20 +15,20 @@
 # ======================================================================
 package require Itk
 
-option add *Field3DResult.width 4i widgetDefault
-option add *Field3DResult.height 4i widgetDefault
-option add *Field3DResult.foreground black widgetDefault
-option add *Field3DResult.controlBackground gray widgetDefault
-option add *Field3DResult.controlDarkBackground #999999 widgetDefault
-option add *Field3DResult.plotBackground black widgetDefault
-option add *Field3DResult.plotForeground white widgetDefault
-option add *Field3DResult.font \
+option add *FieldResult.width 4i widgetDefault
+option add *FieldResult.height 4i widgetDefault
+option add *FieldResult.foreground black widgetDefault
+option add *FieldResult.controlBackground gray widgetDefault
+option add *FieldResult.controlDarkBackground #999999 widgetDefault
+option add *FieldResult.plotBackground black widgetDefault
+option add *FieldResult.plotForeground white widgetDefault
+option add *FieldResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
-itcl::class Rappture::Field3DResult {
+itcl::class Rappture::FieldResult {
     inherit itk::Widget
 
-    itk_option define -mode mode Mode "auto"
+    itk_option define -mode mode Mode ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -42,7 +42,7 @@ itcl::class Rappture::Field3DResult {
     public method download {option args}
 }
 
-itk::usual Field3DResult {
+itk::usual FieldResult {
     keep -background -foreground -cursor -font
     keep -plotbackground -plotforeground
 }
@@ -50,29 +50,26 @@ itk::usual Field3DResult {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::constructor {args} {
+itcl::body Rappture::FieldResult::constructor {args} {
     array set flags {
-        -mode auto
+        -mode ""
     }
-    array set flags $args 
+    array set flags $args
     set servers ""
     switch -- $flags(-mode) {
-        "auto" - "nanovis" - "flowvis" {
+        "nanovis" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "isosurface" - "heightmap" - "streamlines" - "vtkimage" - "vtkviewer" - "vtkvolume" - "glyphs" {
+        "contour" - "glyphs" - "heightmap" - "isosurface" - "streamlines" - "vtkimage" - "vtkviewer" - "vtkvolume" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-        }
-        "vtk" {
-            # Old vtk contour widget
         }
         default {
             puts stderr "unknown render mode \"$flags(-mode)\""
         }
     }
-    if { "" != $servers && $flags(-mode) != "vtk"} {
+    if {"" != $servers} {
         switch -- $flags(-mode) {
-            "auto" - "nanovis" {
+            "nanovis" {
                 itk_component add renderer {
                     Rappture::NanovisViewer $itk_interior.ren $servers
                 }
@@ -84,12 +81,13 @@ itcl::body Rappture::Field3DResult::constructor {args} {
             }
             "glyphs" {
                 itk_component add renderer {
-                    Rappture::VtkGlyphViewer $itk_interior.glyphs $servers
+                    Rappture::VtkGlyphViewer $itk_interior.ren $servers
                 }
             }
             "contour" - "heightmap" {
                 itk_component add renderer {
-                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers
+                    Rappture::VtkHeightmapViewer $itk_interior.ren \
+			$servers -mode $flags(-mode)
                 }
             }
             "isosurface" {
@@ -104,7 +102,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
             }
             "vtkimage" {
                 itk_component add renderer {
-                    Rappture::VtkImageViewer $itk_interior.vtkimage $servers 
+                    Rappture::VtkImageViewer $itk_interior.ren $servers 
                 }
             }
             "vtkviewer" {
@@ -123,25 +121,25 @@ itcl::body Rappture::Field3DResult::constructor {args} {
         }               
         pack $itk_component(renderer) -expand yes -fill both
 
-        # can't connect to rendering farm?  then fall back to older viewer
+        # can't connect to rendering farm?
         if {![$itk_component(renderer) isconnected]} {
-            destroy $itk_component(renderer)
+            # Should show a message here
+            #destroy $itk_component(renderer)
         }
     }
 
     if {![info exists itk_component(renderer)]} {
-        itk_component add renderer {
-            Rappture::ContourResult $itk_interior.ren
-        }
-        pack $itk_component(renderer) -expand yes -fill both
+        # No valid renderer (or couldn't connect?)
+        # Should show a message here
     }
     eval itk_initialize $args
+    #update
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::destructor {} {
+itcl::body Rappture::FieldResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
@@ -151,7 +149,7 @@ itcl::body Rappture::Field3DResult::destructor {} {
 # <settings> are used to configure the plot.  Allowed settings are
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::add {dataobj {settings ""}} {
+itcl::body Rappture::FieldResult::add {dataobj {settings ""}} {
     eval $itk_component(renderer) add $dataobj [list $settings]
 }
 
@@ -161,7 +159,7 @@ itcl::body Rappture::Field3DResult::add {dataobj {settings ""}} {
 # Clients use this to query the list of objects being plotted, in
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::get {} {
+itcl::body Rappture::FieldResult::get {} {
     return [$itk_component(renderer) get]
 }
 
@@ -171,7 +169,7 @@ itcl::body Rappture::Field3DResult::get {} {
 # Clients use this to delete a dataobj from the plot.  If no dataobjs
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::delete {args} {
+itcl::body Rappture::FieldResult::delete {args} {
     if { [info exists itk_component(renderer)] } {
         eval $itk_component(renderer) delete $args
     }
@@ -186,7 +184,7 @@ itcl::body Rappture::Field3DResult::delete {args} {
 # Because of this, the limits are appropriate for all objects as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::scale {args} {
+itcl::body Rappture::FieldResult::scale {args} {
     eval $itk_component(renderer) scale $args
 }
 
@@ -200,10 +198,10 @@ itcl::body Rappture::Field3DResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::download {option args} {
+itcl::body Rappture::FieldResult::download {option args} {
     eval $itk_component(renderer) download $option $args
 }
 
-itcl::body Rappture::Field3DResult::snap { w h } {
+itcl::body Rappture::FieldResult::snap { w h } {
     return [$itk_component(renderer) snap $w $h]
 }

@@ -492,18 +492,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                     }
                 }
 		set mode [$dataobj viewer]
-                switch -- $dimensions {
-                    2D {
-			Rappture::Field2DResult $w -mode $mode
-                    }
-                    3D {
-			Rappture::Field3DResult $w -mode $mode
-                    }
-                    default {
-                        error "don't know how to view sequences of $type\
-                            with \"$dimensions\" dimensions dim=[$dataobj components -dimensions]"
-                    }
-                }
+                FieldResult $w -mode $mode
                 pack $w -expand yes -fill both
             }
             ::Rappture::LibraryObj {
