@@ -508,7 +508,7 @@ void Renderer::setAxesBounds(double boundsIn[6])
         if (_axesAutoBounds[X_AXIS] ||
             _axesAutoBounds[Y_AXIS] ||
             _axesAutoBounds[Z_AXIS]) {
-            collectBounds(newBounds, false);
+            collectBounds(newBounds, true);
         }
     }
 
@@ -743,12 +743,12 @@ void Renderer::computeAxesScale()
 
     double bounds[6];
     if (_cameraMode == IMAGE) {
-        collectBounds(bounds, false);
+        collectBounds(bounds, true);
     } else
         _cubeAxesActor->GetBounds(bounds);
 
     double unscaledBounds[6];
-    collectUnscaledBounds(unscaledBounds, false);
+    collectUnscaledBounds(unscaledBounds, true);
 
     if (_axesRangeMode[X_AXIS] == RANGE_AUTO) {
         double sx = (bounds[1] == bounds[0]) ? 1.0 : (unscaledBounds[1] - unscaledBounds[0]) / (bounds[1] - bounds[0]);
@@ -4277,7 +4277,7 @@ void Renderer::initCamera(bool initCameraMode)
     _userImgWorldDims[1] = -1;
 
     double bounds[6];
-    collectBounds(bounds, false);
+    collectBounds(bounds, true);
     bool twod = is2D(bounds, &_imgCameraPlane, &_imgCameraOffset);
     if (twod) {
         if (initCameraMode) {
@@ -4505,7 +4505,7 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
 void Renderer::setClipPlane(Axis axis, double ratio, int direction)
 {
     double bounds[6];
-    collectBounds(bounds, false);
+    collectBounds(bounds, true);
 
     switch (axis) {
     case X_AXIS:
