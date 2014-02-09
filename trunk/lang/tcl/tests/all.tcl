@@ -19,6 +19,7 @@ if {$tcl_platform(platform) == "macintosh"} {
 	tcltest::singleProcess 1
 }
 
+tcltest::configure -verbose bpstel
 tcltest::testsDirectory [file dir [info script]]
 tcltest::runAllTests
 
