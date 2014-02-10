@@ -1096,16 +1096,17 @@ void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
+            itr->second->getProp() != NULL) {
             mergeBounds(bounds, bounds, itr->second->getBounds());
 #ifdef DEBUG
-        double *bPtr = itr->second->getBounds();
-        assert(bPtr != NULL);
-        GO_TRACE(T,
-                 "%s bounds: %g %g %g %g %g %g",
-                 itr->first.c_str(),
-                 bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
+            double *bPtr = itr->second->getBounds();
+            assert(bPtr != NULL);
+            GO_TRACE(T,
+                     "%s bounds: %g %g %g %g %g %g",
+                     itr->first.c_str(),
+                     bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
 #endif
+        }
     }
 }
 
@@ -1124,16 +1125,17 @@ void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisibl
 
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
+            itr->second->getProp() != NULL) {
             mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
 #ifdef DEBUG
-        double *bPtr = itr->second->getUnscaledBounds();
-        assert(bPtr != NULL);
-        GO_TRACE(T,
-                 "%s bounds: %g %g %g %g %g %g",
-                 itr->first.c_str(),
-                 bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
+            double *bPtr = itr->second->getUnscaledBounds();
+            assert(bPtr != NULL);
+            GO_TRACE(T,
+                     "%s bounds: %g %g %g %g %g %g",
+                     itr->first.c_str(),
+                     bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
 #endif
+        }
     }
 }
 
