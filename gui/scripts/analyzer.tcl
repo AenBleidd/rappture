@@ -442,8 +442,9 @@ itcl::body Rappture::Analyzer::simulate {args} {
 
     if {$status != 0} {
         $itk_component(runinfo) configure -state normal
-        $itk_component(runinfo) delete 1.0 end
-        $itk_component(runinfo) insert end "Problem launching job:\n\n" text
+        # Don't erase program error messages. 
+        # $itk_component(runinfo) delete 1.0 end
+        $itk_component(runinfo) insert end "\n\nProblem launching job:\n\n" text
         _simOutput $result
         $itk_component(runinfo) configure -state disabled
         $itk_component(runinfo) see 1.0

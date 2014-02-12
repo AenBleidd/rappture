@@ -61,6 +61,10 @@ When you click the Simulate button, the input strings will be used to generate o
      <name>analysis</name>
      <path>input.choice(analysis)</path>
     </variable>
+    <variable>
+     <name>linewidth</name>
+     <path>input.integer(linewidth)</path>
+    </variable>
    </substitutions>
    <components>
     <grid>
@@ -129,7 +133,7 @@ Height = ${feature_height}</text>
     <line id="polyline">
      <coords>0 .7 .25 .7 .35 .4 .65 .4 .75 .7 1 .7</coords>
      <color>red</color>
-     <linewidth>2</linewidth>
+     <linewidth>${linewidth}</linewidth>
     </line>
     <rectangle id="border">
      <coords>-0.05 0.05 0.3 0.35</coords>
@@ -168,6 +172,15 @@ Height = ${feature_height}</text>
     </hotspot>
    </components>
   </drawing>
+  <integer id="linewidth">
+    <about>
+      <label>Line width</label>
+      <description>Number of pixels for linewidth.</description>
+    </about>
+    <min>1</min>
+    <max>10</max>
+    <default>2</default>
+  </integer>
   <number id="feature_height">
    <about>
     <label>Feature Height</label>

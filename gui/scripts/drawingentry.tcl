@@ -154,7 +154,7 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
 	}
 	set _name2path($name) $path
 	if {$path eq ""} {
-	    puts stderr "no path defined for substituion variable \"$cpath\""
+	    puts stderr "no path defined for substitution variable \"$cpath\""
 	    continue
 	}
 	set _name2map($name) $map
