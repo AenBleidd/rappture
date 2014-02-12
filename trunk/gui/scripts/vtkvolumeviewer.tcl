@@ -2267,8 +2267,6 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
         -opacity 0.4
         -wireframe 0
         -lighting 1
-        -seeds 1
-        -seedcolor white
         -visible 1
     }
     if { $dataobj != $_first } {
