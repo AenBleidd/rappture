@@ -67,6 +67,7 @@ proc Rappture::exec {args} {
 		append result $execout(output)
 	    }
 	}
+	puts stderr $result
         error $result
     }
     return $execout(output)
