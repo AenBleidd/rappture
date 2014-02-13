@@ -30,7 +30,6 @@ FILES		= \
 		$(srcdir)/color.tcl \
 		$(srcdir)/combobox.tcl \
 		$(srcdir)/combochecks.tcl \
-		$(srcdir)/contourresult.tcl \
 		$(srcdir)/controlOwner.tcl \
 		$(srcdir)/controls.tcl \
 		$(srcdir)/curve.tcl \
