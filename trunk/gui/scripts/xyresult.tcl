@@ -1133,7 +1133,7 @@ itcl::body Rappture::XyResult::SetAxis { setting } {
         }
         "label" {
             set label $_axisPopup(label)
-            $g axis configure $axis -label $label
+            $g axis configure $axis -title $label
         }
         "min" {
             set min $_axisPopup(min)
