@@ -15,7 +15,17 @@
 # ======================================================================
 package require BLT
 
-namespace eval Rappture { # forward declaration }
+namespace eval Rappture { 
+    # Forward declaration 
+    variable execout
+    variable execctl
+
+    set execout(error) ""
+    set execout(output) ""
+    set execout(channel) ""
+    set execout(extra) ""
+    set execctl ""
+}
 
 # ----------------------------------------------------------------------
 # USAGE: exec <arg> <arg>...
@@ -30,6 +40,7 @@ proc Rappture::exec {args} {
     variable execout
     variable execctl
 
+    set execout(error) ""
     set execout(output) ""
     set execout(channel) ""
     set execout(extra) ""

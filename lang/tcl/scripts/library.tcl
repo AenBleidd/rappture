@@ -170,6 +170,13 @@ proc Rappture::entities {args} {
                         }
                     }
                 }
+                loader {
+                    if {$params(-as) == "component"} {
+                        lappend rlist $cpath
+                    } else {
+                        lappend rlist [$xmlobj element -as $params(-as) $cpath]
+                    }
+		}
                 default {
                     if {[catch {Rappture::objects::get $type}] == 0} {
                         # add this to the return list with the right flavor
