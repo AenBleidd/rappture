@@ -852,7 +852,6 @@ itcl::body Rappture::VtkVolumeViewer::Connect {} {
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
     }
-    $_dispatcher event -idle !rebuild
     return $result
 }
 
