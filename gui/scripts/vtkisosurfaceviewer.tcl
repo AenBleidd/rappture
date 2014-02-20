@@ -1697,7 +1697,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
     label $inner.numcontours_l -text "Number of Isosurfaces" -font "Arial 9"
     itk_component add numcontours {
         Rappture::Spinint $inner.numcontours \
-            -min 1 -max 50 -font "arial 9"
+            -min 0 -max 50 -font "arial 9"
     }
     $itk_component(numcontours) value $_settings(numContours)
     bind $itk_component(numcontours) <<Value>> \
@@ -2146,9 +2146,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set _currentOpacity $style(-opacity)
     if { $_currentNumContours != $style(-levels) } {
         set _currentNumContours $style(-levels)
-        if { $_currentNumContours < 1 } {
-            set _currentNumContours 1
-        }
         set _settings(numContours) $_currentNumContours
         $itk_component(numcontours) value $_currentNumContours
         UpdateContourList
@@ -2530,6 +2527,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
 
 itcl::body Rappture::VtkIsosurfaceViewer::UpdateContourList {} { 
     if { ![info exists _limits($_curFldName)] } {
+        return
+    }
+    if { $_currentNumContours < 1 } {
+        set _contourList ""
         return
     }
     foreach { vmin vmax } $_limits($_curFldName) break
