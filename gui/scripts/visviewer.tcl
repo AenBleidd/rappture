@@ -85,7 +85,7 @@ itcl::class ::Rappture::VisViewer {
     protected method ColorsToColormap { colors }
     protected method Connect { servers }
     protected method Disconnect {}
-    protected method EnableWaitDialog { bool } 
+    protected method EnableWaitDialog { timeout } 
     protected method Euler2XYZ { theta phi psi }
     protected method Flush {}
     protected method HandleError { args }
