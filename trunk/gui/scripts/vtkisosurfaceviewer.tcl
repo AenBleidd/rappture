@@ -187,17 +187,17 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     # X-Cutplane event
     $_dispatcher register !xcutplane
     $_dispatcher dispatch $this !xcutplane \
-        "[itcl::code $this AdjustSetting cutplaneXPosition]; list"
+        "[itcl::code $this AdjustSetting -xcutplaneposition]; list"
 
     # Y-Cutplane event
     $_dispatcher register !ycutplane
     $_dispatcher dispatch $this !ycutplane \
-        "[itcl::code $this AdjustSetting cutplaneYPosition]; list"
+        "[itcl::code $this AdjustSetting -ycutplaneposition]; list"
 
     # Z-Cutplane event
     $_dispatcher register !zcutplane
     $_dispatcher dispatch $this !zcutplane \
-        "[itcl::code $this AdjustSetting cutplaneZPosition]; list"
+        "[itcl::code $this AdjustSetting -zcutplaneposition]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -221,43 +221,42 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
 
-    array set _settings [subst {
-	background		black
-	colormap		BCGYR
-	colormapVisible		1
-	field			"Default"
-	isolineColor		white
-        axesVisible		1
-        axisLabelsVisible	1
-        axisXGrid		0
-        axisYGrid		0
-        axisZGrid		0
-        cutplaneEdges           0
-        cutplaneLighting        1
-        cutplanePreinterp       1
-        cutplaneOpacity		100
-        cutplaneVisible		0
-        cutplaneWireframe	0
-        cutplaneXPosition	50
-        cutplaneXVisible	1
-        cutplaneYPosition	50
-        cutplaneYVisible	1
-        cutplaneZPosition	50
-        cutplaneZVisible	1
-        isosurfaceEdges         0
-        isosurfaceLighting      1
-        isosurfaceOpacity       60
-        saveIsosurfaceOpacity	60
-        isosurfaceOutline       0
-        isosurfaceVisible       1
-        isosurfaceWireframe     0
-        legendVisible		1
-        numContours		10
-    }]
+    array set _settings {
+	-background                     black
+	-colormap                       BCGYR
+	-colormapvisible                1
+	-field                          "Default"
+	-isolinecolor                   white
+        -axesvisible                    1
+        -axislabelsvisible              1
+        -cutplaneedges                  0
+        -cutplanelighting               1
+        -cutplaneopacity                100
+        -cutplanepreinterp              1
+        -cutplanesvisible               0
+        -cutplanewireframe              0
+        -isosurfaceedges                0
+        -isosurfacelighting             1
+        -isosurfaceopacity              60
+        -isosurfaceoutline              0
+        -isosurfacevisible              1
+        -isosurfacewireframe            0
+        -legendvisible                  1
+        -numcontours                    10
+        -xaxisgrid                      0
+        -xcutplaneposition              50
+        -xcutplanevisible               1
+        -yaxisgrid                      0
+        -ycutplaneposition              50
+        -ycutplanevisible               1
+        -zaxisgrid                      0
+        -zcutplaneposition              50
+        -zcutplanevisible               1
+    }
     array set _changed {
-        isosurfaceOpacity       0
-        colormap                0
-        numContours             0
+        -isosurfaceopacity       0
+        -colormap                0
+        -numcontours             0
     }
 
     itk_component add view {
@@ -270,7 +269,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no 
+            -tearoff 0 
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -337,8 +336,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         Rappture::PushButton $f.contour \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -variable [itcl::scope _settings(isosurfaceVisible)] \
-            -command [itcl::code $this AdjustSetting isosurfaceVisible] 
+            -variable [itcl::scope _settings(-isosurfacevisible)] \
+            -command [itcl::code $this AdjustSetting -isosurfacevisible] 
     }
     $itk_component(contour) select
     Rappture::Tooltip::for $itk_component(contour) \
@@ -349,8 +348,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings(cutplaneVisible)] \
-            -command [itcl::code $this AdjustSetting cutplaneVisible] 
+            -variable [itcl::scope _settings(-cutplanesvisible)] \
+            -command [itcl::code $this AdjustSetting -cutplanesvisible] 
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -866,7 +865,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveImage { args } {
         $_image(plot) configure -data $bytes
         set time [clock seconds]
         set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+        set w [image width $_image(plot)]
+        set h [image height $_image(plot)]
+        #puts stderr "$date: received image ${w}x${h} image"        
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -958,8 +959,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         DoRotate
         PanCamera
         set _first ""
-        InitSettings axisXGrid axisYGrid axisZGrid axisMode \
-            axesVisible axisLabelsVisible 
+        InitSettings -xaxisgrid -yaxisgrid -zaxisgrid -axismode \
+            -axesvisible -axislabelsvisible 
         foreach axis { x y z } {
 	    SendCmd "axis lformat $axis %g"
 	}
@@ -1038,17 +1039,19 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings cutplaneVisible isosurfaceOutline
+    InitSettings -cutplanesvisible -isosurfacevisible -isosurfaceoutline
     if { $_reset } {
 	# These are settings that rely on a dataset being loaded.
         InitSettings \
-            isosurfaceLighting \
-            field \
-            isosurfaceEdges isosurfaceLighting isosurfaceOpacity \
-	    isosurfaceWireframe \
-	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
-	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
-            cutplanePreinterp numContours
+            -isosurfacelighting \
+            -field \
+            -isosurfacevisible \
+            -isosurfaceedges -isosurfacelighting -isosurfaceopacity \
+	    -isosurfacewireframe \
+            -cutplanesvisible \
+	    -xcutplaneposition -ycutplaneposition -zcutplaneposition \
+	    -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+            -cutplanepreinterp -numcontours
 
         Zoom reset
 	foreach axis { x y z } {
@@ -1320,52 +1323,52 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 	    $itk_component(view) delete "legend"
 	    DrawLegend
         }
-        "axesVisible" {
-            set bool $_settings(axesVisible)
+        "-axesvisible" {
+            set bool $_settings(-axesvisible)
             SendCmd "axis visible all $bool"
         }
-        "axisLabelsVisible" {
-            set bool $_settings(axisLabelsVisible)
+        "-axislabelsvisible" {
+            set bool $_settings(-axislabelsvisible)
             SendCmd "axis labels all $bool"
         }
-        "axisXGrid" - "axisYGrid" - "axisZGrid" {
-            set axis [string tolower [string range $what 4 4]]
+        "-xaxisgrid" - "-yaxisgrid" - "-zaxisgrid" {
+            set axis [string tolower [string range $what 1 1]]
             set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
         }
-        "axisMode" {
+        "-axismode" {
             set mode [$itk_component(axisMode) value]
             set mode [$itk_component(axisMode) translate $mode]
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
-        "cutplaneEdges" {
+        "-cutplaneedges" {
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
         }
-        "cutplaneVisible" {
+        "-cutplanesvisible" {
             set bool $_settings($what)
             SendCmd "cutplane visible $bool"
         }
-        "cutplaneWireframe" {
+        "-cutplanewireframe" {
             set bool $_settings($what)
             SendCmd "cutplane wireframe $bool"
         }
-        "cutplaneLighting" {
+        "-cutplanelighting" {
             set bool $_settings($what)
             SendCmd "cutplane lighting $bool"
         }
-        "cutplaneOpacity" {
+        "-cutplaneopacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "cutplane opacity $sval"
         }
-        "cutplanePreinterp" {
+        "-cutplanepreinterp" {
             set bool $_settings($what)
             SendCmd "cutplane preinterp $bool"
         }
-        "cutplaneXVisible" - "cutplaneYVisible" - "cutplaneZVisible" {
-            set axis [string tolower [string range $what 8 8]]
+        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
+            set axis [string tolower [string range $what 1 1]]
             set bool $_settings($what)
             if { $bool } {
                 $itk_component(${axis}position) configure -state normal \
@@ -1376,46 +1379,46 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
 	    SendCmd "cutplane axis $axis $bool"
         }
-        "cutplaneXPosition" - "cutplaneYPosition" - "cutplaneZPosition" {
-            set axis [string tolower [string range $what 8 8]]
+        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set axis [string tolower [string range $what 1 1]]
             set pos [expr $_settings($what) * 0.01]
             SendCmd "cutplane slice ${axis} ${pos}"
             set _cutplanePending 0
         }
-        "colormap" {
-            set _changed(colormap) 1
+        "-colormap" {
+            set _changed(-colormap) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
-            set _settings(colormap) $color
+            set _settings(-colormap) $color
 	    if { $color == "none" } {
-		if { $_settings(colormapVisible) } {
+		if { $_settings(-colormapvisible) } {
 		    SendCmd "contour3d colormode constant {}"
-		    set _settings(colormapVisible) 0
+		    set _settings(-colormapvisible) 0
 		}
 	    } else {
-		if { !$_settings(colormapVisible) } {
+		if { !$_settings(-colormapvisible) } {
 		    SendCmd "contour3d colormode $_colorMode $_curFldName"
-		    set _settings(colormapVisible) 1
+		    set _settings(-colormapvisible) 1
 		}
 		SetCurrentColormap $color
 	    }
             StopBufferingCommands
 	    EventuallyRequestLegend
         }
-        "numContours" {
-            set _settings(numContours) [$itk_component(numcontours) value]
-            set _currentNumContours $_settings(numContours)
+        "-numcontours" {
+            set _settings($what) [$itk_component(numcontours) value]
+            set _currentNumContours $_settings($what)
             UpdateContourList
-            set _changed(numContours) 1
+            set _changed($what) 1
             SendCmd "contour3d contourlist [list $_contourList]"
             DrawLegend
         }
-        "isosurfaceWireframe" {
-            set bool $_settings(isosurfaceWireframe)
+        "-isosurfacewireframe" {
+            set bool $_settings($what)
 	    SendCmd "contour3d wireframe $bool"
         }
-        "isosurfaceVisible" {
-            set bool $_settings(isosurfaceVisible)
+        "-isosurfacevisible" {
+            set bool $_settings($what)
 	    SendCmd "contour3d visible $bool"
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(contour) \
@@ -1426,32 +1429,32 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
 	    DrawLegend
         }
-        "isosurfaceLighting" {
-            set bool $_settings(isosurfaceLighting)
+        "-isosurfacelighting" {
+            set bool $_settings($what)
 	    SendCmd "contour3d lighting $bool"
         }
-        "isosurfaceEdges" {
-            set bool $_settings(isosurfaceEdges)
+        "-isosurfaceedges" {
+            set bool $_settings($what)
 	    SendCmd "contour3d edges $bool"
         }
-        "isosurfaceOutline" {
-            set bool $_settings(isosurfaceOutline)
+        "-isosurfaceoutline" {
+            set bool $_settings($what)
 	    SendCmd "outline visible $bool"
         }
-        "isolineColor" {
+        "-isolinecolor" {
             set color [$itk_component(isolineColor) value]
-	    set _settings(isolineColor) $color
+	    set _settings($what) $color
 	    DrawLegend
         }
-        "isosurfaceOpacity" {
-            set val $_settings(isosurfaceOpacity)
+        "-isosurfaceopacity" {
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
 	    SendCmd "contour3d opacity $sval"
         }
-        "field" {
+        "-field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(field) $fname
+            set _settings($what) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
@@ -1473,8 +1476,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             UpdateContourList
             DrawLegend
         }
-        "legendVisible" {
-            if { !$_settings(legendVisible) } {
+        "-legendvisible" {
+            if { !$_settings($what) } {
                 $itk_component(view) delete legend
 	    }
 	    DrawLegend
@@ -1577,43 +1580,43 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
     checkbutton $inner.contour \
         -text "Isosurfaces" \
-        -variable [itcl::scope _settings(isosurfaceVisible)] \
-        -command [itcl::code $this AdjustSetting isosurfaceVisible] \
+        -variable [itcl::scope _settings(-isosurfacevisible)] \
+        -command [itcl::code $this AdjustSetting -isosurfacevisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Wireframe" \
-        -variable [itcl::scope _settings(isosurfaceWireframe)] \
-        -command [itcl::code $this AdjustSetting isosurfaceWireframe] \
+        -variable [itcl::scope _settings(-isosurfacewireframe)] \
+        -command [itcl::code $this AdjustSetting -isosurfacewireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(isosurfaceLighting)] \
-        -command [itcl::code $this AdjustSetting isosurfaceLighting] \
+        -variable [itcl::scope _settings(-isosurfacelighting)] \
+        -command [itcl::code $this AdjustSetting -isosurfacelighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Edges" \
-        -variable [itcl::scope _settings(isosurfaceEdges)] \
-        -command [itcl::code $this AdjustSetting isosurfaceEdges] \
+        -variable [itcl::scope _settings(-isosurfaceedges)] \
+        -command [itcl::code $this AdjustSetting -isosurfaceedges] \
         -font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings(isosurfaceOutline)] \
-        -command [itcl::code $this AdjustSetting isosurfaceOutline] \
+        -variable [itcl::scope _settings(-isosurfaceoutline)] \
+        -command [itcl::code $this AdjustSetting -isosurfaceoutline] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
         -text "Legend" \
-        -variable [itcl::scope _settings(legendVisible)] \
-        -command [itcl::code $this AdjustSetting legendVisible] \
+        -variable [itcl::scope _settings(-legendvisible)] \
+        -command [itcl::code $this AdjustSetting -legendvisible] \
         -font "Arial 9"
 
     label $inner.linecolor_l -text "Isolines" -font "Arial 9" 
     itk_component add isolineColor {
-        Rappture::Combobox $inner.linecolor -width 10 -editable no
+        Rappture::Combobox $inner.linecolor -width 10 -editable 0
     }
     $inner.linecolor choices insert end \
         "black"              "black"            \
@@ -1633,29 +1636,30 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
     label $inner.background_l -text "Background" -font "Arial 9" 
     itk_component add background {
-        Rappture::Combobox $inner.background -width 10 -editable no
+        Rappture::Combobox $inner.background -width 10 -editable 0
     }
     $inner.background choices insert end \
         "black"              "black"            \
         "white"              "white"            \
         "grey"               "grey"             
 
-    $itk_component(background) value $_settings(background)
-    bind $inner.background <<Value>> [itcl::code $this AdjustSetting background]
+    $itk_component(background) value $_settings(-background)
+    bind $inner.background <<Value>> \
+        [itcl::code $this AdjustSetting -background]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(isosurfaceOpacity)] \
+        -variable [itcl::scope _settings(-isosurfaceopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting isosurfaceOpacity]
+        -command [itcl::code $this AdjustSetting -isosurfaceopacity]
 
     label $inner.scale_l -text "Scale" -font "Arial 9"
     ::scale $inner.scale -from 1 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(contour-scale)] \
+        -variable [itcl::scope _settings(-contourscale)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting contour-scale]
+        -command [itcl::code $this AdjustSetting -contourscale]
 
     itk_component add field_l {
         label $inner.field_l -text "Field" -font "Arial 9" 
@@ -1663,14 +1667,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         ignore -font
     }
     itk_component add field {
-        Rappture::Combobox $inner.field -width 10 -editable no
+        Rappture::Combobox $inner.field -width 10 -editable 0
     }
     bind $inner.field <<Value>> \
-        [itcl::code $this AdjustSetting field]
+        [itcl::code $this AdjustSetting -field]
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9" 
     itk_component add colormap {
-        Rappture::Combobox $inner.colormap -width 10 -editable no
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end \
         "BCGYR"              "BCGYR"            \
@@ -1692,16 +1696,16 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
-        [itcl::code $this AdjustSetting colormap]
+        [itcl::code $this AdjustSetting -colormap]
 
     label $inner.numcontours_l -text "Number of Isosurfaces" -font "Arial 9"
     itk_component add numcontours {
         Rappture::Spinint $inner.numcontours \
             -min 0 -max 50 -font "arial 9"
     }
-    $itk_component(numcontours) value $_settings(numContours)
+    $itk_component(numcontours) value $_settings(-numcontours)
     bind $itk_component(numcontours) <<Value>> \
-        [itcl::code $this AdjustSetting numContours]
+        [itcl::code $this AdjustSetting -numcontours]
 
     blt::table $inner \
         0,0 $inner.field_l   -anchor w -pady 2  \
@@ -1738,36 +1742,36 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Show Axes" \
-        -variable [itcl::scope _settings(axesVisible)] \
-        -command [itcl::code $this AdjustSetting axesVisible] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
         -text "Show Axis Labels" \
-        -variable [itcl::scope _settings(axisLabelsVisible)] \
-        -command [itcl::code $this AdjustSetting axisLabelsVisible] \
+        -variable [itcl::scope _settings(-axislabelsvisible)] \
+        -command [itcl::code $this AdjustSetting -axislabelsvisible] \
         -font "Arial 9"
 
     checkbutton $inner.gridx \
         -text "Show X Grid" \
-        -variable [itcl::scope _settings(axisXGrid)] \
-        -command [itcl::code $this AdjustSetting axisXGrid] \
+        -variable [itcl::scope _settings(-xaxisgrid)] \
+        -command [itcl::code $this AdjustSetting -xaxisgrid] \
         -font "Arial 9"
     checkbutton $inner.gridy \
         -text "Show Y Grid" \
-        -variable [itcl::scope _settings(axisYGrid)] \
-        -command [itcl::code $this AdjustSetting axisYGrid] \
+        -variable [itcl::scope _settings(-yaxisgrid)] \
+        -command [itcl::code $this AdjustSetting -yaxisgrid] \
         -font "Arial 9"
     checkbutton $inner.gridz \
         -text "Show Z Grid" \
-        -variable [itcl::scope _settings(axisZGrid)] \
-        -command [itcl::code $this AdjustSetting axisZGrid] \
+        -variable [itcl::scope _settings(-zaxisgrid)] \
+        -command [itcl::code $this AdjustSetting -zaxisgrid] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
 
     itk_component add axisMode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -1775,7 +1779,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
     $itk_component(axisMode) value "static"
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisMode]
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 2 \
@@ -1851,59 +1855,59 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
 
     checkbutton $inner.visible \
         -text "Cutplanes" \
-        -variable [itcl::scope _settings(cutplaneVisible)] \
-        -command [itcl::code $this AdjustSetting cutplaneVisible] \
+        -variable [itcl::scope _settings(-cutplanesvisible)] \
+        -command [itcl::code $this AdjustSetting -cutplanesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Wireframe" \
-        -variable [itcl::scope _settings(cutplaneWireframe)] \
-        -command [itcl::code $this AdjustSetting cutplaneWireframe] \
+        -variable [itcl::scope _settings(-cutplanewireframe)] \
+        -command [itcl::code $this AdjustSetting -cutplanewireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(cutplaneLighting)] \
-        -command [itcl::code $this AdjustSetting cutplaneLighting] \
+        -variable [itcl::scope _settings(-cutplanelighting)] \
+        -command [itcl::code $this AdjustSetting -cutplanelighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Edges" \
-        -variable [itcl::scope _settings(cutplaneEdges)] \
-        -command [itcl::code $this AdjustSetting cutplaneEdges] \
+        -variable [itcl::scope _settings(-cutplaneedges)] \
+        -command [itcl::code $this AdjustSetting -cutplaneedges] \
         -font "Arial 9"
 
     checkbutton $inner.preinterp \
         -text "Interpolate Scalars" \
-        -variable [itcl::scope _settings(cutplanePreinterp)] \
-        -command [itcl::code $this AdjustSetting cutplanePreinterp] \
+        -variable [itcl::scope _settings(-cutplanepreinterp)] \
+        -command [itcl::code $this AdjustSetting -cutplanepreinterp] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(cutplaneOpacity)] \
+        -variable [itcl::scope _settings(-cutplaneopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting cutplaneOpacity]
-    $inner.opacity set $_settings(cutplaneOpacity)
+        -command [itcl::code $this AdjustSetting -cutplaneopacity]
+    $inner.opacity set $_settings(-cutplaneopacity)
 
     # X-value slicer...
     itk_component add xbutton {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane-red] \
             -offimage [Rappture::icon x-cutplane-red] \
-            -command [itcl::code $this AdjustSetting cutplaneXVisible] \
-            -variable [itcl::scope _settings(cutplaneXVisible)] \
+            -command [itcl::code $this AdjustSetting -xcutplanevisible] \
+            -variable [itcl::scope _settings(-xcutplanevisible)] \
     }
     Rappture::Tooltip::for $itk_component(xbutton) \
         "Toggle the X-axis cutplane on/off"
     $itk_component(xbutton) select
     itk_component add xposition {
         ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
-            -variable [itcl::scope _settings(cutplaneXPosition)] \
+            -variable [itcl::scope _settings(-xcutplaneposition)] \
 	    -foreground red2 -font "Arial 9 bold"
     } {
         usual
@@ -1920,8 +1924,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane-green] \
             -offimage [Rappture::icon y-cutplane-green] \
-            -command [itcl::code $this AdjustSetting cutplaneYVisible] \
-            -variable [itcl::scope _settings(cutplaneYVisible)] \
+            -command [itcl::code $this AdjustSetting -ycutplanevisible] \
+            -variable [itcl::scope _settings(-ycutplanevisible)] \
     }
     Rappture::Tooltip::for $itk_component(ybutton) \
         "Toggle the Y-axis cutplane on/off"
@@ -1929,10 +1933,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
 
     itk_component add yposition {
         ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
-            -variable [itcl::scope _settings(cutplaneYPosition)] \
+            -variable [itcl::scope _settings(-ycutplaneposition)] \
 	    -foreground green3 -font "Arial 9 bold"
     } {
         usual
@@ -1949,8 +1953,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane-blue] \
             -offimage [Rappture::icon z-cutplane-blue] \
-            -command [itcl::code $this AdjustSetting cutplaneZVisible] \
-            -variable [itcl::scope _settings(cutplaneZVisible)] \
+            -command [itcl::code $this AdjustSetting -zcutplanevisible] \
+            -variable [itcl::scope _settings(-zcutplanevisible)] \
     } {
 	usual
 	ignore -foreground
@@ -1961,10 +1965,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
 
     itk_component add zposition {
         ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
-            -variable [itcl::scope _settings(cutplaneZPosition)] \
+            -variable [itcl::scope _settings(-zcutplaneposition)] \
 	    -foreground blue3 -font "Arial 9 bold"
     } {
         usual
@@ -2113,6 +2117,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         -lighting 1
         -outline 0
 	-levels 10
+        -cutplanesvisible 0 
+        -xcutplanevisible 1
+        -ycutplanevisible 1
+        -zcutplanevisible 1
+        -xcutplaneposition 50
+        -ycutplaneposition 50
+        -zcutplaneposition 50
+        -isosurfacevisible 1
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first || $style(-levels) == 1 } {
@@ -2130,14 +2142,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     # controls are specified as style hints by each dataset.  It complicates
     # the code to handle aberrant cases.
 
-    if { $_changed(isosurfaceOpacity) } {
-        set style(-opacity) $_settings(isosurfaceOpacity)
+    if { $_changed(-isosurfaceopacity) } {
+        set style(-opacity) $_settings(-isosurfaceopacity)
     }
-    if { $_changed(numContours) } {
-        set style(-levels) $_settings(numContours)
+    if { $_changed(-numcontours) } {
+        set style(-levels) $_settings(-numcontours)
     }
-    if { $_changed(colormap) } {
-        set style(-color) $_settings(colormap)
+    if { $_changed(-colormap) } {
+        set style(-color) $_settings(-colormap)
     }
     if { $_currentColormap == "" } {
         SetCurrentColormap $style(-color)
@@ -2146,29 +2158,38 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set _currentOpacity $style(-opacity)
     if { $_currentNumContours != $style(-levels) } {
         set _currentNumContours $style(-levels)
-        set _settings(numContours) $_currentNumContours
+        set _settings(-numcontours) $_currentNumContours
         $itk_component(numcontours) value $_currentNumContours
         UpdateContourList
         DrawLegend
     }
+    set _settings(-isosurfacevisible) $style(-isosurfacevisible)
+    set _settings(-cutplanesvisible)  $style(-cutplanesvisible)
+    set _settings(-xcutplanevisible)  $style(-xcutplanevisible)
+    set _settings(-ycutplanevisible)  $style(-ycutplanevisible)
+    set _settings(-zcutplanevisible)  $style(-zcutplanevisible)
+    set _settings(-xcutplaneposition) $style(-xcutplaneposition)
+    set _settings(-ycutplaneposition) $style(-ycutplaneposition)
+    set _settings(-zcutplaneposition) $style(-zcutplaneposition)
+ 
     SendCmd [list contour3d add contourlist $_contourList $tag]
     SendCmd "contour3d edges $style(-edges) $tag"
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
-    set _settings(isosurfaceOutline) $style(-outline)
-    set _settings(isosurfaceEdges) $style(-edges)
+    set _settings(-isosurfaceoutline) $style(-outline)
+    set _settings(-isosurfaceedges) $style(-edges)
     #SendCmd "contour3d color [Color2RGB $settings(-color)] $tag"
     SendCmd "contour3d lighting $style(-lighting) $tag"
-    set _settings(isosurfaceLighting) $style(-lighting)
+    set _settings(-isosurfacelighting) $style(-lighting)
     SendCmd "contour3d linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "contour3d linewidth $style(-linewidth) $tag"
     SendCmd "contour3d opacity $_currentOpacity $tag"
-    set _settings(isosurfaceOpacity) $style(-opacity)
+    set _settings(-isosurfaceopacity) $style(-opacity)
     SetCurrentColormap $style(-color) 
     SendCmd "contour3d wireframe $style(-wireframe) $tag"
-    set _settings(isosurfaceWireframe) $style(-wireframe)
-    set _settings(isosurfaceOpacity) [expr $style(-opacity) * 100.0]
+    set _settings(-isosurfacewireframe) $style(-wireframe)
+    set _settings(-isosurfaceopacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::IsValidObject { dataobj } {
@@ -2349,7 +2370,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 	}
     }
     set x [expr $w - 2]
-    if { !$_settings(legendVisible) } {
+    if { !$_settings(-legendvisible) } {
 	$c delete legend
 	return
     } 
@@ -2384,11 +2405,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     set iw [image width $_image(legend)]
     set ih [image height $_image(legend)]
     set x1 [expr $x2 - ($iw*12)/10]
-    set color $_settings(isolineColor)
+    set color $_settings(-isolinecolor)
     # Draw the isolines on the legend.
     array unset _isolines
     if { $color != "none"  && [info exists _limits($_curFldName)] &&
-         $_settings(numContours) > 0 } {
+         $_settings(-numcontours) > 0 } {
 
         foreach { vmin vmax } $_limits($_curFldName) break
         set range [expr double($vmax - $vmin)]
@@ -2468,7 +2489,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Combo {option} {
         }
         invoke {
             $itk_component(field) value $_curFldLabel
-            AdjustSetting field
+            AdjustSetting -field
         }
         default {
             error "bad option \"$option\": should be post, unpost, select"
@@ -2540,3 +2561,4 @@ itcl::body Rappture::VtkIsosurfaceViewer::UpdateContourList {} {
     set _contourList [$v range 0 end]
     blt::vector destroy $v
 }
+

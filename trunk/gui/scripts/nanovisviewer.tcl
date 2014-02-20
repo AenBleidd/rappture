@@ -67,6 +67,9 @@ itcl::class Rappture::NanovisViewer {
     public proc SetServerList { namelist } {
         Rappture::VisViewer::SetServerList "nanovis" $namelist
     }
+    public method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
     public method add {dataobj {settings ""}}
     public method camera {option args}
     public method delete {args}
@@ -200,49 +203,49 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw      0.853553
-        qx      -0.353553
-        qy      0.353553
-        qz      0.146447
-        zoom    1.0
-        xpan    0
-        ypan    0
+        -qw      0.853553
+        -qx      -0.353553
+        -qy      0.353553
+        -qz      0.146447
+        -zoom    1.0
+        -xpan    0
+        -ypan    0
     }
     set _arcball [blt::arcball create 100 100]
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
+    $_arcball quaternion [ViewToQuaternion]
 
     set _limits(v) [list 0.0 1.0]
     set _reset 1
 
-    array set _settings [subst {
-	background		black
-        $this-ambient           60
-        $this-colormap          default
-        $this-cutplaneVisible   0
-        $this-diffuse           40
-        $this-light2side        1
-        $this-opacity           100
-        $this-qw                $_view(qw)
-        $this-qx                $_view(qx)
-        $this-qy                $_view(qy)
-        $this-qz                $_view(qz)
-        $this-specularExponent  90
-        $this-specularLevel     30
-        $this-thickness         350
-        $this-transp            50
-        $this-volume            1
-        $this-volumeVisible     1
-        $this-xcutplane         1
-        $this-xcutposition      0
-        $this-xpan              $_view(xpan)
-        $this-ycutplane         1
-        $this-ycutposition      0
-        $this-ypan              $_view(ypan)
-        $this-zcutplane         1
-        $this-zcutposition      0
-        $this-zoom              $_view(zoom)    
-    }]
+    array set _settings {
+	-background		black
+        -ambient                60
+        -colormap               default
+        -cutplanevisible        0
+        -diffuse                40
+        -light2side             1
+        -opacity                100
+        -qw                     0.853553
+        -qx                     -0.353553
+        -qy                     0.353553
+        -qz                     0.146447
+        -specularexponent       90
+        -specularlevel          30
+        -thickness              350
+        -opacity                 50
+        -volume                 1
+        -volumevisible          1
+        -xcutplanevisible       1
+        -xcutplaneposition      50
+        -xpan                   0
+        -ycutplanevisible       1
+        -ycutplaneposition      50
+        -ypan                   0
+        -zcutplanevisible       1
+        -zcutplaneposition      50
+        -zoom                   1.0
+        -isosurfaceshading      0
+    }
 
     itk_component add 3dview {
         label $itk_component(plotarea).view -image $_image(plot) \
@@ -264,7 +267,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -294,8 +298,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         Rappture::PushButton $f.volume \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -command [itcl::code $this AdjustSetting volume] \
-            -variable [itcl::scope _settings($this-volume)]
+            -command [itcl::code $this AdjustSetting -volume] \
+            -variable [itcl::scope _settings(-volume)]
     }
     $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
@@ -306,8 +310,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings($this-cutplaneVisible)] \
-            -command [itcl::code $this AdjustSetting cutplaneVisible] 
+            -variable [itcl::scope _settings(-cutplanesvisible)] \
+            -command [itcl::code $this AdjustSetting -cutplanesvisible] 
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -421,7 +425,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
         itcl::delete object $_transferFunctionEditors($cname)
     }
     catch { blt::arcball destroy $_arcball }
-    array unset _settings $this-*
+    array unset _settings 
 }
 
 # ----------------------------------------------------------------------
@@ -820,10 +824,10 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
     foreach axis {x y z} {
         # Turn off cutplanes for all volumes
         SendCmd "cutplane state 0 $axis"
-        if { $_settings($this-${axis}cutplane) } {
+        if { $_settings(-${axis}cutplanevisible) } {
             # Turn on cutplane for this particular volume and set the position
             SendCmd "cutplane state 1 $axis $tag"
-            set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
+            set pos [expr {0.01*$_settings(-${axis}cutplaneposition)}]
             SendCmd "cutplane position $pos $axis $tag"
         }
     }
@@ -888,7 +892,7 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     #
     set dataobj [lindex $parts 0]
     set _serverDatasets($tag) 1
-    if { $_settings($this-volume) && $dataobj == $_first } {
+    if { $_settings(-volumevisible) && $dataobj == $_first } {
         SendCmd "volume state 1 $tag"
     }
     set _limits($tag) [list $info(min)  $info(max)]
@@ -974,29 +978,30 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	#
 	# Reset the camera and other view parameters
 	#
-        set _settings($this-qw)    $_view(qw)
-        set _settings($this-qx)    $_view(qx)
-        set _settings($this-qy)    $_view(qy)
-        set _settings($this-qz)    $_view(qz)
-	set _settings($this-xpan)  $_view(xpan)
-	set _settings($this-ypan)  $_view(ypan)
-	set _settings($this-zoom)  $_view(zoom)
+        set _settings(-qw)    $_view(-qw)
+        set _settings(-qx)    $_view(-qx)
+        set _settings(-qy)    $_view(-qy)
+        set _settings(-qz)    $_view(-qz)
+	set _settings(-xpan)  $_view(-xpan)
+	set _settings(-ypan)  $_view(-ypan)
+	set _settings(-zoom)  $_view(-zoom)
 
-        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+        set q [ViewToQuaternion]
         $_arcball quaternion $q
         SendCmd "camera orient $q"
         SendCmd "camera reset"
 	PanCamera
-	SendCmd "camera zoom $_view(zoom)"
+	SendCmd "camera zoom $_view(-zoom)"
 
         foreach axis {x y z} {
             # Turn off cutplanes for all volumes
             SendCmd "cutplane state 0 $axis"
         }
 
-        InitSettings light2side ambient diffuse specularLevel specularExponent \
-            transp isosurface grid axes \
-            xcutplane ycutplane zcutplane current
+        InitSettings -light2side -ambient -diffuse -specularlevel \
+            -specularexponent -opacity -isosurfaceshading -gridvisible \
+            -axesvisible -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+            -current
 
 	if {"" != $_first} {
 	    set axis [$_first hints updir]
@@ -1010,7 +1015,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	}
     }
     # Outline seems to need to be reset every update.
-    InitSettings outline cutplaneVisible 
+    InitSettings -outlinevisible -cutplanesvisible 
     # nothing to send -- activate the proper ivol
     SendCmd "volume state 0"
     if {"" != $_first} {
@@ -1071,24 +1076,24 @@ itcl::body Rappture::NanovisViewer::CurrentDatasets {{what -all}} {
 itcl::body Rappture::NanovisViewer::Zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            set _settings($this-zoom) $_view(zoom)
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*1.25}]
+            set _settings(-zoom) $_view(-zoom)
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            set _settings($this-zoom) $_view(zoom)
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*0.8}]
+            set _settings(-zoom) $_view(-zoom)
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "reset" {
             array set _view {
-                qw      0.853553
-                qx      -0.353553
-                qy      0.353553
-                qz      0.146447
-                zoom    1.0
-                xpan   0
-                ypan   0
+                -qw      0.853553
+                -qx      -0.353553
+                -qy      0.353553
+                -qz      0.146447
+                -zoom    1.0
+                -xpan   0
+                -ypan   0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1096,24 +1101,24 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+            set q [ViewToQuaternion]          
             $_arcball quaternion $q
             SendCmd "camera orient $q"
             SendCmd "camera reset"
-            set _settings($this-qw)    $_view(qw)
-            set _settings($this-qx)    $_view(qx)
-            set _settings($this-qy)    $_view(qy)
-            set _settings($this-qz)    $_view(qz)
-            set _settings($this-xpan)  $_view(xpan)
-            set _settings($this-ypan)  $_view(ypan)
-            set _settings($this-zoom)  $_view(zoom)
+            set _settings(-qw)    $_view(-qw)
+            set _settings(-qx)    $_view(-qx)
+            set _settings(-qy)    $_view(-qy)
+            set _settings(-qz)    $_view(-qz)
+            set _settings(-xpan)  $_view(-xpan)
+            set _settings(-ypan)  $_view(-ypan)
+            set _settings(-zoom)  $_view(-zoom)
         }
     }
 }
 
 itcl::body Rappture::NanovisViewer::PanCamera {} {
-    set x $_view(xpan)
-    set y $_view(ypan)
+    set x $_view(-xpan)
+    set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
 
@@ -1152,11 +1157,11 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                 }
 
                 set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-                foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
-                set _settings($this-qw) $_view(qw)
-                set _settings($this-qx) $_view(qx)
-                set _settings($this-qy) $_view(qy)
-                set _settings($this-qz) $_view(qz)
+                foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+                set _settings(-qw) $_view(-qw)
+                set _settings(-qx) $_view(-qx)
+                set _settings(-qy) $_view(-qy)
+                set _settings(-qz) $_view(-qz)
                 SendCmd "camera orient $q"
 
                 set _click(x) $x
@@ -1189,11 +1194,11 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
     if { $option == "set" } {
         set x [expr $x / double($w)]
         set y [expr $y / double($h)]
-        set _view(xpan) [expr $_view(xpan) + $x]
-        set _view(ypan) [expr $_view(ypan) + $y]
+        set _view(-xpan) [expr $_view(-xpan) + $x]
+        set _view(-ypan) [expr $_view(-ypan) + $y]
         PanCamera
-        set _settings($this-xpan) $_view(xpan)
-        set _settings($this-ypan) $_view(ypan)
+        set _settings(-xpan) $_view(-xpan)
+        set _settings(-ypan) $_view(-ypan)
         return
     }
     if { $option == "click" } {
@@ -1206,11 +1211,11 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
         set dy [expr ($_click(y) - $y)/double($h)]
         set _click(x) $x
         set _click(y) $y
-        set _view(xpan) [expr $_view(xpan) - $dx]
-        set _view(ypan) [expr $_view(ypan) - $dy]
+        set _view(-xpan) [expr $_view(-xpan) - $dx]
+        set _view(-ypan) [expr $_view(-ypan) - $dy]
         PanCamera
-        set _settings($this-xpan) $_view(xpan)
-        set _settings($this-ypan) $_view(ypan)
+        set _settings(-xpan) $_view(-xpan)
+        set _settings(-ypan) $_view(-ypan)
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -1242,11 +1247,11 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "current" {
+        "-current" {
             set cname [$itk_component(volcomponents) value]
             SwitchComponent $cname
         }
-        "background" {
+        "-background" {
             set bgcolor [$itk_component(background) value]
 	    array set fgcolors {
 		"black" "white"
@@ -1257,78 +1262,77 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
 		-plotforeground $fgcolors($bgcolor)
  	    DrawLegend $_current
         }
-        ambient {
-            set val $_settings($this-ambient)
+        "-ambient" {
+            set val $_settings($what)
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading ambient $val $tag"
             }
         }
-        diffuse {
-            set val $_settings($this-diffuse)
+        "-diffuse" {
+            set val $_settings($what)
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading diffuse $val $tag"
             }
         }
-        specularLevel {
-            set val $_settings($this-specularLevel)
+        "-specularlevel" {
+            set val $_settings($what)
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading specularLevel $val $tag"
             }
         }
-        specularExponent {
-            set val $_settings($this-specularExponent)
+        "-specularexponent" {
+            set val $_settings($what)
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading specularExp $val $tag"
             }
         }
-        light2side {
-            set _settings($_current-light2side) $_settings($this-light2side)
-            set val $_settings($this-light2side)
+        "-light2side" {
+            set _settings($_current${what}) $_settings($what)
+            set val $_settings($what)
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading light2side $val $tag"
             }
         }
-        transp {
-            set _settings($_current-transp) $_settings($this-transp)
-            set val $_settings($this-transp)
+        "-opacity" {
+            set _settings($_current${what}) $_settings($what)
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading opacity $sval $tag"
             }
         }
-        opacity {
-            error "this should not be called"
-            set _settings($_current-opacity) $_settings($this-opacity)
+        "-thickness" {
+            set val $_settings($what)
+            set _settings($_current${what}) $val
             updateTransferFunctions
         }
-        thickness {
-            set val $_settings($this-thickness)
-            set _settings($_current-thickness) $val
-            updateTransferFunctions
+        "-outlinevisible" {
+            SendCmd "volume outline state $_settings($what)"
         }
-        "outline" {
-            SendCmd "volume outline state $_settings($this-outline)"
+        "-outlinecolor" {
+            set rgb [Color2RGB $_settings($what)]
+            SendCmd "volume outline color $rgb"
         }
-        "isosurface" {
-            SendCmd "volume shading isosurface $_settings($this-isosurface)"
+        "-isosurfaceshading" {
+            SendCmd "volume shading isosurface $_settings($what)"
         }
-        "colormap" {
+        "-colormap" {
             set color [$itk_component(colormap) value]
-            set _settings($this-colormap) $color
-            set _settings($_current-colormap) $color
+            set _settings($what) $color
+            set _settings($_current${what}) $color
             ResetColormap $_current $color
         }
-        "grid" {
-            SendCmd "grid visible $_settings($this-grid)"
+        "-gridvisible" {
+            SendCmd "grid visible $_settings($what)"
         }
-        "axes" {
-            SendCmd "axis visible $_settings($this-axes)"
+        "-axesvisible" {
+            SendCmd "axis visible $_settings($what)"
         }
-        "legend" {
-            if { $_settings($this-legend) } {
+        "-legendvisible" {
+            if { $_settings($what) } {
                 blt::table $itk_component(plotarea) \
                     0,0 $itk_component(3dview) -fill both \
                     1,0 $itk_component(legend) -fill x 
@@ -1337,37 +1341,36 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
                 blt::table forget $itk_component(legend)
             }
         }
-        "volume" {
+        "-volume" {
             # This is the global volume visibility control.  It controls the
             # visibility of all the all volumes.  Whenever it's changed, you
             # have to synchronize each of the local controls (see below) with
             # this.
             set datasets [CurrentDatasets] 
-            set bool $_settings($this-volume)
+            set bool $_settings($what)
             SendCmd "volume data state $bool $datasets"
             foreach cname $_componentsList {
-                set _settings($cname-volumeVisible) $bool
+                set _settings($cname-volumevisible) $bool
             }
-            set _settings($this-volumeVisible) $bool
+            set _settings(-volumevisible) $bool
         }
-        "volumeVisible" {
+        "-volumevisible" {
             # This is the component specific control.  It changes the 
             # visibility of only the current component.
-            set _settings($_current-volumeVisible) \
-                $_settings($this-volumeVisible)
+            set _settings($_current${what}) $_settings($what)
             foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume data state $_settings($this-volumeVisible) $tag"
+                SendCmd "volume data state $_settings($what) $tag"
             }
         }
-        "cutplaneVisible" {
-            set bool $_settings($this-$what)
+        "-cutplanesvisible" {
+            set bool $_settings($what)
             set datasets [CurrentDatasets -cutplanes]
             set tag [lindex $datasets 0]
             SendCmd "cutplane visible $bool $tag"
         }
-        "xcutplane" - "ycutplane" - "zcutplane" {
-            set axis [string range $what 0 0]
-            set bool $_settings($this-$what)
+        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
+            set axis [string range $what 1 1]
+            set bool $_settings($what)
             set datasets [CurrentDatasets -cutplanes] 
             set tag [lindex $datasets 0]
             SendCmd "cutplane state $bool $axis $tag"
@@ -1650,7 +1653,7 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         particles       1
         lic             1
     } {
-        set _settings($this-$key) $value
+        set _settings(-$key) $value
     }
 
     set fg [option get $itk_component(hull) font Font]
@@ -1661,41 +1664,41 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    set ::Rappture::NanovisViewer::_settings($this-isosurface) 0
+    set ::Rappture::NanovisViewer::_settings(-isosurfaceshading) 0
     checkbutton $inner.isosurface \
         -text "Isosurface shading" \
-        -variable [itcl::scope _settings($this-isosurface)] \
-        -command [itcl::code $this AdjustSetting isosurface] \
+        -variable [itcl::scope _settings(-isosurfaceshading)] \
+        -command [itcl::code $this AdjustSetting -isosurfaceshading] \
         -font "Arial 9"
 
     checkbutton $inner.axes \
         -text "Axes" \
-        -variable [itcl::scope _settings($this-axes)] \
-        -command [itcl::code $this AdjustSetting axes] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.grid \
         -text "Grid" \
-        -variable [itcl::scope _settings($this-grid)] \
-        -command [itcl::code $this AdjustSetting grid] \
+        -variable [itcl::scope _settings(-gridvisible)] \
+        -command [itcl::code $this AdjustSetting -gridvisible] \
         -font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings($this-outline)] \
-        -command [itcl::code $this AdjustSetting outline] \
+        -variable [itcl::scope _settings(-outlinevisible)] \
+        -command [itcl::code $this AdjustSetting -outlinevisible] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
         -text "Legend" \
-        -variable [itcl::scope _settings($this-legend)] \
-        -command [itcl::code $this AdjustSetting legend] \
+        -variable [itcl::scope _settings(-legendvisible)] \
+        -command [itcl::code $this AdjustSetting -legendvisible] \
         -font "Arial 9"
 
     checkbutton $inner.volume \
         -text "Volume" \
-        -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this AdjustSetting volume] \
+        -variable [itcl::scope _settings(-volume)] \
+        -command [itcl::code $this AdjustSetting -volume] \
         -font "Arial 9"
 
     label $inner.background_l -text "Background" -font "Arial 9" 
@@ -1707,8 +1710,9 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         "white"              "white"            \
         "grey"               "grey"             
 
-    $itk_component(background) value $_settings(background)
-    bind $inner.background <<Value>> [itcl::code $this AdjustSetting background]
+    $itk_component(background) value $_settings(-background)
+    bind $inner.background <<Value>> \
+        [itcl::code $this AdjustSetting -background]
 
     blt::table $inner \
         0,0 $inner.axes  -cspan 2 -anchor w \
@@ -1742,46 +1746,47 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     checkbutton $inner.light2side \
         -text "Two-sided lighting" \
         -font $font \
-        -variable [itcl::scope _settings($this-light2side)] \
-        -command [itcl::code $this AdjustSetting light2side]
+        -variable [itcl::scope _settings(-light2side)] \
+        -command [itcl::code $this AdjustSetting -light2side]
 
     checkbutton $inner.visibility \
         -text "Visible" \
         -font $font \
-        -variable [itcl::scope _settings($this-volumeVisible)] \
-        -command [itcl::code $this AdjustSetting volumeVisible] \
+        -variable [itcl::scope _settings(-volumevisible)] \
+        -command [itcl::code $this AdjustSetting -volumevisible] \
 
     label $inner.ambient_l \
         -text "Ambient" \
         -font $font
     ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-ambient)] \
-        -showvalue off -command [itcl::code $this AdjustSetting ambient] \
+        -variable [itcl::scope _settings(-ambient)] \
+        -showvalue off -command [itcl::code $this AdjustSetting -ambient] \
         -troughcolor grey92
 
     label $inner.diffuse_l -text "Diffuse" -font $font
     ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-diffuse)] \
-        -showvalue off -command [itcl::code $this AdjustSetting diffuse] \
+        -variable [itcl::scope _settings(-diffuse)] \
+        -showvalue off -command [itcl::code $this AdjustSetting -diffuse] \
         -troughcolor grey92
 
     label $inner.specularLevel_l -text "Specular" -font $font
     ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-specularLevel)] \
-        -showvalue off -command [itcl::code $this AdjustSetting specularLevel] \
+        -variable [itcl::scope _settings(-specularlevel)] \
+        -showvalue off \
+        -command [itcl::code $this AdjustSetting -specularlevel] \
         -troughcolor grey92
 
     label $inner.specularExponent_l -text "Shininess" -font $font
     ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
-        -variable [itcl::scope _settings($this-specularExponent)] \
+        -variable [itcl::scope _settings(-specularexponent)] \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting specularExponent] \
+        -command [itcl::code $this AdjustSetting -specularexponent] \
         -troughcolor grey92
 
-    label $inner.transp_l -text "Opacity" -font $font
-    ::scale $inner.transp -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-transp)] \
-        -showvalue off -command [itcl::code $this AdjustSetting transp] \
+    label $inner.opacity_l -text "Opacity" -font $font
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(-opacity)] \
+        -showvalue off -command [itcl::code $this AdjustSetting -opacity] \
         -troughcolor grey92
 
     label $inner.transferfunction_l \
@@ -1789,8 +1794,8 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     label $inner.thin -text "Thin" -font $font
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
-        -variable [itcl::scope _settings($this-thickness)] \
-        -showvalue off -command [itcl::code $this AdjustSetting thickness] \
+        -variable [itcl::scope _settings(-thickness)] \
+        -showvalue off -command [itcl::code $this AdjustSetting -thickness] \
         -troughcolor grey92
 
     label $inner.thick -text "Thick" -font $font
@@ -1821,9 +1826,9 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 	"none"		     "none"
 
     bind $inner.colormap <<Value>> \
-        [itcl::code $this AdjustSetting colormap]
+        [itcl::code $this AdjustSetting -colormap]
     $itk_component(colormap) value "default"
-    set _settings($this-colormap) "default"
+    set _settings(-colormap) "default"
 
     label $inner.volcomponents_l -text "Component" -font $font
     itk_component add volcomponents {
@@ -1831,7 +1836,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     }
     $itk_component(volcomponents) value "BCGYR"
     bind $inner.volcomponents <<Value>> \
-        [itcl::code $this AdjustSetting current]
+        [itcl::code $this AdjustSetting -current]
 
     blt::table $inner \
         0,0 $inner.volcomponents_l -anchor e -cspan 2 \
@@ -1848,8 +1853,8 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         6,1 $inner.light2side -cspan 3 -anchor w \
         7,1 $inner.visibility -cspan 3 -anchor w \
         8,1 $inner.transferfunction_l -anchor w              -cspan 4 \
-        9,1 $inner.transp_l -anchor e -pady 2 \
-        9,2 $inner.transp                    -cspan 3 -fill x \
+        9,1 $inner.opacity_l -anchor e -pady 2 \
+        9,2 $inner.opacity                    -cspan 3 -fill x \
         10,1 $inner.colormap_l       -anchor e \
         10,2 $inner.colormap                  -padx 2 -cspan 3 -fill x \
         11,1 $inner.thin             -anchor e \
@@ -1870,8 +1875,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
 
     checkbutton $inner.visible \
         -text "Show Cutplanes" \
-        -variable [itcl::scope _settings($this-cutplaneVisible)] \
-        -command [itcl::code $this AdjustSetting cutplaneVisible] \
+        -variable [itcl::scope _settings(-cutplanesvisible)] \
+        -command [itcl::code $this AdjustSetting -cutplanesvisible] \
         -font "Arial 9"
 
     # X-value slicer...
@@ -1879,8 +1884,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane] \
             -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this AdjustSetting xcutplane] \
-            -variable [itcl::scope _settings($this-xcutplane)]
+            -command [itcl::code $this AdjustSetting -xcutplanevisible] \
+            -variable [itcl::scope _settings(-xcutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X cut plane on/off"
@@ -1891,7 +1896,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move x] \
-            -variable [itcl::scope _settings($this-xcutposition)]
+            -variable [itcl::scope _settings(-xcutplaneposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1907,8 +1912,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane] \
             -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this AdjustSetting ycutplane] \
-            -variable [itcl::scope _settings($this-ycutplane)]
+            -command [itcl::code $this AdjustSetting -ycutplanevisible] \
+            -variable [itcl::scope _settings(-ycutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y cut plane on/off"
@@ -1919,7 +1924,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move y] \
-            -variable [itcl::scope _settings($this-ycutposition)]
+            -variable [itcl::scope _settings(-ycutplaneposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1935,8 +1940,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane] \
             -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this AdjustSetting zcutplane] \
-            -variable [itcl::scope _settings($this-zcutplane)]
+            -command [itcl::code $this AdjustSetting -zcutplanevisible] \
+            -variable [itcl::scope _settings(-zcutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z cut plane on/off"
@@ -1947,7 +1952,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move z] \
-            -variable [itcl::scope _settings($this-zcutposition)]
+            -variable [itcl::scope _settings(-zcutplaneposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1996,7 +2001,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _settings($this-$tag)]
+            -textvariable [itcl::scope _settings(-$tag)]
         bind $inner.${tag} <Return> \
             [itcl::code $this camera set ${tag}]
         bind $inner.${tag} <KP_Enter> \
@@ -2084,27 +2089,27 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
             puts [array get _view]
         }
         "set" {
-            set who [lindex $args 0]
-            set x $_settings($this-$who)
+            set what [lindex $args 0]
+            set x $_settings($what)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
-                set _settings($this-$who) $_view($who)
+                set _settings($what) $_view($what)
                 return
             }
-            switch -- $who {
-                "xpan" - "ypan" {
-                    set _view($who) $_settings($this-$who)
+            switch -- $what {
+                "-xpan" - "-ypan" {
+                    set _view($what) $_settings($what)
                     PanCamera
                 }
-                "qx" - "qy" - "qz" - "qw" {
-                    set _view($who) $_settings($this-$who)
-                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                "-qx" - "-qy" - "-qz" - "-qw" {
+                    set _view($what) $_settings($what)
+                    set q [ViewToQuaternion]
                     $_arcball quaternion $q
                     SendCmd "camera orient $q"
                 }
-                "zoom" {
-                    set _view($who) $_settings($this-$who)
-                    SendCmd "camera zoom $_view(zoom)"
+                "-zoom" {
+                    set _view($what) $_settings($what)
+                    SendCmd "camera zoom $_view($what)"
                 }
             }
         }
@@ -2144,17 +2149,17 @@ itcl::body Rappture::NanovisViewer::GetVolumeInfo { w } {
         array unset info
         array set info $vol
         set name $info(name)
-        if { ![info exists _settings($this-volume-$name)] } {
-            set _settings($this-volume-$name) $info(hide)
+        if { ![info exists _settings(-volumevisible-$name)] } {
+            set _settings(-volumevisible-$name) $info(hide)
         }
         checkbutton $inner.vol$row -text $info(label) \
-            -variable [itcl::scope _settings($this-volume-$name)] \
+            -variable [itcl::scope _settings(-volumevisible-$name)] \
             -onvalue 0 -offvalue 1 \
             -command [itcl::code $this ToggleVolume $key $name] \
             -font "Arial 9"
         Rappture::Tooltip::for $inner.vol$row $info(description)
         blt::table $inner $row,0 $inner.vol$row -anchor w 
-        if { !$_settings($this-volume-$name) } {
+        if { !$_settings(-volume-$name) } {
             $inner.vol$row select
         } 
         incr row
@@ -2166,7 +2171,7 @@ itcl::body Rappture::NanovisViewer::GetVolumeInfo { w } {
 }
 
 itcl::body Rappture::NanovisViewer::ToggleVolume { tag name } {
-    set bool $_settings($this-volume-$name)
+    set bool $_settings(-volumevisible-$name)
     SendCmd "volume state $bool $name"
 }
 
@@ -2179,19 +2184,19 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
         top   "0.707107 -0.707107 0 0"
         bottom "0.707107 0.707107 0 0"
     }
-    foreach name { qw qx qy qz } value $positions($side) {
+    foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
     } 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q" 
     SendCmd "camera reset"
-    set _view(xpan) 0
-    set _view(ypan) 0
-    set _view(zoom) 1.0
-    set _settings($this-xpan) $_view(xpan)
-    set _settings($this-ypan) $_view(ypan)
-    set _settings($this-zoom) $_view(zoom)
+    set _view(-xpan) 0
+    set _view(-ypan) 0
+    set _view(-zoom) 1.0
+    set _settings(-xpan) $_view(-xpan)
+    set _settings(-ypan) $_view(-ypan)
+    set _settings(-zoom) $_view(-zoom)
 }
 
 
@@ -2204,6 +2209,7 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
 #       in SwitchComponent below.
 #
 itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } { 
+    # Expanding component name for key.
     array set _settings [subst {
         $cname-ambient           60
         $cname-colormap          default
@@ -2211,11 +2217,11 @@ itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
         $cname-light2side        1
         $cname-opacity           100
         $cname-outline           0
-        $cname-specularExponent  90
-        $cname-specularLevel     30
+        $cname-specularexponent  90
+        $cname-specularlevel     30
         $cname-thickness         350
-        $cname-transp            50
-        $cname-volumeVisible     1
+        $cname-opacity            50
+        $cname-volumevisible     1
     }]
 }
 
@@ -2231,18 +2237,18 @@ itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
         InitComponentSettings $cname
     }
     # _settings variables change widgets, except for colormap
-    set _settings($this-ambient)          $_settings($cname-ambient)
-    set _settings($this-colormap)         $_settings($cname-colormap)
-    set _settings($this-diffuse)          $_settings($cname-diffuse)
-    set _settings($this-light2side)       $_settings($cname-light2side)
-    set _settings($this-opacity)          $_settings($cname-opacity)
-    set _settings($this-outline)          $_settings($cname-outline)
-    set _settings($this-specularExponent) $_settings($cname-specularExponent)
-    set _settings($this-specularLevel)    $_settings($cname-specularLevel)
-    set _settings($this-thickness)        $_settings($cname-thickness)
-    set _settings($this-transp)           $_settings($cname-transp)
-    set _settings($this-volumeVisible)    $_settings($cname-volumeVisible)
-    $itk_component(colormap) value        $_settings($cname-colormap)
+    set _settings(-ambient)          $_settings($cname-ambient)
+    set _settings(-colormap)         $_settings($cname-colormap)
+    set _settings(-diffuse)          $_settings($cname-diffuse)
+    set _settings(-light2side)       $_settings($cname-light2side)
+    set _settings(-opacity)          $_settings($cname-opacity)
+    set _settings(-outline)          $_settings($cname-outline)
+    set _settings(-specularexponent) $_settings($cname-specularexponent)
+    set _settings(-specularlevel)    $_settings($cname-specularlevel)
+    set _settings(-thickness)        $_settings($cname-thickness)
+    set _settings(-opacity)          $_settings($cname-opacity)
+    set _settings(-volumevisible)    $_settings($cname-volumevisible)
+    $itk_component(colormap) value   $_settings($cname-colormap)
     set _current $cname;                # Reset the current component
 }
 

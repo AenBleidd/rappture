@@ -1023,7 +1023,8 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             SendCmd "camera mode persp"
         }
         DoRotate
-        InitSettings outline background axisGridX axisGridY axisGridZ axisFlyMode \
+        InitSettings outline background \
+            axisGridX axisGridY axisGridZ axisFlyMode \
             axesVisible axisLabels
         PanCamera
     }
