@@ -2049,18 +2049,20 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color BCGYR
-        -edges 0
         -edgecolor black
-        -linewidth 1.0
-        -ptsize 1.0
-        -opacity 1.0
-        -wireframe 0
+        -edges 0
+        -gscale 1
         -lighting 1
-        -outline 0
-        -shape "arrow"
+        -linewidth 1.0
+        -normscale 1
+        -opacity 1.0
         -orientGlyphs 1
-        -scaleMode "vmag"
+        -outline 0
+        -ptsize 1.0
         -quality 1
+        -scaleMode "vmag"
+        -shape "arrow"
+        -wireframe 0
     }
     set numComponents [$dataobj numComponents $comp]
     if {$numComponents == 3} {
@@ -2102,15 +2104,19 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     SendCmd "glyphs add $style(-shape) $tag"
     SendCmd "glyphs edges $style(-edges) $tag"
     # normscale=1 and gscale=1 are defaults
-    #SendCmd "glyphs normscale 1 $tag"
-    #SendCmd "glyphs gscale 1 $tag"
-
+    if {$style(-normscale) != 1} {
+        SendCmd "glyphs normscale $style(-normscale) $tag"
+    }
+    if {$style(-gscale) != 1} {
+        SendCmd "glyphs gscale $style(-gscale) $tag"
+    }
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
     set _settings(glyphOutline) $style(-outline)
     set _settings(glyphEdges) $style(-edges)
-    #SendCmd "glyphs color [Color2RGB $settings(-color)] $tag"
+    # constant color only used if colormode set to constant
+    SendCmd "glyphs color [Color2RGB $itk_option(-plotforeground)] $tag"
     # Omitting field name for gorient and smode commands
     # defaults to active scalars or vectors depending on mode
     SendCmd "glyphs gorient $style(-orientGlyphs) {} $tag"
