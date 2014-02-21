@@ -584,7 +584,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     }
     if { $numRectilinear == 0 && $numUniform > 0} {
 	# This is the special case where all axes 2D/3D are uniform.  
-        # This results in a STRUCTURE_POINTS
+        # This results in a STRUCTURED_POINTS
 	if { $_dim == 2 } {
 	    set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
 	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
@@ -685,6 +685,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
 	    }
 	}
+        set _limits(z) [list 0 0]
 	set _vtkdata $out
     } else {
 	puts stderr "WARNING: bad grid \"$path\": invalid dimension \"$_dim\""
@@ -707,6 +708,8 @@ itcl::body Rappture::Mesh::WritePointCloud { path xv yv zv } {
     set _limits(y) [$yv limits]
     if { $_dim == 3 } {
         set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
     }
     return 1
 }
@@ -735,6 +738,8 @@ itcl::body Rappture::Mesh::WriteTriangles { path xv yv zv triangles } {
     set _limits(y) [$yv limits]
     if { $_dim == 3 } {
         set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
     }
     set _vtkdata $out
     return 1
@@ -764,6 +769,8 @@ itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
     set _limits(y) [$yv limits]
     if { $_dim == 3 } {
         set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
     }
     set _vtkdata $out
     return 1
@@ -791,9 +798,8 @@ itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
-    if { $_dim == 3 } {
-        set _limits(z) [$zv limits]
-    }
+    set _limits(z) [$zv limits]
+
     set _vtkdata $out
     return 1
 }
@@ -820,9 +826,8 @@ itcl::body Rappture::Mesh::WriteHexahedrons { path xv yv zv hexas } {
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
-    if { $_dim == 3 } {
-        set _limits(z) [$zv limits]
-    }
+    set _limits(z) [$zv limits]
+
     set _vtkdata $out
     return 1
 }
@@ -849,9 +854,8 @@ itcl::body Rappture::Mesh::WriteWedges { path xv yv zv wedges } {
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
-    if { $_dim == 3 } {
-        set _limits(z) [$zv limits]
-    }
+    set _limits(z) [$zv limits]
+
     set _vtkdata $out
     return 1
 }
@@ -878,9 +882,8 @@ itcl::body Rappture::Mesh::WritePyramids { path xv yv zv pyramids } {
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
-    if { $_dim == 3 } {
-        set _limits(z) [$zv limits]
-    }
+    set _limits(z) [$zv limits]
+
     set _vtkdata $out
     return 1 
 }
@@ -929,6 +932,7 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
 	append out $celltypes
 	set _limits(x) [$xv limits]
 	set _limits(y) [$yv limits]
+        set _limits(z) [list 0 0]
     } else {
 	set _numPoints [$xv length]
 
@@ -1127,6 +1131,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
 	set _numPoints [$xv length]
         set _limits(x) [$xv limits]
         set _limits(y) [$yv limits]
+        set _limits(z) [list 0 0]
 	# 2D Dataset. All Z coordinates are 0
 	$zv seq 0.0 0.0 $_numPoints
 	$all merge $xv $yv $zv
