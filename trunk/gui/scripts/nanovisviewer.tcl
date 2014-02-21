@@ -224,7 +224,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -cutplanevisible        0
         -diffuse                40
         -light2side             1
-        -opacity                100
+        -opacity                50
+        -outlinevisible         0
         -qw                     0.853553
         -qx                     -0.353553
         -qy                     0.353553
@@ -232,7 +233,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -specularexponent       90
         -specularlevel          30
         -thickness              350
-        -opacity                 50
         -volume                 1
         -volumevisible          1
         -xcutplanevisible       1
@@ -557,7 +557,6 @@ itcl::body Rappture::NanovisViewer::scale {args} {
     array set style {
         -color BCGYR
         -levels 6
-        -opacity 1.0
         -markers ""
     }
     array unset _limits 
@@ -1263,6 +1262,12 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
  	    DrawLegend $_current
         }
         "-ambient" {
+            # Other parts of the code use the ambient setting to 
+            # tell if the component settings have been initialized
+            if { ![info exists _settings($_current${what})] } {
+                InitComponentSettings $_current
+            }
+            set _settings($_current${what}) $_settings($what)
             set val $_settings($what)
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1270,6 +1275,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-diffuse" {
+            set _settings($_current${what}) $_settings($what)
             set val $_settings($what)
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1277,6 +1283,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-specularlevel" {
+            set _settings($_current${what}) $_settings($what)
             set val $_settings($what)
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1284,6 +1291,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-specularexponent" {
+            set _settings($_current${what}) $_settings($what)
             set val $_settings($what)
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading specularExp $val $tag"
@@ -1420,7 +1428,6 @@ itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
     array set style {
         -color BCGYR
         -levels 6
-        -opacity 1.0
         -markers ""
     }
     set tag $dataobj-$cname
@@ -1467,7 +1474,6 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
         array set style {
             -color BCGYR
             -levels 6
-            -opacity 1.0
             -markers ""
         }
         # Accumulate the style from all the datasets using it.
@@ -2215,12 +2221,10 @@ itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
         $cname-colormap          default
         $cname-diffuse           40
         $cname-light2side        1
-        $cname-opacity           100
-        $cname-outline           0
+        $cname-opacity           50
         $cname-specularexponent  90
         $cname-specularlevel     30
         $cname-thickness         350
-        $cname-opacity            50
         $cname-volumevisible     1
     }]
 }
@@ -2242,11 +2246,9 @@ itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
     set _settings(-diffuse)          $_settings($cname-diffuse)
     set _settings(-light2side)       $_settings($cname-light2side)
     set _settings(-opacity)          $_settings($cname-opacity)
-    set _settings(-outline)          $_settings($cname-outline)
     set _settings(-specularexponent) $_settings($cname-specularexponent)
     set _settings(-specularlevel)    $_settings($cname-specularlevel)
     set _settings(-thickness)        $_settings($cname-thickness)
-    set _settings(-opacity)          $_settings($cname-opacity)
     set _settings(-volumevisible)    $_settings($cname-volumevisible)
     $itk_component(colormap) value   $_settings($cname-colormap)
     set _current $cname;                # Reset the current component
@@ -2351,15 +2353,16 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
     if { ![info exists _settings($cname-ambient)] } {
         InitComponentSettings $cname
     }
-    set max 1.0 ;                       #$_settings($tag-opacity)
 
     set isovalues [$_transferFunctionEditors($cname) values]
 
-    # Ensure that the global opacity and thickness settings (in the slider
-    # settings widgets) are used for the active transfer-function.  Update
-    # the values in the _settings varible.
-    set opacity [expr { double($_settings($cname-opacity)) * 0.01 }]
+    # Currently using volume shading opacity to scale opacity in
+    # the volume shader. The transfer function always sets full
+    # opacity
+    set max 1.0
 
+    # Use the component-wise thickness setting from the slider
+    # settings widget
     # Scale values between 0.00001 and 0.01000
     set delta [expr {double($_settings($cname-thickness)) * 0.0001}]
     
@@ -2572,7 +2575,6 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
         default {
         }
     }
-    # Multiply each component by the global opacity value.
     return ""
 }
 
