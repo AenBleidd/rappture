@@ -67,9 +67,6 @@ itcl::class Rappture::NanovisViewer {
     public proc SetServerList { namelist } {
         Rappture::VisViewer::SetServerList "nanovis" $namelist
     }
-    public method ViewToQuaternion {} { 
-        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
-    }
     public method add {dataobj {settings ""}}
     public method camera {option args}
     public method delete {args}
@@ -130,6 +127,9 @@ itcl::class Rappture::NanovisViewer {
     private method Zoom {option}
     private method ToggleVolume { tag name }
     private method RemoveMarker { x y }
+    private method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
 
     private variable _arcball ""
 
