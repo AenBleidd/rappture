@@ -249,11 +249,9 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         -axesvisible                    1
         -axislabelsvisible              1
         -background                     black
-        -cutplaneedgesvisible           0
         -cutplanelighting               1
         -cutplaneopacity                100
         -cutplanesvisible               0
-        -cutplanewireframe              0
         -legendvisible                  1
         -volumeambient                  40
         -volumeblendmode                composite
@@ -1372,6 +1370,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "-current" {
+            set cname [$itk_component(volcomponents) value]
+            SwitchComponent $cname
+        }
         "-background" {
             set bgcolor [$itk_component(background) value]
             set _settings(${what}) $bgcolor
@@ -1437,6 +1439,11 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-volumeambient" {
+            # Other parts of the code use the -volumeambient setting to
+            # tell if the component settings have been initialized
+            if { ![info exists _settings($_current${what})] } {
+                InitComponentSettings $_current
+            }
             set val $_settings(${what})
             set _settings($_current${what}) $val
             set ambient [expr {0.01*$val}]
@@ -1502,22 +1509,6 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set mode [$itk_component(axismode) translate $mode]
             set _settings(${what}) $mode
             SendCmd "axis flymode $mode"
-        }
-        "-cutplaneedgesvisible" {
-            set bool $_settings(${what})
-            foreach dataset [CurrentDatasets -visible] {
-                if {$_cutplaneCmd != "imgcutplane"} {
-                    SendCmd "$_cutplaneCmd edges $bool $dataset"
-                }
-            }
-        }
-        "-cutplanewireframe" {
-            set bool $_settings(${what})
-            foreach dataset [CurrentDatasets -visible] {
-                if {$_cutplaneCmd != "imgcutplane"} {
-                    SendCmd "$_cutplaneCmd wireframe $bool $dataset"
-                }
-            }
         }
         "-cutplanesvisible" {
             set bool $_settings(${what})
@@ -1912,7 +1903,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
 
     checkbutton $inner.labels \
         -text "Show Axis Labels" \
-        -variable [itcl::scope _settings(-axislabelsvisiboe)] \
+        -variable [itcl::scope _settings(-axislabelsvisible)] \
         -command [itcl::code $this AdjustSetting -axislabelsvisible] \
         -font "Arial 9"
 
@@ -2023,22 +2014,10 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         -command [itcl::code $this AdjustSetting -cutplanesvisible] \
         -font "Arial 9"
 
-    checkbutton $inner.wireframe \
-        -text "Show Wireframe" \
-        -variable [itcl::scope _settings(-cutplanewireframe)] \
-        -command [itcl::code $this AdjustSetting -cutplanewireframe] \
-        -font "Arial 9"
-
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _settings(-cutplanelighting)] \
         -command [itcl::code $this AdjustSetting -cutplanelighting] \
-        -font "Arial 9"
-
-    checkbutton $inner.edges \
-        -text "Show Edges" \
-        -variable [itcl::scope _settings(-cutplaneedgesvisible)] \
-        -command [itcl::code $this AdjustSetting -cutplaneedgesvisible] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
@@ -2135,19 +2114,17 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
     blt::table $inner \
         0,0 $inner.visible              -anchor w -pady 2 -cspan 4 \
         1,0 $inner.lighting             -anchor w -pady 2 -cspan 4 \
-        2,0 $inner.wireframe            -anchor w -pady 2 -cspan 4 \
-        3,0 $inner.edges                -anchor w -pady 2 -cspan 4 \
-        4,0 $inner.opacity_l            -anchor w -pady 2 -cspan 3 \
-        5,0 $inner.opacity              -fill x   -pady 2 -cspan 3 \
-        6,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
-        7,0 $itk_component(xCutScale)   -fill y \
-        6,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
-        7,1 $itk_component(yCutScale)   -fill y \
-        6,2 $itk_component(zCutButton)  -anchor e -padx 2 -pady 2 \
-        7,2 $itk_component(zCutScale)   -fill y \
+        2,0 $inner.opacity_l            -anchor w -pady 2 -cspan 3 \
+        3,0 $inner.opacity              -fill x   -pady 2 -cspan 3 \
+        4,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
+        5,0 $itk_component(xCutScale)   -fill y \
+        4,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
+        5,1 $itk_component(yCutScale)   -fill y \
+        4,2 $itk_component(zCutButton)  -anchor e -padx 2 -pady 2 \
+        5,2 $itk_component(zCutScale)   -fill y \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c3 -resize expand
+    blt::table configure $inner r5 c3 -resize expand
 }
 
 #
@@ -2258,12 +2235,8 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     array set styles {
         -color BCGYR
         -volumelighting         1
-        -volumelinewidth        1.0
         -volumeoutline          0
         -volumevisible          1
-    }
-    if { $dataobj != $_first } {
-        set style(-opacity) 1
     }
     array set styles [$dataobj style $cname]
     SendCmd "volume add $tag"
@@ -2674,7 +2647,6 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
         array set styles {
             -color BCGYR
             -levels 6
-            -opacity 1.0
             -markers ""
         }
         # Accumulate the style from all the datasets using it.
@@ -2684,7 +2656,6 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
             array set styles $option
         }
         set _settings($cname-color) $styles(-color)
-        set _settings($cname-volumeopacity) $styles(-opacity)
         set cmap [ColorsToColormap $styles(-color)]
         set _cname2defaultcolormap($cname) $cmap
         if { [info exists _transferFunctionEditors($cname)] } {
@@ -2788,13 +2759,13 @@ itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } {
 itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } { 
     array set _settings [subst {
         $cname-color                    default
-        $cname-light2side               1
-        $cname-volumeoutline            0
         $cname-volumeambient            40
         $cname-volumeblendmode          composite
         $cname-volumediffuse            60
+        $cname-volumelight2side         1
         $cname-volumelighting           1
         $cname-volumeopacity            50
+        $cname-volumeoutline            0
         $cname-volumequality            80
         $cname-volumespecularexponent   90
         $cname-volumespecularlevel      30
@@ -2816,20 +2787,20 @@ itcl::body Rappture::VtkVolumeViewer::SwitchComponent { cname } {
     }
     # _settings variables change widgets, except for colormap
     foreach name {
-        -volumelight2side              
-        -volumeoutline                 
-        -volumeambient           
-        -volumeblendmode         
-        -volumediffuse           
-        -volumelighting          
-        -volumeopacity           
-        -volumequality           
-        -volumespecularexponent  
-        -volumespecularlevel     
-        -volumethickness         
-        -volumevisible           
+        -volumeambient
+        -volumeblendmode
+        -volumediffuse
+        -volumelight2side
+        -volumelighting
+        -volumeopacity
+        -volumeoutline
+        -volumequality
+        -volumespecularexponent
+        -volumespecularlevel
+        -volumethickness
+        -volumevisible
     } {
-        set _settings($name) $_settings(${cname}-${name})
+        set _settings($name) $_settings(${cname}${name})
     }
     $itk_component(colormap) value        $_settings($cname-color)
     set _current $cname;                # Reset the current component
@@ -2842,15 +2813,16 @@ itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
     if { ![info exists _settings($cname-volumeambient)] } {
         InitComponentSettings $cname
     }
-    set max 1.0 ;                       #$_settings($tag-opacity)
 
     set isovalues [$_transferFunctionEditors($cname) values]
 
-    # Ensure that the global opacity and thickness settings (in the slider
-    # settings widgets) are used for the active transfer-function.  Update
-    # the values in the _settings varible.
-    set opacity [expr { double($_settings($cname-volumeopacity)) * 0.01 }]
+    # Currently using volume opacity to scale opacity in
+    # the volume shader. The transfer function always sets full
+    # opacity
+    set max 1.0;
 
+    # Use the component-wise thickness setting from the slider
+    # settings widget
     # Scale values between 0.00001 and 0.01000
     set delta [expr {double($_settings($cname-volumethickness)) * 0.0001}]
     set first [lindex $isovalues 0]
