@@ -220,9 +220,13 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     array set _settings {
 	-background		black
         -ambient                60
+        -axesvisible            1
         -colormap               default
         -cutplanevisible        0
         -diffuse                40
+        -gridvisible            0
+        -isosurfaceshading      0
+        -legendvisible          1
         -light2side             1
         -opacity                50
         -outlinevisible         0
@@ -244,7 +248,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -zcutplanevisible       1
         -zcutplaneposition      50
         -zoom                   1.0
-        -isosurfaceshading      0
     }
 
     itk_component add 3dview {
@@ -328,7 +331,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     }
 
     # Legend
-
     set _image(legend) [image create photo]
     itk_component add legend {
         canvas $itk_component(plotarea).legend -height 50 -highlightthickness 0
@@ -1650,18 +1652,6 @@ itcl::body Rappture::NanovisViewer::limits { cname } {
 
 
 itcl::body Rappture::NanovisViewer::BuildViewTab {} {
-    foreach { key value } {
-        grid            0
-        axes            1
-        outline         0
-        volume          1
-        legend          1
-        particles       1
-        lic             1
-    } {
-        set _settings(-$key) $value
-    }
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
