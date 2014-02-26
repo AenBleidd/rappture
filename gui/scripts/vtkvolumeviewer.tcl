@@ -246,9 +246,9 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-	-background                     black
         -axesvisible                    1
         -axislabelsvisible              1
+        -background                     black
         -cutplaneedgesvisible           0
         -cutplanelighting               1
         -cutplaneopacity                100
@@ -258,7 +258,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         -volumeambient                  40
         -volumeblendmode                composite
         -volumediffuse                  60
-        -volumeedgesvisible             0
         -volumelighting                 1
         -volumeopacity                  50
         -volumeoutline                  0
@@ -374,7 +373,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         "Show/Hide cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
 
-
     if { [catch {
         BuildViewTab
         BuildVolumeTab
@@ -384,8 +382,8 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     } errs] != 0 } {
         puts stderr errs=$errs
     }
-    # Legend
 
+    # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
         canvas $itk_component(plotarea).legend -height 50 -highlightthickness 0 
@@ -419,10 +417,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
-    if 0 {
-    bind $itk_component(view) <Configure> \
-        [itcl::code $this EventuallyResize %w %h]
-    }
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
         [itcl::code $this Pan click %x %y]
@@ -470,6 +464,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
     Connect
+    update
 }
 
 # ----------------------------------------------------------------------
@@ -930,9 +925,7 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveImage { args } {
             close $f
         }
         $_image(plot) configure -data $bytes
-        set time [clock seconds]
-        set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+        #puts stderr "[clock format [clock seconds]]: received image [image width $_image(plot)]x[image height $_image(plot)] image>"
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -994,9 +987,9 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveDataset { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
-    update
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
+
     if { $w < 2 || $h < 2 } {
         $_dispatcher event -idle !rebuild
         return
@@ -1007,11 +1000,13 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     # generates a new call to Rebuild).   
     StartBufferingCommands
 
+    if { $_width != $w || $_height != $h || $_reset } {
+	set _width $w
+	set _height $h
+	$_arcball resize $w $h
+	DoResize
+    }
     if { $_reset } {
-        set _width $w
-        set _height $h
-        $_arcball resize $w $h
-        DoResize
         #
         # Reset the camera and other view parameters
         #
@@ -1027,7 +1022,6 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             -axesvisible -axislabelsvisible
         PanCamera
     }
-    set _first ""
 
     SendCmd "imgflush"
     set _first ""
@@ -2263,23 +2257,18 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     set tag $dataobj-$cname
     array set styles {
         -color BCGYR
-        -volumeedgesvisible     0
-        -volumeedgecolor        black
-        -volumelinewidth        1.0
-        -volumewireframe        0
         -volumelighting         1
-        -volumevisible          1
+        -volumelinewidth        1.0
         -volumeoutline          0
+        -volumevisible          1
     }
     if { $dataobj != $_first } {
         set style(-opacity) 1
     }
     array set styles [$dataobj style $cname]
     SendCmd "volume add $tag"
-    set _settings($cname-volumewireframe)       $styles(-volumewireframe)
-    set _settings($cname-volumeedgesvisible)    $styles(-volumeedgesvisible)
-    set _settings($cname-volumeoutline)         $styles(-volumeoutline)
     set _settings($cname-volumelighting)        $styles(-volumelighting)
+    set _settings($cname-volumeoutline)         $styles(-volumeoutline)
     set _settings($cname-volumevisible)         $styles(-volumevisible)
 
     $itk_component(colormap) value $styles(-color)
