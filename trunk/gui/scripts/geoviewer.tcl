@@ -128,7 +128,6 @@ itcl::class Rappture::GeoViewer {
     private variable _resizePending 0
     private variable _rotatePending 0
     private variable _polydataOpacityPending 0
-    private variable _updatePending 0;
     private variable _rotateDelay 150
     private variable _scaleDelay 100
 }
@@ -151,10 +150,6 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
-
-    # Update state event
-    $_dispatcher register !update
-    $_dispatcher dispatch $this !update "[itcl::code $this DoUpdate]; list"
 
     # Rotate event
     $_dispatcher register !rotate
