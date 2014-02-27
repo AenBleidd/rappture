@@ -1802,7 +1802,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     }
 
     $inner.colormap choices insert end \
-        "default"            "default"            \
+        "default"            "default"          \
         "BCGYR"              "BCGYR"            \
         "BGYOR"              "BGYOR"            \
         "blue"               "blue"             \
@@ -1830,7 +1830,6 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     itk_component add volcomponents {
         Rappture::Combobox $inner.volcomponents -editable no
     }
-    $itk_component(volcomponents) value "BCGYR"
     bind $inner.volcomponents <<Value>> \
         [itcl::code $this AdjustSetting -current]
 
