@@ -1721,15 +1721,15 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     }
 
     array set settings {
-        -color \#FFFFFF
         -cloudstyle mesh
-        -edges 1
+        -color \#FFFFFF
         -edgecolor black
+        -edges 1
+        -lighting 1
         -linewidth 1.0
         -opacity 1.0
-        -wireframe 0
-        -lighting 1
         -visible 1
+        -wireframe 0
     }
     # array set settings $style
     if {$color != ""} {
