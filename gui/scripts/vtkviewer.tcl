@@ -90,13 +90,13 @@ itcl::class Rappture::VtkViewer {
     private method ChangeColormap { dataobj comp color }
     private method DrawLegend {}
     private method EnterLegend { x y } 
+    private method EventuallyResize { w h } 
+    private method EventuallyRotate { q } 
     private method EventuallySetAtomScale { args } 
     private method EventuallySetBondScale { args } 
     private method EventuallySetMoleculeOpacity { args } 
     private method EventuallySetMoleculeQuality { args } 
     private method EventuallySetPolydataOpacity { args } 
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
     private method GetImage { args } 
     private method GetVtkData { args } 
     private method IsValidObject { dataobj } 
@@ -156,7 +156,6 @@ itcl::class Rappture::VtkViewer {
     private variable _moleculeQualityPending 0
     private variable _polydataOpacityPending 0
     private variable _glyphsOpacityPending 0
-    private variable _updatePending 0;
     private variable _rotateDelay 150
     private variable _scaleDelay 100
 }
@@ -180,10 +179,6 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
-
-    # Update state event
-    $_dispatcher register !update
-    $_dispatcher dispatch $this !update "[itcl::code $this DoUpdate]; list"
 
     # Rotate event
     $_dispatcher register !rotate
@@ -2257,23 +2252,6 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting molecule-palette]
 
-    checkbutton $inner.labels -text "Show labels on atoms" \
-        -command [itcl::code $this labels update] \
-        -variable [itcl::scope _settings(molecule-labels)] \
-        -font "Arial 9"
-    Rappture::Tooltip::for $inner.labels \
-        "Display atom symbol and serial number."
-
-    checkbutton $inner.rock -text "Rock molecule back and forth" \
-        -variable [itcl::scope _settings(molecule-rock)] \
-        -font "Arial 9"
-    Rappture::Tooltip::for $inner.rock \
-        "Rotate the object back and forth around the y-axis."
-
-    checkbutton $inner.cell -text "Parallelepiped" \
-        -font "Arial 9"
-    $inner.cell select
-
     label $inner.atomscale_l -text "Atom Scale" -font "Arial 9"
     ::scale $inner.atomscale -width 15 -font "Arial 7" \
         -from 0.025 -to 2.0 -resolution 0.025 -label "" \
@@ -2448,25 +2426,42 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         "glyphs" {
             array set settings {
                 -color \#FFFFFF
-                -gscale 1
-                -edges 0
                 -edgecolor black
-                -linewidth 1.0
-                -opacity 1.0
-                -wireframe 0
+                -edges 0
+                -gscale 1
                 -lighting 1
+                -linewidth 1.0
+                -normscale 0
+                -opacity 1.0
+                -orientGlyphs 0
+                -ptsize 1.0
+                -quality 1
+                -scaleMode "vcomp"
+                -shape "sphere"
                 -visible 1
+                -wireframe 0
             }
-            set shape [$dataobj shape $comp]
             array set settings $style
-            SendCmd "glyphs add $shape $tag"
-            SendCmd "glyphs normscale 0 $tag"
+            set shape [$dataobj shape $comp]
+            if {$shape != ""} {
+                set settings(-shape) $shape
+            }
+            SendCmd "glyphs add $settings(-shape) $tag"
+            SendCmd "glyphs normscale $settings(-normscale) $tag"
             SendCmd "glyphs gscale $settings(-gscale) $tag"
             SendCmd "glyphs wireframe $settings(-wireframe) $tag"
             SendCmd "glyphs color [Color2RGB $settings(-color)] $tag"
             #SendCmd "glyphs colormode constant {} $tag"
-            SendCmd "glyphs gorient 0 {} $tag"
-            SendCmd "glyphs smode vcomp {} $tag"
+            # Omitting field name for gorient and smode commands
+            # defaults to active scalars or vectors depending on mode
+            SendCmd "glyphs gorient $settings(-orientGlyphs) {} $tag"
+            SendCmd "glyphs smode $settings(-scaleMode) {} $tag"
+            SendCmd "glyphs edges $settings(-edges) $tag"
+            SendCmd "glyphs linecolor [Color2RGB $settings(-edgecolor)] $tag"
+            SendCmd "glyphs linewidth $settings(-linewidth) $tag"
+            SendCmd "glyphs ptsize $settings(-ptsize) $tag"
+            SendCmd "glyphs quality $settings(-quality) $tag"
+            SendCmd "glyphs lighting $settings(-lighting) $tag"
             SendCmd "glyphs opacity $settings(-opacity) $tag"
             SendCmd "glyphs visible $settings(-visible) $tag"
             set _settings(glyphs-wireframe) $settings(-wireframe)
@@ -2482,14 +2477,15 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         }
         "polydata" {
             array set settings {
+                -cloudstyle "mesh"
                 -color \#FFFFFF
-                -edges 1
                 -edgecolor black
+                -edges 1
+                -lighting 1
                 -linewidth 1.0
                 -opacity 1.0
-                -wireframe 0
-                -lighting 1
                 -visible 1
+                -wireframe 0
             }
             array set settings $style
             SendCmd "polydata add $tag"
@@ -2497,6 +2493,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             set _settings(polydata-visible) $settings(-visible)
             SendCmd "polydata edges $settings(-edges) $tag"
             set _settings(polydata-edges) $settings(-edges)
+            SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
             SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
             #SendCmd "polydata colormode constant {} $tag"
             SendCmd "polydata lighting $settings(-lighting) $tag"
