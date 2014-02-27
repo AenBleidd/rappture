@@ -1726,7 +1726,6 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     itk_component add volcomponents {
         Rappture::Combobox $inner.volcomponents -editable no
     }
-    $itk_component(volcomponents) value "BCGYR"
     bind $inner.volcomponents <<Value>> \
         [itcl::code $this AdjustSetting -current]
 
@@ -1815,6 +1814,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
     $inner.colormap choices insert end \
+        "default"            "default"          \
         "BCGYR"              "BCGYR"            \
         "BGYOR"              "BGYOR"            \
         "blue"               "blue"             \
@@ -1832,9 +1832,10 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -color]
+    $itk_component(colormap) value "default"
+    set _settings(-color) "default"
 
     label $inner.blendmode_l -text "Blend Mode" -font $font
     itk_component add blendmode {
