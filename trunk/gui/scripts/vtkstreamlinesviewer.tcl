@@ -1021,11 +1021,11 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         foreach axis { x y z } {
             set label [$_first hints ${axis}label]
             if { $label != "" } {
-                SendCmd "axis name $axis $label"
+                SendCmd [list axis name $axis $label]
             }
             set units [$_first hints ${axis}units]
             if { $units != "" } {
-                SendCmd "axis units $axis $units"
+                SendCmd [list axis units $axis $units]
             }
         }
 	$itk_component(field) choices delete 0 end
