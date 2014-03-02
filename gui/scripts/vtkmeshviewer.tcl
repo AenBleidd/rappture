@@ -888,11 +888,11 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         foreach axis { x y z } {
             set label [$_first label ${axis}]
             if { $label != "" } {
-                SendCmd "axis name $axis $label"
+                SendCmd [list axis name $axis $label]
             }
             set units [$_first units ${axis}]
             if { $units != "" } {
-                SendCmd "axis units $axis $units"
+                SendCmd [list axis units $axis $units]
             }
         }
     }
