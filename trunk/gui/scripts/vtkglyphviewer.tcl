@@ -241,9 +241,14 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
         cutplaneZVisible	1
         glyphEdges              0
         glyphLighting           1
+        glyphNormscale          1
         glyphOpacity            100
         saveGlyphOpacity	100
+        glyphOrient             1
         glyphOutline            0
+        glyphScale              1
+        glyphScaleMode          "vmag"
+        glyphShape              "arrow"
         glyphVisible            1
         glyphWireframe          0
         legendVisible		1
@@ -338,6 +343,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
         "Don't display the glyphs"
     pack $itk_component(glyphs) -padx 2 -pady 2
 
+    if {0} {
     itk_component add cutplane {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
@@ -348,7 +354,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
-
+    }
 
     if { [catch {
         BuildGlyphTab
@@ -1396,11 +1402,11 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 	    EventuallyRequestLegend
         }
         "glyphWireframe" {
-            set bool $_settings(glyphWireframe)
+            set bool $_settings($what)
 	    SendCmd "glyphs wireframe $bool"
         }
         "glyphVisible" {
-            set bool $_settings(glyphVisible)
+            set bool $_settings($what)
 	    SendCmd "glyphs visible $bool"
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(glyphs) \
@@ -1412,21 +1418,45 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "glyphLighting" {
-            set bool $_settings(glyphLighting)
+            set bool $_settings($what)
 	    SendCmd "glyphs lighting $bool"
         }
         "glyphEdges" {
-            set bool $_settings(glyphEdges)
+            set bool $_settings($what)
 	    SendCmd "glyphs edges $bool"
         }
         "glyphOutline" {
-            set bool $_settings(glyphOutline)
+            set bool $_settings($what)
 	    SendCmd "outline visible $bool"
         }
         "glyphOpacity" {
-            set val $_settings(glyphOpacity)
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
 	    SendCmd "glyphs opacity $sval"
+        }
+        "glyphNormscale" {
+            set bool $_settings($what)
+            SendCmd "glyphs normscale $bool"
+        }
+        "glyphOrient" {
+            set bool $_settings($what)
+            SendCmd "glyphs gorient $bool {}"
+        }
+        "glyphScale" {
+            set val $_settings($what)
+            SendCmd "glyphs gscale $val"
+        }
+        "glyphScaleMode" {
+            set label [$itk_component(scaleMode) value]
+            set mode [$itk_component(scaleMode) translate $label]
+            set _settings($what) $mode
+            SendCmd "glyphs smode $mode {}"
+        }
+        "glyphShape" {
+            set label [$itk_component(gshape) value]
+            set shape [$itk_component(gshape) translate $label]
+            set _settings($what) $shape
+            SendCmd "glyphs shape $shape"
         }
         "field" {
             set label [$itk_component(field) value]
@@ -1451,7 +1481,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "legendVisible" {
-            if { !$_settings(legendVisible) } {
+            if { !$_settings($what) } {
                 $itk_component(view) delete legend
 	    }
 	    DrawLegend
@@ -1558,6 +1588,53 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         -command [itcl::code $this AdjustSetting glyphVisible] \
         -font "Arial 9"
 
+    label $inner.gshape_l -text "Glyph shape" -font "Arial 9" 
+    itk_component add gshape {
+        Rappture::Combobox $inner.gshape -width 10 -editable no
+    }
+    $inner.gshape choices insert end \
+        "arrow"              "arrow"           \
+        "cone"               "cone"            \
+        "cube"               "cube"            \
+        "cylinder"           "cylinder"        \
+        "dodecahedron"       "dodecahedron"    \
+        "icosahedron"        "icosahedron"     \
+        "line"               "line"            \
+        "octahedron"         "octahedron"      \
+        "point"              "point"           \
+        "sphere"             "sphere"          \
+        "tetrahedron"        "tetrahedron"
+
+    $itk_component(gshape) value $_settings(glyphShape)
+    bind $inner.gshape <<Value>> [itcl::code $this AdjustSetting glyphShape]
+
+    label $inner.scaleMode_l -text "Scale by" -font "Arial 9" 
+    itk_component add scaleMode {
+        Rappture::Combobox $inner.scaleMode -width 10 -editable no
+    }
+    $inner.scaleMode choices insert end \
+        "scalar" "Scalar"            \
+        "vmag"   "Vector magnitude"  \
+        "vcomp"  "Vector components" \
+        "off"    "Constant size"
+
+    $itk_component(scaleMode) value "[$itk_component(scaleMode) label $_settings(glyphScaleMode)]"
+    bind $inner.scaleMode <<Value>> [itcl::code $this AdjustSetting glyphScaleMode]
+
+    checkbutton $inner.normscale \
+        -text "Normalize scaling" \
+        -variable [itcl::scope _settings(glyphNormscale)] \
+        -command [itcl::code $this AdjustSetting glyphNormscale] \
+        -font "Arial 9"
+    Rappture::Tooltip::for $inner.normscale "If enabled, field values are normalized to \[0,1\] before scaling and scale factor is relative to a default size"
+
+    checkbutton $inner.gorient \
+        -text "Orient" \
+        -variable [itcl::scope _settings(glyphOrient)] \
+        -command [itcl::code $this AdjustSetting glyphOrient] \
+        -font "Arial 9"
+    Rappture::Tooltip::for $inner.gorient "Orient glyphs by vector field directions"
+
     checkbutton $inner.wireframe \
         -text "Wireframe" \
         -variable [itcl::scope _settings(glyphWireframe)] \
@@ -1607,12 +1684,26 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         -showvalue off \
         -command [itcl::code $this AdjustSetting glyphOpacity]
 
-    label $inner.scale_l -text "Scale" -font "Arial 9"
-    ::scale $inner.scale -from 1 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(glyphs-scale)] \
+    label $inner.gscale_l -text "Scale factor" -font "Arial 9"
+    if {0} {
+    ::scale $inner.gscale -from 1 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(glyphScale)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting glyphs-scale]
+        -command [itcl::code $this AdjustSetting glyphScale]
+    } else {
+    itk_component add gscale {
+        entry $inner.gscale -font "Arial 9" -bg white \
+            -textvariable [itcl::scope _settings(glyphScale)]
+    } {
+        ignore -font -background
+    }
+    bind $inner.gscale <Return> \
+        [itcl::code $this AdjustSetting glyphScale]
+    bind $inner.gscale <KP_Enter> \
+        [itcl::code $this AdjustSetting glyphScale]
+    }
+    Rappture::Tooltip::for $inner.gscale "Set scaling multiplier (or constant size)"
 
     itk_component add field_l {
         label $inner.field_l -text "Color By" -font "Arial 9" 
@@ -1652,22 +1743,30 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         [itcl::code $this AdjustSetting colormap]
 
     blt::table $inner \
-        0,0 $inner.field_l   -anchor w -pady 2  \
-        0,1 $inner.field     -anchor w -pady 2  -fill x \
-        1,0 $inner.colormap_l -anchor w -pady 2  \
-        1,1 $inner.colormap   -anchor w -pady 2  -fill x \
+        0,0 $inner.field_l      -anchor w -pady 2  \
+        0,1 $inner.field        -anchor w -pady 2  -fill x \
+        1,0 $inner.colormap_l   -anchor w -pady 2  \
+        1,1 $inner.colormap     -anchor w -pady 2  -fill x \
+        2,0 $inner.gshape_l     -anchor w -pady 2  \
+        2,1 $inner.gshape       -anchor w -pady 2  -fill x \
 	3,0 $inner.background_l -anchor w -pady 2 \
-	3,1 $inner.background -anchor w -pady 2  -fill x \
-        5,0 $inner.wireframe -anchor w -pady 2 -cspan 2 \
-        6,0 $inner.lighting  -anchor w -pady 2 -cspan 2 \
-        7,0 $inner.edges     -anchor w -pady 2 -cspan 2 \
-        8,0 $inner.outline   -anchor w -pady 2 -cspan 2 \
-        9,0 $inner.legend    -anchor w -pady 2 \
-        10,0 $inner.opacity_l -anchor w -pady 2 \
-        10,1 $inner.opacity   -fill x   -pady 2 -fill x \
+	3,1 $inner.background   -anchor w -pady 2  -fill x \
+        4,0 $inner.scaleMode_l  -anchor w -pady 2  \
+        4,1 $inner.scaleMode    -anchor w -pady 2  -fill x \
+        5,0 $inner.gscale_l     -anchor w -pady 2 \
+        5,1 $inner.gscale       -anchor w -pady 2  -fill x \
+        6,0 $inner.normscale    -anchor w -pady 2 -cspan 2 \
+        7,0 $inner.gorient      -anchor w -pady 2 -cspan 2 \
+        8,0 $inner.wireframe    -anchor w -pady 2 -cspan 2 \
+        9,0 $inner.lighting     -anchor w -pady 2 -cspan 2 \
+        10,0 $inner.edges        -anchor w -pady 2 -cspan 2 \
+        11,0 $inner.outline     -anchor w -pady 2 -cspan 2 \
+        12,0 $inner.legend      -anchor w -pady 2 \
+        13,0 $inner.opacity_l   -anchor w -pady 2 \
+        13,1 $inner.opacity     -fill x   -pady 2 -fill x \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r11 c1 -resize expand
+    blt::table configure $inner r14 c1 -resize expand
 }
 
 itcl::body Rappture::VtkGlyphViewer::BuildAxisTab {} {
@@ -2102,6 +2201,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     }
     set _currentOpacity $style(-opacity)
     SendCmd "glyphs add $style(-shape) $tag"
+    set _settings(glyphShape) $style(-shape)
     SendCmd "glyphs edges $style(-edges) $tag"
     # normscale=1 and gscale=1 are defaults
     if {$style(-normscale) != 1} {
@@ -2110,6 +2210,8 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     if {$style(-gscale) != 1} {
         SendCmd "glyphs gscale $style(-gscale) $tag"
     }
+    set _settings(glyphNormscale) $style(-normscale)
+    set _settings(glyphScale) $style(-gscale)
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
