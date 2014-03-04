@@ -228,7 +228,6 @@ itcl::body Rappture::XyResult::destructor {} {
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
-    #puts stderr "add: dataobj=$dataobj settings=$settings"
     set g $itk_component(plot)
     SetElements $dataobj $settings
 
@@ -296,7 +295,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
             lappend _viewable $elem
         }
     }
-    if { [$dataobj info class] == "Rappture::Curve" } {
+    if { [$dataobj info class] == "::Rappture::Curve" } {
         BuildMarkers $dataobj $elem
     }
     $_dispatcher event -idle !rebuild
@@ -330,7 +329,6 @@ itcl::body Rappture::XyResult::get {} {
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::delete {args} {
-    #puts stderr "XyResult::delete args=$args"
     set g $itk_component(plot)
 
     # First try to create list of elements from the dataobjs specified
@@ -367,7 +365,6 @@ itcl::body Rappture::XyResult::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
-    #puts stderr "XyResult::scale args=$args"
     set _dlist $args
     BuildGraph $args 
 }
@@ -496,6 +493,10 @@ itcl::body Rappture::XyResult::download {option args} {
 itcl::body Rappture::XyResult::BuildMarkers { dataobj elem } {
     set g $itk_component(plot)
 
+    set ymin -Inf
+    set ymax Inf
+    set xmax Inf
+    set xmin -Inf
     foreach m [$dataobj xmarkers] {
         foreach {at label style} $m break
         set id [$g marker create line -coords [list $at $ymin $at $ymax]]
@@ -1439,7 +1440,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
         set axis $_label2axis($label)
         switch -- $axis {
             "x" - "x2" - "y" - "y2" {
-                $g axis configure $axis -hide yes
+                $g axis configure $axis -hide yes -checklimits no
             }
             default {
                 $g axis delete $axis
