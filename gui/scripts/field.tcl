@@ -104,6 +104,10 @@ itcl::class Rappture::Field {
     public method type {}
     public method values { cname }
     public method vtkdata {cname}
+    public method xErrorValues { cname } {
+    }
+    public method yErrorValues { cname } {
+    }
 
     public method fieldnames { cname } {
         if { ![info exists _comp2fldName($cname)] } {
@@ -212,7 +216,6 @@ itcl::body Rappture::Field::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
 
     foreach name [array names _comp2xy] {
-        # Destroys both x and y vectors.
         eval blt::vector destroy $_comp2xy($name)
     }
     foreach name [array names _comp2unirect2d] {
