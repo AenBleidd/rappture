@@ -275,6 +275,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     }
     set type [$dataobj hints type]
     
+    set elem ""
     foreach cname [$dataobj components] {
         set tag $dataobj-$cname
         set elem $_comp2elem($tag) 
