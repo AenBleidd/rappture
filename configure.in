@@ -194,11 +194,13 @@ AC_MSG_CHECKING([for vtk])
 VTK_VERSION=6.1
 VTK_TCL_DIR=""
 
+ENABLE_VTK=no
 if test "$with_vtk" != "no" ; then
   if test "$with_vtk" != "yes" ; then
     VTK_VERSION=$with_vtk
   fi
   if test "x$with_vtk" != "x" ; then
+    ENABLE_VTK=yes
     for path in \
      $libdir/tcltk \
      $exec_prefix/lib/tcltk \
@@ -375,6 +377,7 @@ AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
 AC_SUBST(ENABLE_LANG)
 AC_SUBST(ENABLE_GUI)
+AC_SUBST(ENABLE_VTK)
 AC_SUBST(ENABLE_VTK_DICOM)
 AC_SUBST(FFMPEG)
 AC_SUBST(HAVE_FFMPEG_LIBS)

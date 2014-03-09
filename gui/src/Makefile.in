@@ -26,12 +26,14 @@ CFLAGS_DEFAULT  = @TCL_CFLAGS_DEFAULT@
 LIB_RUNTIME_DIR = @LIB_RUNTIME_DIR@
 CFLAGS          = @CFLAGS@ -fPIC
 TCL_VERSION     = @TCL_VERSION@
+TCLTK_SRCS	= -I../../../runtime/tcl8.4.19/generic -I../../../runtime/tk8.4.19/generic -I../../../runtime/tk8.4.19/unix
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TK_LIB_SPEC     = @TK_LIB_SPEC@
 TK_XLIBSW	= @TK_XLIBSW@
 VTK_VERSION     = @VTK_VERSION@
+VTK_TCL_DIR     = @VTK_TCL_DIR@
 ENABLE_VTK_DICOM= @ENABLE_VTK_DICOM@
-VTK_LIB_SPEC    = -lvtkIOCore-$(VTK_VERSION) -lvtkIOLegacy-$(VTK_VERSION) -lvtkIOImage-$(VTK_VERSION) -lvtkCommonCore-$(VTK_VERSION)
+VTK_LIB_SPEC    = 
 
 CC_SWITCHES     = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
@@ -41,11 +43,6 @@ INCLUDES	= -I$(srcdir) \
 		  -I$(includedir)/vtk-$(VTK_VERSION)
 version 	= @PACKAGE_VERSION@
 DEFINES 	= -DPACKAGE_VERSION=\"$(version)\"
-
-ifeq ($(ENABLE_VTK_DICOM),yes)
-VTK_LIB_SPEC    += -lvtkDICOM
-DEFINES         += -DUSE_VTK_DICOM_PACKAGE
-endif
 
 RANLIB 		= @RANLIB@
 AR 		= ar
@@ -61,11 +58,22 @@ OBJS 		= \
 		RapptureGUI_Init.o \
 		RpCanvHotspot.o \
 		RpCanvPlacard.o \
-		RpDicomToVtk.o \
 		RpDiffview.o \
 		RpReadPoints.o \
-		RpDxToVtk.o \
-		RpPdbToVtk.o
+		RpListbox.o \
+		RpSqueezer.o
+
+ifneq ($(VTK_TCL_DIR),)
+  OBJS += RpDxToVtk.o RpPdbToVtk.o
+  VTK_LIB_SPEC += -lvtkIOCore-$(VTK_VERSION) -lvtkIOLegacy-$(VTK_VERSION) -lvtkIOImage-$(VTK_VERSION) -lvtkCommonCore-$(VTK_VERSION)
+
+  ifeq ($(ENABLE_VTK_DICOM),yes)
+    OBJS += RpDicomToVtk.o
+    VTK_LIB_SPEC += -lvtkDICOM
+    DEFINES      += -DUSE_VTK_DICOM_PACKAGE
+  endif
+endif
+
 
 name		= RapptureGUI$(version)
 libname 	= $(name)
@@ -82,6 +90,8 @@ install: $(lib)
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir) 
 
+RpListbox.o: RpListbox.c
+	$(CC) $(CC_SWITCHES) $(TCLTK_SRCS) -c $? 
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o:
