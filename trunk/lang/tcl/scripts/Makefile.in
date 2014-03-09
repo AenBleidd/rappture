@@ -45,7 +45,8 @@ FILES		= \
 		$(srcdir)/resources.tcl \
 		$(srcdir)/result.tcl \
 		$(srcdir)/task.tcl \
-		$(srcdir)/units.tcl
+		$(srcdir)/units.tcl \
+		$(srcdir)/xauth.tcl
 
 OBJECTS		= \
 		boolean \

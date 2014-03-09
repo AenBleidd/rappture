@@ -32,6 +32,7 @@ FILES		= \
 		$(srcdir)/combochecks.tcl \
 		$(srcdir)/controlOwner.tcl \
 		$(srcdir)/controls.tcl \
+		$(srcdir)/coverflow.tcl \
 		$(srcdir)/curve.tcl \
 		$(srcdir)/datatable.tcl \
 		$(srcdir)/datatableresult.tcl \
@@ -114,6 +115,7 @@ FILES		= \
 		$(srcdir)/tool.tcl \
 		$(srcdir)/tooltip.tcl \
 		$(srcdir)/tuples.tcl \
+		$(srcdir)/tweener.tcl \
 		$(srcdir)/unirect2d.tcl \
 		$(srcdir)/unirect3d.tcl \
 		$(srcdir)/units.tcl \
