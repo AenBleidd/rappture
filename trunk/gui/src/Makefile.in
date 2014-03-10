@@ -32,6 +32,7 @@ TK_LIB_SPEC     = @TK_LIB_SPEC@
 TK_XLIBSW	= @TK_XLIBSW@
 VTK_VERSION     = @VTK_VERSION@
 VTK_TCL_DIR     = @VTK_TCL_DIR@
+ENABLE_VTK      = @ENABLE_VTK@
 ENABLE_VTK_DICOM= @ENABLE_VTK_DICOM@
 VTK_LIB_SPEC    = 
 
@@ -59,18 +60,20 @@ OBJS 		= \
 		RpCanvHotspot.o \
 		RpCanvPlacard.o \
 		RpDiffview.o \
+		RpDxToVtk.o \
+		RpPdbToVtk.o \
 		RpReadPoints.o \
 		RpListbox.o \
 		RpSqueezer.o
 
-ifneq ($(VTK_TCL_DIR),)
-  OBJS += RpDxToVtk.o RpPdbToVtk.o
+ifeq ($(ENABLE_VTK),yes)
+  OBJS += RpDicomToVtk.o
   VTK_LIB_SPEC += -lvtkIOCore-$(VTK_VERSION) -lvtkIOLegacy-$(VTK_VERSION) -lvtkIOImage-$(VTK_VERSION) -lvtkCommonCore-$(VTK_VERSION)
+  DEFINES      += -DENABLE_VTK
 
   ifeq ($(ENABLE_VTK_DICOM),yes)
-    OBJS += RpDicomToVtk.o
     VTK_LIB_SPEC += -lvtkDICOM
-    DEFINES      += -DUSE_VTK_DICOM_PACKAGE
+    DEFINES      += -DENABLE_VTK_DICOM -DUSE_VTK_DICOM_PACKAGE
   endif
 endif
 
