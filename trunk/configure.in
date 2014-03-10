@@ -194,7 +194,7 @@ AC_MSG_CHECKING([for vtk])
 VTK_VERSION=6.1
 VTK_TCL_DIR=""
 
-ENABLE_VTK=no
+ENABLE_VTK=
 if test "$with_vtk" != "no" ; then
   if test "$with_vtk" != "yes" ; then
     VTK_VERSION=$with_vtk
@@ -220,7 +220,7 @@ if test "$with_vtk" != "no" ; then
   fi
 else
   if test "${ENABLE_GUI}" = "yes" ; then
-    AC_MSG_ERROR([Rappture GUI requires VTK])
+    AC_MSG_WARN([VTK missing: Rappture GUI requires VTK for some features])
   fi
 fi
 AC_MSG_RESULT([$VTK_TCL_DIR])
