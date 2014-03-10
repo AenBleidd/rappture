@@ -32,9 +32,7 @@ extern Tcl_AppInitProc RpSqueezer_Init;
 extern Tcl_AppInitProc RpDxToVtk_Init;
 extern Tcl_AppInitProc RpPdbToVtk_Init;
 #ifdef ENABLE_VTK
-#ifdef ENABLE_VTK_DICOM
 extern Tcl_AppInitProc RpDicomToVtk_Init;
-#endif
 #endif
 
 #ifdef BUILD_Rappture
@@ -75,11 +73,9 @@ Rappturegui_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
 #ifdef ENABLE_VTK
-#ifdef ENABLE_VTK_DICOM
     if (RpDicomToVtk_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
-#endif
 #endif
     return TCL_OK;
 }
