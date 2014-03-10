@@ -40,8 +40,7 @@ CC_SWITCHES     = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINE
 CXX_SWITCHES    = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES	= -I$(srcdir) \
-		  -I$(includedir) \
-		  -I$(includedir)/vtk-$(VTK_VERSION)
+		  -I$(includedir)
 version 	= @PACKAGE_VERSION@
 DEFINES 	= -DPACKAGE_VERSION=\"$(version)\"
 
@@ -67,6 +66,7 @@ OBJS 		= \
 		RpSqueezer.o
 
 ifeq ($(ENABLE_VTK),yes)
+  INCLUDES += -I$(includedir)/vtk-$(VTK_VERSION)
   OBJS += RpDicomToVtk.o
   VTK_LIB_SPEC += -lvtkIOCore-$(VTK_VERSION) -lvtkIOLegacy-$(VTK_VERSION) -lvtkIOImage-$(VTK_VERSION) -lvtkCommonCore-$(VTK_VERSION)
   DEFINES      += -DENABLE_VTK
