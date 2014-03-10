@@ -29,9 +29,9 @@ extern Tcl_AppInitProc RpListbox_Init;
 extern Tcl_AppInitProc RpReadPoints_Init;
 extern Tcl_AppInitProc RpSqueezer_Init;
 
-#ifdef ENABLE_VTK
 extern Tcl_AppInitProc RpDxToVtk_Init;
 extern Tcl_AppInitProc RpPdbToVtk_Init;
+#ifdef ENABLE_VTK
 #ifdef ENABLE_VTK_DICOM
 extern Tcl_AppInitProc RpDicomToVtk_Init;
 #endif
@@ -68,13 +68,13 @@ Rappturegui_Init( Tcl_Interp * interp)
     if (RpCanvHotspot_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
-#ifdef ENABLE_VTK
     if (RpDxToVtk_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     if (RpPdbToVtk_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+#ifdef ENABLE_VTK
 #ifdef ENABLE_VTK_DICOM
     if (RpDicomToVtk_Init(interp) != TCL_OK) {
         return TCL_ERROR;
