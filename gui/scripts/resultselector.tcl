@@ -464,6 +464,7 @@ itcl::body Rappture::ResultSelector::_fixControls {args} {
 
         # did the active control go away?  then switch to simnum
         if {[lsearch -exact [$_resultset diff names] $_active] < 0} {
+            set _cntlInfo($this-$_active-value) ""
             activate simnum
         }
 
