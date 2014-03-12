@@ -222,7 +222,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     # Z-Cutplane event
     $_dispatcher register !zcutplane
     $_dispatcher dispatch $this !zcutplane \
-        "[itcl::code $this AdjustSetting -xcutplaneposition]; list"
+        "[itcl::code $this AdjustSetting -zcutplaneposition]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -268,12 +268,12 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         -xcutplaneposition              50
         -xcutplanevisible               1
         -xgridvisible                   0
-        -xgridvisible                   0
         -ycutplaneposition              50
         -ycutplanevisible               1
         -ygridvisible                   0
         -zcutplaneposition              50
         -zcutplanevisible               1
+        -zgridvisible                   0
     }
 
     itk_component add view {
