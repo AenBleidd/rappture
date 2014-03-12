@@ -48,6 +48,7 @@ VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
 		-lvtkDomainsChemistry-$(VTK_VERSION) \
 		-lvtkIOCore-$(VTK_VERSION) \
 		-lvtkIOLegacy-$(VTK_VERSION) \
+		-lvtkIOXML-$(VTK_VERSION) \
 		-lvtkFiltersExtraction-$(VTK_VERSION) \
 		-lvtkFiltersModeling-$(VTK_VERSION) \
 		-lvtkFiltersFlowPaths-$(VTK_VERSION) \
@@ -78,12 +79,12 @@ VTK_LIB_SPEC    = -L$(VTK_LIB_DIR) \
 		-lvtkCommonMath-$(VTK_VERSION) \
 		-lvtksys-$(VTK_VERSION)
 
-ifeq ($(VTK_VERSION),6.1)
-VTK_LIB_SPEC += \
-		-lvtkRenderingLIC-$(VTK_VERSION)
-else
+ifeq ($(VTK_VERSION),6.0)
 VTK_LIB_SPEC += \
 		-lvtkRenderingHybridOpenGL-$(VTK_VERSION)
+else
+VTK_LIB_SPEC += \
+		-lvtkRenderingLIC-$(VTK_VERSION)
 endif
 
 LD_RUN_PATH	= $(VTK_LIB_DIR):$(libdir)
