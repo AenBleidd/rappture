@@ -530,7 +530,6 @@ main(int argc, char **argv)
             if (child == 0) {           /* Child process. */
                 int i;
 
-                umask(0);
                 if ((!debug) && (setsid() < 0)) {
                     ERROR("Can't setsid \"%s\": %s", serverPtr->name,
                           strerror(errno));
