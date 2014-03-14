@@ -353,12 +353,29 @@ void Volume::setSampleDistance(float d)
  */
 void Volume::setBlendMode(BlendMode mode)
 {
-    if (_volumeMapper != NULL) {
-        vtkVolumeMapper *mapper = vtkVolumeMapper::SafeDownCast(_volumeMapper);
-        if (mapper == NULL) {
+    if (_volumeMapper == NULL)
+        return;
+
+    vtkVolumeMapper *mapper = vtkVolumeMapper::SafeDownCast(_volumeMapper);
+    if (mapper == NULL) {
+        vtkUnstructuredGridVolumeMapper *ugmapper = vtkUnstructuredGridVolumeMapper::SafeDownCast(_volumeMapper);
+        if (ugmapper == NULL) {
             TRACE("Mapper does not support BlendMode");
             return;
         }
+        switch (mode) {
+        case BLEND_COMPOSITE:
+            ugmapper->SetBlendModeToComposite();
+            break;
+        case BLEND_MAX_INTENSITY:
+            ugmapper->SetBlendModeToMaximumIntensity();
+            break;
+        case BLEND_MIN_INTENSITY:
+        case BLEND_ADDITIVE:
+        default:
+            ERROR("Unknown BlendMode");
+        }
+    } else {
         switch (mode) {
         case BLEND_COMPOSITE:
             mapper->SetBlendModeToComposite();
