@@ -10,6 +10,7 @@
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkImageData.h>
+#include <vtkProbeFilter.h>
 #include <vtkVolumeProperty.h>
 #include <vtkGPUVolumeRayCastMapper.h>
 #include <vtkVolumeTextureMapper3D.h>
@@ -31,6 +32,7 @@ using namespace VtkVis;
 
 Volume::Volume() :
     GraphicsObject(),
+    _useUgridMapper(false),
     _colorMap(NULL)
 {
 }
@@ -104,6 +106,11 @@ void Volume::update()
         return;
     }
 
+    if (ds->GetPointData() == NULL ||
+        ds->GetPointData()->GetScalars() == NULL) {
+        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
+    }
+
     if (vtkImageData::SafeDownCast(ds) != NULL) {
         // Image data required for these mappers
 #ifdef USE_GPU_RAYCAST_MAPPER
@@ -122,9 +129,8 @@ void Volume::update()
         _volumeMapper->SetInput(ds);
 #endif
         vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
-    } else if (_dataSet->isCloud() ||
-               vtkUnstructuredGrid::SafeDownCast(ds) == NULL) {
-        // DataSet is a 3D point cloud, rectilinear grid or structured grid
+    } else if (_dataSet->isCloud()) {
+        // DataSet is a 3D point cloud
         vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
 #ifdef USE_VTK6
         splatter->SetInputData(ds);
@@ -150,6 +156,51 @@ void Volume::update()
         _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
 #endif
         _volumeMapper->SetInputConnection(splatter->GetOutputPort());
+        vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
+    } else if (vtkUnstructuredGrid::SafeDownCast(ds) == NULL || !_useUgridMapper) {
+        // (Slow) Resample using ProbeFilter
+        double bounds[6];
+        ds->GetBounds(bounds);
+        double xLen = bounds[1] - bounds[0];
+        double yLen = bounds[3] - bounds[2];
+        double zLen = bounds[5] - bounds[4];
+
+        int dims[3];
+        dims[0] = dims[1] = dims[2] = 64;
+        if (xLen == 0.0) dims[0] = 1;
+        if (yLen == 0.0) dims[1] = 1;
+        if (zLen == 0.0) dims[2] = 1;
+        if (vtkStructuredGrid::SafeDownCast(ds) != NULL) {
+            vtkStructuredGrid::SafeDownCast(ds)->GetDimensions(dims);
+        } else if (vtkRectilinearGrid::SafeDownCast(ds) != NULL) {
+            vtkRectilinearGrid::SafeDownCast(ds)->GetDimensions(dims);
+        }
+        TRACE("Generating volume with dims (%d,%d,%d) from %d points",
+              dims[0], dims[1], dims[2], ds->GetNumberOfPoints());
+
+        double xSpacing = (dims[0] == 1 ? 0.0 : xLen/((double)(dims[0]-1)));
+        double ySpacing = (dims[1] == 1 ? 0.0 : yLen/((double)(dims[1]-1)));
+        double zSpacing = (dims[2] == 1 ? 0.0 : zLen/((double)(dims[2]-1)));
+
+        vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
+        imageData->SetDimensions(dims[0], dims[1], dims[2]);
+        imageData->SetOrigin(bounds[0], bounds[2], bounds[4]);
+        imageData->SetSpacing(xSpacing, ySpacing, zSpacing); 
+
+        vtkSmartPointer<vtkProbeFilter> probe = vtkSmartPointer<vtkProbeFilter>::New();
+        probe->SetInputData(imageData);
+        probe->SetSourceData(ds);
+        probe->Update();
+
+        TRACE("Done generating volume");
+
+#ifdef USE_GPU_RAYCAST_MAPPER
+        _volumeMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper>::New();
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->AutoAdjustSampleDistancesOff();
+#else
+        _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
+#endif
+        _volumeMapper->SetInputConnection(probe->GetOutputPort());
         vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
     } else {
         // Unstructured grid with cells (not a cloud)
@@ -190,11 +241,6 @@ void Volume::update()
     TRACE("Using mapper type: %s", _volumeMapper->GetClassName());
 
     initProp();
-
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
-    }
 
     if (_colorMap == NULL) {
         setColorMap(ColorMap::getVolumeDefault());

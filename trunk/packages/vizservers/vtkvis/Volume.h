@@ -66,6 +66,8 @@ private:
     virtual void initProp();
     virtual void update();
 
+    bool _useUgridMapper;
+
     ColorMap *_colorMap;
     vtkSmartPointer<vtkAbstractVolumeMapper> _volumeMapper;
 };
