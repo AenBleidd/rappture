@@ -108,7 +108,8 @@ void Volume::update()
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
+        USER_ERROR("No scalar field was found in the data set");
+        return;
     }
 
     if (vtkImageData::SafeDownCast(ds) != NULL) {
