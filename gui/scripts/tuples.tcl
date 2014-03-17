@@ -69,6 +69,16 @@ itcl::body Rappture::Tuples::column {option args} {
                 value -label ""
                 value -default ""
             }
+
+            # FIXME: This is a band-aid.  The value can be an arbitrary
+            # string and therefore misinterpretered as an invalid list.
+            # Try to parse the value as a list and if that fails make a
+            # list out of it.  Hopefully this doesn't break run file
+            # comparisons.
+            if { [catch {llength $params(-default)}] != 0 } {
+                set params(-default) [list $params(-default)]
+            }
+
             if {[llength $args] != 0} {
                 error "wrong # args: should be \"column insert pos ?-name n? ?-label l? ?-default v?\""
             }
