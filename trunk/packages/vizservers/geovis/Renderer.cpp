@@ -20,6 +20,8 @@
 
 #include <osgEarth/Version>
 #include <osgEarth/MapNode>
+#include <osgEarth/Bounds>
+#include <osgEarth/Profile>
 #include <osgEarth/TerrainLayer>
 #include <osgEarth/ImageLayer>
 #include <osgEarth/ElevationLayer>
@@ -27,7 +29,9 @@
 #include <osgEarthUtil/EarthManipulator>
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/MouseCoordsTool>
+#include <osgEarthUtil/GLSLColorFilter>
 #include <osgEarthDrivers/gdal/GDALOptions>
+#include <osgEarthDrivers/engine_mp/MPTerrainEngineOptions>
 
 #include "Renderer.h"
 #include "Trace.h"
@@ -35,6 +39,8 @@
 #define MSECS_ELAPSED(t1, t2) \
     ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
      (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)
+
+#define BASE_IMAGE "/usr/share/osgearth/data/world.tif"
 
 using namespace GeoVis;
 
@@ -57,13 +63,17 @@ Renderer::Renderer() :
     _viewer->getCamera()->setPostDrawCallback(_captureCallback.get());
     osgEarth::MapOptions mapOpts;
     mapOpts.coordSysType() = osgEarth::MapOptions::CSTYPE_PROJECTED;
-    mapOpts.profile() = osgEarth::ProfileOptions("global-geodetic");
+    mapOpts.profile() = osgEarth::ProfileOptions("global-mercator");
     osgEarth::Map *map = new osgEarth::Map(mapOpts);
     _map = map;
     osgEarth::Drivers::GDALOptions bopts;
-    bopts.url() = "/usr/share/osgearth/data/world.tif";
+    bopts.url() = BASE_IMAGE;
     addImageLayer("base", bopts);
-    osgEarth::MapNodeOptions mapNodeOpts;
+    osgEarth::Drivers::MPTerrainEngineOptions mpOpt;
+    // Set background layer color
+    mpOpt.color() = osg::Vec4(1, 1, 1, 1);
+    //mpOpt.minLOD() = 1;
+    osgEarth::MapNodeOptions mapNodeOpts(mpOpt);
     mapNodeOpts.enableLighting() = false;
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
     _mapNode = mapNode;
@@ -80,6 +90,7 @@ Renderer::Renderer() :
     _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
     _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
     _viewer->realize();
+    initColorMaps();
 #ifdef DEBUG
     if (_viewer->getViewerStats() != NULL) {
         TRACE("Enabling stats");
@@ -109,6 +120,95 @@ Renderer::~Renderer()
     TRACE("Enter");
 
     TRACE("Leave");
+}
+
+void Renderer::initColorMaps()
+{
+    osg::TransferFunction1D *defaultColorMap = new osg::TransferFunction1D;
+    defaultColorMap->allocate(256);
+    defaultColorMap->setColor(0.00, osg::Vec4f(0,0,1,1), false);
+    defaultColorMap->setColor(0.25, osg::Vec4f(0,1,1,1), false);
+    defaultColorMap->setColor(0.50, osg::Vec4f(0,1,0,1), false);
+    defaultColorMap->setColor(0.75, osg::Vec4f(1,1,0,1), false);
+    defaultColorMap->setColor(1.00, osg::Vec4f(1,0,0,1), false);
+    defaultColorMap->updateImage();
+    addColorMap("default", defaultColorMap);
+    osg::TransferFunction1D *defaultGrayColorMap = new osg::TransferFunction1D;
+    defaultGrayColorMap->allocate(256);
+    defaultGrayColorMap->setColor(0, osg::Vec4f(0,0,0,1), false);
+    defaultGrayColorMap->setColor(1, osg::Vec4f(1,1,1,1), false);
+    defaultGrayColorMap->updateImage();
+    addColorMap("grayDefault", defaultGrayColorMap);
+}
+
+void Renderer::addColorMap(const ColorMapId& id, osg::TransferFunction1D *xfer)
+{
+    _colorMaps[id] = xfer;
+#if 0
+    osgEarth::Drivers::GDALOptions opts;
+    char *url =  Tcl_GetString(objv[4]);
+    std::ostringstream oss;
+    oss << "_cmap_" << id;
+
+    opts.url() = url;
+
+    addImageLayer(oss.str().c_str(), opts);
+#endif
+}
+
+void Renderer::deleteColorMap(const ColorMapId& id)
+{
+    ColorMapHashmap::iterator itr;
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _colorMaps.begin();
+        doAll = true;
+    } else {
+        itr = _colorMaps.find(id);
+    }
+
+    if (itr == _colorMaps.end()) {
+        ERROR("Unknown ColorMap %s", id.c_str());
+        return;
+    }
+
+    do {
+        if (itr->first.compare("default") == 0 ||
+            itr->first.compare("grayDefault") == 0) {
+            if (id.compare("all") != 0) {
+                WARN("Cannot delete a default color map");
+            }
+            continue;
+        }
+
+        TRACE("Deleting ColorMap %s", itr->first.c_str());
+        itr = _colorMaps.erase(itr);
+    } while (doAll && itr != _colorMaps.end());
+}
+
+void Renderer::setColorMapNumberOfTableEntries(const ColorMapId& id,
+                                               int numEntries)
+{
+    ColorMapHashmap::iterator itr;
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _colorMaps.begin();
+        doAll = true;
+    } else {
+        itr = _colorMaps.find(id);
+    }
+
+    if (itr == _colorMaps.end()) {
+        ERROR("Unknown ColorMap %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->allocate(numEntries);
+        itr->second->updateImage();
+    } while (doAll && ++itr != _colorMaps.end());
 }
 
 void Renderer::loadEarthFile(const char *path)
@@ -151,20 +251,52 @@ void Renderer::loadEarthFile(const char *path)
     _needsRedraw = true;
 }
 
-void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type, const char *profile)
+void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
+                        const char *profile,
+                        double bounds[4])
 {
     TRACE("Restting map with type %d, profile %s", type, profile);
 
     osgEarth::MapOptions mapOpts;
     mapOpts.coordSysType() = type;
     if (profile != NULL) {
-        mapOpts.profile() = osgEarth::ProfileOptions(profile);
+        if (bounds != NULL) {
+            mapOpts.profile() = osgEarth::ProfileOptions();
+            if (strcmp(profile, "geodetic") == 0) {
+                mapOpts.profile()->srsString() = "epsg:4326";
+            } else if (strcmp(profile, "spherical-mercator") == 0) {
+                // Projection used by Google/Bing/OSM
+                // aka epsg:900913 meters in x/y
+                // aka WGS84 Web Mercator (Auxiliary Sphere)
+                // X/Y: -20037508.34m to 20037508.34m
+                mapOpts.profile()->srsString() = "epsg:3857";
+            } else {
+                mapOpts.profile()->srsString() = profile;
+            }
+            mapOpts.profile()->bounds() = 
+                osgEarth::Bounds(bounds[0], bounds[1], bounds[2], bounds[3]);
+        } else {
+            mapOpts.profile() = osgEarth::ProfileOptions(profile);
+        }
     } else if (type == osgEarth::MapOptions::CSTYPE_PROJECTED) {
-        mapOpts.profile() = osgEarth::ProfileOptions("global-geodetic");
+        mapOpts.profile() = osgEarth::ProfileOptions("global-mercator");
+    }
+    if (bounds != NULL) {
+        TRACE("Setting profile bounds: %g %g %g %g",
+              bounds[0], bounds[1], bounds[2], bounds[3]);
+        mapOpts.profile()->bounds() = 
+            osgEarth::Bounds(bounds[0], bounds[1], bounds[2], bounds[3]);
     }
     osgEarth::Map *map = new osgEarth::Map(mapOpts);
     _map = map;
-    osgEarth::MapNodeOptions mapNodeOpts;
+    osgEarth::Drivers::GDALOptions bopts;
+    bopts.url() = BASE_IMAGE;
+    addImageLayer("base", bopts);
+    osgEarth::Drivers::MPTerrainEngineOptions mpOpt;
+    // Set background layer color
+    mpOpt.color() = osg::Vec4(1, 1, 1, 1);
+    //mpOpt.minLOD() = 1;
+    osgEarth::MapNodeOptions mapNodeOpts(mpOpt);
     mapNodeOpts.enableLighting() = false;
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
     _mapNode = mapNode;
@@ -211,10 +343,51 @@ bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& ma
     return false;
 }
 
-void Renderer::addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts)
+void Renderer::addImageLayer(const char *name,
+                             const osgEarth::TileSourceOptions& opts,
+                             bool makeShared,
+                             bool visible)
 {
     osgEarth::ImageLayerOptions layerOpts(name, opts);
+    if (makeShared) {
+        layerOpts.shared() = true;
+    }
+    if (!visible) {
+        layerOpts.visible() = false;
+    }
     _map->addImageLayer(new osgEarth::ImageLayer(layerOpts));
+    _needsRedraw = true;
+}
+
+void Renderer::addColorFilter(const char *name,
+                              const char *shader)
+{
+     osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+     if (layer == NULL) {
+         TRACE("Image layer not found: %s", name);
+         return;
+     }
+     osgEarth::Util::GLSLColorFilter *filter = new osgEarth::Util::GLSLColorFilter;
+     filter->setCode(shader);
+     //filter->setCode("color.rgb = color.r > 0.5 ? vec3(1.0) : vec3(0.0);");
+     layer->addColorFilter(filter);
+     _needsRedraw = true;
+}
+
+void Renderer::removeColorFilter(const char *name, int idx)
+{
+    osgEarth::ImageLayer *layer = _map->getImageLayerByName(name);
+    if (layer == NULL) {
+        TRACE("Image layer not found: %s", name);
+        return;
+    }
+    if (idx < 0) {
+        while (!layer->getColorFilters().empty()) {
+            layer->removeColorFilter(layer->getColorFilters()[0]);
+        }
+    } else {
+        layer->removeColorFilter(layer->getColorFilters().at(idx));
+    }
     _needsRedraw = true;
 }
 
@@ -264,9 +437,12 @@ void Renderer::setImageLayerVisibility(const char *name, bool state)
 #endif
 }
 
-void Renderer::addElevationLayer(const char *name, const osgEarth::TileSourceOptions& opts)
+void Renderer::addElevationLayer(const char *name,
+                                 const osgEarth::TileSourceOptions& opts)
 {
+    // XXX: GDAL does not report vertical datum, it should be specified here
     osgEarth::ElevationLayerOptions layerOpts(name, opts);
+    //layerOpts.verticalDatum() = "";
     _map->addElevationLayer(new osgEarth::ElevationLayer(layerOpts));
     _needsRedraw = true;
 }
