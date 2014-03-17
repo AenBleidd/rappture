@@ -273,6 +273,8 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
             } else {
                 mapOpts.profile()->srsString() = profile;
             }
+            TRACE("Setting profile bounds: %g %g %g %g",
+                  bounds[0], bounds[1], bounds[2], bounds[3]);
             mapOpts.profile()->bounds() = 
                 osgEarth::Bounds(bounds[0], bounds[1], bounds[2], bounds[3]);
         } else {
@@ -280,12 +282,6 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         }
     } else if (type == osgEarth::MapOptions::CSTYPE_PROJECTED) {
         mapOpts.profile() = osgEarth::ProfileOptions("global-mercator");
-    }
-    if (bounds != NULL) {
-        TRACE("Setting profile bounds: %g %g %g %g",
-              bounds[0], bounds[1], bounds[2], bounds[3]);
-        mapOpts.profile()->bounds() = 
-            osgEarth::Bounds(bounds[0], bounds[1], bounds[2], bounds[3]);
     }
     osgEarth::Map *map = new osgEarth::Map(mapOpts);
     _map = map;
