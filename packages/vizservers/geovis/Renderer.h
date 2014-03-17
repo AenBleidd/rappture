@@ -16,6 +16,7 @@
 #include <osg/ref_ptr>
 #include <osg/Node>
 #include <osg/Image>
+#include <osg/TransferFunction>
 #include <osgViewer/Viewer>
 
 #include <osgEarth/Map>
@@ -125,14 +126,26 @@ private:
 class Renderer
 {
 public:
+    typedef std::string ColorMapId;
+
     Renderer();
     virtual ~Renderer();
+
+    // Colormaps
+
+    void addColorMap(const ColorMapId& id, osg::TransferFunction1D *xfer);
+
+    void deleteColorMap(const ColorMapId& id);
+
+    void setColorMapNumberOfTableEntries(const ColorMapId& id, int numEntries);
 
     // Scene
 
     void loadEarthFile(const char *path);
 
-    void resetMap(osgEarth::MapOptions::CoordinateSystemType type, const char *profile = NULL);
+    void resetMap(osgEarth::MapOptions::CoordinateSystemType type,
+                  const char *profile = NULL,
+                  double bounds[4] = NULL);
 
     void clearMap();
 
@@ -147,7 +160,8 @@ public:
         return (_map.valid() ? _map->getNumImageLayers() : 0);
     }
 
-    void addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts);
+    void addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts,
+                       bool makeShared = false, bool visible = true);
 
     void removeImageLayer(const char *name);
 
@@ -156,6 +170,10 @@ public:
     void setImageLayerOpacity(const char *name, double opacity);
 
     void setImageLayerVisibility(const char *name, bool state);
+
+    void addColorFilter(const char *name, const char *shader);
+
+    void removeColorFilter(const char *name, int idx = -1);
 
     // Elevation raster layers
 
@@ -255,6 +273,10 @@ public:
     long getTimeout();
 
 private:
+    typedef std::tr1::unordered_map<ColorMapId, osg::ref_ptr<osg::TransferFunction1D> > ColorMapHashmap;
+
+    void initColorMaps();
+
     void initCamera();
 
     bool isPagerIdle();
@@ -269,6 +291,8 @@ private:
 
     double _minFrameTime;
     double _lastFrameTime;
+
+    ColorMapHashmap _colorMaps;
 
     osg::ref_ptr<osg::Node> _sceneRoot;
     osg::ref_ptr<osgEarth::MapNode> _mapNode;

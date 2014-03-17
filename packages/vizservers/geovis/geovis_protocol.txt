@@ -58,9 +58,33 @@ renderer render
 screen bgcolor <r> <g> <b>
 screen size <width> <height>
 
-map layer add <type> <url> <layerName>
+General form:
+map layer add <type> <url> ... <layerName>
+    <type> = image|wms|tms|elevation|point|polygon|line|text
+
+map layer add image <url> <layerName>
     Add a GDAL image layer from a file or URL
-    <type> = image|terrain|model
+map layer add wms <url> <layers> <format> <transparent> <layerName>
+    Add a WMS image layer from a URL/layer string
+    <url> = URL of WMS service
+    <layers> = layers string for WMS server
+    <format> = Image format to return (e.g. 'png')
+    <transparent> = bool
+map layer add tms <url> <tmsType> <format> <layerName>
+    Add a WMS image layer from a URL/layer string
+    <url> = URL of WMS service
+    <layers> = layers string for WMS server
+map layer add elevation <url> <layerName>
+    Add a GDAL elevation image layer from a file or URL
+map layer add point <url> <layerName>
+    Add a point feature layer from a file or URL
+map layer add polygon <url> <layerName>
+    Add a polygon feature layer from a file or URL
+map layer add line <url> <layerName>
+    Add a line feature layer from a file or URL
+map layer add text <url> <layerName>
+    Add a GDAL image layer from a file or URL
+
 map layer delete <layerName>
 map layer opacity <opacity> <layerName>
 map layer move <pos> <layerName>
@@ -71,10 +95,11 @@ map load file <path>
     Load an .earth file from a filesystem mounted on the server
 map load url <url>
     Load an .earth file from a network address
-map reset <type> <?profile?>
+map reset <type> <?profile?> <?xmin?> <?ymin?> <?xmax?> <?ymax?>
     type = geocentric|projected
-    profile = Well known profile string, e.g. 'global-geodetic' (default)
-              'global-mercator'
+    profile = Well known profile string, e.g. 'global-geodetic',
+    'global-mercator'
+    xmin,ymin,xmax,ymax = map bounds (in profile projection/units)
 
 ================================================================================
 Replies:

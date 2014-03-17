@@ -18,6 +18,7 @@
 #include <sys/uio.h>
 #include <tcl.h>
 
+#include <osgEarth/Registry>
 #include <osgEarthFeatures/FeatureModelSource>
 #include <osgEarthSymbology/Color>
 #include <osgEarthSymbology/Style>
@@ -26,6 +27,8 @@
 #include <osgEarthSymbology/RenderSymbol>
 
 #include <osgEarthDrivers/gdal/GDALOptions>
+#include <osgEarthDrivers/tms/TMSOptions>
+#include <osgEarthDrivers/wms/WMSOptions>
 #include <osgEarthDrivers/model_feature_geom/FeatureGeomModelOptions>
 #include <osgEarthDrivers/feature_ogr/OGRFeatureOptions>
 
@@ -332,6 +335,150 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ColorMapAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[2]);
+    int cmapc, omapc;
+    Tcl_Obj **cmapv = NULL;
+    Tcl_Obj **omapv = NULL;
+
+    if (Tcl_ListObjGetElements(interp, objv[3], &cmapc, &cmapv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if ((cmapc % 4) != 0) {
+        Tcl_AppendResult(interp, "wrong # elements in colormap: should be ",
+                         "{ value r g b ... }", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    osg::TransferFunction1D *colorMap = new osg::TransferFunction1D;
+    colorMap->allocate(256);
+
+    for (int i = 0; i < cmapc; i += 4) {
+        double val[4];
+        for (int j = 0; j < 4; j++) {
+            if (Tcl_GetDoubleFromObj(interp, cmapv[i+j], &val[j]) != TCL_OK) {
+                delete colorMap;
+                return TCL_ERROR;
+            }
+            if ((val[j] < 0.0) || (val[j] > 1.0)) {
+                Tcl_AppendResult(interp, "bad colormap value \"",
+                                 Tcl_GetString(cmapv[i+j]),
+                                 "\": should be in the range [0,1]", (char*)NULL);
+                delete colorMap;
+                return TCL_ERROR;
+            }
+        }
+        colorMap->setColor(val[0], osg::Vec4f(val[1], val[2], val[3], 1.0), false);
+    }
+
+    colorMap->updateImage();
+
+    if (Tcl_ListObjGetElements(interp, objv[4], &omapc, &omapv) != TCL_OK) {
+        delete colorMap;
+        return TCL_ERROR;
+    }
+    if ((omapc % 2) != 0) {
+        Tcl_AppendResult(interp, "wrong # elements in opacitymap: should be ",
+                         "{ value alpha ... }", (char*)NULL);
+        delete colorMap;
+        return TCL_ERROR;
+    }
+    for (int i = 0; i < omapc; i += 2) {
+        double val[2];
+        for (int j = 0; j < 2; j++) {
+            if (Tcl_GetDoubleFromObj(interp, omapv[i+j], &val[j]) != TCL_OK) {
+                delete colorMap;
+                return TCL_ERROR;
+            }
+            if ((val[j] < 0.0) || (val[j] > 1.0)) {
+                Tcl_AppendResult(interp, "bad opacitymap value \"",
+                                 Tcl_GetString(omapv[i+j]),
+                                 "\": should be in the range [0,1]", (char*)NULL);
+                delete colorMap;
+                return TCL_ERROR;
+            }
+        }
+#if 0
+        ColorMap::OpacityControlPoint ocp;
+        ocp.value = val[0];
+        ocp.alpha = val[1];
+        colorMap->addOpacityControlPoint(ocp);
+#endif
+    }
+
+    //colorMap->build();
+    g_renderer->addColorMap(name, colorMap);
+    return TCL_OK;
+}
+
+static int
+ColorMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteColorMap(name);
+    } else {
+        g_renderer->deleteColorMap("all");
+    }
+
+    return TCL_OK;
+}
+
+static int
+ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    int numEntries;
+    if (Tcl_GetIntFromObj(interp, objv[2], &numEntries) != TCL_OK) {
+        const char *str = Tcl_GetString(objv[2]);
+        if (str[0] == 'd' && strcmp(str, "default") == 0) {
+            numEntries = -1;
+        } else {
+            Tcl_AppendResult(interp, "bad colormap resolution value \"", str,
+                             "\": should be a positive integer or \"default\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else if (numEntries < 1) {
+        Tcl_AppendResult(interp, "bad colormap resolution value \"", Tcl_GetString(objv[2]),
+                         "\": should be a positive integer or \"default\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+
+        g_renderer->setColorMapNumberOfTableEntries(name, numEntries);
+    } else {
+        g_renderer->setColorMapNumberOfTableEntries("all", numEntries);
+    }
+    return TCL_OK;
+}
+
+static CmdSpec colorMapOps[] = {
+    {"add",    1, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
+    {"define", 3, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
+    {"delete", 3, ColorMapDeleteOp,          2, 3, "?colorMapName?"},
+    {"res",    1, ColorMapNumTableEntriesOp, 3, 4, "numTableEntries ?colorMapName?"}
+};
+static int nColorMapOps = NumCmdSpecs(colorMapOps);
+
+static int
+ColorMapCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = GetOpFromObj(interp, nColorMapOps, colorMapOps,
+                        CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -398,6 +545,35 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         opts.url() = url;
 
         g_renderer->addImageLayer(name, opts);
+    } else if (type[0] == 't' && strcmp(type, "tms") == 0) {
+        osgEarth::Drivers::TMSOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        //char *tmsType = Tcl_GetString(objv[5]);
+        //char *format = Tcl_GetString(objv[6]);
+        char *name = Tcl_GetString(objv[5]);
+
+        opts.url() = url;
+        //opts.tmsType() = tmsType;
+        //opts.format() = format;
+
+        g_renderer->addImageLayer(name, opts);
+    } else if (type[0] == 'w' && strcmp(type, "wms") == 0) {
+        osgEarth::Drivers::WMSOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *wmsLayers = Tcl_GetString(objv[5]);
+        char *format = Tcl_GetString(objv[6]);
+        bool transparent;
+        if (GetBooleanFromObj(interp, objv[7], &transparent) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        char *name = Tcl_GetString(objv[8]);
+
+        opts.url() = url;
+        opts.layers() = wmsLayers;
+        opts.format() = format;
+        opts.transparent() = transparent;
+
+        g_renderer->addImageLayer(name, opts);
     } else if (type[0] == 'e' && strcmp(type, "elevation") == 0) {
         osgEarth::Drivers::GDALOptions opts;
         char *url =  Tcl_GetString(objv[4]);
@@ -406,7 +582,48 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         opts.url() = url;
 
         g_renderer->addElevationLayer(name, opts);
-    } else if (type[0] == 'm' && strcmp(type, "model") == 0) {
+    } else if (type[0] == 'p' && strcmp(type, "point") == 0) {
+        osgEarth::Drivers::OGRFeatureOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *name = Tcl_GetString(objv[5]);
+        opts.url() = url;
+
+        osgEarth::Symbology::Style style;
+        osgEarth::Symbology::PointSymbol *ls = style.getOrCreateSymbol<osgEarth::Symbology::PointSymbol>();
+        ls->fill()->color() = osgEarth::Symbology::Color::Black;
+        ls->size() = 2.0f;
+
+        osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
+        rs->depthOffset()->enabled() = true;
+        rs->depthOffset()->minBias() = 1000;
+
+        osgEarth::Drivers::FeatureGeomModelOptions geomOpts;
+        geomOpts.featureOptions() = opts;
+        geomOpts.styles() = new osgEarth::Symbology::StyleSheet();
+        geomOpts.styles()->addStyle(style);
+        geomOpts.enableLighting() = false;
+        g_renderer->addModelLayer(name, geomOpts);
+    } else if (type[0] == 'p' && strcmp(type, "polygon") == 0) {
+        osgEarth::Drivers::OGRFeatureOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *name = Tcl_GetString(objv[5]);
+        opts.url() = url;
+
+        osgEarth::Symbology::Style style;
+        osgEarth::Symbology::PolygonSymbol *ls = style.getOrCreateSymbol<osgEarth::Symbology::PolygonSymbol>();
+        ls->fill()->color() = osgEarth::Symbology::Color::White;
+
+        osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
+        rs->depthOffset()->enabled() = true;
+        rs->depthOffset()->minBias() = 1000;
+
+        osgEarth::Drivers::FeatureGeomModelOptions geomOpts;
+        geomOpts.featureOptions() = opts;
+        geomOpts.styles() = new osgEarth::Symbology::StyleSheet();
+        geomOpts.styles()->addStyle(style);
+        geomOpts.enableLighting() = false;
+        g_renderer->addModelLayer(name, geomOpts);
+    } else if (type[0] == 'l' && strcmp(type, "line") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
         char *url =  Tcl_GetString(objv[4]);
         char *name = Tcl_GetString(objv[5]);
@@ -416,6 +633,28 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         osgEarth::Symbology::LineSymbol *ls = style.getOrCreateSymbol<osgEarth::Symbology::LineSymbol>();
         ls->stroke()->color() = osgEarth::Symbology::Color::Black;
         ls->stroke()->width() = 2.0f;
+
+        osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
+        rs->depthOffset()->enabled() = true;
+        rs->depthOffset()->minBias() = 1000;
+
+        osgEarth::Drivers::FeatureGeomModelOptions geomOpts;
+        geomOpts.featureOptions() = opts;
+        geomOpts.styles() = new osgEarth::Symbology::StyleSheet();
+        geomOpts.styles()->addStyle(style);
+        geomOpts.enableLighting() = false;
+        g_renderer->addModelLayer(name, geomOpts);
+   } else if (type[0] == 't' && strcmp(type, "text") == 0) {
+        osgEarth::Drivers::OGRFeatureOptions opts;
+        char *url =  Tcl_GetString(objv[4]);
+        char *name = Tcl_GetString(objv[5]);
+        opts.url() = url;
+
+        osgEarth::Symbology::Style style;
+        osgEarth::Symbology::TextSymbol *ts = style.getOrCreateSymbol<osgEarth::Symbology::TextSymbol>();
+        ts->halo()->color() = osgEarth::Symbology::Color::White;
+        ts->halo()->width() = 2.0f;
+        ts->fill()->color() = osgEarth::Symbology::Color::Black;
 
         osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
         rs->depthOffset()->enabled() = true;
@@ -510,7 +749,7 @@ MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapLayerOps[] = {
-    {"add",     1, MapLayerAddOp,       6, 6, "type url name"},
+    {"add",     1, MapLayerAddOp,       6, 9, "type url ?args? name"},
     {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
     {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
     {"opacity", 1, MapLayerOpacityOp,   5, 5, "opacity ?name?"},
@@ -583,24 +822,74 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
         type = osgEarth::MapOptions::CSTYPE_PROJECTED;
     } else {
         Tcl_AppendResult(interp, "bad map type \"", typeStr,
-                         "\": must be geocentric, geocentric_cube or projected", (char*)NULL);
+                         "\": must be geocentric or projected", (char*)NULL);
         return TCL_ERROR;
     }
 
-    char *profile = NULL;
-    if (objc > 3) {
-        profile = Tcl_GetString(objv[3]);
-    }
+    if (type == osgEarth::MapOptions::CSTYPE_PROJECTED) {
+        if (objc < 4) {
+            Tcl_AppendResult(interp, "wrong # arguments: profile required for projected maps", (char*)NULL);
+            return TCL_ERROR;
+        }
+        char *profile = Tcl_GetString(objv[3]);
+        if (objc > 4) {
+            if (objc < 8) {
+                Tcl_AppendResult(interp, "wrong # arguments: 4 bounds arguments required", (char*)NULL);
+                return TCL_ERROR;
+            }
+            double bounds[4];
+            for (int i = 0; i < 4; i++) {
+                if (Tcl_GetDoubleFromObj(interp, objv[4+i], &bounds[i]) != TCL_OK) {
+                    return TCL_ERROR;
+                }
+            }
+            // Check if min > max
+            if (bounds[0] > bounds[2] ||
+                bounds[1] > bounds[3]) {
+                Tcl_AppendResult(interp, "invalid bounds", (char*)NULL);
+                return TCL_ERROR;
+            }
+            if (strcmp(profile, "geodetic") == 0 ||
+                strcmp(profile, "epsg:4326") == 0 ) {
+                if (bounds[0] < -180. || bounds[0] > 180. ||
+                    bounds[2] < -180. || bounds[2] > 180. ||
+                    bounds[1] < -90. || bounds[1] > 90. ||
+                    bounds[3] < -90. || bounds[3] > 90.) {
+                    Tcl_AppendResult(interp, "invalid bounds", (char*)NULL);
+                    return TCL_ERROR;
+                }
+            } else if (strcmp(profile, "spherical-mercator") == 0 ||
+                       strcmp(profile, "epsg:900913") == 0 ||
+                       strcmp(profile, "epsg:3857") == 0) {
+                for (int i = 0; i < 4; i++) {
+                    if (bounds[i] < -20037508.34 || bounds[i] > 20037508.34) {
+                        Tcl_AppendResult(interp, "invalid bounds", (char*)NULL);
+                        return TCL_ERROR;
+                    }
+                }
+            }
 
-    g_renderer->resetMap(type, profile);
+            g_renderer->resetMap(type, profile, bounds);
+        } else {
+            if (osgEarth::Registry::instance()->getNamedProfile(profile) == NULL) {
+                Tcl_AppendResult(interp, "bad named profile \"", profile,
+                                 "\": must be e.g. 'global-geodetic', 'global-mercator'...", (char*)NULL);
+                return TCL_ERROR;
+            }
+            g_renderer->resetMap(type, profile);
+        }
+    } else {
+        // No profile required for geocentric (3D) maps
+        g_renderer->resetMap(type);
+    }
 
     return TCL_OK;
 }
 
 static CmdSpec mapOps[] = {
-    {"layer",    2, MapLayerOp,       3, 6, "op ?params...?"},
+    {"layer",    2, MapLayerOp,       3, 9, "op ?params...?"},
     {"load",     2, MapLoadOp,        4, 5, "options"},
-    {"reset",    1, MapResetOp,       3, 4, "type ?profile?"},
+    {"reset",    1, MapResetOp,       3, 8, "type ?profile xmin ymin xmax ymax?"},
 };
 static int nMapOps = NumCmdSpecs(mapOps);
 
@@ -912,7 +1201,7 @@ GeoVis::processCommands(Tcl_Interp *interp,
         TRACE("Blocking on select()");
     }
     while (inBufPtr->isLineAvailable() || 
-           (select(inBufPtr->file()+1, &readFds, NULL, NULL, tvPtr) > 0)) {
+           (ret = select(inBufPtr->file()+1, &readFds, NULL, NULL, tvPtr)) > 0) {
         size_t numBytes;
         unsigned char *buffer;
 
@@ -1020,6 +1309,7 @@ GeoVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_MakeSafe(interp);
     Tcl_CreateObjCommand(interp, "camera",         CameraCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "clientinfo",     ClientInfoCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "colormap",       ColorMapCmd,       clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",       ImageFlushCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "key",            KeyCmd,            clientData, NULL);
     Tcl_CreateObjCommand(interp, "map",            MapCmd,            clientData, NULL);
@@ -1035,6 +1325,7 @@ void GeoVis::exitTcl(Tcl_Interp *interp)
 {
     Tcl_DeleteCommand(interp, "camera");
     Tcl_DeleteCommand(interp, "clientinfo");
+    Tcl_DeleteCommand(interp, "colormap");
     Tcl_DeleteCommand(interp, "imgflush");
     Tcl_DeleteCommand(interp, "key");
     Tcl_DeleteCommand(interp, "map");
