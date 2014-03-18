@@ -83,7 +83,7 @@ map layer add polygon <url> <layerName>
 map layer add line <url> <layerName>
     Add a line feature layer from a file or URL
 map layer add text <url> <layerName>
-    Add a GDAL image layer from a file or URL
+    Add a text symbol layer from a file or URL
 
 map layer delete <layerName>
 map layer opacity <opacity> <layerName>
