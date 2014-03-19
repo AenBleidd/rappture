@@ -1716,6 +1716,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     set tag $dataobj
     set type [$dataobj type]
     set color [$dataobj hints color]
+    set style [$dataobj hints style]
     if { $dataobj != $_first } {
         set settings(-wireframe) 1
     }
@@ -1731,14 +1732,14 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
         -visible 1
         -wireframe 0
     }
-    # array set settings $style
-    if {$color != ""} {
-        set settings(-color) $color
-    }
     if {$type == "cloud"} {
         set settings(-cloudstyle) points
         set settings(-edges) 0
         set settings(-edgecolor) white
+    }
+    array set settings $style
+    if {$color != ""} {
+        set settings(-color) $color
     }
     SendCmd "polydata add $tag"
     SendCmd "polydata visible $settings(-visible) $tag"

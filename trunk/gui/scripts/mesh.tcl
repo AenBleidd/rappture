@@ -28,6 +28,7 @@ itcl::class Rappture::Mesh {
     private variable _type "";		# Indicates the type of mesh.
     private variable _axis2units;	# System of units for x, y, z
     private variable _axis2labels;      # 
+    private variable _hints 
     private variable _limits        ;	# Array of mesh limits. Keys are 
 					# xmin, xmax, ymin, ymax, ...
     private variable _numPoints 0   ;	# # of points in mesh
@@ -75,6 +76,7 @@ itcl::class Rappture::Mesh {
     private method GetDimension { path } 
     private method GetDouble { path } 
     private method GetInt { path } 
+    private method InitHints {} 
     private method ReadGrid { path }
     private method ReadUnstructuredGrid { path }
     private method ReadVtk { path }
@@ -211,6 +213,7 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
         set result [ReadNodesElements $path]
     }
     set _isValid $result
+    InitHints
 }
 
 # ----------------------------------------------------------------------
@@ -387,20 +390,35 @@ itcl::body Rappture::Mesh::limits {axis} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::hints {{keyword ""}} {
-    foreach key {label color units} {
-        set str [$_mesh get $key]
-        if {"" != $str} {
-            set hints($key) $str
-        }
-    }
-
     if {$keyword != ""} {
-        if {[info exists hints($keyword)]} {
-            return $hints($keyword)
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
         }
         return ""
     }
-    return [array get hints]
+    return [array get _hints]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: InitHints
+#
+# Returns a list of key/value pairs for various hints about plotting
+# this mesh.  If a particular <keyword> is specified, then it returns
+# the hint for that <keyword>, if it exists.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Mesh::InitHints {} {
+    foreach {key path} {
+        camera       camera.position
+        color        about.color
+        label        about.label
+        style        about.style
+        units        units
+    } {
+        set str [$_mesh get $path]
+        if {"" != $str} {
+            set _hints($key) $str
+        }
+    }
 }
 
 itcl::body Rappture::Mesh::GetDimension { path } {
