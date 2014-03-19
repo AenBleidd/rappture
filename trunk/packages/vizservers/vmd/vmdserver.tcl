@@ -40,6 +40,29 @@ set DisplaySize(h) 300
 display resize $DisplaySize(w) $DisplaySize(h)
 set DisplaySize(changed) 0
 
+# capture initial display settings for later reset
+display antialias on
+
+set DisplayProps(options) ""
+foreach key {
+    ambientocclusion antialias aoambient aodirect
+    backgroundgradient
+    culling cuestart cueend cuedensity cuemode
+    depthcue distance
+    eyesep
+    farclip focallength
+    height
+    nearclip
+    projection
+    shadows stereo
+} {
+    if {$key eq "nearclip" || $key eq "farclip"} {
+        append DisplayProps(options) [list display $key set [display get $key]] "\n"
+    } else {
+        append DisplayProps(options) [list display $key [display get $key]] "\n"
+    }
+}
+
 # initialize work queue and epoch counter (see server_send_image)
 set Epoch 0
 set Work(queue) ""
@@ -53,7 +76,6 @@ foreach cmd {
   vmdbench
   color
   axes
-  display
   imd
   vmdcollab
   vmd_label
@@ -87,6 +109,23 @@ foreach cmd {
 } {
     $parser alias $cmd $cmd
 }
+
+# ----------------------------------------------------------------------
+# USAGE: display option ?arg arg...?
+#
+# Executes the "command arg arg..." string in the server and substitutes
+# the result into the template string in place of each "%v" field.
+# Sends the result back to the client.
+# ----------------------------------------------------------------------
+proc cmd_display {args} {
+    set option [lindex $args 0]
+    if {[lsearch {resize reposition rendermode update fps} $option] >= 0} {
+        # ignore these commands -- they cause trouble
+        return ""
+    }
+    eval display $args
+}
+$parser alias display cmd_display
 
 # ----------------------------------------------------------------------
 # USAGE: tellme "command template with %v" command arg arg...
@@ -261,12 +300,17 @@ proc cmd_load {args} {
         mol $op $file waitfor all
         set op "addfile"
     }
+
+    # BE CAREFUL -- force a "display update" here
+    # that triggers something in VMD that changes view matrices now,
+    # so if we change them later, the new values stick
+    display update
 }
 $parser alias load cmd_load
 
 # ----------------------------------------------------------------------
 # USAGE: scene define <name> <script>
-# USAGE: scene show <name> ?-send <initialViewCmd>?
+# USAGE: scene show <name> ?-before <viewCmd>? ?-after <viewCmd>?
 # USAGE: scene clear
 # USAGE: scene forget ?<name> <name>...?
 #
@@ -292,27 +336,38 @@ proc cmd_scene {option args} {
             set Scenes($name) $script
         }
         show {
-            if {[llength $args] < 1 || [llength $args] > 3} {
-                error "wrong # args: should be \"scene show name ?-send cmd?\""
+            if {[llength $args] < 1 || [llength $args] > 5} {
+                error "wrong # args: should be \"scene show name ?-before cmd? ?-after cmd?\""
             }
             set name [lindex $args 0]
             if {![info exists Scenes($name)]} {
                 error "bad scene name \"$name\": should be one of [join [array names Scenes] {, }]"
             }
 
-            set sendcmd ""
+            set triggers(before) ""
+            set triggers(after) ""
             foreach {key val} [lrange $args 1 end] {
                 switch -- $key {
-                    -send { set sendcmd $val }
-                    default { error "bad option \"$key\": should be -send" }
+                    -before { set triggers(before) $val }
+                    -after { set triggers(after) $val }
+                    default { error "bad option \"$key\": should be -before, -after" }
                 }
+            }
+
+            # if -before arg was given, send back the view right now
+            if {$triggers(before) ne "" && $Scenes(@CURRENT) ne ""} {
+                cmd_tellme $triggers(before) getview
             }
 
             # clear the old scene
             cmd_scene clear
+            display resetview
 
             # use a safe interp to keep things safe
-            display resetview
+            foreach val [$parser eval {info vars}] {
+                # clear all variables created by previous scripts
+                $parser eval [list catch [list unset $val]]
+            }
             if {[catch {$parser eval $Scenes($name)} result]} {
                 error "$result\nwhile loading scene \"$name\""
             }
@@ -332,9 +387,9 @@ proc cmd_scene {option args} {
             # store the scene name for later
             set Scenes(@CURRENT) $name
 
-            # if -send arg was given, send back the view after the script
-            if {$sendcmd ne ""} {
-                cmd_tellme $sendcmd getview
+            # if -after arg was given, send back the view after the script
+            if {$triggers(after) ne ""} {
+                cmd_tellme $triggers(after) getview
             }
         }
         clear {
@@ -350,7 +405,7 @@ proc cmd_scene {option args} {
             # reset the server properties
             axes location off
             color Display Background black
-            display backgroundgradient off
+            eval $DisplayProps(options)
         }
         forget {
             if {[llength $args] == 0} {
@@ -604,8 +659,17 @@ proc server_safe_resize {w h} {
 # SERVER CORE
 # ----------------------------------------------------------------------
 proc server_accept {cid addr port} {
+    global env
+
     fileevent $cid readable [list server_handle $cid $cid]
     fconfigure $cid -buffering none -blocking 0
+
+    if {[info exists env(LOCAL)]} {
+        # identify server type to this client
+        # VMD on the hub has this built in, but stock versions can
+        # set the environment variable as a work-around
+        puts $cid "vmd 0.1"
+    }
 }
 
 proc server_handle {cin cout} {
@@ -614,7 +678,9 @@ proc server_handle {cin cout} {
     if {[gets $cin line] < 0} {
         # when client drops connection, we can exit
         # nanoscale will spawn a new server next time we need it
-        server_exit $cin $cout
+        if {[eof $cin]} {
+            server_exit $cin $cout
+        }
     } else {
         append buffer($cin) $line "\n"
         if {[info complete $buffer($cin)]} {
@@ -644,7 +710,7 @@ proc server_send {cout} {
         set Sendqueue [lrange $Sendqueue 1 end]
 
         catch {unset data}; array set data $chunk
-        if {$data(epoch) == $Epoch} {
+        if {$data(epoch) < 0 || $data(epoch) == $Epoch} {
             catch {puts $cout $data(cmd)}
 
             # if this command has a binary data block, send it specially
@@ -716,7 +782,7 @@ proc server_send_image {{when -now}} {
         } elseif {[info exists item(rotate)]} {
             molinfo top set rotate_matrix [list $item(rotate)]
             # send rotation matrix back to the client so we can pause later
-            server_send_result $client [list nv>rotatemtx $item(num) $item(rotate)]
+            server_send_latest $client [list nv>rotatemtx $item(num) $item(rotate)]
         } else {
             puts "ERROR: bad work frame: [array get item]"
         }
@@ -736,7 +802,7 @@ proc server_send_image {{when -now}} {
     tkrender SnapShot
 
     set data [SnapShot data -format PPM]
-    server_send_result $client "nv>image epoch $item(epoch) frame $item(num) length [string length $data]" $data
+    server_send_latest $client "nv>image epoch $item(epoch) frame $item(num) length [string length $data]" $data
 
     # if there's more work in the queue, try again later
     if {[llength $Work(queue)] > 0} {
@@ -745,6 +811,15 @@ proc server_send_image {{when -now}} {
 }
 
 proc server_send_result {cout cmd {data ""}} {
+    global Sendqueue
+
+    # add this result to the output queue
+    # use the epoch -1 to force the send even if the epoch has changed
+    lappend Sendqueue [list epoch -1 cmd $cmd bytes $data]
+    fileevent $cout writable [list server_send $cout]
+}
+
+proc server_send_latest {cout cmd {data ""}} {
     global Epoch Sendqueue
 
     # add this result to the output queue
