@@ -444,7 +444,6 @@ itcl::body Rappture::Field::limits {which} {
                 }
 
                 set vname [lindex $_comp2xy($cname) $pos]
-                $vname variable vec
 
                 if {$log} {
                     # on a log scale, use abs value and ignore 0's
@@ -456,8 +455,8 @@ itcl::body Rappture::Field::limits {which} {
                     set axisMin [blt::vector expr min(tmp)]
                     set axisMax [blt::vector expr max(tmp)]
                 } else {
-                    set axisMin $vec(min)
-                    set axisMax $vec(max)
+                    set axisMin [$vname min]
+                    set axisMax [$vname max]
                 }
 
                 if {"" == $min} {
