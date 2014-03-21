@@ -12,9 +12,13 @@
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
+#include <vtkRectilinearGrid.h>
+#include <vtkStructuredGrid.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
 #include <vtkImageData.h>
+#include <vtkProbeFilter.h>
+#include <vtkGaussianSplatter.h>
 #include <vtkLookupTable.h>
 #include <vtkTransform.h>
 #include <vtkExtractVOI.h>
@@ -28,6 +32,7 @@ using namespace VtkVis;
 
 ImageCutplane::ImageCutplane() :
     GraphicsObject(),
+    _pipelineInitialized(false),
     _colorMap(NULL),
     _renderer(NULL)
 {
@@ -146,16 +151,19 @@ void ImageCutplane::update()
         return;
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
-    vtkImageData *imgData = vtkImageData::SafeDownCast(ds);
 
-    if (imgData == NULL) {
-        ERROR("DataSet is not an image.");
+    if (_dataSet->is2D()) {
+        USER_ERROR("Image cutplane requires a 3D data set");
+        _dataSet = NULL;
         return;
     }
-    if (ds->GetPointData()->GetScalars() == NULL) {
-        ERROR("No scalar field");
+
+    if (ds->GetPointData() == NULL ||
+        ds->GetPointData()->GetScalars() == NULL) {
+        USER_ERROR("No scalar field was found in the data set");
         return;
     }
+
     double bounds[6];
     _dataSet->getBounds(bounds);
     // Mapper, actor to render color-mapped data set
@@ -187,7 +195,91 @@ void ImageCutplane::update()
         if (_mapper[i] == NULL) {
             _mapper[i] = vtkSmartPointer<vtkImageResliceMapper>::New();
             _mapper[i]->SetSlicePlane(_cutPlane[i]);
-            _mapper[i]->SetInputData(imgData);
+        }
+    }
+
+    if (!_pipelineInitialized) {
+        vtkImageData *imgData = vtkImageData::SafeDownCast(ds);
+        if (imgData == NULL) {
+            // Need to resample to ImageData
+            if (_dataSet->isCloud()) {
+                // DataSet is a 3D point cloud
+                vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+#ifdef USE_VTK6
+                splatter->SetInputData(ds);
+#else
+                splatter->SetInput(ds);
+#endif
+                int dims[3];
+                dims[0] = dims[1] = dims[2] = 64;
+                if (vtkStructuredGrid::SafeDownCast(ds) != NULL) {
+                    vtkStructuredGrid::SafeDownCast(ds)->GetDimensions(dims);
+                } else if (vtkRectilinearGrid::SafeDownCast(ds) != NULL) {
+                    vtkRectilinearGrid::SafeDownCast(ds)->GetDimensions(dims);
+                }
+                TRACE("Generating volume with dims (%d,%d,%d) from %d points",
+                      dims[0], dims[1], dims[2], ds->GetNumberOfPoints());
+                splatter->SetSampleDimensions(dims);
+                splatter->Update();
+
+                TRACE("Done generating volume");
+
+                for (int i = 0; i < 3; i++) {
+                    _mapper[i]->SetInputConnection(splatter->GetOutputPort());
+                }
+            } else {
+                // (Slow) Resample using ProbeFilter
+                double xLen = bounds[1] - bounds[0];
+                double yLen = bounds[3] - bounds[2];
+                double zLen = bounds[5] - bounds[4];
+
+                int dims[3];
+                dims[0] = dims[1] = dims[2] = 64;
+                if (xLen == 0.0) dims[0] = 1;
+                if (yLen == 0.0) dims[1] = 1;
+                if (zLen == 0.0) dims[2] = 1;
+                if (vtkStructuredGrid::SafeDownCast(ds) != NULL) {
+                    vtkStructuredGrid::SafeDownCast(ds)->GetDimensions(dims);
+                } else if (vtkRectilinearGrid::SafeDownCast(ds) != NULL) {
+                    vtkRectilinearGrid::SafeDownCast(ds)->GetDimensions(dims);
+                }
+                TRACE("Generating volume with dims (%d,%d,%d) from %d points",
+                      dims[0], dims[1], dims[2], ds->GetNumberOfPoints());
+
+                double xSpacing = (dims[0] == 1 ? 0.0 : xLen/((double)(dims[0]-1)));
+                double ySpacing = (dims[1] == 1 ? 0.0 : yLen/((double)(dims[1]-1)));
+                double zSpacing = (dims[2] == 1 ? 0.0 : zLen/((double)(dims[2]-1)));
+
+                vtkSmartPointer<vtkImageData> resampleGrid = vtkSmartPointer<vtkImageData>::New();
+                resampleGrid->SetDimensions(dims[0], dims[1], dims[2]);
+                resampleGrid->SetOrigin(bounds[0], bounds[2], bounds[4]);
+                resampleGrid->SetSpacing(xSpacing, ySpacing, zSpacing); 
+
+                vtkSmartPointer<vtkProbeFilter> probe = vtkSmartPointer<vtkProbeFilter>::New();
+#ifdef USE_VTK6
+                probe->SetInputData(resampleGrid);
+                probe->SetSourceData(ds);
+#else
+                probe->SetInput(resampleGrid);
+                probe->SetSource(ds);
+#endif
+                probe->Update();
+
+                TRACE("Done generating volume");
+
+                for (int i = 0; i < 3; i++) {
+                    _mapper[i]->SetInputConnection(probe->GetOutputPort());
+                }
+            }
+        } else {
+            // Have ImageData
+            for (int i = 0; i < 3; i++) {
+#ifdef USE_VTK6
+                _mapper[i]->SetInputData(imgData);
+#else
+                _mapper[i]->SetInput(imgData);
+#endif
+            }
         }
     }
 
@@ -227,6 +319,8 @@ void ImageCutplane::update()
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
     }
+
+    _pipelineInitialized = true;
 
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] != NULL) {
