@@ -75,6 +75,7 @@ void Image::update()
     if (mapper == NULL) {
         TRACE("Creating mapper");
         vtkSmartPointer<vtkImageResliceMapper> newMapper = vtkSmartPointer<vtkImageResliceMapper>::New();
+        newMapper->AutoAdjustImageQualityOff();
         getImageSlice()->SetMapper(newMapper);
         mapper = getImageMapper();
         assert(mapper != NULL);

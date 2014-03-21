@@ -88,6 +88,15 @@ public:
         }
     }
 
+    void setJumpToNearestSlice(bool state)
+    {
+        vtkImageMapper3D *mapper = getImageMapper();
+        vtkImageResliceMapper *resliceMapper = vtkImageResliceMapper::SafeDownCast(mapper);
+        if (resliceMapper != NULL) {
+            resliceMapper->SetJumpToNearestSlice(state ? 1 : 0);
+        }
+    }
+
     void setExtents(int extent[6])
     {
         vtkImageActor *actor = getImageActor();
