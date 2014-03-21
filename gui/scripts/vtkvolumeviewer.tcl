@@ -176,6 +176,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _cutplaneCmd "imgcutplane"
+    private variable _allowMultiComponent 0
     private variable _activeVolumes;   # Array of volumes that are active.
 }
 
@@ -1092,7 +1093,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                 foreach { label units components } \
                     [$_first fieldinfo $fname] break
                 # Only scalar fields are valid
-                if {$components == 1} {
+                if {$_allowMultiComponent || $components == 1} {
                     $itk_component(field) choices insert end "$fname" "$label"
                     $itk_component(fieldmenu) add radiobutton -label "$label" \
                         -value $label -variable [itcl::scope _curFldLabel] \
@@ -1578,7 +1579,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set _settings(${what}) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
-                if { $components > 1 } {
+                if { !$_allowMultiComponent && $components > 1 } {
                     puts stderr "Can't use a vector field in a volume"
                     return
                 }
