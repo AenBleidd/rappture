@@ -428,11 +428,11 @@ itcl::body Rappture::Mesh::GetDimension { path } {
         return 0
     }
     if { [scan $string "%d" _dim] == 1 } {
-        if { $_dim == 2 || $_dim == 3 } {
+        if { $_dim == 1 || $_dim == 2 || $_dim == 3 } {
             return 1
         }
     }
-    puts stderr "WARNING: bad <dim> tag value \"$string\": should be 2 or 3."
+    puts stderr "WARNING: bad <dim> tag value \"$string\": should be 1, 2 or 3."
     return 0
 }
 
@@ -531,17 +531,13 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             puts stderr "WARNING: bad grid \"$path\": can't mix curvilinear and rectilinear grids."
             return 0
         }
-        if { $numCurvilinear < 2 } {
-            puts stderr "WARNING: bad grid \"$path\": curvilinear grid must be 2D or 3D."
-            return 0
-        }
         set points [$_xmlobj get $path.grid.points]
         if { $points == "" } {
             puts stderr "WARNING: bad grid \"$path\": no <points> found."
             return 0
         }
-	if { ![info exists xNum] || ![info exists yNum] } {
-            puts stderr "WARNING: bad grid \"$path\": invalid dimensions for curvilinear grid: missing <xdim> or <ydim> from grid description."
+	if { ![info exists xNum] } {
+            puts stderr "WARNING: bad grid \"$path\": invalid dimensions for curvilinear grid: missing <xdim> from grid description."
             return 0
         }
         set all [blt::vector create \#auto]
@@ -554,7 +550,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             set _dim 3
 	    set _numPoints [expr $xNum * $yNum * $zNum]
             if { ($_numPoints*3) != $numCoords } {
-                puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim>"
+                puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
                 return 0
             }
             if { ($numCoords % 3) != 0 } {
@@ -572,11 +568,11 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             append out [$all range 0 end]
             append out "\n"
 	    set _vtkdata $out
-        } else {
+        } elseif { [info exists yNum] } {
             set _dim 2
 	    set _numPoints [expr $xNum * $yNum]
             if { ($_numPoints*2) != $numCoords } {
-                puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
+                puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim>"
                 return 0
             }
             if { ($numCoords % 2) != 0 } {
@@ -596,6 +592,25 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             append out [$all range 0 end]
             append out "\n"
 	    set _vtkdata $out
+        } else {
+            set _dim 1
+            set _numPoints $xNum
+            if { $_numPoints != $numCoords } {
+                puts stderr "WARNING: bad grid \"$path\": \# of points does not match <xdim>"
+                return 0
+            }
+            set _limits(x) [$xv limits]
+            set _limits(y) [list 0 0]
+            set _limits(z) [list 0 0]
+            $yv seq 0 0 [$xv length]
+            $zv seq 0 0 [$xv length]
+            $all merge $xv $yv $zv
+	    append out "DATASET STRUCTURED_GRID\n"
+	    append out "DIMENSIONS $xNum 1 1\n"
+	    append out "POINTS $_numPoints double\n"
+            append out [$all range 0 end]
+            append out "\n"
+	    set _vtkdata $out
 	}
         blt::vector destroy $all $xv $yv $zv
 	return 1
@@ -603,7 +618,18 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     if { $numRectilinear == 0 && $numUniform > 0} {
 	# This is the special case where all axes 2D/3D are uniform.  
         # This results in a STRUCTURED_POINTS
-	if { $_dim == 2 } {
+        if { $_dim == 1 } {
+            set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
+	    set _numPoints $xNum
+	    append out "DATASET STRUCTURED_POINTS\n"
+	    append out "DIMENSIONS $xNum 1 1\n"
+	    append out "ORIGIN $xMin 0 0\n"
+	    append out "SPACING $xSpace 0 0\n"
+	    set _vtkdata $out
+            set _limits(x) [list $xMin $xMax]
+            set _limits(y) [list 0 0]
+            set _limits(z) [list 0 0]
+	} elseif { $_dim == 2 } {
 	    set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
 	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
 	    set _numPoints [expr $xNum * $yNum]
@@ -646,13 +672,17 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	set xNum [$xv length]
     }
     set yv [blt::vector create \#auto]
-    if { [info exists yMin] } {
-	$yv seq $yMin $yMax $yNum
+    if { $_dim > 1 } {
+        if { [info exists yMin] } {
+            $yv seq $yMin $yMax $yNum
+        } else {
+            $yv set [$_xmlobj get $path.grid.ycoords]
+            set yMin [$yv min]
+            set yMax [$yv max]
+            set yNum [$yv length]
+        }
     } else {
-	$yv set [$_xmlobj get $path.grid.ycoords]
-	set yMin [$yv min]
-	set yMax [$yv max]
-	set yNum [$yv length]
+        set yNum 1
     }
     set zv [blt::vector create \#auto]
     if { $_dim == 3 } {
@@ -705,6 +735,23 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	}
         set _limits(z) [list 0 0]
 	set _vtkdata $out
+    } elseif { $_dim == 1 } {
+        set _numPoints $xNum
+	append out "DATASET RECTILINEAR_GRID\n"
+	append out "DIMENSIONS $xNum 1 1\n"
+	append out "X_COORDINATES $xNum double\n"
+	append out [$xv range 0 end]
+	append out "\n"
+	append out "Y_COORDINATES 1 double\n"
+	append out "0\n"
+	append out "Z_COORDINATES 1 double\n"
+	append out "0\n"
+        if { [info exists xMin] } {
+            set _limits(x) [list $xMin $xMax]
+        }
+        set _limits(y) [list 0 0]
+        set _limits(z) [list 0 0]
+	set _vtkdata $out
     } else {
 	puts stderr "WARNING: bad grid \"$path\": invalid dimension \"$_dim\""
         return 0
@@ -723,7 +770,11 @@ itcl::body Rappture::Mesh::WritePointCloud { path xv yv zv } {
     }
     set _vtkdata $out
     set _limits(x) [$xv limits]
-    set _limits(y) [$yv limits]
+    if { $_dim > 1 } {
+        set _limits(y) [$yv limits]
+    } else {
+        set _limits(y) [list 0 0]
+    }
     if { $_dim == 3 } {
         set _limits(z) [$zv limits]
     } else {
@@ -913,83 +964,49 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
     if { $numCellTypes == 1 } {
         set celltype [GetCellType $celltypes]
     }
-    if { $_dim == 2 } {
-	set _numPoints [$xv length]
-	set data {}
-        set count 0
-        set _numCells 0
-        set celltypes {}
-	foreach line $lines {
-            set length [llength $line]
-	    if { $length == 0 } {
-		continue
-	    }
-            if { $numCellTypes > 1 } {
-                set cellType [GetCellType [lindex $cellTypes $_numCells]]
-            }
-            set numIndices [GetNumIndices $celltype]
-            if { $numIndices > 0 && $numIndices != $length } {
-                puts stderr "WARNING: bad unstructured grid \"$path\": wrong \# of indices specified for celltype $celltype on line \"$line\""
-                return 0
-            }
-	    append data " $numIndices $line\n"
-            lappend celltypes $celltype
-            incr count $length;         # Include the indices
-            incr count;                 # and the number of indices
-            incr _numCells
-	}
-	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints double\n"
-        set all [blt::vector create \#auto]
-	$all merge $xv $yv $zv
-        append out [$all range 0 end]
-        blt::vector destroy $all
-	append out "CELLS $_numCells $count\n"
-	append out $data
-	append out "CELL_TYPES $_numCells\n"
-	append out $celltypes
-	set _limits(x) [$xv limits]
-	set _limits(y) [$yv limits]
+
+    set _numPoints [$xv length]
+    set data {}
+    set count 0
+    set _numCells 0
+    set celltypes {}
+    foreach line $lines {
+        set length [llength $line]
+        if { $length == 0 } {
+            continue
+        }
+        if { $numCellTypes > 1 } {
+            set cellType [GetCellType [lindex $cellTypes $_numCells]]
+        }
+        set numIndices [GetNumIndices $celltype]
+        if { $numIndices > 0 && $numIndices != $length } {
+            puts stderr "WARNING: bad unstructured grid \"$path\": wrong \# of indices specified for celltype $celltype on line \"$line\""
+            return 0
+        }
+        append data " $numIndices $line\n"
+        lappend celltypes $celltype
+        incr count $length;         # Include the indices
+        incr count;                 # and the number of indices
+        incr _numCells
+    }
+    append out "DATASET UNSTRUCTURED_GRID\n"
+    append out "POINTS $_numPoints double\n"
+    set all [blt::vector create \#auto]
+    $all merge $xv $yv $zv
+    append out [$all range 0 end]
+    blt::vector destroy $all
+    append out "CELLS $_numCells $count\n"
+    append out $data
+    append out "CELL_TYPES $_numCells\n"
+    append out $celltypes
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim < 3 } {
         set _limits(z) [list 0 0]
     } else {
-	set _numPoints [$xv length]
-
-	set data {}
-        set count 0
-        set _numCells 0
-	foreach line $lines {
-            set length [llength $line]
-	    if { $length == 0 } {
-		continue
-	    }
-            if { $numCellTypes > 1 } {
-                set cellType [GetCellType [lindex $cellTypes $_numCells]]
-            }
-            set numIndices [GetNumIndices $celltype]
-            if { $numIndices > 0 && $numIndices != $length } {
-                puts stderr "WARNING: bad unstructured grid \"$path\": wrong \# of indices specified for celltype $celltype on line \"$line\""
-                return 0
-            }
-	    append data " $length $line\n"
-            incr count $length
-            incr count
-            incr _numCells
-	}
-	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints double\n"
-        set all [blt::vector create \#auto]
-        $all merge $xv $yv $zv
-        append out [$all range 0 end]
-        blt::vector destroy $all
-        append out "\n"
-	append out "CELLS $_numCells $count\n"
-	append out $data
-	append out "CELL_TYPES $_numCells\n"
-	append out $celltypes
-	set _limits(x) [$xv limits]
-	set _limits(y) [$yv limits]
-	set _limits(z) [$zv limits]
+        set _limits(z) [$zv limits]
     }
+
     set _vtkdata $out
     return 1
 }
@@ -1029,7 +1046,43 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     # Step 2: Allow points to be specified as <points> or 
     #         <xcoords>, <ycoords>, <zcoords>.  Split and convert into
     #         3 vectors, one for each coordinate.
-    if { $_dim == 2 } {
+    if { $_dim == 1 } {
+        set xcoords [$_xmlobj get $path.unstructured.xcoords]
+        set ycoords [$_xmlobj get $path.unstructured.ycoords]
+        set zcoords [$_xmlobj get $path.unstructured.zcoords]
+        set data    [$_xmlobj get $path.unstructured.points]
+        if { $ycoords != "" } {
+            put stderr "can't specify <ycoords> with a 1D mesh"
+            return 0
+        }
+        if { $zcoords != "" } {
+            put stderr "can't specify <zcoords> with a 1D mesh"
+            return 0
+        }
+        if { $xcoords != "" } {
+            set xv [blt::vector create \#auto]
+            $xv set $xcoords
+        } elseif { $data != "" } {
+            Rappture::ReadPoints $data dim points
+            if { $points == "" } {
+                puts stderr "WARNING: bad unstructured grid \"$path\": no <points> found."
+                return 0
+            }
+            if { $dim != 1 } {
+                puts stderr "WARNING: bad unstructured grid \"$path\": \# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
+                return 0
+            }
+            set xv [blt::vector create \#auto]
+            $xv set $points
+        } else {
+            puts stderr "WARNING: bad unstructured grid \"$path\": no points specified."
+            return 0
+        }
+        set yv [blt::vector create \#auto]
+        set zv [blt::vector create \#auto]
+        $yv seq 0 0 [$xv length];       # Make an all zeroes vector.
+        $zv seq 0 0 [$xv length];       # Make an all zeroes vector.
+    } elseif { $_dim == 2 } {
         set xcoords [$_xmlobj get $path.unstructured.xcoords]
         set ycoords [$_xmlobj get $path.unstructured.ycoords]
         set zcoords [$_xmlobj get $path.unstructured.zcoords]
