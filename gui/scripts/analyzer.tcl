@@ -802,7 +802,7 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                     string* {
                         _autoLabel $xmlobj output.$item "String" counters
                     }
-                    histogram* - curve* - field* {
+                    histogram* - curve* - field* - map* {
                         _autoLabel $xmlobj output.$item "Plot" counters
                     }
                     drawing* {

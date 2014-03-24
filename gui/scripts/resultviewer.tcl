@@ -292,6 +292,18 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 }
             }
         }
+        ::Rappture::Map {
+            if { ![$dataobj isvalid] } {
+                return;                 # Ignore invalid map objects.
+            }
+            set mode "map"
+            if {![info exists _mode2widget($mode)]} {
+                set servers [Rappture::VisViewer::GetServerList "geovis"]
+                set w $itk_interior.$mode
+                Rappture::MapViewer $w $servers
+                set _mode2widget($mode) $w
+            }
+        }
         ::Rappture::Field {
             if { ![$dataobj isvalid] } {
                 return;                 # Ignore invalid field objects.
@@ -479,6 +491,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         }
         field {
             set dobj [Rappture::Field ::#auto $xmlobj $path]
+        }
+        map {
+            set dobj [Rappture::Map ::#auto $xmlobj $path]
         }
         mesh {
             set dobj [Rappture::Mesh ::#auto $xmlobj $path]
