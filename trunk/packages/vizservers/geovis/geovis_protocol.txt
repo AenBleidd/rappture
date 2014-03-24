@@ -61,7 +61,6 @@ screen size <width> <height>
 General form:
 map layer add <type> <url> ... <layerName>
     <type> = image|wms|tms|elevation|point|polygon|line|text
-
 map layer add image <url> <layerName>
     Add a GDAL image layer from a file or URL
 map layer add wms <url> <layers> <format> <transparent> <layerName>

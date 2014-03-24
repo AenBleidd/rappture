@@ -77,6 +77,8 @@ FILES		= \
 		$(srcdir)/logger.tcl \
 		$(srcdir)/main.tcl \
 		$(srcdir)/mainwin.tcl \
+		$(srcdir)/map.tcl \
+		$(srcdir)/mapviewer.tcl \
 		$(srcdir)/mesh.tcl \
 		$(srcdir)/meshresult.tcl \
 		$(srcdir)/moleculeViewer.tcl \
