@@ -28,10 +28,11 @@ itcl::class Rappture::Map {
     private variable _nextLayer 0;
     private common _layerTypes {
         "raster"        0
-        "polygon"       1
-        "points"        2
-        "circle"        3
-        "line"          4
+        "elevation"     1
+        "polygon"       2
+        "points"        3
+        "circle"        4
+        "line"          5
     }
     protected method Parse { xmlobj path }
 

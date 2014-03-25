@@ -579,7 +579,7 @@ itcl::body Rappture::GeoViewer::scale {args} {
         foreach layer [$dataobj layers] {
             set type [$dataobj type $layer]
             switch -- $type {
-                "terrain" {
+                "elevation" {
                     set _haveTerrain 1
                 }
             }
@@ -868,13 +868,13 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
 		if { ![info exists info(url)] }  {
 		    continue
 		}
-		# Is is a "image", "model", or "terrain" layer?
+                # FIXME: wms, tms layers have additional options
 		switch -- $info(type) {
 		    "raster" {
 			set type "image"
 		    }
 		    default {
-			set type "model"
+			set type "$info(type)"
 		    }
 		}
                 if { $_reportClientInfo }  {
@@ -1308,12 +1308,6 @@ itcl::body Rappture::GeoViewer::BuildTerrainTab {} {
         -icon [Rappture::icon mesh]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.mesh \
-        -text "Show Mesh" \
-        -variable [itcl::scope _settings(terrain-visible)] \
-        -command [itcl::code $this AdjustSetting terrain-visible] \
-        -font "Arial 9" -anchor w 
-
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(terrain-wireframe)] \
@@ -1358,21 +1352,20 @@ itcl::body Rappture::GeoViewer::BuildTerrainTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting terrain-palette]
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
-    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(terrain-opacity)] \
+    label $inner.vscale_l -text "Vertical Scale" -font "Arial 9" -anchor w 
+    ::scale $inner.vscale -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(terrain-vertscale)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting terrain-opacity]
-    $inner.opacity set $_settings(terrain-opacity)
+        -command [itcl::code $this AdjustSetting terrain-vertscale]
+    $inner.vscale set $_settings(terrain-vertscale)
 
     blt::table $inner \
-        0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.opacity_l -anchor w -pady 2 \
-        4,1 $inner.opacity   -fill x   -pady 2 \
+        0,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.vscale_l  -anchor w -pady 2 \
+        4,1 $inner.vscale    -fill x   -pady 2 \
         5,0 $inner.palette_l -anchor w -pady 2 \
         5,1 $inner.palette   -fill x   -pady 2  
 
@@ -1523,7 +1516,7 @@ itcl::body Rappture::GeoViewer::SetObjectStyle { dataobj layer } {
         set settings(-wireframe) 1
     }
     switch -- $type {
-        "terrain" {
+        "elevation" {
             array set settings {
                 -edgecolor black
                 -edges 0
