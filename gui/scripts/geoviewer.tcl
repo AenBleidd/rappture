@@ -39,6 +39,8 @@ itcl::class Rappture::GeoViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
+    private variable _layers "";	# Name of layers tab widget
+
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
     } {
@@ -87,7 +89,10 @@ itcl::class Rappture::GeoViewer {
     protected method Zoom {option}
 
     # The following methods are only used by this class.
+    private method SetLayers {}
+    private method ChangeLayerVisibility { dataobj layer }
     private method BuildCameraTab {}
+    private method BuildLayerTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildPolydataTab {}
     private method EventuallySetPolydataOpacity { args } 
@@ -96,7 +101,7 @@ itcl::class Rappture::GeoViewer {
     private method GetImage { args } 
     private method IsValidObject { dataobj } 
     private method PanCamera {}
-    private method SetObjectStyle { dataobj comp } 
+    private method SetObjectStyle { dataobj layer } 
     private method SetOpacity { dataset }
     private method SetOrientation { side }
     private method SetPolydataOpacity {}
@@ -111,6 +116,7 @@ itcl::class Rappture::GeoViewer {
     private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
     private variable _settings
+    private variable _visibility
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Indicates that server was reset and
@@ -143,6 +149,8 @@ itk::usual GeoViewer {
 itcl::body Rappture::GeoViewer::constructor {hostlist args} {
     set _serverType "geovis"
 
+    if { [catch {
+	
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -199,9 +207,6 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
     }
 
     set c $itk_component(view)
-    bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
-    bind $c <4> [itcl::code $this Zoom in 0.25]
-    bind $c <5> [itcl::code $this Zoom out 0.25]
     bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
     bind $c <KeyPress-Right> [list %W xview scroll -10 units]
     bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
@@ -256,6 +261,7 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
+    BuildLayerTab
     BuildCameraTab
 
     # Legend
@@ -324,9 +330,6 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
     bind $itk_component(view) <Motion> \
         [itcl::code $this MouseMotion %x %y]
 
-    #bind $itk_component(view) <ButtonRelease-3> \
-    #    [itcl::code $this Pick %x %y]
-
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
@@ -366,6 +369,9 @@ itcl::body Rappture::GeoViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
     Connect
+} errs] != 0 } {
+	puts stderr errs=$errs
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -425,8 +431,8 @@ itcl::body Rappture::GeoViewer::EventuallyRotate { q } {
 itcl::body Rappture::GeoViewer::SetPolydataOpacity {} {
     set _polydataOpacityPending 0
     foreach dataset [CurrentDatasets -visible $_first] {
-        foreach { dataobj comp } [split $dataset -] break
-        if { [$dataobj type $comp] == "polydata" } {
+        foreach { dataobj layer } [split $dataset -] break
+        if { [$dataobj type $layer] == "polydata" } {
             SetOpacity $dataset
         }
     }
@@ -494,6 +500,12 @@ itcl::body Rappture::GeoViewer::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if { $pos < 0 } {
             continue;                   # Don't know anything about it.
+        }
+        foreach layer [$dataobj layers] {
+	    set tag $dataobj-$layer
+            puts stderr "map layer visible 0 $tag"
+            SendCmd "map layer visible 0 $tag"
+            set _visibility($tag) 0
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
@@ -589,14 +601,15 @@ itcl::body Rappture::GeoViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::GeoViewer::scale {args} {
     foreach dataobj $args {
-        foreach comp [$dataobj components] {
-            set type [$dataobj type $comp]
+        foreach layer [$dataobj layers] {
+            set type [$dataobj type $layer]
             switch -- $type {
                 "polydata" {
                     set _havePolydata 1
                 }
             }
         }
+	if 0 {
         array set bounds [limits $dataobj]
         if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
             set _limits(xmin) $bounds(xmin)
@@ -618,6 +631,7 @@ itcl::body Rappture::GeoViewer::scale {args} {
         if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
             set _limits(zmax) $bounds(zmax)
         }
+	}
     }
     if { $_havePolydata } {
         if { ![$itk_component(main) exists "Mesh Settings"] } {
@@ -775,19 +789,7 @@ itcl::body Rappture::GeoViewer::ReceiveImage { args } {
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
-        if 0 {
-            set f [open "last.ppm" "w"] 
-            fconfigure $f -encoding binary
-            puts -nonewline $f $bytes
-            close $f
-        }
         $_image(plot) configure -data $bytes
-        set time [clock seconds]
-        set date [clock format $time]
-        if { $_start > 0 } {
-            set finish [clock clicks -milliseconds]
-            set _start 0
-        }
     } elseif { $info(type) == "print" } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
@@ -856,9 +858,9 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
         return
     }
 
-    # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # Turn on buffering of commands to the server.  We don't want to be
+    # preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_reset } {
@@ -880,41 +882,46 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
-    #SendCmd "dataset visible 0"
     set count 0
+
     foreach dataobj [get -objects] {
-        if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
-            set _first $dataobj
-        }
         set _obj2datasets($dataobj) ""
-        foreach comp [$dataobj components] {
-            set tag $dataobj-$comp
+        foreach layer [$dataobj layers] {
+	    array unset info
+	    array set info [$dataobj layer $layer]
+	    set tag $dataobj-$layer
             if { ![info exists _datasets($tag)] } {
-                set bytes [$dataobj data $comp]
-                if { $bytes == "" } {
-                    continue
-                }
-                set length [string length $bytes]
+		if { ![info exists info(url)] }  {
+		    continue
+		}
+		# Is is a "image", "model", or "terrain" layer?
+		switch -- $info(type) {
+		    "raster" {
+			set type "image"
+		    }
+		    default {
+			set type "model"
+		    }
+		}
                 if { $_reportClientInfo }  {
-                    set info {}
-                    lappend info "tool_id"       [$dataobj hints toolId]
-                    lappend info "tool_name"     [$dataobj hints toolName]
-                    lappend info "tool_version"  [$dataobj hints toolRevision]
-                    lappend info "tool_title"    [$dataobj hints toolTitle]
-                    lappend info "dataset_label" [$dataobj hints label]
-                    lappend info "dataset_size"  $length
-                    lappend info "dataset_tag"   $tag
-                    SendCmd [list "clientinfo" $info]
+                    set cinfo {}
+                    lappend cinfo "tool_id"       [$dataobj hints toolId]
+                    lappend cinfo "tool_name"     [$dataobj hints toolName]
+                    lappend cinfo "tool_version"  [$dataobj hints toolRevision]
+                    lappend cinfo "tool_title"    [$dataobj hints toolTitle]
+                    lappend cinfo "dataset_label" [$dataobj hints label]
+                    lappend cinfo "dataset_tag"   $tag
+                    SendCmd [list "clientinfo" $cinfo]
                 }
-                SendCmd "dataset add $tag data follows $length"
-                append _outbuf $bytes
+                SendCmd [list map layer add $type $info(url) $tag]
                 set _datasets($tag) 1
-                SetObjectStyle $dataobj $comp
+                SetObjectStyle $dataobj $layer
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                SendCmd "dataset visible 1 $tag"
-                SetOpacity $tag
+                SendCmd "map layer visible 1 $tag"
+                set _visibility($tag) 1
+                #SetLayerOpacity $tag
             }
         }
     }
@@ -932,14 +939,14 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
         PanCamera
         Zoom reset
     }
-
+    SetLayers
     set _reset 0
     global readyForNextFrame
     set readyForNextFrame 0;            # Don't advance to the next frame
                                         # until we get an image.
 
-    # Actually write the commands to the server socket.  If it fails, we don't
-    # care.  We're finished here.
+    # Actually write the commands to the server socket.  If it fails, we
+    # don't care.  We're finished here.
     blt::busy hold $itk_component(hull)
     StopBufferingCommands
     blt::busy release $itk_component(hull)
@@ -948,9 +955,9 @@ itcl::body Rappture::GeoViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 # USAGE: CurrentDatasets ?-all -visible? ?dataobjs?
 #
-# Returns a list of server IDs for the current datasets being displayed.  This
-# is normally a single ID, but it might be a list of IDs if the current data
-# object has multiple components.
+# Returns a list of server IDs for the current datasets being displayed.
+# This is normally a single ID, but it might be a list of IDs if the
+# current data object has multiple components.
 # ----------------------------------------------------------------------
 itcl::body Rappture::GeoViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
@@ -980,8 +987,8 @@ itcl::body Rappture::GeoViewer::CurrentDatasets {args} {
     }
     set rlist ""
     foreach dataobj $dlist {
-        foreach comp [$dataobj components] {
-            set tag $dataobj-$comp
+        foreach layer [$dataobj layers] {
+            set tag $dataobj-$layer
             if { [info exists _datasets($tag)] && $_datasets($tag) } {
                 lappend rlist $tag
             }
@@ -1248,8 +1255,8 @@ itcl::body Rappture::GeoViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
         "polydata-opacity" {
             foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj comp } [split $dataset -] break
-                if { [$dataobj type $comp] == "polydata" } {
+                foreach { dataobj layer } [split $dataset -] break
+                if { [$dataobj type $layer] == "polydata" } {
                     SetOpacity $dataset
                 }
             }
@@ -1257,8 +1264,8 @@ itcl::body Rappture::GeoViewer::AdjustSetting {what {value ""}} {
         "polydata-wireframe" {
             set bool $_settings(polydata-wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj comp } [split $dataset -] break
-                set type [$dataobj type $comp]
+                foreach { dataobj layer } [split $dataset -] break
+                set type [$dataobj type $layer]
                 if { $type == "polydata" } {
                     SendCmd "$type wireframe $bool $dataset"
                 }
@@ -1267,8 +1274,8 @@ itcl::body Rappture::GeoViewer::AdjustSetting {what {value ""}} {
         "polydata-visible" {
             set bool $_settings(polydata-visible)
             foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj comp } [split $dataset -] break
-                set type [$dataobj type $comp]
+                foreach { dataobj layer } [split $dataset -] break
+                set type [$dataobj type $layer]
                 if { $type == "polydata" } {
                     SendCmd "$type visible $bool $dataset"
                 }
@@ -1277,8 +1284,8 @@ itcl::body Rappture::GeoViewer::AdjustSetting {what {value ""}} {
         "polydata-lighting" {
             set bool $_settings(polydata-lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj comp } [split $dataset -] break
-                set type [$dataobj type $comp]
+                foreach { dataobj layer } [split $dataset -] break
+                set type [$dataobj type $layer]
                 if { $type == "polydata" } {
                     SendCmd "$type lighting $bool $dataset"
                 }
@@ -1287,8 +1294,8 @@ itcl::body Rappture::GeoViewer::AdjustSetting {what {value ""}} {
         "polydata-edges" {
             set bool $_settings(polydata-edges)
             foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj comp } [split $dataset -] break
-                set type [$dataobj type $comp]
+                foreach { dataobj layer } [split $dataset -] break
+                set type [$dataobj type $layer]
                 if { $type == "polydata" } {
                     SendCmd "$type edges $bool $dataset"
                 }
@@ -1322,14 +1329,9 @@ itcl::configbody Rappture::GeoViewer::plotforeground {
 }
 
 itcl::body Rappture::GeoViewer::limits { dataobj } {
-    foreach comp [$dataobj components] {
-        set tag $dataobj-$comp
-        if { ![info exists _limits($tag)] } {
-            set data [$dataobj data $comp]
-            if { $data == "" } {
-                continue
-            }
-        }
+    error "no limits"
+    foreach layer [$dataobj layers] {
+        set tag $dataobj-$layer
 
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
         if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
@@ -1434,6 +1436,21 @@ itcl::body Rappture::GeoViewer::BuildPolydataTab {} {
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c1 -resize expand
+}
+
+itcl::body Rappture::GeoViewer::BuildLayerTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Layers" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
+    set f [frame $inner.layers]
+    blt::table $inner \
+        0,0 $f -fill both 
+    set _layers $inner
 }
 
 itcl::body Rappture::GeoViewer::BuildCameraTab {} {
@@ -1553,11 +1570,13 @@ itcl::body Rappture::GeoViewer::BuildDownloadPopup { popup command } {
     return $inner
 }
 
-itcl::body Rappture::GeoViewer::SetObjectStyle { dataobj comp } {
+itcl::body Rappture::GeoViewer::SetObjectStyle { dataobj layer } {
     # Parse style string.
-    set tag $dataobj-$comp
-    set type [$dataobj type $comp]
-    set style [$dataobj style $comp]
+    set tag $dataobj-$layer
+    set _visibility($tag) 1
+    return 
+    set type [$dataobj type $layer]
+    set style [$dataobj style $layer]
     if { $dataobj != $_first } {
         set settings(-wireframe) 1
     }
@@ -1592,11 +1611,11 @@ itcl::body Rappture::GeoViewer::SetObjectStyle { dataobj comp } {
             set havePolyData 1
         }
     }
-    SetColormap $dataobj $comp
+    #SetColormap $dataobj $layer
 }
 
 itcl::body Rappture::GeoViewer::IsValidObject { dataobj } {
-    return 1
+    return [$dataobj isvalid]
 }
 
 itcl::body Rappture::GeoViewer::SetOrientation { side } { 
@@ -1621,13 +1640,51 @@ itcl::body Rappture::GeoViewer::SetOrientation { side } {
 }
 
 itcl::body Rappture::GeoViewer::SetOpacity { dataset } { 
-    foreach {dataobj comp} [split $dataset -] break
-    set type [$dataobj type $comp]
-    set val $_settings($type-opacity)
+    foreach {dataobj layer} [split $dataset -] break
+    set type [$dataobj type $layer]
+    set val $_settings(-opacity)
     set sval [expr { 0.01 * double($val) }]
     if { !$_obj2ovride($dataobj-raise) } {
         # This is wrong.  Need to figure out why raise isn't set with 1
         #set sval [expr $sval * .6]
     }
     SendCmd "$type opacity $sval $dataset"
+}
+
+itcl::body Rappture::GeoViewer::ChangeLayerVisibility { dataobj layer } { 
+    set tag $dataobj-$layer
+    set bool $_visibility($tag)
+    SendCmd "map layer visible $bool $tag"
+}
+
+itcl::body Rappture::GeoViewer::SetLayers {} { 
+    set row 0
+    set inner $_layers
+    if { [winfo exists $inner.layers] } {
+        foreach w [winfo children $inner.layers] {
+            destroy $w
+        }
+    }
+    set f $inner.layers
+    foreach dataobj [get -objects] {
+        foreach name [$dataobj layers] {
+	    array unset info
+	    array set info [$dataobj layer $name]
+	    set tag $dataobj-$name
+            set w [string range $dataobj$name 2 end]
+            checkbutton $f.$w \
+                -text $info(title) \
+                -variable [itcl::scope _visibility($tag)] \
+                -command [itcl::code $this \
+                              ChangeLayerVisibility $dataobj $name] \
+		    -font "Arial 9" -anchor w 
+            blt::table $f $row,0 $f.$w -anchor w -pady 2 
+            Rappture::Tooltip::for $f.$w $info(description)
+            incr row
+	}
+    }
+    if { $row > 0 } {
+        blt::table configure $f r* c* -resize none
+        blt::table configure $f r$row c1 -resize expand
+    }
 }
