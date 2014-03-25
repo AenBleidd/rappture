@@ -64,15 +64,14 @@ map layer add <type> <url> ... <layerName>
 map layer add image <url> <layerName>
     Add a GDAL image layer from a file or URL
 map layer add wms <url> <layers> <format> <transparent> <layerName>
-    Add a WMS image layer from a URL/layer string
+    Add a WMS image layer from a URL + layer string
     <url> = URL of WMS service
     <layers> = layers string for WMS server
     <format> = Image format to return (e.g. 'png')
     <transparent> = bool
-map layer add tms <url> <tmsType> <format> <layerName>
-    Add a WMS image layer from a URL/layer string
-    <url> = URL of WMS service
-    <layers> = layers string for WMS server
+map layer add tms <url> <layerName>
+    Add a TMS image layer from a URL
+    <url> = URL of TMS service
 map layer add elevation <url> <layerName>
     Add a GDAL elevation image layer from a file or URL
 map layer add point <url> <layerName>
@@ -95,9 +94,13 @@ map load file <path>
 map load url <url>
     Load an .earth file from a network address
 map reset <type> <?profile?> <?xmin?> <?ymin?> <?xmax?> <?ymax?>
+    Clear the scene and rebuild a new map from scratch.  When resetting the 
+    map to geocentric, a profile and extents should be omitted.  When the map
+    type is projected, the profile is required and extents are optional.
     type = geocentric|projected
     profile = Well known profile string, e.g. 'global-geodetic',
-    'global-mercator'
+    'global-mercator'.  If specifying bounds (i.e. not global), use 'geodetic'
+    or 'spherical-mercator' or an SRS init string (such as an EPSG code)
     xmin,ymin,xmax,ymax = map bounds (in profile projection/units)
 
 ================================================================================
