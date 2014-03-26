@@ -40,6 +40,7 @@ itcl::class Rappture::MapViewer {
     itk_option define -plotbackground plotBackground Background ""
 
     private variable _layers "";	# Name of layers tab widget
+    private variable _mapsettings;      # Global map settings
 
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
@@ -77,7 +78,7 @@ itcl::class Rappture::MapViewer {
     protected method MouseClick { button x y }
     protected method MouseDoubleClick { button x y }
     protected method MouseDrag { button x y }
-    protected method MouseMotion { x y }
+    protected method MouseMotion {}
     protected method MouseRelease { button x y }
     protected method MouseScroll { direction }
     protected method Pan {option x y}
@@ -89,16 +90,16 @@ itcl::class Rappture::MapViewer {
     protected method Zoom {option}
 
     # The following methods are only used by this class.
-    private method SetLayers {}
+    private method UpdateLayerControls {}
     private method ChangeLayerVisibility { dataobj layer }
     private method BuildCameraTab {}
     private method BuildLayerTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildTerrainTab {}
     private method EventuallyResize { w h } 
+    private method EventuallyHandleMotionEvent { x y } 
     private method EventuallyRotate { q } 
     private method GetImage { args } 
-    private method IsValidObject { dataobj } 
     private method PanCamera {}
     private method SetObjectStyle { dataobj layer } 
     private method SetOpacity { dataset }
@@ -133,6 +134,7 @@ itcl::class Rappture::MapViewer {
     private variable _rotatePending 0
     private variable _rotateDelay 150
     private variable _scaleDelay 100
+    private variable _motion 
 }
 
 itk::usual MapViewer {
@@ -160,12 +162,22 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
+    # <Motion> event
+    $_dispatcher register !motion
+    $_dispatcher dispatch $this !motion "[itcl::code $this MouseMotion]; list"
+
     #
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image    [itcl::code $this ReceiveImage]
     $_parser alias dataset  [itcl::code $this ReceiveDataset]
 
+    array set _motion {
+        x               0
+        y               0
+        pending         0
+        delay           100
+    }
     # Initialize the view to some default parameters.
     array set _view {
         qw              1.0
@@ -320,7 +332,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         [itcl::code $this MouseRelease 3 %x %y]
 
     bind $itk_component(view) <Motion> \
-        [itcl::code $this MouseMotion %x %y]
+        [itcl::code $this EventuallyHandleMotionEvent %x %y]
 
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
@@ -354,7 +366,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         #bind $itk_component(view) <5> [itcl::code $this Zoom in]
         bind $itk_component(view) <4> [itcl::code $this MouseScroll up]
         bind $itk_component(view) <5> [itcl::code $this MouseScroll down]
-
     }
 
     set _image(download) [image create photo]
@@ -479,9 +490,9 @@ itcl::body Rappture::MapViewer::delete {args} {
         if { $pos < 0 } {
             continue;                   # Don't know anything about it.
         }
+        # When a map is marked deleted, we hide its layers.
         foreach layer [$dataobj layers] {
 	    set tag $dataobj-$layer
-            puts stderr "map layer visible 0 $tag"
             SendCmd "map layer visible 0 $tag"
             set _visibility($tag) 0
         }
@@ -517,7 +528,7 @@ itcl::body Rappture::MapViewer::get {args} {
             # put the dataobj list in order according to -raise options
             set dlist {}
             foreach dataobj $_dlist {
-                if { ![IsValidObject $dataobj] } {
+                if { ![$dataobj isvalid] } {
                     continue
                 }
                 if {[info exists _obj2ovride($dataobj-raise)] && 
@@ -532,7 +543,7 @@ itcl::body Rappture::MapViewer::get {args} {
         "-visible" {
             set dlist {}
             foreach dataobj $_dlist {
-                if { ![IsValidObject $dataobj] } {
+                if { ![$dataobj isvalid] } {
                     continue
                 }
                 if { ![info exists _obj2ovride($dataobj-raise)] } {
@@ -578,38 +589,41 @@ itcl::body Rappture::MapViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::scale {args} {
+    array unset _mapsettings
+
+    # Verify that all the maps have the same global settings. For example,
+    # you can't have one map type "geocentric" and the other "projected".
+
     foreach dataobj $args {
+        if { ![$dataobj isvalid] } {
+            continue
+        }
+        array unset hints 
+        array set hints [$dataobj hints]
+        if { ![info exists overall(type)] } {
+            set _mapsettings(type) $hints(type)
+        } elseif { $hints(type) != $_mapsettings(type) } {
+            error "maps \"$hints(label)\" have differing types"
+        }
+        if { ![info exists _mapsettings(projection)] } {
+            set _mapsettings(projection) $hints(projection)
+        } elseif { $hints(projection) != $_mapsettings(projection) } {
+            error "maps \"$hints(label)\" have differing projections"
+        }
+        if { ![info exists _mapsettings(extents)] } {
+            set _mapsettings(extents) $hints(extents)
+        } elseif { $hints(extents) != $_mapsettings(extents) } {
+            error "maps \"$hints(label)\" have differing extents"
+        }
+
         foreach layer [$dataobj layers] {
-            set type [$dataobj type $layer]
+            set type [$dataobj layer $layer]
             switch -- $type {
                 "elevation" {
                     set _haveTerrain 1
                 }
             }
         }
-	if 0 {
-        array set bounds [limits $dataobj]
-        if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
-            set _limits(xmin) $bounds(xmin)
-        }
-        if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
-            set _limits(xmax) $bounds(xmax)
-        }
-
-        if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
-            set _limits(ymin) $bounds(ymin)
-        }
-        if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
-            set _limits(ymax) $bounds(ymax)
-        }
-
-        if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
-            set _limits(zmin) $bounds(zmin)
-        }
-        if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
-            set _limits(zmax) $bounds(zmax)
-        }
-	}
     }
     if { $_haveTerrain } {
         if { ![$itk_component(main) exists "Terrain Settings"] } {
@@ -847,13 +861,27 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         $_arcball resize $w $h
         DoResize
 
-        #if { $_haveTerrain } {
-        #    FixSettings terrain-edges terrain-lighting terrain-vertscale \
-        #        terrain-wireframe
-        #}
-        #StopBufferingCommands
-        #SendCmd "imgflush"
-        #StartBufferingCommands
+        if { [info exists _mapsettings(type)] } {
+
+            # The map must be reset once before any layers are added This
+            # should not be done more than once as it is very expensive.
+
+            if { $_mapsettings(type) == "geocentric" } {
+                SendCmd "map reset geocentric"
+            } else {
+                if { $_mapsettings(extents) == ""} {
+                    SendCmd "map reset projected global-mercator"
+                } else {
+                    SendCmd \
+        "map reset projected $_mapsettings(projection) $_mapsettings(extents)"
+                }
+            }
+            if { $_haveTerrain } {
+                FixSettings terrain-edges terrain-lighting terrain-vertscale \
+                    terrain-wireframe
+            }
+            SendCmd "imgflush"
+        }
     }
 
     set _limits(zmin) ""
@@ -863,27 +891,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 
     foreach dataobj [get -objects] {
         set _obj2datasets($dataobj) ""
-        if {$_first == ""} {
-            # The map must be reset once before any layers are added
-            # This should not be done more than once as it is very 
-            # expensive
-            set _first $dataobj
-            set profile [$dataobj projection]
-            set extents [$dataobj extents]
-            if {[$dataobj isGeocentric]} {
-                SendCmd "map reset geocentric"
-            } elseif {$extents == ""} {
-                set profile "global-mercator"
-                SendCmd "map reset projected $profile"
-            } else {
-                SendCmd "map reset projected $profile $extents"
-            }
-            if { $_haveTerrain } {
-                FixSettings terrain-edges terrain-lighting terrain-vertscale \
-                    terrain-wireframe
-            }
-            SendCmd "imgflush"
-        }
         foreach layer [$dataobj layers] {
 	    array unset info
 	    array set info [$dataobj layer $layer]
@@ -937,7 +944,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         PanCamera
         Zoom reset
     }
-    SetLayers
+    UpdateLayerControls
     set _reset 0
     global readyForNextFrame
     set readyForNextFrame 0;            # Don't advance to the next frame
@@ -1043,14 +1050,31 @@ itcl::body Rappture::MapViewer::MouseRelease {button x y} {
     SendCmd "mouse release $button $x $y"
 }
 
-itcl::body Rappture::MapViewer::MouseMotion {x y} {
+#
+# EventuallyHandleMotionEvent --
+#
+#       This routine compresses (no button press) motion events.  It
+#       delivers a server mouse command once every 100 milliseconds (if a
+#       motion event is pending).
+#
+itcl::body Rappture::MapViewer::EventuallyHandleMotionEvent {x y} {
+    set _motion(x) $x
+    set _motion(y) $y
+    if { !$_motion(pending) } {
+        set _motion(pending) 1
+        $_dispatcher event -after $_motion(delay) !motion
+    }
+}
+
+itcl::body Rappture::MapViewer::MouseMotion {} {
     if {0} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
-    set x [expr {(2.0 * double($x)/$w) - 1.0}]
-    set y [expr {(2.0 * double($y)/$h) - 1.0}]
+    set x [expr {(2.0 * double($_motion(x))/$w) - 1.0}]
+    set y [expr {(2.0 * double($_motion(y))/$h) - 1.0}]
     }
-    SendCmd "mouse motion $x $y"
+    SendCmd "mouse motion $_motion(x) $_motion(y)"
+    set _motion(pending) 0
 }
 
 itcl::body Rappture::MapViewer::MouseScroll {direction} {
@@ -1534,43 +1558,8 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
 }
 
 itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
-    # Parse style string.
     set tag $dataobj-$layer
     set _visibility($tag) 1
-    return 
-    set type [$dataobj type $layer]
-    set style [$dataobj style $layer]
-    if { $dataobj != $_first } {
-        set settings(-wireframe) 1
-    }
-    switch -- $type {
-        "elevation" {
-            array set settings {
-                -edgecolor black
-                -edges 0
-                -lighting 0
-                -linewidth 1.0
-                -vertscale 1.0
-                -wireframe 0
-            }
-            array set settings $style
-            SendCmd "map terrain edges $settings(-edges) $tag"
-            set _settings(terrain-edges) $settings(-edges)
-            SendCmd "map terrain color [Color2RGB $settings(-color)] $tag"
-            #SendCmd "map terrain colormode constant {} $tag"
-            SendCmd "map terrain lighting $settings(-lighting) $tag"
-            set _settings(terrain-lighting) $settings(-lighting)
-            SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            SendCmd "map terrain linewidth $settings(-linewidth) $tag"
-            SendCmd "map terrain wireframe $settings(-wireframe) $tag"
-            set _settings(terrain-wireframe) $settings(-wireframe)
-        }
-    }
-    #SetColormap $dataobj $layer
-}
-
-itcl::body Rappture::MapViewer::IsValidObject { dataobj } {
-    return [$dataobj isvalid]
 }
 
 itcl::body Rappture::MapViewer::SetOrientation { side } { 
@@ -1612,7 +1601,7 @@ itcl::body Rappture::MapViewer::ChangeLayerVisibility { dataobj layer } {
     SendCmd "map layer visible $bool $tag"
 }
 
-itcl::body Rappture::MapViewer::SetLayers {} { 
+itcl::body Rappture::MapViewer::UpdateLayerControls {} { 
     set row 0
     set inner $_layers
     if { [winfo exists $inner.layers] } {

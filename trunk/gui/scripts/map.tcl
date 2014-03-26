@@ -23,10 +23,10 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Map {
-    private variable _tree "";             # Tree of information about the map.
-    private variable _isGeocentric 0;
+    private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
-    private variable _nextLayer 0;
+    private variable _nextLayer 0;     # Counter used to generate unique
+                                       # layer names.
     private common _layerTypes {
         "raster"        0
         "elevation"     1
@@ -34,6 +34,10 @@ itcl::class Rappture::Map {
         "points"        3
         "circle"        4
         "line"          5
+    }
+    private common _mapTypes {
+        "geocentric"    0
+        "projected"     1
     }
     protected method Parse { xmlobj path }
 
@@ -43,11 +47,7 @@ itcl::class Rappture::Map {
     destructor { 
         # defined below 
     }
-
-    public method isGeocentric {}
     public method layers {}
-    public method extents {}
-    public method projection {}
     public method layer { name }
     public method hints { args }
     public method isvalid {} {
@@ -100,25 +100,10 @@ itcl::body Rappture::Map::hints { args } {
 }
 
 #
-# projection --
-#
-itcl::body Rappture::Map::projection {} {
-    return [$_tree get root "projection" ""]
-}
-
-#
-# extents --
-#
-itcl::body Rappture::Map::extents {} {
-    return [$_tree get root "extents" ""]
-}
-
-#
 # Parse --
 #
 #       Parses the map description in the XML object.
 #
-
 itcl::body Rappture::Map::Parse { xmlobj path } {
 
     set map [$xmlobj element -as object $path]
@@ -152,12 +137,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     $_tree set root "extents"     [$map get "extents"]
     $_tree set root "projection"  [$map get "projection"]
 
-    set mapType [$map get "type"]
-    if {$mapType == "geocentric"} {
-        set _isGeocentric 1
-    } elseif {$mapType != "projected"} {
-        error "Invalid map type: $mapType"
+    set type [$map get "type"]
+    if { $type == "" } {
+        set type "projected"
     } 
+    if { [info exists _mapTypes($type)] } {
+        error "unknown map type \"$mapType\": should be one of [array names _mapTypes]"
+    }
+    $_tree set root "type" $type
 
     foreach {key path} {
         toolId          tool.id
@@ -202,9 +189,3 @@ itcl::body Rappture::Map::layer { layerName } {
     return [$_tree get $id]
 }
 
-# ----------------------------------------------------------------------
-# Returns if the map is geocentric (1) or projected (0)
-# ----------------------------------------------------------------------
-itcl::body Rappture::Map::isGeocentric {} {
-    return $_isGeocentric
-}
