@@ -148,6 +148,24 @@ proc reset {} {
     $widgets(comm) configure -state disabled
 }
 
+proc resetMapGeocentric {} {
+    global widgets
+    set cmd "map reset geocentric"
+    namespace eval Rappture::MapViewer [list $widgets(mapviewer) SendCmd $cmd]
+}
+
+proc resetMapGlobalGeodetic {} {
+    global widgets
+    set cmd "map reset projected global-geodetic"
+    namespace eval Rappture::MapViewer [list $widgets(mapviewer) SendCmd $cmd]
+}
+
+proc resetMapGlobalMercator {} {
+    global widgets
+    set cmd "map reset projected global-mercator"
+    namespace eval Rappture::MapViewer [list $widgets(mapviewer) SendCmd $cmd]
+}
+
 # ----------------------------------------------------------------------
 # USAGE: show_comm <channel> <data>
 #
@@ -267,6 +285,9 @@ menu .mbar
 menu .mbar.file
 .mbar.file add command -label "Send Earth File..." -underline 0 -command send_file
 .mbar.file add command -label "Load script..." -underline 0 -command load_script
+.mbar.file add command -label "Reset Map to Geocentric" -underline 0 -command resetMapGeocentric
+.mbar.file add command -label "Reset Map to Geodetic Projection" -underline 0 -command resetMapGlobalGeodetic
+.mbar.file add command -label "Reset Map to Mercator Projection" -underline 0 -command resetMapGlobalMercator
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
 .mbar.file add command -label "Exit" -underline 1 -command exit
