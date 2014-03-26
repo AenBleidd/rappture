@@ -1,7 +1,7 @@
 #!/bin/sh
 # -*- mode: Tcl -*-
 # ----------------------------------------------------------------------
-#  TEST PROGRAM for GeoViewer
+#  TEST PROGRAM for MapViewer
 #
 #  This program is a test harness for the GeoVis visualization
 #  engine.  It allows you to monitor the commands being sent back
@@ -129,7 +129,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::GeoViewer [list $widgets(geoviewer) SendCmd $cmd]
+    namespace eval Rappture::MapViewer [list $widgets(mapviewer) SendCmd $cmd]
     $widgets(command) delete 0 end
 }
 
@@ -141,8 +141,8 @@ proc send_command {} {
 # ----------------------------------------------------------------------
 proc reset {} {
     global widgets
-    $widgets(geoviewer) delete
-    $widgets(geoviewer) disconnect
+    $widgets(mapviewer) delete
+    $widgets(mapviewer) disconnect
     $widgets(comm) configure -state normal
     $widgets(comm) delete 1.0 end
     $widgets(comm) configure -state disabled
@@ -193,7 +193,7 @@ proc show_comm {channel {data ""}} {
 proc images_save {} {
     global widgets images
 
-    set imh [$widgets(geoviewer) get -image $images(which)]
+    set imh [$widgets(mapviewer) get -image $images(which)]
 
     set file [tk_getSaveFile -title "Save Image File" \
         -defaultextension .jpg -filetypes {{{JPEG files} .jpg} {{All Files} *}}]
@@ -222,7 +222,7 @@ proc images_refresh {} {
     set w [winfo width $c]
     set h [winfo height $c]
 
-    set imh [$widgets(geoviewer) get -image $images(which)]
+    set imh [$widgets(mapviewer) get -image $images(which)]
     set iw [image width $imh]
     set ih [image height $imh]
 
@@ -286,9 +286,9 @@ pack .main -expand yes -fill both
 
 set f [.main pane 0]
 set servers [Rappture::VisViewer::GetServerList "geovis"]
-Rappture::GeoViewer $f.viewer $servers
+Rappture::MapViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
-set widgets(geoviewer) $f.viewer
+set widgets(mapviewer) $f.viewer
 
 $f.viewer configure \
     -sendcommand show_comm \
