@@ -177,6 +177,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         y               0
         pending         0
         delay           100
+        compress        0
     }
     # Initialize the view to some default parameters.
     array set _view {
@@ -1060,6 +1061,10 @@ itcl::body Rappture::MapViewer::MouseRelease {button x y} {
 itcl::body Rappture::MapViewer::EventuallyHandleMotionEvent {x y} {
     set _motion(x) $x
     set _motion(y) $y
+    if { !$_motion(compress) } {
+        MouseMotion
+        return
+    }
     if { !$_motion(pending) } {
         set _motion(pending) 1
         $_dispatcher event -after $_motion(delay) !motion
