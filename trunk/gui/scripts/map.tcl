@@ -47,6 +47,7 @@ itcl::class Rappture::Map {
     public method isGeocentric {}
     public method layers {}
     public method extents {}
+    public method projection {}
     public method layer { name }
     public method hints { args }
     public method isvalid {} {
@@ -96,6 +97,13 @@ itcl::body Rappture::Map::hints { args } {
             error "wrong # args: should \"hints ?name?\""
         }
     }
+}
+
+#
+# projection --
+#
+itcl::body Rappture::Map::projection {} {
+    return [$_tree get root "projection" ""]
 }
 
 #

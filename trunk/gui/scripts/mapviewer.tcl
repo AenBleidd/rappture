@@ -168,13 +168,13 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw              0.853553
-        qx              -0.353553
-        qy              0.353553
-        qz              0.146447
-        zoom            1.0 
-        xpan            0
-        ypan            0
+        qw              1.0
+        qx              0.0
+        qy              0.0
+        qz              0.0
+        zoom            1.0
+        xpan            0.0
+        ypan            0.0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -186,7 +186,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     array set _settings [subst {
         legend                 1
         terrain-edges          0
-        terrain-lighting       1
+        terrain-lighting       0
         terrain-vertscale      1.0
         terrain-wireframe      0
     }]
@@ -449,6 +449,9 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
     }
     set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
+        #if {[llength $_dlist] > 0} {
+        #    error "Can't add more than 1 map to mapviewer"
+        #}
         lappend _dlist $dataobj
     }
     set _obj2ovride($dataobj-color) $params(-color)
@@ -843,14 +846,14 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        #FixSettings ?
 
-        if { $_haveTerrain } {
-            FixSettings terrain-edges terrain-lighting terrain-wireframe terrain-vertscale
-        }
-        StopBufferingCommands
-        SendCmd "imgflush"
-        StartBufferingCommands
+        #if { $_haveTerrain } {
+        #    FixSettings terrain-edges terrain-lighting terrain-vertscale \
+        #        terrain-wireframe
+        #}
+        #StopBufferingCommands
+        #SendCmd "imgflush"
+        #StartBufferingCommands
     }
 
     set _limits(zmin) ""
@@ -860,6 +863,27 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 
     foreach dataobj [get -objects] {
         set _obj2datasets($dataobj) ""
+        if {$_first == ""} {
+            # The map must be reset once before any layers are added
+            # This should not be done more than once as it is very 
+            # expensive
+            set _first $dataobj
+            set profile [$dataobj projection]
+            set extents [$dataobj extents]
+            if {[$dataobj isGeocentric]} {
+                SendCmd "map reset geocentric"
+            } elseif {$extents == ""} {
+                set profile "global-mercator"
+                SendCmd "map reset projected $profile"
+            } else {
+                SendCmd "map reset projected $profile [list $extents]"
+            }
+            if { $_haveTerrain } {
+                FixSettings terrain-edges terrain-lighting terrain-vertscale \
+                    terrain-wireframe
+            }
+            SendCmd "imgflush"
+        }
         foreach layer [$dataobj layers] {
 	    array unset info
 	    array set info [$dataobj layer $layer]
@@ -1064,13 +1088,13 @@ itcl::body Rappture::MapViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qw      0.853553
-                qx      -0.353553
-                qy      0.353553
-                qz      0.146447
+                qw      1.0
+                qx      0.0
+                qy      0.0
+                qz      0.0
                 zoom    1.0
-                xpan    0
-                ypan    0
+                xpan    0.0
+                ypan    0.0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1235,6 +1259,10 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
             set bool $_settings(terrain-lighting)
             SendCmd "map terrain lighting $bool"
         }
+        "terrain-palette" {
+            set cmap [$itk_component(terrainpalette) value]
+            #SendCmd "map terrain colormap $cmap"
+        }
         "terrain-vertscale" {
             set val $_settings(terrain-vertscale)
             SendCmd "map terrain vertscale $val"
@@ -1327,7 +1355,7 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         -font "Arial 9" -anchor w
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
-    itk_component add meshpalette {
+    itk_component add terrainpalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
@@ -1348,7 +1376,7 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(meshpalette) value "BCGYR"
+    $itk_component(terrainpalette) value "BCGYR"
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting terrain-palette]
 
@@ -1520,7 +1548,7 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
             array set settings {
                 -edgecolor black
                 -edges 0
-                -lighting 1
+                -lighting 0
                 -linewidth 1.0
                 -vertscale 1.0
                 -wireframe 0
