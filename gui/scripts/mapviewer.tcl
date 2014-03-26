@@ -1565,6 +1565,40 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
 itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
     set tag $dataobj-$layer
     set _visibility($tag) 1
+
+    return 
+
+    # The following code is a place holder for terrain styles.
+
+    set type [$dataobj type $layer]
+    set style [$dataobj style $layer]
+    if { $dataobj != $_first } {
+        set settings(-wireframe) 1
+    }
+    switch -- $type {
+        "elevation" {
+            array set settings {
+                -edgecolor black
+                -edges 0
+                -lighting 1
+                -linewidth 1.0
+                -vertscale 1.0
+                -wireframe 0
+            }
+            array set settings $style
+            SendCmd "map terrain edges $settings(-edges) $tag"
+            set _settings(terrain-edges) $settings(-edges)
+            SendCmd "map terrain color [Color2RGB $settings(-color)] $tag"
+            #SendCmd "map terrain colormode constant {} $tag"
+            SendCmd "map terrain lighting $settings(-lighting) $tag"
+            set _settings(terrain-lighting) $settings(-lighting)
+            SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)] $tag"
+            SendCmd "map terrain linewidth $settings(-linewidth) $tag"
+            SendCmd "map terrain wireframe $settings(-wireframe) $tag"
+            set _settings(terrain-wireframe) $settings(-wireframe)
+        }
+    }
+    #SetColormap $dataobj $layer
 }
 
 itcl::body Rappture::MapViewer::SetOrientation { side } { 
