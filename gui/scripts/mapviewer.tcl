@@ -876,7 +876,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 set profile "global-mercator"
                 SendCmd "map reset projected $profile"
             } else {
-                SendCmd "map reset projected $profile [list $extents]"
+                SendCmd "map reset projected $profile $extents"
             }
             if { $_haveTerrain } {
                 FixSettings terrain-edges terrain-lighting terrain-vertscale \
