@@ -18,8 +18,10 @@
 #include <osg/Image>
 #include <osg/TransferFunction>
 #include <osgViewer/Viewer>
+#include <osgGA/StateSetManipulator>
 
 #include <osgEarth/Map>
+#include <osgEarth/Viewpoint>
 #include <osgEarth/ImageLayer>
 #include <osgEarth/ElevationLayer>
 #include <osgEarth/ModelLayer>
@@ -153,6 +155,12 @@ public:
 
     void setLighting(bool state);
 
+    void setTerrainLighting(bool state);
+
+    void setTerrainVerticalScale(double scale);
+
+    void setTerrainWireframe(bool state);
+
     // Image raster layers
 
     int getNumImageLayers() const
@@ -220,6 +228,12 @@ public:
     {
         return _windowHeight;
     }
+
+    // Camera
+
+    osgEarth::Viewpoint getViewpoint();
+
+    void setViewpoint(const osgEarth::Viewpoint& v, double durationSecs = 0.0);
 
     void resetCamera(bool resetOrientation = true);
 
@@ -303,6 +317,7 @@ private:
     osg::ref_ptr<osgEarth::Util::MouseCoordsTool> _mouseCoordsTool;
     osg::ref_ptr<MouseCoordsCallback> _coordsCallback;
     osg::ref_ptr<osgEarth::Util::EarthManipulator> _manipulator;
+    osg::ref_ptr<osgGA::StateSetManipulator> _stateManip;
 };
 
 }
