@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: mapviewer - Map object viewer
 #
-#  It connects to the MapVis server running on a rendering farm,
+#  It connects to the GeoVis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
@@ -94,8 +94,7 @@ itcl::class Rappture::MapViewer {
     private method BuildCameraTab {}
     private method BuildLayerTab {}
     private method BuildDownloadPopup { widget command } 
-    private method BuildPolydataTab {}
-    private method EventuallySetPolydataOpacity { args } 
+    private method BuildTerrainTab {}
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
     private method GetImage { args } 
@@ -104,7 +103,6 @@ itcl::class Rappture::MapViewer {
     private method SetObjectStyle { dataobj layer } 
     private method SetOpacity { dataset }
     private method SetOrientation { side }
-    private method SetPolydataOpacity {}
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
@@ -121,7 +119,7 @@ itcl::class Rappture::MapViewer {
     private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Indicates that server was reset and
                                         # needs to be reinitialized.
-    private variable _havePolydata 0
+    private variable _haveTerrain 0
 
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
@@ -133,8 +131,6 @@ itcl::class Rappture::MapViewer {
     private variable _height 0
     private variable _resizePending 0
     private variable _rotatePending 0
-    private variable _polydataOpacityPending 0
-    private variable _updatePending 0;
     private variable _rotateDelay 150
     private variable _scaleDelay 100
 }
@@ -160,18 +156,10 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Update state event
-    $_dispatcher register !update
-    $_dispatcher dispatch $this !update "[itcl::code $this DoUpdate]; list"
-
     # Rotate event
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
-    # Polydata opacity event
-    $_dispatcher register !polydataOpacity
-    $_dispatcher dispatch $this !polydataOpacity \
-        "[itcl::code $this SetPolydataOpacity]; list"
     #
     # Populate parser with commands handle incoming requests
     #
@@ -196,13 +184,11 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     set _limits(zmax) 1.0
 
     array set _settings [subst {
-        legend                  1
-        -globe                  0
-        polydata-lighting       1
-        polydata-opacity        100
-        polydata-texture        1
-        polydata-visible        1
-        polydata-wireframe      0
+        legend                 1
+        terrain-edges          0
+        terrain-lighting       1
+        terrain-vertscale      1.0
+        terrain-wireframe      0
     }]
     itk_component add view {
         canvas $itk_component(plotarea).view \
@@ -213,9 +199,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     }
 
     set c $itk_component(view)
-    bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
-    bind $c <4> [itcl::code $this Zoom in 0.25]
-    bind $c <5> [itcl::code $this Zoom out 0.25]
     bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
     bind $c <KeyPress-Right> [list %W xview scroll -10 units]
     bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
@@ -339,9 +322,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     bind $itk_component(view) <Motion> \
         [itcl::code $this MouseMotion %x %y]
 
-    #bind $itk_component(view) <ButtonRelease-3> \
-    #    [itcl::code $this Pick %x %y]
-
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
@@ -437,23 +417,6 @@ itcl::body Rappture::MapViewer::EventuallyRotate { q } {
     if { !$_rotatePending } {
         set _rotatePending 1
         $_dispatcher event -after $_rotateDelay !rotate
-    }
-}
-
-itcl::body Rappture::MapViewer::SetPolydataOpacity {} {
-    set _polydataOpacityPending 0
-    foreach dataset [CurrentDatasets -visible $_first] {
-        foreach { dataobj layer } [split $dataset -] break
-        if { [$dataobj type $layer] == "polydata" } {
-            SetOpacity $dataset
-        }
-    }
-}
-
-itcl::body Rappture::MapViewer::EventuallySetPolydataOpacity { args } {
-    if { !$_polydataOpacityPending } {
-        set _polydataOpacityPending 1
-        $_dispatcher event -after $_scaleDelay !polydataOpacity
     }
 }
 
@@ -616,8 +579,8 @@ itcl::body Rappture::MapViewer::scale {args} {
         foreach layer [$dataobj layers] {
             set type [$dataobj type $layer]
             switch -- $type {
-                "polydata" {
-                    set _havePolydata 1
+                "elevation" {
+                    set _haveTerrain 1
                 }
             }
         }
@@ -645,9 +608,9 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
 	}
     }
-    if { $_havePolydata } {
-        if { ![$itk_component(main) exists "Mesh Settings"] } {
-            if { [catch { BuildPolydataTab } errs ]  != 0 } {
+    if { $_haveTerrain } {
+        if { ![$itk_component(main) exists "Terrain Settings"] } {
+            if { [catch { BuildTerrainTab } errs ]  != 0 } {
                 puts stderr "errs=$errs"
             }
         }
@@ -882,9 +845,8 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         DoResize
         #FixSettings ?
 
-        if { $_havePolydata } {
-            FixSettings polydata-edges polydata-lighting polydata-opacity \
-                polydata-visible polydata-wireframe 
+        if { $_haveTerrain } {
+            FixSettings terrain-edges terrain-lighting terrain-wireframe terrain-vertscale
         }
         StopBufferingCommands
         SendCmd "imgflush"
@@ -906,26 +868,26 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 		if { ![info exists info(url)] }  {
 		    continue
 		}
-		# Is is a "image", "model", or "terrain" layer?
+                # FIXME: wms, tms layers have additional options
 		switch -- $info(type) {
 		    "raster" {
 			set type "image"
 		    }
 		    default {
-			set type "model"
+			set type "$info(type)"
 		    }
 		}
-		SendCmd [list map layer add $type $info(url) $tag]
                 if { $_reportClientInfo }  {
-                    set list {}
-                    lappend list "tool_id"       [$dataobj hints toolId]
-                    lappend list "tool_name"     [$dataobj hints toolName]
-                    lappend list "tool_version"  [$dataobj hints toolRevision]
-                    lappend list "tool_title"    [$dataobj hints toolTitle]
-                    lappend list "dataset_label" [$dataobj hints label]
-                    lappend list "dataset_tag"   $tag
-                    SendCmd [list "clientinfo" $list]
+                    set cinfo {}
+                    lappend cinfo "tool_id"       [$dataobj hints toolId]
+                    lappend cinfo "tool_name"     [$dataobj hints toolName]
+                    lappend cinfo "tool_version"  [$dataobj hints toolRevision]
+                    lappend cinfo "tool_title"    [$dataobj hints toolTitle]
+                    lappend cinfo "dataset_label" [$dataobj hints label]
+                    lappend cinfo "dataset_tag"   $tag
+                    SendCmd [list "clientinfo" $cinfo]
                 }
+                SendCmd [list map layer add $type $info(url) $tag]
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $layer
             }
@@ -1265,53 +1227,21 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "polydata-opacity" {
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj layer } [split $dataset -] break
-                if { [$dataobj type $layer] == "polydata" } {
-                    SetOpacity $dataset
-                }
-            }
+        "terrain-edges" {
+            set bool $_settings(terrain-edges)
+            SendCmd "map terrain edges $bool"
         }
-        "polydata-wireframe" {
-            set bool $_settings(polydata-wireframe)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj layer } [split $dataset -] break
-                set type [$dataobj type $layer]
-                if { $type == "polydata" } {
-                    SendCmd "$type wireframe $bool $dataset"
-                }
-            }
+        "terrain-lighting" {
+            set bool $_settings(terrain-lighting)
+            SendCmd "map terrain lighting $bool"
         }
-        "polydata-visible" {
-            set bool $_settings(polydata-visible)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj layer } [split $dataset -] break
-                set type [$dataobj type $layer]
-                if { $type == "polydata" } {
-                    SendCmd "$type visible $bool $dataset"
-                }
-            }
+        "terrain-vertscale" {
+            set val $_settings(terrain-vertscale)
+            SendCmd "map terrain vertscale $val"
         }
-        "polydata-lighting" {
-            set bool $_settings(polydata-lighting)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj layer } [split $dataset -] break
-                set type [$dataobj type $layer]
-                if { $type == "polydata" } {
-                    SendCmd "$type lighting $bool $dataset"
-                }
-            }
-        }
-        "polydata-edges" {
-            set bool $_settings(polydata-edges)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach { dataobj layer } [split $dataset -] break
-                set type [$dataobj type $layer]
-                if { $type == "polydata" } {
-                    SendCmd "$type edges $bool $dataset"
-                }
-            }
+        "terrain-wireframe" {
+            set bool $_settings(terrain-wireframe)
+            SendCmd "map terrain wireframe $bool"
         }
         default {
             error "don't know how to fix $what"
@@ -1368,38 +1298,32 @@ itcl::body Rappture::MapViewer::limits { dataobj } {
     return [array get limits]
 }
 
-itcl::body Rappture::MapViewer::BuildPolydataTab {} {
+itcl::body Rappture::MapViewer::BuildTerrainTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
-        -title "Mesh Settings" \
+        -title "Terrain Settings" \
         -icon [Rappture::icon mesh]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.mesh \
-        -text "Show Mesh" \
-        -variable [itcl::scope _settings(polydata-visible)] \
-        -command [itcl::code $this AdjustSetting polydata-visible] \
-        -font "Arial 9" -anchor w 
-
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(polydata-wireframe)] \
-        -command [itcl::code $this AdjustSetting polydata-wireframe] \
+        -variable [itcl::scope _settings(terrain-wireframe)] \
+        -command [itcl::code $this AdjustSetting terrain-wireframe] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(polydata-lighting)] \
-        -command [itcl::code $this AdjustSetting polydata-lighting] \
+        -variable [itcl::scope _settings(terrain-lighting)] \
+        -command [itcl::code $this AdjustSetting terrain-lighting] \
         -font "Arial 9" -anchor w
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(polydata-edges)] \
-        -command [itcl::code $this AdjustSetting polydata-edges] \
+        -variable [itcl::scope _settings(terrain-edges)] \
+        -command [itcl::code $this AdjustSetting terrain-edges] \
         -font "Arial 9" -anchor w
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
@@ -1426,23 +1350,22 @@ itcl::body Rappture::MapViewer::BuildPolydataTab {} {
 
     $itk_component(meshpalette) value "BCGYR"
     bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting polydata-palette]
+        [itcl::code $this AdjustSetting terrain-palette]
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
-    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(polydata-opacity)] \
+    label $inner.vscale_l -text "Vertical Scale" -font "Arial 9" -anchor w 
+    ::scale $inner.vscale -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(terrain-vertscale)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting polydata-opacity]
-    $inner.opacity set $_settings(polydata-opacity)
+        -command [itcl::code $this AdjustSetting terrain-vertscale]
+    $inner.vscale set $_settings(terrain-vertscale)
 
     blt::table $inner \
-        0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.opacity_l -anchor w -pady 2 \
-        4,1 $inner.opacity   -fill x   -pady 2 \
+        0,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.vscale_l  -anchor w -pady 2 \
+        4,1 $inner.vscale    -fill x   -pady 2 \
         5,0 $inner.palette_l -anchor w -pady 2 \
         5,1 $inner.palette   -fill x   -pady 2  
 
@@ -1593,34 +1516,26 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
         set settings(-wireframe) 1
     }
     switch -- $type {
-        "polydata" {
+        "elevation" {
             array set settings {
-                -color \#FFFFFF
-                -edges 1
                 -edgecolor black
-                -linewidth 1.0
-                -opacity 1.0
-                -wireframe 0
+                -edges 0
                 -lighting 1
-                -visible 1
+                -linewidth 1.0
+                -vertscale 1.0
+                -wireframe 0
             }
             array set settings $style
-            SendCmd "polydata add $tag"
-            SendCmd "polydata visible $settings(-visible) $tag"
-            set _settings(polydata-visible) $settings(-visible)
-            SendCmd "polydata edges $settings(-edges) $tag"
-            set _settings(polydata-edges) $settings(-edges)
-            SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
-            #SendCmd "polydata colormode constant {} $tag"
-            SendCmd "polydata lighting $settings(-lighting) $tag"
-            set _settings(polydata-lighting) $settings(-lighting)
-            SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            SendCmd "polydata linewidth $settings(-linewidth) $tag"
-            SendCmd "polydata opacity $settings(-opacity) $tag"
-            set _settings(polydata-opacity) [expr 100.0 * $settings(-opacity)]
-            SendCmd "polydata wireframe $settings(-wireframe) $tag"
-            set _settings(polydata-wireframe) $settings(-wireframe)
-            set havePolyData 1
+            SendCmd "map terrain edges $settings(-edges) $tag"
+            set _settings(terrain-edges) $settings(-edges)
+            SendCmd "map terrain color [Color2RGB $settings(-color)] $tag"
+            #SendCmd "map terrain colormode constant {} $tag"
+            SendCmd "map terrain lighting $settings(-lighting) $tag"
+            set _settings(terrain-lighting) $settings(-lighting)
+            SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)] $tag"
+            SendCmd "map terrain linewidth $settings(-linewidth) $tag"
+            SendCmd "map terrain wireframe $settings(-wireframe) $tag"
+            set _settings(terrain-wireframe) $settings(-wireframe)
         }
     }
     #SetColormap $dataobj $layer
