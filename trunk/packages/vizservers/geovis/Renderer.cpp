@@ -22,6 +22,7 @@
 #include <osgEarth/MapNode>
 #include <osgEarth/Bounds>
 #include <osgEarth/Profile>
+#include <osgEarth/Viewpoint>
 #include <osgEarth/TerrainLayer>
 #include <osgEarth/ImageLayer>
 #include <osgEarth/ElevationLayer>
@@ -81,7 +82,8 @@ Renderer::Renderer() :
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator = new osgEarth::Util::EarthManipulator;
     _viewer->setCameraManipulator(_manipulator.get());
-    _viewer->addEventHandler(new osgGA::StateSetManipulator(_viewer->getCamera()->getOrCreateStateSet()));
+    _stateManip = new osgGA::StateSetManipulator(_viewer->getCamera()->getOrCreateStateSet());
+    _viewer->addEventHandler(_stateManip);
     _coordsCallback = new MouseCoordsCallback();
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
     _mouseCoordsTool->addCallback(_coordsCallback);
@@ -292,8 +294,11 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
     // Set background layer color
     mpOpt.color() = osg::Vec4(1, 1, 1, 1);
     //mpOpt.minLOD() = 1;
+    // Sets shader uniform for terrain renderer (config var defaults to false)
+    mpOpt.enableLighting() = false;
     osgEarth::MapNodeOptions mapNodeOpts(mpOpt);
-    mapNodeOpts.enableLighting() = false;
+    // Sets GL_LIGHTING state in MapNode's StateSet (config var defaults to true)
+    mapNodeOpts.enableLighting() = true;
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
     _mapNode = mapNode;
     _sceneRoot = mapNode;
@@ -327,6 +332,96 @@ void Renderer::clearMap()
         _map->clear();
     }
     _needsRedraw = true;
+}
+
+void Renderer::setLighting(bool state)
+{
+    if (_mapNode.valid()) {
+        TRACE("Setting lighting: %d", state ? 1 : 0);
+        _mapNode->getOrCreateStateSet()
+            ->setMode(GL_LIGHTING, state ? 1 : 0);
+    }
+    _needsRedraw = true;
+}
+
+void Renderer::setTerrainVerticalScale(double scale)
+{
+    if (_mapNode.valid()) {
+        _mapNode->getTerrainEngine()->setVerticalScale(scale);
+    }
+    _needsRedraw = true;
+}
+
+void Renderer::setTerrainLighting(bool state)
+{
+#if 1
+    if (_mapNode.valid()) {
+        // XXX: HACK alert
+        // Find the terrain engine container (might be above one or more decorators)
+        osg::Group *group = _mapNode->getTerrainEngine();
+        while (group->getParent(0) != NULL && group->getParent(0) != _mapNode.get()) {
+            group = group->getParent(0);
+        }
+        if (group != NULL && group->getParent(0) == _mapNode.get()) {
+            TRACE("Setting terrain lighting: %d", state ? 1 : 0);
+            if (group->getOrCreateStateSet()->getUniform("oe_mode_GL_LIGHTING") != NULL) {
+                group->getStateSet()->getUniform("oe_mode_GL_LIGHTING")->set(state);
+            } else {
+                ERROR("Can't get terrain lighting uniform");
+            }
+        } else {
+            ERROR("Can't get terrain lighting uniform");
+        }
+    }
+#else
+    if (_stateManip.valid()) {
+        _stateManip->setLightingEnabled(state);
+    }
+#endif
+    _needsRedraw = true;
+}
+
+void Renderer::setTerrainWireframe(bool state)
+{
+#if 0
+    if (_mapNode.valid()) {
+        TRACE("Setting terrain wireframe: %d", state ? 1 : 0);
+        osg::StateSet *state = _mapNode->getOrCreateStateSet();
+        osg::PolygonMode *pmode = dynamic_cast< osg::PolygonMode* >(state->getAttribute(osg::StateAttribute::POLYGONMODE));
+        if (pmode == NULL) {
+            pmode = new osg::PolygonMode;
+            state->setAttribute(pmode);
+        }
+        if (state) {
+            pmode->setMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::LINE);
+        } else {
+            pmode->setMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::FILL);
+        }
+    }
+#else
+    if (_stateManip.valid()) {
+        _stateManip->setPolygonMode(state ? osg::PolygonMode::LINE : osg::PolygonMode::FILL);
+    }
+#endif
+    _needsRedraw = true;
+}
+
+void Renderer::setViewpoint(const osgEarth::Viewpoint& v, double durationSecs)
+{
+    if (_manipulator.valid()) {
+        _manipulator->setViewpoint(v, durationSecs);
+    }
+    _needsRedraw = true;
+}
+
+osgEarth::Viewpoint Renderer::getViewpoint()
+{
+    if (_manipulator.valid()) {
+        return _manipulator->getViewpoint();
+    } else {
+        // Uninitialized, invalid viewpoint
+        return osgEarth::Viewpoint();
+    }
 }
 
 bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
@@ -601,6 +696,7 @@ void Renderer::panCamera(double x, double y, bool absolute)
     TRACE("Enter: %g %g, abs: %d",
           x, y, (absolute ? 1 : 0));
 
+    // Wants mouse delta x,y in normalized screen coords
     _manipulator->pan(x, y);
     _needsRedraw = true;
 }
@@ -627,7 +723,12 @@ void Renderer::zoomCamera(double z, bool absolute)
 
     // FIXME: zoom here wants y mouse coords in normalized viewport coords
 
-    _manipulator->zoom(0, z);
+    //_manipulator->zoom(0, z);
+
+    double dist = _manipulator->getDistance();
+    dist *= (1.0 + z);
+    _manipulator->setDistance(dist);
+
     _needsRedraw = true;
 }
 

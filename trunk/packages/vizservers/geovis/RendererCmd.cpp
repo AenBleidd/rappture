@@ -886,10 +886,101 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+MapTerrainEdgesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    TRACE("Not implemented");
+    //g_renderer->setTerrainEdges(state);
+    return TCL_OK;
+}
+
+static int
+MapTerrainLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setTerrainLighting(state);
+    return TCL_OK;
+}
+
+static int
+MapTerrainLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    TRACE("Not implemented");
+    //g_renderer->setTerrainLineColor(color);
+    return TCL_OK;
+}
+
+static int
+MapTerrainVertScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setTerrainVerticalScale(scale);
+    return TCL_OK;
+}
+
+static int
+MapTerrainWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setTerrainWireframe(state);
+    return TCL_OK;
+}
+
+static CmdSpec mapTerrainOps[] = {
+    {"edges",     1, MapTerrainEdgesOp,     4, 4, "bool"},
+    {"lighting",  2, MapTerrainLightingOp,  4, 4, "bool"},
+    {"linecolor", 2, MapTerrainLineColorOp, 6, 6, "r g b"},
+    {"vertscale", 1, MapTerrainVertScaleOp, 4, 4, "val"},
+    {"wireframe", 1, MapTerrainWireframeOp, 4, 4, "bool"},
+};
+static int nMapTerrainOps = NumCmdSpecs(mapTerrainOps);
+
+static int
+MapTerrainOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = GetOpFromObj(interp, nMapTerrainOps, mapTerrainOps,
+                        CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
 static CmdSpec mapOps[] = {
-    {"layer",    2, MapLayerOp,       3, 9, "op ?params...?"},
+    {"layer",    2, MapLayerOp,       3, 0, "op ?params...?"},
     {"load",     2, MapLoadOp,        4, 5, "options"},
     {"reset",    1, MapResetOp,       3, 8, "type ?profile xmin ymin xmax ymax?"},
+    {"terrain",  1, MapTerrainOp,     3, 0, "op ?params...?"},
 };
 static int nMapOps = NumCmdSpecs(mapOps);
 
