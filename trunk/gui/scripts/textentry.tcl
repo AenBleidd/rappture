@@ -63,7 +63,7 @@ itcl::class Rappture::TextEntry {
     private variable _size ""       ;# size hint from XML
     private variable _icon ""       ;# size hint from XML
 }
-                                                                                
+
 itk::usual TextEntry {
     keep -foreground -background -textbackground -font -cursor
 }
@@ -245,6 +245,11 @@ itcl::body Rappture::TextEntry::_layout {} {
             set oldval [$itk_component(text) get 1.0 end-1char]
         }
 
+        # Set the _layout here because unpacking the widgets triggers
+        # the "_edit finalize" method (focus change).
+
+        set _layout $newlayout
+
         # take down any existing widget
         foreach win [pack slaves $itk_interior] {
             if { [winfo name $win] != "hints" } {
@@ -253,188 +258,187 @@ itcl::body Rappture::TextEntry::_layout {} {
         }
 
         switch -- $newlayout {
-          entry {
-            # don't have the entry widget yet? then create it
-            if {![winfo exists $itk_interior.entry]} {
-                itk_component add entry {
-                    entry $itk_interior.entry
-                } {
-                    usual
-                    rename -background -textbackground textBackground Background
-                    rename -foreground -textforeground textForeground Foreground
-                }
-                $itk_component(entry) configure \
-                    -background $itk_option(-textbackground) \
-                    -foreground $itk_option(-textforeground)
+            entry {
+                # don't have the entry widget yet? then create it
+                if {![winfo exists $itk_interior.entry]} {
+                    itk_component add entry {
+                        entry $itk_interior.entry
+                    } {
+                        usual
+                        rename -background -textbackground textBackground Background
+                        rename -foreground -textforeground textForeground Foreground
+                    }
+                    $itk_component(entry) configure \
+                        -background $itk_option(-textbackground) \
+                        -foreground $itk_option(-textforeground)
 
-		# Make sure these event bindings occur after the class bindings.
-		# Otherwise you'll always get the entry value before the edit.
-                bind textentry-$this <KeyPress> \
-                    [itcl::code $this _newValue]
-                bind textentry-$this <KeyPress-Return> \
-                    [itcl::code $this _edit finalize]
-                bind textentry-$this <Control-KeyPress-a> \
-                    "[list $itk_component(entry) selection range 0 end]; break"
-                bind textentry-$this <FocusOut> \
-                    [itcl::code $this _edit finalize]
-                bind textentry-$this <Unmap> \
-                    [itcl::code $this _edit finalize]
-		set bindtags [bindtags $itk_component(entry)]
-		lappend bindtags textentry-$this
-		bindtags $itk_component(entry) $bindtags
+                    # Make sure these event bindings occur after the class bindings.
+                    # Otherwise you'll always get the entry value before the edit.
+                    bind textentry-$this <KeyPress> \
+                        [itcl::code $this _newValue]
+                    bind textentry-$this <KeyPress-Return> \
+                        [itcl::code $this _edit finalize]
+                    bind textentry-$this <Control-KeyPress-a> \
+                        "[list $itk_component(entry) selection range 0 end]; break"
+                    bind textentry-$this <FocusOut> \
+                        [itcl::code $this _edit finalize]
+                    bind textentry-$this <Unmap> \
+                        [itcl::code $this _edit finalize]
+                    set bindtags [bindtags $itk_component(entry)]
+                    lappend bindtags textentry-$this
+                    bindtags $itk_component(entry) $bindtags
 
-                itk_component add emenu {
-                    menu $itk_component(entry).menu -tearoff 0
+                    itk_component add emenu {
+                        menu $itk_component(entry).menu -tearoff 0
+                    }
+                    $itk_component(emenu) add command \
+                        -label "Cut" -accelerator "^X" \
+                        -command [itcl::code $this _edit action entry cut]
+                    $itk_component(emenu) add command \
+                        -label "Copy" -accelerator "^C" \
+                        -command [itcl::code $this _edit action entry copy]
+                    $itk_component(emenu) add command \
+                        -label "Paste" -accelerator "^V" \
+                        -command [itcl::code $this _edit action entry paste]
+                    $itk_component(emenu) add command \
+                        -label "Select All" -accelerator "^A" \
+                        -command [itcl::code $this _edit action entry selectall]
+                    bind $itk_component(entry) <<PopupMenu>> \
+                        [itcl::code $this _edit menu emenu %X %Y]
                 }
-                $itk_component(emenu) add command \
-                    -label "Cut" -accelerator "^X" \
-                    -command [itcl::code $this _edit action entry cut]
-                $itk_component(emenu) add command \
-                    -label "Copy" -accelerator "^C" \
-                    -command [itcl::code $this _edit action entry copy]
-                $itk_component(emenu) add command \
-                    -label "Paste" -accelerator "^V" \
-                    -command [itcl::code $this _edit action entry paste]
-                $itk_component(emenu) add command \
-                    -label "Select All" -accelerator "^A" \
-                    -command [itcl::code $this _edit action entry selectall]
-                bind $itk_component(entry) <<PopupMenu>> \
-                    [itcl::code $this _edit menu emenu %X %Y]
+
+                # show the entry widget
+                pack $itk_component(entry) -expand yes -fill both
+
+                # load any previous value
+                regsub -all "\n" $oldval "" oldval
+                $itk_component(entry) delete 0 end
+                $itk_component(entry) insert end $oldval
             }
 
-            # show the entry widget
-            pack $itk_component(entry) -expand yes -fill both
+            text {
+                if {![winfo exists $itk_interior.scrl]} {
+                    itk_component add scrollbars {
+                        Rappture::Scroller $itk_interior.scrl \
+                            -xscrollmode auto -yscrollmode auto
+                    }
 
-            # load any previous value
-            regsub -all "\n" $oldval "" oldval
-            $itk_component(entry) delete 0 end
-            $itk_component(entry) insert end $oldval
-          }
+                    itk_component add text {
+                        text $itk_component(scrollbars).text \
+                            -width 1 -height 1 -wrap char
+                    } {
+                        usual
+                        ignore -highlightthickness -highlightcolor
+                        rename -background -textbackground textBackground Background
+                        rename -foreground -textforeground textForeground Foreground
+                        rename -font -codefont codeFont CodeFont
+                    }
+                    $itk_component(text) configure \
+                        -background $itk_option(-textbackground) \
+                        -foreground $itk_option(-textforeground) \
+                        -font $itk_option(-codefont) \
+                        -highlightthickness 1
+                    $itk_component(scrollbars) contents $itk_component(text)
 
-          text {
-            if {![winfo exists $itk_interior.scrl]} {
-                itk_component add scrollbars {
-                    Rappture::Scroller $itk_interior.scrl \
-                         -xscrollmode auto -yscrollmode auto
+                    # Make sure these event bindings occur after the class bindings.
+                    # Otherwise you'll always get the text value before the edit.
+                    bind textentry-$this <KeyPress> \
+                        [itcl::code $this _newValue]
+                    # leave [Return] key alone for multi-line text so the user
+                    # can enter newlines and keep editing
+                    bind textentry-$this <Control-KeyPress-a> \
+                        "[list $itk_component(text) tag add sel 1.0 end]; break"
+                    bind textentry-$this <FocusOut> \
+                        [itcl::code $this _edit finalize]
+                    bind textentry-$this <Unmap> \
+                        [itcl::code $this _edit finalize]
+                    set bindtags [bindtags $itk_component(text)]
+                    lappend bindtags textentry-$this
+                    bindtags $itk_component(text) $bindtags
+
+                    itk_component add tmenu {
+                        menu $itk_component(text).menu -tearoff 0
+                    }
+                    $itk_component(tmenu) add command \
+                        -label "Cut" -accelerator "^X" \
+                        -command [itcl::code $this _edit action text cut]
+                    $itk_component(tmenu) add command \
+                        -label "Copy" -accelerator "^C" \
+                        -command [itcl::code $this _edit action text copy]
+                    $itk_component(tmenu) add command \
+                        -label "Paste" -accelerator "^V" \
+                        -command [itcl::code $this _edit action text paste]
+                    $itk_component(tmenu) add command \
+                        -label "Select All" -accelerator "^A" \
+                        -command [itcl::code $this _edit action text selectall]
+                    $itk_component(tmenu) add separator
+
+                    $itk_component(tmenu) add command \
+                        -label [Rappture::filexfer::label upload] \
+                        -command [itcl::code $this _uploadValue -start]
+                    $itk_component(tmenu) add command \
+                        -label [Rappture::filexfer::label download] \
+                        -command [itcl::code $this _downloadValue]
+
+                    bind $itk_component(text) <<PopupMenu>> \
+                        [itcl::code $this _edit menu tmenu %X %Y]
                 }
 
-                itk_component add text {
-                    text $itk_component(scrollbars).text \
-                        -width 1 -height 1 -wrap char
-                } {
-                    usual
-                    ignore -highlightthickness -highlightcolor
-                    rename -background -textbackground textBackground Background
-                    rename -foreground -textforeground textForeground Foreground
-                    rename -font -codefont codeFont CodeFont
-                }
-                $itk_component(text) configure \
-                    -background $itk_option(-textbackground) \
-                    -foreground $itk_option(-textforeground) \
-                    -font $itk_option(-codefont) \
-                    -highlightthickness 1
-                $itk_component(scrollbars) contents $itk_component(text)
+                # show the text editor widget
+                pack $itk_component(scrollbars) -expand yes -fill both
+                $itk_component(text) configure -width $w -height $h
 
-		# Make sure these event bindings occur after the class bindings.
-		# Otherwise you'll always get the text value before the edit.
-                bind textentry-$this <KeyPress> \
-                    [itcl::code $this _newValue]
-                # leave [Return] key alone for multi-line text so the user
-                # can enter newlines and keep editing
-                bind textentry-$this <Control-KeyPress-a> \
-                    "[list $itk_component(text) tag add sel 1.0 end]; break"
-                bind textentry-$this <FocusOut> \
-                    [itcl::code $this _edit finalize]
-                bind textentry-$this <Unmap> \
-                    [itcl::code $this _edit finalize]
-		set bindtags [bindtags $itk_component(text)]
-		lappend bindtags textentry-$this
-		bindtags $itk_component(text) $bindtags
-
-                itk_component add tmenu {
-                    menu $itk_component(text).menu -tearoff 0
-                }
-                $itk_component(tmenu) add command \
-                    -label "Cut" -accelerator "^X" \
-                    -command [itcl::code $this _edit action text cut]
-                $itk_component(tmenu) add command \
-                    -label "Copy" -accelerator "^C" \
-                    -command [itcl::code $this _edit action text copy]
-                $itk_component(tmenu) add command \
-                    -label "Paste" -accelerator "^V" \
-                    -command [itcl::code $this _edit action text paste]
-                $itk_component(tmenu) add command \
-                    -label "Select All" -accelerator "^A" \
-                    -command [itcl::code $this _edit action text selectall]
-                $itk_component(tmenu) add separator
-
-                $itk_component(tmenu) add command \
-                    -label [Rappture::filexfer::label upload] \
-                    -command [itcl::code $this _uploadValue -start]
-                $itk_component(tmenu) add command \
-                    -label [Rappture::filexfer::label download] \
-                    -command [itcl::code $this _downloadValue]
-
-                bind $itk_component(text) <<PopupMenu>> \
-                    [itcl::code $this _edit menu tmenu %X %Y]
+                # load any previous value
+                $itk_component(text) delete 1.0 end
+                $itk_component(text) insert end $oldval
             }
 
-            # show the text editor widget
-            pack $itk_component(scrollbars) -expand yes -fill both
-            $itk_component(text) configure -width $w -height $h
+            binary {
+                if {![winfo exists $itk_interior.bin]} {
+                    itk_component add binary {
+                        frame $itk_interior.bin
+                    }
+                    set icon $_icon
+                    if { $icon == "" } {
+                        set icon [Rappture::icon binary]
+                    }
+                    itk_component add binicon {
+                        ::label $itk_component(binary).binicon \
+                            -image $icon -borderwidth 0
+                    }
+                    pack $itk_component(binicon) -side left
 
-            # load any previous value
-            $itk_component(text) delete 1.0 end
-            $itk_component(text) insert end $oldval
-          }
+                    itk_component add bininfo {
+                        ::label $itk_component(binary).bininfo \
+                            -text "Empty\n0 bytes" \
+                            -width 5 -justify left -anchor w -borderwidth 0
+                    }
+                    pack $itk_component(bininfo) -side left -expand yes -fill x -padx 4
 
-          binary {
-            if {![winfo exists $itk_interior.bin]} {
-                itk_component add binary {
-                    frame $itk_interior.bin
-                }
-                set icon $_icon
-                if { $icon == "" } {
-                    set icon [Rappture::icon binary]
-                }
-                itk_component add binicon {
-                    ::label $itk_component(binary).binicon \
-                        -image $icon -borderwidth 0
-                }
-                pack $itk_component(binicon) -side left
+                    itk_component add bmenu {
+                        menu $itk_component(binary).menu -tearoff 0
+                    }
+                    $itk_component(bmenu) add command \
+                        -label [Rappture::filexfer::label upload] \
+                        -command [itcl::code $this _uploadValue -start]
+                    $itk_component(bmenu) add command \
+                        -label [Rappture::filexfer::label download] \
+                        -command [itcl::code $this _downloadValue]
 
-                itk_component add bininfo {
-                    ::label $itk_component(binary).bininfo \
-                        -text "Empty\n0 bytes" \
-                        -width 5 -justify left -anchor w -borderwidth 0
+                    bind $itk_component(binicon) <<PopupMenu>> \
+                        [itcl::code $this _edit menu bmenu %X %Y]
+                    bind $itk_component(bininfo) <<PopupMenu>> \
+                        [itcl::code $this _edit menu bmenu %X %Y]
                 }
-                pack $itk_component(bininfo) -side left -expand yes -fill x -padx 4
 
-                itk_component add bmenu {
-                    menu $itk_component(binary).menu -tearoff 0
-                }
-                $itk_component(bmenu) add command \
-                    -label [Rappture::filexfer::label upload] \
-                    -command [itcl::code $this _uploadValue -start]
-                $itk_component(bmenu) add command \
-                    -label [Rappture::filexfer::label download] \
-                    -command [itcl::code $this _downloadValue]
+                # show the binary mode rep
+                pack $itk_component(binary) -side top -fill x
 
-                bind $itk_component(binicon) <<PopupMenu>> \
-                    [itcl::code $this _edit menu bmenu %X %Y]
-                bind $itk_component(bininfo) <<PopupMenu>> \
-                    [itcl::code $this _edit menu bmenu %X %Y]
             }
-
-            # show the binary mode rep
-            pack $itk_component(binary) -side top -fill x
-
-          }
-          default {
-              error "don't know how to handle mode \"$newlayout\" for string editor"
-          }
+            default {
+                error "don't know how to handle mode \"$newlayout\" for string editor"
+            }
         }
-        set _layout $newlayout
     }
 
     #
@@ -528,9 +532,9 @@ itcl::body Rappture::TextEntry::_edit {option args} {
                 }
                 selectall {
                     switch -- $widget {
-                      entry { $itk_component(entry) selection range 0 end }
-                      text  { $itk_component(text) tag add sel 1.0 end }
-                      default { error "don't know how to select for $widget" }
+                        entry { $itk_component(entry) selection range 0 end }
+                        text  { $itk_component(text) tag add sel 1.0 end }
+                        default { error "don't know how to select for $widget" }
                     }
                 }
                 default {
