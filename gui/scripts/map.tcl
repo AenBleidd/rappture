@@ -24,6 +24,7 @@ namespace eval Rappture {
 
 itcl::class Rappture::Map {
     private variable _tree "";             # Tree of information about the map.
+    private variable _isGeocentric 0;
     private variable _isValid 0;
     private variable _nextLayer 0;
     private common _layerTypes {
@@ -43,6 +44,7 @@ itcl::class Rappture::Map {
         # defined below 
     }
 
+    public method isGeocentric {}
     public method layers {}
     public method extents {}
     public method layer { name }
@@ -142,6 +144,13 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     $_tree set root "extents"     [$map get "extents"]
     $_tree set root "projection"  [$map get "projection"]
 
+    set mapType [$map get "type"]
+    if {$mapType == "geocentric"} {
+        set _isGeocentric 1
+    } elseif {$mapType != "projected"} {
+        error "Invalid map type: $mapType"
+    } 
+
     foreach {key path} {
         toolId          tool.id
         toolName        tool.name
@@ -185,4 +194,9 @@ itcl::body Rappture::Map::layer { layerName } {
     return [$_tree get $id]
 }
 
-
+# ----------------------------------------------------------------------
+# Returns if the map is geocentric (1) or projected (0)
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::isGeocentric {} {
+    return $_isGeocentric
+}
