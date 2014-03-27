@@ -154,7 +154,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     if { $mapType == "" } {
         set mapType "projected"
     } 
-    puts stderr "Map type: $mapType"
+
     if { ![info exists _mapTypes($mapType)] } {
         error "unknown map type \"$mapType\": should be one of [array names _mapTypes]"
     } elseif {$mapType == "geocentric"} {
