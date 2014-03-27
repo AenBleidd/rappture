@@ -618,8 +618,8 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
 
         foreach layer [$dataobj layers] {
-            set type [$dataobj layer $layer]
-            switch -- $type {
+            set layerType [$dataobj type $layer]
+            switch -- $layerType {
                 "elevation" {
                     set _haveTerrain 1
                 }
@@ -870,11 +870,14 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             if { $_mapsettings(type) == "geocentric" } {
                 SendCmd "map reset geocentric"
             } else {
-                if { $_mapsettings(extents) == ""} {
-                    SendCmd "map reset projected global-mercator"
+                if { $_mapsettings(extents) == "" } {
+                    if { $_mapsettings(projection) == "" } {
+                        SendCmd "map reset projected global-mercator"
+                    } else {
+                        SendCmd "map reset projected $_mapsettings(projection)"
+                    }
                 } else {
-                    SendCmd \
-        "map reset projected $_mapsettings(projection) $_mapsettings(extents)"
+                    SendCmd "map reset projected $_mapsettings(projection) $_mapsettings(extents)"
                 }
             }
             if { $_haveTerrain } {
@@ -1566,15 +1569,8 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
     set tag $dataobj-$layer
     set _visibility($tag) 1
 
-    return 
-
-    # The following code is a place holder for terrain styles.
-
     set type [$dataobj type $layer]
     set style [$dataobj style $layer]
-    if { $dataobj != $_first } {
-        set settings(-wireframe) 1
-    }
     switch -- $type {
         "elevation" {
             array set settings {
@@ -1588,12 +1584,12 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
             array set settings $style
             SendCmd "map terrain edges $settings(-edges) $tag"
             set _settings(terrain-edges) $settings(-edges)
-            SendCmd "map terrain color [Color2RGB $settings(-color)] $tag"
+            #SendCmd "map terrain color [Color2RGB $settings(-color)] $tag"
             #SendCmd "map terrain colormode constant {} $tag"
             SendCmd "map terrain lighting $settings(-lighting) $tag"
             set _settings(terrain-lighting) $settings(-lighting)
             SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            SendCmd "map terrain linewidth $settings(-linewidth) $tag"
+            #SendCmd "map terrain linewidth $settings(-linewidth) $tag"
             SendCmd "map terrain wireframe $settings(-wireframe) $tag"
             set _settings(terrain-wireframe) $settings(-wireframe)
         }
