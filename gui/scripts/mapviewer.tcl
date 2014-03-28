@@ -1582,15 +1582,15 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
                 -wireframe 0
             }
             array set settings $style
-            SendCmd "map terrain edges $settings(-edges) $tag"
+            SendCmd "map terrain edges $settings(-edges)"
             set _settings(terrain-edges) $settings(-edges)
-            #SendCmd "map terrain color [Color2RGB $settings(-color)] $tag"
-            #SendCmd "map terrain colormode constant {} $tag"
-            SendCmd "map terrain lighting $settings(-lighting) $tag"
+            #SendCmd "map terrain color [Color2RGB $settings(-color)]"
+            #SendCmd "map terrain colormode constant {}"
+            SendCmd "map terrain lighting $settings(-lighting)"
             set _settings(terrain-lighting) $settings(-lighting)
-            SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            #SendCmd "map terrain linewidth $settings(-linewidth) $tag"
-            SendCmd "map terrain wireframe $settings(-wireframe) $tag"
+            SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)]"
+            #SendCmd "map terrain linewidth $settings(-linewidth)"
+            SendCmd "map terrain wireframe $settings(-wireframe)"
             set _settings(terrain-wireframe) $settings(-wireframe)
         }
     }
