@@ -196,6 +196,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     set _limits(zmax) 1.0
 
     array set _settings [subst {
+        camera-throw           0
         legend                 1
         terrain-edges          0
         terrain-lighting       0
@@ -1276,6 +1277,10 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "camera-throw" {
+            set bool $_settings(camera-throw)
+            SendCmd "camera throw $bool"
+        }
         "terrain-edges" {
             set bool $_settings(terrain-edges)
             SendCmd "map terrain edges $bool"
@@ -1358,7 +1363,7 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Terrain Settings" \
-        -icon [Rappture::icon mesh]]
+        -icon [Rappture::icon surface]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.wireframe \
@@ -1475,6 +1480,16 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         blt::table configure $inner r$row -resize none
         incr row
     }
+
+    checkbutton $inner.throw \
+        -text "Enable Throw" \
+        -font "Arial 9" \
+        -variable [itcl::scope _settings(camera-throw)] \
+        -command [itcl::code $this AdjustSetting camera-throw]
+    blt::table $inner \
+        $row,0 $inner.throw -anchor w -pady 2 -cspan 2
+    blt::table configure $inner r$row -resize none
+    incr row
 
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
