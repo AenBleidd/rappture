@@ -168,7 +168,7 @@ public:
         return (_map.valid() ? _map->getNumImageLayers() : 0);
     }
 
-    void addImageLayer(const char *name, const osgEarth::TileSourceOptions& opts,
+    void addImageLayer(const char *name, osgEarth::TileSourceOptions& opts,
                        bool makeShared = false, bool visible = true);
 
     void removeImageLayer(const char *name);
@@ -190,7 +190,7 @@ public:
         return (_map.valid() ? _map->getNumElevationLayers() : 0);
     }
 
-    void addElevationLayer(const char *name, const osgEarth::TileSourceOptions& opts);
+    void addElevationLayer(const char *name, osgEarth::TileSourceOptions& opts);
 
     void removeElevationLayer(const char *name);
 
@@ -205,7 +205,7 @@ public:
         return (_map.valid() ? _map->getNumModelLayers() : 0);
     }
 
-    void addModelLayer(const char *name, const osgEarth::ModelSourceOptions& opts);
+    void addModelLayer(const char *name, osgEarth::ModelSourceOptions& opts);
 
     void removeModelLayer(const char *name);
 
