@@ -31,6 +31,7 @@
 #include <osgEarthUtil/EarthManipulator>
 #include <osgEarthUtil/MouseCoordsTool>
 #include <osgEarthUtil/AutoClipPlaneHandler>
+#include <osgEarthUtil/VerticalScale>
 
 #include "Types.h"
 #include "Trace.h"
@@ -318,6 +319,7 @@ private:
     osg::ref_ptr<MouseCoordsCallback> _coordsCallback;
     osg::ref_ptr<osgEarth::Util::EarthManipulator> _manipulator;
     osg::ref_ptr<osgGA::StateSetManipulator> _stateManip;
+    osg::ref_ptr<osgEarth::Util::VerticalScale> _verticalScale;
 };
 
 }

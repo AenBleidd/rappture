@@ -36,6 +36,7 @@
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/MouseCoordsTool>
 #include <osgEarthUtil/GLSLColorFilter>
+#include <osgEarthUtil/VerticalScale>
 #include <osgEarthDrivers/gdal/GDALOptions>
 #include <osgEarthDrivers/engine_mp/MPTerrainEngineOptions>
 
@@ -321,7 +322,14 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         sky->addChild(mapNode);
         _sceneRoot = sky;
 #else
+#if 0
+        // XXX: Crashes
+        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode(map);
+        sky->addChild(mapNode);
+        _sceneRoot = sky;
+#else
         _sceneRoot = mapNode;
+#endif
 #endif
     } else {
         _sceneRoot = mapNode;
@@ -374,7 +382,11 @@ void Renderer::setLighting(bool state)
 void Renderer::setTerrainVerticalScale(double scale)
 {
     if (_mapNode.valid()) {
-        _mapNode->getTerrainEngine()->setVerticalScale(scale);
+        if (!_verticalScale.valid()) {
+            _verticalScale = new osgEarth::Util::VerticalScale;
+            _mapNode->getTerrainEngine()->addEffect(_verticalScale);
+        }
+        _verticalScale->setScale(scale);
     }
     _needsRedraw = true;
 }
@@ -466,6 +478,9 @@ void Renderer::addImageLayer(const char *name,
                              bool makeShared,
                              bool visible)
 {
+    if (!opts.tileSize().isSet()) {
+        opts.tileSize() = 256;
+    }
     osgEarth::ImageLayerOptions layerOpts(name, opts);
     if (makeShared) {
         layerOpts.shared() = true;
