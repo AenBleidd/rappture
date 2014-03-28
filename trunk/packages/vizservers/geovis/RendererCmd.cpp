@@ -917,9 +917,9 @@ MapTerrainLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       Tcl_Obj *const *objv)
 {
     float color[3];
-    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
-        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
-        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+    if (GetFloatFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[5], &color[2]) != TCL_OK) {
         return TCL_ERROR;
     }
     TRACE("Not implemented");

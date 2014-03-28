@@ -281,7 +281,7 @@ public:
 
     bool getMousePoint(double *x, double *y, double *z)
     {
-        return _coordsCallback->report(x, y, z);
+        return (_coordsCallback.valid() && _coordsCallback->report(x, y, z));
     }
 
     long getTimeout();
