@@ -28,6 +28,11 @@
 #include <osgEarth/ElevationLayer>
 #include <osgEarth/ModelLayer>
 #include <osgEarthUtil/EarthManipulator>
+#if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
+#include <osgEarthUtil/Sky>
+#else
+#include <osgEarthUtil/SkyNode>
+#endif
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/MouseCoordsTool>
 #include <osgEarthUtil/GLSLColorFilter>
@@ -62,6 +67,7 @@ Renderer::Renderer() :
     setBackgroundColor(_bgColor);
     _captureCallback = new ScreenCaptureCallback();
     _viewer->getCamera()->setPostDrawCallback(_captureCallback.get());
+#if 1
     osgEarth::MapOptions mapOpts;
     mapOpts.coordSysType() = osgEarth::MapOptions::CSTYPE_PROJECTED;
     mapOpts.profile() = osgEarth::ProfileOptions("global-mercator");
@@ -88,6 +94,10 @@ Renderer::Renderer() :
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
     _mouseCoordsTool->addCallback(_coordsCallback);
     _viewer->addEventHandler(_mouseCoordsTool);
+#else
+    _sceneRoot = new osg::Group;
+    _viewer->setSceneData(_sceneRoot.get());
+#endif
     _viewer->getCamera()->setNearFarRatio(0.00002);
     _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
     _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
@@ -233,7 +243,12 @@ void Renderer::loadEarthFile(const char *path)
     if (_mouseCoordsTool.valid())
         _viewer->removeEventHandler(_mouseCoordsTool.get());
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
+    if (!_coordsCallback.valid()) {
+        _coordsCallback = new MouseCoordsCallback();
+    }
     _mouseCoordsTool->addCallback(_coordsCallback.get());
+    _viewer->addEventHandler(_mouseCoordsTool.get());
+
     if (_clipPlaneCullCallback.valid()) {
         _viewer->getCamera()->removeCullCallback(_clipPlaneCullCallback.get());
         _clipPlaneCullCallback = NULL;
@@ -242,7 +257,6 @@ void Renderer::loadEarthFile(const char *path)
         _clipPlaneCullCallback = new osgEarth::Util::AutoClipPlaneCullCallback(mapNode);
         _viewer->getCamera()->addCullCallback(_clipPlaneCullCallback.get());
     }
-    _viewer->addEventHandler(_mouseCoordsTool.get());
     _viewer->setSceneData(_sceneRoot.get());
     _manipulator = new osgEarth::Util::EarthManipulator;
     _viewer->setCameraManipulator(_manipulator.get());
@@ -301,10 +315,23 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
     mapNodeOpts.enableLighting() = true;
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
     _mapNode = mapNode;
-    _sceneRoot = mapNode;
+    if (_map->isGeocentric()) {
+#if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
+        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode::create(mapNode);
+        sky->addChild(mapNode);
+        _sceneRoot = sky;
+#else
+        _sceneRoot = mapNode;
+#endif
+    } else {
+        _sceneRoot = mapNode;
+    }
     if (_mouseCoordsTool.valid())
         _viewer->removeEventHandler(_mouseCoordsTool.get());
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
+    if (!_coordsCallback.valid()) {
+        _coordsCallback = new MouseCoordsCallback();
+    }
     _mouseCoordsTool->addCallback(_coordsCallback.get());
     _viewer->addEventHandler(_mouseCoordsTool.get());
 
@@ -533,7 +560,8 @@ void Renderer::addElevationLayer(const char *name,
 {
     // XXX: GDAL does not report vertical datum, it should be specified here
     osgEarth::ElevationLayerOptions layerOpts(name, opts);
-    //layerOpts.verticalDatum() = "";
+    // Common options: geodetic (default), egm96, egm84, egm2008
+    //layerOpts.verticalDatum() = "egm96";
     _map->addElevationLayer(new osgEarth::ElevationLayer(layerOpts));
     _needsRedraw = true;
 }
@@ -746,7 +774,9 @@ void Renderer::keyRelease(int key)
 
 void Renderer::setThrowingEnabled(bool state)
 {
-    _manipulator->getSettings()->setThrowingEnabled(state);
+    if (_manipulator.valid()) {
+        _manipulator->getSettings()->setThrowingEnabled(state);
+    }
 }
 
 void Renderer::mouseDoubleClick(int button, double x, double y)
@@ -775,13 +805,15 @@ void Renderer::mouseRelease(int button, double x, double y)
 
 void Renderer::mouseMotion(double x, double y)
 {
-    //getEventQueue()->mouseMotion((float)x, (float)y);
-    //return;
-    osgEarth::GeoPoint map;
-    if (mapMouseCoords(x, y, map)) {
-        _coordsCallback->set(map, _viewer.get(), _mapNode);
-    } else {
-        _coordsCallback->reset(_viewer.get(), _mapNode);
+    if (_coordsCallback.valid()) {
+        //getEventQueue()->mouseMotion((float)x, (float)y);
+        //return;
+        osgEarth::GeoPoint map;
+        if (mapMouseCoords(x, y, map)) {
+            _coordsCallback->set(map, _viewer.get(), _mapNode);
+        } else {
+            _coordsCallback->reset(_viewer.get(), _mapNode);
+        }
     }
 }
 
