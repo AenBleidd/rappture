@@ -612,12 +612,10 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
 
         foreach layer [$dataobj layers] {
-            set layerType [$dataobj type $layer]
-            switch -- $layerType {
-                "elevation" {
-                    set _haveTerrain 1
-                }
-            }
+            if { [$dataobj type $layer] == "elevation" } {
+                set _haveTerrain 1
+                break
+            } 
         }
     }
     if { $_haveTerrain } {
@@ -862,22 +860,22 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             # should not be done more than once as it is very expensive.
 
             if { $_mapsettings(type) == "geocentric" } {
-                SendCmd "map reset geocentric"
-            } else {
+                SendCmd [list map reset "geocentric"]
+            }  else {
+                set proj $_mapsettings(projection)
                 if { $_mapsettings(extents) == "" } {
-                    if { $_mapsettings(projection) == "" } {
-                        SendCmd "map reset projected global-mercator"
-                    } else {
-                        SendCmd "map reset projected {$_mapsettings(projection)}"
-                    }
+                    SendCmd [list map reset "projected" $proj]
                 } else {
-                    SendCmd "map reset projected {$_mapsettings(projection)} $_mapsettings(extents)"
+                    foreach {x1 y1 x2 y2} $_mapsettings(extents) break
+                    SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2]
                 }
             }
             if { $_haveTerrain } {
                 FixSettings terrain-edges terrain-lighting terrain-vertscale \
                     terrain-wireframe
             }
+            # FIXME: need to specify initial layer in one command
+            SendCmd "map layer delete base"
             SendCmd "imgflush"
         }
     }
@@ -1578,9 +1576,8 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
     set tag $dataobj-$layer
     set _visibility($tag) 1
 
-    set type [$dataobj type $layer]
-    set style [$dataobj style $layer]
-    switch -- $type {
+    array set info [$dataobj layer $layer]
+    switch -- $info(type) {
         "elevation" {
             array set settings {
                 -edgecolor black
@@ -1590,7 +1587,9 @@ itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
                 -vertscale 1.0
                 -wireframe 0
             }
-            array set settings $style
+            if { [info exists info(style)] } {
+                array set settings $info(style)
+            }
             SendCmd "map terrain edges $settings(-edges)"
             set _settings(terrain-edges) $settings(-edges)
             #SendCmd "map terrain color [Color2RGB $settings(-color)]"
