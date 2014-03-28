@@ -462,7 +462,7 @@ bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& ma
 }
 
 void Renderer::addImageLayer(const char *name,
-                             const osgEarth::TileSourceOptions& opts,
+                             osgEarth::TileSourceOptions& opts,
                              bool makeShared,
                              bool visible)
 {
@@ -556,10 +556,13 @@ void Renderer::setImageLayerVisibility(const char *name, bool state)
 }
 
 void Renderer::addElevationLayer(const char *name,
-                                 const osgEarth::TileSourceOptions& opts)
+                                 osgEarth::TileSourceOptions& opts)
 {
-    // XXX: GDAL does not report vertical datum, it should be specified here
+    if (!opts.tileSize().isSet()) {
+        opts.tileSize() = 15;
+    }
     osgEarth::ElevationLayerOptions layerOpts(name, opts);
+    // XXX: GDAL does not report vertical datum, it should be specified here
     // Common options: geodetic (default), egm96, egm84, egm2008
     //layerOpts.verticalDatum() = "egm96";
     _map->addElevationLayer(new osgEarth::ElevationLayer(layerOpts));
@@ -601,7 +604,7 @@ void Renderer::setElevationLayerVisibility(const char *name, bool state)
 #endif
 }
 
-void Renderer::addModelLayer(const char *name, const osgEarth::ModelSourceOptions& opts)
+void Renderer::addModelLayer(const char *name, osgEarth::ModelSourceOptions& opts)
 {
     osgEarth::ModelLayerOptions layerOpts(name, opts);
     _map->addModelLayer(new osgEarth::ModelLayer(layerOpts));
