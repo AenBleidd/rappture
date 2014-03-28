@@ -66,12 +66,12 @@ itcl::class Rappture::MapViewer {
     }
     public method scale {args}
 
+    protected method AdjustSetting {what {value ""}}
     protected method Connect {}
     protected method CurrentDatasets {args}
     protected method Disconnect {}
     protected method DoResize {}
     protected method DoRotate {}
-    protected method AdjustSetting {what {value ""}}
     protected method FixSettings { args  }
     protected method KeyPress { key }
     protected method KeyRelease { key }
@@ -90,20 +90,20 @@ itcl::class Rappture::MapViewer {
     protected method Zoom {option}
 
     # The following methods are only used by this class.
-    private method UpdateLayerControls {}
-    private method ChangeLayerVisibility { dataobj layer }
     private method BuildCameraTab {}
-    private method BuildLayerTab {}
     private method BuildDownloadPopup { widget command } 
+    private method BuildLayerTab {}
     private method BuildTerrainTab {}
-    private method EventuallyResize { w h } 
+    private method ChangeLayerVisibility { dataobj layer }
     private method EventuallyHandleMotionEvent { x y } 
+    private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
     private method GetImage { args } 
     private method PanCamera {}
     private method SetObjectStyle { dataobj layer } 
     private method SetOpacity { dataset }
     private method SetOrientation { side }
+    private method UpdateLayerControls {}
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
@@ -133,7 +133,6 @@ itcl::class Rappture::MapViewer {
     private variable _resizePending 0
     private variable _rotatePending 0
     private variable _rotateDelay 150
-    private variable _scaleDelay 100
     private variable _motion 
 }
 
@@ -298,30 +297,24 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Bindings for rotation via mouse
     bind $itk_component(view) <ButtonPress-1> \
         [itcl::code $this MouseClick 1 %x %y]
-        #[itcl::code $this Rotate click %x %y]
     bind $itk_component(view) <Double-1> \
         [itcl::code $this MouseDoubleClick 1 %x %y]
     bind $itk_component(view) <B1-Motion> \
         [itcl::code $this MouseDrag 1 %x %y]
-        #[itcl::code $this Rotate drag %x %y]
     bind $itk_component(view) <ButtonRelease-1> \
         [itcl::code $this MouseRelease 1 %x %y]
-        #[itcl::code $this Rotate release %x %y]
     bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
         [itcl::code $this MouseClick 2 %x %y]
-        #[itcl::code $this Pan click %x %y]
     bind $itk_component(view) <Double-2> \
         [itcl::code $this MouseDoubleClick 2 %x %y]
     bind $itk_component(view) <B2-Motion> \
         [itcl::code $this MouseDrag 2 %x %y]
-        #[itcl::code $this Pan drag %x %y]
     bind $itk_component(view) <ButtonRelease-2> \
         [itcl::code $this MouseRelease 2 %x %y]
-        #[itcl::code $this Pan release %x %y]
 
     bind $itk_component(view) <ButtonPress-3> \
         [itcl::code $this MouseClick 3 %x %y]
@@ -874,10 +867,10 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     if { $_mapsettings(projection) == "" } {
                         SendCmd "map reset projected global-mercator"
                     } else {
-                        SendCmd "map reset projected $_mapsettings(projection)"
+                        SendCmd "map reset projected {$_mapsettings(projection)}"
                     }
                 } else {
-                    SendCmd "map reset projected $_mapsettings(projection) $_mapsettings(extents)"
+                    SendCmd "map reset projected {$_mapsettings(projection)} $_mapsettings(extents)"
                 }
             }
             if { $_haveTerrain } {
@@ -1413,10 +1406,11 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         [itcl::code $this AdjustSetting terrain-palette]
 
     label $inner.vscale_l -text "Vertical Scale" -font "Arial 9" -anchor w 
-    ::scale $inner.vscale -from 0 -to 100 -orient horizontal \
+    ::scale $inner.vscale -from 0 -to 10 -orient horizontal \
         -variable [itcl::scope _settings(terrain-vertscale)] \
         -width 10 \
-        -showvalue off \
+        -resolution 0.1 \
+        -showvalue on \
         -command [itcl::code $this AdjustSetting terrain-vertscale]
     $inner.vscale set $_settings(terrain-vertscale)
 
