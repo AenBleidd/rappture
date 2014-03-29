@@ -1599,9 +1599,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if { [info exists info(opacity)] } {
-                set _settings(-opacity) $info(opacity)
+                set settings(-opacity) $info(opacity)
             }
-            SendCmd "map layer opacity $_settings(-opacity) $tag"
+            SendCmd "map layer opacity $settings(-opacity) $tag"
         }
         "elevation" {
             array set settings {
@@ -1623,9 +1623,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if { [info exists info(opacity)] } {
-                set _settings(-opacity) $info(opacity)
+                set settings(-opacity) $info(opacity)
             }
-            SendCmd "map layer opacity $_settings(-opacity) $tag"
+            SendCmd "map layer opacity $settings(-opacity) $tag"
         }
         "polygon" {
             array set settings {
@@ -1637,9 +1637,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if { [info exists info(opacity)] } {
-                set _settings(-opacity) $info(opacity)
+                set settings(-opacity) $info(opacity)
             }
-            SendCmd "map layer opacity $_settings(-opacity) $tag"
+            SendCmd "map layer opacity $settings(-opacity) $tag"
         }
     }
 }
