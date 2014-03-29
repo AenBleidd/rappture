@@ -1628,7 +1628,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if { [info exists info(opacity)] } {
-                set $_settings(-opacity) $info(opacity)
+                set _settings(-opacity) $info(opacity)
             }
             SendCmd "map layer opacity $_settings(-opacity) $tag"
         }
@@ -1652,7 +1652,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if { [info exists info(opacity)] } {
-                set $_settings(-opacity) $info(opacity)
+                set _settings(-opacity) $info(opacity)
             }
             SendCmd "map layer opacity $_settings(-opacity) $tag"
         }
@@ -1666,7 +1666,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if { [info exists info(opacity)] } {
-                set $_settings(-opacity) $info(opacity)
+                set _settings(-opacity) $info(opacity)
             }
             SendCmd "map layer opacity $_settings(-opacity) $tag"
         }
