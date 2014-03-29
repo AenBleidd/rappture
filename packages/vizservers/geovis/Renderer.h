@@ -171,6 +171,19 @@ public:
         return (_map.valid() ? _map->getNumImageLayers() : 0);
     }
 
+    void getImageLayerNames(std::vector<std::string>& names)
+    {
+        if (_map.valid()) {
+            osgEarth::ImageLayerVector layerVector;
+            _map->getImageLayers(layerVector);
+            osgEarth::ImageLayerVector::const_iterator itr;
+            for (itr = layerVector.begin(); itr != layerVector.end(); ++itr) {
+                //osgEarth::UID uid = (*itr)->getUID();
+                names.push_back((*itr)->getName());
+            }
+        }
+    }
+
     void addImageLayer(const char *name, osgEarth::TileSourceOptions& opts,
                        bool makeShared = false, bool visible = true);
 
@@ -193,6 +206,19 @@ public:
         return (_map.valid() ? _map->getNumElevationLayers() : 0);
     }
 
+    void getElevationLayerNames(std::vector<std::string>& names)
+    {
+        if (_map.valid()) {
+            osgEarth::ElevationLayerVector layerVector;
+            _map->getElevationLayers(layerVector);
+            osgEarth::ElevationLayerVector::const_iterator itr;
+            for (itr = layerVector.begin(); itr != layerVector.end(); ++itr) {
+                //osgEarth::UID uid = (*itr)->getUID();
+                names.push_back((*itr)->getName());
+            }
+        }
+    }
+
     void addElevationLayer(const char *name, osgEarth::TileSourceOptions& opts);
 
     void removeElevationLayer(const char *name);
@@ -206,6 +232,19 @@ public:
     int getNumModelLayers() const
     {
         return (_map.valid() ? _map->getNumModelLayers() : 0);
+    }
+
+    void getModelLayerNames(std::vector<std::string>& names)
+    {
+        if (_map.valid()) {
+            osgEarth::ModelLayerVector layerVector;
+            _map->getModelLayers(layerVector);
+            osgEarth::ModelLayerVector::const_iterator itr;
+            for (itr = layerVector.begin(); itr != layerVector.end(); ++itr) {
+                //osgEarth::UID uid = (*itr)->getUID();
+                names.push_back((*itr)->getName());
+            }
+        }
     }
 
     void addModelLayer(const char *name, osgEarth::ModelSourceOptions& opts);
