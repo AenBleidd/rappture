@@ -82,7 +82,6 @@ itcl::class Rappture::MapViewer {
     protected method MouseRelease { button x y }
     protected method MouseScroll { direction }
     protected method Pan {option x y}
-    protected method Pick {x y}
     protected method Rebuild {}
     protected method ReceiveDataset { args }
     protected method ReceiveImage { args }
@@ -798,31 +797,9 @@ itcl::body Rappture::MapViewer::ReceiveDataset { args } {
             foreach { x y z } [lrange $args 1 end] break
             puts stderr "Coords: $x $y $z"
         }
-        "scalar" {
-            set option [lindex $args 1]
-            switch -- $option {
-                "world" {
-                    foreach { x y z value tag } [lrange $args 2 end] break
-                }
-                "pixel" {
-                    foreach { x y value tag } [lrange $args 2 end] break
-                }
-            }
-        }
-        "vector" {
-            set option [lindex $args 1]
-            switch -- $option {
-                "world" {
-                    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
-                }
-                "pixel" {
-                    foreach { x y vx vy vz tag } [lrange $args 2 end] break
-                }
-            }
-        }
         "names" {
             foreach { name } [lindex $args 1] {
-                #puts stderr "Dataset: $name"
+                #puts stderr "layer: $name"
             }
         }
         default {
@@ -1198,12 +1175,6 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
             error "bad option \"$option\": should be click, drag, release"
         }
     }
-}
-
-itcl::body Rappture::MapViewer::Pick {x y} {
-    foreach tag [CurrentDatasets -visible] {
-        SendCmd "dataset getscalar pixel $x $y $tag"
-    } 
 }
 
 # ----------------------------------------------------------------------
@@ -1658,7 +1629,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
         }
         "polygon" {
             array set settings {
-                -color black
+                -color white
                 -minbias 1000
                 -opacity 1.0
             }
