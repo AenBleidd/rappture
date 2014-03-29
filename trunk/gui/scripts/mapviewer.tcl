@@ -100,7 +100,8 @@ itcl::class Rappture::MapViewer {
     private method EventuallyRotate { q } 
     private method GetImage { args } 
     private method PanCamera {}
-    private method SetObjectStyle { dataobj layer } 
+    private method SetLayerStyle { dataobj layer }
+    private method SetMapStyle { style }
     private method SetOpacity { dataset }
     private method SetOrientation { side }
     private method UpdateLayerControls {}
@@ -267,6 +268,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     BuildLayerTab
+    BuildTerrainTab
     BuildCameraTab
 
     # Legend
@@ -595,7 +597,10 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
         array unset hints 
         array set hints [$dataobj hints]
-        if { ![info exists overall(type)] } {
+        if { ![info exists _mapsettings(style)] } {
+            set _mapsettings(style) $hints(style)
+        }
+        if { ![info exists _mapsettings(type)] } {
             set _mapsettings(type) $hints(type)
         } elseif { $hints(type) != $_mapsettings(type) } {
             error "maps \"$hints(label)\" have differing types"
@@ -619,10 +624,9 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
     }
     if { $_haveTerrain } {
-        if { ![$itk_component(main) exists "Terrain Settings"] } {
-            if { [catch { BuildTerrainTab } errs ]  != 0 } {
-                puts stderr "errs=$errs"
-            }
+        if { [$itk_component(main) exists "Terrain Settings"] } {
+            # TODO: Enable controls like vertical scale that only have
+            # an effect when terrain is present
         }
     }
 }
@@ -860,22 +864,26 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             # should not be done more than once as it is very expensive.
 
             if { $_mapsettings(type) == "geocentric" } {
-                SendCmd [list map reset "geocentric"]
+                SendCmd "map reset geocentric"
             }  else {
                 set proj $_mapsettings(projection)
-                if { $_mapsettings(extents) == "" } {
+                if { $proj == "" } {
+                    SendCmd "map reset projected global-mercator"
+                } elseif { $_mapsettings(extents) == "" } {
                     SendCmd [list map reset "projected" $proj]
                 } else {
                     foreach {x1 y1 x2 y2} $_mapsettings(extents) break
                     SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2]
                 }
             }
-            if { $_haveTerrain } {
+            # FIXME: need to specify initial layer in one command
+            SendCmd "map layer delete base"
+            if { [info exists _mapsettings(style)] } {
+                SetMapStyle $_mapsettings(style)
+            } else {
                 FixSettings terrain-edges terrain-lighting terrain-vertscale \
                     terrain-wireframe
             }
-            # FIXME: need to specify initial layer in one command
-            SendCmd "map layer delete base"
             SendCmd "imgflush"
         }
     }
@@ -916,7 +924,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 }
                 SendCmd [list map layer add $type $info(url) $tag]
                 set _datasets($tag) 1
-                SetObjectStyle $dataobj $layer
+                SetLayerStyle $dataobj $layer
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
@@ -1572,37 +1580,97 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
     return $inner
 }
 
-itcl::body Rappture::MapViewer::SetObjectStyle { dataobj layer } {
-    set tag $dataobj-$layer
-    set _visibility($tag) 1
+itcl::body Rappture::MapViewer::SetMapStyle { style } {
+    array set settings {
+        -color white
+        -edgecolor black
+        -edges 0
+        -lighting 0
+        -linewidth 1.0
+        -vertscale 1.0
+        -wireframe 0
+    }
+    array set settings $style
 
+    SendCmd "map terrain edges $settings(-edges)"
+    set _settings(terrain-edges) $settings(-edges)
+    #SendCmd "map terrain color [Color2RGB $settings(-color)]"
+    #SendCmd "map terrain colormode constant"
+    SendCmd "map terrain lighting $settings(-lighting)"
+    set _settings(terrain-lighting) $settings(-lighting)
+    SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)]"
+    #SendCmd "map terrain linewidth $settings(-linewidth)"
+    SendCmd "map terrain vertscale $settings(-vertscale)"
+    set _settings(terrain-vertscale) $settings(-vertscale)
+    SendCmd "map terrain wireframe $settings(-wireframe)"
+    set _settings(terrain-wireframe) $settings(-wireframe)
+}
+
+itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
+    set tag $dataobj-$layer
     array set info [$dataobj layer $layer]
+    set _visibility($tag) 1
+    if { [info exists info(status)] } {
+        if { $info(status) == "hidden" } {
+            set _visibility($tag) 0
+            SendCmd "map layer visible 0 $tag"
+        }
+    }
+
     switch -- $info(type) {
-        "elevation" {
+        "raster" {
             array set settings {
-                -edgecolor black
-                -edges 0
-                -lighting 1
-                -linewidth 1.0
-                -vertscale 1.0
-                -wireframe 0
+                -min_level 0
+                -max_level 23
+                -opacity 1.0
             }
             if { [info exists info(style)] } {
                 array set settings $info(style)
             }
-            SendCmd "map terrain edges $settings(-edges)"
-            set _settings(terrain-edges) $settings(-edges)
-            #SendCmd "map terrain color [Color2RGB $settings(-color)]"
-            #SendCmd "map terrain colormode constant {}"
-            SendCmd "map terrain lighting $settings(-lighting)"
-            set _settings(terrain-lighting) $settings(-lighting)
-            SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)]"
-            #SendCmd "map terrain linewidth $settings(-linewidth)"
-            SendCmd "map terrain wireframe $settings(-wireframe)"
-            set _settings(terrain-wireframe) $settings(-wireframe)
+            if { [info exists info(opacity)] } {
+                set $_settings(-opacity) $info(opacity)
+            }
+            SendCmd "map layer opacity $_settings(-opacity) $tag"
+        }
+        "elevation" {
+            array set settings {
+                -min_level 0
+                -max_level 23
+            }
+            if { [info exists info(style)] } {
+                array set settings $info(style)
+            }
+        }
+        "line" {
+            array set settings {
+                -color black
+                -minbias 1000
+                -opacity 1.0
+                -width 1
+            }
+            if { [info exists info(style)] } {
+                array set settings $info(style)
+            }
+            if { [info exists info(opacity)] } {
+                set $_settings(-opacity) $info(opacity)
+            }
+            SendCmd "map layer opacity $_settings(-opacity) $tag"
+        }
+        "polygon" {
+            array set settings {
+                -color black
+                -minbias 1000
+                -opacity 1.0
+            }
+            if { [info exists info(style)] } {
+                array set settings $info(style)
+            }
+            if { [info exists info(opacity)] } {
+                set $_settings(-opacity) $info(opacity)
+            }
+            SendCmd "map layer opacity $_settings(-opacity) $tag"
         }
     }
-    #SetColormap $dataobj $layer
 }
 
 itcl::body Rappture::MapViewer::SetOrientation { side } { 

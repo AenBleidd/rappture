@@ -122,7 +122,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
         }
         $_tree set $child "type" $layerType
-        foreach key { label description url } {
+        foreach key { label description opacity status style url } {
             $_tree set $child $key [$layers get $layer.$key] 
         }
         set file [$layers get $layer.file] 
