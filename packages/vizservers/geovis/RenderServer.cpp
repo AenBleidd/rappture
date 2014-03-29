@@ -532,17 +532,18 @@ main(int argc, char *argv[])
                 ERROR("Empty image");
             } else {
                 TRACE("Image: %d x %d", imgData->s(), imgData->t());
-            }
-            if (imgData->s() == g_renderer->getWindowWidth() &&
-                imgData->t() == g_renderer->getWindowHeight()) {
+
+                if (imgData->s() == g_renderer->getWindowWidth() &&
+                    imgData->t() == g_renderer->getWindowHeight()) {
 #ifdef USE_THREADS
-                queueFrame(g_outQueue, imgData->data());
+                    queueFrame(g_outQueue, imgData->data());
 #else
-                writeFrame(g_fdOut, imgData->data());
+                    writeFrame(g_fdOut, imgData->data());
 #endif
+                }
+                g_stats.nFrames++;
+                g_stats.nFrameBytes += imgData->s() * imgData->t() * 3;
             }
-            g_stats.nFrames++;
-            g_stats.nFrameBytes += imgData->s() * imgData->t() * 3;
         } else {
             //TRACE("No render required");
             if (cmdStatus > 1) {

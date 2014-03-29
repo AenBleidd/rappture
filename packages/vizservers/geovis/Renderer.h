@@ -154,6 +154,8 @@ public:
 
     // Map options
 
+    void setViewerLightType(osg::View::LightingMode mode);
+
     void setLighting(bool state);
 
     void setTerrainLighting(bool state);
@@ -289,6 +291,10 @@ public:
 
 private:
     typedef std::tr1::unordered_map<ColorMapId, osg::ref_ptr<osg::TransferFunction1D> > ColorMapHashmap;
+
+    void initViewer();
+
+    void finalizeViewer();
 
     void initColorMaps();
 
