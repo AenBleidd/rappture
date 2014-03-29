@@ -173,7 +173,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
 # ----------------------------------------------------------------------
 # USAGE: layers
 #
-# Returns a list of labels for the layers in the map
+# Returns a list of IDs for the layers in the map
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::layers {} {
     set list {}
