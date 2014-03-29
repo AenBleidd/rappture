@@ -52,18 +52,12 @@ itcl::class Rappture::Map {
 
     public method isGeocentric {} 
     public method layers {}
-    public method layer { name }
+    public method layer { layerName }
     public method hints { args }
     public method isvalid {} {
         return $_isValid;
     }
-    public method type { name } {
-        set id [$_tree findchild root->"layers" $name]
-        if { $id < 0 } {
-            error "unknown layer \"$name\""
-        }
-        return [$_tree get $id "type" ""]
-    }
+    public method type { layerName }
 }
 
 # ----------------------------------------------------------------------
@@ -138,7 +132,8 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         }
     }
     $_tree set root "label"       [$map get "about.label"]
-
+    $_tree set root "style"       [$map get "style"]
+ 
     set projection [$map get "projection"]
     set extents    [$map get "extents"]
     if { $projection  == "" } {
@@ -178,8 +173,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
 # ----------------------------------------------------------------------
 # USAGE: layers
 #
-# Returns the list of settings for each marker on the x-axis.
-# If no markers have been specified the empty string is returned.
+# Returns a list of labels for the layers in the map
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::layers {} {
     set list {}
@@ -190,10 +184,9 @@ itcl::body Rappture::Map::layers {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: layer
+# USAGE: layer <layerName>
 #
-# Returns the list of settings for each marker on the y-axis.
-# If no markers have been specified the empty string is returned.
+# Returns an array of settings for the named layer
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::layer { layerName } {
     set id [$_tree findchild root->"layers" $layerName]
@@ -203,7 +196,22 @@ itcl::body Rappture::Map::layer { layerName } {
     return [$_tree get $id]
 }
 
-# ---------------------------------------------------------------------- 
+# ----------------------------------------------------------------------
+# USAGE: type <layerName>
+#
+# Returns the type of the named layer
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::type { layerName } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    return [$_tree get $id "type" ""]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: isGeocentric
+#
 # Returns if the map is geocentric (1) or projected (0) 
 # ---------------------------------------------------------------------- 
 itcl::body Rappture::Map::isGeocentric {} { 
