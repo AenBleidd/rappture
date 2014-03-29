@@ -732,6 +732,55 @@ MapLayerOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MapLayerNamesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    std::vector<std::string> layers;
+    if (objc < 4) {
+        g_renderer->getImageLayerNames(layers);
+        g_renderer->getElevationLayerNames(layers);
+        g_renderer->getModelLayerNames(layers);
+    } else {
+        char *type = Tcl_GetString(objv[3]);
+        if (type[0] == 'i' && strcmp(type, "image") == 0) {
+            g_renderer->getImageLayerNames(layers);
+        } else if (type[0] == 'e' && strcmp(type, "elevation") == 0) {
+            g_renderer->getElevationLayerNames(layers);
+        } else if (type[0] == 'm' && strcmp(type, "model") == 0) {
+            g_renderer->getModelLayerNames(layers);
+        } else {
+            Tcl_AppendResult(interp, "uknown type \"", type,
+                         "\": must be image, elevation or model", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    std::ostringstream oss;
+    size_t len = 0;
+    oss << "nv>dataset names {";
+    len += 18;
+    for (size_t i = 0; i < layers.size(); i++) {
+        oss << "\"" << layers[i] << "\"";
+        len += 2 + layers[i].length();
+        if (i < layers.size() - 1) {
+            oss << " ";
+            len++;
+        }
+    }
+    oss << "}\n";
+    len += 2;
+#ifdef USE_THREADS
+    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+
+    if (bytesWritten < 0) {
+        return TCL_ERROR;
+    }
+#endif /*USE_THREADS*/
+    return TCL_OK;
+}
+
+static int
 MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -752,6 +801,7 @@ static CmdSpec mapLayerOps[] = {
     {"add",     1, MapLayerAddOp,       6, 9, "type url ?args? name"},
     {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
     {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
+    {"names",   1, MapLayerNamesOp,     3, 4, "?type?"},
     {"opacity", 1, MapLayerOpacityOp,   5, 5, "opacity ?name?"},
     {"visible", 1, MapLayerVisibleOp,   5, 5, "bool ?name?"},
 };
