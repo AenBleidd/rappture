@@ -647,7 +647,9 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
    } else if (type[0] == 't' && strcmp(type, "text") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
         char *url =  Tcl_GetString(objv[4]);
-        char *name = Tcl_GetString(objv[5]);
+        char *content = Tcl_GetString(objv[5]);
+        char *priority = Tcl_GetString(objv[6]);
+        char *name = Tcl_GetString(objv[7]);
         opts.url() = url;
 
         osgEarth::Symbology::Style style;
@@ -655,6 +657,12 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         ts->halo()->color() = osgEarth::Symbology::Color::White;
         ts->halo()->width() = 2.0f;
         ts->fill()->color() = osgEarth::Symbology::Color::Black;
+        ts->content() = osgEarth::Symbology::StringExpression(content);
+        ts->priority() = osgEarth::Symbology::NumericExpression(priority);
+        ts->removeDuplicateLabels() = true;
+        ts->size() = 16.0f;
+        ts->alignment() = osgEarth::Symbology::TextSymbol::ALIGN_CENTER_CENTER;
+        ts->declutter() = true;
 
         osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
         rs->depthOffset()->enabled() = true;
