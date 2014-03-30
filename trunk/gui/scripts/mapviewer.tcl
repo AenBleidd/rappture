@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
-
 # ----------------------------------------------------------------------
 #  COMPONENT: mapviewer - Map object viewer
 #
@@ -39,7 +38,7 @@ itcl::class Rappture::MapViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    private variable _layers "";	# Name of layers tab widget
+    private variable _layersFrame "";	# Name of layers frame widget
     private variable _mapsettings;      # Global map settings
 
     constructor { hostlist args } {
@@ -68,7 +67,7 @@ itcl::class Rappture::MapViewer {
 
     protected method AdjustSetting {what {value ""}}
     protected method Connect {}
-    protected method CurrentDatasets {args}
+    protected method CurrentLayers {args}
     protected method Disconnect {}
     protected method DoResize {}
     protected method DoRotate {}
@@ -100,17 +99,18 @@ itcl::class Rappture::MapViewer {
     private method GetImage { args } 
     private method PanCamera {}
     private method SetLayerStyle { dataobj layer }
-    private method SetMapStyle { style }
+    private method SetTerrainStyle { style }
     private method SetOpacity { dataset }
     private method SetOrientation { side }
     private method UpdateLayerControls {}
+    private method EarthFile {}
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
     private variable _obj2datasets
     private variable _obj2ovride;	# maps dataobj => style override
-    private variable _datasets;		# contains all the dataobj-component 
-                                   	# datasets in the server
+    private variable _layers;		# Contains the names of all the 
+                                   	# layer in the server.
     private variable _click;            # info used for rotate operations
     private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
@@ -488,9 +488,8 @@ itcl::body Rappture::MapViewer::delete {args} {
         }
         # When a map is marked deleted, we hide its layers.
         foreach layer [$dataobj layers] {
-	    set tag $dataobj-$layer
-            SendCmd "map layer visible 0 $tag"
-            set _visibility($tag) 0
+            SendCmd "map layer visible 0 $layer"
+            set _visibility($layer) 0
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
@@ -586,6 +585,7 @@ itcl::body Rappture::MapViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::scale {args} {
     array unset _mapsettings
+    set _haveTerrain 0
 
     # Verify that all the maps have the same global settings. For example,
     # you can't have one map type "geocentric" and the other "projected".
@@ -596,6 +596,9 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
         array unset hints 
         array set hints [$dataobj hints]
+        if { ![info exists _mapsettings(label)] } {
+            set _mapsettings(label) $hints(label)
+        }
         if { ![info exists _mapsettings(style)] } {
             set _mapsettings(style) $hints(style)
         }
@@ -609,12 +612,24 @@ itcl::body Rappture::MapViewer::scale {args} {
         } elseif { $hints(projection) != $_mapsettings(projection) } {
             error "maps \"$hints(label)\" have differing projections"
         }
-        if { ![info exists _mapsettings(extents)] } {
-            set _mapsettings(extents) $hints(extents)
-        } elseif { $hints(extents) != $_mapsettings(extents) } {
-            error "maps \"$hints(label)\" have differing extents"
+        if { $hints(extents) != "" } {
+            if { ![info exists _mapsettings(extents)] } {
+                set _mapsettings(extents) $hints(extents)
+            }
+            foreach {x1 y1 x2 y2} $hints(extents) break
+            if { ![info exists _mapsettings(x1)] || $x1 < $_mapsettings(x1) } {
+                set _mapsettings(x1) $x1
+            }
+            if { ![info exists _mapsettings(y1)] || $y1 < $_mapsettings(y1) } {
+                set _mapsettings(y1) $y1
+            }
+            if { ![info exists _mapsettings(x2)] || $x2 > $_mapsettings(x2) } {
+                set _mapsettings(x2) $x2
+            }
+            if { ![info exists _mapsettings(y2)] || $y2 > $_mapsettings(y2) } {
+                set _mapsettings(y2) $y1
+            }
         }
-
         foreach layer [$dataobj layers] {
             if { [$dataobj type $layer] == "elevation" } {
                 set _haveTerrain 1
@@ -754,7 +769,7 @@ itcl::body Rappture::MapViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    array unset _datasets 
+    array unset _layersFrame 
     global readyForNextFrame
     set readyForNextFrame 1
 }
@@ -836,30 +851,26 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         DoResize
 
         if { [info exists _mapsettings(type)] } {
-
             # The map must be reset once before any layers are added This
             # should not be done more than once as it is very expensive.
+            set bytes [EarthFile]
+            set f [open "/tmp/earth.txt" "w"]
+            puts $f $bytes
+            close $f
+            set length [string length $bytes]
+            SendCmd "map load data follows $length"
+            append _outbuf $bytes
 
-            if { $_mapsettings(type) == "geocentric" } {
-                SendCmd "map reset geocentric"
-            }  else {
-                set proj $_mapsettings(projection)
-                if { $proj == "" } {
-                    SendCmd "map reset projected global-mercator"
-                } elseif { $_mapsettings(extents) == "" } {
-                    SendCmd [list map reset "projected" $proj]
-                } else {
-                    foreach {x1 y1 x2 y2} $_mapsettings(extents) break
-                    SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2]
-                }
-            }
-            # FIXME: need to specify initial layer in one command
+            # FIXME: do I still need to delete the base layer?
             SendCmd "map layer delete base"
-            if { [info exists _mapsettings(style)] } {
-                SetMapStyle $_mapsettings(style)
-            } else {
-                FixSettings terrain-edges terrain-lighting terrain-vertscale \
-                    terrain-wireframe
+
+            if { $_haveTerrain } {
+                if { [info exists _mapsettings(style)] } {
+                    SetTerrianStyle $_mapsettings(style)
+                } else {
+                    FixSettings terrain-edges terrain-lighting \
+                        terrain-vertscale terrain-wireframe
+                }
             }
             SendCmd "imgflush"
         }
@@ -875,8 +886,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         foreach layer [$dataobj layers] {
 	    array unset info
 	    array set info [$dataobj layer $layer]
-	    set tag $dataobj-$layer
-            if { ![info exists _datasets($tag)] } {
+            if { ![info exists _layers($layer)] } {
 		if { ![info exists info(url)] }  {
 		    continue
 		}
@@ -896,18 +906,18 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     lappend cinfo "tool_version"  [$dataobj hints toolRevision]
                     lappend cinfo "tool_title"    [$dataobj hints toolTitle]
                     lappend cinfo "dataset_label" [$dataobj hints label]
-                    lappend cinfo "dataset_tag"   $tag
+                    lappend cinfo "dataset_tag"   $layer
                     SendCmd [list "clientinfo" $cinfo]
                 }
-                SendCmd [list map layer add $type $info(url) $tag]
-                set _datasets($tag) 1
+                SendCmd [list map layer add $type $info(url) $layer]
+                set _layers($layer) 1
                 SetLayerStyle $dataobj $layer
             }
-            lappend _obj2datasets($dataobj) $tag
+            lappend _obj2datasets($dataobj) $layer
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                SendCmd "map layer visible 1 $tag"
-                set _visibility($tag) 1
-                #SetLayerOpacity $tag
+                SendCmd "map layer visible 1 $layer"
+                set _visibility($layer) 1
+                #SetLayerOpacity $layer
             }
         }
     }
@@ -939,18 +949,18 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: CurrentDatasets ?-all -visible? ?dataobjs?
+# USAGE: CurrentLayers ?-all -visible? ?dataobjs?
 #
 # Returns a list of server IDs for the current datasets being displayed.
 # This is normally a single ID, but it might be a list of IDs if the
 # current data object has multiple components.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MapViewer::CurrentDatasets {args} {
+itcl::body Rappture::MapViewer::CurrentLayers {args} {
     set flag [lindex $args 0]
     switch -- $flag { 
         "-all" {
             if { [llength $args] > 1 } {
-                error "CurrentDatasets: can't specify dataobj after \"-all\""
+                error "CurrentLayers: can't specify dataobj after \"-all\""
             }
             set dlist [get -objects]
         }
@@ -974,9 +984,8 @@ itcl::body Rappture::MapViewer::CurrentDatasets {args} {
     set rlist ""
     foreach dataobj $dlist {
         foreach layer [$dataobj layers] {
-            set tag $dataobj-$layer
-            if { [info exists _datasets($tag)] && $_datasets($tag) } {
-                lappend rlist $tag
+            if { [info exists _layers($layer)] && $_layers($layer) } {
+                lappend rlist $layer
             }
         }
     }
@@ -1421,7 +1430,7 @@ itcl::body Rappture::MapViewer::BuildLayerTab {} {
     set f [frame $inner.layers]
     blt::table $inner \
         0,0 $f -fill both 
-    set _layers $inner
+    set _layersFrame $inner
 }
 
 itcl::body Rappture::MapViewer::BuildCameraTab {} {
@@ -1551,7 +1560,7 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
     return $inner
 }
 
-itcl::body Rappture::MapViewer::SetMapStyle { style } {
+itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
     array set settings {
         -color white
         -edgecolor black
@@ -1578,13 +1587,12 @@ itcl::body Rappture::MapViewer::SetMapStyle { style } {
 }
 
 itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
-    set tag $dataobj-$layer
     array set info [$dataobj layer $layer]
-    set _visibility($tag) 1
+    set _visibility($layer) 1
     if { [info exists info(status)] } {
         if { $info(status) == "hidden" } {
-            set _visibility($tag) 0
-            SendCmd "map layer visible 0 $tag"
+            set _visibility($layer) 0
+            SendCmd "map layer visible 0 $layer"
         }
     }
 
@@ -1601,7 +1609,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
-            SendCmd "map layer opacity $settings(-opacity) $tag"
+            SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "elevation" {
             array set settings {
@@ -1625,7 +1633,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
-            SendCmd "map layer opacity $settings(-opacity) $tag"
+            SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "polygon" {
             array set settings {
@@ -1639,7 +1647,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
-            SendCmd "map layer opacity $settings(-opacity) $tag"
+            SendCmd "map layer opacity $settings(-opacity) $layer"
         }
     }
 }
@@ -1678,14 +1686,13 @@ itcl::body Rappture::MapViewer::SetOpacity { dataset } {
 }
 
 itcl::body Rappture::MapViewer::ChangeLayerVisibility { dataobj layer } { 
-    set tag $dataobj-$layer
-    set bool $_visibility($tag)
-    SendCmd "map layer visible $bool $tag"
+    set bool $_visibility($layer)
+    SendCmd "map layer visible $bool $layer"
 }
 
 itcl::body Rappture::MapViewer::UpdateLayerControls {} { 
     set row 0
-    set inner $_layers
+    set inner $_layersFrame
     if { [winfo exists $inner.layers] } {
         foreach w [winfo children $inner.layers] {
             destroy $w
@@ -1693,19 +1700,17 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     }
     set f $inner.layers
     foreach dataobj [get -objects] {
-        foreach name [$dataobj layers] {
+        foreach layer [$dataobj layers] {
 	    array unset info
-	    array set info [$dataobj layer $name]
-	    set tag $dataobj-$name
-            set w [string range $dataobj$name 2 end]
-            checkbutton $f.$w \
+	    array set info [$dataobj layer $layer]
+            checkbutton $f.$layer \
                 -text $info(title) \
-                -variable [itcl::scope _visibility($tag)] \
+                -variable [itcl::scope _visibility($layer)] \
                 -command [itcl::code $this \
-                              ChangeLayerVisibility $dataobj $name] \
+                              ChangeLayerVisibility $dataobj $layer] \
 		    -font "Arial 9" -anchor w 
-            blt::table $f $row,0 $f.$w -anchor w -pady 2 
-            Rappture::Tooltip::for $f.$w $info(description)
+            blt::table $f $row,0 $f.$layer -anchor w -pady 2 
+            Rappture::Tooltip::for $f.$layer $info(description)
             incr row
 	}
     }
@@ -1714,3 +1719,65 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
         blt::table configure $f r$row c1 -resize expand
     }
 }
+
+itcl::body Rappture::MapViewer::EarthFile {} { 
+    append out "<map"
+    append out " name=\"$_mapsettings(label)\""
+    append out " type=\"$_mapsettings(type)\""
+    append out " version=\"2\""
+    append out ">\n"
+    append out " <options"
+    append out " lighting=\"true\""
+    #append out " elevation_interpolation=\"bilinear\""
+    #append out " elevation_tile_size=\"8\"" 
+    #append out " overlay_texture_size=\"4096\""
+    #append out " overlay_blending=\"true\""
+    #append out " overlay_resolution_ratio=\"3.0\""
+    append out ">\n"
+    append out "  <profile"
+    append out " srs=\"$_mapsettings(projection)\""
+    if { [info exists _mapsettings(extents)] } {
+        append out " xmin=\"$_mapsettings(x1)\""
+        append out " ymin=\"$_mapsettings(y1)\""
+        append out " xmax=\"$_mapsettings(x2)\""
+        append out " ymax=\"$_mapsettings(y2)\""
+    }
+    append out "/>\n"
+    if { $_haveTerrain } {
+        array set terrain {
+            -color white
+            -lighting 0
+        }
+        array set terrain $_mapsettings(style)
+        append out "  <terrain"
+        append out " lighting=\"$terrain(-lighting)\""
+        append out " color=\"$terrain(-color)\"" 
+        #append out " min_tile_range_factor=\"$terrain(-mintile)\""
+        #append out " min_lod=\"$terrain(-minlod)\""
+        #append out " max_lod=\"$terrain(-maxlod)\""
+        #append out " first_lod=\"$terrain(-firstlod)\""
+        #append out " cluster_culling=\"$terrain(-clusterculling)\""
+        #append out " mercator_fast_path=\"$terrain(-mercatorfastpath)\""
+        #append out " blending=\"$terrain(-blending)\""
+        append out "/>\n"
+    }
+    append out " </options>\n"
+
+    foreach dataobj [get -objects] {
+        foreach layer [$dataobj layers] {
+            set _layers($layer) 1
+            array unset info
+            array set info [$dataobj layer $layer]
+            append out " <image"
+            append out " name=\"$layer\""
+            append out " driver=\"gdal\""
+            append out " opacity=\"$info(opacity)\""
+            append out " visible=\"true\""
+            append out ">\n"
+            append out "  <url>$info(url)</url>\n"
+            append out " </image>\n"
+        }
+    }
+    append out "</map>\n"
+    return $out
+} 
