@@ -25,7 +25,7 @@ namespace eval Rappture {
 itcl::class Rappture::Map {
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
-    private variable _nextLayer 0;     # Counter used to generate unique
+    private common _nextLayer 0;        # Counter used to generate unique
                                        # layer names.
     private common _layerTypes
     private common _mapTypes
@@ -58,6 +58,7 @@ itcl::class Rappture::Map {
         return $_isValid;
     }
     public method type { layerName }
+    public method earthfile {}
 }
 
 # ----------------------------------------------------------------------
@@ -121,11 +122,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         if { ![info exists _layerTypes($layerType)] } {
             error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
         }
+        $_tree set $child "name" $layer
         $_tree set $child "type" $layerType
         foreach key { label description url } {
             $_tree set $child $key [$layers get $layer.$key] 
         }
-        foreach key { opacity status style } {
+        
+        foreach {key defval} { opacity 1.0 visible true style "" } {
+            $_tree set $child $key $defval
             set val [$layers get $layer.$key]
             if {$val != ""} {
                 $_tree set $child $key $val
@@ -218,8 +222,43 @@ itcl::body Rappture::Map::type { layerName } {
 # ----------------------------------------------------------------------
 # USAGE: isGeocentric
 #
-# Returns if the map is geocentric (1) or projected (0) 
+# Returns (like a bad penny) if the map is geocentric (1) or projected (0) 
 # ---------------------------------------------------------------------- 
 itcl::body Rappture::Map::isGeocentric {} { 
     return [expr {[hints "type"] eq "geocentric"}]
 } 
+
+itcl::body Rappture::Map::earthfile {} { 
+    array set info [$_tree get root]
+    append out "<map"
+    append out " name=\"$info(label)\""
+    append out " type=\"$info(type)\""
+    append out " version=\"2\""
+    append out ">\n"
+    append out " <profile"
+    append out " srs=\"$info(projection)\""
+    if { $info(extents) != "" } {
+        foreach {x1 y1 x2 y2} $extents break
+        append out " xmin=\"$x1\""
+        append out " ymin=\"$y1\""
+        append out " xmax=\"$x2\""
+        append out " ymax=\"$y2\""
+    }
+    append out " >\n"
+    append out " </profile>"
+    foreach node [$_tree children root->"layers"] {
+        array unset info
+        array set info [$_tree get $node]
+        set label [$_tree label $node]
+        append out " <image"
+        append out " name=\"$label\""
+        append out " driver=\"gdal\""
+        append out " opacity=\"$info(opacity)\""
+        append out " visible=\"$info(visible)\""
+        append out " >\n"
+        append out "  <url>$info(url)<url>\n"
+        append out " </image>"
+    }
+    append out "</map>\n"
+} 
+
