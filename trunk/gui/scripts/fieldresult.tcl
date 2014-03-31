@@ -86,8 +86,8 @@ itcl::body Rappture::FieldResult::constructor {args} {
             }
             "contour" - "heightmap" {
                 itk_component add renderer {
-                    Rappture::VtkHeightmapViewer $itk_interior.ren \
-			$servers -mode $flags(-mode)
+                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers \
+			-mode $flags(-mode)
                 }
             }
             "isosurface" {
