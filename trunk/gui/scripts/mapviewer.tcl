@@ -134,7 +134,7 @@ itcl::class Rappture::MapViewer {
     private variable _rotatePending 0
     private variable _rotateDelay 150
     private variable _motion 
-    private variable _sendEarthFile 1
+    private variable _sendEarthFile 0
 }
 
 itk::usual MapViewer {
