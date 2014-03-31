@@ -134,6 +134,7 @@ itcl::class Rappture::MapViewer {
     private variable _rotatePending 0
     private variable _rotateDelay 150
     private variable _motion 
+    private variable _sendEarthFile 1
 }
 
 itk::usual MapViewer {
@@ -627,7 +628,7 @@ itcl::body Rappture::MapViewer::scale {args} {
                 set _mapsettings(x2) $x2
             }
             if { ![info exists _mapsettings(y2)] || $y2 > $_mapsettings(y2) } {
-                set _mapsettings(y2) $y1
+                set _mapsettings(y2) $y2
             }
         }
         foreach layer [$dataobj layers] {
@@ -853,24 +854,45 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         if { [info exists _mapsettings(type)] } {
             # The map must be reset once before any layers are added This
             # should not be done more than once as it is very expensive.
-            set bytes [EarthFile]
-            set f [open "/tmp/earth.txt" "w"]
-            puts $f $bytes
-            close $f
-            set length [string length $bytes]
-            SendCmd "map load data follows $length"
-            append _outbuf $bytes
-
-            # FIXME: do I still need to delete the base layer?
-            SendCmd "map layer delete base"
-
-            if { $_haveTerrain } {
-                if { [info exists _mapsettings(style)] } {
-                    SetTerrianStyle $_mapsettings(style)
-                } else {
-                    FixSettings terrain-edges terrain-lighting \
-                        terrain-vertscale terrain-wireframe
+            if {$_sendEarthFile} {
+                set bytes [EarthFile]
+                if {0} {
+                    set f [open "/tmp/map.earth" "w"]
+                    puts $f $bytes
+                    close $f
                 }
+                set length [string length $bytes]
+                SendCmd "map load data follows $length"
+                append _outbuf $bytes
+            } else {
+                if { $_mapsettings(type) == "geocentric" } {
+                    SendCmd "map reset geocentric"
+                }  else {
+                    set proj $_mapsettings(projection)
+                    if { $proj == "" } { 
+                        SendCmd "map reset projected global-mercator"
+                    } elseif { ![info exists _mapsettings(extents)] || $_mapsettings(extents) == "" } {
+                        SendCmd [list map reset "projected" $proj]
+                    } else {
+                        #foreach {x1 y1 x2 y2} $_mapsettings(extents) break
+                        foreach key "x1 y1 x2 y2" {
+                            set $key $_mapsettings($key)
+                        }
+                        SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2] 
+                    }
+                }
+                SendCmd "map layer delete base"
+            }
+
+            # Most terrain settings are global to the map and apply even
+            # if there is no elevation layer.  The exception is the 
+            # vertical scale, which only applies if there is an elevation
+            # layer
+            if { [info exists _mapsettings(style)] } {
+                SetTerrainStyle $_mapsettings(style)
+            } else {
+                FixSettings terrain-edges terrain-lighting \
+                    terrain-vertscale terrain-wireframe
             }
             SendCmd "imgflush"
         }
@@ -890,15 +912,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 		if { ![info exists info(url)] }  {
 		    continue
 		}
-                # FIXME: wms, tms layers have additional options
-		switch -- $info(type) {
-		    "raster" {
-			set type "image"
-		    }
-		    default {
-			set type "$info(type)"
-		    }
-		}
                 if { $_reportClientInfo }  {
                     set cinfo {}
                     lappend cinfo "tool_id"       [$dataobj hints toolId]
@@ -909,11 +922,11 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     lappend cinfo "dataset_tag"   $layer
                     SendCmd [list "clientinfo" $cinfo]
                 }
-                SendCmd [list map layer add $type $info(url) $layer]
                 set _layers($layer) 1
                 SetLayerStyle $dataobj $layer
             }
             lappend _obj2datasets($dataobj) $layer
+            # FIXME: This is overriding all layers' initial visibility setting
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "map layer visible 1 $layer"
                 set _visibility($layer) 1
@@ -1589,15 +1602,9 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
 itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     array set info [$dataobj layer $layer]
     set _visibility($layer) 1
-    if { [info exists info(status)] } {
-        if { $info(status) == "hidden" } {
-            set _visibility($layer) 0
-            SendCmd "map layer visible 0 $layer"
-        }
-    }
 
     switch -- $info(type) {
-        "raster" {
+        "image" {
             array set settings {
                 -min_level 0
                 -max_level 23
@@ -1609,6 +1616,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
+            if {!$_sendEarthFile} {
+                SendCmd [list map layer add image $info(url) $layer]
+            }
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "elevation" {
@@ -1618,6 +1628,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             if { [info exists info(style)] } {
                 array set settings $info(style)
+            }
+            if {!$_sendEarthFile} {
+                SendCmd [list map layer add elevation $info(url) $layer]
             }
         }
         "line" {
@@ -1633,6 +1646,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
+            SendCmd [list map layer add line $info(url) $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "polygon" {
@@ -1647,7 +1661,44 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
+            SendCmd [list map layer add polygon $info(url) $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
+        }
+        "label" {
+            array set settings {
+                -align "center-center"
+                -color black
+                -declutter 1
+                -font Arial
+                -fontsize 16.0
+                -halocolor white
+                -halowidth 2.0
+                -layout "ltr"
+                -minbias 1000
+                -opacity 1.0
+                -removedupe 1
+            }
+            if { [info exists info(style)] } {
+                array set settings $info(style)
+            }
+            if { [info exists info(opacity)] } {
+                set settings(-opacity) $info(opacity)
+            }
+            set contentExpr $info(content)
+            if {[info exists info(priority)]} {
+                set priorityExpr $info(priority)
+            } else {
+                set priorityExpr ""
+            }
+            SendCmd [list map layer add text $info(url) $contentExpr $priorityExpr $layer]
+            SendCmd "map layer opacity $settings(-opacity) $layer"
+        }
+    }
+
+    if { [info exists info(visible)] } {
+        if { !$info(visible) } {
+            set _visibility($layer) 0
+            SendCmd "map layer visible 0 $layer"
         }
     }
 }
@@ -1720,45 +1771,40 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     }
 }
 
+#
+# Generate an OSG Earth file to send to server.  This is inteneded
+# as a stopgap and testing tool until the protocol is fleshed out.
+# 
+# Note that the lighting settings are required to be "hard-coded"
+# as below for the runtime control to work.  Don't make those user
+# configurable.
+#
+# Also note: Use "true"/"false" for boolean settings.  Not sure if
+# the parser in OSG Earth accepts all of Tcl's forms of boolean vals.
+#
 itcl::body Rappture::MapViewer::EarthFile {} { 
     append out "<map"
     append out " name=\"$_mapsettings(label)\""
     append out " type=\"$_mapsettings(type)\""
     append out " version=\"2\""
     append out ">\n"
-    append out " <options"
-    append out " lighting=\"true\""
-    #append out " elevation_interpolation=\"bilinear\""
-    #append out " elevation_tile_size=\"8\"" 
-    #append out " overlay_texture_size=\"4096\""
-    #append out " overlay_blending=\"true\""
-    #append out " overlay_resolution_ratio=\"3.0\""
-    append out ">\n"
-    append out "  <profile"
-    append out " srs=\"$_mapsettings(projection)\""
-    if { [info exists _mapsettings(extents)] } {
-        append out " xmin=\"$_mapsettings(x1)\""
-        append out " ymin=\"$_mapsettings(y1)\""
-        append out " xmax=\"$_mapsettings(x2)\""
-        append out " ymax=\"$_mapsettings(y2)\""
-    }
-    append out "/>\n"
-    if { $_haveTerrain } {
-        array set terrain {
-            -color white
-            -lighting 0
+    append out " <options lighting=\"true\">\n"
+    # FIXME: convert color setting to hex
+    # array set style $_mapsettings(style)
+    # if {[info exists style(-color)]} {
+    #     set color "?"
+    # }
+    set color "#ffffffff"
+    append out "  <terrain lighting=\"false\" color=\"$color\"/>\n"
+    if { [info exists _mapsettings(projection)] } {
+        append out "  <profile"
+        append out " srs=\"$_mapsettings(projection)\""
+        if { [info exists _mapsettings(extents)] } {
+            append out " xmin=\"$_mapsettings(x1)\""
+            append out " ymin=\"$_mapsettings(y1)\""
+            append out " xmax=\"$_mapsettings(x2)\""
+            append out " ymax=\"$_mapsettings(y2)\""
         }
-        array set terrain $_mapsettings(style)
-        append out "  <terrain"
-        append out " lighting=\"$terrain(-lighting)\""
-        append out " color=\"$terrain(-color)\"" 
-        #append out " min_tile_range_factor=\"$terrain(-mintile)\""
-        #append out " min_lod=\"$terrain(-minlod)\""
-        #append out " max_lod=\"$terrain(-maxlod)\""
-        #append out " first_lod=\"$terrain(-firstlod)\""
-        #append out " cluster_culling=\"$terrain(-clusterculling)\""
-        #append out " mercator_fast_path=\"$terrain(-mercatorfastpath)\""
-        #append out " blending=\"$terrain(-blending)\""
         append out "/>\n"
     }
     append out " </options>\n"
@@ -1768,14 +1814,40 @@ itcl::body Rappture::MapViewer::EarthFile {} {
             set _layers($layer) 1
             array unset info
             array set info [$dataobj layer $layer]
-            append out " <image"
-            append out " name=\"$layer\""
-            append out " driver=\"gdal\""
-            append out " opacity=\"$info(opacity)\""
-            append out " visible=\"true\""
-            append out ">\n"
-            append out "  <url>$info(url)</url>\n"
-            append out " </image>\n"
+            switch -- $info(type) {
+                "image" {
+                    append out " <image"
+                    append out " name=\"$layer\""
+                    append out " driver=\"gdal\""
+                    if { [info exists info(opacity)] } {
+                        append out " opacity=\"$info(opacity)\""
+                    }
+                    if { $info(visible) } {
+                        append out " visible=\"true\""
+                    } else {
+                        append out " visible=\"false\""
+                    }
+                    append out ">\n"
+                    append out "  <url>$info(url)</url>\n"
+                    append out " </image>\n"
+                }
+                "elevation" {
+                    append out " <elevation"
+                    append out " name=\"$layer\""
+                    append out " driver=\"gdal\""
+                    if { $info(visible) } {
+                        append out " visible=\"true\""
+                    } else {
+                        append out " visible=\"false\""
+                    }
+                    append out ">\n"
+                    append out "  <url>$info(url)</url>\n"
+                    append out " </elevation>\n"
+                }
+                default {
+                    puts stderr "Type $info(type) not implemented in earthfile"
+                }
+            }
         }
     }
     append out "</map>\n"

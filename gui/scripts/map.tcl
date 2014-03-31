@@ -30,12 +30,13 @@ itcl::class Rappture::Map {
     private common _layerTypes
     private common _mapTypes
     array set _layerTypes {
-        "raster"        0
+        "image"         0
         "elevation"     1
         "polygon"       2
         "points"        3
-        "circle"        4
+        "icon"          4
         "line"          5
+        "label"         6
     }
     array set _mapTypes {
         "geocentric"    0
@@ -127,9 +128,18 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         foreach key { label description url } {
             $_tree set $child $key [$layers get $layer.$key] 
         }
-        
-        foreach {key defval} { opacity 1.0 visible true style "" } {
+        # Common settings (for all layer types) with defaults
+        foreach {key defval} { visible true } {
             $_tree set $child $key $defval
+            set val [$layers get $layer.$key]
+            if {$val != ""} {
+                $_tree set $child $key $val
+            }
+        }
+        # These are settings for which there should be no default
+        # We want to know if they have been set by the user or not
+        # Not all layer types use these
+        foreach key { opacity content priority style } {
             set val [$layers get $layer.$key]
             if {$val != ""} {
                 $_tree set $child $key $val
@@ -222,7 +232,7 @@ itcl::body Rappture::Map::type { layerName } {
 # ----------------------------------------------------------------------
 # USAGE: isGeocentric
 #
-# Returns (like a bad penny) if the map is geocentric (1) or projected (0) 
+# Returns if the map is geocentric (1) or projected (0) 
 # ---------------------------------------------------------------------- 
 itcl::body Rappture::Map::isGeocentric {} { 
     return [expr {[hints "type"] eq "geocentric"}]
@@ -235,30 +245,59 @@ itcl::body Rappture::Map::earthfile {} {
     append out " type=\"$info(type)\""
     append out " version=\"2\""
     append out ">\n"
-    append out " <profile"
-    append out " srs=\"$info(projection)\""
-    if { $info(extents) != "" } {
-        foreach {x1 y1 x2 y2} $extents break
-        append out " xmin=\"$x1\""
-        append out " ymin=\"$y1\""
-        append out " xmax=\"$x2\""
-        append out " ymax=\"$y2\""
+    # Profile is optional
+    if { [info exists info(projection)] } {
+        append out " <options>\n"
+        append out "  <profile"
+        append out " srs=\"$info(projection)\""
+        if { [info exists info(extents)] && $info(extents) != "" } {
+            foreach {x1 y1 x2 y2} $info(extents) break
+            append out " xmin=\"$x1\""
+            append out " ymin=\"$y1\""
+            append out " xmax=\"$x2\""
+            append out " ymax=\"$y2\""
+        }
+        append out "/>\n"
+        append out " </options>\n"
     }
-    append out " >\n"
-    append out " </profile>"
     foreach node [$_tree children root->"layers"] {
         array unset info
         array set info [$_tree get $node]
         set label [$_tree label $node]
-        append out " <image"
-        append out " name=\"$label\""
-        append out " driver=\"gdal\""
-        append out " opacity=\"$info(opacity)\""
-        append out " visible=\"$info(visible)\""
-        append out " >\n"
-        append out "  <url>$info(url)<url>\n"
-        append out " </image>"
+        switch -- $info(type) {
+            "image" {
+                append out " <image"
+                append out " name=\"$label\""
+                append out " driver=\"gdal\""
+                if { [info exists info(opacity)] } {
+                    append out " opacity=\"$info(opacity)\""
+                }
+                if { $info(visible) } {
+                    append out " visible=\"true\""
+                } else {
+                    append out " visible=\"false\""
+                }
+                append out ">\n"
+                append out "  <url>$info(url)</url>\n"
+                append out " </image>\n"
+            }
+            "elevation" {
+                append out " <elevation"
+                append out " name=\"$label\""
+                append out " driver=\"gdal\""
+                if { $info(visible) } {
+                    append out " visible=\"true\""
+                } else {
+                    append out " visible=\"false\""
+                }
+                append out ">\n"
+                append out "  <url>$info(url)</url>\n"
+                append out " </elevation>\n"
+            }
+            default {
+                puts stderr "Type $info(type) not implemented in earthfile"
+            }
+        }
     }
     append out "</map>\n"
 } 
-
