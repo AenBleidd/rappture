@@ -1617,7 +1617,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 set settings(-opacity) $info(opacity)
             }
             if {!$_sendEarthFile} {
-                SendCmd [list map layer add image $info(url) $layer]
+                SendCmd [list map layer add image gdal $info(url) $layer]
             }
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
@@ -1630,7 +1630,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if {!$_sendEarthFile} {
-                SendCmd [list map layer add elevation $info(url) $layer]
+                SendCmd [list map layer add elevation gdal $info(url) $layer]
             }
         }
         "line" {
@@ -1845,7 +1845,7 @@ itcl::body Rappture::MapViewer::EarthFile {} {
                     append out " </elevation>\n"
                 }
                 default {
-                    puts stderr "Type $info(type) not implemented in earthfile"
+                    puts stderr "Type $info(type) not implemented in MapViewer::EarthFile"
                 }
             }
         }
