@@ -572,6 +572,7 @@ void Renderer::addImageLayer(const char *name,
         ERROR("No map");
         return;
     }
+    TRACE("layer: %s", name);
     if (!opts.tileSize().isSet()) {
         opts.tileSize() = 256;
     }
@@ -695,6 +696,7 @@ void Renderer::addElevationLayer(const char *name,
         ERROR("No map");
         return;
     }
+    TRACE("layer: %s", name);
     if (!opts.tileSize().isSet()) {
         opts.tileSize() = 15;
     }
@@ -759,6 +761,7 @@ void Renderer::addModelLayer(const char *name, osgEarth::ModelSourceOptions& opt
         ERROR("No map");
         return;
     }
+    TRACE("layer: %s", name);
     osgEarth::ModelLayerOptions layerOpts(name, opts);
     _map->addModelLayer(new osgEarth::ModelLayer(layerOpts));
     _needsRedraw = true;
@@ -1011,6 +1014,7 @@ void Renderer::mouseMotion(double x, double y)
         osgGA::EventQueue *queue = getEventQueue();
         if (queue != NULL) {
             queue->mouseMotion((float)x, (float)y);
+            _needsRedraw = true;
         }
 #else
         if (_coordsCallback.valid()) {
