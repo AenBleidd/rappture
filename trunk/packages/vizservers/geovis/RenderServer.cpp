@@ -551,6 +551,7 @@ main(int argc, char *argv[])
             }
         }
 
+#if 0
         double x, y, z;
         if (g_renderer->getMousePoint(&x, &y, &z)) {
             // send coords to client
@@ -562,6 +563,7 @@ main(int argc, char *argv[])
 
             queueResponse(mesg, length, Response::VOLATILE);
         }
+#endif
 
         if (g_inBufPtr->status() == ReadBuffer::ENDFILE)
             break;

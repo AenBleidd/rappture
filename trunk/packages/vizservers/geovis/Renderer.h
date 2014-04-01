@@ -20,6 +20,7 @@
 #include <osgViewer/Viewer>
 #include <osgGA/StateSetManipulator>
 
+#include <osgEarth/StringUtils>
 #include <osgEarth/Map>
 #include <osgEarth/Viewpoint>
 #include <osgEarth/ImageLayer>
@@ -30,6 +31,8 @@
 #include <osgEarth/GeoData>
 #include <osgEarthUtil/EarthManipulator>
 #include <osgEarthUtil/MouseCoordsTool>
+#include <osgEarthUtil/Controls>
+#include <osgEarthUtil/Formatter>
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/VerticalScale>
 
@@ -87,14 +90,24 @@ private:
 class MouseCoordsCallback : public osgEarth::Util::MouseCoordsTool::Callback
 {
 public:
-    MouseCoordsCallback() :
+    MouseCoordsCallback(osgEarth::Util::Controls::LabelControl *label,
+                        osgEarth::Util::Formatter *formatter) :
         osgEarth::Util::MouseCoordsTool::Callback(),
+        _label(label),
+        _formatter(formatter),
         _havePoint(false)
-    {}
+    {
+    }
 
     void set(const osgEarth::GeoPoint& p, osg::View *view, osgEarth::MapNode *mapNode)
     {
         TRACE("%g %g %g", p.x(), p.y(), p.z());
+        if (_label.valid()) {
+            _label->setText(osgEarth::Stringify()
+                            << "Lat/Long: "
+                            <<  _formatter->format(p));
+                            //<< ", " << p.z());
+        }
         _pt = p;
         _havePoint = true;
     }
@@ -102,7 +115,10 @@ public:
     void reset(osg::View *view, osgEarth::MapNode *mapNode)
     {
         TRACE("Out of range");
-        // Out of range click
+        // Out of range of map extents
+        if (_label.valid()) {
+            _label->setText("");
+        }
         _havePoint = false;
     }
 
@@ -119,6 +135,8 @@ public:
     }
 
 private:
+    osg::observer_ptr<osgEarth::Util::Controls::LabelControl> _label;
+    osg::ref_ptr<osgEarth::Util::Formatter> _formatter;
     bool _havePoint;
     osgEarth::GeoPoint _pt;
 };
@@ -336,6 +354,8 @@ private:
     void finalizeViewer();
 
     void initEarthManipulator();
+
+    void initMouseCoordsTool();
 
     void initColorMaps();
 
