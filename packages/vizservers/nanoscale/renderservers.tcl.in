@@ -46,6 +46,7 @@ register_server geovis 2015 \
     ${bindir}/geovis -o 3
 } {
     LD_LIBRARY_PATH ${libdir}
+    OSGEARTH_DEFAULT_FONT /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf
 }
 
 # NanoVis --
