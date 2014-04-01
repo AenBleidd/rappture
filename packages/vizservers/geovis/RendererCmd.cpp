@@ -538,54 +538,71 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     char *type = Tcl_GetString(objv[3]);
     if (type[0] == 'i' && strcmp(type, "image") == 0) {
-        osgEarth::Drivers::GDALOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
-        char *name = Tcl_GetString(objv[5]);
+        char *driver = Tcl_GetString(objv[4]);
+        char *url =  Tcl_GetString(objv[5]);
 
-        opts.url() = url;
+        if (driver[0] == 'g' && strcmp(driver, "gdal") == 0) {
+            osgEarth::Drivers::GDALOptions opts;
+            opts.url() = url;
+            char *name = Tcl_GetString(objv[6]);
+            g_renderer->addImageLayer(name, opts);
+        } else if (driver[0] == 't' && strcmp(driver, "tms") == 0) {
+            osgEarth::Drivers::TMSOptions opts;
+            //char *tmsType = Tcl_GetString(objv[5]);
+            //char *format = Tcl_GetString(objv[6]);
+            opts.url() = url;
+            //opts.tmsType() = tmsType;
+            //opts.format() = format;
+            char *name = Tcl_GetString(objv[6]);
+            g_renderer->addImageLayer(name, opts);
+        } else if (driver[0] == 'w' && strcmp(driver, "wms") == 0) {
+            osgEarth::Drivers::WMSOptions opts;
+            char *wmsLayers = Tcl_GetString(objv[6]);
+            char *format = Tcl_GetString(objv[7]);
+            bool transparent;
+            if (GetBooleanFromObj(interp, objv[8], &transparent) != TCL_OK) {
+                return TCL_ERROR;
+            }
+            opts.url() = url;
+            opts.layers() = wmsLayers;
+            opts.format() = format;
+            opts.transparent() = transparent;
 
-        g_renderer->addImageLayer(name, opts);
-    } else if (type[0] == 't' && strcmp(type, "tms") == 0) {
-        osgEarth::Drivers::TMSOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
-        //char *tmsType = Tcl_GetString(objv[5]);
-        //char *format = Tcl_GetString(objv[6]);
-        char *name = Tcl_GetString(objv[5]);
-
-        opts.url() = url;
-        //opts.tmsType() = tmsType;
-        //opts.format() = format;
-
-        g_renderer->addImageLayer(name, opts);
-    } else if (type[0] == 'w' && strcmp(type, "wms") == 0) {
-        osgEarth::Drivers::WMSOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
-        char *wmsLayers = Tcl_GetString(objv[5]);
-        char *format = Tcl_GetString(objv[6]);
-        bool transparent;
-        if (GetBooleanFromObj(interp, objv[7], &transparent) != TCL_OK) {
+            char *name = Tcl_GetString(objv[9]);
+            g_renderer->addImageLayer(name, opts);
+        } else {
+            Tcl_AppendResult(interp, "unknown image driver \"", driver,
+                             "\": should be 'gdal', 'tms' or 'wms'", (char*)NULL);
             return TCL_ERROR;
         }
-        char *name = Tcl_GetString(objv[8]);
-
-        opts.url() = url;
-        opts.layers() = wmsLayers;
-        opts.format() = format;
-        opts.transparent() = transparent;
-
-        g_renderer->addImageLayer(name, opts);
     } else if (type[0] == 'e' && strcmp(type, "elevation") == 0) {
-        osgEarth::Drivers::GDALOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
-        char *name = Tcl_GetString(objv[5]);
+        char *driver = Tcl_GetString(objv[4]);
+        char *url =  Tcl_GetString(objv[5]);
 
-        opts.url() = url;
-
-        g_renderer->addElevationLayer(name, opts);
+        if (driver[0] == 'g' && strcmp(driver, "gdal") == 0) {
+            osgEarth::Drivers::GDALOptions opts;
+            opts.url() = url;
+            char *name = Tcl_GetString(objv[6]);
+            g_renderer->addElevationLayer(name, opts);
+        } else if (driver[0] == 't' && strcmp(driver, "tms") == 0) {
+            osgEarth::Drivers::TMSOptions opts;
+            //char *tmsType = Tcl_GetString(objv[6]);
+            //char *format = Tcl_GetString(objv[7]);
+            opts.url() = url;
+            //opts.tmsType() = tmsType;
+            //opts.format() = format;
+            char *name = Tcl_GetString(objv[6]);
+            g_renderer->addElevationLayer(name, opts);
+        } else {
+            Tcl_AppendResult(interp, "unknown elevation driver \"", driver,
+                             "\": should be 'gdal' or 'tms'", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else if (type[0] == 'p' && strcmp(type, "point") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
         char *url =  Tcl_GetString(objv[4]);
         char *name = Tcl_GetString(objv[5]);
+
         opts.url() = url;
 
         osgEarth::Symbology::Style style;
@@ -812,7 +829,7 @@ MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapLayerOps[] = {
-    {"add",     1, MapLayerAddOp,       6, 9, "type url ?args? name"},
+    {"add",     1, MapLayerAddOp,       6, 0, "type url ?args? name"},
     {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
     {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
     {"names",   1, MapLayerNamesOp,     3, 4, "?type?"},
