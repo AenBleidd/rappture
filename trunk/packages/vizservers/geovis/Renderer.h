@@ -149,6 +149,12 @@ class Renderer
 public:
     typedef std::string ColorMapId;
 
+    enum GraticuleType {
+        GRATICULE_UTM,
+        GRATICULE_MGRS,
+        GRATICULE_GEODETIC
+    };
+
     Renderer();
     virtual ~Renderer();
 
@@ -171,6 +177,8 @@ public:
     void clearMap();
 
     // Map options
+
+    void setGraticule(bool enable, GraticuleType type = GRATICULE_GEODETIC);
 
     void setViewerLightType(osg::View::LightingMode mode);
 
@@ -378,7 +386,8 @@ private:
 
     std::string _baseURI;
 
-    osg::ref_ptr<osg::Node> _sceneRoot;
+    osg::ref_ptr<osg::Group> _sceneRoot;
+    osg::ref_ptr<osg::Group> _graticule;
     osg::ref_ptr<osgEarth::MapNode> _mapNode;
     osg::ref_ptr<osgEarth::Map> _map;
     osg::ref_ptr<osgViewer::Viewer> _viewer;

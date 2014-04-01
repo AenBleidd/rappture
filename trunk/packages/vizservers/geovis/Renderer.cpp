@@ -37,6 +37,9 @@
 #endif
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/MouseCoordsTool>
+#include <osgEarthUtil/UTMGraticule>
+#include <osgEarthUtil/MGRSGraticule>
+#include <osgEarthUtil/GeodeticGraticule>
 #include <osgEarthUtil/LatLongFormatter>
 #include <osgEarthUtil/GLSLColorFilter>
 #include <osgEarthUtil/VerticalScale>
@@ -90,7 +93,8 @@ Renderer::Renderer() :
     mapNodeOpts.enableLighting() = false;
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
     _mapNode = mapNode;
-    _sceneRoot = mapNode;
+    _sceneRoot = new osg::Group;
+    _sceneRoot->addChild(mapNode);
     _viewer->setSceneData(_sceneRoot.get());
 
     initEarthManipulator();
@@ -254,6 +258,44 @@ void Renderer::finalizeViewer() {
     }
 }
 
+void Renderer::setGraticule(bool enable, GraticuleType type)
+{
+    if (!_mapNode.valid() || !_sceneRoot.valid())
+        return;
+    if (enable) {
+        if (_graticule.valid()) {
+            _sceneRoot->removeChild(_graticule.get());
+            _graticule = NULL;
+        }
+        switch (type) {
+        case GRATICULE_UTM: {
+            osgEarth::Util::UTMGraticule *gr = new osgEarth::Util::UTMGraticule(_mapNode.get());
+            _sceneRoot->addChild(gr);
+            _graticule = gr;
+        }
+            break;
+        case GRATICULE_MGRS: {
+            osgEarth::Util::MGRSGraticule *gr = new osgEarth::Util::MGRSGraticule(_mapNode.get());
+            _sceneRoot->addChild(gr);
+            _graticule = gr;
+        }
+            break;
+        case GRATICULE_GEODETIC:
+        default:
+            osgEarth::Util::GeodeticGraticule *gr = new osgEarth::Util::GeodeticGraticule(_mapNode.get());
+            osgEarth::Util::GeodeticGraticuleOptions opt = gr->getOptions();
+            opt.lineStyle()->getOrCreate<osgEarth::Symbology::LineSymbol>()->stroke()->color().set(1,0,0,1);
+            gr->setOptions(opt);
+            _sceneRoot->addChild(gr);
+            _graticule = gr;
+        }
+    } else if (_graticule.valid()) {
+        _sceneRoot->removeChild(_graticule.get());
+        _graticule = NULL;
+    }
+    _needsRedraw = true;
+}
+
 void Renderer::initMouseCoordsTool()
 {
     if (_mouseCoordsTool.valid()) {
@@ -310,9 +352,8 @@ void Renderer::loadEarthFile(const char *path)
         return;
     } else {
         initViewer();
-        osg::Group *group = new osg::Group;
-        group->addChild(node);
-        _sceneRoot = group;
+        _sceneRoot = new osg::Group;
+        _sceneRoot->addChild(node);
         _map = mapNode->getMap();
     }
     _mapNode = mapNode;
@@ -399,17 +440,13 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         sky->addChild(mapNode.get());
         _sceneRoot = sky;
 #else
-        osg::Group *group = new osg::Group();
-        group->addChild(_mapNode.get());
-        _sceneRoot = group;
-        //_sceneRoot = mapNode;
+        _sceneRoot = new osg::Group();
+        _sceneRoot->addChild(_mapNode.get());
 #endif
 #endif
     } else {
-        osg::Group *group = new osg::Group();
-        group->addChild(_mapNode.get());
-        _sceneRoot = group;
-        //_sceneRoot = mapNode;
+        _sceneRoot = new osg::Group();
+        _sceneRoot->addChild(_mapNode.get());
     }
 
     if (_clipPlaneCullCallback.valid()) {
