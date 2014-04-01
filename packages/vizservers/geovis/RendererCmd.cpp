@@ -533,6 +533,33 @@ KeyCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MapGraticuleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc > 3) {
+        Renderer::GraticuleType type;
+        char *typeStr = Tcl_GetString(objv[3]);
+        if (typeStr[0] == 'g' && strcmp(typeStr, "geodetic") == 0) {
+            type = Renderer::GRATICULE_GEODETIC;
+        } else if (typeStr[0] == 'u' && strcmp(typeStr, "utm") == 0) {
+            type = Renderer::GRATICULE_UTM;
+        } else if (typeStr[0] == 'm' && strcmp(typeStr, "mgrs") == 0) {
+            type = Renderer::GRATICULE_MGRS;
+        } else {
+            return TCL_ERROR;
+        }
+        g_renderer->setGraticule(state, type);
+    } else {
+        g_renderer->setGraticule(state);
+    }
+    return TCL_OK;
+}
+
+static int
 MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -1058,6 +1085,7 @@ MapTerrainOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapOps[] = {
+    {"grid",     1, MapGraticuleOp,   3, 4, "bool ?type?"},
     {"layer",    2, MapLayerOp,       3, 0, "op ?params...?"},
     {"load",     2, MapLoadOp,        4, 5, "options"},
     {"reset",    1, MapResetOp,       3, 8, "type ?profile xmin ymin xmax ymax?"},
