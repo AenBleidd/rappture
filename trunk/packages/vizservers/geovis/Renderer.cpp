@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 
 #include <GL/gl.h>
 
@@ -17,6 +18,7 @@
 #endif
 
 #include <osgGA/StateSetManipulator>
+#include <osgGA/GUIEventAdapter>
 
 #include <osgEarth/Version>
 #include <osgEarth/MapNode>
@@ -62,6 +64,12 @@ Renderer::Renderer() :
     _minFrameTime = 1.0/30.0;
     _lastFrameTime = _minFrameTime;
 
+    char *base = getenv("MAP_BASE_URI");
+    if (base != NULL) {
+        _baseURI = base;
+        TRACE("Setting base URI: %s", _baseURI.c_str());
+    }
+
 #if 0
     initViewer();
 
@@ -84,8 +92,7 @@ Renderer::Renderer() :
     _sceneRoot = mapNode;
     _viewer->setSceneData(_sceneRoot.get());
 
-    _manipulator = new osgEarth::Util::EarthManipulator;
-    _viewer->setCameraManipulator(_manipulator.get());
+    initEarthManipulator();
 
     _coordsCallback = new MouseCoordsCallback();
     _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(mapNode);
@@ -250,6 +257,26 @@ void Renderer::finalizeViewer() {
     }
 }
 
+void Renderer::initEarthManipulator()
+{
+    _manipulator = new osgEarth::Util::EarthManipulator;
+    osgEarth::Util::EarthManipulator::Settings *settings = _manipulator->getSettings();
+    settings->bindMouse(osgEarth::Util::EarthManipulator::ACTION_ROTATE,
+                        osgGA::GUIEventAdapter::MIDDLE_MOUSE_BUTTON,
+                        osgGA::GUIEventAdapter::MODKEY_ALT);
+    osgEarth::Util::EarthManipulator::ActionOptions options;
+    options.clear();
+    options.add(osgEarth::Util::EarthManipulator::OPTION_CONTINUOUS, true);
+    settings->bindMouse(osgEarth::Util::EarthManipulator::ACTION_ZOOM,
+                        osgGA::GUIEventAdapter::RIGHT_MOUSE_BUTTON,
+                        osgGA::GUIEventAdapter::MODKEY_ALT, options);
+    _manipulator->applySettings(settings);
+    _viewer->setCameraManipulator(_manipulator.get());
+    _manipulator->setNode(NULL);
+    _manipulator->setNode(_sceneRoot.get());
+    _manipulator->computeHomePosition();
+}
+
 void Renderer::loadEarthFile(const char *path)
 {
     TRACE("Loading %s", path);
@@ -286,11 +313,7 @@ void Renderer::loadEarthFile(const char *path)
         _viewer->getCamera()->addCullCallback(_clipPlaneCullCallback.get());
     }
     _viewer->setSceneData(_sceneRoot.get());
-    _manipulator = new osgEarth::Util::EarthManipulator;
-    _viewer->setCameraManipulator(_manipulator.get());
-    _manipulator->setNode(NULL);
-    _manipulator->setNode(_sceneRoot.get());
-    _manipulator->computeHomePosition();
+    initEarthManipulator();
     _viewer->home();
     finalizeViewer();
     _needsRedraw = true;
@@ -331,6 +354,7 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
 
     initViewer();
 
+    //mapOpts.referenceURI() = _baseURI;
     osgEarth::Map *map = new osgEarth::Map(mapOpts);
     _map = map;
     osgEarth::Drivers::GDALOptions bopts;
@@ -383,11 +407,7 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         _viewer->getCamera()->addCullCallback(_clipPlaneCullCallback.get());
     }
     _viewer->setSceneData(_sceneRoot.get());
-    _manipulator = new osgEarth::Util::EarthManipulator;
-    _viewer->setCameraManipulator(_manipulator.get());
-    _manipulator->setNode(NULL);
-    _manipulator->setNode(_sceneRoot.get());
-    _manipulator->computeHomePosition();
+    initEarthManipulator();
     _viewer->home();
 
     finalizeViewer();
@@ -453,7 +473,7 @@ void Renderer::setTerrainLighting(bool state)
             ERROR("Can't get terrain lighting uniform");
         }
     } else {
-        ERROR("Can't get terrain lighting uniform");
+        ERROR("Can't find terrain engine container");
     }
 #else
     if (_stateManip.valid()) {
