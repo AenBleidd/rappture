@@ -633,11 +633,17 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         osgEarth::Symbology::LineSymbol *ls = style.getOrCreateSymbol<osgEarth::Symbology::LineSymbol>();
         ls->stroke()->color() = osgEarth::Symbology::Color::Black;
         ls->stroke()->width() = 2.0f;
-
+#if 0
+        osgEarth::Symbology::AltitudeSymbol *alt = style.getOrCreateSymbol<osgEarth::Symbology::AltitudeSymbol>();
+        alt->clamping() = osgEarth::Symbology::AltitudeSymbol::CLAMP_TO_TERRAIN;
+        //alt->technique() = osgEarth::Symbology::AltitudeSymbol::TECHNIQUE_DRAPE;
+        alt->technique() = osgEarth::Symbology::AltitudeSymbol::TECHNIQUE_GPU;
+#endif
+#if 1
         osgEarth::Symbology::RenderSymbol* rs = style.getOrCreateSymbol<osgEarth::Symbology::RenderSymbol>();
         rs->depthOffset()->enabled() = true;
         rs->depthOffset()->minBias() = 1000;
-
+#endif
         osgEarth::Drivers::FeatureGeomModelOptions geomOpts;
         geomOpts.featureOptions() = opts;
         geomOpts.styles() = new osgEarth::Symbology::StyleSheet();

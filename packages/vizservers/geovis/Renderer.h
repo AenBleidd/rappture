@@ -335,6 +335,8 @@ private:
 
     void finalizeViewer();
 
+    void initEarthManipulator();
+
     void initColorMaps();
 
     void initCamera();
@@ -353,6 +355,8 @@ private:
     double _lastFrameTime;
 
     ColorMapHashmap _colorMaps;
+
+    std::string _baseURI;
 
     osg::ref_ptr<osg::Node> _sceneRoot;
     osg::ref_ptr<osgEarth::MapNode> _mapNode;
