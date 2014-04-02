@@ -954,10 +954,9 @@ void Renderer::resetCamera(bool resetOrientation)
  * camera up, object down)
  * \param[in] absolute Control if pan amount is relative to current or absolute
  */
-void Renderer::panCamera(double x, double y, bool absolute)
+void Renderer::panCamera(double x, double y)
 {
-    TRACE("Enter: %g %g, abs: %d",
-          x, y, (absolute ? 1 : 0));
+    TRACE("Enter: %g %g", x, y);
 
     if (_manipulator.valid()) {
         // Wants mouse delta x,y in normalized screen coords
@@ -966,10 +965,9 @@ void Renderer::panCamera(double x, double y, bool absolute)
     }
 }
 
-void Renderer::rotateCamera(double x, double y, bool absolute)
+void Renderer::rotateCamera(double x, double y)
 {
-    TRACE("Enter: %g %g, abs: %d",
-          x, y, (absolute ? 1 : 0));
+    TRACE("Enter: %g %g", x, y);
 
     if (_manipulator.valid()) {
         _manipulator->rotate(x, y);
@@ -983,10 +981,9 @@ void Renderer::rotateCamera(double x, double y, bool absolute)
  * \param[in] z Ratio to change zoom (greater than 1 is zoom in, less than 1 is zoom out)
  * \param[in] absolute Control if zoom factor is relative to current setting or absolute
  */
-void Renderer::zoomCamera(double z, bool absolute)
+void Renderer::zoomCamera(double z)
 {
-    TRACE("Enter: z: %g, abs: %d",
-          z, (absolute ? 1 : 0));
+    TRACE("Enter: z: %g", z);
 
     if (_manipulator.valid()) {
         // FIXME: zoom here wants y mouse coords in normalized viewport coords
