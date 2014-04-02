@@ -213,10 +213,10 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     }
 
     set c $itk_component(view)
-    bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
-    bind $c <KeyPress-Right> [list %W xview scroll -10 units]
-    bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
-    bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
+    #bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
+    #bind $c <KeyPress-Right> [list %W xview scroll -10 units]
+    #bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
+    #bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
     bind $c <Enter> "focus %W"
     bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
@@ -331,6 +331,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     bind $itk_component(view) <Motion> \
         [itcl::code $this EventuallyHandleMotionEvent %x %y]
 
+    if {0} {
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
@@ -348,6 +349,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         [itcl::code $this Pan set 0 -2]
     bind $itk_component(view) <Shift-KeyPress-Down> \
         [itcl::code $this Pan set 0 2]
+    }
 
     # Bindings for zoom via keyboard
     bind $itk_component(view) <KeyPress-Prior> \
