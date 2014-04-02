@@ -85,7 +85,7 @@ itcl::class Rappture::MapViewer {
     protected method ReceiveDataset { args }
     protected method ReceiveImage { args }
     protected method Rotate {option x y}
-    protected method Zoom {option}
+    protected method Zoom {option {x 0} {y 0}}
 
     # The following methods are only used by this class.
     private method BuildCameraTab {}
@@ -95,24 +95,21 @@ itcl::class Rappture::MapViewer {
     private method ChangeLayerVisibility { dataobj layer }
     private method EventuallyHandleMotionEvent { x y } 
     private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
+    private method EventuallyRotate { dx dy } 
     private method GetImage { args } 
-    private method PanCamera {}
+    private method GetNormalizedMouse { x y }
     private method SetLayerStyle { dataobj layer }
     private method SetTerrainStyle { style }
     private method SetOpacity { dataset }
-    private method SetOrientation { side }
     private method UpdateLayerControls {}
     private method EarthFile {}
 
-    private variable _arcball ""
     private variable _dlist "";		# list of data objects
     private variable _obj2datasets
     private variable _obj2ovride;	# maps dataobj => style override
     private variable _layers;		# Contains the names of all the 
                                    	# layer in the server.
     private variable _click;            # info used for rotate operations
-    private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
     private variable _settings
     private variable _visibility
@@ -135,6 +132,7 @@ itcl::class Rappture::MapViewer {
     private variable _rotateDelay 150
     private variable _motion 
     private variable _sendEarthFile 0
+    private variable _useServerManip 1
 }
 
 itk::usual MapViewer {
@@ -171,7 +169,10 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     #
     $_parser alias image    [itcl::code $this ReceiveImage]
     $_parser alias dataset  [itcl::code $this ReceiveDataset]
+    $_parser alias camera   [itcl::code $this camera]
 
+    # Settings for mouse motion events: these are required
+    # to update the Lat/Long coordinate display
     array set _motion {
         x               0
         y               0
@@ -179,22 +180,18 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         delay           100
         compress        0
     }
-    # Initialize the view to some default parameters.
+    # This array holds the Viewpoint parameters that the
+    # server sends on "camera get".
     array set _view {
-        qw              1.0
-        qx              0.0
-        qy              0.0
-        qz              0.0
-        zoom            1.0
-        xpan            0.0
-        ypan            0.0
+        x               0.0
+        y               0.0
+        z               0.0
+        heading         0.0
+        pitch           0.0
+        distance        0.0
+        srs             ""
+        verticalDatum   ""
     }
-    set _arcball [blt::arcball create 100 100]
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
-
-    set _limits(zmin) 0.0
-    set _limits(zmax) 1.0
 
     array set _settings [subst {
         camera-throw           0
@@ -234,7 +231,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         button $f.reset -borderwidth 1 -padx 1 -pady 1 \
             -highlightthickness 0 \
             -image [Rappture::icon reset-view] \
-            -command [itcl::code $this Zoom reset]
+            -command [itcl::code $this camera reset]
     } {
         usual
         ignore -highlightthickness
@@ -291,65 +288,96 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         0,0 $itk_component(view) -fill both -reqwidth $w 
     blt::table configure $itk_component(plotarea) c1 -resize none
 
-    # Bindings for keyboard events
-    bind $itk_component(view) <KeyPress> \
-        [itcl::code $this KeyPress %N]
-    bind $itk_component(view) <KeyRelease> \
-        [itcl::code $this KeyRelease %N]
-
-    # Bindings for rotation via mouse
-    bind $itk_component(view) <ButtonPress-1> \
-        [itcl::code $this MouseClick 1 %x %y]
-    bind $itk_component(view) <Double-1> \
-        [itcl::code $this MouseDoubleClick 1 %x %y]
-    bind $itk_component(view) <B1-Motion> \
-        [itcl::code $this MouseDrag 1 %x %y]
-    bind $itk_component(view) <ButtonRelease-1> \
-        [itcl::code $this MouseRelease 1 %x %y]
     bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
-    # Bindings for panning via mouse
-    bind $itk_component(view) <ButtonPress-2> \
-        [itcl::code $this MouseClick 2 %x %y]
-    bind $itk_component(view) <Double-2> \
-        [itcl::code $this MouseDoubleClick 2 %x %y]
-    bind $itk_component(view) <B2-Motion> \
-        [itcl::code $this MouseDrag 2 %x %y]
-    bind $itk_component(view) <ButtonRelease-2> \
-        [itcl::code $this MouseRelease 2 %x %y]
+    if {$_useServerManip} {
+        # Bindings for keyboard events
+        bind $itk_component(view) <KeyPress> \
+            [itcl::code $this KeyPress %N]
+        bind $itk_component(view) <KeyRelease> \
+            [itcl::code $this KeyRelease %N]
 
-    bind $itk_component(view) <ButtonPress-3> \
-        [itcl::code $this MouseClick 3 %x %y]
-    bind $itk_component(view) <Double-3> \
-        [itcl::code $this MouseDoubleClick 3 %x %y]
-    bind $itk_component(view) <B3-Motion> \
-        [itcl::code $this MouseDrag 3 %x %y]
-    bind $itk_component(view) <ButtonRelease-3> \
-        [itcl::code $this MouseRelease 3 %x %y]
+        # Bindings for rotation via mouse
+        bind $itk_component(view) <ButtonPress-1> \
+            [itcl::code $this MouseClick 1 %x %y]
+        bind $itk_component(view) <Double-1> \
+            [itcl::code $this MouseDoubleClick 1 %x %y]
+        bind $itk_component(view) <B1-Motion> \
+            [itcl::code $this MouseDrag 1 %x %y]
+        bind $itk_component(view) <ButtonRelease-1> \
+            [itcl::code $this MouseRelease 1 %x %y]
 
-    bind $itk_component(view) <Motion> \
-        [itcl::code $this EventuallyHandleMotionEvent %x %y]
+        # Bindings for panning via mouse
+        bind $itk_component(view) <ButtonPress-2> \
+            [itcl::code $this MouseClick 2 %x %y]
+        bind $itk_component(view) <Double-2> \
+            [itcl::code $this MouseDoubleClick 2 %x %y]
+        bind $itk_component(view) <B2-Motion> \
+            [itcl::code $this MouseDrag 2 %x %y]
+        bind $itk_component(view) <ButtonRelease-2> \
+            [itcl::code $this MouseRelease 2 %x %y]
 
-    if {0} {
-    # Bindings for panning via keyboard
-    bind $itk_component(view) <KeyPress-Left> \
-        [itcl::code $this Pan set -10 0]
-    bind $itk_component(view) <KeyPress-Right> \
-        [itcl::code $this Pan set 10 0]
-    bind $itk_component(view) <KeyPress-Up> \
-        [itcl::code $this Pan set 0 -10]
-    bind $itk_component(view) <KeyPress-Down> \
-        [itcl::code $this Pan set 0 10]
+        bind $itk_component(view) <ButtonPress-3> \
+            [itcl::code $this MouseClick 3 %x %y]
+        bind $itk_component(view) <Double-3> \
+            [itcl::code $this MouseDoubleClick 3 %x %y]
+        bind $itk_component(view) <B3-Motion> \
+            [itcl::code $this MouseDrag 3 %x %y]
+        bind $itk_component(view) <ButtonRelease-3> \
+            [itcl::code $this MouseRelease 3 %x %y]
+
+        bind $itk_component(view) <Motion> \
+            [itcl::code $this EventuallyHandleMotionEvent %x %y]
+    } else {
+        # Bindings for panning via mouse
+        bind $itk_component(view) <ButtonPress-1> \
+            [itcl::code $this Pan click %x %y]
+        bind $itk_component(view) <B1-Motion> \
+            [itcl::code $this Pan drag %x %y]
+        bind $itk_component(view) <ButtonRelease-1> \
+            [itcl::code $this Pan release %x %y]
+
+        # Bindings for rotation via mouse
+        bind $itk_component(view) <ButtonPress-2> \
+            [itcl::code $this Rotate click %x %y]
+        bind $itk_component(view) <B2-Motion> \
+            [itcl::code $this Rotate drag %x %y]
+        bind $itk_component(view) <ButtonRelease-2> \
+            [itcl::code $this Rotate release %x %y]
+
+        # Bindings for zoom via mouse
+        bind $itk_component(view) <ButtonPress-3> \
+            [itcl::code $this Zoom click %x %y]
+        bind $itk_component(view) <B3-Motion> \
+            [itcl::code $this Zoom drag %x %y]
+        bind $itk_component(view) <ButtonRelease-3> \
+            [itcl::code $this Zoom release %x %y]
+
+        # Bindings for panning via keyboard
+        bind $itk_component(view) <KeyPress-Left> \
+            [itcl::code $this Pan set 10 0]
+        bind $itk_component(view) <KeyPress-Right> \
+            [itcl::code $this Pan set -10 0]
+        bind $itk_component(view) <KeyPress-Up> \
+            [itcl::code $this Pan set 0 -10]
+        bind $itk_component(view) <KeyPress-Down> \
+            [itcl::code $this Pan set 0 10]
+
+        # Send (compressed) motion events to update Lat/Long
+        set _motion(compress) 1
+        bind $itk_component(view) <Motion> \
+            [itcl::code $this EventuallyHandleMotionEvent %x %y]
+    }
+
     bind $itk_component(view) <Shift-KeyPress-Left> \
-        [itcl::code $this Pan set -2 0]
-    bind $itk_component(view) <Shift-KeyPress-Right> \
         [itcl::code $this Pan set 2 0]
+    bind $itk_component(view) <Shift-KeyPress-Right> \
+        [itcl::code $this Pan set -2 0]
     bind $itk_component(view) <Shift-KeyPress-Up> \
         [itcl::code $this Pan set 0 -2]
     bind $itk_component(view) <Shift-KeyPress-Down> \
         [itcl::code $this Pan set 0 2]
-    }
 
     # Bindings for zoom via keyboard
     bind $itk_component(view) <KeyPress-Prior> \
@@ -361,10 +389,13 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
 
     if {[string equal "x11" [tk windowingsystem]]} {
         # Bindings for zoom via mouse
-        #bind $itk_component(view) <4> [itcl::code $this Zoom out]
-        #bind $itk_component(view) <5> [itcl::code $this Zoom in]
-        bind $itk_component(view) <4> [itcl::code $this MouseScroll up]
-        bind $itk_component(view) <5> [itcl::code $this MouseScroll down]
+        if {$_useServerManip} {
+            bind $itk_component(view) <4> [itcl::code $this MouseScroll up]
+            bind $itk_component(view) <5> [itcl::code $this MouseScroll down]
+        } else {
+            bind $itk_component(view) <4> [itcl::code $this Zoom out]
+            bind $itk_component(view) <5> [itcl::code $this Zoom in]
+        }
     }
 
     set _image(download) [image create photo]
@@ -386,7 +417,6 @@ itcl::body Rappture::MapViewer::destructor {} {
     $_dispatcher cancel !rotate
     image delete $_image(plot)
     image delete $_image(download)
-    catch { blt::arcball destroy $_arcball }
 }
 
 itcl::body Rappture::MapViewer::DoResize {} {
@@ -407,23 +437,22 @@ itcl::body Rappture::MapViewer::DoResize {} {
 }
 
 itcl::body Rappture::MapViewer::DoRotate {} {
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    SendCmd "camera orient $q" 
+    SendCmd "camera rotate $_view(azimuth) $_view(elevation)"
     set _rotatePending 0
 }
 
 itcl::body Rappture::MapViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
-    $_arcball resize $w $h
     if { !$_resizePending } {
         set _resizePending 1
         $_dispatcher event -after 200 !resize
     }
 }
 
-itcl::body Rappture::MapViewer::EventuallyRotate { q } {
-    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+itcl::body Rappture::MapViewer::EventuallyRotate { dx dy } {
+    set _view(azimuth) $dx
+    set _view(elevation) $dy
     if { !$_rotatePending } {
         set _rotatePending 1
         $_dispatcher event -after $_rotateDelay !rotate
@@ -850,7 +879,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     if { $_reset } {
         set _width $w
         set _height $h
-        $_arcball resize $w $h
         DoResize
 
         if { [info exists _mapsettings(type)] } {
@@ -900,8 +928,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         }
     }
 
-    set _limits(zmin) ""
-    set _limits(zmax) ""
     set _first ""
     set count 0
 
@@ -943,12 +969,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         }
     }
     if { $_reset } {
-        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-        $_arcball quaternion $q 
-        SendCmd "camera reset"
-        DoRotate
-        PanCamera
-        Zoom reset
+        camera reset
     }
     UpdateLayerControls
     set _reset 0
@@ -1015,44 +1036,44 @@ itcl::body Rappture::MapViewer::KeyRelease {k} {
     SendCmd "key release $k"
 }
 
-itcl::body Rappture::MapViewer::MouseClick {button x y} {
-    if {0} {
+itcl::body Rappture::MapViewer::GetNormalizedMouse {x y} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     set x [expr {(2.0 * double($x)/$w) - 1.0}]
     set y [expr {(2.0 * double($y)/$h) - 1.0}]
-    }
+    return [list $x $y]
+}
+
+itcl::body Rappture::MapViewer::MouseClick {button x y} {
     SendCmd "mouse click $button $x $y"
 }
 
 itcl::body Rappture::MapViewer::MouseDoubleClick {button x y} {
-    if {0} {
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    set x [expr {(2.0 * double($x)/$w) - 1.0}]
-    set y [expr {(2.0 * double($y)/$h) - 1.0}]
-    }
     SendCmd "mouse dblclick $button $x $y"
 }
 
 itcl::body Rappture::MapViewer::MouseDrag {button x y} {
-    if {0} {
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    set x [expr {(2.0 * double($x)/$w) - 1.0}]
-    set y [expr {(2.0 * double($y)/$h) - 1.0}]
-    }
     SendCmd "mouse drag $button $x $y"
 }
 
 itcl::body Rappture::MapViewer::MouseRelease {button x y} {
-    if {0} {
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    set x [expr {(2.0 * double($x)/$w) - 1.0}]
-    set y [expr {(2.0 * double($y)/$h) - 1.0}]
-    }
     SendCmd "mouse release $button $x $y"
+}
+
+itcl::body Rappture::MapViewer::MouseMotion {} {
+    SendCmd "mouse motion $_motion(x) $_motion(y)"
+    set _motion(pending) 0
+}
+
+itcl::body Rappture::MapViewer::MouseScroll {direction} {
+    switch -- $direction {
+        "up" {
+            SendCmd "mouse scroll 1"
+        }
+        "down" {
+            SendCmd "mouse scroll -1"
+        }
+    }
 }
 
 #
@@ -1075,78 +1096,56 @@ itcl::body Rappture::MapViewer::EventuallyHandleMotionEvent {x y} {
     }
 }
 
-itcl::body Rappture::MapViewer::MouseMotion {} {
-    if {0} {
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    set x [expr {(2.0 * double($_motion(x))/$w) - 1.0}]
-    set y [expr {(2.0 * double($_motion(y))/$h) - 1.0}]
-    }
-    SendCmd "mouse motion $_motion(x) $_motion(y)"
-    set _motion(pending) 0
-}
-
-itcl::body Rappture::MapViewer::MouseScroll {direction} {
-    switch -- $direction {
-        "up" {
-            SendCmd "mouse scroll 1"
-        }
-        "down" {
-            SendCmd "mouse scroll -1"
-        }
-    }
-}
-
 # ----------------------------------------------------------------------
 # USAGE: Zoom in
 # USAGE: Zoom out
 # USAGE: Zoom reset
+#        $this Zoom click x y
+#        $this Zoom drag x y
+#        $this Zoom release x y
 #
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
+# Also implements mouse zoom.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MapViewer::Zoom {option} {
+itcl::body Rappture::MapViewer::Zoom {option {x 0} {y 0}} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            #SendCmd "camera zoom $_view(zoom)"
+            # z here is normalized mouse Y delta
             set z -0.25
             SendCmd "camera zoom $z"
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            #SendCmd "camera zoom $_view(zoom)"
+            # z here is normalized mouse Y delta
             set z 0.25
             SendCmd "camera zoom $z"
         }
         "reset" {
-            array set _view {
-                qw      1.0
-                qx      0.0
-                qy      0.0
-                qz      0.0
-                zoom    1.0
-                xpan    0.0
-                ypan    0.0
+            SendCmd "camera dist $_view(distance)"
+        }
+        "click" {
+            set _click(x) $x
+            set _click(y) $y
+            $itk_component(view) configure -cursor hand1
+        }
+        "drag" {
+            if { ![info exists _click(x)] } {
+                set _click(x) $x
             }
-            if { $_first != "" } {
-                set location [$_first hints camera]
-                if { $location != "" } {
-                    array set _view $location
-                }
+            if { ![info exists _click(y)] } {
+                set _click(y) $y
             }
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-            $_arcball quaternion $q
-            DoRotate
-            SendCmd "camera reset"
+            set h [winfo height $itk_component(view)]
+            set dy [expr ($_click(y) - $y)/double($h)]
+            set _click(x) $x
+            set _click(y) $y
+            SendCmd "camera zoom $dy"
+        }
+        "release" {
+            Zoom drag $x $y
+            $itk_component(view) configure -cursor ""
         }
     }
-}
-
-itcl::body Rappture::MapViewer::PanCamera {} {
-    set x $_view(xpan)
-    set y $_view(ypan)
-    SendCmd "camera pan $x $y"
 }
 
 # ----------------------------------------------------------------------
@@ -1173,21 +1172,12 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
                 if {$w <= 0 || $h <= 0} {
                     return
                 }
-
-                if {[catch {
-                    # this fails sometimes for no apparent reason
-                    set dx [expr {double($x-$_click(x))/$w}]
-                    set dy [expr {double($y-$_click(y))/$h}]
-                }]} {
-                    return
-                }
-                if { $dx == 0 && $dy == 0 } {
-                    return
-                }
-                set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-                EventuallyRotate $q
+                set dx [expr ($x - $_click(x))/double($w)]
+                set dy [expr ($_click(y) - $y)/double($h)]
                 set _click(x) $x
                 set _click(y) $y
+                SendCmd "camera rotate $dx $dy"
+                #EventuallyRotate $dx $dy
             }
         }
         "release" {
@@ -1202,7 +1192,8 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: $this Pan click x y
+# USAGE: $this Pan set x y
+#        $this Pan click x y
 #        $this Pan drag x y
 #        $this Pan release x y
 #
@@ -1216,9 +1207,7 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             set h [winfo height $itk_component(view)]
             set x [expr $x / double($w)]
             set y [expr $y / double($h)]
-            set _view(xpan) [expr $_view(xpan) + $x]
-            set _view(ypan) [expr $_view(ypan) + $y]
-            PanCamera
+            SendCmd "camera pan $x $y"
             return
         }
         "click" {
@@ -1235,13 +1224,11 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             }
             set w [winfo width $itk_component(view)]
             set h [winfo height $itk_component(view)]
-            set dx [expr ($_click(x) - $x)/double($w)]
+            set dx [expr ($x - $_click(x))/double($w)]
             set dy [expr ($_click(y) - $y)/double($h)]
             set _click(x) $x
             set _click(y) $y
-            set _view(xpan) [expr $_view(xpan) - $dx]
-            set _view(ypan) [expr $_view(ypan) - $dy]
-            PanCamera
+            SendCmd "camera pan $dx $dy"
         }
         "release" {
             Pan drag $x $y
@@ -1331,30 +1318,6 @@ itcl::configbody Rappture::MapViewer::plotforeground {
 
 itcl::body Rappture::MapViewer::limits { dataobj } {
     error "no limits"
-    foreach layer [$dataobj layers] {
-        set tag $dataobj-$layer
-
-        foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
-        if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
-            set limits(xmin) $xMin
-        }
-        if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
-            set limits(xmax) $xMax
-        }
-        if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
-            set limits(ymin) $xMin
-        }
-        if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
-            set limits(ymax) $yMax
-        }
-        if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
-            set limits(zmin) $zMin
-        }
-        if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
-            set limits(zmax) $zMax
-        }
-    }
-    return [array get limits]
 }
 
 itcl::body Rappture::MapViewer::BuildTerrainTab {} {
@@ -1454,21 +1417,22 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    label $inner.view_l -text "view" -font "Arial 9"
-    set f [frame $inner.view]
-    foreach side { front back left right top bottom } {
-        button $f.$side  -image [Rappture::icon view$side] \
-            -command [itcl::code $this SetOrientation $side]
-        Rappture::Tooltip::for $f.$side "Change the view to $side"
-        pack $f.$side -side left
+    set row 0
+
+    set labels { x y z heading pitch distance }
+    foreach tag $labels {
+        label $inner.${tag}label -text $tag -font "Arial 9"
+        entry $inner.${tag} -font "Arial 9"  -bg white \
+            -textvariable [itcl::scope _view($tag)]
+        bind $inner.${tag} <KeyPress-Return> \
+            [itcl::code $this camera set ${tag}]
+        blt::table $inner \
+            $row,0 $inner.${tag}label -anchor e -pady 2 \
+            $row,1 $inner.${tag} -anchor w -pady 2
+        blt::table configure $inner r$row -resize none
+        incr row
     }
-
-    blt::table $inner \
-        0,0 $inner.view_l -anchor e -pady 2 \
-        0,1 $inner.view -anchor w -pady 2
-
-    set labels { qx qy qz qw xpan ypan zoom }
-    set row 1
+    set labels { srs verticalDatum }
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
@@ -1482,15 +1446,17 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         incr row
     }
 
-    checkbutton $inner.throw \
-        -text "Enable Throw" \
-        -font "Arial 9" \
-        -variable [itcl::scope _settings(camera-throw)] \
-        -command [itcl::code $this AdjustSetting camera-throw]
-    blt::table $inner \
-        $row,0 $inner.throw -anchor w -pady 2 -cspan 2
-    blt::table configure $inner r$row -resize none
-    incr row
+    if {$_useServerManip} {
+        checkbutton $inner.throw \
+            -text "Enable Throw" \
+            -font "Arial 9" \
+            -variable [itcl::scope _settings(camera-throw)] \
+            -command [itcl::code $this AdjustSetting camera-throw]
+        blt::table $inner \
+            $row,0 $inner.throw -anchor w -pady 2 -cspan 2
+        blt::table configure $inner r$row -resize none
+        incr row
+    }
 
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
@@ -1500,29 +1466,63 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
 #
 #  camera -- 
 #
+# USAGE: camera get
+#        This is called by the server to transfer the
+#        current Viewpoint settings
+# USAGE: camera reset
+#        Reset the camera to the default view
+#
 itcl::body Rappture::MapViewer::camera {option args} {
     switch -- $option { 
-        "show" {
-            puts [array get _view]
+        "get" {
+            # We got the camera settings from the server
+            foreach name {x y z heading pitch distance srs verticalDatum} value $args {
+                set _view($name) $value
+            }
+puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), $_view(srs), $_view(verticalDatum)"
+        }
+        "reset" {
+            array set _view {
+                x               0.0
+                y               0.0
+                z               0.0
+                heading         0.0
+                pitch           0.0
+                distance        0.0
+                srs             ""
+                verticalDatum   ""
+            }
+            if { $_first != "" } {
+                # Check if the tool specified a default
+                set location [$_first hints camera]
+                if { $location != "" } {
+                    array set _view $location
+                    set duration 0.0
+                    SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
+                } else {
+                    SendCmd "camera reset"
+                    # Retrieve the settings
+                    SendCmd "camera get"
+                }
+            } else {
+                SendCmd "camera reset"
+                # Retrieve the settings
+                SendCmd "camera get"
+            }
         }
         "set" {
             set who [lindex $args 0]
-            set x $_view($who)
-            set code [catch { string is double $x } result]
-            if { $code != 0 || !$result } {
-                return
+            if {$who != "srs" && $who != "verticalDatum"} {
+                set val $_view($who)
+                set code [catch { string is double $val } result]
+                if { $code != 0 || !$result } {
+                    return
+                }
             }
             switch -- $who {
-                "xpan" - "ypan" {
-                    PanCamera
-                }
-                "qx" - "qy" - "qz" - "qw" {
-                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-                    $_arcball quaternion $q
-                    EventuallyRotate $q
-                }
-                "zoom" {
-                    SendCmd "camera zoom $_view(zoom)"
+                "x" - "y" - "z" - "heading" - "pitch" - "distance" - "srs" - "verticalDatum" {
+                    set duration 0.0
+                    SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
                 }
             }
         }
@@ -1703,27 +1703,6 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             SendCmd "map layer visible 0 $layer"
         }
     }
-}
-
-itcl::body Rappture::MapViewer::SetOrientation { side } { 
-    array set positions {
-        front "1 0 0 0"
-        back  "0 0 1 0"
-        left  "0.707107 0 -0.707107 0"
-        right "0.707107 0 0.707107 0"
-        top   "0.707107 -0.707107 0 0"
-        bottom "0.707107 0.707107 0 0"
-    }
-    foreach name { qw qx qy qz } value $positions($side) {
-        set _view($name) $value
-    } 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
-    SendCmd "camera orient $q"
-    #SendCmd "camera reset"
-    set _view(xpan) 0
-    set _view(ypan) 0
-    set _view(zoom) 1.0
 }
 
 itcl::body Rappture::MapViewer::SetOpacity { dataset } { 
