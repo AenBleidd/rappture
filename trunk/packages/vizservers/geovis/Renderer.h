@@ -148,6 +148,7 @@ class Renderer
 {
 public:
     typedef std::string ColorMapId;
+    typedef std::string ViewpointId;
 
     enum GraticuleType {
         GRATICULE_UTM,
@@ -299,6 +300,10 @@ public:
 
     // Camera
 
+    void saveNamedViewpoint(const char *name);
+
+    bool restoreNamedViewpoint(const char *name, double durationSecs);
+
     osgEarth::Viewpoint getViewpoint();
 
     void setViewpoint(const osgEarth::Viewpoint& v, double durationSecs = 0.0);
@@ -356,6 +361,7 @@ public:
 
 private:
     typedef std::tr1::unordered_map<ColorMapId, osg::ref_ptr<osg::TransferFunction1D> > ColorMapHashmap;
+    typedef std::tr1::unordered_map<ViewpointId, osgEarth::Viewpoint> ViewpointHashmap;
 
     void initViewer();
 
@@ -398,6 +404,7 @@ private:
     osg::ref_ptr<osgEarth::Util::EarthManipulator> _manipulator;
     osg::ref_ptr<osgGA::StateSetManipulator> _stateManip;
     osg::ref_ptr<osgEarth::Util::VerticalScale> _verticalScale;
+    ViewpointHashmap _viewpoints;
 };
 
 }
