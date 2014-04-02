@@ -142,6 +142,47 @@ GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 }
 
 static int
+CameraDeleteViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    char *name = Tcl_GetString(objv[2]);
+
+    g_renderer->removeNamedViewpoint(name);
+    return TCL_OK;
+}
+
+static int
+CameraGetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    osgEarth::Viewpoint view = g_renderer->getViewpoint();
+
+    std::ostringstream oss;
+    size_t len = 0;
+    oss << "nv>camera get "
+        << view.x() << " "
+        << view.y() << " "
+        << view.z() << " "
+        << view.getHeading() << " "
+        << view.getPitch() << " "
+        << view.getRange()
+        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getHorizInitString()) << "}"
+        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getVertInitString()) << "}"
+        << "\n";
+    len = oss.str().size();
+#ifdef USE_THREADS
+    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+
+    if (bytesWritten < 0) {
+        return TCL_ERROR;
+    }
+#endif /*USE_THREADS*/
+    return TCL_OK;
+}
+
+static int
 CameraOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -193,6 +234,26 @@ CameraResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraRestoreViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    char *name = Tcl_GetString(objv[2]);
+
+    double duration = 0.0;
+    if (objc > 3) {
+        if (Tcl_GetDoubleFromObj(interp, objv[3], &duration) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (!g_renderer->restoreNamedViewpoint(name, duration)) {
+        Tcl_AppendResult(interp, "camera viewpoint \"", name,
+                         "\" not found", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
 CameraRotateOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -218,53 +279,16 @@ CameraSaveViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-CameraRestoreViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                         Tcl_Obj *const *objv)
+CameraSetDistanceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
 {
-    char *name = Tcl_GetString(objv[2]);
+    double dist;
 
-    double duration = 0.0;
-    if (objc > 3) {
-        if (Tcl_GetDoubleFromObj(interp, objv[3], &duration) != TCL_OK) {
-            return TCL_ERROR;
-        }
-    }
-    if (!g_renderer->restoreNamedViewpoint(name, duration)) {
-        Tcl_AppendResult(interp, "camera viewpoint \"", name,
-                         "\" not found", (char*)NULL);
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &dist) != TCL_OK) {
         return TCL_ERROR;
     }
-    return TCL_OK;
-}
 
-static int
-CameraGetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                     Tcl_Obj *const *objv)
-{
-    osgEarth::Viewpoint view = g_renderer->getViewpoint();
-
-    std::ostringstream oss;
-    size_t len = 0;
-    oss << "nv>camera get "
-        << view.x() << " "
-        << view.y() << " "
-        << view.z() << " "
-        << view.getHeading() << " "
-        << view.getPitch() << " "
-        << view.getRange()
-        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getHorizInitString()) << "}"
-        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getVertInitString()) << "}"
-        << "\n";
-    len = oss.str().size();
-#ifdef USE_THREADS
-    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
-#else 
-    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
-
-    if (bytesWritten < 0) {
-        return TCL_ERROR;
-    }
-#endif /*USE_THREADS*/
+    g_renderer->setCameraDistance(dist);
     return TCL_OK;
 }
 
@@ -328,20 +352,6 @@ CameraThrowOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-CameraSetDistanceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                    Tcl_Obj *const *objv)
-{
-    double dist;
-
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &dist) != TCL_OK) {
-        return TCL_ERROR;
-    }
-
-    g_renderer->setCameraDistance(dist);
-    return TCL_OK;
-}
-
-static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -356,7 +366,8 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cameraOps[] = {
-    {"dist",    1, CameraSetDistanceOp,      3, 3, "distance"},
+    {"delete",  2, CameraDeleteViewpointOp,  3, 3, "name"},
+    {"dist",    2, CameraSetDistanceOp,      3, 3, "distance"},
     {"get",     1, CameraGetViewpointOp,     2, 2, ""},
     {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
     {"pan",     1, CameraPanOp,              4, 4, "panX panY"},
