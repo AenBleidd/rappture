@@ -98,6 +98,7 @@ itcl::class Rappture::MapViewer {
     private method EventuallyRotate { dx dy } 
     private method GetImage { args } 
     private method GetNormalizedMouse { x y }
+    private method MapIsGeocentric {}
     private method SetLayerStyle { dataobj layer }
     private method SetTerrainStyle { style }
     private method SetOpacity { dataset }
@@ -187,14 +188,18 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         y               0.0
         z               0.0
         heading         0.0
-        pitch           0.0
-        distance        0.0
+        pitch           -89.9
+        distance        1.0
         srs             ""
         verticalDatum   ""
     }
 
+    # Note: grid types are "geodetic", "utm" and "mgrs"
+    # Currently only work in geocentric maps
     array set _settings [subst {
         camera-throw           0
+        grid                   0
+        grid-type              "geodetic"
         legend                 1
         terrain-edges          0
         terrain-lighting       0
@@ -606,6 +611,14 @@ itcl::body Rappture::MapViewer::get {args} {
     }
 }
 
+itcl::body Rappture::MapViewer::MapIsGeocentric {} {
+    if { [info exists _mapsettings(type)] } {
+        return [expr {$_mapsettings(type) eq "geocentric"}]
+    } else {
+        return 0
+    }
+}
+
 # ----------------------------------------------------------------------
 # USAGE: scale ?<data1> <data2> ...?
 #
@@ -863,7 +876,6 @@ itcl::body Rappture::MapViewer::ReceiveDataset { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::Rebuild {} {
-
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
@@ -962,10 +974,11 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             }
         }
     }
-    if {"" != $_first} {
-        set location [$_first hints camera]
+    if { [info exists _mapsettings(camera)] } {
+        set location $_mapsettings(camera)
         if { $location != "" } {
-            array set view $location
+            array set _view $location
+            camera set all
         }
     }
     if { $_reset } {
@@ -1265,6 +1278,11 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "grid" - "grid-type" {
+            set bool $_settings(grid)
+            set gridType $_settings(grid-type)
+            SendCmd "map grid $bool $gridType"
+        }
         "camera-throw" {
             set bool $_settings(camera-throw)
             SendCmd "camera throw $bool"
@@ -1330,6 +1348,12 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         -icon [Rappture::icon surface]]
     $inner configure -borderwidth 4
 
+    checkbutton $inner.grid \
+        -text "Show Graticule" \
+        -variable [itcl::scope _settings(grid)] \
+        -command [itcl::code $this AdjustSetting grid] \
+        -font "Arial 9" -anchor w 
+
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(terrain-wireframe)] \
@@ -1384,9 +1408,10 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
     $inner.vscale set $_settings(terrain-vertscale)
 
     blt::table $inner \
-        0,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        0,0 $inner.grid      -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
         4,0 $inner.vscale_l  -anchor w -pady 2 \
         4,1 $inner.vscale    -fill x   -pady 2 \
         5,0 $inner.palette_l -anchor w -pady 2 \
@@ -1426,6 +1451,8 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
             -textvariable [itcl::scope _view($tag)]
         bind $inner.${tag} <KeyPress-Return> \
             [itcl::code $this camera set ${tag}]
+        bind $inner.${tag} <KP_Enter> \
+            [itcl::code $this camera set ${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
@@ -1439,12 +1466,32 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
             -textvariable [itcl::scope _view($tag)]
         bind $inner.${tag} <KeyPress-Return> \
             [itcl::code $this camera set ${tag}]
+        bind $inner.${tag} <KP_Enter> \
+            [itcl::code $this camera set ${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
         blt::table configure $inner r$row -resize none
         incr row
     }
+
+    button $inner.get \
+        -text "Get Camera Settings" \
+        -font "Arial 9" \
+        -command [itcl::code $this SendCmd "camera get"]
+    blt::table $inner \
+        $row,0 $inner.get -anchor w -pady 2 -cspan 2
+    blt::table configure $inner r$row -resize none
+    incr row
+
+    button $inner.set \
+        -text "Apply Camera Settings" \
+        -font "Arial 9" \
+        -command [itcl::code $this camera set all]
+    blt::table $inner \
+        $row,0 $inner.set -anchor w -pady 2 -cspan 2
+    blt::table configure $inner r$row -resize none
+    incr row
 
     if {$_useServerManip} {
         checkbutton $inner.throw \
@@ -1487,14 +1534,14 @@ puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitc
                 y               0.0
                 z               0.0
                 heading         0.0
-                pitch           0.0
-                distance        0.0
+                pitch           -89.9
+                distance        1.0
                 srs             ""
                 verticalDatum   ""
             }
-            if { $_first != "" } {
+            if { [info exists _mapsettings(camera)] } {
                 # Check if the tool specified a default
-                set location [$_first hints camera]
+                set location $_mapsettings(camera)
                 if { $location != "" } {
                     array set _view $location
                     set duration 0.0
@@ -1512,7 +1559,7 @@ puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitc
         }
         "set" {
             set who [lindex $args 0]
-            if {$who != "srs" && $who != "verticalDatum"} {
+            if {$who != "all" && $who != "srs" && $who != "verticalDatum"} {
                 set val $_view($who)
                 set code [catch { string is double $val } result]
                 if { $code != 0 || !$result } {
@@ -1520,7 +1567,10 @@ puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitc
                 }
             }
             switch -- $who {
-                "x" - "y" - "z" - "heading" - "pitch" - "distance" - "srs" - "verticalDatum" {
+                "distance" {
+                    SendCmd [list camera dist $_view(distance)]
+                }
+                "all" - "x" - "y" - "z" - "heading" - "pitch" - "srs" - "verticalDatum" {
                     set duration 0.0
                     SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
                 }
