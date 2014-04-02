@@ -252,8 +252,8 @@ CameraGetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc,
         << view.getHeading() << " "
         << view.getPitch() << " "
         << view.getRange()
-        << " {" << view.getSRS()->getHorizInitString() << "}"
-        << " {" << view.getSRS()->getVertInitString() << "}"
+        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getHorizInitString()) << "}"
+        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getVertInitString()) << "}"
         << "\n";
     len = oss.str().size();
 #ifdef USE_THREADS
