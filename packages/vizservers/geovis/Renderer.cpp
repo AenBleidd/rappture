@@ -568,6 +568,23 @@ void Renderer::setTerrainWireframe(bool state)
 #endif
 }
 
+void Renderer::saveNamedViewpoint(const char *name)
+{
+    _viewpoints[name] = getViewpoint();
+}
+
+bool Renderer::restoreNamedViewpoint(const char *name, double durationSecs)
+{
+    ViewpointHashmap::iterator itr = _viewpoints.find(name);
+    if (itr != _viewpoints.end()) {
+        setViewpoint(itr->second, durationSecs);
+        return true;
+    } else {
+        ERROR("Unknown viewpoint: '%s'", name);
+        return false;
+    }
+}
+
 void Renderer::setViewpoint(const osgEarth::Viewpoint& v, double durationSecs)
 {
     if (_manipulator.valid()) {

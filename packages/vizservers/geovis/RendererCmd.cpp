@@ -208,6 +208,36 @@ CameraRotateOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraSaveViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    char *name = Tcl_GetString(objv[2]);
+
+    g_renderer->saveNamedViewpoint(name);
+    return TCL_OK;
+}
+
+static int
+CameraRestoreViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    char *name = Tcl_GetString(objv[2]);
+
+    double duration = 0.0;
+    if (objc > 3) {
+        if (Tcl_GetDoubleFromObj(interp, objv[3], &duration) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (!g_renderer->restoreNamedViewpoint(name, duration)) {
+        Tcl_AppendResult(interp, "camera viewpoint \"", name,
+                         "\" not found", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
 CameraThrowOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -236,12 +266,14 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cameraOps[] = {
-    {"orient", 1, CameraOrientOp, 6, 6, "qw qx qy qz"},
-    {"pan",    1, CameraPanOp, 4, 4, "panX panY"},
-    {"reset",  2, CameraResetOp, 2, 3, "?all?"},
-    {"rotate", 2, CameraRotateOp, 4, 4, "azimuth elevation"},
-    {"throw",  1, CameraThrowOp, 3, 3, "bool"},
-    {"zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
+    {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
+    {"pan",     1, CameraPanOp,              4, 4, "panX panY"},
+    {"reset",   4, CameraResetOp,            2, 3, "?all?"},
+    {"restore", 4, CameraRestoreViewpointOp, 3, 4, "name ?duration?"},
+    {"rotate",  2, CameraRotateOp,           4, 4, "azimuth elevation"},
+    {"save",    1, CameraSaveViewpointOp,    3, 3, "name"},
+    {"throw",   1, CameraThrowOp,            3, 3, "bool"},
+    {"zoom",    1, CameraZoomOp,             3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
