@@ -573,6 +573,18 @@ void Renderer::saveNamedViewpoint(const char *name)
     _viewpoints[name] = getViewpoint();
 }
 
+bool Renderer::removeNamedViewpoint(const char *name)
+{
+    ViewpointHashmap::iterator itr = _viewpoints.find(name);
+    if (itr != _viewpoints.end()) {
+        _viewpoints.erase(name);
+        return true;
+    } else {
+        ERROR("Unknown viewpoint: '%s'", name);
+        return false;
+    }
+}
+
 bool Renderer::restoreNamedViewpoint(const char *name, double durationSecs)
 {
     ViewpointHashmap::iterator itr = _viewpoints.find(name);

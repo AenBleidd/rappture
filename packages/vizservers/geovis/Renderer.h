@@ -304,6 +304,8 @@ public:
 
     bool restoreNamedViewpoint(const char *name, double durationSecs);
 
+    bool removeNamedViewpoint(const char *name);
+
     osgEarth::Viewpoint getViewpoint();
 
     void setViewpoint(const osgEarth::Viewpoint& v, double durationSecs = 0.0);
