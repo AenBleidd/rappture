@@ -318,6 +318,8 @@ public:
 
     void zoomCamera(double z);
 
+    void setCameraDistance(double dist);
+
     // Keyboard events
 
     void keyPress(int key);

@@ -328,8 +328,22 @@ CameraThrowOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraSetDistanceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double dist;
+
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &dist) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setCameraDistance(dist);
+    return TCL_OK;
+}
+
+static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-            Tcl_Obj *const *objv)
+             Tcl_Obj *const *objv)
 {
     double z;
 
@@ -342,6 +356,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cameraOps[] = {
+    {"dist",    1, CameraSetDistanceOp,      3, 3, "dist"},
     {"get",     1, CameraGetViewpointOp,     2, 2, ""},
     {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
     {"pan",     1, CameraPanOp,              4, 4, "panX panY"},

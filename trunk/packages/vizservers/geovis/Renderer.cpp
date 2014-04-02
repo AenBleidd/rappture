@@ -983,7 +983,7 @@ void Renderer::rotateCamera(double x, double y)
  */
 void Renderer::zoomCamera(double z)
 {
-    TRACE("Enter: z: %g", z);
+    TRACE("Enter: z: %g camDist: %g", z, _manipulator->getDistance());
 
     if (_manipulator.valid()) {
         // FIXME: zoom here wants y mouse coords in normalized viewport coords
@@ -991,6 +991,22 @@ void Renderer::zoomCamera(double z)
 
         double dist = _manipulator->getDistance();
         dist *= (1.0 + z);
+        _manipulator->setDistance(dist);
+
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Dolly camera to set distance from focal point
+ *
+ * \param[in] dist distance in map? coordinates
+ */
+void Renderer::setCameraDistance(double dist)
+{
+    TRACE("Enter: dist: %g camDist: %g", dist, _manipulator->getDistance());
+
+    if (_manipulator.valid()) {
         _manipulator->setDistance(dist);
 
         _needsRedraw = true;
