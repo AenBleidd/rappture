@@ -312,11 +312,11 @@ public:
 
     void setCameraOrientation(const double quat[4], bool absolute = true);
 
-    void panCamera(double x, double y, bool absolute = false);
+    void panCamera(double x, double y);
 
-    void rotateCamera(double x, double y, bool absolute = false);
+    void rotateCamera(double x, double y);
 
-    void zoomCamera(double z, bool absolute = false);
+    void zoomCamera(double z);
 
     // Keyboard events
 

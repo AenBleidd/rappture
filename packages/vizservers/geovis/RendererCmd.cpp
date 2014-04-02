@@ -238,6 +238,82 @@ CameraRestoreViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraGetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    osgEarth::Viewpoint view = g_renderer->getViewpoint();
+
+    std::ostringstream oss;
+    size_t len = 0;
+    oss << "nv>camera get "
+        << view.x() << " "
+        << view.y() << " "
+        << view.z() << " "
+        << view.getHeading() << " "
+        << view.getPitch() << " "
+        << view.getRange()
+        << " {" << view.getSRS()->getHorizInitString() << "}"
+        << " {" << view.getSRS()->getVertInitString() << "}"
+        << "\n";
+    len = oss.str().size();
+#ifdef USE_THREADS
+    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+
+    if (bytesWritten < 0) {
+        return TCL_ERROR;
+    }
+#endif /*USE_THREADS*/
+    return TCL_OK;
+}
+
+static int
+CameraSetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double x, y, z, heading, pitch, distance;
+    double duration = 0.0;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &z) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &heading) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[6], &pitch) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[7], &distance) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc > 8) {
+        if (Tcl_GetDoubleFromObj(interp, objv[8], &duration) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (objc > 9) {
+        char *srsInit = Tcl_GetString(objv[9]);
+        if (strlen(srsInit) > 0) {
+            osgEarth::SpatialReference *srs = NULL;
+            if (objc > 10) {
+                char *vertDatum = Tcl_GetString(objv[10]);
+                srs = osgEarth::SpatialReference::get(srsInit, vertDatum);
+            } else {
+                srs = osgEarth::SpatialReference::get(srsInit);
+            }
+            if (srs == NULL) {
+                return TCL_ERROR;
+            }
+            osgEarth::Viewpoint view(x, y, z, heading, pitch, distance, srs);
+            g_renderer->setViewpoint(view, duration);
+        } else {
+            osgEarth::Viewpoint view(x, y, z, heading, pitch, distance);
+            g_renderer->setViewpoint(view, duration);
+        }
+    } else {
+        osgEarth::Viewpoint view(x, y, z, heading, pitch, distance);
+        g_renderer->setViewpoint(view, duration);
+    }
+    return TCL_OK;
+}
+
+static int
 CameraThrowOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -266,12 +342,14 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cameraOps[] = {
+    {"get",     1, CameraGetViewpointOp,     2, 2, ""},
     {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
     {"pan",     1, CameraPanOp,              4, 4, "panX panY"},
     {"reset",   4, CameraResetOp,            2, 3, "?all?"},
     {"restore", 4, CameraRestoreViewpointOp, 3, 4, "name ?duration?"},
     {"rotate",  2, CameraRotateOp,           4, 4, "azimuth elevation"},
-    {"save",    1, CameraSaveViewpointOp,    3, 3, "name"},
+    {"save",    2, CameraSaveViewpointOp,    3, 3, "name"},
+    {"set",     2, CameraSetViewpointOp,     8, 11, "x y z heading pitch distance ?duration? ?srs? ?vertDatum?"},
     {"throw",   1, CameraThrowOp,            3, 3, "bool"},
     {"zoom",    1, CameraZoomOp,             3, 3, "zoomAmount"}
 };
