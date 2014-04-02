@@ -952,7 +952,6 @@ void Renderer::resetCamera(bool resetOrientation)
  * camera left, object right)
  * \param[in] y Viewport coordinate vertical panning (positive number pans 
  * camera up, object down)
- * \param[in] absolute Control if pan amount is relative to current or absolute
  */
 void Renderer::panCamera(double x, double y)
 {
@@ -978,19 +977,19 @@ void Renderer::rotateCamera(double x, double y)
 /**
  * \brief Dolly camera or set orthographic scaling based on camera type
  *
- * \param[in] z Ratio to change zoom (greater than 1 is zoom in, less than 1 is zoom out)
- * \param[in] absolute Control if zoom factor is relative to current setting or absolute
+ * \param[in] y Mouse y coordinate in normalized screen coords
  */
-void Renderer::zoomCamera(double z)
+void Renderer::zoomCamera(double y)
 {
-    TRACE("Enter: z: %g camDist: %g", z, _manipulator->getDistance());
+    TRACE("Enter: y: %g", y);
 
     if (_manipulator.valid()) {
+        TRACE("camDist: %g", _manipulator->getDistance());
         // FIXME: zoom here wants y mouse coords in normalized viewport coords
-        //_manipulator->zoom(0, z);
+        //_manipulator->zoom(0, y);
 
         double dist = _manipulator->getDistance();
-        dist *= (1.0 + z);
+        dist *= (1.0 + y);
         _manipulator->setDistance(dist);
 
         _needsRedraw = true;
@@ -1004,9 +1003,11 @@ void Renderer::zoomCamera(double z)
  */
 void Renderer::setCameraDistance(double dist)
 {
-    TRACE("Enter: dist: %g camDist: %g", dist, _manipulator->getDistance());
+    TRACE("Enter: dist: %g", dist);
 
     if (_manipulator.valid()) {
+        TRACE("camDist: %g", _manipulator->getDistance());
+
         _manipulator->setDistance(dist);
 
         _needsRedraw = true;

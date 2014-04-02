@@ -356,7 +356,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec cameraOps[] = {
-    {"dist",    1, CameraSetDistanceOp,      3, 3, "dist"},
+    {"dist",    1, CameraSetDistanceOp,      3, 3, "distance"},
     {"get",     1, CameraGetViewpointOp,     2, 2, ""},
     {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
     {"pan",     1, CameraPanOp,              4, 4, "panX panY"},
