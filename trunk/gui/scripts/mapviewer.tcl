@@ -1162,7 +1162,9 @@ itcl::body Rappture::MapViewer::Zoom {option {x 0} {y 0}} {
             set dy [expr ($_click(y) - $y)/double($h)]
             set _click(x) $x
             set _click(y) $y
-            SendCmd "camera zoom $dy"
+            if {[expr (abs($dy) > 0.0)]} {
+                SendCmd "camera zoom $dy"
+            }
         }
         "release" {
             Zoom drag $x $y
@@ -1199,8 +1201,10 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
                 set dy [expr ($_click(y) - $y)/double($h)]
                 set _click(x) $x
                 set _click(y) $y
-                SendCmd "camera rotate $dx $dy"
-                #EventuallyRotate $dx $dy
+                if {[expr (abs($dx) > 0.0 || abs($dy) > 0.0)]} {
+                    SendCmd "camera rotate $dx $dy"
+                    #EventuallyRotate $dx $dy
+                }
             }
         }
         "release" {
