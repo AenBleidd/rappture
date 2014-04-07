@@ -1230,7 +1230,9 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             set h [winfo height $itk_component(view)]
             set x [expr $x / double($w)]
             set y [expr $y / double($h)]
-            SendCmd "camera pan $x $y"
+            if {[expr (abs($x) > 0.0 || abs($y) > 0.0)]} {
+                SendCmd "camera pan $x $y"
+            }
             return
         }
         "click" {
@@ -1251,7 +1253,9 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             set dy [expr ($_click(y) - $y)/double($h)]
             set _click(x) $x
             set _click(y) $y
-            SendCmd "camera pan $dx $dy"
+            if {[expr (abs($dx) > 0.0 || abs($dy) > 0.0)]} {
+                SendCmd "camera pan $dx $dy"
+            }
         }
         "release" {
             Pan drag $x $y
