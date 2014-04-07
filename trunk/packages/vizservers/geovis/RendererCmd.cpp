@@ -183,6 +183,34 @@ CameraGetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraGoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    int x, y;
+    if (Tcl_GetIntFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double duration = 1.0;
+    if (objc > 4) {
+        if (Tcl_GetDoubleFromObj(interp, objv[4], &duration) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+
+    osgEarth::GeoPoint mapPoint;
+    if (g_renderer->mapMouseCoords(x, y, mapPoint)) {
+        osgEarth::Viewpoint vpt = g_renderer->getViewpoint();
+        vpt.x() = mapPoint.x();
+        vpt.y() = mapPoint.y();
+        g_renderer->setViewpoint(vpt, duration);
+    } else {
+        // Out of map bounds
+    }
+    return TCL_OK;
+}
+
+static int
 CameraOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -368,7 +396,8 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static CmdSpec cameraOps[] = {
     {"delete",  2, CameraDeleteViewpointOp,  3, 3, "name"},
     {"dist",    2, CameraSetDistanceOp,      3, 3, "distance"},
-    {"get",     1, CameraGetViewpointOp,     2, 2, ""},
+    {"get",     2, CameraGetViewpointOp,     2, 2, ""},
+    {"go",      2, CameraGoOp,               4, 5, "x y ?duration?"},
     {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
     {"pan",     1, CameraPanOp,              4, 4, "panX panY"},
     {"reset",   4, CameraResetOp,            2, 3, "?all?"},
