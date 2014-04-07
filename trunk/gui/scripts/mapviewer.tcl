@@ -941,9 +941,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     }
                 }
                 # XXX: Remove these after implementing batch load of layers with reset
-                # This is needed to force a valid render before deleting the base layer
-                # Don't want to flush since we don't need to see this image
-                SendCmd "render"
                 SendCmd "map layer delete base"
             }
 
