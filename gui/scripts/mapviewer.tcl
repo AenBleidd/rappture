@@ -82,7 +82,7 @@ itcl::class Rappture::MapViewer {
     protected method MouseScroll { direction }
     protected method Pan {option x y}
     protected method Rebuild {}
-    protected method ReceiveDataset { args }
+    protected method ReceiveMapInfo { args }
     protected method ReceiveImage { args }
     protected method Rotate {option x y}
     protected method Zoom {option {x 0} {y 0}}
@@ -133,7 +133,7 @@ itcl::class Rappture::MapViewer {
     private variable _rotateDelay 150
     private variable _motion 
     private variable _sendEarthFile 0
-    private variable _useServerManip 1
+    private variable _useServerManip 0
 }
 
 itk::usual MapViewer {
@@ -169,7 +169,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image    [itcl::code $this ReceiveImage]
-    $_parser alias dataset  [itcl::code $this ReceiveDataset]
+    $_parser alias map      [itcl::code $this ReceiveMapInfo]
     $_parser alias camera   [itcl::code $this camera]
 
     # Settings for mouse motion events: these are required
@@ -845,25 +845,33 @@ itcl::body Rappture::MapViewer::ReceiveImage { args } {
 }
 
 #
-# ReceiveDataset --
+# ReceiveMapInfo --
 #
-itcl::body Rappture::MapViewer::ReceiveDataset { args } {
+itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
     if { ![isconnected] } {
         return
     }
     set option [lindex $args 0]
     switch -- $option {
         "coords" {
-            foreach { x y z } [lrange $args 1 end] break
-            puts stderr "Coords: $x $y $z"
+            set len [llength $args]
+            if {$len < 4} {
+                puts stderr "Coords out of range"
+            } elseif {$len < 6} {
+                foreach { x y z } [lrange $args 1 end] break
+                puts stderr "Coords: $x $y $z"
+            } else {
+                foreach { x y z pxX pxY } [lrange $args 1 end] break
+                puts stderr "Coords($pxX,$pxY): $x $y $z"
+            }
         }
         "names" {
             foreach { name } [lindex $args 1] {
-                #puts stderr "layer: $name"
+                puts stderr "layer: $name"
             }
         }
         default {
-            error "unknown dataset option \"$option\" from server"
+            error "unknown map option \"$option\" from server"
         }
     }
 }
