@@ -342,6 +342,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             [itcl::code $this Pan drag %x %y]
         bind $itk_component(view) <ButtonRelease-1> \
             [itcl::code $this Pan release %x %y]
+        bind $itk_component(view) <Double-1> \
+            [itcl::code $this camera go %x %y]
 
         # Bindings for rotation via mouse
         bind $itk_component(view) <ButtonPress-2> \
@@ -1535,6 +1537,9 @@ itcl::body Rappture::MapViewer::camera {option args} {
                 set _view($name) $value
             }
 puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), $_view(srs), $_view(verticalDatum)"
+        }
+        "go" {
+            SendCmd "camera go $args"
         }
         "reset" {
             array set _view {
