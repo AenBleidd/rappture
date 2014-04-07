@@ -755,6 +755,7 @@ itcl::body Rappture::MapViewer::download {option args} {
 itcl::body Rappture::MapViewer::Connect {} {
     global readyForNextFrame
     set readyForNextFrame 1
+    set _reset 1
     set _hosts [GetServerList "geovis"]
     if { "" == $_hosts } {
         return 0
@@ -815,7 +816,12 @@ itcl::body Rappture::MapViewer::disconnect {} {
 itcl::body Rappture::MapViewer::Disconnect {} {
     VisViewer::Disconnect
 
+    $_dispatcher cancel !rebuild
+    $_dispatcher cancel !resize
+    $_dispatcher cancel !rotate
+    $_dispatcher cancel !motion
     # disconnected -- no more data sitting on server
+    array unset _layers
     array unset _layersFrame 
     global readyForNextFrame
     set readyForNextFrame 1
@@ -946,8 +952,21 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 FixSettings terrain-edges terrain-lighting \
                     terrain-vertscale terrain-wireframe
             }
-            SendCmd "imgflush"
+        } else {
+            error "No map settings on reset"
         }
+
+        # FIXME: How to tell if this is the first reset?
+        # If we reset the connection, we shouldn't use
+        # the map settings
+        if { [info exists _mapsettings(camera)] } {
+            set location $_mapsettings(camera)
+            if { $location != "" } {
+                array set _view $location
+            }
+        }
+        camera set all
+        SendCmd "imgflush"
     }
 
     set _first ""
@@ -984,16 +1003,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             }
         }
     }
-    if { [info exists _mapsettings(camera)] } {
-        set location $_mapsettings(camera)
-        if { $location != "" } {
-            array set _view $location
-            camera set all
-        }
-    }
-    if { $_reset } {
-        camera reset
-    }
+
     UpdateLayerControls
     set _reset 0
     global readyForNextFrame
@@ -1493,6 +1503,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         incr row
     }
 
+    if {0} {
     button $inner.get \
         -text "Get Camera Settings" \
         -font "Arial 9" \
@@ -1510,6 +1521,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         $row,0 $inner.set -anchor w -pady 2 -cspan 2
     blt::table configure $inner r$row -resize none
     incr row
+    }
 
     if {$_useServerManip} {
         checkbutton $inner.throw \
@@ -1544,7 +1556,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             foreach name {x y z heading pitch distance srs verticalDatum} value $args {
                 set _view($name) $value
             }
-puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), $_view(srs), $_view(verticalDatum)"
+            puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), $_view(srs), $_view(verticalDatum)"
         }
         "go" {
             SendCmd "camera go $args"
@@ -1570,12 +1582,12 @@ puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitc
                 } else {
                     SendCmd "camera reset"
                     # Retrieve the settings
-                    SendCmd "camera get"
+                    #SendCmd "camera get"
                 }
             } else {
                 SendCmd "camera reset"
                 # Retrieve the settings
-                SendCmd "camera get"
+               # SendCmd "camera get"
             }
         }
         "set" {
