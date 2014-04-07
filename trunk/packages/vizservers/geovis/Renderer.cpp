@@ -670,7 +670,15 @@ osgEarth::Viewpoint Renderer::getViewpoint()
     }
 }
 
-bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
+/**
+ * \brief Map screen mouse coordinates to map coordinates
+ *
+ * This method assumes that mouse Y coordinates are 0 at the top
+ * of the screen and increase going down if invertY is set, and 
+ * 0 at the bottom and increase going up otherwise.
+ */
+bool Renderer::mapMouseCoords(float mouseX, float mouseY,
+                              osgEarth::GeoPoint& map, bool invertY)
 {
     if (!_mapNode.valid() || _mapNode->getTerrain() == NULL) {
         ERROR("No map");
@@ -679,6 +687,9 @@ bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& ma
     if (!_viewer.valid()) {
         ERROR("No Viewer");
         return false;
+    }
+    if (invertY) {
+        mouseY = ((float)_windowHeight - mouseY);
     }
     osg::Vec3d world;
     if (_mapNode->getTerrain()->getWorldCoordsUnderMouse(_viewer->asView(), mouseX, mouseY, world)) {
@@ -1202,13 +1213,14 @@ void Renderer::mouseMotion(double x, double y)
             _needsRedraw = true;
         }
 #else
-        if (_coordsCallback.valid()) {
-            osgEarth::GeoPoint map;
-            if (mapMouseCoords(x, y, map)) {
-                _coordsCallback->set(map, _viewer.get(), _mapNode);
+        if (_viewer.valid() && _coordsCallback.valid()) {
+            osgEarth::GeoPoint mapPt;
+            if (mapMouseCoords((float)x, (float)y, mapPt)) {
+                _coordsCallback->set(mapPt, _viewer->asView(), _mapNode);
             } else {
-                _coordsCallback->reset(_viewer.get(), _mapNode);
+                _coordsCallback->reset(_viewer->asView(), _mapNode);
             }
+            _needsRedraw = true;
         }
 #endif
     }

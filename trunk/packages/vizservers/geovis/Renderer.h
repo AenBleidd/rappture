@@ -365,7 +365,8 @@ public:
 
     osg::Image *getRenderedFrame();
 
-    bool mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint &pt);
+    bool mapMouseCoords(float mouseX, float mouseY,
+                        osgEarth::GeoPoint &pt, bool invertY = true);
 
     bool getMousePoint(double *x, double *y, double *z)
     {
