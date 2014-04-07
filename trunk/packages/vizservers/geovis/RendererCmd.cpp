@@ -203,6 +203,7 @@ CameraGoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         osgEarth::Viewpoint vpt = g_renderer->getViewpoint();
         vpt.x() = mapPoint.x();
         vpt.y() = mapPoint.y();
+        vpt.z() = mapPoint.z();
         g_renderer->setViewpoint(vpt, duration);
     } else {
         // Out of map bounds
