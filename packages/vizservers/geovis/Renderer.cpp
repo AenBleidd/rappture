@@ -655,8 +655,12 @@ bool Renderer::restoreNamedViewpoint(const char *name, double durationSecs)
 void Renderer::setViewpoint(const osgEarth::Viewpoint& v, double durationSecs)
 {
     if (_manipulator.valid()) {
+        TRACE("Setting viewpoint: %g %g %g %g %g %g",
+              v.x(), v.y(), v.z(), v.getHeading(), v.getPitch(), v.getRange());
         _manipulator->setViewpoint(v, durationSecs);
         _needsRedraw = true;
+    } else {
+        ERROR("No manipulator");
     }
 }
 
@@ -1114,12 +1118,13 @@ void Renderer::zoomCamera(double y)
     if (_manipulator.valid()) {
         TRACE("camDist: %g", _manipulator->getDistance());
         // FIXME: zoom here wants y mouse coords in normalized viewport coords
-        //_manipulator->zoom(0, y);
-
+#if 1
+       _manipulator->zoom(0, y);
+#else
         double dist = _manipulator->getDistance();
         dist *= (1.0 + y);
         _manipulator->setDistance(dist);
-
+#endif
         _needsRedraw = true;
     }
 }
