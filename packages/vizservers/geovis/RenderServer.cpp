@@ -559,7 +559,7 @@ main(int argc, char *argv[])
             char mesg[256];
 
             length = snprintf(mesg, sizeof(mesg),
-                              "nv>dataset coords %g %g %g\n", x, y, z);
+                              "nv>map coords %g %g %g\n", x, y, z);
 
             queueResponse(mesg, length, Response::VOLATILE);
         }

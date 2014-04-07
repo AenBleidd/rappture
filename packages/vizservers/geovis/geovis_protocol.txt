@@ -28,6 +28,12 @@ Requests:
 
 == General dataset, scene and renderer commands ==
 
+camera delete <name>
+       Delete named viewpoint
+camera dist <distance>
+       Set camera distance from focal point
+camera get
+       Request camera parameters
 camera orient <quatW> <quatX> <quatY> <quatZ>
        Set scene orientation using a quaternion
 camera pan <x> <y>
@@ -37,13 +43,28 @@ camera pan <x> <y>
        move the object center to the lower right corner of the window
 camera reset <?all?>
        Option all resets orientation/rotation as well as pan/zoom/clip range
+camera restore <name> <?duration?>
+       Set viewpoint to a named viewpoint, with optional animation duration in seconds
 camera rotate <x> <y>
        Specify relative rotation in viewport coordinates
-camera zoom <z>
-       Specify zoom ratio.  z > 1 is a zoom in, z < 1 is zoom out. z = 1
-       resets to default.
+camera save <name>
+       Save current viewpoint to a named viewpoint
+camera set <x> <y> <z> <heading> <pitch> <distance> <?duration?> <?srs?> <?vertDatum?>
+       Explicitly set camera parameters, with optional animation duration in seconds
+       <x>, <y> = Map coordinates of focal point
+       <z> = Altitude of focal point (see vertDatum)
+       <heading> = Azimuth in degrees
+       <pitch> = Elevation in degrees
+       <distance> = Distance of camera from focal point in map units(?)
+       <srs> = coordinate system, defaults to map coordinate system
+       <vertDatum> = vertical datum for interpreting z coordinate 
+camera zoom <y>
+       Specify zoom by viewport coordinates (i.e. normalized y mouse coords)
 
 clientinfo <list>
+
+key press <key>
+key release <key>
 
 mouse click <button> <x> <y>
 mouse dblclick <button> <x> <y>
@@ -58,24 +79,29 @@ renderer render
 screen bgcolor <r> <g> <b>
 screen size <width> <height>
 
+map coords <x> <y>
+    Translate screen/mouse coordinates into map coordinates
+
 General form:
-map layer add <type> <url> ... <layerName>
-    <type> = image|wms|tms|elevation|point|polygon|line|text
+map layer add <type> <driver> <url> ... <layerName>
+    <type> = image|elevation|line|point|polygon|text
+    <driver> = gdal|wms|tms
 
 Specific layer types:
-map layer add image <url> <layerName>
+map layer add image gdal <url> <layerName>
     Add a GDAL image layer from a file or URL
-map layer add wms <url> <layers> <format> <transparent> <layerName>
+map layer add image wms <url> <layers> <format> <transparent> <layerName>
     Add a WMS image layer from a URL + layer string
     <url> = URL of WMS service
     <layers> = layers string for WMS server
     <format> = Image format to return (e.g. 'png')
     <transparent> = bool
-map layer add tms <url> <layerName>
+map layer add image tms <url> <layerName>
     Add a TMS image layer from a URL
     <url> = URL of TMS service
-map layer add elevation <url> <layerName>
-    Add a GDAL elevation image layer from a file or URL
+map layer add elevation <driver> <url> <layerName>
+    Add an elevation image layer from a file or URL
+    <driver> = gdal|tms|wms
 map layer add point <url> <layerName>
     Add a point feature layer from a file or URL
 map layer add polygon <url> <layerName>

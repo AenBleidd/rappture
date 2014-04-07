@@ -48,8 +48,9 @@ namespace GeoVis {
 class ScreenCaptureCallback : public osg::Camera::DrawCallback
 {
 public:
-    ScreenCaptureCallback() :
-        osg::Camera::DrawCallback()
+    ScreenCaptureCallback(osg::Texture2D *texture = NULL) :
+        osg::Camera::DrawCallback(),
+        _texture(texture)
     {
         _image = new osg::Image;
     }
@@ -69,12 +70,16 @@ public:
         width = (int)renderInfo.getCurrentCamera()->getViewport()->width();
         height = (int)renderInfo.getCurrentCamera()->getViewport()->height();
         TRACE("readPixels: %d x %d", width, height);
+#if 0 //USE_OFFSCREEN_FRAMEBUFFER
+        _image = _texture->getImage();
+#else
 #ifdef RENDER_TARGA
         _image->readPixels(0, 0, width, height,
                            GL_BGR, GL_UNSIGNED_BYTE);
 #else
         _image->readPixels(0, 0, width, height,
                            GL_RGB, GL_UNSIGNED_BYTE);
+#endif
 #endif
     }
 
@@ -83,7 +88,13 @@ public:
         return _image.get();
     }
 
+    osg::Texture2D *getTexture()
+    {
+        return _texture.get();
+    }
+
 private:
+    osg::ref_ptr<osg::Texture2D> _texture;
     osg::ref_ptr<osg::Image> _image;
 };
 
