@@ -19,6 +19,7 @@
 
 #include <osgGA/StateSetManipulator>
 #include <osgGA/GUIEventAdapter>
+#include <osgViewer/ViewerEventHandlers>
 
 #include <osgEarth/Version>
 #include <osgEarth/MapNode>
@@ -127,10 +128,11 @@ osgGA::EventQueue *Renderer::getEventQueue()
     if (_viewer.valid()) {
         osgViewer::ViewerBase::Windows windows;
         _viewer->getWindows(windows);
-        return windows[0]->getEventQueue();
-    } else {
-        return NULL;
+        if (windows.size() > 0) {
+            return windows[0]->getEventQueue();
+        }
     }
+    return NULL;
 }
 
 Renderer::~Renderer()
@@ -241,18 +243,71 @@ void Renderer::initViewer() {
     _viewer->setReleaseContextAtEndOfFrameHint(false);
     //_viewer->setLightingMode(osg::View::SKY_LIGHT);
     _viewer->getCamera()->setClearColor(osg::Vec4(_bgColor[0], _bgColor[1], _bgColor[2], 1));
+    _viewer->getCamera()->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _viewer->getCamera()->setNearFarRatio(0.00002);
     _viewer->getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
     _stateManip = new osgGA::StateSetManipulator(_viewer->getCamera()->getOrCreateStateSet());
     _viewer->addEventHandler(_stateManip);
+    //_viewer->addEventHandler(new osgViewer::StatsHandler());
 }
 
 void Renderer::finalizeViewer() {
     initViewer();
     if (!_viewer->isRealized()) {
+#ifdef USE_OFFSCREEN_RENDERING
+#ifdef USE_PBUFFER
+        osg::ref_ptr<osg::GraphicsContext> pbuffer;
+        osg::ref_ptr<osg::GraphicsContext::Traits> traits = new osg::GraphicsContext::Traits;
+        traits->x = 0;
+        traits->y = 0;
+        traits->width = _windowWidth;
+        traits->height = _windowHeight;
+        traits->red = 8;
+        traits->green = 8;
+        traits->blue = 8;
+        traits->alpha = 8;
+        traits->windowDecoration = false;
+        traits->pbuffer = true;
+        traits->doubleBuffer = true;
+        traits->sharedContext = 0;
+
+        pbuffer = osg::GraphicsContext::createGraphicsContext(traits.get());
+        if (pbuffer.valid()) {
+            TRACE("Pixel buffer has been created successfully.");
+        } else {
+            ERROR("Pixel buffer has not been created successfully.");
+        }
+        osg::Camera *camera = new osg::Camera;
+        camera->setGraphicsContext(pbuffer.get());
+        camera->setViewport(new osg::Viewport(0, 0, _windowWidth, _windowHeight));
+        GLenum buffer = pbuffer->getTraits()->doubleBuffer ? GL_BACK : GL_FRONT;
+        camera->setDrawBuffer(buffer);
+        camera->setReadBuffer(buffer);
         _captureCallback = new ScreenCaptureCallback();
+        camera->setFinalDrawCallback(_captureCallback.get());
+        _viewer->addSlave(camera, osg::Matrixd(), osg::Matrixd());
+#else
+        _viewer->getCamera()->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+        osg::Texture2D* texture2D = new osg::Texture2D;
+        texture2D->setTextureSize(_windowWidth, _windowHeight);
+        texture2D->setInternalFormat(GL_RGBA);
+        texture2D->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST);
+        texture2D->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST);
+
+        _viewer->getCamera()->setImplicitBufferAttachmentMask(0, 0);
+        _viewer->getCamera()->attach(osg::Camera::COLOR_BUFFER0, texture2D);
+        //_viewer->getCamera()->attach(osg::Camera::DEPTH_BUFFER, GL_DEPTH_COMPONENT24);
+        _viewer->getCamera()->attach(osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, GL_DEPTH24_STENCIL8_EXT);
+        _captureCallback = new ScreenCaptureCallback(texture2D);
         _viewer->getCamera()->setFinalDrawCallback(_captureCallback.get());
         _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
+#endif
+#else
+        _captureCallback = new ScreenCaptureCallback();
+        _viewer->getCamera()->setFinalDrawCallback(_captureCallback.get());
+        //_viewer->getCamera()->getDisplaySettings()->setDoubleBuffer(false);
+        _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
+#endif
         _viewer->realize();
         initColorMaps();
     }
@@ -617,8 +672,12 @@ osgEarth::Viewpoint Renderer::getViewpoint()
 
 bool Renderer::mapMouseCoords(float mouseX, float mouseY, osgEarth::GeoPoint& map)
 {
-    if (!_mapNode.valid()) {
+    if (!_mapNode.valid() || _mapNode->getTerrain() == NULL) {
         ERROR("No map");
+        return false;
+    }
+    if (!_viewer.valid()) {
+        ERROR("No Viewer");
         return false;
     }
     osg::Vec3d world;
@@ -913,6 +972,42 @@ void Renderer::setWindowSize(int width, int height)
     _windowWidth = width;
     _windowHeight = height;
     if (_viewer.valid()) {
+#ifdef USE_OFFSCREEN_RENDERING
+#ifdef USE_PBUFFER
+        osg::ref_ptr<osg::GraphicsContext> pbuffer;
+        osg::ref_ptr<osg::GraphicsContext::Traits> traits = new osg::GraphicsContext::Traits;
+        traits->x = 0;
+        traits->y = 0;
+        traits->width = _windowWidth;
+        traits->height = _windowHeight;
+        traits->red = 8;
+        traits->green = 8;
+        traits->blue = 8;
+        traits->alpha = 8;
+        traits->windowDecoration = false;
+        traits->pbuffer = true;
+        traits->doubleBuffer = true;
+        traits->sharedContext = 0;
+
+        pbuffer = osg::GraphicsContext::createGraphicsContext(traits.get());
+        if (pbuffer.valid()) {
+            TRACE("Pixel buffer has been created successfully.");
+        } else {
+            ERROR("Pixel buffer has not been created successfully.");
+        }
+        osg::Camera *camera = new osg::Camera;
+        camera->setGraphicsContext(pbuffer.get());
+        camera->setViewport(new osg::Viewport(0, 0, _windowWidth, _windowHeight));
+        GLenum buffer = pbuffer->getTraits()->doubleBuffer ? GL_BACK : GL_FRONT;
+        camera->setDrawBuffer(buffer);
+        camera->setReadBuffer(buffer);
+        camera->setFinalDrawCallback(_captureCallback.get());
+        _viewer->addSlave(camera, osg::Matrixd(), osg::Matrixd());
+        _viewer->realize();
+#else
+        if (_captureCallback.valid()) {
+            _captureCallback->getTexture()->setTextureSize(_windowWidth, _windowHeight);
+        }
         osgViewer::ViewerBase::Windows windows;
         _viewer->getWindows(windows);
         if (windows.size() == 1) {
@@ -920,6 +1015,16 @@ void Renderer::setWindowSize(int width, int height)
         } else {
             ERROR("Num windows: %lu", windows.size());
         }
+#endif
+#else
+        osgViewer::ViewerBase::Windows windows;
+        _viewer->getWindows(windows);
+        if (windows.size() == 1) {
+            windows[0]->setWindowRectangle(0, 0, _windowWidth, _windowHeight);
+        } else {
+            ERROR("Num windows: %lu", windows.size());
+        }
+#endif
         _needsRedraw = true;
     }
 }

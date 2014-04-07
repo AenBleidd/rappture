@@ -669,6 +669,37 @@ KeyCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MapCoordsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    int x, y;
+    if (Tcl_GetIntFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    osgEarth::GeoPoint mapPoint;
+    size_t length;
+    char mesg[256];
+    if (g_renderer->mapMouseCoords(x, y, mapPoint)) {
+        // send coords to client
+        length = snprintf(mesg, sizeof(mesg),
+                          "nv>map coords %g %g %g %d %d\n",
+                          mapPoint.x(), mapPoint.y(), mapPoint.z(),
+                          x, y);
+
+        queueResponse(mesg, length, Response::VOLATILE);
+    } else {
+        // Out of range
+        length = snprintf(mesg, sizeof(mesg),
+                          "nv>map coords invalid %d %d\n", x, y);
+
+        queueResponse(mesg, length, Response::VOLATILE);
+    }
+    return TCL_OK;
+}
+
+static int
 MapGraticuleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -950,7 +981,7 @@ MapLayerNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::ostringstream oss;
     size_t len = 0;
-    oss << "nv>dataset names {";
+    oss << "nv>map names {";
     len += 18;
     for (size_t i = 0; i < layers.size(); i++) {
         oss << "\"" << layers[i] << "\"";
@@ -1221,6 +1252,7 @@ MapTerrainOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapOps[] = {
+    {"coords",   1, MapCoordsOp,      4, 4, "x y"},
     {"grid",     1, MapGraticuleOp,   3, 4, "bool ?type?"},
     {"layer",    2, MapLayerOp,       3, 0, "op ?params...?"},
     {"load",     2, MapLoadOp,        4, 5, "options"},
