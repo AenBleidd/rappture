@@ -56,6 +56,36 @@ CommandQueue *GeoVis::g_inQueue = NULL;
 #endif
 #endif
 
+static int
+queueViewpoint()
+{
+    osgEarth::Viewpoint view = g_renderer->getViewpoint();
+
+    std::ostringstream oss;
+    size_t len = 0;
+    oss << "nv>camera get "
+        << view.x() << " "
+        << view.y() << " "
+        << view.z() << " "
+        << view.getHeading() << " "
+        << view.getPitch() << " "
+        << view.getRange()
+        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getHorizInitString()) << "}"
+        << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getVertInitString()) << "}"
+        << "\n";
+    len = oss.str().size();
+#ifdef USE_THREADS
+    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+
+    if (bytesWritten < 0) {
+        return TCL_ERROR;
+    }
+#endif /*USE_THREADS*/
+    return TCL_OK;
+}
+
 #ifdef USE_THREADS
 static void
 queueFrame(ResponseQueue *queue, const unsigned char *imgData)
@@ -535,6 +565,7 @@ main(int argc, char *argv[])
 
                 if (imgData->s() == g_renderer->getWindowWidth() &&
                     imgData->t() == g_renderer->getWindowHeight()) {
+                    queueViewpoint();
 #ifdef USE_THREADS
                     queueFrame(g_outQueue, imgData->data());
 #else
