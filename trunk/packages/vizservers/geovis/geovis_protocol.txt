@@ -34,9 +34,10 @@ camera dist <distance>
        Set camera distance from focal point
 camera get
        Request camera parameters
-camera go <x> <y> <?duration?>
+camera go <x> <y> <?zoomFactor?> <?duration?>
        Move camera to new focal point.
        <x>,<y> = Screen/mouse coordinates
+       <zoomFactor> = Zoom distance multiplier, 1.0=no zoom
        <duration> = Duration of viewpoint move animation in seconds
 camera orient <quatW> <quatX> <quatY> <quatZ>
        Set scene orientation using a quaternion
