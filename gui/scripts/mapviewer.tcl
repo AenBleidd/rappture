@@ -344,7 +344,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <ButtonRelease-1> \
             [itcl::code $this Pan release %x %y]
         bind $itk_component(view) <Double-1> \
-            [itcl::code $this camera go %x %y]
+            [itcl::code $this camera go %x %y 0.4]
 
         # Bindings for rotation via mouse
         bind $itk_component(view) <ButtonPress-2> \
@@ -361,6 +361,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             [itcl::code $this Zoom drag %x %y]
         bind $itk_component(view) <ButtonRelease-3> \
             [itcl::code $this Zoom release %x %y]
+        bind $itk_component(view) <Double-3> \
+            [itcl::code $this camera go %x %y 2.5]
 
         # Bindings for panning via keyboard
         bind $itk_component(view) <KeyPress-Left> \
