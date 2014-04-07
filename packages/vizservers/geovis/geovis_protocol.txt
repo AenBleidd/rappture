@@ -34,6 +34,10 @@ camera dist <distance>
        Set camera distance from focal point
 camera get
        Request camera parameters
+camera go <x> <y> <?duration?>
+       Move camera to new focal point.
+       <x>,<y> = Screen/mouse coordinates
+       <duration> = Duration of viewpoint move animation in seconds
 camera orient <quatW> <quatX> <quatY> <quatZ>
        Set scene orientation using a quaternion
 camera pan <x> <y>
