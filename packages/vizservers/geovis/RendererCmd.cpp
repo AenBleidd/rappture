@@ -191,9 +191,15 @@ CameraGoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_GetIntFromObj(interp, objv[3], &y) != TCL_OK) {
         return TCL_ERROR;
     }
-    double duration = 1.0;
+    double zoom = 1.0;
     if (objc > 4) {
-        if (Tcl_GetDoubleFromObj(interp, objv[4], &duration) != TCL_OK) {
+        if (Tcl_GetDoubleFromObj(interp, objv[4], &zoom) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    double duration = 1.0;
+    if (objc > 5) {
+        if (Tcl_GetDoubleFromObj(interp, objv[5], &duration) != TCL_OK) {
             return TCL_ERROR;
         }
     }
@@ -204,6 +210,7 @@ CameraGoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         vpt.x() = mapPoint.x();
         vpt.y() = mapPoint.y();
         vpt.z() = mapPoint.z();
+        vpt.setRange(vpt.getRange() * zoom);
         g_renderer->setViewpoint(vpt, duration);
     } else {
         // Out of map bounds
@@ -398,7 +405,7 @@ static CmdSpec cameraOps[] = {
     {"delete",  2, CameraDeleteViewpointOp,  3, 3, "name"},
     {"dist",    2, CameraSetDistanceOp,      3, 3, "distance"},
     {"get",     2, CameraGetViewpointOp,     2, 2, ""},
-    {"go",      2, CameraGoOp,               4, 5, "x y ?duration?"},
+    {"go",      2, CameraGoOp,               4, 6, "x y ?zoomFactor? ?duration?"},
     {"orient",  1, CameraOrientOp,           6, 6, "qw qx qy qz"},
     {"pan",     1, CameraPanOp,              4, 4, "panX panY"},
     {"reset",   4, CameraResetOp,            2, 3, "?all?"},
@@ -901,9 +908,9 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
         osgEarth::Symbology::Style style;
         osgEarth::Symbology::TextSymbol *ts = style.getOrCreateSymbol<osgEarth::Symbology::TextSymbol>();
-        ts->halo()->color() = osgEarth::Symbology::Color::White;
+        ts->halo()->color() = osgEarth::Symbology::Color::Black;
         ts->halo()->width() = 2.0f;
-        ts->fill()->color() = osgEarth::Symbology::Color::Black;
+        ts->fill()->color() = osgEarth::Symbology::Color::White;
         ts->content() = osgEarth::Symbology::StringExpression(content);
         ts->priority() = osgEarth::Symbology::NumericExpression(priority);
         ts->removeDuplicateLabels() = true;
