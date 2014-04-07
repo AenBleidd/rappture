@@ -118,6 +118,7 @@ itcl::class Rappture::MapViewer {
     private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Indicates that server was reset and
                                         # needs to be reinitialized.
+    private variable _initCamera 1;
     private variable _haveTerrain 0
 
     private variable _first ""     ;# This is the topmost dataset.
@@ -939,6 +940,10 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                         SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2] 
                     }
                 }
+                # XXX: Remove these after implementing batch load of layers with reset
+                # This is needed to force a valid render before deleting the base layer
+                # Don't want to flush since we don't need to see this image
+                SendCmd "render"
                 SendCmd "map layer delete base"
             }
 
@@ -955,18 +960,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         } else {
             error "No map settings on reset"
         }
-
-        # FIXME: How to tell if this is the first reset?
-        # If we reset the connection, we shouldn't use
-        # the map settings
-        if { [info exists _mapsettings(camera)] } {
-            set location $_mapsettings(camera)
-            if { $location != "" } {
-                array set _view $location
-            }
-        }
-        camera set all
-        SendCmd "imgflush"
     }
 
     set _first ""
@@ -1001,6 +994,25 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 set _visibility($layer) 1
                 #SetLayerOpacity $layer
             }
+        }
+    }
+
+    if {$_reset} {
+        if {$_initCamera} {
+            # If this is the first Rebuild, we need to
+            # set up the initial view settings if there
+            # are any
+            if { [info exists _mapsettings(camera)] } {
+                set location $_mapsettings(camera)
+                if { $location != "" } {
+                    array set _view $location
+                    camera set all
+                }
+            }
+            set _initCamera 0
+        } else {
+            # Restore view from before reconnect
+            camera set all
         }
     }
 
