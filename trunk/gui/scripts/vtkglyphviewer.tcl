@@ -2133,9 +2133,8 @@ itcl::body Rappture::VtkGlyphViewer::BuildDownloadPopup { popup command } {
 itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
-    set fgColor $itk_option(-plotforeground)
     array set style {
-        -color $fgColor
+        -color \#FFFFFF
         -colormap BCGYR
         -colorMode vmag
         -edgecolor black
@@ -2153,6 +2152,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -shape arrow
         -wireframe 0
     }
+    set $style(-color) $itk_option(-plotforeground)
     set numComponents [$dataobj numComponents $comp]
     if {$numComponents == 3} {
         set style(-shape) "arrow"
