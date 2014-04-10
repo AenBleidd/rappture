@@ -1483,7 +1483,11 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 return
             }
             # Get the new limits because the field changed.
-            SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            if { ![info exists _limits($_curFldName)] } {
+                SendCmd "dataset maprange all"
+            } else {
+                SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            }
             SendCmd "streamlines colormode $_colorMode $_curFldName"
             SendCmd "cutplane colormode $_colorMode $_curFldName"
             DrawLegend
@@ -1735,23 +1739,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
-    $inner.colormap choices insert end \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   
+    $inner.colormap choices insert end [GetColormapList]
 
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \

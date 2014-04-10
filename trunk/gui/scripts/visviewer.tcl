@@ -88,6 +88,7 @@ itcl::class ::Rappture::VisViewer {
     protected method EnableWaitDialog { timeout } 
     protected method Euler2XYZ { theta phi psi }
     protected method Flush {}
+    protected method GetColormapList { args }
     protected method HandleError { args }
     protected method HandleOk { args }
     protected method IsConnected {}
@@ -883,6 +884,46 @@ itcl::body Rappture::VisViewer::HandleError { args } {
     }
 }
 
+itcl::body Rappture::VisViewer::GetColormapList { args } {
+    array set opts {
+        -includeDefault 0
+        -includeElementDefault 0
+        -includeNone 0
+    }
+    if {[llength $args] > 0} {
+        foreach opt $args {
+            set opts($opt) 1
+        }
+    }
+    set colormaps [list]
+    if {$opts(-includeDefault)} {
+        lappend colormaps "default" "default"
+    }
+    if {$opts(-includeElementDefault)} {
+        lappend colormaps "elementDefault" "elementDefault"
+    }
+    lappend colormaps \
+        "BCGYR"              "BCGYR"            \
+        "BGYOR"              "BGYOR"            \
+        "blue-to-brown"      "blue-to-brown"    \
+        "blue-to-orange"     "blue-to-orange"   \
+        "blue-to-grey"       "blue-to-grey"     \
+        "green-to-magenta"   "green-to-magenta" \
+        "greyscale"          "greyscale"        \
+        "nanohub"            "nanohub"          \
+        "rainbow"            "rainbow"          \
+        "spectral"           "spectral"         \
+        "ROYGB"              "ROYGB"            \
+        "RYGCB"              "RYGCB"            \
+        "white-to-blue"      "white-to-blue"    \
+        "brown-to-blue"      "brown-to-blue"    \
+        "grey-to-blue"       "grey-to-blue"     \
+        "orange-to-blue"     "orange-to-blue"
+    if {$opts(-includeNone)} {
+        lappend colormaps "none" "none"
+    }
+    return $colormaps
+}
 
 itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
     switch -- $colors {
@@ -910,7 +951,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
                 1.0                     0.200 0.200 0.200
             }
         }
-        "blue" {
+        "white-to-blue" {
             return { 
                 0.0                     0.900 1.000 1.000 
                 0.1111111111111111      0.800 0.983 1.000 

@@ -1856,24 +1856,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
     itk_component add meshpalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
-    $inner.palette choices insert end \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   
-
+    $inner.palette choices insert end [GetColormapList]
     $itk_component(meshpalette) value "BCGYR"
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting polydata-palette]
@@ -2229,25 +2212,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     itk_component add moleculepalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
-    $inner.palette choices insert end \
-        "elementDefault"     "elementDefault"   \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   
-
+    $inner.palette choices insert end [GetColormapList -includeElementDefault]
     $itk_component(moleculepalette) value "elementDefault"
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting molecule-palette]

@@ -863,10 +863,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveImage { args } {
             close $f
         }
         $_image(plot) configure -data $bytes
-        set time [clock seconds]
-        set date [clock format $time]
-        set w [image width $_image(plot)]
-        set h [image height $_image(plot)]
+        #set time [clock seconds]
+        #set date [clock format $time]
+        #set w [image width $_image(plot)]
+        #set h [image height $_image(plot)]
         #puts stderr "$date: received image ${w}x${h} image"        
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
@@ -1469,7 +1469,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 return
             }
             SendCmd "dataset scalar $_curFldName"
-            SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            if { ![info exists _limits($_curFldName)] } {
+                SendCmd "dataset maprange all"
+            } else {
+                SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            }
             SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "contour3d colormode $_colorMode $_curFldName"
             SendCmd "camera reset"
@@ -1676,23 +1680,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
-    $inner.colormap choices insert end \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   
+    $inner.colormap choices insert end [GetColormapList]
 
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
@@ -2109,22 +2097,22 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color BCGYR
-        -edges 0
+        -cutplanesvisible 0 
         -edgecolor black
+        -edges 0
+        -isosurfacevisible 1
+        -levels 10
+        -lighting 1
         -linewidth 1.0
         -opacity 0.6
-        -wireframe 0
-        -lighting 1
         -outline 0
-	-levels 10
-        -cutplanesvisible 0 
         -xcutplanevisible 1
-        -ycutplanevisible 1
-        -zcutplanevisible 1
         -xcutplaneposition 50
+        -ycutplanevisible 1
         -ycutplaneposition 50
+        -zcutplanevisible 1
         -zcutplaneposition 50
-        -isosurfacevisible 1
+        -wireframe 0
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first || $style(-levels) == 1 } {

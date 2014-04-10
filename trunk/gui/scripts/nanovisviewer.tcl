@@ -1801,26 +1801,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
 
-    $inner.colormap choices insert end \
-        "default"            "default"          \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   \
-	"none"		     "none"
-
+    $inner.colormap choices insert end [GetColormapList -includeDefault -includeNone]
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -colormap]
     $itk_component(colormap) value "default"
