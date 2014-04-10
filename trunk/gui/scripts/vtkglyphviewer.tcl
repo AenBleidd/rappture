@@ -2229,7 +2229,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     SendCmd "glyphs gorient $style(-orientGlyphs) {} $tag"
     SendCmd "glyphs smode $style(-scaleMode) {} $tag"
     set _settings(glyphScaleMode) $style(-scaleMode)
-    $itk_component(scaleMode) value $style(-scaleMode)
+    $itk_component(scaleMode) value "[$itk_component(scaleMode) label $style(-scaleMode)]"
     SendCmd "glyphs quality $style(-quality) $tag"
     SendCmd "glyphs lighting $style(-lighting) $tag"
     set _settings(glyphLighting) $style(-lighting)
