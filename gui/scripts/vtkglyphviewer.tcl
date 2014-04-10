@@ -1475,7 +1475,11 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            #SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            #if { ![info exists _limits($_curFldName)] } {
+            #    SendCmd "dataset maprange all"
+            #} else {
+            #    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            #}
             #SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "glyphs colormode $_colorMode $_curFldName"
             DrawLegend
@@ -1720,24 +1724,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
-    $inner.colormap choices insert end \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   
-
+    $inner.colormap choices insert end [GetColormapList -includeNone]
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting colormap]
@@ -2146,8 +2133,11 @@ itcl::body Rappture::VtkGlyphViewer::BuildDownloadPopup { popup command } {
 itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
+    set fgColor $itk_option(-plotforeground)
     array set style {
-        -color BCGYR
+        -color $fgColor
+        -colormap BCGYR
+        -colorMode vmag
         -edgecolor black
         -edges 0
         -gscale 1
@@ -2159,8 +2149,8 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -outline 0
         -ptsize 1.0
         -quality 1
-        -scaleMode "vmag"
-        -shape "arrow"
+        -scaleMode vmag
+        -shape arrow
         -wireframe 0
     }
     set numComponents [$dataobj numComponents $comp]
@@ -2168,10 +2158,12 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set style(-shape) "arrow"
         set style(-orientGlyphs) 1
         set style(-scaleMode) "vmag"
+        set style(-colorMode) "vmag"
     } else {
         set style(-shape) "sphere"
         set style(-orientGlyphs) 0
         set style(-scaleMode) "scalar"
+        set style(-colorMode) "scalar"
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first } {
@@ -2194,14 +2186,15 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set style(-opacity) $_settings(glyphOpacity)
     }
     if { $_changed(colormap) } {
-        set style(-color) $_settings(colormap)
+        set style(-colormap) $_settings(colormap)
     }
     if { $_currentColormap == "" } {
-        $itk_component(colormap) value $style(-color)
+        $itk_component(colormap) value $style(-colormap)
     }
     set _currentOpacity $style(-opacity)
     SendCmd "glyphs add $style(-shape) $tag"
     set _settings(glyphShape) $style(-shape)
+    $itk_component(gshape) value $style(-shape)
     SendCmd "glyphs edges $style(-edges) $tag"
     # normscale=1 and gscale=1 are defaults
     if {$style(-normscale) != 1} {
@@ -2213,16 +2206,30 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set _settings(glyphNormscale) $style(-normscale)
     set _settings(glyphScale) $style(-gscale)
     SendCmd "outline add $tag"
-    SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "outline color [Color2RGB $style(-color)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
     set _settings(glyphOutline) $style(-outline)
     set _settings(glyphEdges) $style(-edges)
+    if {$style(-colorMode) == "constant" || $style(-colormap) == "none"} {
+        SendCmd "glyphs colormode constant {} $tag"
+        set _settings(colormapVisible) 0
+        set _settings(colormap) "none"
+    } else {
+        SendCmd "glyphs colormode $style(-colorMode) $_curFldName $tag"
+        set _settings(colormapVisible) 1
+        set _settings(colormap) $style(-colormap)
+        SetCurrentColormap $style(-colormap)
+    }
+    $itk_component(colormap) value $_settings(colormap)
+    set _colorMode $style(-colorMode)
     # constant color only used if colormode set to constant
-    SendCmd "glyphs color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "glyphs color [Color2RGB $style(-color)] $tag"
     # Omitting field name for gorient and smode commands
     # defaults to active scalars or vectors depending on mode
     SendCmd "glyphs gorient $style(-orientGlyphs) {} $tag"
     SendCmd "glyphs smode $style(-scaleMode) {} $tag"
+    set _settings(glyphScaleMode) $style(-scaleMode)
+    $itk_component(scaleMode) value $style(-scaleMode)
     SendCmd "glyphs quality $style(-quality) $tag"
     SendCmd "glyphs lighting $style(-lighting) $tag"
     set _settings(glyphLighting) $style(-lighting)
@@ -2231,7 +2238,6 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     SendCmd "glyphs ptsize $style(-ptsize) $tag"
     SendCmd "glyphs opacity $_currentOpacity $tag"
     set _settings(glyphOpacity) $style(-opacity)
-    SetCurrentColormap $style(-color) 
     SendCmd "glyphs wireframe $style(-wireframe) $tag"
     set _settings(glyphWireframe) $style(-wireframe)
     set _settings(glyphOpacity) [expr $style(-opacity) * 100.0]

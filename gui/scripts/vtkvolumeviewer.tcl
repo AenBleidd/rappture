@@ -1814,24 +1814,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
-    $inner.colormap choices insert end \
-        "default"            "default"          \
-        "BCGYR"              "BCGYR"            \
-        "BGYOR"              "BGYOR"            \
-        "blue"               "blue"             \
-        "blue-to-brown"      "blue-to-brown"    \
-        "blue-to-orange"     "blue-to-orange"   \
-        "blue-to-grey"       "blue-to-grey"     \
-        "green-to-magenta"   "green-to-magenta" \
-        "greyscale"          "greyscale"        \
-        "nanohub"            "nanohub"          \
-        "rainbow"            "rainbow"          \
-        "spectral"           "spectral"         \
-        "ROYGB"              "ROYGB"            \
-        "RYGCB"              "RYGCB"            \
-        "brown-to-blue"      "brown-to-blue"    \
-        "grey-to-blue"       "grey-to-blue"     \
-        "orange-to-blue"     "orange-to-blue"   
+    $inner.colormap choices insert end [GetColormapList -includeDefault]
 
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -color]
