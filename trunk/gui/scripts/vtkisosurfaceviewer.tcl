@@ -1,7 +1,6 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
-
 # ----------------------------------------------------------------------
-#  COMPONENT: vtkisolinesviewer - Vtk 3D contour object viewer
+#  COMPONENT: vtkisosurfaceviewer - Vtk 3D contour object viewer
 #
 #  It connects to the Vtk server running on a rendering farm,
 #  transmits data, and displays the results.
@@ -1311,7 +1310,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "background" {
+        "-background" {
             set bgcolor [$itk_component(background) value]
 	    array set fgcolors {
 		"black" "white"
@@ -1636,7 +1635,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
     $itk_component(isolineColor) value "white"
     bind $inner.linecolor <<Value>> \
-	[itcl::code $this AdjustSetting isolineColor]
+	[itcl::code $this AdjustSetting -isolinecolor]
 
     label $inner.background_l -text "Background" -font "Arial 9" 
     itk_component add background {
@@ -1657,13 +1656,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         -width 10 \
         -showvalue off \
         -command [itcl::code $this AdjustSetting -isosurfaceopacity]
-
-    label $inner.scale_l -text "Scale" -font "Arial 9"
-    ::scale $inner.scale -from 1 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-contourscale)] \
-        -width 10 \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting -contourscale]
 
     itk_component add field_l {
         label $inner.field_l -text "Field" -font "Arial 9" 
@@ -2366,10 +2358,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
         $c create text $x $y \
-		-anchor ne \
-		-fill $itk_option(-plotforeground) -tags "title legend" \
-		-font $font 
-	    incr y $lineht
+	    -anchor ne \
+	    -fill $itk_option(-plotforeground) -tags "title legend" \
+	    -font $font 
+        if { $title != "" } {
+            incr y $lineht
+        }
 	$c create text $x $y \
 	    -anchor ne \
 	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
