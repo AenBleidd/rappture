@@ -138,6 +138,7 @@ FILES		= \
 		$(srcdir)/vtkisosurfaceviewer.tcl \
 		$(srcdir)/vtkmeshviewer.tcl \
 		$(srcdir)/vtkstreamlinesviewer.tcl \
+		$(srcdir)/vtksurfaceviewer.tcl \
 		$(srcdir)/vtkvolumeviewer.tcl \
 		$(srcdir)/vtkheightmapviewer.tcl \
 		$(srcdir)/vtkimageviewer.tcl \

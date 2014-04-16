@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkglyphviewer - Vtk 3D glyphs object viewer
 #
@@ -7,7 +6,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2005  Purdue Research Foundation
+#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -1512,17 +1511,13 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 #
 itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     set _legendPending 0
-    if { ![info exists _fields($_curFldName)] } {
-        return
-    }
-    set fname $_curFldName
     set font "Arial 8"
-    set lineht [font metrics $font -linespace]
     set w 12
+    set lineht [font metrics $font -linespace]
+    # color ramp height = (canvas height) - (min and max value lines) - 2 
     set h [expr {$_height - 2 * ($lineht + 2)}]
-    if { $h < 1 } {
-        return
-    }
+
+    set fname $_curFldName
     if { [string match "component*" $fname] } {
 	set title ""
     } else {
@@ -1538,6 +1533,9 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     # If there's a title too, substract one more line
     if { $title != "" } {
         incr h -$lineht 
+    }
+    if { $h < 1 } {
+        return
     }
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
@@ -2425,10 +2423,12 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
         $c create text $x $y \
-		-anchor ne \
-		-fill $itk_option(-plotforeground) -tags "title legend" \
-		-font $font 
-	    incr y $lineht
+	    -anchor ne \
+	    -fill $itk_option(-plotforeground) -tags "title legend" \
+	    -font $font 
+        if { $title != "" } {
+            incr y $lineht
+        }
 	$c create text $x $y \
 	    -anchor ne \
 	    -fill $itk_option(-plotforeground) -tags "vmax legend" \

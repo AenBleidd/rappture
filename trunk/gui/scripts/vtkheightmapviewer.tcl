@@ -6,7 +6,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -1356,17 +1356,17 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             SendCmd "axis flymode $mode"
         }
         "axisLabels" {
-            set bool $_settings(axisLabels)
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
         "axisMinorTicks" {
-            set bool $_settings(axisMinorTicks)
+            set bool $_settings($what)
 	    foreach axis { x y z } { 
 		SendCmd "axis minticks ${axis} $bool"
 	    }
         }
         "axisVisible" {
-            set bool $_settings(axisVisible)
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
         "axisXGrid" - "axisYGrid" - "axisZGrid" {
@@ -1390,10 +1390,10 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "colormap" {
-            set _changed(colormap) 1
+            set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
-            set _settings(colormap) $color
+            set _settings($what) $color
 	    if { $color == "none" } {
 		if { $_settings(colormapVisible) } {
 		    SendCmd "heightmap surface 0"
@@ -1434,13 +1434,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             EventuallyRequestLegend
         }
         "edges" {
-            set bool $_settings(edges)
+            set bool $_settings($what)
             SendCmd "heightmap edges $bool"
         }
         "field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(field) $fname
+            set _settings($what) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
@@ -1495,7 +1495,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    }
         }
         "isHeightmap" {
-	    set bool $_settings(isHeightmap)
+	    set bool $_settings($what)
             set c $itk_component(view)
             StartBufferingCommands
             # Fix heightmap scale: 0 for contours, 1 for heightmaps.
@@ -1601,7 +1601,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "lighting" {
 	    if { $_settings(isHeightmap) } {
-                set _settings(saveLighting) $_settings(lighting)
+                set _settings(saveLighting) $_settings($what)
 		set bool $_settings($what)
 		SendCmd "heightmap lighting $bool"
 	    } else {
@@ -1609,13 +1609,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    }
         }
         "numIsolines" {
-            set _settings(numIsolines) [$itk_component(numisolines) value]
-            set _currentNumIsolines $_settings(numIsolines)
+            set _settings($what) [$itk_component(numisolines) value]
+            set _currentNumIsolines $_settings($what)
             UpdateContourList
-            set _changed(numIsolines) 1
+            set _changed($what) 1
             SendCmd "heightmap contourlist [list $_contourList]"
             if {$_settings(colormapDiscrete)} {
-                set numColors [expr $_settings(numIsolines) + 1]
+                set numColors [expr $_settings($what) + 1]
                 SendCmd "colormap res $numColors"
                 EventuallyRequestLegend
             } else {
@@ -1623,10 +1623,10 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
         }
         "opacity" {
-            set _changed(opacity) 1
+            set _changed($what) 1
 	    if { $_settings(isHeightmap) } {
-                set _settings(saveOpacity) $_settings(opacity)
-                set val $_settings(opacity)
+                set _settings(saveOpacity) $_settings($what)
+                set val $_settings($what)
                 set sval [expr { 0.01 * double($val) }]
                 SendCmd "heightmap opacity $sval"
             } else {
@@ -1637,8 +1637,8 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    if { $_settings(isHeightmap) } {
 		SendCmd "outline visible 0"
             } else {
-                set _settings(saveOutline) $_settings(outline)
-                set bool $_settings(outline)
+                set _settings(saveOutline) $_settings($what)
+                set bool $_settings($what)
                 SendCmd "outline visible $bool"
             }
 	}
@@ -2261,8 +2261,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color BCGYR
-        -opacity 100
         -levels 10
+        -opacity 100
     }
     set stylelist [$dataobj style $comp]
     if { $stylelist != "" } {
@@ -2381,9 +2381,12 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
         $c create text $x $y \
-		-anchor ne \
-		-fill $itk_option(-plotforeground) -tags "title legend" \
-		-font $font 
+	    -anchor ne \
+	    -fill $itk_option(-plotforeground) -tags "title legend" \
+	    -font $font
+        if { $title != "" } {
+            incr y $lineht
+        }
 	$c create text $x $y \
 	    -anchor ne \
 	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
