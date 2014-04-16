@@ -1,13 +1,12 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
-
 # ----------------------------------------------------------------------
-#  COMPONENT: VtkVolumeViewer - Vtk volume viewer
+#  COMPONENT: vtkvolumeviewer - Vtk volume viewer
 #
 #  It connects to the Vtk server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -1919,7 +1918,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
     $itk_component(axismode) value "static"
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisFlyMode]
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 2 \
@@ -1954,16 +1953,17 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
         0,1 $inner.view -anchor w -pady 2
 
     set row 1
-
-    set labels { -qx -qy -qz -qw -xpan -ypan -zoom }
+    set labels { qx qy qz qw xpan ypan zoom }
     foreach tag $labels {
-        label $inner.${tag}label -text $tag -font "Arial 9"
+        label $inner.${tag}-label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _view($tag)]
-        bind $inner.${tag} <KeyPress-Return> \
-            [itcl::code $this camera set ${tag}]
+            -textvariable [itcl::scope _view(-$tag)]
+        bind $inner.${tag} <Return> \
+            [itcl::code $this camera set -${tag}]
+        bind $inner.${tag} <KP_Enter> \
+            [itcl::code $this camera set -${tag}]
         blt::table $inner \
-            $row,0 $inner.${tag}label -anchor e -pady 2 \
+            $row,0 $inner.${tag}-label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
         blt::table configure $inner r$row -resize none
         incr row
@@ -1971,7 +1971,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     checkbutton $inner.ortho \
         -text "Orthographic Projection" \
         -variable [itcl::scope _view(-ortho)] \
-        -command [itcl::code $this camera set ortho] \
+        -command [itcl::code $this camera set -ortho] \
         -font "Arial 9"
     blt::table $inner \
             $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
