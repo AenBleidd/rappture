@@ -6,7 +6,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -2144,9 +2144,12 @@ itcl::body Rappture::VtkImageViewer::DrawLegend {} {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
         $c create text $x $y \
-		-anchor ne \
-		-fill $itk_option(-plotforeground) -tags "title legend" \
-		-font $font 
+	    -anchor ne \
+	    -fill $itk_option(-plotforeground) -tags "title legend" \
+	    -font $font 
+        if { $title != "" } {
+            incr y $lineht
+        }
 	$c create text $x $y \
 	    -anchor ne \
 	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
