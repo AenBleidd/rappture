@@ -29,6 +29,7 @@
 #include <osgEarthDrivers/gdal/GDALOptions>
 #include <osgEarthDrivers/tms/TMSOptions>
 #include <osgEarthDrivers/wms/WMSOptions>
+#include <osgEarthDrivers/xyz/XYZOptions>
 #include <osgEarthDrivers/model_feature_geom/FeatureGeomModelOptions>
 #include <osgEarthDrivers/feature_ogr/OGRFeatureOptions>
 
@@ -801,6 +802,15 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
             char *name = Tcl_GetString(objv[9]);
             g_renderer->addImageLayer(name, opts);
+        } else if (driver[0] == 'x' && strcmp(driver, "xyz") == 0) {
+            osgEarth::Drivers::XYZOptions opts;
+            opts.url() = url;
+            opts.profile() = osgEarth::ProfileOptions("global-mercator");
+            //bool invertY = false;
+            //opts.invertY() = invertY;
+            //opts.format() = Tcl_GetString(objv[6]);
+            char *name = Tcl_GetString(objv[6]);
+            g_renderer->addImageLayer(name, opts);
         } else {
             Tcl_AppendResult(interp, "unknown image driver \"", driver,
                              "\": should be 'gdal', 'tms' or 'wms'", (char*)NULL);
@@ -904,13 +914,28 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         char *content = Tcl_GetString(objv[5]);
         char *priority = Tcl_GetString(objv[6]);
         char *name = Tcl_GetString(objv[7]);
+
+#if 0
+        double fgR = 1.0, fgG = 1.0, fgB = 1.0;
+        double bgR = 0.0, bgG = 0.0, bgB = 0.0;
+        if (objc > 8) {
+            if (Tcl_GetDoubleFromObj(interp, objv[8], &fgR) != TCL_OK ||
+                Tcl_GetDoubleFromObj(interp, objv[9], &fgG) != TCL_OK ||
+                Tcl_GetDoubleFromObj(interp, objv[10], &fgB) != TCL_OK ||
+                Tcl_GetDoubleFromObj(interp, objv[11], &bgR) != TCL_OK ||
+                Tcl_GetDoubleFromObj(interp, objv[12], &bgG) != TCL_OK ||
+                Tcl_GetDoubleFromObj(interp, objv[13], &bgB) != TCL_OK) {
+                return TCL_ERROR;
+            }
+        }
+#endif
         opts.url() = url;
 
         osgEarth::Symbology::Style style;
         osgEarth::Symbology::TextSymbol *ts = style.getOrCreateSymbol<osgEarth::Symbology::TextSymbol>();
-        ts->halo()->color() = osgEarth::Symbology::Color::Black;
+        ts->halo()->color() = osgEarth::Symbology::Color::Black; //::Color(bgR, bgG, bgB);
         ts->halo()->width() = 2.0f;
-        ts->fill()->color() = osgEarth::Symbology::Color::White;
+        ts->fill()->color() = osgEarth::Symbology::Color::White; //::Color(fgR, fgG, fgB);
         ts->content() = osgEarth::Symbology::StringExpression(content);
         ts->priority() = osgEarth::Symbology::NumericExpression(priority);
         ts->removeDuplicateLabels() = true;
