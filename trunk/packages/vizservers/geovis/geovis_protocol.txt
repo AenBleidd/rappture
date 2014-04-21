@@ -90,7 +90,7 @@ map coords <x> <y>
 General form:
 map layer add <type> <driver> <url> ... <layerName>
     <type> = image|elevation|line|point|polygon|text
-    <driver> = gdal|wms|tms
+    <driver> = gdal|wms|tms|xyz
 
 Specific layer types:
 map layer add image gdal <url> <layerName>
