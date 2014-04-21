@@ -100,6 +100,7 @@ Renderer::Renderer() :
 
     initEarthManipulator();
     initMouseCoordsTool();
+    initControls();
 
     finalizeViewer();
 #endif
@@ -313,6 +314,36 @@ void Renderer::finalizeViewer() {
     }
 }
 
+void Renderer::initControls()
+{
+    if (_hbox.valid())
+        return;
+    _hbox = 
+        new osgEarth::Util::Controls::HBox(osgEarth::Util::Controls::Control::ALIGN_RIGHT,
+                                           osgEarth::Util::Controls::Control::ALIGN_BOTTOM,
+                                           osgEarth::Util::Controls::Gutter(0, 2, 2, 0), 2.0f);
+    _copyrightLabel =
+        new osgEarth::Util::Controls::LabelControl("Map data © 2014 ACME Corp.", 12.0f);
+    _copyrightLabel->setForeColor(osg::Vec4f(1, 1, 1, 1));
+    _copyrightLabel->setHaloColor(osg::Vec4f(0, 0, 0, 1));
+    _copyrightLabel->setEncoding(osgText::String::ENCODING_UTF8);
+    _scaleLabel =
+        new osgEarth::Util::Controls::LabelControl("- km", 12.0f);
+    _scaleLabel->setForeColor(osg::Vec4f(1, 1, 1, 1));
+    _scaleLabel->setHaloColor(osg::Vec4f(0, 0, 0, 1));
+    _scaleBar =
+        new osgEarth::Util::Controls::Frame();
+    _scaleBar->setVertFill(true);
+    _scaleBar->setForeColor(osg::Vec4f(0, 0, 0, 1));
+    _scaleBar->setBackColor(osg::Vec4f(1, 1, 1, 0.6));
+    _scaleBar->setBorderColor(osg::Vec4f(0, 0, 0 ,1));
+    _scaleBar->setBorderWidth(1.0);
+    _hbox->addControl(_copyrightLabel.get());
+    _hbox->addControl(_scaleLabel.get());
+    _hbox->addControl(_scaleBar.get());
+    osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(_hbox.get());
+}
+
 void Renderer::setGraticule(bool enable, GraticuleType type)
 {
     if (!_mapNode.valid() || !_sceneRoot.valid())
@@ -361,6 +392,8 @@ void Renderer::initMouseCoordsTool()
     if (!_coordsCallback.valid()) {
         osgEarth::Util::Controls::LabelControl *readout =
             new osgEarth::Util::Controls::LabelControl("", 12.0f);
+        readout->setForeColor(osg::Vec4f(1, 1, 1, 1));
+        readout->setHaloColor(osg::Vec4f(0, 0, 0, 1));
         osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(readout);
         osgEarth::Util::LatLongFormatter *formatter =
             new osgEarth::Util::LatLongFormatter();
@@ -424,6 +457,7 @@ void Renderer::loadEarthFile(const char *path)
     _viewer->setSceneData(_sceneRoot.get());
 
     initMouseCoordsTool();
+    initControls();
     initEarthManipulator();
     
     _viewer->home();
@@ -514,6 +548,7 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
     }
     _viewer->setSceneData(_sceneRoot.get());
     initMouseCoordsTool();
+    initControls();
     //_viewer->setSceneData(_sceneRoot.get());
     initEarthManipulator();
     _viewer->home();
@@ -689,7 +724,7 @@ bool Renderer::mapMouseCoords(float mouseX, float mouseY,
         return false;
     }
     if (!_viewer.valid()) {
-        ERROR("No Viewer");
+        ERROR("No viewer");
         return false;
     }
     if (invertY) {
@@ -1317,7 +1352,7 @@ bool Renderer::render()
 {
     if (_viewer.valid() && checkNeedToDoFrame()) {
         TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
-
+        computeMapScale();
         osg::Timer_t startFrameTick = osg::Timer::instance()->tick();
         TRACE("Before frame()");
         _viewer->frame();
@@ -1351,4 +1386,152 @@ osg::Image *Renderer::getRenderedFrame()
         return _captureCallback->getImage();
     else
         return NULL;
+}
+
+/**
+ * \brief Compute the scale ratio of the map based on a horizontal center line
+ *
+ * The idea here is to take 2 screen points on a horizontal line in the center
+ * of the screen and convert to lat/long.  The lat/long coordinates are then
+ * used to compute the great circle distance (assuming spherical earth) between 
+ * the points.
+ *
+ * We could use local projected map coordinates for the distance computation,
+ * which would be faster; however, this would not show e.g. the change in 
+ * scale at different latitudes
+ */
+double Renderer::computeMapScale()
+{
+    if (!_mapNode.valid() || _mapNode->getTerrain() == NULL) {
+        ERROR("No map");
+        return -1.0;
+    }
+    if (!_viewer.valid()) {
+        ERROR("No viewer");
+        return -1.0;
+    }
+
+    double x, y;
+    double pixelWidth = _windowWidth * 0.1 * 2.0;
+    if (pixelWidth < 10)
+        pixelWidth = 10;
+    if (pixelWidth > 150)
+        pixelWidth = 150;
+    x = (double)(_windowWidth -1)/2.0 - pixelWidth / 2.0;
+    y = (double)(_windowHeight-1)/2.0;
+
+    osg::Vec3d world1, world2;
+    if (!_mapNode->getTerrain()->getWorldCoordsUnderMouse(_viewer->asView(), x, y, world1)) {
+        // off map
+        TRACE("Off map coords: %g %g", x, y);
+        _scaleLabel->setText("");
+        _scaleBar->setWidth(0);
+        return -1.0;
+    }
+    x += pixelWidth;
+    if (!_mapNode->getTerrain()->getWorldCoordsUnderMouse(_viewer->asView(), x, y, world2)) {
+        // off map
+        TRACE("Off map coords: %g %g", x, y);
+        _scaleLabel->setText("");
+        _scaleBar->setWidth(0);
+        return -1.0;
+    }
+
+    TRACE("w1: %g %g %g w2: %g %g %g",
+          world1.x(), world1.y(), world1.z(),
+          world2.x(), world2.y(), world2.z());
+
+    double meters;
+    double radius = 6378137.0;
+    if (_mapNode->getMapSRS() &&
+        _mapNode->getMapSRS()->getEllipsoid()) {
+        radius = _mapNode->getMapSRS()->getEllipsoid()->getRadiusEquator();
+    }
+    if (!_map->isGeocentric() &&
+        _mapNode->getMapSRS() &&
+        _mapNode->getMapSRS()->isGeographic()) {
+        TRACE("Map is geographic");
+        // World cords are already lat/long
+        // Compute great circle distance
+        meters =
+            osgEarth::GeoMath::distance(world1, world2, _mapNode->getMapSRS());
+    } else if (_mapNode->getMapSRS()) {
+        // Get map coords in lat/long
+        osgEarth::GeoPoint mapPoint1, mapPoint2;
+        mapPoint1.fromWorld(_mapNode->getMapSRS(), world1);
+        mapPoint1.makeGeographic();
+        mapPoint2.fromWorld(_mapNode->getMapSRS(), world2);
+        mapPoint2.makeGeographic();
+        // Compute great circle distance
+        meters =
+            osgEarth::GeoMath::distance(osg::DegreesToRadians(mapPoint1.y()),
+                                        osg::DegreesToRadians(mapPoint1.x()),
+                                        osg::DegreesToRadians(mapPoint2.y()),
+                                        osg::DegreesToRadians(mapPoint2.x()),
+                                        radius);
+    } else {
+        // Assume geocentric?
+        ERROR("No map SRS");
+        _scaleLabel->setText("");
+        _scaleBar->setWidth(0);
+        return -1.0;
+    }
+
+    double scale = meters / pixelWidth;
+    TRACE("m: %g px: %g m/px: %g", meters, pixelWidth, scale);
+    if (meters <= 3) {
+        meters = 1;
+    } else if (meters <= 7.5) {
+        meters = 5;
+    } else if (meters <= 15) {
+        meters = 10;
+    } else if (meters <= 35) {
+        meters = 20;
+    } else if (meters <= 75) {
+        meters = 50;
+    } else if (meters <= 150) {
+        meters = 100;
+    } else if (meters <= 350) {
+        meters = 200;
+    } else if (meters <= 750) {
+        meters = 500;
+    } else if (meters <= 1500) {
+        meters = 1000;
+    } else if (meters <= 3500) {
+        meters = 2000;
+    } else if (meters <= 7500) {
+        meters = 5000;
+    } else if (meters <= 15000) {
+        meters = 10000;
+    } else if (meters <= 35000) {
+        meters = 20000;
+    } else if (meters <= 55000) {
+        meters = 50000;
+    } else if (meters <= 150000) {
+        meters = 100000;
+    } else if (meters <= 350000) {
+        meters = 200000;
+    } else if (meters <= 750000) {
+        meters = 500000;
+    } else if (meters <= 1500000) {
+        meters = 1000000;
+    } else {
+        meters = 2000000;
+    }
+    pixelWidth = meters / scale;
+    if (_scaleLabel.valid()) {
+        if (meters >= 1000) {
+            _scaleLabel->setText(osgEarth::Stringify()
+                                 << meters / 1000.0
+                                 << " km");
+        } else {
+            _scaleLabel->setText(osgEarth::Stringify()
+                                 << meters
+                                 << " m");
+        }
+    }
+    if (_scaleBar.valid()) {
+        _scaleBar->setWidth(pixelWidth);
+    }
+    return scale;
 }
