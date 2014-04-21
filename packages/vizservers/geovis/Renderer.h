@@ -110,16 +110,16 @@ public:
     {
     }
 
-    void set(const osgEarth::GeoPoint& p, osg::View *view, osgEarth::MapNode *mapNode)
+    void set(const osgEarth::GeoPoint& mapCoords, osg::View *view, osgEarth::MapNode *mapNode)
     {
-        TRACE("%g %g %g", p.x(), p.y(), p.z());
+        TRACE("%g %g %g", mapCoords.x(), mapCoords.y(), mapCoords.z());
         if (_label.valid()) {
             _label->setText(osgEarth::Stringify()
                             << "Lat/Long: "
-                            <<  _formatter->format(p));
-                            //<< ", " << p.z());
+                            <<  _formatter->format(mapCoords));
+                            //<< ", " << mapCoords.z());
         }
-        _pt = p;
+        _pt = mapCoords;
         _havePoint = true;
     }
 
@@ -368,6 +368,8 @@ public:
     bool mapMouseCoords(float mouseX, float mouseY,
                         osgEarth::GeoPoint &pt, bool invertY = true);
 
+    double computeMapScale();
+
     bool getMousePoint(double *x, double *y, double *z)
     {
         return (_coordsCallback.valid() && _coordsCallback->report(x, y, z));
@@ -382,6 +384,8 @@ private:
     void initViewer();
 
     void finalizeViewer();
+    
+    void initControls();
 
     void initEarthManipulator();
 
@@ -417,6 +421,10 @@ private:
     osg::ref_ptr<osgEarth::Util::AutoClipPlaneCullCallback> _clipPlaneCullCallback;
     osg::ref_ptr<osgEarth::Util::MouseCoordsTool> _mouseCoordsTool;
     osg::ref_ptr<MouseCoordsCallback> _coordsCallback;
+    osg::ref_ptr<osgEarth::Util::Controls::HBox> _hbox;
+    osg::ref_ptr<osgEarth::Util::Controls::LabelControl> _copyrightLabel;
+    osg::ref_ptr<osgEarth::Util::Controls::LabelControl> _scaleLabel;
+    osg::ref_ptr<osgEarth::Util::Controls::Frame> _scaleBar;
     osg::ref_ptr<osgEarth::Util::EarthManipulator> _manipulator;
     osg::ref_ptr<osgGA::StateSetManipulator> _stateManip;
     osg::ref_ptr<osgEarth::Util::VerticalScale> _verticalScale;
