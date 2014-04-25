@@ -27,6 +27,7 @@
 #include "RenderServer.h"
 #include "RendererCmd.h"
 #include "Renderer.h"
+#include "Stats.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
 #ifdef USE_THREADS
@@ -36,7 +37,6 @@
 #include "CommandQueue.h"
 #endif
 #endif 
-#include <md5.h>
 
 using namespace GeoVis;
 
@@ -183,193 +183,6 @@ sendAck()
     return 0;
 }
 
-int
-GeoVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
-{
-    Tcl_DString ds;
-    Tcl_Obj **objv;
-    int objc;
-    int i;
-    char fileName[33];
-    const char *path;
-    md5_state_t state;
-    md5_byte_t digest[16];
-    char *string;
-    int length;
-
-    if ((objPtr == NULL) || (g_statsFile >= 0)) {
-        return g_statsFile;
-    }
-    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
-	return -1;
-    }
-    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("pid", 3));
-    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewIntObj(getpid()));
-    string = Tcl_GetStringFromObj(objPtr, &length);
-
-    md5_init(&state);
-    md5_append(&state, (const md5_byte_t *)string, length);
-    md5_finish(&state, digest);
-    for (i = 0; i < 16; i++) {
-        sprintf(fileName + i * 2, "%02x", digest[i]);
-    }
-    Tcl_DStringInit(&ds);
-    Tcl_DStringAppend(&ds, STATSDIR, -1);
-    Tcl_DStringAppend(&ds, "/", 1);
-    Tcl_DStringAppend(&ds, fileName, 32);
-    path = Tcl_DStringValue(&ds);
-
-    g_statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
-    Tcl_DStringFree(&ds);
-    if (g_statsFile < 0) {
-	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
-	return -1;
-    }
-    return g_statsFile;
-}
-
-int
-GeoVis::writeToStatsFile(int f, const char *s, size_t length)
-{
-    if (f >= 0) {
-        ssize_t numWritten;
-
-        numWritten = write(f, s, length);
-        if (numWritten == (ssize_t)length) {
-            close(dup(f));
-        }
-    }
-    return 0;
-}
-
-static int
-serverStats(int code) 
-{
-    double start, finish;
-    char buf[BUFSIZ];
-    Tcl_DString ds;
-    int result;
-    int f;
-
-    {
-	struct timeval tv;
-
-	/* Get ending time.  */
-	gettimeofday(&tv, NULL);
-	finish = CVT2SECS(tv);
-	tv = g_stats.start;
-	start = CVT2SECS(tv);
-    }
-    /* 
-     * Session information:
-     *   - Name of render server
-     *   - Process ID
-     *   - Hostname where server is running
-     *   - Start date of session
-     *   - Start date of session in seconds
-     *   - Number of data sets loaded from client
-     *   - Number of data bytes total loaded from client
-     *   - Number of frames returned
-     *   - Number of bytes total returned (in frames)
-     *   - Number of commands received
-     *   - Total elapsed time of all commands
-     *   - Total elapsed time of session
-     *   - Exit code of vizserver
-     *   - User time 
-     *   - System time
-     *   - User time of children 
-     *   - System time of children 
-     */
-
-    Tcl_DStringInit(&ds);
-    
-    Tcl_DStringAppendElement(&ds, "render_stop");
-    /* renderer */
-    Tcl_DStringAppendElement(&ds, "renderer");
-    Tcl_DStringAppendElement(&ds, "geovis");
-    /* pid */
-    Tcl_DStringAppendElement(&ds, "pid");
-    sprintf(buf, "%d", getpid());
-    Tcl_DStringAppendElement(&ds, buf);
-    /* host */
-    Tcl_DStringAppendElement(&ds, "host");
-    gethostname(buf, BUFSIZ-1);
-    buf[BUFSIZ-1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
-    /* date */
-    Tcl_DStringAppendElement(&ds, "date");
-    strcpy(buf, ctime(&g_stats.start.tv_sec));
-    buf[strlen(buf) - 1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
-    /* date_secs */
-    Tcl_DStringAppendElement(&ds, "date_secs");
-    sprintf(buf, "%ld", g_stats.start.tv_sec);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* num_data_sets */
-    Tcl_DStringAppendElement(&ds, "num_data_sets");
-    sprintf(buf, "%lu", (unsigned long int)g_stats.nDataSets);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* data_set_bytes */
-    Tcl_DStringAppendElement(&ds, "data_set_bytes");
-    sprintf(buf, "%lu", (unsigned long int)g_stats.nDataBytes);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* num_frames */
-    Tcl_DStringAppendElement(&ds, "num_frames");
-    sprintf(buf, "%lu", (unsigned long int)g_stats.nFrames);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* frame_bytes */
-    Tcl_DStringAppendElement(&ds, "frame_bytes");
-    sprintf(buf, "%lu", (unsigned long int)g_stats.nFrameBytes);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* num_commands */
-    Tcl_DStringAppendElement(&ds, "num_commands");
-    sprintf(buf, "%lu", (unsigned long int)g_stats.nCommands);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* cmd_time */
-    Tcl_DStringAppendElement(&ds, "cmd_time");
-    sprintf(buf, "%g", g_stats.cmdTime);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* session_time */
-    Tcl_DStringAppendElement(&ds, "session_time");
-    sprintf(buf, "%g", finish - start);
-    Tcl_DStringAppendElement(&ds, buf);
-    /* status */
-    Tcl_DStringAppendElement(&ds, "status");
-    sprintf(buf, "%d", code);
-    Tcl_DStringAppendElement(&ds, buf);
-    {
-	long clocksPerSec = sysconf(_SC_CLK_TCK);
-	double clockRes = 1.0 / clocksPerSec;
-	struct tms tms;
-
-	memset(&tms, 0, sizeof(tms));
-	times(&tms);
-	/* utime */
-	Tcl_DStringAppendElement(&ds, "utime");
-	sprintf(buf, "%g", tms.tms_utime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-	/* stime */
-	Tcl_DStringAppendElement(&ds, "stime");
-	sprintf(buf, "%g", tms.tms_stime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-	/* cutime */
-	Tcl_DStringAppendElement(&ds, "cutime");
-	sprintf(buf, "%g", tms.tms_cutime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-	/* cstime */
-	Tcl_DStringAppendElement(&ds, "cstime");
-	sprintf(buf, "%g", tms.tms_cstime * clockRes);
-	Tcl_DStringAppendElement(&ds, buf);
-    }
-    Tcl_DStringAppend(&ds, "\n", -1);
-    f = getStatsFile(NULL, NULL);
-    result = writeToStatsFile(f, Tcl_DStringValue(&ds), 
-                              Tcl_DStringLength(&ds));
-    close(f);
-    Tcl_DStringFree(&ds);
-    return result;
-}
-
 static void
 initService()
 {
@@ -417,7 +230,7 @@ exitService()
 {
     TRACE("Enter");
 
-    serverStats(0);
+    serverStats(g_stats, 0);
 
     // close log file
     if (g_fLog != NULL) {

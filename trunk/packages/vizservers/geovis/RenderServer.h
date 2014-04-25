@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * Copyright (C) 2013  HUBzero Foundation, LLC
+ * Copyright (C) 2013-2014  HUBzero Foundation, LLC
  *
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
@@ -8,6 +8,7 @@
 #ifndef GEOVIS_RENDERSERVER_H
 #define GEOVIS_RENDERSERVER_H
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -17,6 +18,7 @@ class Renderer;
 class ReadBuffer;
 class CommandQueue;
 class ResponseQueue;
+class Stats;
 
 #define GEOVIS_VERSION_STRING "0.4"
 
@@ -25,21 +27,6 @@ class ResponseQueue;
      (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)
 
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
-
-#ifndef STATSDIR
-#define STATSDIR	"/var/tmp/visservers"
-#endif
-
-typedef struct {
-    pid_t pid;
-    size_t nDataSets;       /**< # of data sets received */
-    size_t nDataBytes;      /**< # of bytes received as data sets */
-    size_t nFrames;         /**< # of frames sent to client. */
-    size_t nFrameBytes;     /**< # of bytes for all frames. */
-    size_t nCommands;       /**< # of commands executed */
-    double cmdTime;         /**< Elasped time spend executing commands. */
-    struct timeval start;   /**< Start of elapsed time. */
-} Stats;
 
 extern Stats g_stats;
 
@@ -57,7 +44,7 @@ extern ResponseQueue *g_outQueue;
 #endif
 extern int g_statsFile;
 extern int writeToStatsFile(int f, const char *s, size_t length);
-extern int getStatsFile(Tcl_Interp * interp, Tcl_Obj *objPtr);
+extern int getStatsFile(const char *key = NULL);
 
 }
 

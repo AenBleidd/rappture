@@ -33,11 +33,14 @@
 #include <osgEarthUtil/MouseCoordsTool>
 #include <osgEarthUtil/Controls>
 #include <osgEarthUtil/Formatter>
+#include <osgEarthUtil/MGRSFormatter>
 #include <osgEarthUtil/AutoClipPlaneHandler>
 #include <osgEarthUtil/VerticalScale>
 
 #include "Types.h"
 #include "Trace.h"
+#include "MouseCoordsTool.h"
+#include "ScaleBar.h"
 
 // Controls if TGA format is sent to client
 //#define RENDER_TARGA
@@ -98,60 +101,6 @@ private:
     osg::ref_ptr<osg::Image> _image;
 };
 
-class MouseCoordsCallback : public osgEarth::Util::MouseCoordsTool::Callback
-{
-public:
-    MouseCoordsCallback(osgEarth::Util::Controls::LabelControl *label,
-                        osgEarth::Util::Formatter *formatter) :
-        osgEarth::Util::MouseCoordsTool::Callback(),
-        _label(label),
-        _formatter(formatter),
-        _havePoint(false)
-    {
-    }
-
-    void set(const osgEarth::GeoPoint& mapCoords, osg::View *view, osgEarth::MapNode *mapNode)
-    {
-        TRACE("%g %g %g", mapCoords.x(), mapCoords.y(), mapCoords.z());
-        if (_label.valid()) {
-            _label->setText(osgEarth::Stringify()
-                            << "Lat/Long: "
-                            <<  _formatter->format(mapCoords));
-                            //<< ", " << mapCoords.z());
-        }
-        _pt = mapCoords;
-        _havePoint = true;
-    }
-
-    void reset(osg::View *view, osgEarth::MapNode *mapNode)
-    {
-        TRACE("Out of range");
-        // Out of range of map extents
-        if (_label.valid()) {
-            _label->setText("");
-        }
-        _havePoint = false;
-    }
-
-    bool report(double *x, double *y, double *z)
-    {
-        if (_havePoint) {
-            *x = _pt.x();
-            *y = _pt.y();
-            *z = _pt.z();
-            _havePoint = false;
-            return true;
-        }
-        return false;
-    }
-
-private:
-    osg::observer_ptr<osgEarth::Util::Controls::LabelControl> _label;
-    osg::ref_ptr<osgEarth::Util::Formatter> _formatter;
-    bool _havePoint;
-    osgEarth::GeoPoint _pt;
-};
-
 /**
  * \brief GIS Renderer
  */
@@ -165,6 +114,13 @@ public:
         GRATICULE_UTM,
         GRATICULE_MGRS,
         GRATICULE_GEODETIC
+    };
+
+    enum CoordinateDisplayType {
+        COORDS_LATLONG_DECIMAL_DEGREES,
+        COORDS_LATLONG_DEGREES_DECIMAL_MINUTES,
+        COORDS_LATLONG_DEGREES_MINUTES_SECONDS,
+        COORDS_MGRS
     };
 
     Renderer();
@@ -189,6 +145,18 @@ public:
     void clearMap();
 
     // Map options
+
+    void setCoordinateReadout(bool state,
+                              CoordinateDisplayType type = COORDS_LATLONG_DECIMAL_DEGREES,
+                              int precision = -1);
+
+    void setReadout(int mouseX, int mouseY);
+
+    void clearReadout();
+
+    void setScaleBar(bool state);
+
+    void setScaleBarUnits(ScaleBarUnits units);
 
     void setGraticule(bool enable, GraticuleType type = GRATICULE_GEODETIC);
 
@@ -377,6 +345,8 @@ public:
 
     long getTimeout();
 
+    void mapNodeUpdate();
+
 private:
     typedef std::tr1::unordered_map<ColorMapId, osg::ref_ptr<osg::TransferFunction1D> > ColorMapHashmap;
     typedef std::tr1::unordered_map<ViewpointId, osgEarth::Viewpoint> ViewpointHashmap;
@@ -389,7 +359,10 @@ private:
 
     void initEarthManipulator();
 
-    void initMouseCoordsTool();
+    void initMouseCoordsTool(CoordinateDisplayType type = COORDS_LATLONG_DECIMAL_DEGREES,
+                             int precision = -1);
+
+    osgEarth::Util::MGRSFormatter::Precision getMGRSPrecision(int precisionInMeters);
 
     void initColorMaps();
 
@@ -419,16 +392,33 @@ private:
     osg::ref_ptr<osgViewer::Viewer> _viewer;
     osg::ref_ptr<ScreenCaptureCallback> _captureCallback;
     osg::ref_ptr<osgEarth::Util::AutoClipPlaneCullCallback> _clipPlaneCullCallback;
-    osg::ref_ptr<osgEarth::Util::MouseCoordsTool> _mouseCoordsTool;
+    osg::ref_ptr<MouseCoordsTool> _mouseCoordsTool;
     osg::ref_ptr<MouseCoordsCallback> _coordsCallback;
     osg::ref_ptr<osgEarth::Util::Controls::HBox> _hbox;
     osg::ref_ptr<osgEarth::Util::Controls::LabelControl> _copyrightLabel;
     osg::ref_ptr<osgEarth::Util::Controls::LabelControl> _scaleLabel;
     osg::ref_ptr<osgEarth::Util::Controls::Frame> _scaleBar;
+    ScaleBarUnits _scaleBarUnits;
     osg::ref_ptr<osgEarth::Util::EarthManipulator> _manipulator;
     osg::ref_ptr<osgGA::StateSetManipulator> _stateManip;
     osg::ref_ptr<osgEarth::Util::VerticalScale> _verticalScale;
     ViewpointHashmap _viewpoints;
+};
+
+class MapNodeCallback : public osg::NodeCallback
+{
+public:
+    MapNodeCallback(Renderer *renderer) :
+        _renderer(renderer)
+    {}
+
+    virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+    {
+        _renderer->mapNodeUpdate();
+        traverse(node, nv);
+    }
+private:
+    Renderer *_renderer;
 };
 
 }

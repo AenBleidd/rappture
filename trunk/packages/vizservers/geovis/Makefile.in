@@ -106,7 +106,9 @@ SERVER_SRCS	= \
 		RendererCmd.cpp \
 		RenderServer.cpp \
 		TGAWriter.cpp \
-		Trace.cpp
+		Trace.cpp \
+		ScaleBar.cpp \
+		Stats.cpp
 
 ifdef USE_THREADS
 SERVER_SRCS+= \
@@ -155,8 +157,10 @@ CommandQueue.o: CommandQueue.h Trace.h
 md5.o: md5.h
 PPMWriter.o: PPMWriter.h ResponseQueue.h Trace.h
 ReadBuffer.o: ReadBuffer.h Trace.h
-Renderer.o: Renderer.h Trace.h
+Renderer.o: Renderer.h Trace.h MouseCoordsTool.h ScaleBar.h
 RendererCmd.o: Renderer.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
-RenderServer.o: RenderServer.h RendererCmd.h Renderer.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
+RenderServer.o: RenderServer.h RendererCmd.h Renderer.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h Stats.h
 ResponseQueue.o: ResponseQueue.h Trace.h
+ScaleBar.o: ScaleBar.h Trace.h
+Stats.o: Stats.h RenderServer.h Trace.h md5.h
 Trace.o: Trace.h
