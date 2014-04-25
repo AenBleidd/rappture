@@ -40,6 +40,7 @@
 #include "RendererCmd.h"
 #include "RenderServer.h"
 #include "Renderer.h"
+#include "Stats.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
 #include "ResponseQueue.h"
@@ -446,13 +447,22 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int result;
     static bool first = true;
 
-    /* Use the initial client key value pairs as the parts for a generating
-     * a unique file name. */
-    int fd = GeoVis::getStatsFile(interp, objv[1]);
-    if (fd < 0) {
-	Tcl_AppendResult(interp, "can't open stats file: ", 
-                         Tcl_PosixError(interp), (char *)NULL);
+    /* Client arguments. */
+    if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
 	return TCL_ERROR;
+    }
+
+    /* First try to see if we already have an open descriptor */
+    int fd = getStatsFile();
+    if (fd < 0) {
+        /* Use the initial client key value pairs as the parts for generating
+         * a unique file name. */
+        fd = GeoVis::getStatsFile(Tcl_GetString(objv[1]));
+        if (fd < 0) {
+            Tcl_AppendResult(interp, "can't open stats file: ", 
+                             Tcl_PosixError(interp), (char *)NULL);
+            return TCL_ERROR;
+        }
     }
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
     Tcl_IncrRefCount(listObjPtr);
@@ -460,8 +470,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         first = false;
         objPtr = Tcl_NewStringObj("render_start", 12);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
-        /* server */
-        objPtr = Tcl_NewStringObj("server", 6);
+        /* renderer */
+        objPtr = Tcl_NewStringObj("renderer", 8);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         objPtr = Tcl_NewStringObj("geovis", 6);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
@@ -469,8 +479,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         objPtr = Tcl_NewStringObj("pid", 3);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewIntObj(getpid()));
-        /* machine */
-        objPtr = Tcl_NewStringObj("machine", 7);
+        /* host */
+        objPtr = Tcl_NewStringObj("host", 4);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         gethostname(buf, BUFSIZ-1);
         buf[BUFSIZ-1] = '\0';
@@ -490,10 +500,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                              Tcl_NewStringObj("date_secs", 9));
     Tcl_ListObjAppendElement(interp, listObjPtr, 
                              Tcl_NewLongObj(GeoVis::g_stats.start.tv_sec));
-    /* Client arguments. */
-    if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
-	return TCL_ERROR;
-    }
+    /* client items */
     for (int i = 0; i < numItems; i++) {
         Tcl_ListObjAppendElement(interp, listObjPtr, items[i]);
     }
@@ -1146,6 +1153,45 @@ MapLoadOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MapPositionDisplayOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    Renderer::CoordinateDisplayType type = Renderer::COORDS_LATLONG_DECIMAL_DEGREES;
+    if (state && objc > 3) {
+        const char *str = Tcl_GetString(objv[3]);
+        if (str[0] == 'l' && strcmp(str, "latlong_decimal_degrees") == 0) {
+            type = Renderer::COORDS_LATLONG_DECIMAL_DEGREES;
+        } else if (str[0] == 'l' && strcmp(str, "latlong_degrees_decimal_minutes") == 0) {
+            type = Renderer::COORDS_LATLONG_DEGREES_DECIMAL_MINUTES;
+        } else if (str[0] == 'l' && strcmp(str, "latlong_degrees_minutes_seconds") == 0) {
+            type = Renderer::COORDS_LATLONG_DEGREES_MINUTES_SECONDS;
+        } else if (str[0] == 'm' && strcmp(str, "mgrs") == 0) {
+            type = Renderer::COORDS_MGRS;
+        } else {
+            Tcl_AppendResult(interp, "invalid type: \"", str,
+                             "\": should be 'latlong_decimal_degrees', 'latlong_degrees_decimal_minutes', 'latlong_degrees_minutes_seconds', or 'mgrs'",
+                             (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    if (state && objc > 4) {
+        int precision;
+        if (Tcl_GetIntFromObj(interp, objv[4], &precision) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        g_renderer->setCoordinateReadout(state, type, precision);
+    } else {
+        g_renderer->setCoordinateReadout(state, type);
+    }
+
+    return TCL_OK;
+}
+
+static int
 MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc, 
            Tcl_Obj *const *objv)
 {
@@ -1220,6 +1266,53 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->resetMap(type);
     }
 
+    return TCL_OK;
+}
+
+static int
+MapScaleBarOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setScaleBar(state);
+    if (state && objc > 3) {
+        const char *unitStr = Tcl_GetString(objv[3]);
+        ScaleBarUnits units;
+        if (unitStr[0] == 'm' && strcmp(unitStr, "meters") == 0) {
+            units = UNITS_METERS;
+        } else if (unitStr[0] == 'f' && strcmp(unitStr, "feet") == 0) {
+            units = UNITS_INTL_FEET;
+        } else if (unitStr[0] == 'u' && strcmp(unitStr, "us_survey_feet") == 0) {
+            units = UNITS_US_SURVEY_FEET;
+        } else if (unitStr[0] == 'n' && strcmp(unitStr, "nautical_miles") == 0) {
+            units = UNITS_NAUTICAL_MILES;
+        } else {
+            Tcl_AppendResult(interp, "bad units \"", unitStr,
+                             "\": must be 'meters', 'feet', 'us_survey_feet' or 'nautical_miles'", (char*)NULL);
+            return TCL_ERROR;
+        }
+        g_renderer->setScaleBarUnits(units);
+    }
+    return TCL_OK;
+}
+
+static int
+MapSetPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    if (objc < 3) {
+        g_renderer->clearReadout();
+    } else {
+        int x, y;
+        if (Tcl_GetIntFromObj(interp, objv[2], &x) != TCL_OK ||
+            Tcl_GetIntFromObj(interp, objv[3], &y) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        g_renderer->setReadout(x, y);
+    }
     return TCL_OK;
 }
 
@@ -1314,12 +1407,15 @@ MapTerrainOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapOps[] = {
-    {"coords",   1, MapCoordsOp,      4, 4, "x y"},
-    {"grid",     1, MapGraticuleOp,   3, 4, "bool ?type?"},
-    {"layer",    2, MapLayerOp,       3, 0, "op ?params...?"},
-    {"load",     2, MapLoadOp,        4, 5, "options"},
-    {"reset",    1, MapResetOp,       3, 8, "type ?profile xmin ymin xmax ymax?"},
-    {"terrain",  1, MapTerrainOp,     3, 0, "op ?params...?"},
+    {"coords",   1, MapCoordsOp,          4, 4, "x y"},
+    {"grid",     1, MapGraticuleOp,       3, 4, "bool ?type?"},
+    {"layer",    2, MapLayerOp,           3, 0, "op ?params...?"},
+    {"load",     2, MapLoadOp,            4, 5, "options"},
+    {"posdisp",  1, MapPositionDisplayOp, 3, 5, "bool ?format? ?precision?"},
+    {"reset",    1, MapResetOp,           3, 8, "type ?profile xmin ymin xmax ymax?"},
+    {"scalebar", 1, MapScaleBarOp,        3, 4, "bool ?units?"},
+    {"setpos",   1, MapSetPositionOp,     2, 4, "x y"},
+    {"terrain",  1, MapTerrainOp,         3, 0, "op ?params...?"},
 };
 static int nMapOps = NumCmdSpecs(mapOps);
 

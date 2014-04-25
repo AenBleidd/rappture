@@ -42,12 +42,14 @@
 #include <osgEarthUtil/MGRSGraticule>
 #include <osgEarthUtil/GeodeticGraticule>
 #include <osgEarthUtil/LatLongFormatter>
+#include <osgEarthUtil/MGRSFormatter>
 #include <osgEarthUtil/GLSLColorFilter>
 #include <osgEarthUtil/VerticalScale>
 #include <osgEarthDrivers/gdal/GDALOptions>
 #include <osgEarthDrivers/engine_mp/MPTerrainEngineOptions>
 
 #include "Renderer.h"
+#include "ScaleBar.h"
 #include "Trace.h"
 
 #define MSECS_ELAPSED(t1, t2) \
@@ -61,7 +63,8 @@ using namespace GeoVis;
 Renderer::Renderer() :
     _needsRedraw(false),
     _windowWidth(500),
-    _windowHeight(500)
+    _windowHeight(500),
+    _scaleBarUnits(UNITS_METERS)
 {
     _bgColor[0] = 0;
     _bgColor[1] = 0;
@@ -99,7 +102,6 @@ Renderer::Renderer() :
     _viewer->setSceneData(_sceneRoot.get());
 
     initEarthManipulator();
-    initMouseCoordsTool();
     initControls();
 
     finalizeViewer();
@@ -168,16 +170,6 @@ void Renderer::initColorMaps()
 void Renderer::addColorMap(const ColorMapId& id, osg::TransferFunction1D *xfer)
 {
     _colorMaps[id] = xfer;
-#if 0
-    osgEarth::Drivers::GDALOptions opts;
-    char *url =  Tcl_GetString(objv[4]);
-    std::ostringstream oss;
-    oss << "_cmap_" << id;
-
-    opts.url() = url;
-
-    addImageLayer(oss.str().c_str(), opts);
-#endif
 }
 
 void Renderer::deleteColorMap(const ColorMapId& id)
@@ -311,6 +303,10 @@ void Renderer::finalizeViewer() {
 #endif
         _viewer->realize();
         initColorMaps();
+        // HACK: This seems to initialize something required for properly
+        // mapping mouse coords
+        assert(getEventQueue() != NULL);
+        getEventQueue()->mouseMotion(_windowWidth/2, _windowHeight/2);
     }
 }
 
@@ -342,6 +338,10 @@ void Renderer::initControls()
     _hbox->addControl(_scaleLabel.get());
     _hbox->addControl(_scaleBar.get());
     osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(_hbox.get());
+    // Install an event callback to handle scale bar updates
+    // Can't use an update callback since that will trigger
+    // constant rendering
+    _mapNode->setEventCallback(new MapNodeCallback(this));
 }
 
 void Renderer::setGraticule(bool enable, GraticuleType type)
@@ -382,24 +382,119 @@ void Renderer::setGraticule(bool enable, GraticuleType type)
     _needsRedraw = true;
 }
 
-void Renderer::initMouseCoordsTool()
+void Renderer::setReadout(int x, int y)
 {
+    if (!_coordsCallback.valid() || !_mapNode.valid() || !_viewer.valid())
+        return;
+
+    osgEarth::GeoPoint mapCoord;
+    if (mapMouseCoords(x, y, mapCoord)) {
+        _coordsCallback->set(mapCoord, _viewer->asView(), _mapNode);
+    } else {
+        _coordsCallback->reset(_viewer->asView(), _mapNode);
+    }
+    _needsRedraw = true;
+}
+
+void Renderer::clearReadout()
+{
+    if (_coordsCallback.valid()) {
+        _coordsCallback->reset(_viewer->asView(), _mapNode);
+    }
+    _needsRedraw = true;
+}
+
+void Renderer::setCoordinateReadout(bool state, CoordinateDisplayType type,
+                                    int precision)
+{
+    if (!state) {
+        if (_mouseCoordsTool.valid() && _viewer.valid()) {
+            _viewer->removeEventHandler(_mouseCoordsTool.get());
+            _mouseCoordsTool = NULL;
+        }
+        if (_coordsCallback.valid() && _viewer.valid()) {
+            osgEarth::Util::Controls::LabelControl *readout =
+                _coordsCallback->getLabel();
+            osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->removeControl(readout);
+            _coordsCallback = NULL;
+        }
+    } else {
+        initMouseCoordsTool(type, precision);
+    }
+    _needsRedraw = true;
+}
+
+osgEarth::Util::MGRSFormatter::Precision
+Renderer::getMGRSPrecision(int precisionInMeters)
+{
+    switch (precisionInMeters) {
+    case 1:
+        return osgEarth::Util::MGRSFormatter::PRECISION_1M;
+    case 10:
+        return osgEarth::Util::MGRSFormatter::PRECISION_10M;
+    case 100:
+        return osgEarth::Util::MGRSFormatter::PRECISION_100M;
+    case 1000:
+        return osgEarth::Util::MGRSFormatter::PRECISION_1000M;
+    case 10000:
+        return osgEarth::Util::MGRSFormatter::PRECISION_10000M;
+    case 100000:
+        return osgEarth::Util::MGRSFormatter::PRECISION_100000M;
+    default:
+        ERROR("Invalid precision: %d", precisionInMeters);
+        return osgEarth::Util::MGRSFormatter::PRECISION_1M;
+    }
+}
+
+void Renderer::initMouseCoordsTool(CoordinateDisplayType type, int precision)
+{
+    if (!_viewer.valid())
+        return;
     if (_mouseCoordsTool.valid()) {
         _viewer->removeEventHandler(_mouseCoordsTool.get());
     }
-    _mouseCoordsTool = new osgEarth::Util::MouseCoordsTool(_mapNode.get());
-
-    if (!_coordsCallback.valid()) {
-        osgEarth::Util::Controls::LabelControl *readout =
-            new osgEarth::Util::Controls::LabelControl("", 12.0f);
+    _mouseCoordsTool = new MouseCoordsTool(_mapNode.get());
+    osgEarth::Util::Controls::LabelControl *readout;
+    if (_coordsCallback.valid()) {
+        readout = _coordsCallback->getLabel();
+        _coordsCallback = NULL;
+    } else {
+        readout = new osgEarth::Util::Controls::LabelControl("", 12.0f);
+        osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(readout);
         readout->setForeColor(osg::Vec4f(1, 1, 1, 1));
         readout->setHaloColor(osg::Vec4f(0, 0, 0, 1));
-        osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(readout);
-        osgEarth::Util::LatLongFormatter *formatter =
-            new osgEarth::Util::LatLongFormatter();
-        formatter->setPrecision(5);
-        _coordsCallback = new MouseCoordsCallback(readout, formatter);
     }
+
+    osgEarth::Util::Formatter *formatter = NULL;
+    if (type == COORDS_MGRS) {
+        osgEarth::Util::MGRSFormatter::Precision prec =
+            osgEarth::Util::MGRSFormatter::PRECISION_1M;
+        if (precision > 0) {
+            prec = getMGRSPrecision(precision);
+        }
+        unsigned int opts = 0u;
+        formatter = new osgEarth::Util::MGRSFormatter(prec, NULL, opts);
+    } else {
+        osgEarth::Util::LatLongFormatter::AngularFormat af;
+        unsigned int opts =  osgEarth::Util::LatLongFormatter::USE_SYMBOLS;
+        switch (type) {
+        case COORDS_LATLONG_DEGREES_DECIMAL_MINUTES:
+            af = osgEarth::Util::LatLongFormatter::FORMAT_DEGREES_DECIMAL_MINUTES;
+            break;
+        case COORDS_LATLONG_DEGREES_MINUTES_SECONDS:
+            af = osgEarth::Util::LatLongFormatter::FORMAT_DEGREES_MINUTES_SECONDS;
+            break;
+        default:
+            af = osgEarth::Util::LatLongFormatter::FORMAT_DECIMAL_DEGREES;
+        }
+        osgEarth::Util::LatLongFormatter *latlong = new osgEarth::Util::LatLongFormatter(af, opts);
+        if (precision > 0) {
+            latlong->setPrecision(precision);
+        }
+        formatter = latlong;
+    }
+    _coordsCallback = new MouseCoordsCallback(readout, formatter);
+
     _mouseCoordsTool->addCallback(_coordsCallback.get());
     _viewer->addEventHandler(_mouseCoordsTool.get());
 }
@@ -456,7 +551,9 @@ void Renderer::loadEarthFile(const char *path)
     }
     _viewer->setSceneData(_sceneRoot.get());
 
-    initMouseCoordsTool();
+    if (_mouseCoordsTool.valid()) {
+        initMouseCoordsTool();
+    }
     initControls();
     initEarthManipulator();
     
@@ -547,7 +644,9 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         _viewer->getCamera()->addCullCallback(_clipPlaneCullCallback.get());
     }
     _viewer->setSceneData(_sceneRoot.get());
-    initMouseCoordsTool();
+    if (_mouseCoordsTool.valid()) {
+        initMouseCoordsTool();
+    }
     initControls();
     //_viewer->setSceneData(_sceneRoot.get());
     initEarthManipulator();
@@ -1075,6 +1174,12 @@ void Renderer::setWindowSize(int width, int height)
             ERROR("Num windows: %lu", windows.size());
         }
 #endif
+        // HACK: Without this, the mouse coordinate mapping uses the old size
+        // for 1 frame.
+        assert(_viewer->getEventQueue() != NULL);
+        //TRACE("Window EventQueue: %p", getEventQueue());
+        //TRACE("Viewer EventQueue: %p", _viewer->getEventQueue());
+        _viewer->getEventQueue()->windowResize(0, 0, _windowWidth, _windowHeight);
         _needsRedraw = true;
     }
 }
@@ -1343,6 +1448,17 @@ bool Renderer::checkNeedToDoFrame()
 }
 
 /**
+ * \brief MapNode event phase
+ *
+ * This is called by the MapNode's event callback during the event
+ * traversal of the viewer
+ */
+void Renderer::mapNodeUpdate()
+{
+    computeMapScale();
+}
+
+/**
  * \brief Cause the rendering to render a new image if needed
  *
  * The _needsRedraw flag indicates if a state change has occured since
@@ -1352,7 +1468,6 @@ bool Renderer::render()
 {
     if (_viewer.valid() && checkNeedToDoFrame()) {
         TRACE("Enter needsRedraw=%d",  _needsRedraw ? 1 : 0);
-        computeMapScale();
         osg::Timer_t startFrameTick = osg::Timer::instance()->tick();
         TRACE("Before frame()");
         _viewer->frame();
@@ -1388,6 +1503,23 @@ osg::Image *Renderer::getRenderedFrame()
         return NULL;
 }
 
+void Renderer::setScaleBar(bool state)
+{
+    if (_scaleLabel.valid()) {
+        _scaleLabel->setVisible(state);
+    }
+    if (_scaleBar.valid()) {
+        _scaleBar->setVisible(state);
+    }
+    _needsRedraw = true;
+}
+
+void Renderer::setScaleBarUnits(ScaleBarUnits units)
+{
+    _scaleBarUnits = units;
+    _needsRedraw = true;
+}
+
 /**
  * \brief Compute the scale ratio of the map based on a horizontal center line
  *
@@ -1402,6 +1534,9 @@ osg::Image *Renderer::getRenderedFrame()
  */
 double Renderer::computeMapScale()
 {
+    if (!_scaleLabel.valid() || !_scaleLabel->visible()) {
+        return -1.0;
+    }
     if (!_mapNode.valid() || _mapNode->getTerrain() == NULL) {
         ERROR("No map");
         return -1.0;
@@ -1478,57 +1613,66 @@ double Renderer::computeMapScale()
     }
 
     double scale = meters / pixelWidth;
+    // 1mi = 5280 feet
+    //double scaleMiles = scale / 1609.344; // International mile = 1609.344m
+    //double scaleNauticalMiles = scale / 1852.0; // nautical mile = 1852m
+    //double scaleUSSurveyMiles = scale / 1609.347218694; // US survey mile = 5280 US survey feet
+    //double scaleUSSurveyFeet = scale * 3937.0/1200.0; // US survey foot = 1200/3937 m
     TRACE("m: %g px: %g m/px: %g", meters, pixelWidth, scale);
-    if (meters <= 3) {
-        meters = 1;
-    } else if (meters <= 7.5) {
-        meters = 5;
-    } else if (meters <= 15) {
-        meters = 10;
-    } else if (meters <= 35) {
-        meters = 20;
-    } else if (meters <= 75) {
-        meters = 50;
-    } else if (meters <= 150) {
-        meters = 100;
-    } else if (meters <= 350) {
-        meters = 200;
-    } else if (meters <= 750) {
-        meters = 500;
-    } else if (meters <= 1500) {
-        meters = 1000;
-    } else if (meters <= 3500) {
-        meters = 2000;
-    } else if (meters <= 7500) {
-        meters = 5000;
-    } else if (meters <= 15000) {
-        meters = 10000;
-    } else if (meters <= 35000) {
-        meters = 20000;
-    } else if (meters <= 55000) {
-        meters = 50000;
-    } else if (meters <= 150000) {
-        meters = 100000;
-    } else if (meters <= 350000) {
-        meters = 200000;
-    } else if (meters <= 750000) {
-        meters = 500000;
-    } else if (meters <= 1500000) {
-        meters = 1000000;
-    } else {
-        meters = 2000000;
-    }
-    pixelWidth = meters / scale;
-    if (_scaleLabel.valid()) {
-        if (meters >= 1000) {
+    switch (_scaleBarUnits) {
+    case UNITS_NAUTICAL_MILES: {
+        double nmi = meters / 1852.0;
+        scale = nmi / pixelWidth;
+        nmi = normalizeScaleNauticalMiles(nmi);
+        pixelWidth = nmi / scale;
+        if (_scaleLabel.valid()) {
             _scaleLabel->setText(osgEarth::Stringify()
-                                 << meters / 1000.0
-                                 << " km");
-        } else {
-            _scaleLabel->setText(osgEarth::Stringify()
-                                 << meters
-                                 << " m");
+                                 << nmi
+                                 << " nmi");
         }
+    }
+        break;
+    case UNITS_US_SURVEY_FEET:
+    case UNITS_INTL_FEET: {
+        double feet;
+        if (_scaleBarUnits == UNITS_US_SURVEY_FEET) {
+            feet = meters * 3937.0/1200.0;
+        } else {
+            feet = 5280.0 * meters / 1609.344;
+        }
+        scale = feet / pixelWidth;
+        feet = normalizeScaleFeet(feet);
+        pixelWidth = feet / scale;
+        if (_scaleLabel.valid()) {
+            if (feet >= 5280) {
+                _scaleLabel->setText(osgEarth::Stringify()
+                                     << feet / 5280.0
+                                     << " mi");
+            } else {
+                _scaleLabel->setText(osgEarth::Stringify()
+                                     << feet
+                                     << " ft");
+            }
+        }
+    }
+        break;
+    case UNITS_METERS:
+    default: {
+        meters = normalizeScaleMeters(meters);
+        pixelWidth = meters / scale;
+        if (_scaleLabel.valid()) {
+            if (meters >= 1000) {
+                _scaleLabel->setText(osgEarth::Stringify()
+                                     << meters / 1000.0
+                                     << " km");
+            } else {
+                _scaleLabel->setText(osgEarth::Stringify()
+                                     << meters
+                                     << " m");
+            }
+        }
+    }
+        break;
     }
     if (_scaleBar.valid()) {
         _scaleBar->setWidth(pixelWidth);
