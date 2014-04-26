@@ -2,7 +2,7 @@
 ================================================================================
 Protocol for geovis render server.  
 
-Commands take the general form of command and arguments using Tcl syntax and are 
+Commands take the general form of command and arguments using Tcl syntax and are
 terminated by a newline.  Some command arguments expect a Tcl list which can be
 sent by enclosing the list in curly braces to prevent the interpreter from 
 splitting the list into multiple arguments.  Likewise, strings with spaces 
@@ -26,7 +26,7 @@ that indicates incoming data including a byte count argument.
 Requests:
 ================================================================================
 
-== General dataset, scene and renderer commands ==
+== General scene and renderer commands ==
 
 camera delete <name>
        Delete named viewpoint
@@ -49,13 +49,15 @@ camera pan <x> <y>
 camera reset <?all?>
        Option all resets orientation/rotation as well as pan/zoom/clip range
 camera restore <name> <?duration?>
-       Set viewpoint to a named viewpoint, with optional animation duration in seconds
+       Set viewpoint to a named viewpoint, with optional animation duration in 
+       seconds
 camera rotate <x> <y>
        Specify relative rotation in viewport coordinates
 camera save <name>
        Save current viewpoint to a named viewpoint
 camera set <x> <y> <z> <heading> <pitch> <distance> <?duration?> <?srs?> <?vertDatum?>
-       Explicitly set camera parameters, with optional animation duration in seconds
+       Explicitly set camera parameters, with optional animation duration in 
+       seconds
        <x>, <y> = Map coordinates of focal point
        <z> = Altitude of focal point (see vertDatum)
        <heading> = Azimuth in degrees
@@ -63,10 +65,33 @@ camera set <x> <y> <z> <heading> <pitch> <distance> <?duration?> <?srs?> <?vertD
        <distance> = Distance of camera from focal point in map units(?)
        <srs> = coordinate system, defaults to map coordinate system
        <vertDatum> = vertical datum for interpreting z coordinate 
+camera throw <bool>
+       Enable/disable throw inertia for panning/rotating when using mouse events
+       through protocol
 camera zoom <y>
        Specify zoom by viewport coordinates (i.e. normalized y mouse coords)
 
 clientinfo <list>
+
+colormap add <colorMapName> <colorMap> <opacityMap>
+         (Re-)define a colormap.  If colorMapName doesn't exist, it is created,
+         otherwise the colormap is redefined and all users will be updated.
+	 colorMap = Tcl list of {value r g b} control points
+         opacityMap = Tcl list of {value alpha} control points
+colormap define <colorMapName> <colorMap> <opacityMap>
+         (Re-)define a colormap (same as 'add')
+colormap delete <?colorMapName?>
+colormap res <numberOfTableEntries>
+         Set the "resolution" or number of lookup table entries in the colormap
+         <numberOfTableEntries> = integer or "default"
+
+renderer render
+         Force a new image to be rendered
+
+screen bgcolor <r> <g> <b>
+screen size <width> <height>
+
+== Mouse and Keyboard Events ==
 
 key press <key>
 key release <key>
@@ -78,21 +103,21 @@ mouse motion <x> <y>
 mouse release <button> <x> <y>
 mouse scroll <direction>
 
-renderer render
-         Force a new image to be rendered
-
-screen bgcolor <r> <g> <b>
-screen size <width> <height>
+== Map Commands ==
 
 map coords <x> <y>
     Translate screen/mouse coordinates into map coordinates
 
+map grid <bool> <?type?>
+    Toggle graticule and set type
+    <type> = geodetic|utm|mgrs
+
 General form:
 map layer add <type> <driver> <url> ... <layerName>
     <type> = image|elevation|line|point|polygon|text
-    <driver> = gdal|wms|tms|xyz
+    <driver> = gdal|tms|wms|xyz
 
-Specific layer types:
+Specific image layer types:
 map layer add image gdal <url> <layerName>
     Add a GDAL image layer from a file or URL
 map layer add image wms <url> <layers> <format> <transparent> <layerName>
@@ -104,9 +129,15 @@ map layer add image wms <url> <layers> <format> <transparent> <layerName>
 map layer add image tms <url> <layerName>
     Add a TMS image layer from a URL
     <url> = URL of TMS service
+map layer add image xyz <urlPattern> <layerName>
+    Add an image layer from a web map using a template URL
+
+Elevation layers:
 map layer add elevation <driver> <url> <layerName>
     Add an elevation image layer from a file or URL
     <driver> = gdal|tms|wms
+
+Feature/model layers:
 map layer add point <url> <layerName>
     Add a point feature layer from a file or URL
 map layer add polygon <url> <layerName>
@@ -120,12 +151,20 @@ map layer delete <layerName>
 map layer opacity <opacity> <layerName>
 map layer move <pos> <layerName>
 map layer visible <bool> <layerName>
+
 map load data follows <nbytes>
     Send an .earth file over the wire
 map load file <path>
     Load an .earth file from a filesystem mounted on the server
 map load url <url>
     Load an .earth file from a network address
+
+map posdisp <bool> <?format?> <?precision?>
+    Toggle coordinate/position display, set format and precision
+    <format> = latlong_decimal_degrees|latlong_degrees_decimal_minutes|
+               latlong_degrees_minutes_seconds|mgrs
+    <precision> = integer number of digits to display
+
 map reset <type> <?profile?> <?xmin?> <?ymin?> <?xmax?> <?ymax?>
     Clear the scene and rebuild a new map from scratch.  When resetting the 
     map to geocentric, a profile and extents should be omitted.  When the map
@@ -136,12 +175,30 @@ map reset <type> <?profile?> <?xmin?> <?ymin?> <?xmax?> <?ymax?>
     or 'spherical-mercator' or an SRS init string (such as an EPSG code)
     xmin,ymin,xmax,ymax = map bounds (in profile projection/units)
 
+map scalebar <bool> <?units?>
+    Toggle scale label/bar
+    <units> = meters|feet|us_survey_feet|nautical_miles
+map setpos <x> <y>
+    Set the coordinate/position display based on mouse coordinates
+map terrain edges <bool>
+    *Not currently implemented*
+map terrain lighting <bool>
+map terrain linecolor <r> <g> <b>
+    *Not currently implemented*
+map terrain vertscale <val>
+    Set scale factor for terrain height
+map terrain wireframe <bool>
+
 ================================================================================
 Replies:
 ================================================================================
 nv>image -type image -bytes <nbytes>
   <binary RGB data>
-nv>dataset coords <x> <y> <z>
+nv>map coords <x> <y> <z> <?mouseX?> <?mouseY?>
+   Reply to query of map coordinates.  If reply is to a request with mouse
+   coordinates, the mouse coordinates are included.
+nv>map coords invalid <mouseX> <mouseY>
+   Reply indicating an off-map click/query
 nv>ok -token <seqnum>
    Reply indicated commands through <seqnum> (numbered beginning at 1) have been
    processed, but no new image was rendered
