@@ -968,7 +968,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         StartBufferingCommands
     }
     set _first ""
-    SendCmd "dataset visible 0"
+    SendCmd "contour3d visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1004,7 +1004,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 # Setting dataset visible enables outline
                 # and contour3d
-		SendCmd "dataset visible 1 $tag"
+		SendCmd "contour3d visible 1 $tag"
             }
         }
     }
@@ -1418,7 +1418,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-isosurfacevisible" {
             set bool $_settings($what)
-	    SendCmd "contour3d visible $bool"
+	    SendCmd "contour3d visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "contour3d visible $bool $tag"
+                }
+            }
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(contour) \
                     "Hide the isosurface"
@@ -2098,13 +2103,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         -linewidth 1.0
         -opacity 0.6
         -outline 0
-        -xcutplanevisible 1
-        -xcutplaneposition 50
-        -ycutplanevisible 1
-        -ycutplaneposition 50
-        -zcutplanevisible 1
-        -zcutplaneposition 50
         -wireframe 0
+        -xcutplaneposition 50
+        -xcutplanevisible 1
+        -ycutplaneposition 50
+        -ycutplanevisible 1
+        -zcutplaneposition 50
+        -zcutplanevisible 1
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first || $style(-levels) == 1 } {
