@@ -46,6 +46,13 @@ AC_ARG_WITH(
     [with_ffmpeg=yes])
 
 AC_ARG_WITH(
+    [avconv],
+    [AS_HELP_STRING([--with-avconv[=DIR]],
+      [location of avconv @<:@default=yes@:>@])],
+    [],
+    [with_avconv=yes])
+
+AC_ARG_WITH(
     [statsdir],
     [AS_HELP_STRING([--with-statsdir=DIR],
         [Write statistics in DIR])],
@@ -197,6 +204,20 @@ AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
 AC_CHECK_FUNCS([accept4])
 
 #--------------------------------------------------------------------
+# search for avconv executable
+#--------------------------------------------------------------------
+if test "${with_avconv}" != "no" ; then
+  if test "${with_avconv}" = "yes" ; then 
+    AC_PATH_PROG(AVCONV, avconv)
+  else 
+    AC_PATH_PROG(AVCONV, avconv, [], [${with_avconv}/bin:${with_avconv}])
+  fi 
+  if test "${AVCONV}x" != "x" ; then
+    AC_DEFINE(HAVE_AVCONV, 1, [nanovis can use avconv to create videos.])
+  fi
+fi
+
+#--------------------------------------------------------------------
 # search for ffmpeg executable
 #--------------------------------------------------------------------
 if test "${with_ffmpeg}" != "no" ; then
@@ -257,6 +278,7 @@ fi
 
 AC_SUBST(CG_INC_SPEC)
 AC_SUBST(CG_LIB_SPEC)
+AC_SUBST(AVCONV)
 AC_SUBST(FFMPEG)
 AC_SUBST(LD_RPATH)
 AC_SUBST(RP_DIR)

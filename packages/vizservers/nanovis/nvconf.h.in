@@ -9,6 +9,9 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* nanovis can use avconv to create videos. */
+#undef HAVE_AVCONV
+
 /* Define to 1 if you have the <Cg/cgGL.h> header file. */
 #undef HAVE_CG_CGGL_H
 
