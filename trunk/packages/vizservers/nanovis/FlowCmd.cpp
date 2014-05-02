@@ -968,7 +968,7 @@ FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-#ifdef HAVE_FFMPEG
+#if defined(HAVE_FFMPEG) || defined(HAVE_AVCONV)
 
 /**
  * \brief Convert a Tcl_Obj representing the video format into its
@@ -1111,18 +1111,32 @@ static int
 MakeMovie(Tcl_Interp *interp, char *tmpFileName, const char *token,
           FlowVideoSwitches *switchesPtr)
 {
-#ifndef FFMPEG 
-#  define FFMPEG "/usr/bin/ffmpeg"
+    char cmd[BUFSIZ];
+#ifdef HAVE_AVCONV
+    /* Generate the movie from the frame images by exec-ing avconv */
+    /* The avconv command is
+     *   avconv -f image2 -i /var/tmp/xxxxx/image%d.ppm                 \
+     *      -f outformat -b bitrate -r framerate /var/tmp/xxxxx/movie.mpeg 
+     */
+#ifndef AVCONV
+#  define AVCONV "/usr/bin/avconv"
 #endif
+    sprintf(cmd, "%s -f image2 -i %s/image%%d.ppm -f %s -b %d -r %f -",
+            AVCONV, tmpFileName, Tcl_GetString(switchesPtr->formatObjPtr), 
+            switchesPtr->bitRate, switchesPtr->frameRate);
+#else
     /* Generate the movie from the frame images by exec-ing ffmpeg */
     /* The ffmpeg command is
      *   ffmpeg -f image2 -i /var/tmp/xxxxx/image%d.ppm                 \
-     *      -b bitrate -f framerate /var/tmp/xxxxx/movie.mpeg 
+     *      -f outformat -b bitrate -r framerate /var/tmp/xxxxx/movie.mpeg 
      */
-    char cmd[BUFSIZ];
+#ifndef FFMPEG 
+#  define FFMPEG "/usr/bin/ffmpeg"
+#endif
     sprintf(cmd, "%s -f image2 -i %s/image%%d.ppm -f %s -b %d -r %f -",
             FFMPEG, tmpFileName, Tcl_GetString(switchesPtr->formatObjPtr), 
             switchesPtr->bitRate, switchesPtr->frameRate);
+#endif
     TRACE("Enter: %s", cmd);
     FILE *f;
     f = popen(cmd, "r");
