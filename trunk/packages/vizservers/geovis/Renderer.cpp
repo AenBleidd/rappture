@@ -66,6 +66,8 @@ Renderer::Renderer() :
     _windowHeight(500),
     _scaleBarUnits(UNITS_METERS)
 {
+    TRACE("Enter");
+
     _bgColor[0] = 0;
     _bgColor[1] = 0;
     _bgColor[2] = 0;
@@ -246,6 +248,22 @@ void Renderer::initViewer() {
 
 void Renderer::finalizeViewer() {
     initViewer();
+    int screen = 0;
+    const char *displayEnv = getenv("DISPLAY");
+    if (displayEnv != NULL) {
+        // 3 parts: host, display, screen
+        int part = 0;
+        for (size_t c = 0; c < strlen(displayEnv); c++) {
+            if (displayEnv[c] == ':') {
+                part = 1;
+            } else if (part == 1 && displayEnv[c] == '.') {
+                part = 2;
+            } else if (part == 2) {
+                screen = atoi(&displayEnv[c]);
+                break;
+            }
+        }
+    }
     if (!_viewer->isRealized()) {
 #ifdef USE_OFFSCREEN_RENDERING
 #ifdef USE_PBUFFER
@@ -293,13 +311,13 @@ void Renderer::finalizeViewer() {
         _viewer->getCamera()->attach(osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, GL_DEPTH24_STENCIL8_EXT);
         _captureCallback = new ScreenCaptureCallback(texture2D);
         _viewer->getCamera()->setFinalDrawCallback(_captureCallback.get());
-        _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
+        _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight, screen);
 #endif
 #else
         _captureCallback = new ScreenCaptureCallback();
         _viewer->getCamera()->setFinalDrawCallback(_captureCallback.get());
         //_viewer->getCamera()->getDisplaySettings()->setDoubleBuffer(false);
-        _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight);
+        _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight, screen);
 #endif
         _viewer->realize();
         initColorMaps();
@@ -1632,14 +1650,26 @@ double Renderer::computeMapScale()
         }
     }
         break;
-    case UNITS_US_SURVEY_FEET:
-    case UNITS_INTL_FEET: {
-        double feet;
-        if (_scaleBarUnits == UNITS_US_SURVEY_FEET) {
-            feet = meters * 3937.0/1200.0;
-        } else {
-            feet = 5280.0 * meters / 1609.344;
+    case UNITS_US_SURVEY_FEET: {
+        double feet = meters * 3937.0/1200.0;
+        scale = feet / pixelWidth;
+        feet = normalizeScaleFeet(feet);
+        pixelWidth = feet / scale;
+        if (_scaleLabel.valid()) {
+            if (feet >= 5280) {
+                _scaleLabel->setText(osgEarth::Stringify()
+                                     << feet / 5280.0
+                                     << " miUS");
+             } else {
+                _scaleLabel->setText(osgEarth::Stringify()
+                                     << feet
+                                     << " ftUS");
+            }
         }
+    }
+        break;
+    case UNITS_INTL_FEET: {
+        double feet = 5280.0 * meters / 1609.344;
         scale = feet / pixelWidth;
         feet = normalizeScaleFeet(feet);
         pixelWidth = feet / scale;
