@@ -150,6 +150,23 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             # FIXME: Add test for valid file path
             $_tree set $child "url" $file
         }
+        $_tree set $child "driver" "gdal"
+        set wms [$layers get $layer.wms.url]
+        if { $wms != "" } {
+            foreach key { url layers format transparent } {
+                set value [$layers get $layer.wms.$key]
+                $_tree set $child "wms.$key" $value
+            }
+            $_tree set $child "driver" "wms"
+        }
+        set xyz [$layers get $layer.xyz.url]
+        if { $xyz != "" } {
+            foreach key { url } {
+                set value [$layers get $layer.xyz.$key]
+                $_tree set $child "xyz.$key" $value
+            }
+            $_tree set $child "driver" "xyz"
+        }
     }
     $_tree set root "label"       [$map get "about.label"]
     $_tree set root "style"       [$map get "style"]

@@ -1697,7 +1697,25 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 set settings(-opacity) $info(opacity)
             }
             if {!$_sendEarthFile} {
-                SendCmd [list map layer add image gdal $info(url) $layer]
+                switch -- $info(driver)  {
+                    "gdal" {
+                        SendCmd [list map layer add image gdal \
+                                     $info(url) $layer]
+                    }
+                    "wms" {
+                        SendCmd [list map layer add image wms \
+                                     $info(wms.url) \
+                                     $info(wms.layers) \
+                                     $info(wms.format) \
+                                     $info(wms.transparent) \
+                                     $layer]
+                    }
+                    "xyz" {
+                        SendCmd [list map layer add image xyz \
+                                     $info(xyz.url) \
+                                     $layer]
+                    }
+                }                        
             }
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
