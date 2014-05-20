@@ -167,6 +167,13 @@ object curve -extends base {
                 $yv set [$xmlobj get $path.$cname.yvector]
             }
 
+            if {[string length [$xmlobj get $path.$cname.xerrorbars]] > 0} {
+                error "xerrorbars not fully implemented"
+            }
+            if {[string length [$xmlobj get $path.$cname.yerrorbars]] > 0} {
+                error "yerrorbars not fully implemented"
+            }
+
             set xlen [$xv length]
             set ylen [$yv length]
             if {$xlen == 0 && $ylen == 0} {
@@ -298,6 +305,34 @@ object curve -extends base {
             return $_yvecs($cname)  ;# return yv
         }
         error "bad option \"$cname\": should be [join [lsort [array names _yvecs]] {, }]"
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: xErrorValues <cname>
+    #
+    # Returns the x-axis error values for the specified curve
+    # component <name>.
+    # ------------------------------------------------------------------
+    method xErrorValues {cname} {
+        # Having this prevents errors, but this feature isn't really
+        # implemented.  To be implemented, we must be able to import
+        # and export error values in strings and xml objects.  We must
+        # also be able to diff curves with error values, and also
+        # visualize differences in error values.
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: yErrorValues <cname>
+    #
+    # Returns the y-axis error values for the specified curve
+    # component <name>.
+    # ------------------------------------------------------------------
+    method yErrorValues {cname} {
+        # Having this prevents errors, but this feature isn't really
+        # implemented.  To be implemented, we must be able to import
+        # and export error values in strings and xml objects.  We must
+        # also be able to diff curves with error values, and also
+        # visualize differences in error values.
     }
 
     # ------------------------------------------------------------------
