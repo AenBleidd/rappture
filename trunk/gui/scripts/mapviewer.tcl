@@ -176,23 +176,24 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Settings for mouse motion events: these are required
     # to update the Lat/Long coordinate display
     array set _motion {
+        compress        0
+        delay           100
+        enable          0
+        pending         0
         x               0
         y               0
-        pending         0
-        delay           100
-        compress        0
     }
     # This array holds the Viewpoint parameters that the
     # server sends on "camera get".
     array set _view {
+        distance        1.0
+        heading         0.0
+        pitch           -89.9
+        srs             ""
+        verticalDatum   ""
         x               0.0
         y               0.0
         z               0.0
-        heading         0.0
-        pitch           -89.9
-        distance        1.0
-        srs             ""
-        verticalDatum   ""
     }
 
     # Note: grid types are "geodetic", "utm" and "mgrs"
@@ -333,8 +334,11 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <ButtonRelease-3> \
             [itcl::code $this MouseRelease 3 %x %y]
 
-        bind $itk_component(view) <Motion> \
-            [itcl::code $this EventuallyHandleMotionEvent %x %y]
+        # Binding for mouse motion events
+        if {$_motion(enable)} {
+            bind $itk_component(view) <Motion> \
+                [itcl::code $this EventuallyHandleMotionEvent %x %y]
+        }
     } else {
         # Bindings for panning via mouse
         bind $itk_component(view) <ButtonPress-1> \
@@ -343,6 +347,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             [itcl::code $this Pan drag %x %y]
         bind $itk_component(view) <ButtonRelease-1> \
             [itcl::code $this Pan release %x %y]
+        bind $itk_component(view) <Button-1> \
+            +[itcl::code $this SendCmd "map setpos %x %y"]
         bind $itk_component(view) <Double-1> \
             [itcl::code $this camera go %x %y 0.4]
 
@@ -374,10 +380,12 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <KeyPress-Down> \
             [itcl::code $this Pan set 0 10]
 
-        # Send (compressed) motion events to update Lat/Long
+        # Binding for mouse motion events
         set _motion(compress) 1
-        bind $itk_component(view) <Motion> \
-            [itcl::code $this EventuallyHandleMotionEvent %x %y]
+        if {$_motion(enable)} {
+            bind $itk_component(view) <Motion> \
+                [itcl::code $this EventuallyHandleMotionEvent %x %y]
+        }
     }
 
     bind $itk_component(view) <Shift-KeyPress-Left> \
@@ -1704,7 +1712,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                     "tms" {
                         SendCmd [list map layer add image tms \
-                                     $info(url) $layer]
+                                     $info(tms.url) $layer]
                     }
                     "wms" {
                         SendCmd [list map layer add image wms \
@@ -1732,7 +1740,16 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 array set settings $info(style)
             }
             if {!$_sendEarthFile} {
-                SendCmd [list map layer add elevation gdal $info(url) $layer]
+                switch -- $info(driver)  {
+                    "gdal" {
+                        SendCmd [list map layer add elevation gdal \
+                                     $info(url) $layer]
+                    }
+                    "tms" {
+                        SendCmd [list map layer add elevation tms \
+                                     $info(tms.url) $layer]
+                    }
+                }
             }
         }
         "line" {
