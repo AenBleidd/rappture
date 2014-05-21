@@ -142,29 +142,39 @@ ColorMap::getOpacityTransferFunction(double range[2], double opacityScale)
 void ColorMap::addControlPoint(ControlPoint& cp)
 {
     _needsBuild = true;
-    // Clamp value to [0,1]
+    // Clamp value,midpoint,sharpness to [0,1]
     if (cp.value < 0.0)
-	cp.value = 0.0;
+        cp.value = 0.0;
     if (cp.value > 1.0)
-	cp.value = 1.0;
+        cp.value = 1.0;
+    if (cp.midpoint < 0.0)
+        cp.midpoint = 0.0;
+    if (cp.midpoint > 1.0)
+        cp.midpoint = 1.0;
+    if (cp.sharpness < 0.0)
+        cp.sharpness = 0.0;
+    if (cp.sharpness > 1.0)
+        cp.sharpness = 1.0;
 
 #ifdef DEBUG
-    TRACE("New control point: %g = %g %g %g",
-	  cp.value, cp.color[0], cp.color[1], cp.color[2]);
+    TRACE("New control point: %g = %g %g %g, %g %g",
+          cp.value, cp.color[0], cp.color[1], cp.color[2],
+          cp.midpoint, cp.sharpness);
 #endif
     for (std::list<ControlPoint>::iterator itr = _controlPoints.begin();
-	 itr != _controlPoints.end(); ++itr) {
-	if (itr->value == cp.value) {
-	    *itr = cp;
-	    return;
-	} else if (itr->value > cp.value) {
-	    _controlPoints.insert(itr, cp);
-	    return;
-	}
+         itr != _controlPoints.end(); ++itr) {
+        if (itr->value == cp.value) {
+            *itr = cp;
+            return;
+        } else if (itr->value > cp.value) {
+            _controlPoints.insert(itr, cp);
+            return;
+        }
     }
     // If we reach here, our control point goes at the end
     _controlPoints.insert(_controlPoints.end(), cp);
-    _colorTF->AddRGBPoint(cp.value, cp.color[0], cp.color[1], cp.color[2]);
+    _colorTF->AddRGBPoint(cp.value, cp.color[0], cp.color[1], cp.color[2],
+                          cp.midpoint, cp.sharpness);
 }
 
 /**
@@ -173,29 +183,37 @@ void ColorMap::addControlPoint(ControlPoint& cp)
 void ColorMap::addOpacityControlPoint(OpacityControlPoint& cp)
 {
     _needsBuild = true;
-    // Clamp value to [0,1]
+    // Clamp value,midpoint,sharpness to [0,1]
     if (cp.value < 0.0)
-	cp.value = 0.0;
+        cp.value = 0.0;
     if (cp.value > 1.0)
-	cp.value = 1.0;
+        cp.value = 1.0;
+    if (cp.midpoint < 0.0)
+        cp.midpoint = 0.0;
+    if (cp.midpoint > 1.0)
+        cp.midpoint = 1.0;
+    if (cp.sharpness < 0.0)
+        cp.sharpness = 0.0;
+    if (cp.sharpness > 1.0)
+        cp.sharpness = 1.0;
 
 #ifdef DEBUG
-    TRACE("New opacity control point: %g = %g",
-	  cp.value, cp.alpha);
+    TRACE("New opacity control point: %g = %g, %g %g",
+          cp.value, cp.alpha, cp.midpoint, cp.sharpness);
 #endif
     for (std::list<OpacityControlPoint>::iterator itr = _opacityControlPoints.begin();
-	 itr != _opacityControlPoints.end(); ++itr) {
-	if (itr->value == cp.value) {
-	    *itr = cp;
-	    return;
-	} else if (itr->value > cp.value) {
-	    _opacityControlPoints.insert(itr, cp);
-	    return;
-	}
+         itr != _opacityControlPoints.end(); ++itr) {
+        if (itr->value == cp.value) {
+            *itr = cp;
+            return;
+        } else if (itr->value > cp.value) {
+            _opacityControlPoints.insert(itr, cp);
+            return;
+        }
     }
     // If we reach here, our control point goes at the end
     _opacityControlPoints.insert(_opacityControlPoints.end(), cp);
-    _opacityTF->AddPoint(cp.value, cp.alpha);
+    _opacityTF->AddPoint(cp.value, cp.alpha, cp.midpoint, cp.sharpness);
 }
 
 /**
@@ -208,11 +226,11 @@ void ColorMap::addOpacityControlPoint(OpacityControlPoint& cp)
 void ColorMap::setNumberOfTableEntries(int numEntries)
 {
     if (numEntries != _numTableEntries) {
-	_needsBuild = true;
-	_numTableEntries = numEntries;
-	if (_lookupTable != NULL) {
-	    build();
-	}
+        _needsBuild = true;
+        _numTableEntries = numEntries;
+        if (_lookupTable != NULL) {
+            build();
+        }
     }
 }
 
@@ -227,7 +245,7 @@ int ColorMap::getNumberOfTableEntries()
 {
     return _numTableEntries;
 }
-
+#if 0
 /**
  * \brief Build the lookup table from the control points in the transfer 
  * function
@@ -235,12 +253,12 @@ int ColorMap::getNumberOfTableEntries()
 void ColorMap::build()
 {
     if (!_needsBuild)
-	return;
+        return;
 
     TRACE("%s", _name.c_str());
 
     if (_lookupTable == NULL) {
-	_lookupTable = vtkSmartPointer<vtkLookupTable>::New();
+        _lookupTable = vtkSmartPointer<vtkLookupTable>::New();
     }
 
     _lookupTable->SetNumberOfTableValues(_numTableEntries);
@@ -251,14 +269,14 @@ void ColorMap::build()
     // If first value is > 0, insert a copy at 0 to create
     // constant range up to first specified cp
     if (itr->value > 0.0) {
-	ControlPoint cp = *itr;
-	cp.value = 0.0;
-	itr = _controlPoints.insert(itr, cp);
+        ControlPoint cp = *itr;
+        cp.value = 0.0;
+        itr = _controlPoints.insert(itr, cp);
     }
     if (oitr->value > 0.0) {
-	OpacityControlPoint ocp = *oitr;
-	ocp.value = 0.0;
-	oitr = _opacityControlPoints.insert(oitr, ocp);
+        OpacityControlPoint ocp = *oitr;
+        ocp.value = 0.0;
+        oitr = _opacityControlPoints.insert(oitr, ocp);
     }
 
     std::list<ControlPoint>::iterator itr2 = itr;
@@ -267,52 +285,85 @@ void ColorMap::build()
     oitr2++;
 
     for (int i = 0; i < _numTableEntries; i++) {
-	double value = _numTableEntries < 2 ? 0.0 : ((double)i)/(_numTableEntries-1);
+        double value = _numTableEntries < 2 ? 0.0 : ((double)i)/(_numTableEntries-1);
         double color[4];
-	while (itr2 != _controlPoints.end() && value > itr2->value) {
-	    itr = itr2;
-	    itr2++;
-	}
-	while (oitr2 != _opacityControlPoints.end() && value > oitr2->value) {
-	    oitr = oitr2;
-	    oitr2++;
-	}
-	if (itr2 == _controlPoints.end()) {
+        while (itr2 != _controlPoints.end() && value > itr2->value) {
+            itr = itr2;
+            itr2++;
+        }
+        while (oitr2 != _opacityControlPoints.end() && value > oitr2->value) {
+            oitr = oitr2;
+            oitr2++;
+        }
+        if (itr2 == _controlPoints.end()) {
 #ifdef DEBUG
-	    TRACE("val: %g Range: %g - 1 Color: %g %g %g", value, itr->value,
-		  itr->color[0], itr->color[1], itr->color[2]);
+            TRACE("val: %g Range: %g - 1 Color: %g %g %g", value, itr->value,
+                  itr->color[0], itr->color[1], itr->color[2]);
 #endif
             memcpy(color, itr->color, sizeof(double)*3);
-	} else {
-	    assert(itr->value < itr2->value);
-	    assert(value >= itr->value && value <= itr2->value);
-	    lerp(color, *itr, *itr2, value);
+        } else {
+            assert(itr->value < itr2->value);
+            assert(value >= itr->value && value <= itr2->value);
+            lerp(color, *itr, *itr2, value);
 #ifdef DEBUG
-	    TRACE("val: %g Range: %g - %g Color: %g %g %g", value, itr->value, itr2->value,
-		  color[0], color[1], color[2]);
+            TRACE("val: %g Range: %g - %g Color: %g %g %g", value, itr->value, itr2->value,
+                  color[0], color[1], color[2]);
 #endif
-	}
-	if (oitr2 == _opacityControlPoints.end()) {
+        }
+        if (oitr2 == _opacityControlPoints.end()) {
 #ifdef DEBUG
-	    TRACE("val: %g Range: %g - 1 Alpha %g", value, oitr->value,
-		  oitr->alpha);
+            TRACE("val: %g Range: %g - 1 Alpha %g", value, oitr->value,
+                  oitr->alpha);
 #endif
             color[3] = oitr->alpha;
-	} else {
-	    assert(oitr->value < oitr2->value);
-	    assert(value >= oitr->value && value <= oitr2->value);
-	    lerp(&color[3], *oitr, *oitr2, value);
+        } else {
+            assert(oitr->value < oitr2->value);
+            assert(value >= oitr->value && value <= oitr2->value);
+            lerp(&color[3], *oitr, *oitr2, value);
 #ifdef DEBUG
-	    TRACE("val: %g Range: %g - %g Alpha: %g", value, oitr->value, oitr2->value,
-		  color[3]);
+            TRACE("val: %g Range: %g - %g Alpha: %g", value, oitr->value, oitr2->value,
+                  color[3]);
 #endif
-	}
+        }
         _lookupTable->SetTableValue(i, color);
     }
     _needsBuild = false;
     TRACE("Leave");
 }
+#else
+/**
+ * \brief Build the lookup table from the control points in the transfer 
+ * function
+ */
+void ColorMap::build()
+{
+    if (!_needsBuild)
+        return;
 
+    TRACE("%s", _name.c_str());
+
+    if (_lookupTable == NULL) {
+        _lookupTable = vtkSmartPointer<vtkLookupTable>::New();
+    }
+
+    _lookupTable->SetNumberOfTableValues(_numTableEntries);
+
+    double colorTable[_numTableEntries*3];
+    _colorTF->GetTable(0., 1., _numTableEntries, colorTable);
+    double opacityTable[_numTableEntries];
+    _opacityTF->GetTable(0., 1., _numTableEntries, opacityTable, 1);
+
+    for (int i = 0; i < _numTableEntries; i++) {
+        //double value = _numTableEntries < 2 ? 0.0 : ((double)i)/(_numTableEntries-1);
+        double color[4];
+        memcpy(color, colorTable+i*3, sizeof(double)*3);
+        color[3] = opacityTable[i];
+        _lookupTable->SetTableValue(i, color);
+    }
+    _needsBuild = false;
+    TRACE("Leave");
+}
+#endif
 /**
  * \brief Perform linear interpolation of two color control points
  */
@@ -323,7 +374,7 @@ void ColorMap::lerp(double *result,
 {
     double factor = (value - cp1.value) / (cp2.value - cp1.value);
     for (int i = 0; i < 3; i++) {
-	result[i] = cp1.color[i] * (1.0 - factor) + cp2.color[i] * factor;
+        result[i] = cp1.color[i] * (1.0 - factor) + cp2.color[i] * factor;
     }
 }
 
@@ -383,7 +434,7 @@ ColorMap *ColorMap::getDefault()
     cp[4].color[1] = 0.0;
     cp[4].color[2] = 0.0;
     for (int i = 0; i < 5; i++) {
-	_default->addControlPoint(cp[i]);
+        _default->addControlPoint(cp[i]);
     }
     OpacityControlPoint ocp[2];
     ocp[0].value = 0.0;
@@ -461,7 +512,7 @@ ColorMap *ColorMap::getVolumeDefault()
     cp[4].color[1] = 0.0;
     cp[4].color[2] = 0.0;
     for (int i = 0; i < 5; i++) {
-	_volumeDefault->addControlPoint(cp[i]);
+        _volumeDefault->addControlPoint(cp[i]);
     }
     OpacityControlPoint ocp[2];
     ocp[0].value = 0.0;
