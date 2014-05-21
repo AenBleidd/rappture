@@ -151,6 +151,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             $_tree set $child "url" $file
         }
         $_tree set $child "driver" "gdal"
+        set tms [$layers get $layer.tms.url]
+        if { $tms != "" } {
+            foreach key { url tmsType format } {
+                set value [$layers get $layer.wms.$key]
+                $_tree set $child "tms.$key" $value
+            }
+            $_tree set $child "driver" "tms"
+        }
         set wms [$layers get $layer.wms.url]
         if { $wms != "" } {
             foreach key { url layers format transparent } {

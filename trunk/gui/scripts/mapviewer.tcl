@@ -1702,6 +1702,10 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         SendCmd [list map layer add image gdal \
                                      $info(url) $layer]
                     }
+                    "tms" {
+                        SendCmd [list map layer add image tms \
+                                     $info(url) $layer]
+                    }
                     "wms" {
                         SendCmd [list map layer add image wms \
                                      $info(wms.url) \
