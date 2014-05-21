@@ -154,7 +154,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         set tms [$layers get $layer.tms.url]
         if { $tms != "" } {
             foreach key { url tmsType format } {
-                set value [$layers get $layer.wms.$key]
+                set value [$layers get $layer.tms.$key]
                 $_tree set $child "tms.$key" $value
             }
             $_tree set $child "driver" "tms"
