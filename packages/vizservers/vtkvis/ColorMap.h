@@ -33,12 +33,16 @@ public:
      */
     struct ControlPoint {
         ControlPoint() :
-            value(0)
+            value(0),
+            midpoint(0.5),
+            sharpness(0)
         {
             memset(color, 0, sizeof(double)*3);
         }
         ControlPoint(const ControlPoint& other) :
-            value(other.value)
+            value(other.value),
+            midpoint(other.midpoint),
+            sharpness(other.sharpness)
         {
             memcpy(color, other.color, sizeof(double)*3);
         }
@@ -46,12 +50,15 @@ public:
         {
             if (this != &other) {
                 value = other.value;
+                midpoint = other.midpoint;
+                sharpness = other.sharpness;
                 memcpy(color, other.color, sizeof(double)*3);
             }
             return *this;
         }
 
         double value; ///< Normalized scalar data value [0,1]
+        double midpoint, sharpness;
         double color[3]; ///< RGB color
     };
 
@@ -61,11 +68,15 @@ public:
     struct OpacityControlPoint {
         OpacityControlPoint() :
             value(0),
+            midpoint(0.5),
+            sharpness(0),
             alpha(1)
         {
         }
         OpacityControlPoint(const OpacityControlPoint& other) :
             value(other.value),
+            midpoint(other.midpoint),
+            sharpness(other.sharpness),
             alpha(other.alpha)
         {
         }
@@ -73,12 +84,15 @@ public:
         {
             if (this != &other) {
                 value = other.value;
+                midpoint = other.midpoint;
+                sharpness = other.sharpness;
                 alpha = other.alpha;
             }
             return *this;
         }
 
         double value; ///< Normalized scalar data value [0,1]
+        double midpoint, sharpness;
         double alpha; ///< Opacity
     };
 
