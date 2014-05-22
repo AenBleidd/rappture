@@ -31,7 +31,7 @@ INSTALL_DATA    = ${INSTALL} -m 0644
 INSTALL_SCRIPT  = ${INSTALL} -m 0644
 MKDIR_P		= @MKDIR_P@
 
-SVN_VERSION	= $(shell svnversion $(srcdir))
+SVN_VERSION	= $(shell svnversion $(srcdir) | sed 's/Unversioned directory/unknown/')
 STATSDIR	= @STATSDIR@
 
 GL_LIB_SPEC	= -lGL -lm

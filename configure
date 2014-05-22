@@ -7295,7 +7295,7 @@ fi
 
 
 
-SVN_VERSION=`svnversion $srcdir`
+SVN_VERSION=`svnversion $srcdir | sed 's/Unversioned directory/unknown/'`
 
 make_command=""
 for m in "$MAKE" make gmake gnumake ; do
