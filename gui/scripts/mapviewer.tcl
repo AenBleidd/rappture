@@ -1478,7 +1478,7 @@ itcl::body Rappture::MapViewer::BuildLayerTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Layers" \
-        -icon [Rappture::icon wrench]]
+        -icon [Rappture::icon layers]]
     $inner configure -borderwidth 4
     set f [frame $inner.layers]
     blt::table $inner \
