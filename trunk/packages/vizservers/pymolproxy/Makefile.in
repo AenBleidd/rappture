@@ -27,7 +27,7 @@ INSTALL =	@INSTALL@
 MKDIR_P =	@MKDIR_P@
 VPATH =		$(srcdir)
 
-SVN_VERSION	= $(shell svnversion $(srcdir))
+SVN_VERSION	= $(shell svnversion $(srcdir) | sed 's/Unversioned directory/unknown/')
 STATSDIR	= @STATSDIR@
 LOGDIR		= @LOGDIR@
 

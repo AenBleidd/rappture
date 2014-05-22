@@ -30,7 +30,7 @@ TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 LD_RUN_PATH     = $(libdir)
 LOGDIR		= @LOGDIR@
-SVN_VERSION	= $(shell svnversion $(srcdir))
+SVN_VERSION	= $(shell svnversion $(srcdir) | sed 's/Unversioned directory/unknown/')
 
 DEFINES		= -DSERVERSFILE=\"$(libdir)/renderservers.tcl\" \
 		-DSVN_VERSION=\"$(SVN_VERSION)\" \

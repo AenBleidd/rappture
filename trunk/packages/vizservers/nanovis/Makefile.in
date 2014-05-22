@@ -102,7 +102,7 @@ TCL_INC_SPEC    = @TCL_INC_SPEC@
 
 LD_RUN_PATH     = $(VTK_LIB_DIR):$(libdir):@LD_RPATH@
 
-SVN_VERSION	= $(shell svnversion $(srcdir))
+SVN_VERSION	= $(shell svnversion $(srcdir) | sed 's/Unversioned directory/unknown/')
 STATSDIR	= @STATSDIR@
 
 LIBS		= \
