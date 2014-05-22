@@ -200,6 +200,9 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Currently only work in geocentric maps
     array set _settings [subst {
         camera-throw           0
+        coords-precision       5
+        coords-units           "latlong_decimal_degrees"
+        coords-visible         1
         grid                   0
         grid-type              "geodetic"
         legend                 1
@@ -369,6 +372,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             [itcl::code $this Zoom release %x %y]
         bind $itk_component(view) <Double-3> \
             [itcl::code $this camera go %x %y 2.5]
+        bind $itk_component(view) <Double-3> \
+            +[itcl::code $this SendCmd "map setpos %x %y"]
 
         # Bindings for panning via keyboard
         bind $itk_component(view) <KeyPress-Left> \
@@ -964,6 +969,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 FixSettings terrain-edges terrain-lighting \
                     terrain-vertscale terrain-wireframe
             }
+            FixSettings coords-visible
         } else {
             error "No map settings on reset"
         }
@@ -1325,21 +1331,27 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "coords-visible" - "coords-precision" - "coords-units" {
+            set bool $_settings(coords-visible)
+            set units $_settings(coords-units)
+            set precision $_settings(coords-precision)
+            SendCmd "map posdisp $bool $units $precision"
+        }
         "grid" - "grid-type" {
             set bool $_settings(grid)
             set gridType $_settings(grid-type)
             SendCmd "map grid $bool $gridType"
         }
         "camera-throw" {
-            set bool $_settings(camera-throw)
+            set bool $_settings($what)
             SendCmd "camera throw $bool"
         }
         "terrain-edges" {
-            set bool $_settings(terrain-edges)
+            set bool $_settings($what)
             SendCmd "map terrain edges $bool"
         }
         "terrain-lighting" {
-            set bool $_settings(terrain-lighting)
+            set bool $_settings($what)
             SendCmd "map terrain lighting $bool"
         }
         "terrain-palette" {
@@ -1347,11 +1359,11 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
             #SendCmd "map terrain colormap $cmap"
         }
         "terrain-vertscale" {
-            set val $_settings(terrain-vertscale)
+            set val $_settings($what)
             SendCmd "map terrain vertscale $val"
         }
         "terrain-wireframe" {
-            set bool $_settings(terrain-wireframe)
+            set bool $_settings($what)
             SendCmd "map terrain wireframe $bool"
         }
         default {
@@ -1394,6 +1406,12 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         -title "Terrain Settings" \
         -icon [Rappture::icon surface]]
     $inner configure -borderwidth 4
+
+    checkbutton $inner.posdisp \
+        -text "Show Coordinate Readout" \
+        -variable [itcl::scope _settings(coords-visible)] \
+        -command [itcl::code $this AdjustSetting coords-visible] \
+        -font "Arial 9" -anchor w 
 
     checkbutton $inner.grid \
         -text "Show Graticule" \
@@ -1439,17 +1457,18 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
     $inner.vscale set $_settings(terrain-vertscale)
 
     blt::table $inner \
-        0,0 $inner.grid      -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.vscale_l  -anchor w -pady 2 \
-        4,1 $inner.vscale    -fill x   -pady 2 \
-        5,0 $inner.palette_l -anchor w -pady 2 \
-        5,1 $inner.palette   -fill x   -pady 2  
+        0,0 $inner.posdisp   -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.grid      -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        5,0 $inner.vscale_l  -anchor w -pady 2 \
+        5,1 $inner.vscale    -fill x   -pady 2 \
+        6,0 $inner.palette_l -anchor w -pady 2 \
+        6,1 $inner.palette   -fill x   -pady 2  
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r8 c1 -resize expand
 }
 
 itcl::body Rappture::MapViewer::BuildLayerTab {} {
