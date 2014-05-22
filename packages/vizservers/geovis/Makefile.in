@@ -108,7 +108,6 @@ SERVER_SRCS	= \
 		TGAWriter.cpp \
 		Trace.cpp \
 		ScaleBar.cpp \
-		SingleWindow.cpp \
 		Stats.cpp
 
 ifdef USE_THREADS
