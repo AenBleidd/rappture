@@ -2472,9 +2472,16 @@ ColorMapAddSplineOp(ClientData clientData, Tcl_Interp *interp, int objc,
     bool doSpline = false;
     int nextArg = 3;
     if (objc > 5) {
-        if (strcmp(Tcl_GetString(objv[nextArg]), "-spline") == 0) {
-            doSpline = true;
-            nextArg++;
+        const char *arg = Tcl_GetString(objv[nextArg]);
+        if (arg[0] == '-') {
+            if (strcmp(arg, "-spline") == 0) {
+                doSpline = true;
+                nextArg++;
+            } else {
+                Tcl_AppendResult(interp, "unknown option \"", arg, "\"",
+                                 (char *)NULL);
+                return TCL_ERROR;
+            }
         }
     }
     int cmapc, omapc;
@@ -2530,9 +2537,16 @@ ColorMapAddSplineOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     doSpline = false;
     if (objc > 5) {
-        if (strcmp(Tcl_GetString(objv[nextArg]), "-spline") == 0) {
-            doSpline = true;
-            nextArg++;
+        const char *arg = Tcl_GetString(objv[nextArg]);
+        if (arg[0] == '-') {
+            if (strcmp(arg, "-spline") == 0) {
+                doSpline = true;
+                nextArg++;
+            } else {
+                Tcl_AppendResult(interp, "unknown option \"", arg, "\"",
+                                 (char *)NULL);
+                return TCL_ERROR;
+            }
         }
     }
     if (Tcl_ListObjGetElements(interp, objv[nextArg++], &omapc, &omapv) != TCL_OK) {
