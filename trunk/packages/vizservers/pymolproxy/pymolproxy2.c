@@ -942,15 +942,15 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (first) {
         first = 0;
         Tcl_DStringAppendElement(&ds, "render_start");
-        /* server */
-        Tcl_DStringAppendElement(&ds, "server");
+        /* renderer */
+        Tcl_DStringAppendElement(&ds, "renderer");
 	Tcl_DStringAppendElement(&ds, "pymol");
         /* pid */
 	Tcl_DStringAppendElement(&ds, "pid");
 	sprintf(buf, "%d", getpid());
 	Tcl_DStringAppendElement(&ds, buf);
-        /* machine */
-        Tcl_DStringAppendElement(&ds, "machine");
+        /* host */
+        Tcl_DStringAppendElement(&ds, "host");
 	gethostname(buf, BUFSIZ-1);
 	buf[BUFSIZ-1] = '\0';
 	Tcl_DStringAppendElement(&ds, buf);
