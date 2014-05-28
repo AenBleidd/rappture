@@ -2465,6 +2465,127 @@ ColorMapAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ColorMapAddSplineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[2]);
+    bool doSpline = false;
+    int nextArg = 3;
+    if (objc > 5) {
+        if (strcmp(Tcl_GetString(objv[nextArg]), "-spline") == 0) {
+            doSpline = true;
+            nextArg++;
+        }
+    }
+    int cmapc, omapc;
+    Tcl_Obj **cmapv = NULL;
+    Tcl_Obj **omapv = NULL;
+
+    if (Tcl_ListObjGetElements(interp, objv[nextArg++], &cmapc, &cmapv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (doSpline) {
+        if ((cmapc % 6) != 0) {
+            Tcl_AppendResult(interp, "wrong # elements in colormap: should be ",
+                             "{ value r g b midpoint sharpness ... }", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if ((cmapc % 4) != 0) {
+            Tcl_AppendResult(interp, "wrong # elements in colormap: should be ",
+                             "{ value r g b ... }", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+
+    ColorMap *colorMap = new ColorMap(name);
+    colorMap->setNumberOfTableEntries(256);
+
+    int numVals = doSpline ? 6 : 4;
+    for (int i = 0; i < cmapc; i += numVals) {
+        double val[numVals];
+        for (int j = 0; j < numVals; j++) {
+            if (Tcl_GetDoubleFromObj(interp, cmapv[i+j], &val[j]) != TCL_OK) {
+                delete colorMap;
+                return TCL_ERROR;
+            }
+            if ((val[j] < 0.0) || (val[j] > 1.0)) {
+                Tcl_AppendResult(interp, "bad colormap value \"",
+                                 Tcl_GetString(cmapv[i+j]),
+                                 "\": should be in the range [0,1]", (char*)NULL);
+                delete colorMap;
+                return TCL_ERROR;
+            }
+        }
+        ColorMap::ControlPoint cp;
+        cp.value = val[0];
+        for (int c = 0; c < 3; c++) {
+            cp.color[c] = val[c+1];
+        }
+        if (numVals > 4) {
+            cp.midpoint = val[4];
+            cp.sharpness = val[5];
+        }
+        colorMap->addControlPoint(cp);
+    }
+    doSpline = false;
+    if (objc > 5) {
+        if (strcmp(Tcl_GetString(objv[nextArg]), "-spline") == 0) {
+            doSpline = true;
+            nextArg++;
+        }
+    }
+    if (Tcl_ListObjGetElements(interp, objv[nextArg++], &omapc, &omapv) != TCL_OK) {
+        delete colorMap;
+        return TCL_ERROR;
+    }
+    if (doSpline) {
+        if ((omapc % 4) != 0) {
+            Tcl_AppendResult(interp, "wrong # elements in opacitymap: should be ",
+                             "{ value alpha midpoint sharpness ... }", (char*)NULL);
+            delete colorMap;
+            return TCL_ERROR;
+        }
+    } else {
+        if ((omapc % 2) != 0) {
+            Tcl_AppendResult(interp, "wrong # elements in opacitymap: should be ",
+                             "{ value alpha ... }", (char*)NULL);
+            delete colorMap;
+            return TCL_ERROR;
+        }
+    }
+    numVals = doSpline ? 4 : 2;
+    for (int i = 0; i < omapc; i += numVals) {
+        double val[numVals];
+        for (int j = 0; j < numVals; j++) {
+            if (Tcl_GetDoubleFromObj(interp, omapv[i+j], &val[j]) != TCL_OK) {
+                delete colorMap;
+                return TCL_ERROR;
+            }
+            if ((val[j] < 0.0) || (val[j] > 1.0)) {
+                Tcl_AppendResult(interp, "bad opacitymap value \"",
+                                 Tcl_GetString(omapv[i+j]),
+                                 "\": should be in the range [0,1]", (char*)NULL);
+                delete colorMap;
+                return TCL_ERROR;
+            }
+        }
+        ColorMap::OpacityControlPoint ocp;
+        ocp.value = val[0];
+        ocp.alpha = val[1];
+        if (numVals > 2) {
+            ocp.midpoint = val[2];
+            ocp.sharpness = val[3];
+        }
+        colorMap->addOpacityControlPoint(ocp);
+    }
+
+    colorMap->build();
+    g_renderer->addColorMap(name, colorMap);
+    return TCL_OK;
+}
+
+static int
 ColorMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -2508,7 +2629,7 @@ ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static CmdSpec colorMapOps[] = {
     {"add",    1, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
-    {"define", 3, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
+    {"define", 3, ColorMapAddSplineOp,       5, 7, "colorMapName ?-spline? colormap ?-spline? alphamap"},
     {"delete", 3, ColorMapDeleteOp,          2, 3, "?colorMapName?"},
     {"res",    1, ColorMapNumTableEntriesOp, 3, 4, "numTableEntries ?colorMapName?"}
 };
