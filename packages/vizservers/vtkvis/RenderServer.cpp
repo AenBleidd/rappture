@@ -219,7 +219,6 @@ sendAck(ClientData clientData, int fdOut)
 int
 VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
-    Tcl_DString ds;
     Tcl_Obj **objv;
     int objc;
     int i;
@@ -246,14 +245,11 @@ VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
     for (i = 0; i < 16; i++) {
         sprintf(fileName + i * 2, "%02x", digest[i]);
     }
-    Tcl_DStringInit(&ds);
-    Tcl_DStringAppend(&ds, STATSDIR, -1);
-    Tcl_DStringAppend(&ds, "/", 1);
-    Tcl_DStringAppend(&ds, fileName, 32);
-    path = Tcl_DStringValue(&ds);
+    std::ostringstream oss;
+    oss << STATSDIR << "/" << fileName;
+    path = oss.str().c_str();
 
     g_statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
-    Tcl_DStringFree(&ds);
     if (g_statsFile < 0) {
 	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
 	return -1;
