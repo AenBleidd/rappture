@@ -2336,8 +2336,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         first = false;
         objPtr = Tcl_NewStringObj("render_start", 12);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
-        /* server */
-        objPtr = Tcl_NewStringObj("server", 6);
+        /* renderer */
+        objPtr = Tcl_NewStringObj("renderer", 8);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         objPtr = Tcl_NewStringObj("vtkvis", 6);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
@@ -2345,8 +2345,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         objPtr = Tcl_NewStringObj("pid", 3);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewIntObj(getpid()));
-        /* machine */
-        objPtr = Tcl_NewStringObj("machine", 7);
+        /* host */
+        objPtr = Tcl_NewStringObj("host", 4);
         Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         gethostname(buf, BUFSIZ-1);
         buf[BUFSIZ-1] = '\0';
