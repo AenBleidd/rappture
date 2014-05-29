@@ -671,8 +671,10 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 
 itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
     array set attr2option {
-	"linewidth"	"-width"
+	"outline"	"-outline"
 	"color"		"-fill"
+	"fill"		"-fill"
+	"linewidth"	"-width"
     }
     # Set default options first and then let tool.xml override them.
     array set options {
