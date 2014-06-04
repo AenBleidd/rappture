@@ -1872,7 +1872,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
 	    array unset info
 	    array set info [$dataobj layer $layer]
             checkbutton $f.$layer \
-                -text $info(title) \
+                -text $info(label) \
                 -variable [itcl::scope _visibility($layer)] \
                 -command [itcl::code $this \
                               ChangeLayerVisibility $dataobj $layer] \

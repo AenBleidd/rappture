@@ -118,7 +118,6 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         # Unique identifier for layer.
         set name "layer[incr _nextLayer]"
         set child [$_tree insert $parent -label $name]
-        $_tree set $child "title" [$layers get $layer.label]
         set layerType [$layers get $layer.type] 
         if { ![info exists _layerTypes($layerType)] } {
             error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
