@@ -827,7 +827,7 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
             g_renderer->addImageLayer(name, opts);
         } else {
             Tcl_AppendResult(interp, "unknown image driver \"", driver,
-                             "\": should be 'gdal', 'tms' or 'wms'", (char*)NULL);
+                             "\": should be 'debug', 'gdal', 'tms', 'wms' or 'xyz'", (char*)NULL);
             return TCL_ERROR;
         }
     } else if (type[0] == 'e' && strcmp(type, "elevation") == 0) {
