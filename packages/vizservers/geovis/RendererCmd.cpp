@@ -26,6 +26,7 @@
 #include <osgEarthSymbology/LineSymbol>
 #include <osgEarthSymbology/RenderSymbol>
 
+#include <osgEarthDrivers/debug/DebugOptions>
 #include <osgEarthDrivers/gdal/GDALOptions>
 #include <osgEarthDrivers/tms/TMSOptions>
 #include <osgEarthDrivers/wms/WMSOptions>
@@ -778,9 +779,15 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     char *type = Tcl_GetString(objv[3]);
     if (type[0] == 'i' && strcmp(type, "image") == 0) {
         char *driver = Tcl_GetString(objv[4]);
-        char *url =  Tcl_GetString(objv[5]);
-
-        if (driver[0] == 'g' && strcmp(driver, "gdal") == 0) {
+        char *url = NULL;
+        if (objc > 6) {
+            url =  Tcl_GetString(objv[5]);
+        }
+        if (driver[0] == 'd' && strcmp(driver, "debug") == 0) {
+            osgEarth::Drivers::DebugOptions opts;
+            char *name = Tcl_GetString(objv[5]);
+            g_renderer->addImageLayer(name, opts);
+        } else if (driver[0] == 'g' && strcmp(driver, "gdal") == 0) {
             osgEarth::Drivers::GDALOptions opts;
             opts.url() = url;
             char *name = Tcl_GetString(objv[6]);
@@ -1092,7 +1099,7 @@ MapLayerVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapLayerOps[] = {
-    {"add",     1, MapLayerAddOp,       6, 0, "type url ?args? name"},
+    {"add",     1, MapLayerAddOp,       6, 0, "type driver ?url? ?args? name"},
     {"delete",  1, MapLayerDeleteOp,    3, 4, "?name?"},
     {"move",    1, MapLayerMoveOp,      5, 5, "pos name"},
     {"names",   1, MapLayerNamesOp,     3, 4, "?type?"},
