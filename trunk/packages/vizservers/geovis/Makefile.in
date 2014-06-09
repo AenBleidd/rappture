@@ -100,6 +100,7 @@ CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 SERVER_SRCS	= \
 		CmdProc.cpp \
+		FileUtil.cpp \
 		PPMWriter.cpp \
 		ReadBuffer.cpp \
 		Renderer.cpp \
@@ -155,9 +156,10 @@ distclean: clean clean-docs
 CmdProc.o: CmdProc.h
 CommandQueue.o: CommandQueue.h Trace.h
 md5.o: md5.h
+FileUtil.o: FileUtil.h
 PPMWriter.o: PPMWriter.h ResponseQueue.h Trace.h
 ReadBuffer.o: ReadBuffer.h Trace.h
-Renderer.o: Renderer.h Trace.h MouseCoordsTool.h ScaleBar.h
+Renderer.o: Renderer.h Trace.h MouseCoordsTool.h ScaleBar.h FileUtil.h
 RendererCmd.o: Renderer.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
 RenderServer.o: RenderServer.h RendererCmd.h Renderer.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h Stats.h
 ResponseQueue.o: ResponseQueue.h Trace.h
