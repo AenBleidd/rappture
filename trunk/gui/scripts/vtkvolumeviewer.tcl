@@ -86,6 +86,7 @@ itcl::class Rappture::VtkVolumeViewer {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
 
+    private variable _alphamap
     private variable _current "";       # Currently selected component 
     private variable _volcomponents   ; # Array of components found 
     private variable _componentsList   ; # Array of components found 
@@ -2628,9 +2629,11 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
 
+    set static 0
     if { ![info exists _parsedFunction($cname)] || ![info exists _cname2transferFunction($cname)] } {
         array set styles {
             -color BCGYR
+            -alphamap ""
             -levels 6
             -markers ""
         }
@@ -2652,11 +2655,19 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
         } else {
             ParseLevelsOption $cname $styles(-levels)
         }
+        if { $styles(-alphamap) != "" } {
+            set _alphamap($cname) $styles(-alphamap)
+        }
     } else {
         foreach {cmap amap} $_cname2transferFunction($cname) break
+    puts stderr "_cname2transferFunction($cname) amap=$amap"
     }
-
-    set amap [ComputeAlphamap $cname]
+    if { ![info exists _alphamap($cname)] } {
+        set amap [ComputeAlphamap $cname]
+    puts stderr "ComputeAlphamap amap=$amap"
+    } else {
+        set amap $_alphamap($cname)
+    }
     set opaqueAmap "0.0 1.0 1.0 1.0" 
     set _cname2transferFunction($cname) [list $cmap $amap]
     SendCmd [list colormap add $cname $cmap $amap]
