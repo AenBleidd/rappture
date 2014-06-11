@@ -124,11 +124,11 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         }
         $_tree set $child "name" $layer
         $_tree set $child "type" $layerType
-        foreach key { label description url } {
+        foreach key { label description } {
             $_tree set $child $key [$layers get $layer.$key] 
         }
         # Common settings (for all layer types) with defaults
-        foreach {key defval} { visible true } {
+        foreach { key defval } { visible true } {
             $_tree set $child $key $defval
             set val [$layers get $layer.$key]
             if {$val != ""} {
@@ -144,13 +144,21 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 $_tree set $child $key $val
             }
         }
-        set file [$layers get $layer.file] 
-        if { $file != "" } {
-            # FIXME: Add test for valid file path
-            $_tree set $child "url" $file
+        $_tree set $child "driver" "debug"
+        set gdal [$layers element -as type $layer.gdal]
+        if { $gdal != "" } {
+            foreach key { url } {
+                set value [$layers get $layer.gdal.$key]
+                $_tree set $child "gdal.$key" $value
+            }
+            set file [$layers get $layer.gdal.file] 
+            if { $file != "" } {
+                # FIXME: Add test for valid file path
+                $_tree set $child "url" $file
+            }
+            $_tree set $child "driver" "gdal"
         }
-        $_tree set $child "driver" "gdal"
-        set tms [$layers get $layer.tms.url]
+        set tms [$layers element -as type $layer.tms]
         if { $tms != "" } {
             foreach key { url tmsType format } {
                 set value [$layers get $layer.tms.$key]
@@ -158,7 +166,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             }
             $_tree set $child "driver" "tms"
         }
-        set wms [$layers get $layer.wms.url]
+        set wms [$layers element -as type $layer.wms]
         if { $wms != "" } {
             foreach key { url layers format transparent } {
                 set value [$layers get $layer.wms.$key]
@@ -166,7 +174,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             }
             $_tree set $child "driver" "wms"
         }
-        set xyz [$layers get $layer.xyz.url]
+        set xyz [$layers element -as type $layer.xyz]
         if { $xyz != "" } {
             foreach key { url } {
                 set value [$layers get $layer.xyz.$key]

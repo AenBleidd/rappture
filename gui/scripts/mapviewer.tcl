@@ -984,9 +984,11 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 	    array unset info
 	    array set info [$dataobj layer $layer]
             if { ![info exists _layers($layer)] } {
-		if { ![info exists info(url)] }  {
-		    continue
-		}
+                if { ![info exists info(url)] }  {
+                    if { $info(driver) != "debug" } {
+                        continue
+                    }
+                }
                 if { $_reportClientInfo }  {
                     set cinfo {}
                     lappend cinfo "tool_id"       [$dataobj hints toolId]
@@ -1725,6 +1727,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
+                    "debug" {
+                        SendCmd [list map layer add image debug $layer]
+                    }
                     "gdal" {
                         SendCmd [list map layer add image gdal \
                                      $info(url) $layer]
