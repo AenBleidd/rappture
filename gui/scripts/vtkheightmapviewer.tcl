@@ -122,7 +122,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     # heightmaps displayed.
     private variable _currentColormap ""
     private variable _currentNumIsolines -1
-    private variable _currentOpacity ""
 
     private variable _maxScale 100;     # This is the # of times the x-axis
                                         # and y-axis ranges can differ before
@@ -2262,7 +2261,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     array set style {
         -color BCGYR
         -levels 10
-        -opacity 100
+        -opacity 1.0
     }
     set stylelist [$dataobj style $comp]
     if { $stylelist != "" } {
@@ -2278,7 +2277,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     # the code to handle aberrant cases.
 
     if { $_changed(opacity) } {
-        set style(-opacity) $_settings(opacity)
+        set style(-opacity) [expr $_settings(opacity) * 0.01]
     }
     if { $_changed(numIsolines) } {
         set style(-levels) $_settings(numIsolines)
@@ -2293,7 +2292,6 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         set _settings(stretchToFit) $style(-stretchtofit)
         AdjustSetting stretchToFit
     }
-    set _currentOpacity $style(-opacity)
     if { $_currentNumIsolines != $style(-levels) } {
         set _currentNumIsolines $style(-levels)
         set _settings(numIsolines) $_currentNumIsolines
@@ -2315,6 +2313,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     SendCmd "heightmap lighting $_settings(isHeightmap) $tag"
     SendCmd "heightmap isolines $_settings(isolinesVisible) $tag"
     SendCmd "heightmap surface $_settings(colormapVisible) $tag"
+    SendCmd "heightmap opacity $style(-opacity) $tag"
+    set _settings(opacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkHeightmapViewer::IsValidObject { dataobj } {

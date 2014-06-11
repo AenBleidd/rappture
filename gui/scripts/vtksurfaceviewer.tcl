@@ -116,7 +116,6 @@ itcl::class Rappture::VtkSurfaceViewer {
     # heightmaps displayed.
     private variable _currentColormap ""
     private variable _currentNumContours -1
-    private variable _currentOpacity ""
 
     private variable _dataset2style    ;# maps dataobj-component to transfunc
 
@@ -1905,7 +1904,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     # the code to handle aberrant cases.
 
     if { $_changed(-surfaceopacity) } {
-        set style(-opacity) $_settings(-surfaceopacity)
+        set style(-opacity) [expr $_settings(-surfaceopacity) * 0.01]
     }
     if { $_changed(-numcontours) } {
         set style(-levels) $_settings(-numcontours)
@@ -1917,7 +1916,6 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
         SetCurrentColormap $style(-color)
         $itk_component(colormap) value $style(-color)
     }
-    set _currentOpacity $style(-opacity)
     if { $_currentNumContours != $style(-levels) } {
         set _currentNumContours $style(-levels)
         set _settings(-numcontours) $_currentNumContours
@@ -1943,12 +1941,11 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     set _settings(-surfacelighting) $style(-lighting)
     SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "polydata linewidth $style(-linewidth) $tag"
-    SendCmd "polydata opacity $_currentOpacity $tag"
-    set _settings(-surfaceopacity) $style(-opacity)
+    SendCmd "polydata opacity $style(-opacity) $tag"
+    set _settings(-surfaceopacity) [expr $style(-opacity) * 100.0]
     SetCurrentColormap $style(-color) 
     SendCmd "polydata wireframe $style(-wireframe) $tag"
     set _settings(-surfacewireframe) $style(-wireframe)
-    set _settings(-surfaceopacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkSurfaceViewer::IsValidObject { dataobj } {
