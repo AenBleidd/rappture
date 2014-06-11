@@ -117,7 +117,6 @@ itcl::class Rappture::VtkImageViewer {
     # images displayed.
     private variable _currentColormap ""
     private variable _currentNumIsolines -1
-    private variable _currentOpacity ""
 
     private variable _maxScale 100;     # This is the # of times the x-axis
                                         # and y-axis ranges can differ before
@@ -2042,7 +2041,7 @@ itcl::body Rappture::VtkImageViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color none
-        -opacity 100
+        -opacity 1.0
     }
     set stylelist [$dataobj style $comp]
     if { $stylelist != "" } {
@@ -2058,7 +2057,7 @@ itcl::body Rappture::VtkImageViewer::SetObjectStyle { dataobj comp } {
     # the code to handle aberrant cases.
 
     if { $_changed(opacity) } {
-        set style(-opacity) $_settings(opacity)
+        set style(-opacity) [expr $_settings(opacity) * 0.01]
     }
     if { $_changed(colormap) } {
         set style(-color) $_settings(colormap)
@@ -2070,7 +2069,6 @@ itcl::body Rappture::VtkImageViewer::SetObjectStyle { dataobj comp } {
         set _settings(stretchToFit) $style(-stretchtofit)
         AdjustSetting stretchToFit
     }
-    set _currentOpacity $style(-opacity)
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $_settings(outline) $tag"
@@ -2078,6 +2076,8 @@ itcl::body Rappture::VtkImageViewer::SetObjectStyle { dataobj comp } {
     SetCurrentColormap $style(-color) 
     set color [$itk_component(backingcolor) value]
     SendCmd "image color [Color2RGB $color] $tag"
+    SendCmd "image opacity $style(-opacity) $tag"
+    set _settings(opacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkImageViewer::IsValidObject { dataobj } {

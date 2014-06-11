@@ -119,7 +119,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     # heightmaps displayed.
     private variable _currentColormap ""
     private variable _currentNumContours -1
-    private variable _currentOpacity ""
 
     private variable _dataset2style    ;# maps dataobj-component to transfunc
 
@@ -237,11 +236,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         -isosurfaceedges                0
         -isosurfacelighting             1
         -isosurfaceopacity              60
-        -isosurfaceoutline              0
         -isosurfacevisible              1
         -isosurfacewireframe            0
         -legendvisible                  1
         -numcontours                    10
+        -outline                        0
         -xaxisgrid                      0
         -xcutplaneposition              50
         -xcutplanevisible               1
@@ -340,7 +339,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     }
     $itk_component(contour) select
     Rappture::Tooltip::for $itk_component(contour) \
-        "Don't display the isosurface"
+        "Hide the isosurface"
     pack $itk_component(contour) -padx 2 -pady 2
 
     itk_component add cutplane {
@@ -351,7 +350,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
             -command [itcl::code $this AdjustSetting -cutplanesvisible] 
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
-        "Show/Hide cutplanes"
+        "Show the cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
 
 
@@ -968,7 +967,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         StartBufferingCommands
     }
     set _first ""
-    SendCmd "contour3d visible 0"
+    SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1002,8 +1001,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline
-                # and contour3d
 		SendCmd "contour3d visible 1 $tag"
             }
         }
@@ -1038,7 +1035,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings -cutplanesvisible -isosurfacevisible -isosurfaceoutline
+    InitSettings -cutplanesvisible -isosurfacevisible -outline
     if { $_reset } {
 	# These are settings that rely on a dataset being loaded.
         InitSettings \
@@ -1441,7 +1438,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
 	    SendCmd "contour3d edges $bool"
         }
-        "-isosurfaceoutline" {
+        "-outline" {
             set bool $_settings($what)
 	    SendCmd "outline visible $bool"
         }
@@ -1612,8 +1609,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings(-isosurfaceoutline)] \
-        -command [itcl::code $this AdjustSetting -isosurfaceoutline] \
+        -variable [itcl::scope _settings(-outline)] \
+        -command [itcl::code $this AdjustSetting -outline] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
@@ -2128,7 +2125,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     # the code to handle aberrant cases.
 
     if { $_changed(-isosurfaceopacity) } {
-        set style(-opacity) $_settings(-isosurfaceopacity)
+        set style(-opacity) [expr $_settings(-isosurfaceopacity) * 0.01]
     }
     if { $_changed(-numcontours) } {
         set style(-levels) $_settings(-numcontours)
@@ -2140,7 +2137,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         SetCurrentColormap $style(-color)
         $itk_component(colormap) value $style(-color)
     }
-    set _currentOpacity $style(-opacity)
     if { $_currentNumContours != $style(-levels) } {
         set _currentNumContours $style(-levels)
         set _settings(-numcontours) $_currentNumContours
@@ -2162,19 +2158,18 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
-    set _settings(-isosurfaceoutline) $style(-outline)
+    set _settings(-outline) $style(-outline)
     set _settings(-isosurfaceedges) $style(-edges)
     #SendCmd "contour3d color [Color2RGB $settings(-color)] $tag"
     SendCmd "contour3d lighting $style(-lighting) $tag"
     set _settings(-isosurfacelighting) $style(-lighting)
     SendCmd "contour3d linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "contour3d linewidth $style(-linewidth) $tag"
-    SendCmd "contour3d opacity $_currentOpacity $tag"
-    set _settings(-isosurfaceopacity) $style(-opacity)
+    SendCmd "contour3d opacity $style(-opacity) $tag"
+    set _settings(-isosurfaceopacity) [expr $style(-opacity) * 100.0]
     SetCurrentColormap $style(-color) 
     SendCmd "contour3d wireframe $style(-wireframe) $tag"
     set _settings(-isosurfacewireframe) $style(-wireframe)
-    set _settings(-isosurfaceopacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::IsValidObject { dataobj } {

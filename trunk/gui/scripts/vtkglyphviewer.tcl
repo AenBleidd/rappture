@@ -117,7 +117,6 @@ itcl::class Rappture::VtkGlyphViewer {
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
     private variable _currentColormap ""
-    private variable _currentOpacity ""
 
     private variable _dataset2style    ;# maps dataobj-component to transfunc
 
@@ -2181,7 +2180,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     # the code to handle aberrant cases.
 
     if { $_changed(glyphOpacity) } {
-        set style(-opacity) $_settings(glyphOpacity)
+        set style(-opacity) [expr $_settings(glyphOpacity) * 0.01]
     }
     if { $_changed(colormap) } {
         set style(-colormap) $_settings(colormap)
@@ -2189,7 +2188,6 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     if { $_currentColormap == "" } {
         $itk_component(colormap) value $style(-colormap)
     }
-    set _currentOpacity $style(-opacity)
     SendCmd "glyphs add $style(-shape) $tag"
     set _settings(glyphShape) $style(-shape)
     $itk_component(gshape) value $style(-shape)
@@ -2234,11 +2232,10 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     SendCmd "glyphs linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "glyphs linewidth $style(-linewidth) $tag"
     SendCmd "glyphs ptsize $style(-ptsize) $tag"
-    SendCmd "glyphs opacity $_currentOpacity $tag"
-    set _settings(glyphOpacity) $style(-opacity)
+    SendCmd "glyphs opacity $style(-opacity) $tag"
+    set _settings(glyphOpacity) [expr $style(-opacity) * 100.0]
     SendCmd "glyphs wireframe $style(-wireframe) $tag"
     set _settings(glyphWireframe) $style(-wireframe)
-    set _settings(glyphOpacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkGlyphViewer::IsValidObject { dataobj } {
