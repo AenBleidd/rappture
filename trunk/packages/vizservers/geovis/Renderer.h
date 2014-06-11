@@ -347,9 +347,13 @@ public:
 
     void mapNodeUpdate();
 
+    std::string getCanonicalPath(const std::string& url) const;
+
 private:
     typedef std::tr1::unordered_map<ColorMapId, osg::ref_ptr<osg::TransferFunction1D> > ColorMapHashmap;
     typedef std::tr1::unordered_map<ViewpointId, osgEarth::Viewpoint> ViewpointHashmap;
+
+    void setupCache();
 
     void initViewer();
 
@@ -384,6 +388,7 @@ private:
     ColorMapHashmap _colorMaps;
 
     std::string _baseURI;
+    std::string _cacheDir;
 
     osg::ref_ptr<osg::Group> _sceneRoot;
     osg::ref_ptr<osg::Group> _graticule;

@@ -18,6 +18,9 @@
 #include <sys/uio.h>
 #include <tcl.h>
 
+#include <osgDB/FileUtils>
+#include <osgDB/FileNameUtils>
+
 #include <osgEarth/Registry>
 #include <osgEarthFeatures/FeatureModelSource>
 #include <osgEarthSymbology/Color>
@@ -779,9 +782,14 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     char *type = Tcl_GetString(objv[3]);
     if (type[0] == 'i' && strcmp(type, "image") == 0) {
         char *driver = Tcl_GetString(objv[4]);
-        char *url = NULL;
+        std::string url;
         if (objc > 6) {
-            url =  Tcl_GetString(objv[5]);
+            url = g_renderer->getCanonicalPath(std::string(Tcl_GetString(objv[5])));
+            if (url.empty()) {
+                Tcl_AppendResult(interp, "file not found: \"",
+                                 url.c_str(), "\"", (char*)NULL);
+                return TCL_ERROR;
+            }
         }
         if (driver[0] == 'd' && strcmp(driver, "debug") == 0) {
             osgEarth::Drivers::DebugOptions opts;
@@ -832,7 +840,12 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else if (type[0] == 'e' && strcmp(type, "elevation") == 0) {
         char *driver = Tcl_GetString(objv[4]);
-        char *url =  Tcl_GetString(objv[5]);
+        std::string url = g_renderer->getCanonicalPath(std::string(Tcl_GetString(objv[5])));
+        if (url.empty()) {
+            Tcl_AppendResult(interp, "file not found: \"",
+                             url.c_str(), "\"", (char*)NULL);
+            return TCL_ERROR;
+        }
 
         if (driver[0] == 'g' && strcmp(driver, "gdal") == 0) {
             osgEarth::Drivers::GDALOptions opts;
@@ -855,7 +868,12 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else if (type[0] == 'p' && strcmp(type, "point") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
+        std::string url = g_renderer->getCanonicalPath(std::string(Tcl_GetString(objv[4])));
+        if (url.empty()) {
+            Tcl_AppendResult(interp, "file not found: \"",
+                             url.c_str(), "\"", (char*)NULL);
+            return TCL_ERROR;
+        }
         char *name = Tcl_GetString(objv[5]);
 
         opts.url() = url;
@@ -877,7 +895,12 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->addModelLayer(name, geomOpts);
     } else if (type[0] == 'p' && strcmp(type, "polygon") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
+        std::string url = g_renderer->getCanonicalPath(std::string(Tcl_GetString(objv[4])));
+        if (url.empty()) {
+            Tcl_AppendResult(interp, "file not found: \"",
+                             url.c_str(), "\"", (char*)NULL);
+            return TCL_ERROR;
+        }
         char *name = Tcl_GetString(objv[5]);
         opts.url() = url;
 
@@ -897,7 +920,12 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->addModelLayer(name, geomOpts);
     } else if (type[0] == 'l' && strcmp(type, "line") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
+        std::string url = g_renderer->getCanonicalPath(std::string(Tcl_GetString(objv[4])));
+        if (url.empty()) {
+            Tcl_AppendResult(interp, "file not found: \"",
+                             url.c_str(), "\"", (char*)NULL);
+            return TCL_ERROR;
+        }
         char *name = Tcl_GetString(objv[5]);
         opts.url() = url;
 
@@ -924,7 +952,12 @@ MapLayerAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->addModelLayer(name, geomOpts);
    } else if (type[0] == 't' && strcmp(type, "text") == 0) {
         osgEarth::Drivers::OGRFeatureOptions opts;
-        char *url =  Tcl_GetString(objv[4]);
+        std::string url = g_renderer->getCanonicalPath(std::string(Tcl_GetString(objv[4])));
+        if (url.empty()) {
+            Tcl_AppendResult(interp, "file not found: \"",
+                             url.c_str(), "\"", (char*)NULL);
+            return TCL_ERROR;
+        }
         char *content = Tcl_GetString(objv[5]);
         char *priority = Tcl_GetString(objv[6]);
         char *name = Tcl_GetString(objv[7]);
