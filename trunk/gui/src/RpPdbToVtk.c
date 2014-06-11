@@ -695,8 +695,10 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	PdbAtom *atomPtr;
 
 	atomPtr = Tcl_GetHashValue(hPtr);
+#if 0
 	fprintf(stderr, "%d %s %d connections\n", atomPtr->ordinal,
 		elements[atomPtr->number].symbol, atomPtr->numConnections);
+#endif
     }
     sprintf(mesg, "POINT_DATA %d\n", atomTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);
