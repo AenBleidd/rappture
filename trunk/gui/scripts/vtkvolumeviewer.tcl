@@ -2629,7 +2629,6 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
 
-    set static 0
     if { ![info exists _parsedFunction($cname)] || ![info exists _cname2transferFunction($cname)] } {
         array set styles {
             -color BCGYR
@@ -2660,11 +2659,9 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
         }
     } else {
         foreach {cmap amap} $_cname2transferFunction($cname) break
-    puts stderr "_cname2transferFunction($cname) amap=$amap"
     }
     if { ![info exists _alphamap($cname)] } {
         set amap [ComputeAlphamap $cname]
-    puts stderr "ComputeAlphamap amap=$amap"
     } else {
         set amap $_alphamap($cname)
     }
