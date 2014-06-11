@@ -11,17 +11,25 @@
 #include <cmath>
 #include <cstdlib>
 
+#include <sys/types.h>
+#include <unistd.h> // For getpid()
+
 #include <GL/gl.h>
 
 #ifdef WANT_TRACE
 #include <sys/time.h>
 #endif
 
+#include <osgDB/FileUtils>
+#include <osgDB/FileNameUtils>
 #include <osgGA/StateSetManipulator>
 #include <osgGA/GUIEventAdapter>
 #include <osgViewer/ViewerEventHandlers>
 
 #include <osgEarth/Version>
+#include <osgEarth/FileUtils>
+#include <osgEarth/Cache>
+#include <osgEarthDrivers/cache_filesystem/FileSystemCache>
 #include <osgEarth/MapNode>
 #include <osgEarth/Bounds>
 #include <osgEarth/Profile>
@@ -30,6 +38,7 @@
 #include <osgEarth/ImageLayer>
 #include <osgEarth/ElevationLayer>
 #include <osgEarth/ModelLayer>
+#include <osgEarth/DateTime>
 #include <osgEarthUtil/EarthManipulator>
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
 #include <osgEarthUtil/Sky>
@@ -49,7 +58,11 @@
 #include <osgEarthDrivers/engine_mp/MPTerrainEngineOptions>
 
 #include "Renderer.h"
+#if 0
+#include "SingleWindow.h"
+#endif
 #include "ScaleBar.h"
+#include "FileUtil.h"
 #include "Trace.h"
 
 #define MSECS_ELAPSED(t1, t2) \
@@ -144,7 +157,22 @@ Renderer::~Renderer()
 {
     TRACE("Enter");
 
+    removeDirectory(_cacheDir.c_str());
+
     TRACE("Leave");
+}
+
+void Renderer::setupCache()
+{
+    std::ostringstream dir;
+    dir << "/tmp/geovis_cache" << getpid();
+    _cacheDir = dir.str();
+    const char *path = _cacheDir.c_str();
+    TRACE("Cache dir: %s", path);
+    removeDirectory(path);
+    if (!osgDB::makeDirectory(_cacheDir)) {
+        ERROR("Failed to create directory '%s'", path);
+    }
 }
 
 void Renderer::initColorMaps()
@@ -233,6 +261,16 @@ void Renderer::initViewer() {
     if (_viewer.valid())
         return;
     _viewer = new osgViewer::Viewer();
+#if 1
+    osg::DisplaySettings *ds = _viewer->getDisplaySettings();
+    if (ds == NULL) {
+        ds = osg::DisplaySettings::instance().get();
+    }
+    ds->setDoubleBuffer(false);
+    ds->setMinimumNumAlphaBits(8);
+    ds->setMinimumNumStencilBits(8);
+    ds->setNumMultiSamples(0);
+#endif
     _viewer->setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
     _viewer->getDatabasePager()->setUnrefImageDataAfterApplyPolicy(false, false);
     _viewer->setReleaseContextAtEndOfFrameHint(false);
@@ -248,23 +286,26 @@ void Renderer::initViewer() {
 
 void Renderer::finalizeViewer() {
     initViewer();
-    int screen = 0;
-    const char *displayEnv = getenv("DISPLAY");
-    if (displayEnv != NULL) {
-        // 3 parts: host, display, screen
-        int part = 0;
-        for (size_t c = 0; c < strlen(displayEnv); c++) {
-            if (displayEnv[c] == ':') {
-                part = 1;
-            } else if (part == 1 && displayEnv[c] == '.') {
-                part = 2;
-            } else if (part == 2) {
-                screen = atoi(&displayEnv[c]);
-                break;
+    TRACE("Before _viewer->isRealized()");
+    if (!_viewer->isRealized()) {
+        int screen = 0;
+        const char *displayEnv = getenv("DISPLAY");
+        if (displayEnv != NULL) {
+            TRACE("DISPLAY: %s", displayEnv);
+            // 3 parts: host, display, screen
+            int part = 0;
+            for (size_t c = 0; c < strlen(displayEnv); c++) {
+                if (displayEnv[c] == ':') {
+                    part = 1;
+                } else if (part == 1 && displayEnv[c] == '.') {
+                    part = 2;
+                } else if (part == 2) {
+                    screen = atoi(&displayEnv[c]);
+                    break;
+                }
             }
         }
-    }
-    if (!_viewer->isRealized()) {
+        TRACE("Using screen: %d", screen);
 #ifdef USE_OFFSCREEN_RENDERING
 #ifdef USE_PBUFFER
         osg::ref_ptr<osg::GraphicsContext> pbuffer;
@@ -316,8 +357,19 @@ void Renderer::finalizeViewer() {
 #else
         _captureCallback = new ScreenCaptureCallback();
         _viewer->getCamera()->setFinalDrawCallback(_captureCallback.get());
-        //_viewer->getCamera()->getDisplaySettings()->setDoubleBuffer(false);
+#if 1
         _viewer->setUpViewInWindow(0, 0, _windowWidth, _windowHeight, screen);
+#else
+        SingleWindow *windowConfig = new SingleWindow(0, 0, _windowWidth, _windowHeight, screen);
+        osg::DisplaySettings *ds = windowConfig->getActiveDisplaySetting(*_viewer.get());
+        ds->setDoubleBuffer(false);
+        ds->setMinimumNumAlphaBits(8);
+        ds->setMinimumNumStencilBits(8);
+        ds->setNumMultiSamples(0);
+        windowConfig->setWindowDecoration(false);
+        windowConfig->setOverrideRedirect(false);
+        _viewer->apply(windowConfig);
+#endif
 #endif
         _viewer->realize();
         initColorMaps();
@@ -536,7 +588,7 @@ void Renderer::initEarthManipulator()
     _viewer->setCameraManipulator(_manipulator.get());
     _manipulator->setNode(NULL);
     _manipulator->setNode(_sceneRoot.get());
-    _manipulator->computeHomePosition();
+    //_manipulator->computeHomePosition();
 }
 
 void Renderer::loadEarthFile(const char *path)
@@ -613,6 +665,11 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         mapOpts.profile() = osgEarth::ProfileOptions("global-mercator");
     }
 
+    setupCache();
+    osgEarth::Drivers::FileSystemCacheOptions cacheOpts;
+    cacheOpts.rootPath() = _cacheDir;
+    mapOpts.cache() = cacheOpts;
+
     initViewer();
 
     //mapOpts.referenceURI() = _baseURI;
@@ -633,20 +690,27 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
     osgEarth::MapNode *mapNode = new osgEarth::MapNode(map, mapNodeOpts);
     _mapNode = mapNode;
     if (_map->isGeocentric()) {
+        osgEarth::DateTime now;
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
-        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode::create(mapNode);
-        sky->addChild(mapNode.get());
-        _sceneRoot = sky;
-#else
-#if 0
-        // XXX: Crashes
-        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode(map);
-        sky->addChild(mapNode.get());
+        TRACE("Creating SkyNode");
+        osgEarth::Util::SkyOptions sykOpts;
+        skyOpts.setDriver("gl");
+        skyOpts.hours() = now.hours();
+        skyOpts.ambient() = 0.2f;
+        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode::create(skyOpts, mapNode);
+        sky->addChild(mapNode);
+        sky->attach(_viewer.get(), 0);
         _sceneRoot = sky;
 #else
         _sceneRoot = new osg::Group();
         _sceneRoot->addChild(_mapNode.get());
-#endif
+
+        TRACE("Creating SkyNode");
+        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode(map);
+        _sceneRoot->addChild(sky);
+        sky->setAmbientBrightness(0.2f);
+        sky->setDateTime(now);
+        sky->attach(_viewer.get(), 0);
 #endif
     } else {
         _sceneRoot = new osg::Group();
@@ -1708,4 +1772,17 @@ double Renderer::computeMapScale()
         _scaleBar->setWidth(pixelWidth);
     }
     return scale;
+}
+
+std::string Renderer::getCanonicalPath(const std::string& url) const
+{
+    std::string retStr;
+    std::string proto = osgDB::getServerProtocol(url);
+    if (proto.empty()) {
+        retStr = osgDB::getRealPath(url);
+        if (!osgDB::fileExists(retStr)) {
+            retStr = "";
+        }
+    }
+    return retStr;
 }
