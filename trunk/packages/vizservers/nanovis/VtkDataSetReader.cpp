@@ -108,14 +108,16 @@ nv::load_vtk_volume_stream(const char *tag, const char *bytes, int nBytes)
     int ix = 0;
     int iy = 0;
     int iz = 0;
+    vtkDataArray *mask = resampledDataSet->GetPointData()->GetArray("vtkValidPointMask");
     for (int p = 0; p < npts; p++) {
         int nindex = p * 4;
         double val;
+        int loc[3];
+        loc[0] = ix; loc[1] = iy; loc[2] = iz;
+        vtkIdType idx = resampledDataSet->ComputePointId(loc);
+        bool valid = (mask->GetComponent(idx, 0) != 0.0);
         if (isVectorData) {
             double vec[3];
-            int loc[3];
-            loc[0] = ix; loc[1] = iy; loc[2] = iz;
-            vtkIdType idx = resampledDataSet->ComputePointId(loc);
             resampledDataSet->GetPointData()->GetVectors()->GetTuple(idx, vec);
             val = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
             data[nindex] = (float)val;
@@ -123,16 +125,19 @@ nv::load_vtk_volume_stream(const char *tag, const char *bytes, int nBytes)
             data[nindex+2] = (float)vec[1];
             data[nindex+3] = (float)vec[2];
         } else {
-            val = resampledDataSet->GetScalarComponentAsDouble(ix, iy, iz, 0);
-            data[nindex] = (float)val;
+            //val = resampledDataSet->GetScalarComponentAsDouble(ix, iy, iz, 0);
+            val = resampledDataSet->GetPointData()->GetScalars()->GetComponent(idx, 0);
+            data[nindex] = valid ? (float)val : -FLT_MAX;
         }
-         if (val < vmin) {
-            vmin = val;
-        } else if (val > vmax) {
-            vmax = val;
-        }
-        if (val != 0.0 && val < nzero_min) {
-            nzero_min = val;
+        if (valid) {
+            if (val < vmin) {
+                vmin = val;
+            } else if (val > vmax) {
+                vmax = val;
+            }
+            if (val != 0.0 && val < nzero_min) {
+                nzero_min = val;
+            }
         }
 
         if (++ix >= nx) {
