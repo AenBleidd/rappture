@@ -804,7 +804,7 @@ itcl::body Rappture::Field::Build {} {
 	}
         set _comp2style($cname) ""
         if { $type == "" } {
-            puts stderr "WARNING: ignoring field component \"$_path.$cname\": no data found."
+            puts stderr "WARNING: Ignoring field component \"$_path.$cname\": no data found."
             continue
         }
         # Save the extents of the component
@@ -880,7 +880,7 @@ itcl::body Rappture::Field::Build {} {
         } elseif {$type == "vtk"} {
             set contents [$_field get $cname.vtk]
             if { $contents == "" } {
-                puts stderr "WARNING: no data fo \"$_path.$cname.vtk\""
+                puts stderr "WARNING: No data fo \"$_path.$cname.vtk\""
                 continue;               # Ignore this component
             }
             ReadVtkDataSet $cname $contents
@@ -905,7 +905,7 @@ itcl::body Rappture::Field::Build {} {
             set data [$_field get -decode no $cname.$type]
             set contents [Rappture::encoding::decode -as zb64 $data]
             if { $contents == "" } {
-                puts stderr "WARNING: no data for \"$_path.$cname.$type\""
+                puts stderr "WARNING: No data for \"$_path.$cname.$type\""
                 continue;               # Ignore this component
             }
             set vector ""
@@ -974,7 +974,7 @@ itcl::body Rappture::Field::Build {} {
         #puts stderr "Field $cname type is: $_type"
     }
     if { [array size _isValidComponent] == 0 } {
-        puts stderr "WARNING: no valid components for field \"$_path\""
+        puts stderr "ERROR: All components of field \"$_path\" are invalid."
         return 0
     }
     # Sanity check.  Verify that all components of the field have the same 
@@ -986,7 +986,7 @@ itcl::body Rappture::Field::Build {} {
             continue
         }
         if { $dim != $_comp2dims($cname) } {
-            puts stderr "WARNING: field can't have components of different dimensions: [join [array get _comp2dims] ,]"
+            puts stderr "WARNING: A field can't have components of different dimensions: [join [array get _comp2dims] ,]"
             return 0
         }
     }
@@ -1183,7 +1183,7 @@ itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
     set dataset [$reader GetOutput]
     set dataAttrs [$dataset GetPointData]
     if { $dataAttrs == ""} {
-	puts stderr "WARNING: no point data found in \"$_path\""
+	puts stderr "WARNING: No point data found in \"$_path\""
         rename $reader ""
         return 0
     }
@@ -1246,13 +1246,13 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         set yv [blt::vector create \#auto]
         set dataAttrs [$dataset GetPointData]
         if { $dataAttrs == ""} {
-            puts stderr "WARNING: no point data found in \"$_path\""
+            puts stderr "WARNING: No point data found in \"$_path\""
             rename $reader ""
             return 0
         }
         set array [$dataAttrs GetScalars]
         if { $array == ""} {
-            puts stderr "WARNING: no scalar point data found in \"$_path\""
+            puts stderr "WARNING: No scalar point data found in \"$_path\""
             rename $reader ""
             return 0
         }
@@ -1268,7 +1268,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     lappend limits z [list $zmin $zmax]
     set dataAttrs [$dataset GetPointData]
     if { $dataAttrs == ""} {
-	puts stderr "WARNING: no point data found in \"$_path\""
+	puts stderr "WARNING: No point data found in \"$_path\""
         rename $reader ""
         return 0
     }
@@ -1539,7 +1539,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	$xv seq 0 1 [$yv length]
 	# sort x-coords in increasing order
 	$xv sort $yv
-	
 	set _comp2dims($cname) "1D"
 	set _comp2xy($cname) [list $xv $yv]
 	incr _counter
@@ -1555,6 +1554,14 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         if { $_viewer == "" } {
             set _viewer "contour"
         }
+        set numFieldValues [$v length]
+        set numComponentsPerPoint [numComponents $cname]
+        set numPoints [$mesh numpoints]
+        if { ($numPoints * $numComponentsPerPoint) != $numFieldValues } {
+            puts stderr "ERROR: Number of points in mesh and field values don't agree"
+            return 0
+        }
+
 	set _comp2dims($cname) "[$mesh dimensions]D"
 	set _comp2mesh($cname) [list $mesh $v]
 	set _comp2style($cname) [$_field get $cname.style]
@@ -1580,6 +1587,13 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	set v [blt::vector create \#auto]
 	$v set [$_field get $cname.values]
         if { [$v length] == 0 } {
+            return 0
+        }
+        set numFieldValues [$v length]
+        set numComponentsPerPoint [numComponents $cname]
+        set numPoints [$mesh numpoints]
+        if { ($numPoints * $numComponentsPerPoint) != $numFieldValues } {
+            puts stderr "ERROR: Number of points in mesh and field values don't agree"
             return 0
         }
         set _comp2dims($cname) "[$mesh dimensions]D"
@@ -1721,7 +1735,7 @@ itcl::body Rappture::Field::DicomToVtk.old { cname path } {
     lappend limits z [list $zmin $zmax]
     set dataAttrs [$dataset GetPointData]
     if { $dataAttrs == ""} {
-	puts stderr "WARNING: no point data found in \"$_path\""
+	puts stderr "WARNING: No point data found in \"$_path\""
         rename $reader ""
         return 0
     }
