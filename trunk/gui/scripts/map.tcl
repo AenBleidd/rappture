@@ -154,9 +154,30 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             set file [$layers get $layer.gdal.file] 
             if { $file != "" } {
                 # FIXME: Add test for valid file path
-                $_tree set $child "url" $file
+                $_tree set $child "gdal.url" $file
             }
             $_tree set $child "driver" "gdal"
+        }
+        set ogr [$layers element -as type $layer.ogr]
+        if { $ogr != "" } {
+            foreach key { url } {
+                set value [$layers get $layer.ogr.$key]
+                $_tree set $child "ogr.$key" $value
+            }
+            set file [$layers get $layer.ogr.file] 
+            if { $file != "" } {
+                # FIXME: Add test for valid file path
+                $_tree set $child "ogr.url" $file
+            }
+            $_tree set $child "driver" "ogr"
+        }
+        set tfs [$layers element -as type $layer.tfs]
+        if { $tfs != "" } {
+            foreach key { url format } {
+                set value [$layers get $layer.tfs.$key]
+                $_tree set $child "tfs.$key" $value
+            }
+            $_tree set $child "driver" "tfs"
         }
         set tms [$layers element -as type $layer.tms]
         if { $tms != "" } {
@@ -165,6 +186,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 $_tree set $child "tms.$key" $value
             }
             $_tree set $child "driver" "tms"
+        }
+        set wfs [$layers element -as type $layer.wfs]
+        if { $wfs != "" } {
+            foreach key { url typename outputformat maxfeatures request_buffer } {
+                set value [$layers get $layer.wfs.$key]
+                $_tree set $child "wfs.$key" $value
+            }
+            $_tree set $child "driver" "wfs"
         }
         set wms [$layers element -as type $layer.wms]
         if { $wms != "" } {

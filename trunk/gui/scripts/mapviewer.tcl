@@ -984,11 +984,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 	    array unset info
 	    array set info [$dataobj layer $layer]
             if { ![info exists _layers($layer)] } {
-                if { ![info exists info(url)] }  {
-                    if { $info(driver) != "debug" } {
-                        continue
-                    }
-                }
                 if { $_reportClientInfo }  {
                     set cinfo {}
                     lappend cinfo "tool_id"       [$dataobj hints toolId]
@@ -1732,7 +1727,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                     "gdal" {
                         SendCmd [list map layer add image gdal \
-                                     $info(url) $layer]
+                                     $info(gdal.url) $layer]
                     }
                     "tms" {
                         SendCmd [list map layer add image tms \
@@ -1767,7 +1762,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 switch -- $info(driver)  {
                     "gdal" {
                         SendCmd [list map layer add elevation gdal \
-                                     $info(url) $layer]
+                                     $info(gdal.url) $layer]
                     }
                     "tms" {
                         SendCmd [list map layer add elevation tms \
@@ -1789,7 +1784,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
-            SendCmd [list map layer add line $info(url) $layer]
+            SendCmd [list map layer add line $info(ogr.url) $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "polygon" {
@@ -1804,7 +1799,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
-            SendCmd [list map layer add polygon $info(url) $layer]
+            SendCmd [list map layer add polygon $info(ogr.url) $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "label" {
@@ -1833,7 +1828,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             } else {
                 set priorityExpr ""
             }
-            SendCmd [list map layer add text $info(url) $contentExpr $priorityExpr $layer]
+            SendCmd [list map layer add text $info(ogr.url) $contentExpr $priorityExpr $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
     }
