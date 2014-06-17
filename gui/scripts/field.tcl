@@ -880,7 +880,7 @@ itcl::body Rappture::Field::Build {} {
         } elseif {$type == "vtk"} {
             set contents [$_field get $cname.vtk]
             if { $contents == "" } {
-                puts stderr "WARNING: No data fo \"$_path.$cname.vtk\""
+                puts stderr "WARNING: No data for \"$_path.$cname.vtk\""
                 continue;               # Ignore this component
             }
             ReadVtkDataSet $cname $contents
