@@ -1557,8 +1557,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         set numFieldValues [$v length]
         set numComponentsPerPoint [numComponents $cname]
         set numPoints [$mesh numpoints]
-        if { ($numPoints * $numComponentsPerPoint) != $numFieldValues } {
-            puts stderr "ERROR: Number of points in mesh and field values don't agree"
+        set numExpectedPoints [expr $numPoints * $numComponentsPerPoint]
+        if { $numExpectedPoints != $numFieldValues } {
+            puts stderr "ERROR: Number of points in mesh ($numExpectedPoints) and number of field values ($numFieldValues) don't agree"
             return 0
         }
 
@@ -1592,8 +1593,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         set numFieldValues [$v length]
         set numComponentsPerPoint [numComponents $cname]
         set numPoints [$mesh numpoints]
-        if { ($numPoints * $numComponentsPerPoint) != $numFieldValues } {
-            puts stderr "ERROR: Number of points in mesh and field values don't agree"
+        set numExpectedPoints [expr $numPoints * $numComponentsPerPoint]
+        if { $numExpectedPoints != $numFieldValues } {
+            puts stderr "ERROR: Number of points in mesh ($numExpectedPoints) and number of field values ($numFieldValues) don't agree"
             return 0
         }
         set _comp2dims($cname) "[$mesh dimensions]D"
