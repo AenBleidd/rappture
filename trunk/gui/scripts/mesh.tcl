@@ -481,6 +481,8 @@ itcl::body Rappture::Mesh::ReadVtk { path } {
     $reader SetFileName $tmpfile
     $reader Update
     set output [$reader GetOutput]
+    set _numPoints [$output GetNumberOfPoints]
+    set _numCells [$output GetNumberOfCells]
     foreach { xmin xmax ymin ymax zmin zmax } [$output GetBounds] break
     set _limits(x) [list $xmin $xmax]
     set _limits(y) [list $ymin $ymax]
