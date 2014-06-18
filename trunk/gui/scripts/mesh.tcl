@@ -454,7 +454,6 @@ itcl::body Rappture::Mesh::GetInt { path } {
     return $value
 }
 
-
 itcl::body Rappture::Mesh::ReadVtk { path } {
     set _type "vtk"
 
@@ -788,22 +787,23 @@ itcl::body Rappture::Mesh::WritePointCloud { path xv yv zv } {
 itcl::body Rappture::Mesh::WriteTriangles { path xv yv zv triangles } {
     set _type "triangles"
     set _numPoints [$xv length]
-    set count 0
+    set _numCells 0
     set data {}
     set celltypes {}
     foreach { a b c } $triangles {
 	append data " 3 $a $b $c\n"
 	append celltypes "5\n"
-	incr count
+	incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 4]\n"
+    set count [expr $_numCells * 4]
+    append out "CELLS $_numCells $count\n"
     append out $data
-    append out "CELL_TYPES $count\n"
+    append out "CELL_TYPES $_numCells\n"
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
@@ -819,22 +819,23 @@ itcl::body Rappture::Mesh::WriteTriangles { path xv yv zv triangles } {
 itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
     set _type "quads"
     set _numPoints [$xv length]
-    set count 0
+    set _numCells 0
     set data {}
     set celltypes {}
     foreach { a b c d } $quads {
 	append data " 4 $a $b $c $d\n"
 	append celltypes "9\n"
-	incr count
+	incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 5]\n"
+    set count [expr $_numCells * 5]
+    append out "CELLS $_numCells $count\n"
     append out $data
-    append out "CELL_TYPES $count\n"
+    append out "CELL_TYPES $_numCells\n"
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
@@ -850,22 +851,23 @@ itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
 itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
     set _type "tetrahedrons"
     set _numPoints [$xv length]
-    set count 0
+    set _numCells 0
     set data {}
     set celltypes {}
     foreach { a b c d } $tetras {
 	append data " 4 $a $b $c $d\n"
 	append celltypes "10\n"
-	incr count
+	incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 5]\n"
+    set count [expr $_numCells * 5]
+    append out "CELLS $_numCells $count\n"
     append out $data
-    append out "CELL_TYPES $count\n"
+    append out "CELL_TYPES $_numCells\n"
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
@@ -878,22 +880,23 @@ itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
 itcl::body Rappture::Mesh::WriteHexahedrons { path xv yv zv hexas } {
     set _type "hexahedrons"
     set _numPoints [$xv length]
-    set count 0
+    set _numCells 0
     set data {}
     set celltypes {}
     foreach { a b c d e f g h } $hexas {
 	append data " 8 $a $b $c $d $e $f $g $h\n"
 	append celltypes "12\n"
-	incr count
+	incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 9]\n"
+    set count [expr $_numCells * 9]
+    append out "CELLS $_numCells $count\n"
     append out $data
-    append out "CELL_TYPES $count\n"
+    append out "CELL_TYPES $_numCells\n"
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
@@ -906,22 +909,23 @@ itcl::body Rappture::Mesh::WriteHexahedrons { path xv yv zv hexas } {
 itcl::body Rappture::Mesh::WriteWedges { path xv yv zv wedges } {
     set _type "wedges"
     set _numPoints [$xv length]
-    set count 0
+    set _numCells 0
     set data {}
     set celltypes {}
     foreach { a b c d e f } $wedges {
 	append data " 6 $a $b $c $d $e $f\n"
 	append celltypes "13\n"
-	incr count
+	incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 7]\n"
+    set count [expr $_numCells * 7]
+    append out "CELLS $_numCells $count\n"
     append out $data
-    append out "CELL_TYPES $count\n"
+    append out "CELL_TYPES $_numCells\n"
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
@@ -934,22 +938,23 @@ itcl::body Rappture::Mesh::WriteWedges { path xv yv zv wedges } {
 itcl::body Rappture::Mesh::WritePyramids { path xv yv zv pyramids } {
     set _type "pyramids"
     set _numPoints [$xv length]
-    set count 0
+    set _numCells 0
     set data {}
     set celltypes {}
     foreach { a b c d e } $pyramids {
 	append data " 5 $a $b $c $d $e\n"
 	append celltypes "14\n"
-	incr count
+	incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 6]\n"
+    set count [expr $_numCells * 6]
+    append out "CELLS $_numCells $count\n"
     append out $data
-    append out "CELL_TYPES $count\n"
+    append out "CELL_TYPES $_numCells\n"
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
