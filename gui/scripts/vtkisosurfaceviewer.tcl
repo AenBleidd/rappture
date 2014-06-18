@@ -1066,6 +1066,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
         set _reset 0
     }
+    # Redraw the legend even if we're using the same colormap. The position
+    # of the isolines may have changed because the range of data changed.
+    DrawLegend
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -1344,7 +1347,19 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-cutplanesvisible" {
             set bool $_settings($what)
-            SendCmd "cutplane visible $bool"
+            SendCmd "cutplane visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "cutplane visible $bool $tag"
+                }
+            }
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(cutplane) \
+                    "Hide the cutplanes"
+            } else {
+                Rappture::Tooltip::for $itk_component(cutplane) \
+                    "Show the cutplanes"
+            }
         }
         "-cutplanewireframe" {
             set bool $_settings($what)
@@ -1428,7 +1443,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 Rappture::Tooltip::for $itk_component(contour) \
                     "Show the isosurface"
             }
-	    DrawLegend
         }
         "-isosurfacelighting" {
             set bool $_settings($what)
@@ -1440,7 +1454,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-outline" {
             set bool $_settings($what)
-	    SendCmd "outline visible $bool"
+	    SendCmd "outline visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "outline visible $bool $tag"
+                }
+            }
         }
         "-isolinecolor" {
             set color [$itk_component(isolineColor) value]
