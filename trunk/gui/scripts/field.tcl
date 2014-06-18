@@ -1555,14 +1555,25 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             set _viewer "contour"
         }
         set numFieldValues [$v length]
-        set numComponentsPerPoint [numComponents $cname]
-        set numPoints [$mesh numpoints]
-        set numExpectedPoints [expr $numPoints * $numComponentsPerPoint]
-        if { $numExpectedPoints != $numFieldValues } {
-            puts stderr "ERROR: Number of points in mesh ($numExpectedPoints) and number of field values ($numFieldValues) don't agree"
+        set numComponentsPerTuple [numComponents $cname]
+        if { [expr $numFieldValues % $numComponentsPerTuple] != 0 } {
+            puts stderr "ERROR: Number of field values ($numFieldValues) not divisble by elemsize ($numComponentsPerTuple)"
             return 0
         }
-
+        set numFieldTuples [expr $numFieldValues / $numComponentsPerTuple]
+        if { $_comp2assoc($cname) == "pointdata" } {
+            set numPoints [$mesh numpoints]
+            if { $numPoints != $numFieldTuples } {
+                puts stderr "ERROR: Number of points in mesh ($numPoints) and number of field tuples ($numFieldTuples) don't agree"
+                return 0
+            }
+        } elseif { $_comp2assoc($cname) == "celldata" } {
+            set numCells [$mesh numcells]
+            if { $numCells != $numFieldTuples } {
+                puts stderr "ERROR: Number of cells in mesh ($numCells) and number of field tuples ($numFieldTuples) don't agree"
+                return 0
+            }
+        }
 	set _comp2dims($cname) "[$mesh dimensions]D"
 	set _comp2mesh($cname) [list $mesh $v]
 	set _comp2style($cname) [$_field get $cname.style]
@@ -1591,12 +1602,24 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             return 0
         }
         set numFieldValues [$v length]
-        set numComponentsPerPoint [numComponents $cname]
-        set numPoints [$mesh numpoints]
-        set numExpectedPoints [expr $numPoints * $numComponentsPerPoint]
-        if { $numExpectedPoints != $numFieldValues } {
-            puts stderr "ERROR: Number of points in mesh ($numExpectedPoints) and number of field values ($numFieldValues) don't agree"
+        set numComponentsPerTuple [numComponents $cname]
+        if { [expr $numFieldValues % $numComponentsPerTuple] != 0 } {
+            puts stderr "ERROR: Number of field values ($numFieldValues) not divisble by elemsize ($numComponentsPerTuple)"
             return 0
+        }
+        set numFieldTuples [expr $numFieldValues / $numComponentsPerTuple]
+        if { $_comp2assoc($cname) == "pointdata" } {
+            set numPoints [$mesh numpoints]
+            if { $numPoints != $numFieldTuples } {
+                puts stderr "ERROR: Number of points in mesh ($numPoints) and number of field tuples ($numFieldTuples) don't agree"
+                return 0
+            }
+        } elseif { $_comp2assoc($cname) == "celldata" } {
+            set numCells [$mesh numcells]
+            if { $numCells != $numFieldTuples } {
+                puts stderr "ERROR: Number of cells in mesh ($numCells) and number of field tuples ($numFieldTuples) don't agree"
+                return 0
+            }
         }
         set _comp2dims($cname) "[$mesh dimensions]D"
         set _comp2mesh($cname) [list $mesh $v]
