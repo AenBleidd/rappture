@@ -62,7 +62,9 @@ itcl::class Rappture::Mesh {
     public method numpoints {} {
 	return $_numPoints
     }
-
+    public method numcells {} {
+	return $_numCells
+    }
 
     private common _xp2obj       ;	# used for fetch/release ref counting
     private common _obj2ref      ;	# used for fetch/release ref counting
@@ -550,6 +552,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         if { [info exists zNum] } {
             set _dim 3
 	    set _numPoints [expr $xNum * $yNum * $zNum]
+            set _numCells [expr ($xNum - 1) * ($yNum - 1) * ($zNum - 1)]
             if { ($_numPoints*3) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
                 return 0
@@ -572,6 +575,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         } elseif { [info exists yNum] } {
             set _dim 2
 	    set _numPoints [expr $xNum * $yNum]
+            set _numCells [expr ($xNum - 1) * ($yNum - 1)]
             if { ($_numPoints*2) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim>"
                 return 0
@@ -596,6 +600,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         } else {
             set _dim 1
             set _numPoints $xNum
+            set _numCells [expr $xNum - 1]
             if { $_numPoints != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": \# of points does not match <xdim>"
                 return 0
@@ -622,6 +627,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         if { $_dim == 1 } {
             set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
 	    set _numPoints $xNum
+            set _numCells [expr $xNum - 1]
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum 1 1\n"
 	    append out "ORIGIN $xMin 0 0\n"
@@ -634,6 +640,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
 	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
 	    set _numPoints [expr $xNum * $yNum]
+            set _numCells [expr ($xNum - 1) * ($yNum - 1)]
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum $yNum 1\n"
 	    append out "ORIGIN $xMin $yMin 0\n"
@@ -648,6 +655,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
 	    set zSpace [expr ($zMax - $zMin) / double($zNum - 1)]
 	    set _numPoints [expr $xNum * $yNum * $zNum]
+            set _numCells [expr ($xNum - 1) * ($yNum - 1) * ($zNum - 1)]
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum $yNum $zNum\n"
 	    append out "ORIGIN $xMin $yMin $zMin\n"
@@ -700,6 +708,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     }
     if { $_dim == 3 } {
 	set _numPoints [expr $xNum * $yNum * $zNum]
+        set _numCells [expr ($xNum - 1) * ($yNum - 1) * ($zNum - 1)]
 	append out "DATASET RECTILINEAR_GRID\n"
 	append out "DIMENSIONS $xNum $yNum $zNum\n"
 	append out "X_COORDINATES $xNum double\n"
@@ -719,6 +728,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	}
     } elseif { $_dim == 2 } {
 	set _numPoints [expr $xNum * $yNum]
+        set _numCells [expr ($xNum - 1) * ($yNum - 1)]
 	append out "DATASET RECTILINEAR_GRID\n"
 	append out "DIMENSIONS $xNum $yNum 1\n"
 	append out "X_COORDINATES $xNum double\n"
@@ -738,6 +748,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	set _vtkdata $out
     } elseif { $_dim == 1 } {
         set _numPoints $xNum
+        set _numCells [expr $xNum - 1]
 	append out "DATASET RECTILINEAR_GRID\n"
 	append out "DIMENSIONS $xNum 1 1\n"
 	append out "X_COORDINATES $xNum double\n"
@@ -1159,6 +1170,8 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
             return 0
         }
     }
+    set _numPoints [$xv length]
+
     # Step 3: Write the points and cells as vtk data.
     if { $numCells == 0 } {
         set result [WritePointCloud $path $xv $yv $zv]
