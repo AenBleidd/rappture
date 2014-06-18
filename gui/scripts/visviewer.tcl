@@ -1152,6 +1152,11 @@ itcl::body Rappture::VisViewer::StartBufferingCommands { } {
 #
 # StopBufferingCommands --
 #
+#       This gets called when we want to stop buffering the commands for
+#       the server and actually send then to the server.  Note that there's
+#       a reference count on buffering.  This is so that you can can
+#       Start/Stop multiple times without worrying about the current state.
+#
 itcl::body Rappture::VisViewer::StopBufferingCommands { } {
     incr _buffering -1
     if { $_buffering == 0 } {
