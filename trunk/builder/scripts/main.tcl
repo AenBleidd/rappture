@@ -867,10 +867,14 @@ proc main_saveas {{option "start"}} {
                 }
 
                 # /apps/rappture/current for 32-bit systems
-                # /apps/share64/rappture/current for 64-bit systems
-                if {$tcl_platform(wordSize) == 8
-                      && [file isdirectory /apps/share64/rappture/current]} {
-                    set dir /apps/share64/rappture/current
+                if {$tcl_platform(wordSize) == 8 } {
+                     if { [file isdirectory /apps/share64/debian7/rappture/current]} {
+                        set dir /apps/share64/debian7/rappture/current
+                     } elseif { [file isdirectory /apps/share64/debian6/rappture/current]} {
+                        set dir /apps/share64/debian6/rappture/current
+                     } else {
+                        set dir /apps/rappture/current
+                     }
                 } else {
                     set dir /apps/rappture/current
                 }
