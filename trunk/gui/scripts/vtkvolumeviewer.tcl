@@ -2303,10 +2303,10 @@ itcl::body Rappture::VtkVolumeViewer::DrawLegend {} {
     }
 
     foreach {min max} $_limits($cname) break
-    $c itemconfigure vmin -text [format %.2g $min]
+    $c itemconfigure vmin -text [format %g $min]
     $c coords vmin $lx $ly
 
-    $c itemconfigure vmax -text [format %.2g $max]
+    $c itemconfigure vmax -text [format %g $max]
     $c coords vmax [expr {$w-$lx}] $ly
 
     set title ""

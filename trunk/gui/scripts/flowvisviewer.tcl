@@ -1056,10 +1056,10 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
     # Display the markers used by the active transfer function.
     set tf $_obj2style($tag)
     foreach {vmin vmax} [limits $tf] break
-    $c itemconfigure vmin -text [format %.2g $vmin]
+    $c itemconfigure vmin -text [format %g $vmin]
     $c coords vmin $lx $ly
 
-    $c itemconfigure vmax -text [format %.2g $vmax]
+    $c itemconfigure vmax -text [format %g $vmax]
     $c coords vmax [expr {$w-$lx}] $ly
 
     if { [info exists _isomarkers($tf)] } {
