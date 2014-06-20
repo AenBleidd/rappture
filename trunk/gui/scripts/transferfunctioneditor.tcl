@@ -198,7 +198,7 @@ itcl::body Rappture::TransferFunctionEditor::SetScreenPosition { name } {
     set x [GetScreenPosition $name]
     set absval [GetAbsoluteValue $name]
     set y 31
-    $_canvas itemconfigure $_labels($name) -text [format %.2g $absval]
+    $_canvas itemconfigure $_labels($name) -text [format %g $absval]
     $_canvas coords $_ticks($name) $x [expr {$y+3}]
     $_canvas coords $_labels($name) $x [expr {$y+5}]
 }
@@ -214,7 +214,7 @@ itcl::body Rappture::TransferFunctionEditor::SetAbsoluteValue { name value } {
     set relval [expr {($absval - $min) / ($max - $min)}]
     set _values($name) $relval
     set y 31
-    $_canvas itemconfigure $_label -text [format %.2g $absval]
+    $_canvas itemconfigure $_label -text [format %g $absval]
     set x [GetScreenPosition $name]
     $_canvas coords $_ticks($name) $x [expr {$y+3}]
     $_canvas coords $_labels($name) $x [expr {$y+5}]
@@ -230,7 +230,7 @@ itcl::body Rappture::TransferFunctionEditor::SetRelativeValue  { name value } {
     set x [GetScreenPosition $name]
     set y 31
     set absval [GetAbsoluteValue $name]
-    $_canvas itemconfigure $_labels($name) -text [format %.2g $absval]
+    $_canvas itemconfigure $_labels($name) -text [format %g $absval]
     $_canvas coords $_ticks($name) $x [expr {$y+3}]
     $_canvas coords $_labels($name) $x [expr {$y+5}]
 }
