@@ -112,7 +112,7 @@ itcl::body Rappture::IsoMarker::absval { {x "-get"} } {
     if { $x != "-get" } {
         set _value $x
         set y 31
-        $_canvas itemconfigure $_label -text [format %.2g $_value]
+        $_canvas itemconfigure $_label -text [format %g $_value]
         set x [screenpos]
         $_canvas coords $_tick $x [expr {$y+3}]
         $_canvas coords $_label $x [expr {$y+5}]
