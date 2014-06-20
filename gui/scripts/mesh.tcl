@@ -1000,6 +1000,8 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
         if { $numIndices > 0 && $numIndices != $length } {
             puts stderr "WARNING: bad unstructured grid \"$path\": wrong \# of indices specified for celltype $celltype on line \"$line\""
             return 0
+        } else {
+            set numIndices $length
         }
         append data " $numIndices $line\n"
         lappend celltypes $celltype
