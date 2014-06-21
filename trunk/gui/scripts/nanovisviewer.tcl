@@ -556,7 +556,7 @@ itcl::body Rappture::NanovisViewer::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::scale {args} {
-    array set style {
+    array set styles {
         -color BCGYR
         -levels 6
         -markers ""
@@ -570,10 +570,10 @@ itcl::body Rappture::NanovisViewer::scale {args} {
         foreach cname [$dataobj components] {
             if { ![info exists _volcomponents($cname)] } {
                 lappend _componentsList $cname
-                array set style [lindex [$dataobj components -style $cname] 0]
-                set cmap [ColorsToColormap $style(-color)]
+                array set styles [lindex [$dataobj components -style $cname] 0]
+                set cmap [ColorsToColormap $styles(-color)]
                 set _cname2defaultcolormap($cname) $cmap
-                set _settings($cname-colormap) $style(-color)
+                set _settings($cname-colormap) $styles(-color)
             }
             lappend _volcomponents($cname) $dataobj-$cname
             array unset limits
@@ -1054,11 +1054,11 @@ itcl::body Rappture::NanovisViewer::CurrentDatasets {{what -all}} {
     foreach cname [$_first components] {
         set tag $_first-$cname
         if { [info exists _serverDatasets($tag)] && $_serverDatasets($tag) } {
-            array set style {
+            array set styles {
                 -cutplanes 1
             }
-            array set style [lindex [$_first components -style $cname] 0]
-            if { $what != "-cutplanes" || $style(-cutplanes) } {
+            array set styles [lindex [$_first components -style $cname] 0]
+            if { $what != "-cutplanes" || $styles(-cutplanes) } {
                 lappend rlist $tag
             }
         }
@@ -1427,17 +1427,17 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #       server parses the 3D data and sends back the limits via ReceiveData.]
 #
 itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
-    array set style {
+    array set styles {
         -color BCGYR
         -levels 6
         -markers ""
     }
     set tag $dataobj-$cname
-    array set style [lindex [$dataobj components -style $cname] 0]
+    array set styles [lindex [$dataobj components -style $cname] 0]
     if { ![info exists _cname2transferFunction($cname)] } {
         # Get the colormap right now, since it doesn't change with marker
         # changes.
-        set cmap [ColorsToColormap $style(-color)]
+        set cmap [ColorsToColormap $styles(-color)]
         set wmap [list 0.0 0.0 1.0 1.0]
         set _cname2transferFunction($cname) [list $cmap $wmap]
         SendCmd [list transfunc define $cname $cmap $wmap]
@@ -1473,7 +1473,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
     if { ![info exists _parsedFunction($cname)] } {
-        array set style {
+        array set styles {
             -color BCGYR
             -levels 6
             -markers ""
@@ -1481,15 +1481,15 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
         # Accumulate the style from all the datasets using it.
         foreach tag [GetDatasetsWithComponent $cname] {
             foreach {dataobj cname} [split [lindex $tag 0] -] break
-            array set style [lindex [$dataobj components -style $cname] 0]
+            array set styles [lindex [$dataobj components -style $cname] 0]
         }
         eval $_transferFunctionEditors($cname) limits $_limits($cname)
         # Have to defer creation of isomarkers until we have data limits
-        if { [info exists style(-markers)] &&
-             [llength $style(-markers)] > 0 } {
-            ParseMarkersOption $cname $style(-markers)
+        if { [info exists styles(-markers)] &&
+             [llength $styles(-markers)] > 0 } {
+            ParseMarkersOption $cname $styles(-markers)
         } else {
-            ParseLevelsOption $cname $style(-levels)
+            ParseLevelsOption $cname $styles(-levels)
         }
         
     }
