@@ -145,7 +145,7 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
 	    }
 	}
 	if {$name eq ""} {
-	    puts stderr "no name defined for substituion variable \"$cpath\""
+	    puts stderr "no name defined for substitution variable \"$cpath\""
 	    continue
 	}
 	if {[info exists _name2path($name)]} {
