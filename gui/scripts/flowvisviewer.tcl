@@ -735,7 +735,7 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::scale {args} {
-    array set style {
+    array set styles {
         -color BCGYR
         -levels 6
         -opacity 1.0
@@ -750,10 +750,10 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
         foreach cname [$dataobj components] {
             if { ![info exists _volcomponents($cname)] } {
                 lappend _componentsList $cname
-                array set style [lindex [$dataobj components -style $cname] 0]
-                set cmap [ColorsToColormap $style(-color)]
+                array set styles [lindex [$dataobj components -style $cname] 0]
+                set cmap [ColorsToColormap $styles(-color)]
                 set _cname2defaultcolormap($cname) $cmap
-                set _settings($cname-colormap) $style(-color)
+                set _settings($cname-colormap) $styles(-color)
             }
             lappend _volcomponents($cname) $dataobj-$cname
             array unset limits
@@ -1278,12 +1278,12 @@ itcl::body Rappture::FlowvisViewer::CurrentVolumeIds {{what -all}} {
     }
     foreach key [array names _serverObjs *-*] {
         if {[string match $_first-* $key]} {
-            array set style {
+            array set styles {
                 -cutplanes 1
             }
             foreach {dataobj comp} [split $key -] break
-            array set style [lindex [$dataobj components -style $comp] 0]
-            if {$what != "-cutplanes" || $style(-cutplanes)} {
+            array set styles [lindex [$dataobj components -style $comp] 0]
+            if {$what != "-cutplanes" || $styles(-cutplanes)} {
                 lappend rlist $_serverObjs($key)
             }
         }
@@ -1756,17 +1756,17 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
 #              now.
 #
 itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
-    array set style {
+    array set styles {
         -color BCGYR
         -levels 6
         -opacity 1.0
         -light 40
         -transp 50
     }
-    array set style [lindex [$dataobj components -style $cname] 0]
-    set _settings($this-light) $style(-light)
-    set _settings($this-transp) $style(-transp)
-    set _settings($this-opacity) [expr $style(-opacity) * 100]
+    array set styles [lindex [$dataobj components -style $cname] 0]
+    set _settings($this-light) $styles(-light)
+    set _settings($this-transp) $styles(-transp)
+    set _settings($this-opacity) [expr $styles(-opacity) * 100]
     set _obj2style($dataobj-$cname) $cname
     lappend _style2objs($cname) $dataobj $cname
     return $cname
@@ -1782,7 +1782,7 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
 #   the alpha map of the transfer function.
 #
 itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
-    array set style {
+    array set styles {
         -color BCGYR
         -levels 6
         -opacity 1.0
@@ -1794,7 +1794,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     if { $dataobj == "" } {
         return 0
     }
-    array set style [lindex [$dataobj components -style $comp] 0]
+    array set styles [lindex [$dataobj components -style $comp] 0]
 
 
     # We have to parse the style attributes for a volume using this
@@ -1812,23 +1812,23 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
 
     if { ![info exists _isomarkers($tf)] } {
         # Have to defer creation of isomarkers until we have data limits
-        if { [info exists style(-markers)] &&
-             [llength $style(-markers)] > 0  } {
-            ParseMarkersOption $tf $style(-markers)
+        if { [info exists styles(-markers)] &&
+             [llength $styles(-markers)] > 0  } {
+            ParseMarkersOption $tf $styles(-markers)
         } else {
-            ParseLevelsOption $tf $style(-levels)
+            ParseLevelsOption $tf $styles(-levels)
         }
     }
-    if { [info exists style(-nonuniformcolors)] } {
-        foreach { value color } $style(-nonuniformcolors) {
+    if { [info exists styles(-nonuniformcolors)] } {
+        foreach { value color } $styles(-nonuniformcolors) {
             append cmap "$value [Color2RGB $color] "
         }
     } else {
-        set cmap [ColorsToColormap $style(-color)]
+        set cmap [ColorsToColormap $styles(-color)]
     }
     set tag $this-$tf
     if { ![info exists _settings($tag-opacity)] } {
-        set _settings($tag-opacity) $style(-opacity)
+        set _settings($tag-opacity) $styles(-opacity)
     }
     set max 1.0 ;#$_settings($tag-opacity)
     
