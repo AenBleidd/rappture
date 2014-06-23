@@ -73,26 +73,13 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
     # determine the overall size of the device
     foreach elem [$_xmlobj children $path] {
         switch -glob -- $elem {
-            polygon* {
-                set _data($elem) [$_xmlobj get $path.$elem.vtk]
-		set _data($elem) [string trim $_data($elem)]
-                set _styles($elem) [$_xmlobj get $path.$elem.about.style]
-                set _labels($elem) [$_xmlobj get $path.$elem.about.label]
-                set _types($elem) polydata
-            }
-            polydata* {
+            # polygon is deprecated in favor of polydata
+            polygon* - polydata* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
                 set _data($elem) [string trim $_data($elem)]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
                 set _types($elem) polydata
-            }
-            streamlines* {
-                set _data($elem) [$_xmlobj get $path.$elem.vtk]
-		set _data($elem) [string trim $_data($elem)]
-                set _styles($elem) [$_xmlobj get $path.$elem.about.style]
-                set _labels($elem) [$_xmlobj get $path.$elem.about.label]
-                set _types($elem) streamlines
             }
             glyphs* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
