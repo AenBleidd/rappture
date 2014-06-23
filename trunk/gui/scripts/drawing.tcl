@@ -1,7 +1,7 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
-#  COMPONENT: drawing - 2D drawing of data
+#  COMPONENT: drawing - 3D drawing of data
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2012  HUBzero Foundation, LLC
@@ -19,7 +19,6 @@ namespace eval Rappture {
 itcl::class Rappture::Drawing {
     private variable _drawing
     private variable _xmlobj 
-    private variable _actors 
     private variable _styles 
     private variable _shapes 
     private variable _labels 
@@ -27,7 +26,6 @@ itcl::class Rappture::Drawing {
     private variable _data 
     private variable _hints
     private variable _units
-    private variable _limits
 
     constructor {xmlobj path} { 
         # defined below 
@@ -35,7 +33,7 @@ itcl::class Rappture::Drawing {
     destructor { 
         # defined below 
     }
-    public method limits {axis}
+
     public method label { elem }
     public method type { elem }
     public method style { elem }
@@ -236,67 +234,6 @@ itcl::body Rappture::Drawing::components { args } {
 }
 
 # ----------------------------------------------------------------------
-# method limits <axis>
-#       Returns a list {min max} representing the limits for the 
-#       specified axis.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Drawing::limits {which} {
-    set min ""
-    set max ""
-    foreach key [array names _data] {
-        set actor $_actors($key)
-        foreach key { xMin xMax yMin yMax zMin zMax} value [$actor GetBounds] {
-            set _limits($key) $value
-        }
-        break
-    }    
-    
-    foreach key [array names _actors] {
-        set actor $_actors($key)
-        foreach { xMin xMax yMin yMax zMin zMax} [$actor GetBounds] break
-        if { $xMin < $_limits(xMin) } {
-            set _limits(xMin) $xMin
-        } 
-        if { $xMax > $_limits(xMax) } {
-            set _limits(xMax) $xMax
-        } 
-        if { $yMin < $_limits(yMin) } {
-            set _limits(yMin) $yMin
-        } 
-        if { $yMax > $_limits(yMax) } {
-            set _limits(yMax) $yMax
-        } 
-        if { $zMin < $_limits(zMin) } {
-            set _limits(zMin) $zMin
-        } 
-        if { $zMax > $_limits(zMax) } {
-            set _limits(zMax) $zMax
-        } 
-    }
-    switch -- $which {
-        x {
-            set min $_limits(xMin)
-            set max $_limits(xMax)
-            set axis "xaxis"
-        }
-        y {
-            set min $_limits(yMin)
-            set max $_limits(yMax)
-            set axis "yaxis"
-        }
-        v - z {
-            set min $_limits(zMin)
-            set max $_limits(zMax)
-            set axis "zaxis"
-        }
-        default {
-            error "unknown axis description \"$which\""
-        }
-    }
-    return [list $min $max]
-}
-
-# ----------------------------------------------------------------------
 # USAGE: hints ?<keyword>?
 #
 # Returns a list of key/value pairs for various hints about plotting
@@ -326,4 +263,3 @@ itcl::body Rappture::Drawing::hints { {keyword ""} } {
     }
     return [array get _hints]
 }
-
