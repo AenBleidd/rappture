@@ -81,6 +81,8 @@ itcl::class Rappture::Field {
     private variable _isValid 0;        # Indicates if the field contains
                                         # valid data.
     private variable _isValidComponent; #  Array of valid components found
+    private variable _alwaysConvertDX 0;
+
     constructor {xmlobj path} { 
 	# defined below 
     }
@@ -151,7 +153,6 @@ itcl::class Rappture::Field {
 
     private method AvsToVtk { cname contents } 
     private method DicomToVtk { cname contents } 
-    private method DicomToVtk.old { cname contents } 
     private method BuildPointsOnMesh { cname } 
     protected method GetAssociation { cname } 
     protected method GetTypeAndSize { cname } 
@@ -929,7 +930,8 @@ itcl::body Rappture::Field::Build {} {
                 puts -nonewline $f $vtkdata
                 close $f
             }
-            if { $_viewer != "nanovis" && $_viewer != "flowvis" } {
+            if { $_alwaysConvertDX ||
+                 ($_viewer != "nanovis" && $_viewer != "flowvis") } {
                 set _type "vtk"
                 set _comp2vtk($cname) $vtkdata
             } else {
@@ -1716,93 +1718,6 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
     # Restore viewer choice (ReadVtkDataSet wants to set it to contour/isosurface)
     set _viewer $viewer
     return $data(vtkdata)
-}
-
-itcl::body Rappture::Field::DicomToVtk.old { cname path } {
-    package require vtk
-
-    if { ![file exists $path] } {
-        puts stderr "path \"$path\" doesn't exist."
-        return 0
-    }
-    set reader $this-datasetreader
-    vtkDICOMImageReader $reader
-    if { [file isdir $path] } {
-        set files [glob -nocomplain $path/*.dcm]
-        if { [llength $files] == 0 } {
-            puts stderr "no dicom files found in \"$path\""
-            #return 0
-        }        
-        $reader SetDirectoryName $path
-    } else {
-        $reader SetFileName $path
-    }
-    $reader Update
-    
-    set dataset [$reader GetOutput]
-    set limits {}
-    foreach {xmin xmax ymin ymax zmin zmax} [$dataset GetBounds] break
-    set _dim 0
-    if { $xmax > $xmin } {
-	incr _dim
-    }
-    if { $ymax > $ymin } {
-	incr _dim
-    }
-    if { $zmax > $zmin } {
-	incr _dim
-    }
-
-    set _comp2dims($cname) "${_dim}D"
-
-    lappend limits x [list $xmin $xmax] 
-    lappend limits y [list $ymin $ymax] 
-    lappend limits z [list $zmin $zmax]
-    set dataAttrs [$dataset GetPointData]
-    if { $dataAttrs == ""} {
-	puts stderr "WARNING: No point data found in \"$_path\""
-        rename $reader ""
-        return 0
-    }
-    set vmin 0
-    set vmax 1
-    set numArrays [$dataAttrs GetNumberOfArrays]
-    if { $numArrays > 0 } {
-	for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
-	    set array [$dataAttrs GetArray $i]
-	    set fname  [$dataAttrs GetArrayName $i]
-	    foreach {min max} [$array GetRange -1] break
-            if {$i == 0} {
-                set vmin $min
-                set vmax $max
-            }
-	    lappend limits $fname [list $min $max]
-            set _fld2Units($fname) ""
-	    set _fld2Label($fname) $fname
-            # Let the VTK file override the <type> designated.
-            set _fld2Components($fname) [$array GetNumberOfComponents]
-            lappend _comp2fldName($cname) $fname
-	}
-    }
-    lappend limits v [list $vmin $vmax]
-    set _comp2limits($cname) $limits
-
-    set tmpfile $this-$cname.vtk
-    set writer $this-datasetwriter
-    vtkDataSetWriter $writer
-    $writer SetInputConnection [$reader GetOutputPort]
-    $writer SetFileName $tmpfile
-    $writer SetFileTypeToBinary
-    $writer Write
-    rename $reader ""
-    rename $writer ""
-
-    set f [open "$tmpfile" "r"]
-    fconfigure $f -translation binary -encoding binary
-    set vtkdata [read $f]
-    close $f
-    file delete $tmpfile
-    return $vtkdata
 }
 
 itcl::body Rappture::Field::GetTypeAndSize { cname } {
