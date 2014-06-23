@@ -84,6 +84,10 @@ itcl::class Rappture::Mesh {
     private method ReadVtk { path }
     private method WriteTriangles { path xv yv zv triangles }
     private method WriteQuads { path xv yv zv quads }
+    private method WriteVertices { path xv yv zv vertices }
+    private method WriteLines { path xv yv zv lines }
+    private method WritePolygons { path xv yv zv polygons }
+    private method WriteTriangleStrips { path xv yv zv trianglestrips }
     private method WriteTetrahedrons { path xv yv zv tetrahedrons }
     private method WriteHexahedrons { path xv yv zv hexhedrons }
     private method WriteWedges { path xv yv zv wedges }
@@ -859,6 +863,142 @@ itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
     return 1
 }
 
+itcl::body Rappture::Mesh::WriteVertices { path xv yv zv vertices } {
+    set _type "vertices"
+    set _numPoints [$xv length]
+    set _numCells 0
+    set data {}
+    set lines [split $vertices \n]
+    set count 0
+    foreach { line } $lines {
+        set numIndices [llength $line]
+        if { $numIndices == 0 } {
+            continue
+        }
+	append data " $numIndices $line\n"
+	incr _numCells
+        set count [expr $count + $numIndices + 1]
+    }
+    append out "DATASET POLYDATA\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "VERTICES $_numCells $count\n"
+    append out $data
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
+    }
+    set _vtkdata $out
+    return 1
+}
+
+itcl::body Rappture::Mesh::WriteLines { path xv yv zv polylines } {
+    set _type "lines"
+    set _numPoints [$xv length]
+    set _numCells 0
+    set data {}
+    set lines [split $polylines \n]
+    set count 0
+    foreach { line } $lines {
+        set numIndices [llength $line]
+        if { $numIndices == 0 } {
+            continue
+        }
+	append data " $numIndices $line\n"
+	incr _numCells
+        set count [expr $count + $numIndices + 1]
+    }
+    append out "DATASET POLYDATA\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "LINES $_numCells $count\n"
+    append out $data
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
+    }
+    set _vtkdata $out
+    return 1
+}
+
+itcl::body Rappture::Mesh::WritePolygons { path xv yv zv polygons } {
+    set _type "polygons"
+    set _numPoints [$xv length]
+    set _numCells 0
+    set data {}
+    set lines [split $polygons \n]
+    set count 0
+    foreach { line } $lines {
+        set numIndices [llength $line]
+        if { $numIndices == 0 } {
+            continue
+        }
+	append data " $numIndices $line\n"
+	incr _numCells
+        set count [expr $count + $numIndices + 1]
+    }
+    append out "DATASET POLYDATA\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "POLYGONS $_numCells $count\n"
+    append out $data
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
+    }
+    set _vtkdata $out
+    return 1
+}
+
+itcl::body Rappture::Mesh::WriteTriangleStrips { path xv yv zv trianglestrips } {
+    set _type "trianglestrips"
+    set _numPoints [$xv length]
+    set _numCells 0
+    set data {}
+    set lines [split $trianglestrips \n]
+    set count 0
+    foreach { line } $lines {
+        set numIndices [llength $line]
+        if { $numIndices == 0 } {
+            continue
+        }
+	append data " $numIndices $line\n"
+	incr _numCells
+        set count [expr $count + $numIndices + 1]
+    }
+    append out "DATASET POLYDATA\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "TRIANGLE_STRIPS $_numCells $count\n"
+    append out $data
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    } else {
+        set _limits(z) [list 0 0]
+    }
+    set _vtkdata $out
+    return 1
+}
+
 itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
     set _type "tetrahedrons"
     set _numPoints [$xv length]
@@ -1039,8 +1179,10 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     }
     # Step 1: Verify that there's only one cell tag of any kind.
     set numCells 0
-    foreach type { cells triangles quads tetrahedrons 
-        hexahedrons wedges pyramids } {
+    foreach type { cells
+        vertices lines polygons trianglestrips
+        triangles quads
+        tetrahedrons hexahedrons wedges pyramids } {
         set data [$_xmlobj get $path.unstructured.$type]
         if { $data != "" } {
             incr numCells
@@ -1056,8 +1198,10 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
         puts stderr "WARNING: bad unstructured grid \"$path\": too many <cells>, <triangles>, <quads>... descriptions found: should be only one."
         return 0
     }
-    foreach type { cells triangles quads tetrahedrons 
-        hexahedrons wedges pyramids } {
+    foreach type { cells
+        vertices lines polygons trianglestrips
+        triangles quads
+        tetrahedrons hexahedrons wedges pyramids } {
         set data [$_xmlobj get $path.unstructured.$type]
         if { $data != "" } {
             break
@@ -1298,12 +1442,22 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
 
 itcl::body Rappture::Mesh::GetCellType { name } {
     array set name2type {
-        "triangle"     5
-        "quad"         9
-        "tetrahedron"  10
-        "hexahedron"   12
-        "wedge"        13
-        "pyramid"      14
+        "vertex"          1
+        "polyvertex"      2
+        "line"            3
+        "polyline"        4
+        "triangle"        5
+        "trianglestrip"   6
+        "polygon"         7
+        "pixel"           8
+        "quad"            9
+        "tetrahedron"     10
+        "voxel"           11
+        "hexahedron"      12
+        "wedge"           13
+        "pyramid"         14
+        "pentagonalprism" 15
+        "hexagonalprism"  16
     }
     if { [info exists name2type($name)] } {
         return $name2type($name)
@@ -1330,8 +1484,8 @@ itcl::body Rappture::Mesh::GetNumIndices { type } {
         12      8
         13      6
         14      5
-        15      0
-        16      0
+        15      10
+        16      12
     }
     if { [info exists type2indices($type)] } {
         return $type2indices($type)
