@@ -60,14 +60,6 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
     if {"" == $xunits || "arbitrary" == $xunits} {
         set xunits "um"
     }
-    array set _limits {
-        xMin 0 
-        xMax 0 
-        yMin 0 
-        yMax 0 
-        zMin 0 
-        zMax 0 
-    }
     # determine the overall size of the device
     foreach elem [$_xmlobj children $path] {
         switch -glob -- $elem {
