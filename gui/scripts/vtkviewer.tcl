@@ -68,7 +68,7 @@ itcl::class Rappture::VtkViewer {
     protected method DoResize {}
     protected method DoRotate {}
     protected method AdjustSetting {what {value ""}}
-    protected method FixSettings { args  }
+    protected method InitSettings { args  }
     protected method Pan {option x y}
     protected method Pick {x y}
     protected method Rebuild {}
@@ -986,11 +986,11 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
+        InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
             axis-visible axis-labels
 
         if { $_havePolydata } {
-            FixSettings polydata-edges polydata-lighting polydata-opacity \
+            InitSettings polydata-edges polydata-lighting polydata-opacity \
                 polydata-visible polydata-wireframe 
         }
         StopBufferingCommands
@@ -1071,7 +1071,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     }
 
     if { $_haveMolecules } {
-        #FixSettings molecule-representation 
+        #InitSettings molecule-representation 
     }
     set _reset 0
     global readyForNextFrame
@@ -1289,13 +1289,13 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>?
+# USAGE: InitSettings <what> ?<value>?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::FixSettings { args } {
+itcl::body Rappture::VtkViewer::InitSettings { args } {
     foreach setting $args {
         AdjustSetting $setting
     }
@@ -1491,7 +1491,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                     set _settings(molecule-rscale) none
                     set _settings(molecule-atoms-visible) 0
                     set _settings(molecule-bonds-visible) 1
-                    set _settings(molecule-bondstyle) cylinder
+                    set _settings(molecule-bondstyle) line
                     set _settings(molecule-atomscale) 1.0
                     set _settings(molecule-bondscale) 1.0
                 }
@@ -2427,16 +2427,128 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "glyphs quality $settings(-quality) $tag"
             SendCmd "glyphs lighting $settings(-lighting) $tag"
             SendCmd "glyphs opacity $settings(-opacity) $tag"
+            set _settings(glyphs-opacity) [expr 100.0 * $settings(-opacity)]
             SendCmd "glyphs visible $settings(-visible) $tag"
             set _settings(glyphs-wireframe) $settings(-wireframe)
         }
         "molecule" {
+            array set settings {
+                -atomscale 0.3
+                -atomsvisible 1
+                -bondscale 0.075
+                -bondstyle "cylinder"
+                -bondsvisible 1
+                -edgecolor black
+                -edges 0
+                -labels 0
+                -lighting 1
+                -linewidth 1.0
+                -opacity 1.0
+                -quality 1.0
+                -representation ""
+                -rscale "covalent"
+                -visible 1
+                -wireframe 0
+            }
+            array set settings $style
             SendCmd "molecule add $tag"
-            SendCmd "molecule ascale $_settings(molecule-atomscale) $tag"
-            SendCmd "molecule bscale $_settings(molecule-bondscale) $tag"
-            SendCmd "molecule bstyle $_settings(molecule-bondstyle) $tag"
-            SendCmd "molecule atoms $_settings(molecule-atoms-visible) $tag"
-            SendCmd "molecule bonds $_settings(molecule-bonds-visible) $tag"
+            if {$settings(-representation) != ""} {
+                switch -- $settings(-representation) {
+                    "ballandstick" {
+                        set _settings(molecule-rscale) covalent
+                        set _settings(molecule-atoms-visible) 1
+                        set _settings(molecule-bonds-visible) 1
+                        set _settings(molecule-bondstyle) cylinder
+                        set _settings(molecule-atomscale) 0.3
+                        set _settings(molecule-bondscale) 0.075
+                    }
+                    "balls" - "spheres" {
+                        set _settings(molecule-rscale) covalent
+                        set _settings(molecule-atoms-visible) 1
+                        set _settings(molecule-bonds-visible) 0
+                        set _settings(molecule-bondstyle) cylinder
+                        set _settings(molecule-atomscale) 0.3
+                        set _settings(molecule-bondscale) 0.075
+                    }
+                    "sticks" {
+                        set _settings(molecule-rscale) none
+                        set _settings(molecule-atoms-visible) 1
+                        set _settings(molecule-bonds-visible) 1
+                        set _settings(molecule-bondstyle) cylinder
+                        set _settings(molecule-atomscale) 0.075
+                        set _settings(molecule-bondscale) 0.075
+                    }
+                    "spacefilling" {
+                        set _settings(molecule-rscale) van_der_waals
+                        set _settings(molecule-atoms-visible) 1
+                        set _settings(molecule-bonds-visible) 0
+                        set _settings(molecule-bondstyle) cylinder
+                        set _settings(molecule-atomscale) 1.0
+                        set _settings(molecule-bondscale) 0.075
+                    }
+                    "rods"  {
+                        set _settings(molecule-rscale) none
+                        set _settings(molecule-atoms-visible) 1
+                        set _settings(molecule-bonds-visible) 1
+                        set _settings(molecule-bondstyle) cylinder
+                        set _settings(molecule-atomscale) 0.1
+                        set _settings(molecule-bondscale) 0.1
+                    }
+                    "wireframe" - "lines" {
+                        set _settings(molecule-rscale) none
+                        set _settings(molecule-atoms-visible) 0
+                        set _settings(molecule-bonds-visible) 1
+                        set _settings(molecule-bondstyle) line
+                        set _settings(molecule-atomscale) 1.0
+                        set _settings(molecule-bondscale) 1.0
+                    }
+                    default {
+                        error "unknown representation $value"
+                    }
+                }
+                SendCmd "molecule rscale $_settings(molecule-rscale) $tag"
+                SendCmd "molecule atoms $_settings(molecule-atoms-visible) $tag"
+                SendCmd "molecule bonds $_settings(molecule-bonds-visible) $tag"
+                SendCmd "molecule bstyle $_settings(molecule-bondstyle) $tag"
+                SendCmd "molecule ascale $_settings(molecule-atomscale) $tag"
+                SendCmd "molecule bscale $_settings(molecule-bondscale) $tag"
+                $itk_component(representation) value [$itk_component(representation) label $settings(-representation)]
+                $itk_component(rscale) value [$itk_component(rscale) label $_settings(molecule-rscale)]
+                switch -- $settings(-representation) {
+                    "ballandstick" - "balls" - "spheres" {
+                        $itk_component(rscale) configure -state normal
+                    }
+                    default {
+                        $itk_component(rscale) configure -state disabled
+                    }
+                }
+            } else {
+                SendCmd "molecule rscale $settings(-rscale) $tag"
+                set _settings(molecule-rscale) $settings(-rscale)
+                SendCmd "molecule atoms $settings(-atomsvisible) $tag"
+                set _settings(molecule-atoms-visible) $settings(-atomsvisible)
+                SendCmd "molecule bonds $settings(-bondsvisible) $tag"
+                set _settings(molecule-bonds-visible) $settings(-bondsvisible)
+                SendCmd "molecule bstyle $settings(-bondstyle) $tag"
+                set _settings(molecule-bondstyle) $settings(-bondstyle)
+                SendCmd "molecule ascale $settings(-atomscale) $tag"
+                set _settings(molecule-atomscale) $settings(-atomscale)
+                SendCmd "molecule bscale $settings(-bondscale) $tag"
+                set _settings(molecule-bondscale) $settings(-bondscale)
+            }
+            SendCmd "molecule labels $settings(-labels) $tag"
+            set _settings(molecule-labels) $settings(-labels)
+            SendCmd "molecule linecolor [Color2RGB $settings(-edgecolor)] $tag"
+            SendCmd "molecule linewidth $settings(-linewidth) $tag"
+            SendCmd "molecule edges $settings(-edges) $tag"
+            set _settings(molecule-edges) $settings(-edges)
+            SendCmd "molecule lighting $settings(-lighting) $tag"
+            set _settings(molecule-lighting) $settings(-lighting)
+            SendCmd "molecule aquality $settings(-quality) $tag"
+            SendCmd "molecule bquality $settings(-quality) $tag"
+            set _settings(molecule-quality) $settings(-quality)
+            SendCmd "molecule visible $settings(-visible) $tag"
+            set _settings(molecule-visible) $settings(-visible)
             set _haveMolecules 1
         }
         "polydata" {
