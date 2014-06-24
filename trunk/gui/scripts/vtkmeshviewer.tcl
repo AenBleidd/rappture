@@ -1740,7 +1740,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
 
     array set settings {
         -cloudstyle mesh
-        -color \#FFFFFF
+        -color white
         -edgecolor black
         -edges 1
         -lighting 1

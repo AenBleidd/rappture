@@ -71,7 +71,7 @@ itcl::class Rappture::MapViewer {
     protected method Disconnect {}
     protected method DoResize {}
     protected method DoRotate {}
-    protected method FixSettings { args  }
+    protected method InitSettings { args  }
     protected method KeyPress { key }
     protected method KeyRelease { key }
     protected method MouseClick { button x y }
@@ -966,10 +966,10 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             if { [info exists _mapsettings(style)] } {
                 SetTerrainStyle $_mapsettings(style)
             } else {
-                FixSettings terrain-edges terrain-lighting \
+                InitSettings terrain-edges terrain-lighting \
                     terrain-vertscale terrain-wireframe
             }
-            FixSettings coords-visible
+            InitSettings coords-visible
         } else {
             error "No map settings on reset"
         }
@@ -1304,13 +1304,13 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>?
+# USAGE: InitSettings <what> ?<value>?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MapViewer::FixSettings { args } {
+itcl::body Rappture::MapViewer::InitSettings { args } {
     foreach setting $args {
         AdjustSetting $setting
     }

@@ -2389,7 +2389,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     switch -- $type {
         "glyphs" {
             array set settings {
-                -color \#FFFFFF
+                -color white
                 -edgecolor black
                 -edges 0
                 -gscale 1
@@ -2554,7 +2554,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         "polydata" {
             array set settings {
                 -cloudstyle "mesh"
-                -color \#FFFFFF
+                -color white
                 -edgecolor black
                 -edges 1
                 -lighting 1
