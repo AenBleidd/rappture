@@ -68,7 +68,7 @@ itcl::class Rappture::VtkMeshViewer {
     protected method DoResize {}
     protected method DoRotate {}
     protected method AdjustSetting {what {value ""}}
-    protected method FixSettings { args  }
+    protected method InitSettings { args  }
     protected method Pan {option x y}
     protected method Pick {x y}
     protected method Rebuild {}
@@ -200,6 +200,7 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
         labels          1
     }]
     array set _settings [subst {
+        outline                 0
         polydata-edges          0
         polydata-lighting       1
         polydata-opacity        100
@@ -830,9 +831,8 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-            axis-visible axis-labels polydata-edges polydata-lighting polydata-opacity \
-            polydata-visible polydata-wireframe 
+        InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
+            axis-visible axis-labels
  
         StopBufferingCommands
         SendCmd "imgflush"
@@ -895,7 +895,12 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
             }
         }
     }
+    InitSettings outline
     if { $_reset } {
+        # These are settings that rely on a dataset being loaded.
+        InitSettings polydata-edges polydata-lighting polydata-opacity \
+            polydata-visible polydata-wireframe
+ 
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
         $_arcball quaternion $q 
         SendCmd "camera reset"
@@ -1122,13 +1127,13 @@ itcl::body Rappture::VtkMeshViewer::Pan {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>?
+# USAGE: InitSettings <what> ?<value>?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkMeshViewer::FixSettings { args } {
+itcl::body Rappture::VtkMeshViewer::InitSettings { args } {
     foreach setting $args {
         AdjustSetting $setting
     }
@@ -1146,6 +1151,12 @@ itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "outline" {
+            set bool $_settings(outline)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                SendCmd "outline visible $bool $dataset"
+            }
+        }
         "polydata-opacity" {
             foreach dataset [CurrentDatasets -visible $_first] {
                 SetOpacity $dataset
@@ -1309,6 +1320,12 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
         -command [itcl::code $this AdjustSetting polydata-visible] \
         -font "Arial 9" -anchor w 
 
+    checkbutton $inner.outline \
+        -text "Show Outline" \
+        -variable [itcl::scope _settings(outline)] \
+        -command [itcl::code $this AdjustSetting outline] \
+        -font "Arial 9" -anchor w 
+
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(polydata-wireframe)] \
@@ -1348,14 +1365,15 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
 
     blt::table $inner \
         0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.opacity_l -anchor w -pady 2 \
-        4,1 $inner.opacity   -fill x   -pady 2 
+        1,0 $inner.outline   -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        5,0 $inner.opacity_l -anchor w -pady 2 \
+        5,1 $inner.opacity   -fill x   -pady 2 
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r6 c1 -resize expand
+    blt::table configure $inner r7 c1 -resize expand
 }
 
 itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
@@ -1728,6 +1746,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
         -lighting 1
         -linewidth 1.0
         -opacity 1.0
+        -outline 0
         -visible 1
         -wireframe 0
     }
@@ -1740,6 +1759,11 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     if {$color != ""} {
         set settings(-color) $color
     }
+    SendCmd "outline add $tag"
+    SendCmd "outline color [Color2RGB $settings(-color)] $tag"
+    SendCmd "outline visible $settings(-outline) $tag"
+    set _settings(outline) $settings(-outline)
+
     SendCmd "polydata add $tag"
     SendCmd "polydata visible $settings(-visible) $tag"
     SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
