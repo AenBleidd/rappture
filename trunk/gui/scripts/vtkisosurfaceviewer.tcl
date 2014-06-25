@@ -241,15 +241,15 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         -legendvisible                  1
         -numcontours                    10
         -outline                        0
-        -xaxisgrid                      0
         -xcutplaneposition              50
         -xcutplanevisible               1
-        -yaxisgrid                      0
+        -xgrid                          0
         -ycutplaneposition              50
         -ycutplanevisible               1
-        -zaxisgrid                      0
+        -ygrid                          0
         -zcutplaneposition              50
         -zcutplanevisible               1
+        -zgrid                          0
     }
     array set _changed {
         -isosurfaceopacity       0
@@ -957,7 +957,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         DoRotate
         PanCamera
         set _first ""
-        InitSettings -xaxisgrid -yaxisgrid -zaxisgrid -axismode \
+        InitSettings -xgrid -ygrid -zgrid -axismode \
             -axesvisible -axislabelsvisible 
         foreach axis { x y z } {
 	    SendCmd "axis lformat $axis %g"
@@ -1330,7 +1330,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set bool $_settings(-axislabelsvisible)
             SendCmd "axis labels all $bool"
         }
-        "-xaxisgrid" - "-yaxisgrid" - "-zaxisgrid" {
+        "-xgrid" - "-ygrid" - "-zgrid" {
             set axis [string tolower [string range $what 1 1]]
             set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
@@ -1755,18 +1755,18 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
 
     checkbutton $inner.gridx \
         -text "Show X Grid" \
-        -variable [itcl::scope _settings(-xaxisgrid)] \
-        -command [itcl::code $this AdjustSetting -xaxisgrid] \
+        -variable [itcl::scope _settings(-xgrid)] \
+        -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
     checkbutton $inner.gridy \
         -text "Show Y Grid" \
-        -variable [itcl::scope _settings(-yaxisgrid)] \
-        -command [itcl::code $this AdjustSetting -yaxisgrid] \
+        -variable [itcl::scope _settings(-ygrid)] \
+        -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
     checkbutton $inner.gridz \
         -text "Show Z Grid" \
-        -variable [itcl::scope _settings(-zaxisgrid)] \
-        -command [itcl::code $this AdjustSetting -zaxisgrid] \
+        -variable [itcl::scope _settings(-zgrid)] \
+        -command [itcl::code $this AdjustSetting -zgrid] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
