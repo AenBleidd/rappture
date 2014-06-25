@@ -89,10 +89,10 @@ nv::logUserMessage(const char* fmt, ...)
     g_UserErrorString << message << "\n";
 }
 
-const char *
+std::string
 nv::getUserMessages()
 {
-    return g_UserErrorString.str().c_str();
+    return g_UserErrorString.str();
 }
 
 void 

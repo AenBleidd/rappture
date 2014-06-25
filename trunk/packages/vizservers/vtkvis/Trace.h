@@ -8,13 +8,15 @@
 #ifndef VTKVIS_TRACE_H
 #define VTKVIS_TRACE_H
 
+#include <string>
+
 #include <syslog.h>
 
 namespace VtkVis {
 
 extern void logUserMessage(const char* format, ...);
 
-extern const char *getUserMessages();
+extern std::string getUserMessages();
 
 extern void clearUserMessages();
 
