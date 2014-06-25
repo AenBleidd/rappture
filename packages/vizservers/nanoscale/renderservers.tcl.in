@@ -129,6 +129,7 @@ register_server vmdshow 2018 \
     VMDDIR ${libdir}/vmd
     SURF_BIN ${libdir}/vmd/surf
     MSMSSERVER ${libdir}/vmd/msms
+    STRIDE_BIN ${libdir}/vmd/stride
     LD_LIBRARY_PATH ${libdir}
     __GL_SYNC_TO_VBLANK 0
 }
