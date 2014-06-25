@@ -84,6 +84,7 @@ itcl::class Rappture::VtkViewer {
     private method BuildColormap { name styles }
     private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command } 
+    private method BuildGlyphsTab {}
     private method BuildMoleculeTab {}
     private method BuildPolydataTab {}
     private method ChangeColormap { dataobj comp color }
@@ -250,12 +251,18 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }]
     array set _settings [subst {
         legend                  1
+        glyphs-edges            0
+        glyphs-lighting         1
         glyphs-opacity          100
+        glyphs-outline          0
+        glyphs-palette          BCGYR
+        glyphs-visible          1
         glyphs-wireframe        0
         polydata-edges          0
         polydata-lighting       1
         polydata-opacity        100
-        polydata-palette        rainbow
+        polydata-outline        0
+        polydata-palette        BCGYR
         polydata-visible        1
         polydata-wireframe      0
         molecule-atomscale      0.3
@@ -267,6 +274,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         molecule-labels         0
         molecule-lighting       1
         molecule-opacity        100
+        molecule-outline        0
         molecule-palette        elementDefault
         molecule-quality        1.0
         molecule-representation "Ball and Stick"
@@ -730,6 +738,13 @@ itcl::body Rappture::VtkViewer::scale {args} {
             set _limits(zmax) $bounds(zmax)
         }
     }
+    if { $_haveGlyphs } {
+        if { ![$itk_component(main) exists "Glyphs Settings"] } {
+            if { [catch { BuildGlyphsTab } errs ]  != 0 } {
+                puts stderr "errs=$errs"
+            }
+        }
+    }
     if { $_havePolydata } {
         if { ![$itk_component(main) exists "Mesh Settings"] } {
             if { [catch { BuildPolydataTab } errs ]  != 0 } {
@@ -989,10 +1004,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
             axis-visible axis-labels
 
-        if { $_havePolydata } {
-            InitSettings polydata-edges polydata-lighting polydata-opacity \
-                polydata-visible polydata-wireframe 
-        }
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
@@ -1033,8 +1044,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 SetObjectStyle $dataobj $comp
             }
             lappend _obj2datasets($dataobj) $tag
+            set type [$dataobj type $comp]
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                SendCmd "dataset visible 1 $tag"
+                SendCmd "$type visible 1 $tag"
                 SetOpacity $tag
             }
         }
@@ -1056,7 +1068,29 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             }
         }
     }
+    if { $_haveGlyphs } {
+        InitSettings glyphs-outline
+    }
+    if { $_haveMolecules } {
+        InitSettings molecule-outline
+    }
+    if { $_havePolydata } {
+        InitSettings polydata-outline
+    }
     if { $_reset } {
+        if { $_haveGlyphs } {
+            InitSettings glyphs-edges glyphs-lighting glyphs-opacity \
+                glyphs-visible glyphs-wireframe 
+        }
+        if { $_havePolydata } {
+            InitSettings polydata-edges polydata-lighting polydata-opacity \
+                polydata-visible polydata-wireframe 
+        }
+        if { $_haveMolecules } {
+            InitSettings molecule-edges molecule-lighting molecule-opacity \
+                molecule-visible molecule-wireframe molecule-labels
+        }
+
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
         $_arcball quaternion $q 
         SendCmd "camera reset"
@@ -1313,11 +1347,93 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
+        "glyphs-opacity" {
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                if { [$dataobj type $comp] == "glyphs" } {
+                    SetOpacity $dataset
+                }
+            }
+        }
+        "glyphs-outline" {
+            set bool $_settings(glyphs-outline)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "glyphs" } {
+                    SendCmd "outline visible $bool $dataset"
+                }
+            }
+        }
+        "glyphs-wireframe" {
+            set bool $_settings(glyphs-wireframe)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "glyphs" } {
+                    SendCmd "$type wireframe $bool $dataset"
+                }
+            }
+        }
+        "glyphs-visible" {
+            set bool $_settings(glyphs-visible)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "glyphs" } {
+                    SendCmd "$type visible $bool $dataset"
+                }
+            }
+        }
+        "glyphs-lighting" {
+            set bool $_settings(glyphs-lighting)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "glyphs" } {
+                    SendCmd "$type lighting $bool $dataset"
+                }
+            }
+        }
+        "glyphs-edges" {
+            set bool $_settings(glyphs-edges)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "glyphs" } {
+                    SendCmd "$type edges $bool $dataset"
+                }
+            }
+        }
+        "glyphs-palette" {
+            set palette [$itk_component(glyphspalette) value]
+            set _settings(glyphs-palette) $palette
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "glyphs" } {
+                    ChangeColormap $dataobj $comp $palette
+                    # FIXME: fill in current selected fieldname
+                    #SendCmd "glyphs colormode scalar {} $dataset"
+                }
+            }
+            set _legendPending 1
+        }
         "polydata-opacity" {
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 if { [$dataobj type $comp] == "polydata" } {
                     SetOpacity $dataset
+                }
+            }
+        }
+        "polydata-outline" {
+            set bool $_settings(polydata-outline)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "polydata" } {
+                    SendCmd "outline visible $bool $dataset"
                 }
             }
         }
@@ -1376,12 +1492,20 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set _legendPending 1
         }
         "molecule-opacity" {
-            set val $_settings(molecule-opacity)
-            set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 if { [$dataobj type $comp] == "molecule" } {
                     SetOpacity $dataset
+                }
+            }
+        }
+        "molecule-outline" {
+            set bool $_settings(molecule-outline)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach { dataobj comp } [split $dataset -] break
+                set type [$dataobj type $comp]
+                if { $type == "molecule" } {
+                    SendCmd "outline visible $bool $dataset"
                 }
             }
         }
@@ -1427,7 +1551,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "molecule-palette" {
             set palette [$itk_component(moleculepalette) value]
-            set _moelculeSettings(palette) $palette
+            set _settings(molecule-palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1817,12 +1941,84 @@ set debug 0
     return [array get limits]
 }
 
+itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert 0 \
+        -title "Glyph Settings" \
+        -icon [Rappture::icon volume-on]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.glyphs \
+        -text "Show Glyphs" \
+        -variable [itcl::scope _settings(glyphs-visible)] \
+        -command [itcl::code $this AdjustSetting glyphs-visible] \
+        -font "Arial 9" -anchor w 
+
+    checkbutton $inner.outline \
+        -text "Show Outline" \
+        -variable [itcl::scope _settings(glyphs-outline)] \
+        -command [itcl::code $this AdjustSetting glyphs-outline] \
+        -font "Arial 9" -anchor w 
+
+    checkbutton $inner.wireframe \
+        -text "Show Wireframe" \
+        -variable [itcl::scope _settings(glyphs-wireframe)] \
+        -command [itcl::code $this AdjustSetting glyphs-wireframe] \
+        -font "Arial 9" -anchor w 
+
+    checkbutton $inner.lighting \
+        -text "Enable Lighting" \
+        -variable [itcl::scope _settings(glyphs-lighting)] \
+        -command [itcl::code $this AdjustSetting glyphs-lighting] \
+        -font "Arial 9" -anchor w
+
+    checkbutton $inner.edges \
+        -text "Show Edges" \
+        -variable [itcl::scope _settings(glyphs-edges)] \
+        -command [itcl::code $this AdjustSetting glyphs-edges] \
+        -font "Arial 9" -anchor w
+
+    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
+    itk_component add glyphspalette {
+        Rappture::Combobox $inner.palette -width 10 -editable no
+    }
+    $inner.palette choices insert end [GetColormapList]
+    $itk_component(glyphspalette) value "BCGYR"
+    bind $inner.palette <<Value>> \
+        [itcl::code $this AdjustSetting glyphs-palette]
+
+    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(glyphs-opacity)] \
+        -width 10 \
+        -showvalue off \
+        -command [itcl::code $this AdjustSetting glyphs-opacity]
+    $inner.opacity set $_settings(glyphs-opacity)
+
+    blt::table $inner \
+        0,0 $inner.glyphs    -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.outline   -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        5,0 $inner.opacity_l -anchor w -pady 2 \
+        5,1 $inner.opacity   -fill x   -pady 2 \
+        6,0 $inner.palette_l -anchor w -pady 2 \
+        6,1 $inner.palette   -fill x   -pady 2  
+
+    blt::table configure $inner r* c* -resize none
+    blt::table configure $inner r8 c1 -resize expand
+}
+
 itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
-    set inner [$itk_component(main) insert end \
+    set inner [$itk_component(main) insert 0 \
         -title "Mesh Settings" \
         -icon [Rappture::icon mesh]]
     $inner configure -borderwidth 4
@@ -1831,6 +2027,12 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -text "Show Mesh" \
         -variable [itcl::scope _settings(polydata-visible)] \
         -command [itcl::code $this AdjustSetting polydata-visible] \
+        -font "Arial 9" -anchor w 
+
+    checkbutton $inner.outline \
+        -text "Show Outline" \
+        -variable [itcl::scope _settings(polydata-outline)] \
+        -command [itcl::code $this AdjustSetting polydata-outline] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.wireframe \
@@ -1870,16 +2072,17 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
 
     blt::table $inner \
         0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.opacity_l -anchor w -pady 2 \
-        4,1 $inner.opacity   -fill x   -pady 2 \
-        5,0 $inner.palette_l -anchor w -pady 2 \
-        5,1 $inner.palette   -fill x   -pady 2  
+        1,0 $inner.outline   -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
+        5,0 $inner.opacity_l -anchor w -pady 2 \
+        5,1 $inner.opacity   -fill x   -pady 2 \
+        6,0 $inner.palette_l -anchor w -pady 2 \
+        6,1 $inner.palette   -fill x   -pady 2  
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r8 c1 -resize expand
 }
 
 itcl::body Rappture::VtkViewer::BuildAxisTab {} {
@@ -2138,7 +2341,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
 itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     set fg [option get $itk_component(hull) font Font]
 
-    set inner [$itk_component(main) insert end \
+    set inner [$itk_component(main) insert 0 \
         -title "Molecule Settings" \
         -icon [Rappture::icon molecule]]
     $inner configure -borderwidth 4
@@ -2147,6 +2350,12 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -text "Show Molecule" \
         -variable [itcl::scope _settings(molecule-visible)] \
         -command [itcl::code $this AdjustSetting molecule-visible] \
+        -font "Arial 9"
+
+    checkbutton $inner.outline \
+        -text "Show Outline" \
+        -variable [itcl::scope _settings(molecule-outline)] \
+        -command [itcl::code $this AdjustSetting molecule-outline] \
         -font "Arial 9"
 
     checkbutton $inner.label \
@@ -2255,25 +2464,26 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
 
     blt::table $inner \
         0,0 $inner.molecule     -anchor w -pady {1 0} \
-        1,0 $inner.label        -anchor w -pady {1 0} \
-        2,0 $inner.edges        -anchor w -pady {1 0} \
-        3,0 $inner.rep_l        -anchor w -pady { 2 0 } \
-        4,0 $inner.rep          -fill x    -pady 2 \
-        5,0 $inner.rscale_l     -anchor w -pady { 2 0 } \
-        6,0 $inner.rscale       -fill x    -pady 2 \
-        7,0 $inner.palette_l    -anchor w  -pady 0 \
-        8,0 $inner.palette      -fill x    -padx 2 \
-        9,0 $inner.atomscale_l  -anchor w -pady {3 0} \
-        10,0 $inner.atomscale   -fill x    -padx 2 \
-        11,0 $inner.bondscale_l -anchor w -pady {3 0} \
-        12,0 $inner.bondscale   -fill x   -padx 2 \
-        13,0 $inner.opacity_l   -anchor w -pady {3 0} \
-        14,0 $inner.opacity     -fill x    -padx 2 \
-        15,0 $inner.quality_l   -anchor w -pady {3 0} \
-        16,0 $inner.quality     -fill x    -padx 2
+        1,0 $inner.outline      -anchor w -pady {1 0} \
+        2,0 $inner.label        -anchor w -pady {1 0} \
+        3,0 $inner.edges        -anchor w -pady {1 0} \
+        4,0 $inner.rep_l        -anchor w -pady { 2 0 } \
+        5,0 $inner.rep          -fill x    -pady 2 \
+        6,0 $inner.rscale_l     -anchor w -pady { 2 0 } \
+        7,0 $inner.rscale       -fill x    -pady 2 \
+        8,0 $inner.palette_l    -anchor w  -pady 0 \
+        9,0 $inner.palette      -fill x    -padx 2 \
+        10,0 $inner.atomscale_l  -anchor w -pady {3 0} \
+        11,0 $inner.atomscale   -fill x    -padx 2 \
+        12,0 $inner.bondscale_l -anchor w -pady {3 0} \
+        13,0 $inner.bondscale   -fill x   -padx 2 \
+        14,0 $inner.opacity_l   -anchor w -pady {3 0} \
+        15,0 $inner.opacity     -fill x    -padx 2 \
+        16,0 $inner.quality_l   -anchor w -pady {3 0} \
+        17,0 $inner.quality     -fill x    -padx 2
     
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r17 -resize expand
+    blt::table configure $inner r18 -resize expand
 }
 
 #
@@ -2398,6 +2608,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -normscale 0
                 -opacity 1.0
                 -orientGlyphs 0
+                -outline 0
                 -ptsize 1.0
                 -quality 1
                 -scaleMode "vcomp"
@@ -2410,6 +2621,11 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             if {$shape != ""} {
                 set settings(-shape) $shape
             }
+            SendCmd "outline add $tag"
+            SendCmd "outline color [Color2RGB $settings(-color)] $tag"
+            SendCmd "outline visible $settings(-outline) $tag"
+            set _settings(glyphs-outline) $settings(-outline)
+
             SendCmd "glyphs add $settings(-shape) $tag"
             SendCmd "glyphs normscale $settings(-normscale) $tag"
             SendCmd "glyphs gscale $settings(-gscale) $tag"
@@ -2444,6 +2660,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -lighting 1
                 -linewidth 1.0
                 -opacity 1.0
+                -outline 0
                 -quality 1.0
                 -representation ""
                 -rscale "covalent"
@@ -2451,6 +2668,12 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -wireframe 0
             }
             array set settings $style
+
+            SendCmd "outline add $tag"
+            SendCmd "outline color [Color2RGB white] $tag"
+            SendCmd "outline visible $settings(-outline) $tag"
+            set _settings(molecule-outline) $settings(-outline)
+
             SendCmd "molecule add $tag"
             if {$settings(-representation) != ""} {
                 switch -- $settings(-representation) {
@@ -2560,10 +2783,17 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -lighting 1
                 -linewidth 1.0
                 -opacity 1.0
+                -outline 0
                 -visible 1
                 -wireframe 0
             }
             array set settings $style
+
+            SendCmd "outline add $tag"
+            SendCmd "outline color [Color2RGB $settings(-color)] $tag"
+            SendCmd "outline visible $settings(-outline) $tag"
+            set _settings(polydata-outline) $settings(-outline)
+
             SendCmd "polydata add $tag"
             SendCmd "polydata visible $settings(-visible) $tag"
             set _settings(polydata-visible) $settings(-visible)
