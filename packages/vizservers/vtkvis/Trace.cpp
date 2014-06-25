@@ -87,10 +87,10 @@ VtkVis::logUserMessage(const char* fmt, ...)
     g_UserErrorString << message << "\n";
 }
 
-const char *
+std::string
 VtkVis::getUserMessages()
 {
-    return g_UserErrorString.str().c_str();
+    return g_UserErrorString.str();
 }
 
 void 

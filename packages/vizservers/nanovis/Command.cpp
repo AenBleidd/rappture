@@ -2314,19 +2314,21 @@ nv::handleError(Tcl_Interp *interp, int status, int fdOut)
         }
     }
 
-    string = getUserMessages();
-    nBytes = strlen(string);
+    std::string msg = getUserMessages();
+    nBytes = msg.length();
     if (nBytes > 0) {
+        string = msg.c_str();
         TRACE("userError=(%s)", string);
 
         std::ostringstream oss;
         oss << "nv>viserror -type error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
-        nBytes = oss.str().length();
+        std::string ostr = oss.str();
+        nBytes = ostr.length();
 
 #ifdef USE_THREADS
-        queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+        queueResponse(ostr.c_str(), nBytes, Response::VOLATILE, Response::ERROR);
 #else
-        if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+        if (write(fdOut, ostr.c_str(), nBytes) < 0) {
             ERROR("write failed: %s", strerror(errno));
             return -1;
         }

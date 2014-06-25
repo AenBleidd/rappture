@@ -1851,16 +1851,18 @@ GeoVis::handleError(Tcl_Interp *interp,
         }
     }
 
-    string = getUserMessages();
-    nBytes = strlen(string);
+    std::string msg = getUserMessages();
+    nBytes = msg.length();
     if (nBytes > 0) {
+        string = msg.c_str();
         TRACE("userError=(%s)", string);
 
         std::ostringstream oss;
         oss << "nv>viserror -type error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
-        nBytes = oss.str().length();
+        std::string ostr = oss.str();
+        nBytes = ostr.length();
 
-        if (queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR) < 0) {
+        if (queueResponse(ostr.c_str(), nBytes, Response::VOLATILE, Response::ERROR) < 0) {
             return -1;
         }
 

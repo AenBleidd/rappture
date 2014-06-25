@@ -8,6 +8,8 @@
 #ifndef NV_TRACE_H
 #define NV_TRACE_H
 
+#include <string>
+
 #include <GL/glew.h>
 #include <syslog.h>
 
@@ -21,7 +23,7 @@ namespace nv {
 
 extern void logUserMessage(const char* format, ...);
 
-extern const char *getUserMessages();
+extern std::string getUserMessages();
 
 extern void clearUserMessages();
 
