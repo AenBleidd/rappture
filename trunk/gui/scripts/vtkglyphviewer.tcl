@@ -2131,7 +2131,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
-        -color \#FFFFFF
+        -color white
         -colormap BCGYR
         -colorMode vmag
         -edgecolor black
