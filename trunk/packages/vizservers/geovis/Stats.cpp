@@ -100,8 +100,8 @@ GeoVis::serverStats(const Stats& stats, int code)
     oss << std::endl;
 
     int fd = getStatsFile();
-    int result = writeToStatsFile(fd, oss.str().c_str(),
-                                  oss.str().length());
+    std::string ostr = oss.str();
+    int result = writeToStatsFile(fd, ostr.c_str(), ostr.length());
     close(fd);
     return result;
 }
@@ -120,11 +120,11 @@ GeoVis::getStatsFile(const char *key)
     std::ostringstream keyStream;
     keyStream << key << " "
               << getpid();
-
-    TRACE("Stats file key: '%s'", keyStream.str().c_str());
+    std::string keystr = keyStream.str();
+    TRACE("Stats file key: '%s'", keystr.c_str());
 
     md5_init(&state);
-    md5_append(&state, (const md5_byte_t *)keyStream.str().c_str(), keyStream.str().length());
+    md5_append(&state, (const md5_byte_t *)keystr.c_str(), keystr.length());
     md5_finish(&state, digest);
     for (int i = 0; i < 16; i++) {
         sprintf(fileName + i * 2, "%02x", digest[i]);
