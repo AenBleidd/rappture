@@ -541,7 +541,7 @@ itcl::body Rappture::Field::limits {which} {
 itcl::body Rappture::Field::fieldlimits {} {
     foreach cname [array names _comp2limits] {
         array set limits $_comp2limits($cname) 
-        foreach fname $_comp2fldName($cname) {
+        foreach fname [fieldnames $cname] {
             if { ![info exists limits($fname)] } {
                 puts stderr "ERROR: field \"$fname\" unknown in \"$cname\""
                 continue
