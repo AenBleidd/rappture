@@ -73,11 +73,12 @@ queueViewpoint()
         << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getHorizInitString()) << "}"
         << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getVertInitString()) << "}"
         << "\n";
-    len = oss.str().size();
+    std::string ostr = oss.str();
+    len = ostr.size();
 #ifdef USE_THREADS
-    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
+    queueResponse(ostr.c_str(), len, Response::VOLATILE);
 #else 
-    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+    ssize_t bytesWritten = SocketWrite(ostr.c_str(), len);
 
     if (bytesWritten < 0) {
         return TCL_ERROR;
@@ -168,14 +169,15 @@ static int
 sendAck()
 {
     std::ostringstream oss;
-    oss << "nv>ok -token " << g_stats.nCommands <<  "\n";
-    int nBytes = oss.str().length();
+    oss << "nv>ok -token " << g_stats.nCommands << "\n";
+    std::string ostr = oss.str();
+    int nBytes = ostr.length();
 
     TRACE("Sending OK for commands through %lu", g_stats.nCommands);
 #ifdef USE_THREADS
-    queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::OK);
+    queueResponse(ostr.c_str(), nBytes, Response::VOLATILE, Response::OK);
 #else
-    if (write(g_fdOut, oss.str().c_str(), nBytes) < 0) {
+    if (write(g_fdOut, ostr.c_str(), nBytes) < 0) {
         ERROR("write failed: %s", strerror(errno));
         return -1;
     }

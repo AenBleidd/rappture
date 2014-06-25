@@ -175,11 +175,12 @@ CameraGetViewpointOp(ClientData clientData, Tcl_Interp *interp, int objc,
         << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getHorizInitString()) << "}"
         << " {" << ((view.getSRS() == NULL) ? "" : view.getSRS()->getVertInitString()) << "}"
         << "\n";
-    len = oss.str().size();
+    std::string ostr = oss.str();
+    len = ostr.size();
 #ifdef USE_THREADS
-    queueResponse(oss.str().c_str(), len, Response::VOLATILE);
+    queueResponse(ostr.c_str(), len, Response::VOLATILE);
 #else 
-    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+    ssize_t bytesWritten = SocketWrite(ostr.c_str(), len);
 
     if (bytesWritten < 0) {
         return TCL_ERROR;
@@ -1186,11 +1187,12 @@ MapLoadOp(ClientData clientData, Tcl_Interp *interp, int objc,
         SocketRead(buf, (size_t)len);
         std::ostringstream path;
         path << "/tmp/tmp" << getpid() << ".earth";
-        FILE *tmpFile = fopen(path.str().c_str(), "w");
+        const char *pathStr = path.str().c_str();
+        FILE *tmpFile = fopen(pathStr, "w");
         fwrite(buf, len, 1, tmpFile);
         fclose(tmpFile);
-        g_renderer->loadEarthFile(path.str().c_str());
-        unlink(path.str().c_str());
+        g_renderer->loadEarthFile(pathStr);
+        unlink(pathStr);
         free(buf);
     } else {
         return TCL_ERROR;
@@ -1843,9 +1845,10 @@ GeoVis::handleError(Tcl_Interp *interp,
 
             std::ostringstream oss;
             oss << "nv>viserror -type internal_error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
-            nBytes = oss.str().length();
+            std::string ostr = oss.str();
+            nBytes = ostr.length();
 
-            if (queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR) < 0) {
+            if (queueResponse(ostr.c_str(), nBytes, Response::VOLATILE, Response::ERROR) < 0) {
                 return -1;
             }
         }

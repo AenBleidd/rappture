@@ -2301,10 +2301,11 @@ nv::handleError(Tcl_Interp *interp, int status, int fdOut)
 
             std::ostringstream oss;
             oss << "nv>viserror -type internal_error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
-            nBytes = oss.str().length();
+            std::string ostr = oss.str();
+            nBytes = ostr.length();
 
 #ifdef USE_THREADS
-            queueResponse(oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+            queueResponse(ostr.c_str(), nBytes, Response::VOLATILE, Response::ERROR);
 #else
             if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
                 ERROR("write failed: %s", strerror(errno));
