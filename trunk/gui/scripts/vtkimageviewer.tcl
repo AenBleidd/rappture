@@ -1315,17 +1315,17 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             SendCmd "axis flymode $mode"
         }
         "axisLabels" {
-            set bool $_settings(axisLabels)
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
         "axisMinorTicks" {
-            set bool $_settings(axisMinorTicks)
+            set bool $_settings($what)
 	    foreach axis { x y z } { 
 		SendCmd "axis minticks ${axis} $bool"
 	    }
         }
         "axisVisible" {
-            set bool $_settings(axisVisible)
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
         "axisXGrid" - "axisYGrid" - "axisZGrid" {
@@ -1368,10 +1368,10 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             SendCmd "image backing $bool"
         }
         "colormap" {
-            set _changed(colormap) 1
+            set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
-            set _settings(colormap) $color
+            set _settings($what) $color
             SetCurrentColormap $color
             if {$_settings(colormapDiscrete)} {
                  SendCmd "colormap res $_settings(numColors) $color"
@@ -1393,7 +1393,7 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
         "field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(field) $fname
+            set _settings($what) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
@@ -1415,7 +1415,7 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "view3D" {
-	    set bool $_settings(view3D)
+	    set bool $_settings($what)
             set c $itk_component(view)
             StartBufferingCommands
             # Fix image scale: 0 for contours, 1 for images.
@@ -1466,11 +1466,11 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             StopBufferingCommands
         }
         "window" {
-            set val $_settings(window)
+            set val $_settings($what)
             SendCmd "image window $val"
         }
         "level" {
-            set val $_settings(level)
+            set val $_settings($what)
             SendCmd "image level $val"
         }
         "legendVisible" {
@@ -1480,18 +1480,17 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "opacity" {
-            set _changed(opacity) 1
+            set _changed($what) 1
 	    if { $_settings(view3D) } {
-                set _settings(saveOpacity) $_settings(opacity)
-                set val $_settings(opacity)
-                set sval [expr { 0.01 * double($val) }]
-                SendCmd "image opacity $sval"
+                set _settings(saveOpacity) $_settings($what)
+                set val [expr $_settings($what) * 0.01]
+                SendCmd "image opacity $val"
             } else {
-		SendCmd "image opacity 1"
+		SendCmd "image opacity 1.0"
             }
         }
         "outline" {
-            set bool $_settings(outline)
+            set bool $_settings($what)
             SendCmd "outline visible $bool"
 	}
         "stretchToFit" {

@@ -1318,11 +1318,11 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "axesVisible" {
-            set bool $_settings(axesVisible)
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
         "axisLabelsVisible" {
-            set bool $_settings(axisLabelsVisible)
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
         "axisXGrid" - "axisYGrid" - "axisZGrid" {
@@ -1380,10 +1380,10 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set _cutplanePending 0
         }
         "colormap" {
-            set _changed(colormap) 1
+            set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
-            set _settings(colormap) $color
+            set _settings($what) $color
 	    if { $color == "none" } {
 		if { $_settings(colormapVisible) } {
 		    SendCmd "glyphs colormode constant {}"
@@ -1459,7 +1459,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
         "field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(field) $fname
+            set _settings($what) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
