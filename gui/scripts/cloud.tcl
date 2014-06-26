@@ -127,9 +127,9 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
     set _units $list
     foreach label [$_cloud get labels] axis { x y z } {
         if { $label != "" } {
-            set _axis2labels($axis) $label
+            set _axis2label($axis) $label
         } else {
-            set _axis2labels($axis) [string toupper $axis]
+            set _axis2label($axis) [string toupper $axis]
         }
     }
 
@@ -265,10 +265,10 @@ itcl::body Rappture::Cloud::units { axis } {
 #       Returns the label of the given axis.
 #
 itcl::body Rappture::Cloud::label { axis } {
-    if { ![info exists axis2label($axis)] } {
+    if { ![info exists _axis2label($axis)] } {
         return ""
     }
-    return $axis2label($axis)
+    return $_axis2label($axis)
 }
 
 # ----------------------------------------------------------------------
