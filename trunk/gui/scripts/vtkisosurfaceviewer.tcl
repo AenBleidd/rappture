@@ -222,17 +222,18 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     array set _settings {
         -axesvisible                    1
         -axislabelsvisible              1
-	-background                     black
-	-colormap                       BCGYR
-	-colormapvisible                1
+        -axismode                       "static"
+        -background                     black
+        -colormap                       BCGYR
+        -colormapvisible                1
         -cutplaneedges                  0
         -cutplanelighting               1
         -cutplaneopacity                100
         -cutplanepreinterp              1
         -cutplanesvisible               0
         -cutplanewireframe              0
-	-field                          "Default"
-	-isolinecolor                   white
+        -field                          "Default"
+        -isolinecolor                   white
         -isosurfaceedges                0
         -isosurfacelighting             1
         -isosurfaceopacity              60
@@ -252,8 +253,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         -zgrid                          0
     }
     array set _changed {
-        -isosurfaceopacity       0
         -colormap                0
+        -isosurfaceopacity       0
         -numcontours             0
     }
 
@@ -1397,7 +1398,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set _cutplanePending 0
         }
         "-colormap" {
-            set _changed(-colormap) 1
+            set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
             set _settings(-colormap) $color
@@ -1779,7 +1780,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
-    $itk_component(axisMode) value "static"
+    $itk_component(axisMode) value $_settings(-axismode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
@@ -2131,8 +2132,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     if { $dataobj != $_first || $style(-levels) == 1 } {
         set style(-opacity) 1
     }
-    SendCmd "cutplane add $tag"
-    SendCmd "cutplane visible 0 $tag"
 
     # This is too complicated.  We want to set the colormap, number of
     # isolines and opacity for the dataset.  They can be the default values,
@@ -2171,13 +2170,18 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set _settings(-xcutplaneposition) $style(-xcutplaneposition)
     set _settings(-ycutplaneposition) $style(-ycutplaneposition)
     set _settings(-zcutplaneposition) $style(-zcutplaneposition)
- 
-    SendCmd [list contour3d add contourlist $_contourList $tag]
-    SendCmd "contour3d edges $style(-edges) $tag"
+
+    SendCmd "cutplane add $tag"
+    SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
+
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
     set _settings(-outline) $style(-outline)
+ 
+    SendCmd [list contour3d add contourlist $_contourList $tag]
+    SendCmd "contour3d visible $style(-isosurfacevisible) $tag"
+    SendCmd "contour3d edges $style(-edges) $tag"
     set _settings(-isosurfaceedges) $style(-edges)
     #SendCmd "contour3d color [Color2RGB $settings(-color)] $tag"
     SendCmd "contour3d lighting $style(-lighting) $tag"
