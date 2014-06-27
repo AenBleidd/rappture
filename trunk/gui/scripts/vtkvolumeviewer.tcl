@@ -162,7 +162,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
-    private variable _seeds
 
     common _downloadPopup;              # download options from popup
     private common _hardcopy
@@ -886,7 +885,6 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
-    array unset _seeds 
     array unset _dataset2style 
     array unset _obj2datasets 
 
@@ -1377,7 +1375,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "-background" {
             set bgcolor [$itk_component(background) value]
-            set _settings(${what}) $bgcolor
+            set _settings($what) $bgcolor
 	    array set fgcolors {
 		"black" "white"
 		"white" "black"
@@ -1389,14 +1387,14 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "-volumeoutline" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             SendCmd "outline visible 0"
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "outline visible $bool $tag"
             }
         }
         "-legendvisible" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             set _settings($_current${what}) $bool
             if { $bool } {
                 blt::table $itk_component(plotarea) \
@@ -1406,7 +1404,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-volumevisible" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             set _settings($_current${what}) $bool
             # Only the data objects in the array _obj2ovride(*-raise) are
             # in the working set and can be displayed on screen. The global
@@ -1433,7 +1431,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         "-volumeblendmode" {
             set val [$itk_component(blendmode) value]
             set mode [$itk_component(blendmode) translate $val]
-            set _settings(${what}) $mode
+            set _settings($what) $mode
             set _settings($_current${what}) $mode
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume blendmode $mode $tag"
@@ -1445,7 +1443,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             if { ![info exists _settings($_current${what})] } {
                 InitComponentSettings $_current
             }
-            set val $_settings(${what})
+            set val $_settings($what)
             set _settings($_current${what}) $val
             set ambient [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1453,7 +1451,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-volumediffuse" {
-            set val $_settings(${what})
+            set val $_settings($what)
             set _settings($_current${what}) $val
             set diffuse [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1461,10 +1459,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-volumespecularlevel" - "-volumespecularexponent" {
-            set val $_settings(${what})
+            set val $_settings($what)
             set _settings($_current${what}) $val
             set level [expr {0.01*$val}]
-            set exp $_settings(${what})
+            set exp $_settings($what)
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading specular $level $exp $tag"
             }
@@ -1477,7 +1475,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-volumeopacity" {
-            set val $_settings(${what})
+            set val $_settings($what)
             set _settings($_current${what}) $val
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1485,7 +1483,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-volumequality" {
-            set val $_settings(${what})
+            set val $_settings($what)
             set _settings($_current${what}) $val
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1493,32 +1491,32 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-axesvisible" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
         "-axislabelsvisible" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
         "-xgridvisible" - "-ygridvisible" - "-zgridvisible" {
             set axis [string tolower [string range $what 1 1 ]]
-            set bool $_settings(${what})
+            set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
         }
         "-axisflymode" {
             set mode [$itk_component(axismode) value]
             set mode [$itk_component(axismode) translate $mode]
-            set _settings(${what}) $mode
+            set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
         "-cutplanesvisible" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "$_cutplaneCmd visible $bool $dataset"
             }
         }
         "-cutplanelighting" {
-            set bool $_settings(${what})
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
                 if {$_cutplaneCmd != "imgcutplane"} {
                     SendCmd "$_cutplaneCmd lighting $bool $dataset"
@@ -1535,7 +1533,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-cutplaneopacity" {
-            set val $_settings(${what})
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "$_cutplaneCmd opacity $sval $dataset"
@@ -1543,7 +1541,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
             set axis [string tolower [string range $what 1 1]]
-            set bool $_settings(${what})
+            set bool $_settings($what)
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
                     -troughcolor white
@@ -1557,26 +1555,26 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
             set axis [string tolower [string range $what 1 1]]
-            set pos [expr $_settings(${what}) * 0.01]
+            set pos [expr $_settings($what) * 0.01]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "$_cutplaneCmd slice ${axis} ${pos} $dataset"
             }
             set _cutplanePending 0
         }
         "-volumethickness" {
-            set _settings($_current${what}) $_settings(${what})
+            set _settings($_current${what}) $_settings($what)
             updateTransferFunctions
         }
         "-color" {
             set color [$itk_component(colormap) value]
-            set _settings(${what}) $color
+            set _settings($what) $color
             set _settings($_current${what}) $color
             ResetColormap $_current $color
         }
         "-field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(${what}) $fname
+            set _settings($what) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { !$_allowMultiComponent && $components > 1 } {
@@ -1647,7 +1645,7 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
     if { [isconnected] } {
         set color $itk_option(-plotforeground)
         set rgb [Color2RGB $color]
-	SendCmd "axis color all $rgb"
+        SendCmd "axis color all $rgb"
         SendCmd "outline color $rgb"
         SendCmd "cutplane color $rgb"
         $itk_component(legend) itemconfigure labels -fill $color 

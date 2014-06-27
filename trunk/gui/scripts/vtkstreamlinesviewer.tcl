@@ -1,6 +1,6 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
-#  COMPONENT: vtkviewer - Vtk drawing object viewer
+#  COMPONENT: vtkstreamlinesviewer - Vtk streamlines object viewer
 #
 #  It connects to the Vtk server running on a rendering farm,
 #  transmits data, and displays the results.
