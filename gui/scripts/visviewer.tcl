@@ -36,9 +36,9 @@ itcl::class ::Rappture::VisViewer {
     private variable _afterId -1
     private variable _icon 0
 
-    # Number of milliseconds to wait before idle timeout.  If greater than
-    # 0, automatically disconnect from the visualization server when idle
-    # timeout is reached.
+    # Number of milliseconds to wait before idle timeout.  If greater than 0,
+    # automatically disconnect from the visualization server when idle timeout
+    # is reached.
     private variable _idleTimeout 43200000; # 12 hours
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
@@ -465,9 +465,8 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     }
     set _buffer(out) ""
     if { [IsConnected] } {
-        # The connection may have closed while we were writing to the
-        # server.  This can happen if what we sent the server caused it to
-        # barf.
+        # The connection may have closed while we were writing to the server.
+        # This can happen if what we sent the server caused it to barf.
         fileevent $_sid writable ""
         flush $_sid
     }
@@ -517,8 +516,8 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
 #
 #   Helper routine called from a file event when the connection is readable
 #   (i.e. a command response has been sent by the rendering server.  Reads
-#   the incoming command and executes it in a safe interpreter to handle
-#   the action.
+#   the incoming command and executes it in a safe interpreter to handle the
+#   action.
 #
 #       Note: This routine currently only handles command responses from
 #         the visualization server.  It doesn't handle non-blocking
@@ -600,10 +599,10 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 #
 # SendEcho --
 #
-#     Used internally to echo sent data to clients interested in this
-#     widget.  If the -sendcommand opti on is set, then it is invoked in
-#     the global scope with the <channel> and <data> values as arguments.
-#     Otherwise, this does nothing.
+#     Used internally to echo sent data to clients interested in this widget.
+#     If the -sendcommand option is set, then it is invoked in the global scope
+#     with the <channel> and <data> values as arguments.  Otherwise, this does
+#     nothing.
 #
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
     if { $_logging }  {
