@@ -1424,7 +1424,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
 	    SendCmd "glyphs edges $bool"
         }
-        "glyphOutline" {
+        "-glyphoutline" {
             set bool $_settings($what)
 	    SendCmd "outline visible $bool"
         }
