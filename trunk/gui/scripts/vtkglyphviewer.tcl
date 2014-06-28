@@ -1443,7 +1443,9 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
         }
         "-glyphscale" {
             set val $_settings($what)
-            SendCmd "glyphs gscale $val"
+            if { [string is double $val] } {
+                SendCmd "glyphs gscale $val"
+            }
         }
         "-glyphscalemode" {
             set label [$itk_component(scaleMode) value]
