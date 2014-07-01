@@ -462,7 +462,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
     Connect
-    update
 }
 
 # ----------------------------------------------------------------------

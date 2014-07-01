@@ -396,7 +396,6 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
 
     EnableWaitDialog 500
     Connect
-    update
 }
 
 # ----------------------------------------------------------------------

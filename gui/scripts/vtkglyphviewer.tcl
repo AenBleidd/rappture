@@ -438,7 +438,6 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
     Connect
-    update
 }
 
 # ----------------------------------------------------------------------
