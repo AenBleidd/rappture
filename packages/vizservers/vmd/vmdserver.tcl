@@ -72,40 +72,39 @@ set Scenes(@CURRENT) ""
 set parser [interp create -safe]
 
 foreach cmd {
-  vmdinfo
-  vmdbench
-  color
   axes
+  color
+  gettimestep
   imd
-  vmdcollab
+  label
   vmd_label
   light
   material
-  vmd_menu
-  stage
-  light
-  user
+  measure
+  mobile
   mol
   molinfo
   molecule
   mouse
-  mobile
-  spaceball
+  parallel
   plugin
+  rawtimestep
   render
-  tkrender
   rotate
   rotmat
+  scale
   vmd_scale
-  translate
-  sleep
+  spaceball
+  stage
+  tkrender
   tool
-  measure
-  rawtimestep
-  gettimestep
+  translate
+  user
+  vmdcollab
   vmdcon
+  vmdinfo
+  vmdbench
   volmap
-  parallel
 } {
     $parser alias $cmd $cmd
 }
@@ -244,6 +243,31 @@ proc cmd_drag {action} {
 $parser alias drag cmd_drag
 
 # ----------------------------------------------------------------------
+# USAGE: setquality normal|high
+#
+# Sets the rendering quality for the scene--either "high" (GLSL) or
+# normal.
+# ----------------------------------------------------------------------
+proc cmd_setquality {newval} {
+    global DisplayProps
+
+    switch -- $newval {
+        high {
+            display rendermode GLSL
+            set DisplayProps(rendermode) "GLSL"
+        }
+        normal {
+            display rendermode Normal
+            set DisplayProps(rendermode) "Normal"
+        }
+        default {
+            error "bad quality value \"$newval\": should be normal or high"
+        }
+    }
+}
+$parser alias setquality cmd_setquality
+
+# ----------------------------------------------------------------------
 # USAGE: smoothreps <value>
 #
 # Changes the smoothing factor for all representations of the current
@@ -283,22 +307,54 @@ proc cmd_rock {args} {
 $parser alias rock cmd_rock
 
 # ----------------------------------------------------------------------
+# These commands just confuse things, so ignore them silently.
+# ----------------------------------------------------------------------
+proc cmd_noop {args} {
+    # do nothing
+}
+
+$parser alias sleep cmd_noop
+$parser alias menu cmd_noop
+$parser alias vmd_menu cmd_noop
+$parser alias play cmd_noop
+$parser alias quit cmd_noop
+
+# ----------------------------------------------------------------------
 # USAGE: load <file> <file>...
 #
 # Loads the molecule data from one or more files, which may be PDB,
 # DCD, PSF, etc.
 # ----------------------------------------------------------------------
 proc cmd_load {args} {
+    global MolInfo
+
     # clear all existing molecules
     foreach nmol [molinfo list] {
         mol delete $nmol
     }
+    catch {unset MolInfo}
 
     # load new files
-    set op "new"
+    if {![regexp {^@name:} $args]} {
+        # make sure that there is at least one name in the list
+        set args [linsert $args 0 "@name:0"]
+    }
+
+    set slot 0
     foreach file $args {
+        if {[regexp {^@name:(.+)} $file match name]} {
+            set op "new"
+            continue
+        }
         mol $op $file waitfor all
-        set op "addfile"
+
+        if {$op eq "new"} {
+            set newnum [lindex [molinfo list] end]
+            set MolInfo($name) $newnum
+            set MolInfo($slot) $newnum
+            incr slot
+            set op "addfile"
+        }
     }
 
     # BE CAREFUL -- force a "display update" here
@@ -324,7 +380,7 @@ $parser alias load cmd_load
 # forgotten.
 # ----------------------------------------------------------------------
 proc cmd_scene {option args} {
-    global Scenes Views DisplayProps parser
+    global Scenes Views MolInfo DisplayProps parser
 
     switch -- $option {
         define {
@@ -368,12 +424,14 @@ proc cmd_scene {option args} {
                 # clear all variables created by previous scripts
                 $parser eval [list catch [list unset $val]]
             }
+            $parser eval [list array set mol [array get MolInfo]]
+
             if {[catch {$parser eval $Scenes($name)} result]} {
                 error "$result\nwhile loading scene \"$name\""
             }
 
             # capture display characteristics in case we ever need to reset
-            set DisplayProps(rendermode) [display get rendermode]
+            set DisplayProps(rendermode) "Normal"
             set DisplayProps(shadows) [display get shadows]
 
             foreach nmol [molinfo list] {
