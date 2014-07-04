@@ -94,6 +94,7 @@ itcl::class Rappture::VtkViewer {
     private method EventuallyRotate { q } 
     private method EventuallySetAtomScale { args } 
     private method EventuallySetBondScale { args } 
+    private method EventuallySetGlyphsOpacity { args } 
     private method EventuallySetMoleculeOpacity { args } 
     private method EventuallySetMoleculeQuality { args } 
     private method EventuallySetPolydataOpacity { args } 
@@ -107,6 +108,7 @@ itcl::class Rappture::VtkViewer {
     private method SetAtomScale {}
     private method SetBondScale {}
     private method SetColormap { dataobj comp }
+    private method SetGlyphsOpacity {}
     private method SetLegendTip { x y }
     private method SetMoleculeOpacity {}
     private method SetMoleculeQuality {}
@@ -208,6 +210,12 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     $_dispatcher register !polydataOpacity
     $_dispatcher dispatch $this !polydataOpacity \
         "[itcl::code $this SetPolydataOpacity]; list"
+
+    # Glyphs opacity event
+    $_dispatcher register !glyphsOpacity
+    $_dispatcher dispatch $this !glyphsOpacity \
+        "[itcl::code $this SetGlyphsOpacity]; list"
+
     #
     # Populate parser with commands handle incoming requests
     #
@@ -507,6 +515,16 @@ molecule bquality $_settings(molecule-quality)}]
     set _moleculeQualityPending 0
 }
 
+itcl::body Rappture::VtkViewer::SetGlyphsOpacity {} {
+    set _glyphsOpacityPending 0
+    foreach dataset [CurrentDatasets -visible $_first] {
+        foreach { dataobj comp } [split $dataset -] break
+        if { [$dataobj type $comp] == "glyphs" } {
+            SetOpacity $dataset
+        }
+    }
+}
+
 itcl::body Rappture::VtkViewer::SetPolydataOpacity {} {
     set _polydataOpacityPending 0
     foreach dataset [CurrentDatasets -visible $_first] {
@@ -549,6 +567,13 @@ itcl::body Rappture::VtkViewer::EventuallySetPolydataOpacity { args } {
     if { !$_polydataOpacityPending } {
         set _polydataOpacityPending 1
         $_dispatcher event -after $_scaleDelay !polydataOpacity
+    }
+}
+
+itcl::body Rappture::VtkViewer::EventuallySetGlyphsOpacity { args } {
+    if { !$_glyphsOpacityPending } {
+        set _glyphsOpacityPending 1
+        $_dispatcher event -after $_scaleDelay !glyphsOpacity
     }
 }
 
@@ -1356,7 +1381,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "glyphs-outline" {
-            set bool $_settings(glyphs-outline)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1366,7 +1391,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "glyphs-wireframe" {
-            set bool $_settings(glyphs-wireframe)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1376,7 +1401,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "glyphs-visible" {
-            set bool $_settings(glyphs-visible)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1386,7 +1411,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "glyphs-lighting" {
-            set bool $_settings(glyphs-lighting)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1396,7 +1421,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "glyphs-edges" {
-            set bool $_settings(glyphs-edges)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1407,7 +1432,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "glyphs-palette" {
             set palette [$itk_component(glyphspalette) value]
-            set _settings(glyphs-palette) $palette
+            set _settings($what) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1428,7 +1453,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "polydata-outline" {
-            set bool $_settings(polydata-outline)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1438,7 +1463,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "polydata-wireframe" {
-            set bool $_settings(polydata-wireframe)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1448,7 +1473,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "polydata-visible" {
-            set bool $_settings(polydata-visible)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1458,7 +1483,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "polydata-lighting" {
-            set bool $_settings(polydata-lighting)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1468,7 +1493,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "polydata-edges" {
-            set bool $_settings(polydata-edges)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1479,7 +1504,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "polydata-palette" {
             set palette [$itk_component(meshpalette) value]
-            set _settings(polydata-palette) $palette
+            set _settings($what) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1500,7 +1525,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "molecule-outline" {
-            set bool $_settings(molecule-outline)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1510,7 +1535,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "molecule-wireframe" {
-            set bool $_settings(molecule-wireframe)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1520,7 +1545,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "molecule-visible" {
-            set bool $_settings(molecule-visible)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1530,7 +1555,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "molecule-lighting" {
-            set bool $_settings(molecule-lighting)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1540,7 +1565,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "molecule-edges" {
-            set bool $_settings(molecule-edges)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach { dataobj comp } [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1551,7 +1576,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "molecule-palette" {
             set palette [$itk_component(moleculepalette) value]
-            set _settings(molecule-palette) $palette
+            set _settings($what) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
@@ -1648,17 +1673,17 @@ molecule bonds $_settings(molecule-bonds-visible) $dataset}]
         "molecule-rscale" {
             set value [$itk_component(rscale) value]
             set value [$itk_component(rscale) translate $value]
-            set _settings(molecule-rscale) $value
+            set _settings($what) $value
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "molecule" } {
-                    SendCmd [subst {molecule rscale $_settings(molecule-rscale) $dataset}]
+                    SendCmd [subst {molecule rscale $_settings($what) $dataset}]
                 }
             }
         }
         "molecule-labels" {
-            set bool $_settings(molecule-labels)
+            set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible $_first] {
                foreach { dataobj comp } [split $dataset -] break
                set type [$dataobj type $comp]
@@ -1995,7 +2020,7 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
         -variable [itcl::scope _settings(glyphs-opacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting glyphs-opacity]
+        -command [itcl::code $this EventuallySetGlyphsOpacity]
     $inner.opacity set $_settings(glyphs-opacity)
 
     blt::table $inner \
@@ -2067,7 +2092,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -variable [itcl::scope _settings(polydata-opacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting polydata-opacity]
+        -command [itcl::code $this EventuallySetPolydataOpacity]
     $inner.opacity set $_settings(polydata-opacity)
 
     blt::table $inner \
