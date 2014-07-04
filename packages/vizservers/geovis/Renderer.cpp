@@ -1783,6 +1783,8 @@ std::string Renderer::getCanonicalPath(const std::string& url) const
         if (!osgDB::fileExists(retStr)) {
             retStr = "";
         }
+    } else {
+        retStr = url;
     }
     return retStr;
 }
