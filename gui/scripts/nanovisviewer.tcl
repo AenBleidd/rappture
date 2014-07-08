@@ -222,7 +222,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -ambient                60
         -axesvisible            1
         -colormap               default
-        -cutplanevisible        0
+        -cutplanesvisible       0
         -diffuse                40
         -gridvisible            0
         -isosurfaceshading      0
