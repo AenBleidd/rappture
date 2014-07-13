@@ -365,7 +365,7 @@ itcl::body Rappture::Field::values {cname} {
         return [$vector range 0 end]
     }
     if {[info exists _comp2dx($cname)]} {
-        error "method \"values\" is not implemented for dx data"
+        error "method \"values\" is not implemented for dx file data"
     }
     if {[info exists _comp2unirect2d($cname)]} {
         return [$_comp2unirect2d($cname) values]
@@ -405,6 +405,12 @@ itcl::body Rappture::Field::blob {cname} {
     error "can't get field blob: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
 
+# ----------------------------------------------------------------------
+# USAGE: valueLimits <cname>
+#
+# Returns an array for the requested component with a list {min max} 
+# representing the limits for each axis.
+# ----------------------------------------------------------------------
 itcl::body Rappture::Field::valueLimits { cname } {
     if { [info exists _comp2limits($cname)] } {
         return $_comp2limits($cname)
@@ -530,7 +536,6 @@ itcl::body Rappture::Field::limits {which} {
     }
     return [list $min $max]
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: fieldlimits
@@ -899,7 +904,11 @@ itcl::body Rappture::Field::Build {} {
                 set _viewer $viewer
             }
             if { $_viewer == "" } {
-                set _viewer "nanovis"
+                if {[$_field element $cname.flow] != ""} {
+                    set _viewer "flowvis"
+                } else {
+                    set _viewer "nanovis"
+                }
             }
             set _dim 3
             set _comp2dims($cname) "3D"
