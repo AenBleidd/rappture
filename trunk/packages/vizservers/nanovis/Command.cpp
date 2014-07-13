@@ -1329,6 +1329,9 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
             bytes += 5;
             nBytes -= 5;
+        } else if ((nBytes > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
+            bytes += 4;
+            nBytes -= 4;
         }
         TRACE("DX loading...");
         if (nBytes <= 0) {
