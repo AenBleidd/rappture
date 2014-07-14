@@ -606,9 +606,10 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 #
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
     if { $_logging }  {
-	set f [open "/tmp/recording.log" "a"]
-	puts $f $data
-	close $f
+        set f [open "/tmp/recording.log" "a"]
+        fconfigure $f -translation binary -encoding binary
+        puts -nonewline $f $data
+        close $f
     }
     #puts stderr ">>($data)"
     if {[string length $itk_option(-sendcommand)] > 0} {
