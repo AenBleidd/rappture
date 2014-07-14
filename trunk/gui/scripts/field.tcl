@@ -321,7 +321,7 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
         error "method \"mesh\" is not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
-        return ""  ;# no mesh -- it's embedded in the value data
+        return ""  ;# no mesh -- it's embedded in the blob data
     }
     if {[info exists _comp2mesh($cname)]} {
         return ""  ;# no mesh -- it's embedded in the value data
@@ -392,7 +392,7 @@ itcl::body Rappture::Field::blob {cname} {
 	error "blob not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
-        return $_comp2dx($cname)
+        return $_comp2dx($cname)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($cname)]} {
         set blob [$_comp2unirect2d($cname) blob]
