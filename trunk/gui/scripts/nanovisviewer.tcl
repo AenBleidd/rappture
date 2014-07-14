@@ -941,11 +941,6 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                         puts stderr "??? $dataobj is invalid"
                     }
                     set data [$dataobj blob $cname]
-                    if 0 {
-                        set f [open "/tmp/values-$cname.txt" "w"]
-                        puts $f [$dataobj values $cname]
-                        close $f
-                    }
                 } else {
                     set data [$dataobj vtkdata $cname]
                     if 0 {
