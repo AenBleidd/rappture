@@ -738,8 +738,8 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
     array set styles {
         -color BCGYR
         -levels 6
-        -opacity 1.0
         -markers ""
+        -opacity 1.0
     }
     array unset _limits 
     array unset _volcomponents 
@@ -1759,8 +1759,8 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
     array set styles {
         -color BCGYR
         -levels 6
-        -opacity 1.0
         -light 40
+        -opacity 1.0
         -transp 50
     }
     array set styles [lindex [$dataobj components -style $cname] 0]
