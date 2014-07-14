@@ -183,7 +183,6 @@ itcl::body Rappture::Unirect2d::blob {} {
     set data "unirect2d"
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
-    lappend data "xmin" $_xMin "ymin" $_yMin "xmax" $_xMax "ymax" $_yMax
     return $data
 }
 
