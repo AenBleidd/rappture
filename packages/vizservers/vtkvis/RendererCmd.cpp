@@ -4756,8 +4756,9 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     g_renderer->addDataSet(name);
     if (!g_renderer->setData(name, data, nbytes)) {
-        USER_ERROR("Failed to load data for dataset \"%s\"", name);
         free(data);
+        g_renderer->deleteDataSet(name);
+        USER_ERROR("Failed to load data for dataset \"%s\"", name);
         return TCL_ERROR;
     }
     g_stats.nDataSets++;
