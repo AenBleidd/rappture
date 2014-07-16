@@ -115,7 +115,7 @@ nv::load_vtk_volume_stream(const char *tag, const char *bytes, int nBytes)
         int loc[3];
         loc[0] = ix; loc[1] = iy; loc[2] = iz;
         vtkIdType idx = resampledDataSet->ComputePointId(loc);
-        bool valid = (mask->GetComponent(idx, 0) != 0.0);
+        bool valid = (mask == NULL) ? true : (mask->GetComponent(idx, 0) != 0.0);
         if (isVectorData) {
             double vec[3];
             resampledDataSet->GetPointData()->GetVectors()->GetTuple(idx, vec);
