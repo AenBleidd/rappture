@@ -404,6 +404,9 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     if (strncmp("<ODX>", string, 5) == 0) {
         string += 5;
         length -= 5;
+    } else if (strncmp("<DX>", string, 4) == 0) {
+        string += 4;
+        length -= 4;
     }
     pointsObjPtr = Tcl_NewStringObj("", -1);
     cellsObjPtr = Tcl_NewStringObj("", -1);
