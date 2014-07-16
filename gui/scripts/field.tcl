@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*- 
-
 # ----------------------------------------------------------------------
 #  COMPONENT: field - extracts data from an XML description of a field
 #
@@ -89,7 +88,7 @@ itcl::class Rappture::Field {
     destructor { 
 	# defined below 
     }
-    public method blob { cname }
+    public method blob { cname }  
     public method components {args}
     public method controls {option args}
     public method extents {{cname -overall}}

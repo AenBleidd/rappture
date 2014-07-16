@@ -81,8 +81,9 @@ itcl::class Rappture::NanovisViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
-
     # The following methods are only used by this class.
+
+    private method AddNewMarker { x y } 
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildCutplanesTab {}
@@ -104,7 +105,6 @@ itcl::class Rappture::NanovisViewer {
     private method GetDatasetsWithComponent { cname } 
     private method GetVolumeInfo { w }
     private method HideAllMarkers {} 
-    private method AddNewMarker { x y } 
     private method InitComponentSettings { cname } 
     private method InitSettings { args }
     private method NameToAlphamap { name } 
@@ -117,6 +117,7 @@ itcl::class Rappture::NanovisViewer {
     private method ReceiveData { args }
     private method ReceiveImage { args }
     private method ReceiveLegend { tf vmin vmax size }
+    private method RemoveMarker { x y }
     private method ResetColormap { cname color }
     private method Rotate {option x y}
     private method SendTransferFunctions {}
@@ -124,9 +125,8 @@ itcl::class Rappture::NanovisViewer {
     private method Slice {option args}
     private method SlicerTip {axis}
     private method SwitchComponent { cname } 
-    private method Zoom {option}
     private method ToggleVolume { tag name }
-    private method RemoveMarker { x y }
+    private method Zoom {option}
     private method ViewToQuaternion {} { 
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
@@ -147,7 +147,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _limits;           # Autoscale min/max for all axes
     private variable _view;             # View params for 3D view
     private variable _parsedFunction
-    private variable _transferFunctionEditors;# Array of isosurface level values 0..1
+    private variable _transferFunctionEditors
     private variable  _settings
     private variable _first "" ;        # This is the topmost volume.
     private variable _current "";       # Currently selected component 
@@ -207,9 +207,9 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -qx      -0.353553
         -qy      0.353553
         -qz      0.146447
-        -zoom    1.0
         -xpan    0
         -ypan    0
+        -zoom    1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -239,14 +239,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -thickness              350
         -volume                 1
         -volumevisible          1
-        -xcutplanevisible       1
         -xcutplaneposition      50
+        -xcutplanevisible       1
         -xpan                   0
-        -ycutplanevisible       1
         -ycutplaneposition      50
+        -ycutplanevisible       1
         -ypan                   0
-        -zcutplanevisible       1
         -zcutplaneposition      50
+        -zcutplanevisible       1
         -zoom                   1.0
     }
 
@@ -720,30 +720,6 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
 # USAGE: SendTransferFunctions
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::SendTransferFunctions {} {
-    if 0 {
-    if { $_first == "" } {
-        puts stderr "first not set"
-        return
-    }
-
-    foreach tag [CurrentDatasets] {
-        if { ![info exists _serverDatasets($tag)] || !$_serverDatasets($tag) } {
-            # The volume hasn't reached the server yet.  How did we get 
-            # here?
-            puts stderr "Don't have $tag in _serverDatasets"
-            continue
-        }
-        if { ![info exists _dataset2style($tag)] } {
-            puts stderr "don't have style for volume $tag"
-            continue;                        # How does this happen?
-        }
-        foreach {dataobj cname} [split $tag -] break
-        set cname $_dataset2style($tag)
-
-        ComputeTransferFunction $cname
-        SendCmd "volume shading transfunc $cname $tag"
-    }
-    }
     foreach cname [array names _volcomponents] {
         ComputeTransferFunction $cname
     }
@@ -988,7 +964,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         SendCmd "camera reset"
 	PanCamera
 	SendCmd "camera zoom $_view(-zoom)"
-
+	
+        #cutplane state 0 all
         foreach axis {x y z} {
             # Turn off cutplanes for all volumes
             SendCmd "cutplane state 0 $axis"
@@ -1087,9 +1064,9 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                 -qx      -0.353553
                 -qy      0.353553
                 -qz      0.146447
+                -xpan    0
+                -ypan    0
                 -zoom    1.0
-                -xpan   0
-                -ypan   0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1243,21 +1220,6 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "-current" {
-            set cname [$itk_component(volcomponents) value]
-            SwitchComponent $cname
-        }
-        "-background" {
-            set bgcolor [$itk_component(background) value]
-	    array set fgcolors {
-		"black" "white"
-		"white" "black"
-		"grey"	"black"
-	    }
-            configure -plotbackground $bgcolor \
-		-plotforeground $fgcolors($bgcolor)
- 	    DrawLegend $_current
-        }
         "-ambient" {
             # Other parts of the code use the ambient setting to 
             # tell if the component settings have been initialized
@@ -1271,6 +1233,36 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume shading ambient $val $tag"
             }
         }
+        "-axesvisible" {
+            SendCmd "axis visible $_settings($what)"
+        }
+        "-background" {
+            set bgcolor [$itk_component(background) value]
+	    array set fgcolors {
+		"black" "white"
+		"white" "black"
+		"grey"	"black"
+	    }
+            configure -plotbackground $bgcolor \
+		-plotforeground $fgcolors($bgcolor)
+ 	    DrawLegend $_current
+        }
+        "-colormap" {
+            set color [$itk_component(colormap) value]
+            set _settings($what) $color
+            set _settings($_current${what}) $color
+            ResetColormap $_current $color
+        }
+        "-current" {
+            set cname [$itk_component(volcomponents) value]
+            SwitchComponent $cname
+        }
+        "-cutplanesvisible" {
+            set bool $_settings($what)
+            set datasets [CurrentDatasets -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane visible $bool $tag"
+        }
         "-diffuse" {
             set _settings($_current${what}) $_settings($what)
             set val $_settings($what)
@@ -1279,19 +1271,20 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume shading diffuse $val $tag"
             }
         }
-        "-specularlevel" {
-            set _settings($_current${what}) $_settings($what)
-            set val $_settings($what)
-            set val [expr {0.01*$val}]
-            foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume shading specularLevel $val $tag"
-            }
+        "-gridvisible" {
+            SendCmd "grid visible $_settings($what)"
         }
-        "-specularexponent" {
-            set _settings($_current${what}) $_settings($what)
-            set val $_settings($what)
-            foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume shading specularExp $val $tag"
+        "-isosurfaceshading" {
+            SendCmd "volume shading isosurface $_settings($what)"
+        }
+        "-legendvisible" {
+            if { $_settings($what) } {
+                blt::table $itk_component(plotarea) \
+                    0,0 $itk_component(3dview) -fill both \
+                    1,0 $itk_component(legend) -fill x 
+                blt::table configure $itk_component(plotarea) r1 -resize none
+            } else {
+                blt::table forget $itk_component(legend)
             }
         }
         "-light2side" {
@@ -1309,11 +1302,6 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume shading opacity $sval $tag"
             }
         }
-        "-thickness" {
-            set val $_settings($what)
-            set _settings($_current${what}) $val
-            updateTransferFunctions
-        }
         "-outlinevisible" {
             SendCmd "volume outline state $_settings($what)"
         }
@@ -1321,30 +1309,25 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             set rgb [Color2RGB $_settings($what)]
             SendCmd "volume outline color $rgb"
         }
-        "-isosurfaceshading" {
-            SendCmd "volume shading isosurface $_settings($what)"
-        }
-        "-colormap" {
-            set color [$itk_component(colormap) value]
-            set _settings($what) $color
-            set _settings($_current${what}) $color
-            ResetColormap $_current $color
-        }
-        "-gridvisible" {
-            SendCmd "grid visible $_settings($what)"
-        }
-        "-axesvisible" {
-            SendCmd "axis visible $_settings($what)"
-        }
-        "-legendvisible" {
-            if { $_settings($what) } {
-                blt::table $itk_component(plotarea) \
-                    0,0 $itk_component(3dview) -fill both \
-                    1,0 $itk_component(legend) -fill x 
-                blt::table configure $itk_component(plotarea) r1 -resize none
-            } else {
-                blt::table forget $itk_component(legend)
+        "-specularlevel" {
+            set _settings($_current${what}) $_settings($what)
+            set val $_settings($what)
+            set val [expr {0.01*$val}]
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading specularLevel $val $tag"
             }
+        }
+        "-specularexponent" {
+            set _settings($_current${what}) $_settings($what)
+            set val $_settings($what)
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading specularExp $val $tag"
+            }
+        }
+        "-thickness" {
+            set val $_settings($what)
+            set _settings($_current${what}) $val
+            updateTransferFunctions
         }
         "-volume" {
             # This is the global volume visibility control.  It controls the
@@ -1366,12 +1349,6 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume data state $_settings($what) $tag"
             }
-        }
-        "-cutplanesvisible" {
-            set bool $_settings($what)
-            set datasets [CurrentDatasets -cutplanes]
-            set tag [lindex $datasets 0]
-            SendCmd "cutplane visible $bool $tag"
         }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
             set axis [string range $what 1 1]
