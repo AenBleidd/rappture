@@ -742,24 +742,24 @@ itcl::body Rappture::VtkViewer::scale {args} {
             }
         }
         array set bounds [limits $dataobj]
-        if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
+        if {[info exists bounds(xmin)] && (![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin))} {
             set _limits(xmin) $bounds(xmin)
         }
-        if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
+        if {[info exists bounds(xmax)] && (![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax))} {
             set _limits(xmax) $bounds(xmax)
         }
 
-        if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
+        if {[info exists bounds(ymin)] && (![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin))} {
             set _limits(ymin) $bounds(ymin)
         }
-        if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
+        if {[info exists bounds(ymax)] && (![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax))} {
             set _limits(ymax) $bounds(ymax)
         }
 
-        if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
+        if {[info exists bounds(zmin)] && (![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin))} {
             set _limits(zmin) $bounds(zmin)
         }
-        if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
+        if {[info exists bounds(zmax)] && (![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax))} {
             set _limits(zmax) $bounds(zmax)
         }
     }
@@ -1908,6 +1908,10 @@ set debug 0
             $reader Update
             file delete $tmpfile
             set output [$reader GetOutput]
+            if { $output == "" } {
+                # Invalid VTK file -- loader failed to parse
+                continue
+            }
             set _limits($tag) [$output GetBounds]
             if {$debug} {
                 puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
