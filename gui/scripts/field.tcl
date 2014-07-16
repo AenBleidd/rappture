@@ -918,26 +918,20 @@ itcl::body Rappture::Field::Build {} {
                 puts stderr "WARNING: No data for \"$_path.$cname.$type\""
                 continue;               # Ignore this component
             }
-            set vector ""
             if 0 {
                 set f [open /tmp/$_path.$cname.dx "w"]
                 puts -nonewline $f $contents
                 close $f
             }
-            # This is temporary.  I put a check for this in the DxToVtk
-            # parser.  
-            if { [string range $contents  0 3] == "<DX>" } {
-                set contents [string range $contents 4 end]
-            }
             if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
                 ReadVtkDataSet $cname $vtkdata
+                if 0 {
+                    set f [open /tmp/$_path.$cname.vtk "w"]
+                    puts -nonewline $f $vtkdata
+                    close $f
+                }
             } else {
                 puts stderr "Can't parse dx data: $vtkdata"
-            }
-            if 0 {
-                set f [open /tmp/$_path.$cname.vtk "w"]
-                puts -nonewline $f $vtkdata
-                close $f
             }
             if { $_alwaysConvertDX ||
                  ($_viewer != "nanovis" && $_viewer != "flowvis") } {
@@ -952,7 +946,6 @@ itcl::body Rappture::Field::Build {} {
                 set _comp2flowhints($cname) \
                     [Rappture::FlowHints ::\#auto $_field $cname $_units]
             }
-            set _dim 3
             incr _counter
         } elseif { $type == "dicom"} {
             set contents [$_field get $cname.dicom]
