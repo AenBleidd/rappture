@@ -214,7 +214,7 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
         -surfaceedges                   0
         -surfacelighting                1
         -surfaceopacity                 100
-        -surfaceoutline                 0
+        -outline                        0
         -surfacevisible                 1
         -surfacewireframe               0
         -xaxisgrid                      0
@@ -983,7 +983,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings -isolinesvisible -surfacevisible -surfaceoutline
+    InitSettings -isolinesvisible -surfacevisible -outline
     if { $_reset } {
 	# These are settings that rely on a dataset being loaded.
         InitSettings \
@@ -1367,7 +1367,7 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
 	    SendCmd "polydata edges $bool"
         }
-        "-surfaceoutline" {
+        "-outline" {
             set bool $_settings($what)
 	    SendCmd "outline visible $bool"
         }
@@ -1550,8 +1550,8 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings(-surfaceoutline)] \
-        -command [itcl::code $this AdjustSetting -surfaceoutline] \
+        -variable [itcl::scope _settings(-outline)] \
+        -command [itcl::code $this AdjustSetting -outline] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
@@ -1925,15 +1925,13 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     set _settings(-isolinesvisible) $style(-isolinesvisible)
     set _settings(-surfacevisible) $style(-surfacevisible)
  
-    SendCmd "polydata add $tag"
-    SendCmd "polydata edges $style(-edges) $tag"
-    SendCmd [list contour2d add contourlist $_contourList $tag]
-    SendCmd "contour2d colormode constant {} $tag"
-    SendCmd "contour2d color [Color2RGB $style(-isolinecolor)] $tag"
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
-    set _settings(-surfaceoutline) $style(-outline)
+    set _settings(-outline) $style(-outline)
+
+    SendCmd "polydata add $tag"
+    SendCmd "polydata edges $style(-edges) $tag"
     set _settings(-surfaceedges) $style(-edges)
     #SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
     SendCmd "polydata lighting $style(-lighting) $tag"
@@ -1945,6 +1943,10 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     SetCurrentColormap $style(-color) 
     SendCmd "polydata wireframe $style(-wireframe) $tag"
     set _settings(-surfacewireframe) $style(-wireframe)
+
+    SendCmd [list contour2d add contourlist $_contourList $tag]
+    SendCmd "contour2d colormode constant {} $tag"
+    SendCmd "contour2d color [Color2RGB $style(-isolinecolor)] $tag"
 }
 
 itcl::body Rappture::VtkSurfaceViewer::IsValidObject { dataobj } {
