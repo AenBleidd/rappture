@@ -1541,7 +1541,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "contour3d colormode $_colorMode $_curFldName"
             SendCmd "camera reset"
-            UpdateContourList
+            GenerateContourList
             DrawLegend
         }
         "-legendvisible" {
