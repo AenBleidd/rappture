@@ -85,13 +85,12 @@ itcl::class Rappture::VtkMeshViewer {
     private method BuildPolydataTab {}
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
-    private method EventuallySetPolydataOpacity { args } 
+    private method EventuallySetPolydataOpacity {} 
     private method GetImage { args } 
     private method GetVtkData { args } 
     private method IsValidObject { dataobj } 
     private method PanCamera {}
     private method SetObjectStyle { dataobj } 
-    private method SetOpacity { dataset }
     private method SetOrientation { side }
     private method SetPolydataOpacity {}
     private method Slice {option args} 
@@ -111,17 +110,17 @@ itcl::class Rappture::VtkMeshViewer {
     private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
     private variable _settings
+    private variable _widget
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
-    private variable _axis
     private variable _reset 1;          # Indicates that server was reset and
                                         # needs to be reinitialized.
 
-    private variable _first ""     ;# This is the topmost dataset.
+    private variable _first "";         # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
 
-    common _downloadPopup          ;# download options from popup
+    common _downloadPopup;              # download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0
@@ -129,6 +128,7 @@ itcl::class Rappture::VtkMeshViewer {
     private variable _rotatePending 0
     private variable _polydataOpacityPending 0
     private variable _rotateDelay 150
+    private variable _opacityDelay 150
 }
 
 itk::usual VtkMeshViewer {
@@ -183,30 +183,31 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     set _limits(zmin) 0.0
     set _limits(zmax) 1.0
 
-    array set _axis [subst {
-        xgrid           0
-        ygrid           0
-        zgrid           0
-        xcutaway        0
-        ycutaway        0
-        zcutaway        0
-        xposition       0
-        yposition       0
-        zposition       0
-        xdirection      -1
-        ydirection      -1
-        zdirection      -1
-        visible         1
-        labels          1
-    }]
-    array set _settings [subst {
-        outline                 0
-        polydata-edges          0
-        polydata-lighting       1
-        polydata-opacity        100
-        polydata-visible        1
-        polydata-wireframe      0
-    }]
+    array set _settings {
+        -axesvisible            1
+        -axislabels             1
+        -outline                0
+        -polydataedges          0
+        -polydatalighting       1
+        -polydataopacity        1.0
+        -polydatavisible        1
+        -polydatawireframe      0
+        -xcutaway               0
+        -xdirection             -1
+        -xgrid                  0
+        -xposition              0
+        -ycutaway               0
+        -ydirection             -1
+        -ygrid                  0
+        -yposition              0
+        -zcutaway               0
+        -zdirection             -1
+        -zgrid                  0
+        -zposition              0
+    }
+    array set _widget {
+        -polydataopacity        100
+    }        
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -406,15 +407,14 @@ itcl::body Rappture::VtkMeshViewer::EventuallyRotate { q } {
 
 itcl::body Rappture::VtkMeshViewer::SetPolydataOpacity {} {
     set _polydataOpacityPending 0
-    foreach dataset [CurrentDatasets -visible $_first] {
-        SetOpacity $dataset
-    }
+    set val $_settings(-polydataopacity)
+    SendCmd "polydata opacity $val"
 }
 
-itcl::body Rappture::VtkMeshViewer::EventuallySetPolydataOpacity { args } {
+itcl::body Rappture::VtkMeshViewer::EventuallySetPolydataOpacity {} {
     if { !$_polydataOpacityPending } {
         set _polydataOpacityPending 1
-        $_dispatcher event -after $_scaleDelay !polydataOpacity
+        $_dispatcher event -after $_opacityDelay !polydataOpacity
     }
 }
 
@@ -477,7 +477,6 @@ itcl::body Rappture::VtkMeshViewer::delete {args} {
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
         array unset _obj2ovride $dataobj-*
-        array unset _settings $dataobj-*
         set changed 1
     }
     # If anything changed, then rebuild the plot
@@ -831,9 +830,7 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-            axis-visible axis-labels
- 
+        InitSettings -xgrid -ygrid -zgrid -axismode -axesvisible -axislabels
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
@@ -875,7 +872,7 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         lappend _obj2datasets($dataobj) $tag
         if { [info exists _obj2ovride($dataobj-raise)] } {
             SendCmd "dataset visible 1 $tag"
-            SetOpacity $tag
+            EventuallySetPolydataOpacity
         }
     }
     if {"" != $_first} {
@@ -895,12 +892,16 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
             }
         }
     }
-    InitSettings outline
+    InitSettings -outline
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
-        InitSettings polydata-edges polydata-lighting polydata-opacity \
-            polydata-visible polydata-wireframe
+        InitSettings -polydataedges -polydatalighting -polydataopacity \
+            -polydatavisible -polydatawireframe
  
+        SendCmd "axis lformat all %g"
+        # Too many major ticks, so turn off minor ticks
+        SendCmd "axis minticks all 0"
+
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
         $_arcball quaternion $q 
         SendCmd "camera reset"
@@ -1151,72 +1152,67 @@ itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "outline" {
-            set bool $_settings(outline)
-            foreach dataset [CurrentDatasets -visible $_first] {
+        "-outline" {
+            set bool $_settings($what)
+            # Only display a outline for the currently visible sets.
+            SendCmd "outline visible 0"
+            foreach dataset [CurrentDatasets -visible] {
                 SendCmd "outline visible $bool $dataset"
             }
         }
-        "polydata-opacity" {
-            foreach dataset [CurrentDatasets -visible $_first] {
-                SetOpacity $dataset
-            }
+        "-polydataopacity" {
+            EventuallySetPolydataOpacity
         }
-        "polydata-wireframe" {
-            set bool $_settings(polydata-wireframe)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                SendCmd "polydata wireframe $bool $dataset"
-            }
+        "-polydatawireframe" {
+            set bool $_settings($what)
+            SendCmd "polydata wireframe $bool"
         }
-        "polydata-visible" {
-            set bool $_settings(polydata-visible)
-            foreach dataset [CurrentDatasets -visible $_first] {
+        "-polydatavisible" {
+            set bool $_settings($what)
+            # Only change visibility of data sets marked "visible".
+            foreach dataset [CurrentDatasets -visible] {
                 SendCmd "polydata visible $bool $dataset"
             }
         }
-        "polydata-lighting" {
-            set bool $_settings(polydata-lighting)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                SendCmd "polydata lighting $bool $dataset"
-            }
+        "-polydatalighting" {
+            set bool $_settings($what)
+            SendCmd "polydata lighting $bool"
         }
-        "polydata-edges" {
-            set bool $_settings(polydata-edges)
-            foreach dataset [CurrentDatasets -visible $_first] {
-                SendCmd "polydata edges $bool $dataset"
-            }
+        "-polydataedges" {
+            set bool $_settings($what)
+            SendCmd "polydata edges $bool"
         }
-        "axis-visible" {
-            set bool $_axis(visible)
+        "-axesvisible" {
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "axis-labels" {
-            set bool $_axis(labels)
+        "-axislabels" {
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
-        "axis-xgrid" {
-            set bool $_axis(xgrid)
+        "-xgrid" {
+            set bool $_settings($what)
             SendCmd "axis grid x $bool"
         }
-        "axis-ygrid" {
-            set bool $_axis(ygrid)
+        "-ygrid" {
+            set bool $_settings($what)
             SendCmd "axis grid y $bool"
         }
-        "axis-zgrid" {
-            set bool $_axis(zgrid)
+        "-zgrid" {
+            set bool $_settings($what)
             SendCmd "axis grid z $bool"
         }
-        "axis-mode" {
+        "-axismode" {
             set mode [$itk_component(axismode) value]
             set mode [$itk_component(axismode) translate $mode]
             SendCmd "axis flymode $mode"
         }
-        "axis-xcutaway" - "axis-ycutaway" - "axis-zcutaway" {
-            set axis [string range $what 5 5]
-            set bool $_axis(${axis}cutaway)
+        "-xcutaway" - "-ycutaway" - "-zcutaway" {
+            set axis [string range $what 1 1]
+            set bool $_settings($what)
             if { $bool } {
-                set pos [expr $_axis(${axis}position) * 0.01]
-                set dir $_axis(${axis}direction)
+                set pos [expr $_settings(-${axis}position) * 0.01]
+                set dir $_settings(-${axis}direction)
                 $itk_component(${axis}CutScale) configure -state normal \
                     -troughcolor white
                 SendCmd "renderer clipplane $axis $pos $dir"
@@ -1226,12 +1222,14 @@ itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
                 SendCmd "renderer clipplane $axis 1 -1"
             }
         }
-        "axis-xposition" - "axis-yposition" - "axis-zposition" - 
-        "axis-xdirection" - "axis-ydirection" - "axis-zdirection" {
-            set axis [string range $what 5 5]
-            #set dir $_axis(${axis}direction)
-            set pos [expr $_axis(${axis}position) * 0.01]
+        "-xposition" - "-yposition" - "-zposition" {
+            set axis [string range $what 1 1]
+            set pos [expr $_settings($what) * 0.01]
             SendCmd "renderer clipplane ${axis} $pos -1"
+        }
+        "-xdirection" - "-ydirection" - "-zdirection" {
+            set axis [string range $what 1 1]
+            puts stderr "direction not implemented"
         }
         default {
             error "don't know how to fix $what"
@@ -1316,32 +1314,32 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
 
     checkbutton $inner.mesh \
         -text "Show Mesh" \
-        -variable [itcl::scope _settings(polydata-visible)] \
-        -command [itcl::code $this AdjustSetting polydata-visible] \
+        -variable [itcl::scope _settings(-polydatavisible)] \
+        -command [itcl::code $this AdjustSetting -polydatavisible] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.outline \
         -text "Show Outline" \
-        -variable [itcl::scope _settings(outline)] \
-        -command [itcl::code $this AdjustSetting outline] \
+        -variable [itcl::scope _settings(-outline)] \
+        -command [itcl::code $this AdjustSetting -outline] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(polydata-wireframe)] \
-        -command [itcl::code $this AdjustSetting polydata-wireframe] \
+        -variable [itcl::scope _settings(-polydatawireframe)] \
+        -command [itcl::code $this AdjustSetting -polydatawireframe] \
         -font "Arial 9" -anchor w 
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(polydata-lighting)] \
-        -command [itcl::code $this AdjustSetting polydata-lighting] \
+        -variable [itcl::scope _settings(-polydatalighting)] \
+        -command [itcl::code $this AdjustSetting -polydatalighting] \
         -font "Arial 9" -anchor w
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(polydata-edges)] \
-        -command [itcl::code $this AdjustSetting polydata-edges] \
+        -variable [itcl::scope _settings(-polydataedges)] \
+        -command [itcl::code $this AdjustSetting -polydataedges] \
         -font "Arial 9" -anchor w
 
     itk_component add field_l {
@@ -1353,15 +1351,15 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
     bind $inner.field <<Value>> \
-        [itcl::code $this AdjustSetting field]
+        [itcl::code $this AdjustSetting -field]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(polydata-opacity)] \
+        -variable [itcl::scope _widget(-polydataopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting polydata-opacity]
-    $inner.opacity set $_settings(polydata-opacity)
+        -command [itcl::code $this AdjustSetting -polydataopacity]
+    $inner.opacity set [expr $_settings(-polydataopacity) * 100.0]
 
     blt::table $inner \
         0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
@@ -1388,30 +1386,30 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Show Axes" \
-        -variable [itcl::scope _axis(visible)] \
-        -command [itcl::code $this AdjustSetting axis-visible] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
         -text "Show Axis Labels" \
-        -variable [itcl::scope _axis(labels)] \
-        -command [itcl::code $this AdjustSetting axis-labels] \
+        -variable [itcl::scope _settings(-axislabels)] \
+        -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
 
     checkbutton $inner.gridx \
         -text "Show X Grid" \
-        -variable [itcl::scope _axis(xgrid)] \
-        -command [itcl::code $this AdjustSetting axis-xgrid] \
+        -variable [itcl::scope _settings(-xgrid)] \
+        -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
     checkbutton $inner.gridy \
         -text "Show Y Grid" \
-        -variable [itcl::scope _axis(ygrid)] \
-        -command [itcl::code $this AdjustSetting axis-ygrid] \
+        -variable [itcl::scope _settings(-ygrid)] \
+        -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
     checkbutton $inner.gridz \
         -text "Show Z Grid" \
-        -variable [itcl::scope _axis(zgrid)] \
-        -command [itcl::code $this AdjustSetting axis-zgrid] \
+        -variable [itcl::scope _settings(-zgrid)] \
+        -command [itcl::code $this AdjustSetting -zgrid] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1425,7 +1423,7 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
     $itk_component(axismode) value "static"
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 2 \
@@ -1503,8 +1501,8 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane] \
             -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this AdjustSetting axis-xcutaway] \
-            -variable [itcl::scope _axis(xcutaway)]
+            -command [itcl::code $this AdjustSetting -xcutaway] \
+            -variable [itcl::scope _settings(-xcutaway)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X-axis cutaway on/off"
@@ -1514,7 +1512,7 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move x] \
-            -variable [itcl::scope _axis(xposition)]
+            -variable [itcl::scope _settings(-xposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1531,10 +1529,10 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
             -onvalue -1 \
             -offimage [Rappture::icon arrow-up] \
             -offvalue 1 \
-            -command [itcl::code $this AdjustSetting axis-xdirection] \
-            -variable [itcl::scope _axis(xdirection)]
+            -command [itcl::code $this AdjustSetting -xdirection] \
+            -variable [itcl::scope _settings(-xdirection)]
     }
-    set _axis(xdirection) -1 
+    set _settings(-xdirection) -1 
     Rappture::Tooltip::for $itk_component(xDirButton) \
         "Toggle the direction of the X-axis cutaway"
 
@@ -1543,8 +1541,8 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane] \
             -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this AdjustSetting axis-ycutaway] \
-            -variable [itcl::scope _axis(ycutaway)]
+            -command [itcl::code $this AdjustSetting -ycutaway] \
+            -variable [itcl::scope _settings(-ycutaway)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y-axis cutaway on/off"
@@ -1554,7 +1552,7 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move y] \
-            -variable [itcl::scope _axis(yposition)]
+            -variable [itcl::scope _settings(-yposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1571,20 +1569,20 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
             -onvalue -1 \
             -offimage [Rappture::icon arrow-up] \
             -offvalue 1 \
-            -command [itcl::code $this AdjustSetting axis-ydirection] \
-            -variable [itcl::scope _axis(ydirection)]
+            -command [itcl::code $this AdjustSetting -ydirection] \
+            -variable [itcl::scope _settings(-ydirection)]
     }
     Rappture::Tooltip::for $itk_component(yDirButton) \
         "Toggle the direction of the Y-axis cutaway"
-    set _axis(ydirection) -1 
+    set _settings(-ydirection) -1 
 
     # Z-value slicer...
     itk_component add zCutButton {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane] \
             -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this AdjustSetting axis-zcutaway] \
-            -variable [itcl::scope _axis(zcutaway)]
+            -command [itcl::code $this AdjustSetting -zcutaway] \
+            -variable [itcl::scope _settings(-zcutaway)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z-axis cutaway on/off"
@@ -1594,7 +1592,7 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move z] \
-            -variable [itcl::scope _axis(zposition)]
+            -variable [itcl::scope _settings(-zposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1610,10 +1608,10 @@ itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
             -onvalue -1 \
             -offimage [Rappture::icon arrow-up] \
             -offvalue 1 \
-            -command [itcl::code $this AdjustSetting axis-zdirection] \
-            -variable [itcl::scope _axis(zdirection)]
+            -command [itcl::code $this AdjustSetting -zdirection] \
+            -variable [itcl::scope _settings(-zdirection)]
     }
-    set _axis(zdirection) -1 
+    set _settings(-zdirection) -1 
     Rappture::Tooltip::for $itk_component(zDirButton) \
         "Toggle the direction of the Z-axis cutaway"
 
@@ -1732,13 +1730,8 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     # Parse style string.
     set tag $dataobj
     set type [$dataobj type]
-    set color [$dataobj hints color]
-    set style [$dataobj hints style]
-    if { $dataobj != $_first } {
-        set settings(-wireframe) 1
-    }
 
-    array set settings {
+    array set style {
         -cloudstyle mesh
         -color white
         -edgecolor black
@@ -1750,36 +1743,40 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
         -visible 1
         -wireframe 0
     }
-    if {$type == "cloud"} {
-        set settings(-cloudstyle) points
-        set settings(-edges) 0
-        set settings(-edgecolor) white
+    if { $dataobj != $_first } {
+        set style(-wireframe) 1
     }
-    array set settings $style
-    if {$color != ""} {
-        set settings(-color) $color
+    if {$type == "cloud"} {
+        set style(-cloudstyle) points
+        set style(-edges) 0
+        set style(-edgecolor) white
+    }
+    array set style [$dataobj hints style]
+
+    if {[$dataobj hints color] != ""} {
+        set style(-color) [$dataobj hints color]
     }
     SendCmd "outline add $tag"
-    SendCmd "outline color [Color2RGB $settings(-color)] $tag"
-    SendCmd "outline visible $settings(-outline) $tag"
-    set _settings(outline) $settings(-outline)
+    SendCmd "outline color [Color2RGB $style(-color)] $tag"
+    SendCmd "outline visible $style(-outline) $tag"
+    set _settings(-outline) $style(-outline)
 
     SendCmd "polydata add $tag"
-    SendCmd "polydata visible $settings(-visible) $tag"
-    SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
-    set _settings(polydata-visible) $settings(-visible)
-    SendCmd "polydata edges $settings(-edges) $tag"
-    set _settings(polydata-edges) $settings(-edges)
-    SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
-    #SendCmd "polydata colormode constant {} $tag"
-    SendCmd "polydata lighting $settings(-lighting) $tag"
-    set _settings(polydata-lighting) $settings(-lighting)
-    SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
-    SendCmd "polydata linewidth $settings(-linewidth) $tag"
-    SendCmd "polydata opacity $settings(-opacity) $tag"
-    set _settings(polydata-opacity) [expr 100.0 * $settings(-opacity)]
-    SendCmd "polydata wireframe $settings(-wireframe) $tag"
-    set _settings(polydata-wireframe) $settings(-wireframe)
+    SendCmd "polydata visible $style(-visible) $tag"
+    set _settings(-polydatavisible) $style(-visible)
+    SendCmd "polydata cloudstyle $style(-cloudstyle) $tag"
+    SendCmd "polydata edges $style(-edges) $tag"
+    set _settings(-polydataedges) $style(-edges)
+    SendCmd "polydata color [Color2RGB $style(-color)] $tag"
+    SendCmd "polydata lighting $style(-lighting) $tag"
+    set _settings(-polydatalighting) $style(-lighting)
+    SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
+    SendCmd "polydata linewidth $style(-linewidth) $tag"
+    SendCmd "polydata opacity $style(-opacity) $tag"
+    set _settings(-polydataopacity) $style(-opacity)
+    set _widget(-polydataopacity) [expr 100.0 * $style(-opacity)]
+    SendCmd "polydata wireframe $style(-wireframe) $tag"
+    set _settings(-polydatawireframe) $style(-wireframe)
     set havePolyData 1
 }
 
@@ -1841,12 +1838,3 @@ itcl::body Rappture::VtkMeshViewer::SetOrientation { side } {
     set _view(zoom) 1.0
 }
 
-itcl::body Rappture::VtkMeshViewer::SetOpacity { dataset } { 
-    set val $_settings(polydata-opacity)
-    set sval [expr { 0.01 * double($val) }]
-    if { !$_obj2ovride($dataset-raise) } {
-        # This is wrong.  Need to figure out why raise isn't set with 1
-        #set sval [expr $sval * .6]
-    }
-    SendCmd "polydata opacity $sval $dataset"
-}
