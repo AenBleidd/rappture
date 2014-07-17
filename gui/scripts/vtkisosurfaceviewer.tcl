@@ -1512,7 +1512,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "-isosurfaceopacity" {
-            set _settings($what) [$_widget(-isosurfaceopacity) * 0.01]
+            set _settings($what) [epxr $_widget($what) * 0.01]
 	    SendCmd "contour3d opacity $_settings($what)"
         }
         "-field" {
