@@ -799,6 +799,9 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                     integer* {
                         _autoLabel $xmlobj output.$item "Integer" counters
                     }
+                    mesh* {
+                        _autoLabel $xmlobj output.$item "Mesh" counters
+                    }
                     string* {
                         _autoLabel $xmlobj output.$item "String" counters
                     }
