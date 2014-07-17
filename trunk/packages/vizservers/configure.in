@@ -76,10 +76,7 @@ LD_RPATH="";
 #	Rappture headers and library (done)
 #       Tcl headers and library (done)
 #       GL headers and library
-#       GLuT headers and library
 #       GLEW header and library
-#       Cg headers and library
-#       CgGL headers and library
 #       pthread library
 #
 
