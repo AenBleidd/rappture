@@ -274,8 +274,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         -numcontours             0
     }
     array set _widget {
-        -isosurfaceopacity       0
-        -cutplaneopacity         0
+        -isosurfaceopacity       60
+        -cutplaneopacity         100
     }
 
     itk_component add view {
@@ -1417,7 +1417,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "cutplane lighting $bool"
         }
         "-cutplaneopacity" {
-            set _settings($what) [$_widget(-cutplaneopacity) * 0.01]
+            set _settings($what) [expr $_widget($what) * 0.01]
             SendCmd "cutplane opacity $_settings($what)"
         }
         "-cutplanepreinterp" {
