@@ -1721,7 +1721,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         -width 10 \
         -showvalue off \
         -command [itcl::code $this AdjustSetting -isosurfaceopacity]
-    $inner.opacity set [expr $_settings(-isosurfaceeopacity) * 100.0]
+    $inner.opacity set [expr $_settings(-isosurfaceopacity) * 100.0]
 
     itk_component add field_l {
         label $inner.field_l -text "Field" -font "Arial 9" 
