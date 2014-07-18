@@ -148,7 +148,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _view;             # View params for 3D view
     private variable _parsedFunction
     private variable _transferFunctionEditors
-    private variable  _settings
+    private variable _settings
     private variable _first "" ;        # This is the topmost volume.
     private variable _current "";       # Currently selected component 
     private variable _volcomponents   ; # Array of components found 
@@ -218,9 +218,9 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _reset 1
 
     array set _settings {
-	-background		black
         -ambient                60
         -axesvisible            1
+        -background             black
         -colormap               default
         -cutplanesvisible       0
         -diffuse                40

@@ -259,7 +259,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         -volumelighting                 1
         -volumeopacity                  50
         -volumeoutline                  0
-        -volumeoutline                  0
         -volumequality                  80
         -volumespecularexponent         90
         -volumespecularlevel            30
