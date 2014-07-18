@@ -996,10 +996,10 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     StartBufferingCommands
 
     if { $_width != $w || $_height != $h || $_reset } {
-	set _width $w
-	set _height $h
-	$_arcball resize $w $h
-	DoResize
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
+        DoResize
     }
     if { $_reset } {
         #
