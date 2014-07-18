@@ -29,35 +29,39 @@ PYTHON		= @PYTHON@
 R		= @R@
 RUBY		= @RUBY@
 TCLSH           = @TCLSH@
+ENABLE_LANG     = @ENABLE_LANG@
 
 .PHONY: all install clean distclean tcl cee fortran octave matlab perl python ruby java 2.0 wrapper
 
-LANGS = cee tcl wrapper 2.0
-ifneq ($(F77),)
-    LANGS += fortran
-endif
-ifneq ($(OCTAVE),)
-    LANGS += octave
-endif
-ifneq ($(MEX),)
-    LANGS += matlab 
-endif
-ifneq ($(PERL),)
-    LANGS += perl
-endif
-ifneq ($(PYTHON),)
-    LANGS += python
-endif
-ifneq ($(RUBY),)
-  ifeq ($(HAVE_RUBY_H),yes)
-    LANGS += ruby
+LANGS = cee
+ifneq ($(ENABLE_LANG),)
+  LANGS = tcl wrapper 2.0
+  ifneq ($(F77),)
+      LANGS += fortran
   endif
-endif
-ifneq ($(JAVA_INC_DIR),)
-    LANGS += java
-endif
-ifneq ($(R),)
-    LANGS += R
+  ifneq ($(OCTAVE),)
+      LANGS += octave
+  endif
+  ifneq ($(MEX),)
+      LANGS += matlab 
+  endif
+  ifneq ($(PERL),)
+      LANGS += perl
+  endif
+  ifneq ($(PYTHON),)
+      LANGS += python
+  endif
+  ifneq ($(RUBY),)
+    ifeq ($(HAVE_RUBY_H),yes)
+      LANGS += ruby
+    endif
+  endif
+  ifneq ($(JAVA_INC_DIR),)
+      LANGS += java
+  endif
+  ifneq ($(R),)
+      LANGS += R
+  endif
 endif
 
 all:	
