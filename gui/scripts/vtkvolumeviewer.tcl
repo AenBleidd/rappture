@@ -1021,7 +1021,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     SendCmd "imgflush"
     set _first ""
 
-    SendCmd "volume visible 0"
+    SendCmd "dataset visible 0"
 
     # No volumes are active (i.e. in the working set of displayed volumes).
     # A volume is always invisible if it's not in the working set.  A 
