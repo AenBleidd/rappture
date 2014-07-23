@@ -34,6 +34,7 @@
 #include <osgEarth/Bounds>
 #include <osgEarth/Profile>
 #include <osgEarth/Viewpoint>
+#include <osgEarth/GeoMath>
 #include <osgEarth/TerrainLayer>
 #include <osgEarth/ImageLayer>
 #include <osgEarth/ElevationLayer>
