@@ -693,11 +693,11 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         osgEarth::DateTime now;
 #if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
         TRACE("Creating SkyNode");
-        osgEarth::Util::SkyOptions sykOpts;
+        osgEarth::Util::SkyOptions skyOpts;
         skyOpts.setDriver("gl");
         skyOpts.hours() = now.hours();
         skyOpts.ambient() = 0.2f;
-        osgEarth::Util::SkyNode *sky = new osgEarth::Util::SkyNode::create(skyOpts, mapNode);
+        osgEarth::Util::SkyNode *sky = osgEarth::Util::SkyNode::create(skyOpts, mapNode);
         sky->addChild(mapNode);
         sky->attach(_viewer.get(), 0);
         _sceneRoot = sky;
