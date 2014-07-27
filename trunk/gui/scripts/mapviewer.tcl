@@ -83,6 +83,7 @@ itcl::class Rappture::MapViewer {
     protected method Pan {option x y}
     protected method Rebuild {}
     protected method ReceiveMapInfo { args }
+    protected method ReceiveScreenInfo { args }
     protected method ReceiveImage { args }
     protected method Rotate {option x y}
     protected method Zoom {option {x 0} {y 0}}
@@ -172,6 +173,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_parser alias image    [itcl::code $this ReceiveImage]
     $_parser alias map      [itcl::code $this ReceiveMapInfo]
     $_parser alias camera   [itcl::code $this camera]
+    $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
 
     # Settings for mouse motion events: these are required
     # to update the Lat/Long coordinate display
@@ -884,9 +886,12 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
             } elseif {$len < 6} {
                 foreach { x y z } [lrange $args 1 end] break
                 puts stderr "Coords: $x $y $z"
+            } elseif {$len < 7} {
+                foreach { x y z screenX screenY } [lrange $args 1 end] break
+                puts stderr "Coords($screenX,$screenY): $x $y $z"
             } else {
-                foreach { x y z pxX pxY } [lrange $args 1 end] break
-                puts stderr "Coords($pxX,$pxY): $x $y $z"
+                foreach { x y z screenX screenY srs vert } [lrange $args 1 end] break
+                puts stderr "Coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
             }
         }
         "names" {
@@ -896,6 +901,30 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
         }
         default {
             error "unknown map option \"$option\" from server"
+        }
+    }
+}
+
+#
+# ReceiveScreenInfo --
+#
+itcl::body Rappture::MapViewer::ReceiveScreenInfo { args } {
+    if { ![isconnected] } {
+        return
+    }
+    set option [lindex $args 0]
+    switch -- $option {
+        "coords" {
+            set len [llength $args]
+            if {$len == 5} {
+                puts stderr "Screen Coords out of range"
+            } else {
+                foreach { x y z worldX worldY worldZ } [lrange $args 1 end] break
+                puts stderr "Coords($worldX,$worldY,$worldZ): $x $y $z"
+            }
+        }
+        default {
+            error "unknown screen option \"$option\" from server"
         }
     }
 }
@@ -1575,7 +1604,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             foreach name {x y z heading pitch distance srs verticalDatum} value $args {
                 set _view($name) $value
             }
-            puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), $_view(srs), $_view(verticalDatum)"
+            puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
         }
         "go" {
             SendCmd "camera go $args"
