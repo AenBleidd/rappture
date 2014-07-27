@@ -732,11 +732,32 @@ MapCoordsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     size_t length;
     char mesg[256];
     if (g_renderer->mapMouseCoords(x, y, mapPoint)) {
+        std::string srsInit;
+        std::string verticalDatum;
+        if (objc > 4) {
+            srsInit = Tcl_GetString(objv[4]);
+            if (objc > 5) {
+                verticalDatum = Tcl_GetString(objv[5]);
+            }
+            osgEarth::SpatialReference *outSRS =
+                osgEarth::SpatialReference::get(srsInit, verticalDatum);
+            if (outSRS == NULL) {
+                Tcl_AppendResult(interp, "bad SRS \"", srsInit.c_str(), "\"", (char*)NULL);
+                return TCL_ERROR;
+            }
+            mapPoint = mapPoint.transform(outSRS);
+            if (!mapPoint.isValid()) {
+                Tcl_AppendResult(interp, "Could not transform map point to requested SRS", (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
         // send coords to client
         length = snprintf(mesg, sizeof(mesg),
-                          "nv>map coords %g %g %g %d %d\n",
+                          "nv>map coords %g %g %g %d %d {%s} {%s}\n",
                           mapPoint.x(), mapPoint.y(), mapPoint.z(),
-                          x, y);
+                          x, y,
+                          mapPoint.getSRS()->getHorizInitString().c_str(),
+                          mapPoint.getSRS()->getVertInitString().c_str());
 
         queueResponse(mesg, length, Response::VOLATILE);
     } else {
@@ -1280,8 +1301,14 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_AppendResult(interp, "invalid bounds", (char*)NULL);
                 return TCL_ERROR;
             }
+            // Note: plate-carre generates same SRS as others, but with 
+            // _is_plate_carre flag set
+            // In map profile, _is_plate_carre is forced on for
+            // geographic+projected SRS
             if (strcmp(profile, "geodetic") == 0 ||
-                strcmp(profile, "epsg:4326") == 0 ) {
+                strcmp(profile, "epsg:4326") == 0 ||
+                strcmp(profile, "wgs84") == 0 ||
+                strcmp(profile, "plate-carre") == 0) {
                 if (bounds[0] < -180. || bounds[0] > 180. ||
                     bounds[2] < -180. || bounds[2] > 180. ||
                     bounds[1] < -90. || bounds[1] > 90. ||
@@ -1291,15 +1318,25 @@ MapResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 }
             } else if (strcmp(profile, "spherical-mercator") == 0 ||
                        strcmp(profile, "epsg:900913") == 0 ||
-                       strcmp(profile, "epsg:3857") == 0) {
+                       strcmp(profile, "epsg:3785") == 0 ||
+                       strcmp(profile, "epsg:3857") == 0 ||
+                       strcmp(profile, "epsg:102113") == 0) {
                 for (int i = 0; i < 4; i++) {
                     if (bounds[i] < -20037508.34 || bounds[i] > 20037508.34) {
                         Tcl_AppendResult(interp, "invalid bounds", (char*)NULL);
                         return TCL_ERROR;
                     }
                 }
+            } else if (strcmp(profile, "epsg:32662") == 0 ||
+                       strcmp(profile, "epsg:32663") == 0) {
+                if (bounds[0] < -20037508.3428 || bounds[0] > 20037508.3428 ||
+                    bounds[2] < -20037508.3428 || bounds[2] > 20037508.3428 ||
+                    bounds[1] < -10018754.1714 || bounds[1] > 10018754.1714 ||
+                    bounds[3] < -10018754.1714 || bounds[3] > 10018754.1714) {
+                    Tcl_AppendResult(interp, "invalid bounds", (char*)NULL);
+                    return TCL_ERROR;
+                }
             }
-
             g_renderer->resetMap(type, profile, bounds);
         } else {
             if (osgEarth::Registry::instance()->getNamedProfile(profile) == NULL) {
@@ -1455,7 +1492,7 @@ MapTerrainOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static CmdSpec mapOps[] = {
-    {"coords",   1, MapCoordsOp,          4, 4, "x y"},
+    {"coords",   1, MapCoordsOp,          4, 6, "x y ?srs? ?verticalDatum?"},
     {"grid",     1, MapGraticuleOp,       3, 4, "bool ?type?"},
     {"layer",    2, MapLayerOp,           3, 0, "op ?params...?"},
     {"load",     2, MapLoadOp,            4, 5, "options"},
@@ -1654,6 +1691,61 @@ ScreenBgColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ScreenCoordsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double x, y, z;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &z) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const osgEarth::SpatialReference *srs = NULL;
+    if (objc < 6) {
+        srs = g_renderer->getMapSRS();
+        if (srs == NULL) {
+            Tcl_AppendResult(interp, "Could not determine map SRS", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        std::string srsInit(Tcl_GetString(objv[5]));
+        std::string verticalDatum;
+        if (objc > 6) {
+            verticalDatum = Tcl_GetString(objv[6]);
+        }
+        srs = osgEarth::SpatialReference::get(srsInit, verticalDatum);
+        if (srs == NULL) {
+            Tcl_AppendResult(interp, "bad SRS \"", srsInit.c_str(), "\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    // ALTMODE_RELATIVE is height above terrain, ALTMODE_ABSOLUTE means
+    // relative to the vertical datum
+    osgEarth::GeoPoint mapPoint(srs, x, y, z, osgEarth::ALTMODE_ABSOLUTE);
+    size_t length;
+    char mesg[256];
+    osg::Vec3d world;
+    osg::Vec3d screen;
+    if (g_renderer->getWorldCoords(mapPoint, &world) &&
+        g_renderer->worldToScreen(world, &screen)) {
+        // send coords to client
+        length = snprintf(mesg, sizeof(mesg),
+                          "nv>screen coords %g %g %g %g %g %g\n",
+                          screen.x(), screen.y(), screen.z(),
+                          x, y, z);
+
+        queueResponse(mesg, length, Response::VOLATILE);
+    } else {
+        // Out of range
+        length = snprintf(mesg, sizeof(mesg),
+                          "nv>screen coords invalid %g %g %g\n", x, y, z);
+
+        queueResponse(mesg, length, Response::VOLATILE);
+    }
+    return TCL_OK;
+}
+
+static int
 ScreenSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -1670,7 +1762,8 @@ ScreenSizeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static CmdSpec screenOps[] = {
     {"bgcolor", 1, ScreenBgColorOp, 5, 5, "r g b"},
-    {"size", 1, ScreenSizeOp, 4, 4, "width height"}
+    {"coords",  1, ScreenCoordsOp, 5, 7, "x y z ?srs? ?verticalDatum?"},
+    {"size",    1, ScreenSizeOp, 4, 4, "width height"}
 };
 static int nScreenOps = NumCmdSpecs(screenOps);
 
