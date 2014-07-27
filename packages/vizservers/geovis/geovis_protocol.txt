@@ -89,6 +89,14 @@ renderer render
          Force a new image to be rendered
 
 screen bgcolor <r> <g> <b>
+screen coords <x> <y> <z> <?srs?> <?verticalDatum?>
+       Transate map coordinates to screen/mouse coordinates.
+       <x>,<y>,<z> - Map coordinates.  If srs not given, these are in the map's 
+       coordinate system.
+       <srs> - Optional horizontal srs init string for coordinate system of 
+       x,y,z
+       <verticalDatum> - Optional vertical srs init string for coordinate system
+       of x,y,z
 screen size <width> <height>
 
 == Mouse and Keyboard Events ==
@@ -105,8 +113,12 @@ mouse scroll <direction>
 
 == Map Commands ==
 
-map coords <x> <y>
-    Translate screen/mouse coordinates into map coordinates
+map coords <x> <y> <?srs?> <?verticalDatum?>
+    Translate screen/mouse coordinates into map coordinates.
+    <x>,<y> - Screen/mouse coordinates
+    <srs> - Optional horizontal srs init string for coordinate system to return
+    <verticalDatum> - Optional vertical srs init string for coordinate system to
+    return
 
 map grid <bool> <?type?>
     Toggle graticule and set type
@@ -194,11 +206,15 @@ Replies:
 ================================================================================
 nv>image -type image -bytes <nbytes>
   <binary RGB data>
-nv>map coords <x> <y> <z> <?mouseX?> <?mouseY?>
-   Reply to query of map coordinates.  If reply is to a request with mouse
-   coordinates, the mouse coordinates are included.
+nv>map coords <mapX> <mapY> <mapZ> <screenX> <screenY> <?srs?> <?verticalDatum?>
+   Reply to query of map coordinates from screen coordinates.  srs of the map
+   coordinates may be included if not in map's native coordinate system
 nv>map coords invalid <mouseX> <mouseY>
    Reply indicating an off-map click/query
+nv>screen coords <screenX> <screenY> <screenZ> <mapX> <mapY> <mapZ>
+   Reply to query of screen coordinates from map coordinates
+nv>screen coords invalid <mapX> <mapY> <mapZ>
+   Reply indicating requested point is out of the view frustum
 nv>ok -token <seqnum>
    Reply indicated commands through <seqnum> (numbered beginning at 1) have been
    processed, but no new image was rendered
