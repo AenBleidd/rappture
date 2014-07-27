@@ -338,10 +338,24 @@ public:
 
     double computeMapScale();
 
+    const osgEarth::SpatialReference *getMapSRS()
+    {
+        if (_mapNode.valid()) {
+            return _mapNode->getMapSRS();
+        } else {
+            return NULL;
+        }
+    }
+
     bool getMousePoint(double *x, double *y, double *z)
     {
         return (_coordsCallback.valid() && _coordsCallback->report(x, y, z));
     }
+
+    bool getWorldCoords(const osgEarth::GeoPoint& mapPt, osg::Vec3d *world);
+
+    bool worldToScreen(const osg::Vec3d& world, osg::Vec3d *screen,
+                       bool invertY = true);
 
     long getTimeout();
 

@@ -20,6 +20,9 @@
 #include <sys/time.h>
 #endif
 
+//#define USE_OSGEARTH_TRUNK
+#define USE_CACHE
+
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <osgGA/StateSetManipulator>
@@ -41,7 +44,7 @@
 #include <osgEarth/ModelLayer>
 #include <osgEarth/DateTime>
 #include <osgEarthUtil/EarthManipulator>
-#if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
+#if defined(USE_OSGEARTH_TRUNK) || OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
 #include <osgEarthUtil/Sky>
 #else
 #include <osgEarthUtil/SkyNode>
@@ -105,7 +108,11 @@ Renderer::Renderer() :
     osgEarth::Drivers::GDALOptions bopts;
     bopts.url() = BASE_IMAGE;
     addImageLayer("base", bopts);
+#ifdef USE_OSGEARTH_TRUNK
+    osgEarth::Drivers::MPTerrainEngine::MPTerrainEngineOptions mpOpt;
+#else
     osgEarth::Drivers::MPTerrainEngineOptions mpOpt;
+#endif
     // Set background layer color
     mpOpt.color() = osg::Vec4(1, 1, 1, 1);
     //mpOpt.minLOD() = 1;
@@ -408,7 +415,11 @@ void Renderer::initControls()
     _hbox->addControl(_copyrightLabel.get());
     _hbox->addControl(_scaleLabel.get());
     _hbox->addControl(_scaleBar.get());
+#ifdef USE_OSGEARTH_TRUNK
+    osgEarth::Util::Controls::ControlCanvas::getOrCreate(_viewer.get())->addControl(_hbox.get());
+#else
     osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(_hbox.get());
+#endif
     // Install an event callback to handle scale bar updates
     // Can't use an update callback since that will trigger
     // constant rendering
@@ -486,7 +497,11 @@ void Renderer::setCoordinateReadout(bool state, CoordinateDisplayType type,
         if (_coordsCallback.valid() && _viewer.valid()) {
             osgEarth::Util::Controls::LabelControl *readout =
                 _coordsCallback->getLabel();
+#ifdef USE_OSGEARTH_TRUNK
+            osgEarth::Util::Controls::ControlCanvas::getOrCreate(_viewer.get())->removeControl(readout);
+#else
             osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->removeControl(readout);
+#endif
             _coordsCallback = NULL;
         }
     } else {
@@ -531,7 +546,11 @@ void Renderer::initMouseCoordsTool(CoordinateDisplayType type, int precision)
         _coordsCallback = NULL;
     } else {
         readout = new osgEarth::Util::Controls::LabelControl("", 12.0f);
+#ifdef USE_OSGEARTH_TRUNK
+        osgEarth::Util::Controls::ControlCanvas::getOrCreate(_viewer.get())->addControl(readout);
+#else
         osgEarth::Util::Controls::ControlCanvas::get(_viewer.get(), true)->addControl(readout);
+#endif
         readout->setForeColor(osg::Vec4f(1, 1, 1, 1));
         readout->setHaloColor(osg::Vec4f(0, 0, 0, 1));
     }
@@ -666,10 +685,12 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
         mapOpts.profile() = osgEarth::ProfileOptions("global-mercator");
     }
 
+#ifdef USE_CACHE
     setupCache();
     osgEarth::Drivers::FileSystemCacheOptions cacheOpts;
     cacheOpts.rootPath() = _cacheDir;
     mapOpts.cache() = cacheOpts;
+#endif
 
     initViewer();
 
@@ -679,7 +700,11 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
     osgEarth::Drivers::GDALOptions bopts;
     bopts.url() = BASE_IMAGE;
     addImageLayer("base", bopts);
+#ifdef USE_OSGEARTH_TRUNK
+    osgEarth::Drivers::MPTerrainEngine::MPTerrainEngineOptions mpOpt;
+#else
     osgEarth::Drivers::MPTerrainEngineOptions mpOpt;
+#endif
     // Set background layer color
     mpOpt.color() = osg::Vec4(1, 1, 1, 1);
     //mpOpt.minLOD() = 1;
@@ -692,7 +717,7 @@ void Renderer::resetMap(osgEarth::MapOptions::CoordinateSystemType type,
     _mapNode = mapNode;
     if (_map->isGeocentric()) {
         osgEarth::DateTime now;
-#if OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
+#if defined(USE_OSGEARTH_TRUNK) || OSGEARTH_MIN_VERSION_REQUIRED(2, 5, 1)
         TRACE("Creating SkyNode");
         osgEarth::Util::SkyOptions skyOpts;
         skyOpts.setDriver("gl");
@@ -889,6 +914,86 @@ osgEarth::Viewpoint Renderer::getViewpoint()
         // Uninitialized, invalid viewpoint
         return osgEarth::Viewpoint();
     }
+}
+
+static void srsInfo(const osgEarth::SpatialReference *srs)
+{
+    TRACE("SRS: %s", srs->getName().c_str());
+    TRACE("horiz: \"%s\" vert: \"%s\"", srs->getHorizInitString().c_str(), srs->getVertInitString().c_str());
+    TRACE("geographic: %d geodetic: %d projected: %d ecef: %d mercator: %d spherical mercator: %d northpolar: %d southpolar: %d userdefined: %d contiguous: %d cube: %d ltp: %d plate_carre: %d",
+          srs->isGeographic() ? 1 : 0,
+          srs->isGeodetic() ? 1 : 0,
+          srs->isProjected() ? 1 : 0,
+          srs->isECEF() ? 1 : 0,
+          srs->isMercator() ? 1 : 0,
+          srs->isSphericalMercator() ? 1 : 0,
+          srs->isNorthPolar() ? 1 : 0,
+          srs->isSouthPolar() ? 1 : 0,
+          srs->isUserDefined() ? 1 : 0,
+          srs->isContiguous() ? 1 : 0,
+          srs->isCube() ? 1 : 0,
+          srs->isLTP() ? 1 : 0,
+          srs->isPlateCarre() ? 1 : 0);
+}
+
+bool Renderer::getWorldCoords(const osgEarth::GeoPoint& mapPt, osg::Vec3d *world)
+{
+    if (!_mapNode.valid() || _mapNode->getTerrain() == NULL) {
+        ERROR("No map");
+        return false;
+    }
+    TRACE("Input SRS:");
+    srsInfo(mapPt.getSRS());
+    TRACE("Map SRS:");
+    srsInfo(_mapNode->getMapSRS());
+    bool ret = mapPt.toWorld(*world, _mapNode->getTerrain());
+    TRACE("In: %g,%g,%g Out: %g,%g,%g",
+          mapPt.x(), mapPt.y(), mapPt.z(),
+          world->x(), world->y(), world->z());
+    return ret;
+}
+
+bool Renderer::worldToScreen(const osg::Vec3d& world, osg::Vec3d *screen, bool invertY)
+{
+    if (!_viewer.valid()) {
+        ERROR("No viewer");
+        return false;
+    }
+    osg::Camera *cam = _viewer->getCamera();
+    osg::Matrixd MVP = cam->getViewMatrix() * cam->getProjectionMatrix();
+    // Get clip coords
+    osg::Vec4d pt;
+    pt = osg::Vec4d(world, 1.0) * MVP;
+    // Clip
+    if (pt.x() < -pt.w() ||
+        pt.x() > pt.w() ||
+        pt.y() < -pt.w() ||
+        pt.y() > pt.w() ||
+        pt.z() < -pt.w() ||
+        pt.z() > pt.w()) {
+        // Outside frustum
+        TRACE("invalid pt: %g,%g,%g,%g", pt.x(), pt.y(), pt.z(), pt.w());
+        return false;
+    }
+    TRACE("clip pt: %g,%g,%g,%g", pt.x(), pt.y(), pt.z(), pt.w());
+    // Perspective divide: now NDC
+    pt /= pt.w();
+    const osg::Viewport *viewport = cam->getViewport();
+#if 1
+    screen->x() = viewport->x() + viewport->width() * 0.5 + pt.x() * viewport->width() * 0.5;
+    screen->y() = viewport->y() + viewport->height() * 0.5 + pt.y() * viewport->height() * 0.5;
+    //double near = 0;
+    //double far = 1;
+    //screen->z() = (far + near) * 0.5 + (far - near) * 0.5 * pt.z();
+    screen->z() = 0.5 + 0.5 * pt.z();
+#else
+    *screen = osg::Vec3d(pt.x(), pt.y(), pt.z()) * cam->getViewport()->computeWindowMatrix();
+#endif
+    if (invertY) {
+        screen->y() = viewport->height() - screen->y();
+    }
+    TRACE("screen: %g,%g,%g", screen->x(), screen->y(), screen->z());
+    return true;
 }
 
 /**
