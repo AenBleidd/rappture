@@ -881,17 +881,17 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
     switch -- $option {
         "coords" {
             set len [llength $args]
-            if {$len < 4} {
-                puts stderr "Coords out of range"
+            if {$len == 4} {
+                puts stderr "Map coords out of range"
             } elseif {$len < 6} {
                 foreach { x y z } [lrange $args 1 end] break
-                puts stderr "Coords: $x $y $z"
+                puts stderr "Map coords: $x $y $z"
             } elseif {$len < 7} {
                 foreach { x y z screenX screenY } [lrange $args 1 end] break
-                puts stderr "Coords($screenX,$screenY): $x $y $z"
+                puts stderr "Map coords($screenX,$screenY): $x $y $z"
             } else {
                 foreach { x y z screenX screenY srs vert } [lrange $args 1 end] break
-                puts stderr "Coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
+                puts stderr "Map coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
             }
         }
         "names" {
@@ -917,10 +917,10 @@ itcl::body Rappture::MapViewer::ReceiveScreenInfo { args } {
         "coords" {
             set len [llength $args]
             if {$len == 5} {
-                puts stderr "Screen Coords out of range"
+                puts stderr "Screen coords out of range"
             } else {
                 foreach { x y z worldX worldY worldZ } [lrange $args 1 end] break
-                puts stderr "Coords($worldX,$worldY,$worldZ): $x $y $z"
+                puts stderr "Screen coords($worldX,$worldY,$worldZ): $x $y $z"
             }
         }
         default {
