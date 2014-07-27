@@ -222,6 +222,8 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             error "cannot specify extents without a projection"
         }
         set projection "global-mercator"; # Default projection.
+    } elseif { $projection == "geodetic" && $extents == "" } {
+        set projection "global-geodetic"
     }
     # FIXME: Verify projection is valid.
     $_tree set root "projection" $projection
