@@ -881,17 +881,22 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
     switch -- $option {
         "coords" {
             set len [llength $args]
-            if {$len == 4} {
-                puts stderr "Map coords out of range"
-            } elseif {$len < 6} {
-                foreach { x y z } [lrange $args 1 end] break
-                puts stderr "Map coords: $x $y $z"
-            } elseif {$len < 7} {
-                foreach { x y z screenX screenY } [lrange $args 1 end] break
-                puts stderr "Map coords($screenX,$screenY): $x $y $z"
+            if {$len < 5} {
+                error "Bad map coords response"
             } else {
-                foreach { x y z screenX screenY srs vert } [lrange $args 1 end] break
-                puts stderr "Map coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
+                set token [lindex $args 1]
+            }
+            if {$len == 5} {
+                puts stderr "\[$token\] Map coords out of range"
+            } elseif {$len < 7} {
+                foreach { x y z } [lrange $args 2 end] break
+                puts stderr "\[$token\] Map coords: $x $y $z"
+            } elseif {$len < 8} {
+                foreach { x y z screenX screenY } [lrange $args 2 end] break
+                puts stderr "\[$token\] Map coords($screenX,$screenY): $x $y $z"
+            } else {
+                foreach { x y z screenX screenY srs vert } [lrange $args 2 end] break
+                puts stderr "\[$token\] Map coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
             }
         }
         "names" {
@@ -916,11 +921,16 @@ itcl::body Rappture::MapViewer::ReceiveScreenInfo { args } {
     switch -- $option {
         "coords" {
             set len [llength $args]
-            if {$len == 5} {
-                puts stderr "Screen coords out of range"
+            if {$len < 6} {
+                error "Bad screen coords response"
             } else {
-                foreach { x y z worldX worldY worldZ } [lrange $args 1 end] break
-                puts stderr "Screen coords($worldX,$worldY,$worldZ): $x $y $z"
+                set token [lindex $args 1]
+            }
+            if {$len == 6} {
+                puts stderr "\[$token\] Screen coords out of range"
+            } else {
+                foreach { x y z worldX worldY worldZ } [lrange $args 2 end] break
+                puts stderr "\[$token\] Screen coords($worldX,$worldY,$worldZ): $x $y $z"
             }
         }
         default {
