@@ -81,6 +81,7 @@ itcl::class Rappture::MapViewer {
     protected method MouseRelease { button x y }
     protected method MouseScroll { direction }
     protected method Pan {option x y}
+    protected method Pin {option x y}
     protected method Rebuild {}
     protected method ReceiveMapInfo { args }
     protected method ReceiveScreenInfo { args }
@@ -136,6 +137,7 @@ itcl::class Rappture::MapViewer {
     private variable _motion 
     private variable _sendEarthFile 0
     private variable _useServerManip 0
+    private variable _labelCount 0
 }
 
 itk::usual MapViewer {
@@ -178,9 +180,9 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Settings for mouse motion events: these are required
     # to update the Lat/Long coordinate display
     array set _motion {
-        compress        0
+        compress        1
         delay           100
-        enable          0
+        enable          1
         pending         0
         x               0
         y               0
@@ -357,6 +359,12 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <Double-1> \
             [itcl::code $this camera go %x %y 0.4]
 
+        # Pin placemark annotations
+        bind $itk_component(view) <Control-ButtonPress-1> \
+            +[itcl::code $this Pin add %x %y]
+        bind $itk_component(view) <Control-ButtonPress-3> \
+            +[itcl::code $this Pin delete %x %y]
+
         # Bindings for rotation via mouse
         bind $itk_component(view) <ButtonPress-2> \
             [itcl::code $this Rotate click %x %y]
@@ -393,6 +401,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             bind $itk_component(view) <Motion> \
                 [itcl::code $this EventuallyHandleMotionEvent %x %y]
         }
+        #bind $itk_component(view) <Motion> \
+        #    +[itcl::code $this SendCmd "map pin hover %x %y"]
     }
 
     bind $itk_component(view) <Shift-KeyPress-Left> \
@@ -454,7 +464,7 @@ itcl::body Rappture::MapViewer::DoResize {} {
         set _height 500
         set sendResize 0
     }
-    set _start [clock clicks -milliseconds]
+    #set _start [clock clicks -milliseconds]
     if {$sendResize} {
         SendCmd "screen size $_width $_height"
     }
@@ -846,7 +856,7 @@ itcl::body Rappture::MapViewer::Disconnect {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: ReceiveImage -bytes <size> -type <type> -token <token>
+# USAGE: ReceiveImage -type <type> -token <token> -bytes <size>
 #
 # Invoked automatically whenever the "image" command comes in from
 # the rendering server.  Indicates that binary image data with the
@@ -856,8 +866,8 @@ itcl::body Rappture::MapViewer::ReceiveImage { args } {
     global readyForNextFrame
     set readyForNextFrame 1
     array set info {
-        -token "???"
         -bytes 0
+        -token "???"
         -type image
     }
     array set info $args
@@ -877,6 +887,8 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
     if { ![isconnected] } {
         return
     }
+    set timeReceived [clock clicks -milliseconds]
+    set elapsed [expr $timeReceived - $_start]
     set option [lindex $args 0]
     switch -- $option {
         "coords" {
@@ -887,16 +899,16 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
                 set token [lindex $args 1]
             }
             if {$len == 5} {
-                puts stderr "\[$token\] Map coords out of range"
+                puts stderr "\[$token - $elapsed\] Map coords out of range"
             } elseif {$len < 7} {
                 foreach { x y z } [lrange $args 2 end] break
-                puts stderr "\[$token\] Map coords: $x $y $z"
+                puts stderr "\[$token - $elapsed\] Map coords: $x $y $z"
             } elseif {$len < 8} {
                 foreach { x y z screenX screenY } [lrange $args 2 end] break
-                puts stderr "\[$token\] Map coords($screenX,$screenY): $x $y $z"
+                puts stderr "\[$token - $elapsed\] Map coords($screenX,$screenY): $x $y $z"
             } else {
                 foreach { x y z screenX screenY srs vert } [lrange $args 2 end] break
-                puts stderr "\[$token\] Map coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
+                puts stderr "\[$token - $elapsed\] Map coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
             }
         }
         "names" {
@@ -1155,7 +1167,8 @@ itcl::body Rappture::MapViewer::MouseRelease {button x y} {
 }
 
 itcl::body Rappture::MapViewer::MouseMotion {} {
-    SendCmd "mouse motion $_motion(x) $_motion(y)"
+    #SendCmd "mouse motion $_motion(x) $_motion(y)"
+    SendCmd "map pin hover $_motion(x) $_motion(y)"
     set _motion(pending) 0
 }
 
@@ -1285,6 +1298,21 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
+        }
+    }
+}
+
+itcl::body Rappture::MapViewer::Pin {option x y} {
+    set _click(x) $x
+    set _click(y) $y
+    switch -- $option {
+        "add" {
+            incr _labelCount
+            set label "Label $_labelCount"
+            SendCmd [list "map" "pin" "add" $x $y $label]
+        }
+        "delete" {
+            SendCmd "map pin delete $x $y"
         }
     }
 }
