@@ -893,22 +893,18 @@ itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
     switch -- $option {
         "coords" {
             set len [llength $args]
-            if {$len < 5} {
+            if {$len < 3} {
                 error "Bad map coords response"
             } else {
                 set token [lindex $args 1]
             }
-            if {$len == 5} {
-                puts stderr "\[$token - $elapsed\] Map coords out of range"
-            } elseif {$len < 7} {
-                foreach { x y z } [lrange $args 2 end] break
-                puts stderr "\[$token - $elapsed\] Map coords: $x $y $z"
-            } elseif {$len < 8} {
-                foreach { x y z screenX screenY } [lrange $args 2 end] break
-                puts stderr "\[$token - $elapsed\] Map coords($screenX,$screenY): $x $y $z"
-            } else {
-                foreach { x y z screenX screenY srs vert } [lrange $args 2 end] break
-                puts stderr "\[$token - $elapsed\] Map coords($screenX,$screenY): $x $y $z {$srs} {$vert}"
+            foreach { x y z } [lindex $args 2] {
+                puts stderr "\[$token\] Map coords: $x $y $z"
+            }
+            if {$len > 3} {
+                set srs [lindex $args 3]
+                set vert [lindex $args 4]
+                puts stderr "\[$token\] {$srs} {$vert}"
             }
         }
         "names" {
@@ -933,16 +929,13 @@ itcl::body Rappture::MapViewer::ReceiveScreenInfo { args } {
     switch -- $option {
         "coords" {
             set len [llength $args]
-            if {$len < 6} {
+            if {$len < 3} {
                 error "Bad screen coords response"
             } else {
                 set token [lindex $args 1]
             }
-            if {$len == 6} {
-                puts stderr "\[$token\] Screen coords out of range"
-            } else {
-                foreach { x y z worldX worldY worldZ } [lrange $args 2 end] break
-                puts stderr "\[$token\] Screen coords($worldX,$worldY,$worldZ): $x $y $z"
+            foreach { x y z } [lindex $args 2] {
+                puts stderr "\[$token\] Screen coords: $x $y $z"
             }
         }
         default {
