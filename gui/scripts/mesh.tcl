@@ -556,7 +556,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         if { [info exists zNum] } {
             set _dim 3
 	    set _numPoints [expr $xNum * $yNum * $zNum]
-            set _numCells [expr ($xNum - 1) * ($yNum - 1) * ($zNum - 1)]
+            set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
             if { ($_numPoints*3) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
                 return 0
@@ -579,7 +579,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         } elseif { [info exists yNum] } {
             set _dim 2
 	    set _numPoints [expr $xNum * $yNum]
-            set _numCells [expr ($xNum - 1) * ($yNum - 1)]
+            set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
             if { ($_numPoints*2) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim>"
                 return 0
@@ -629,7 +629,11 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	# This is the special case where all axes 2D/3D are uniform.  
         # This results in a STRUCTURED_POINTS
         if { $_dim == 1 } {
-            set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
+            if {$xNum == 1} {
+                set xSpace 0
+            } else {
+                set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
+            }
 	    set _numPoints $xNum
             set _numCells [expr $xNum - 1]
 	    append out "DATASET STRUCTURED_POINTS\n"
@@ -641,10 +645,18 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             set _limits(y) [list 0 0]
             set _limits(z) [list 0 0]
 	} elseif { $_dim == 2 } {
-	    set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
-	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
+            if {$xNum == 1} {
+                set xSpace 0
+            } else {
+                set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
+            }
+            if {$yNum == 1} {
+                set ySpace 0
+            } else {
+                set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
+            }
 	    set _numPoints [expr $xNum * $yNum]
-            set _numCells [expr ($xNum - 1) * ($yNum - 1)]
+            set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum $yNum 1\n"
 	    append out "ORIGIN $xMin $yMin 0\n"
@@ -655,11 +667,23 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    }
             set _limits(z) [list 0 0]
 	} elseif { $_dim == 3 } {
-	    set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
-	    set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
-	    set zSpace [expr ($zMax - $zMin) / double($zNum - 1)]
+            if {$xNum == 1} {
+                set xSpace 0
+            } else {
+                set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
+            }
+            if {$yNum == 1} {
+                set ySpace 0
+            } else {
+                set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
+            }
+            if {$zNum == 1} {
+                set zSpace 0
+            } else {
+                set zSpace [expr ($zMax - $zMin) / double($zNum - 1)]
+            }
 	    set _numPoints [expr $xNum * $yNum * $zNum]
-            set _numCells [expr ($xNum - 1) * ($yNum - 1) * ($zNum - 1)]
+            set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
 	    append out "DATASET STRUCTURED_POINTS\n"
 	    append out "DIMENSIONS $xNum $yNum $zNum\n"
 	    append out "ORIGIN $xMin $yMin $zMin\n"
@@ -712,7 +736,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     }
     if { $_dim == 3 } {
 	set _numPoints [expr $xNum * $yNum * $zNum]
-        set _numCells [expr ($xNum - 1) * ($yNum - 1) * ($zNum - 1)]
+        set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
 	append out "DATASET RECTILINEAR_GRID\n"
 	append out "DIMENSIONS $xNum $yNum $zNum\n"
 	append out "X_COORDINATES $xNum double\n"
@@ -732,7 +756,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	}
     } elseif { $_dim == 2 } {
 	set _numPoints [expr $xNum * $yNum]
-        set _numCells [expr ($xNum - 1) * ($yNum - 1)]
+        set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
 	append out "DATASET RECTILINEAR_GRID\n"
 	append out "DIMENSIONS $xNum $yNum 1\n"
 	append out "X_COORDINATES $xNum double\n"
