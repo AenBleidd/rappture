@@ -1090,7 +1090,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	    -axisvisible -axislabels -heightmapscale -field -isheightmap \
             -numisolines
         if { [array size _fields] < 2 } {
-            blt::table forget $itk_component(field) $itk_component(field_l)
+            catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }
         RequestLegend
         set _reset 0

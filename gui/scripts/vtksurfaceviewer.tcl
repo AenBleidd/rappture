@@ -1006,7 +1006,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
 	    SendCmd [list axis name $axis $label]
         }
         if { [array size _fields] < 2 } {
-            blt::table forget $itk_component(field) $itk_component(field_l)
+            catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }
         set _reset 0
     }

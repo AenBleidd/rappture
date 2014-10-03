@@ -1058,7 +1058,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 	InitSettings axisXGrid axisYGrid axisZGrid \
 	    axisVisible axisLabels field view3D
         if { [array size _fields] < 2 } {
-            blt::table forget $itk_component(field) $itk_component(field_l)
+            catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }
         RequestLegend
         set _reset 0
