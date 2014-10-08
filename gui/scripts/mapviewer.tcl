@@ -69,6 +69,7 @@ itcl::class Rappture::MapViewer {
     protected method Connect {}
     protected method CurrentLayers {args}
     protected method Disconnect {}
+    protected method DoPan {}
     protected method DoResize {}
     protected method DoRotate {}
     protected method InitSettings { args  }
@@ -87,6 +88,7 @@ itcl::class Rappture::MapViewer {
     protected method ReceiveScreenInfo { args }
     protected method ReceiveImage { args }
     protected method Rotate {option x y}
+    protected method Select {option x y}
     protected method Zoom {option {x 0} {y 0}}
 
     # The following methods are only used by this class.
@@ -95,7 +97,8 @@ itcl::class Rappture::MapViewer {
     private method BuildLayerTab {}
     private method BuildTerrainTab {}
     private method ChangeLayerVisibility { dataobj layer }
-    private method EventuallyHandleMotionEvent { x y } 
+    private method EventuallyHandleMotionEvent { x y }
+    private method EventuallyPan { dx dy }
     private method EventuallyResize { w h } 
     private method EventuallyRotate { dx dy } 
     private method GetImage { args } 
@@ -114,6 +117,9 @@ itcl::class Rappture::MapViewer {
                                    	# layer in the server.
     private variable _click;            # info used for rotate operations
     private variable _view;             # view params for 3D view
+    private variable _pan;
+    private variable _rotate;
+    private variable _motion;
     private variable _settings
     private variable _visibility
     private variable _style;            # Array of current component styles.
@@ -121,7 +127,7 @@ itcl::class Rappture::MapViewer {
     private variable _reset 1;          # Indicates that server was reset and
                                         # needs to be reinitialized.
     private variable _initCamera 1;
-    private variable _haveTerrain 0
+    private variable _haveTerrain 0;
 
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
@@ -132,12 +138,10 @@ itcl::class Rappture::MapViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
-    private variable _rotatePending 0
-    private variable _rotateDelay 150
-    private variable _motion 
     private variable _sendEarthFile 0
     private variable _useServerManip 0
     private variable _labelCount 0
+    private variable _b1mode "pan"
 }
 
 itk::usual MapViewer {
@@ -160,6 +164,10 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
+    # Pan event
+    $_dispatcher register !pan
+    $_dispatcher dispatch $this !pan "[itcl::code $this DoPan]; list"
 
     # Rotate event
     $_dispatcher register !rotate
@@ -186,6 +194,20 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         pending         0
         x               0
         y               0
+    }
+    array set _pan {
+        compress        1
+        delay           100
+        pending         0
+        x               0
+        y               0
+    }
+    array set _rotate {
+        azimuth         0
+        compress        1
+        delay           100
+        elevation       0
+        pending         0
     }
     # This array holds the Viewpoint parameters that the
     # server sends on "camera get".
@@ -365,6 +387,14 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <Control-ButtonPress-3> \
             +[itcl::code $this Pin delete %x %y]
 
+        bind $itk_component(view) <Shift-ButtonPress-1> \
+            [itcl::code $this Select click %x %y]
+        bind $itk_component(view) <B1-Motion> \
+            +[itcl::code $this Select drag %x %y]
+        bind $itk_component(view) <Shift-ButtonRelease-1> \
+            +[itcl::code $this Select release %x %y]
+
+        if {1} {
         # Bindings for rotation via mouse
         bind $itk_component(view) <ButtonPress-2> \
             [itcl::code $this Rotate click %x %y]
@@ -372,6 +402,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             [itcl::code $this Rotate drag %x %y]
         bind $itk_component(view) <ButtonRelease-2> \
             [itcl::code $this Rotate release %x %y]
+        }
 
         # Bindings for zoom via mouse
         bind $itk_component(view) <ButtonPress-3> \
@@ -472,8 +503,10 @@ itcl::body Rappture::MapViewer::DoResize {} {
 }
 
 itcl::body Rappture::MapViewer::DoRotate {} {
-    SendCmd "camera rotate $_view(azimuth) $_view(elevation)"
-    set _rotatePending 0
+    SendCmd "camera rotate $_rotate(azimuth) $_rotate(elevation)"
+    set _rotate(azimuth) 0
+    set _rotate(elevation) 0
+    set _rotate(pending) 0
 }
 
 itcl::body Rappture::MapViewer::EventuallyResize { w h } {
@@ -485,12 +518,36 @@ itcl::body Rappture::MapViewer::EventuallyResize { w h } {
     }
 }
 
+itcl::body Rappture::MapViewer::DoPan {} {
+    SendCmd "camera pan $_pan(x) $_pan(y)"
+    set _pan(x) 0
+    set _pan(y) 0
+    set _pan(pending) 0
+}
+
+itcl::body Rappture::MapViewer::EventuallyPan { dx dy } {
+    set _pan(x) [expr $_pan(x) + $dx]
+    set _pan(y) [expr $_pan(y) + $dy]
+    if { !$_pan(compress) } {
+        DoPan
+        return
+    }
+    if { !$_pan(pending) } {
+        set _pan(pending) 1
+        $_dispatcher event -after $_pan(delay) !pan
+    }
+}
+
 itcl::body Rappture::MapViewer::EventuallyRotate { dx dy } {
-    set _view(azimuth) $dx
-    set _view(elevation) $dy
-    if { !$_rotatePending } {
-        set _rotatePending 1
-        $_dispatcher event -after $_rotateDelay !rotate
+    set _rotate(azimuth) [expr $_rotate(azimuth) + $dx]
+    set _rotate(elevation) [expr $_rotate(elevation) + $dy]
+    if { !$_rotate(compress) } {
+        DoRotate
+        return
+    }
+    if { !$_rotate(pending) } {
+        set _rotate(pending) 1
+        $_dispatcher event -after $_rotate(delay) !rotate
     }
 }
 
@@ -844,10 +901,11 @@ itcl::body Rappture::MapViewer::disconnect {} {
 itcl::body Rappture::MapViewer::Disconnect {} {
     VisViewer::Disconnect
 
+    $_dispatcher cancel !pan
+    $_dispatcher cancel !motion
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !resize
     $_dispatcher cancel !rotate
-    $_dispatcher cancel !motion
     # disconnected -- no more data sitting on server
     array unset _layers
     array unset _layersFrame 
@@ -1264,6 +1322,8 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
             $itk_component(view) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
+            set _rotate(azimuth) 0
+            set _rotate(elevation) 0
         }
         "drag" {
             if {[array size _click] == 0} {
@@ -1279,8 +1339,8 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
                 set _click(x) $x
                 set _click(y) $y
                 if {[expr (abs($dx) > 0.0 || abs($dy) > 0.0)]} {
-                    SendCmd "camera rotate $dx $dy"
-                    #EventuallyRotate $dx $dy
+                    #SendCmd "camera rotate $dx $dy"
+                    EventuallyRotate $dx $dy
                 }
             }
         }
@@ -1291,6 +1351,29 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
+        }
+    }
+}
+
+itcl::body Rappture::MapViewer::Select {option x y} {
+    switch -- $option {
+        "click" {
+            set _click(x) $x
+            set _click(y) $y
+            set _b1mode "select"
+            SendCmd "map box init $x $y"
+        }
+        "drag" {
+            if {$_b1mode == "select"} {
+                SendCmd "map box update $x $y"
+            }
+        }
+        "release" {
+            set _b1mode ""
+            if {$_click(x) == $x &&
+                $_click(y) == $y} {
+                SendCmd "map box clear"
+            }
         }
     }
 }
@@ -1334,9 +1417,15 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
         "click" {
             set _click(x) $x
             set _click(y) $y
+            set _pan(x) 0
+            set _pan(y) 0
             $itk_component(view) configure -cursor hand1
+            set _b1mode "pan"
         }
         "drag" {
+            if {$_b1mode != "pan"} {
+                return
+            }
             if { ![info exists _click(x)] } {
                 set _click(x) $x
             }
@@ -1350,12 +1439,14 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             set _click(x) $x
             set _click(y) $y
             if {[expr (abs($dx) > 0.0 || abs($dy) > 0.0)]} {
-                SendCmd "camera pan $dx $dy"
+                EventuallyPan $dx $dy
+                #SendCmd "camera pan $dx $dy"
             }
         }
         "release" {
             Pan drag $x $y
             $itk_component(view) configure -cursor ""
+            set _b1mode ""
         }
         default {
             error "unknown option \"$option\": should set, click, drag, or release"
