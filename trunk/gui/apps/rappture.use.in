@@ -32,6 +32,8 @@ prepend TCLLIBPATH ${vtk_tcl_dir}
 prepend TCL_LIBRARY ${libdir}/tcl${tcl_version}
 prepend TK_LIBRARY ${libdir}/tk${tcl_version}
 
+prepend CLASSPATH ${libdir}/java
+
 prepend R_LIBS ${libdir}/R
 
 setenv RAPPTURE_PATH ${exec_prefix}
