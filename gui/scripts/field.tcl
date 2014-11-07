@@ -1511,7 +1511,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     if { $_dim == 3 } {
         set dim 0 
         foreach axis {x y z} {
-            foreach {min max} [$mesh limits $axis] { 
+            foreach {min max} [$mesh limits $axis] {
                 if { $min < $max } {
                     incr dim
                 }

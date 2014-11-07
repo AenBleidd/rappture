@@ -517,6 +517,10 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
 	    set ${axis}Min $min
 	    set ${axis}Max $max
 	    set ${axis}Num $num
+            if {$min > $max} {
+                puts stderr "ERROR: grid $axis axis minimum larger than maximum"
+                return 0
+            }
 	    incr numUniform
 	} elseif { $coords != "" } {
 	    incr numRectilinear
