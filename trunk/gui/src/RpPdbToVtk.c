@@ -190,9 +190,7 @@ ComputeBonds(Tcl_HashTable *atomTablePtr, Tcl_HashTable *conectTablePtr)
     }
     for (i = 0, hPtr = Tcl_FirstHashEntry(atomTablePtr, &iter); hPtr != NULL;
 	 hPtr = Tcl_NextHashEntry(&iter), i++) {
-	PdbAtom *atomPtr;
-
-	atomPtr = Tcl_GetHashValue(hPtr);
+	PdbAtom *atomPtr = Tcl_GetHashValue(hPtr);
 	array[i] = atomPtr;
     }
     for (i = 0; i < atomTablePtr->numEntries; i++) {
@@ -690,16 +688,14 @@ PdbToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	sprintf(mesg, "\n");
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
+#if 0
     for (hPtr = Tcl_FirstHashEntry(&atomTable, &iter); hPtr != NULL;
 	 hPtr = Tcl_NextHashEntry(&iter)) {
-	PdbAtom *atomPtr;
-
-	atomPtr = Tcl_GetHashValue(hPtr);
-#if 0
+	PdbAtom *atomPtr = Tcl_GetHashValue(hPtr);
 	fprintf(stderr, "%d %s %d connections\n", atomPtr->ordinal,
 		elements[atomPtr->number].symbol, atomPtr->numConnections);
-#endif
     }
+#endif
     sprintf(mesg, "POINT_DATA %d\n", atomTable.numEntries);
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "SCALARS element int\n");
