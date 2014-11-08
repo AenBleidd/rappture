@@ -38,7 +38,7 @@ bind all <Escape><Escape><Escape> Rappture::grab::reset
 # later.
 # ----------------------------------------------------------------------
 rename grab _tk_grab
-proc grab {args} {
+proc grab { args } {
     set op [lindex $args 0]
     if {[winfo exists $op]} {
         set op "set"
@@ -53,6 +53,7 @@ proc grab {args} {
         #
         set state $::Rappture::grab::state
         set window [lindex $args end]
+
         if {[lsearch -exact $args -global] >= 0} {
             set state "-global"
         }
@@ -90,11 +91,11 @@ proc grab {args} {
         eval _tk_grab $args
 
         # and set the next one
-        if {"" != $window} {
-            if {[lindex $window 0] != "-global"} {
-                # no more global grabs -- resume local grabs
-                set ::Rappture::grab::state ""
-            }
+        if {[lindex $window 0] != "-global"} {
+            # no more global grabs -- resume local grabs
+            set ::Rappture::grab::state ""
+        }
+        if { $window != "" } {
             eval _grabset $window
         }
         return ""
