@@ -231,7 +231,7 @@ itcl::body Rappture::Balloon::activate {where placement} {
 
     # grab the mouse pointer
     update
-    while {[catch {grab set -local $itk_component(hull)}]} {
+    while {[catch {grab set $itk_component(hull)}]} {
         after 100
     }
     focus $itk_component(hull)
@@ -248,7 +248,6 @@ itcl::body Rappture::Balloon::deactivate {} {
     }
 
     grab release $itk_component(hull)
-
     wm withdraw $itk_component(hull)
     foreach dir {left right above below} {
         wm withdraw $_stems($dir)
