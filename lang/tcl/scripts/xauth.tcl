@@ -29,7 +29,7 @@ package require http
 package require base64
 package require sha1
 package require tls
-http::register https 443 ::tls::socket
+http::register https 443 [list ::tls::socket -tls1 1]
 
 namespace eval XAuth {
     # stores token/secret info from a file containing site data
