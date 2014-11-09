@@ -5,6 +5,7 @@ package ifneeded Rappture @PACKAGE_VERSION@ [format {
     namespace eval Rappture {
 	variable version $version
 	variable build "@SVN_VERSION@"
+	variable svnurl "@SVN_URL@"
 	variable installdir [file normalize $dir]
     }
     namespace eval Rappture::LibraryObj {

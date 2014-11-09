@@ -107,6 +107,7 @@ fi
 SC_CONFIG_CFLAGS
 
 SVN_VERSION=`svnversion $srcdir | sed 's/Unversioned directory/unknown/'`
+SVN_URL=`svn info $srcdir | sed -ne 's/^URL: //p'`
 
 make_command=""
 for m in "$MAKE" make gmake gnumake ; do
@@ -400,6 +401,7 @@ AC_SUBST(MEX_ARCH)
 AC_SUBST(MKOCTFILE2)
 AC_SUBST(MKOCTFILE3)
 AC_SUBST(SVN_VERSION)
+AC_SUBST(SVN_URL)
 AC_SUBST(OCTAVE_VERSION)
 AC_SUBST(OCTAVE_VERSION_MAJOR)
 AC_SUBST(PERL)

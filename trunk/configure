@@ -671,6 +671,7 @@ PERL_ARCHLIBEXP
 PERL_ARCHLIB
 OCTAVE_VERSION_MAJOR
 OCTAVE_VERSION
+SVN_URL
 SVN_VERSION
 MKOCTFILE3
 MKOCTFILE2
@@ -7296,6 +7297,7 @@ fi
 
 
 SVN_VERSION=`svnversion $srcdir | sed 's/Unversioned directory/unknown/'`
+SVN_URL=`svn info $srcdir | sed -ne 's/^URL: //p'`
 
 make_command=""
 for m in "$MAKE" make gmake gnumake ; do
@@ -10134,6 +10136,7 @@ fi
 
 
 MAKE=${make_command}
+
 
 
 
