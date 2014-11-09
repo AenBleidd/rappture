@@ -780,6 +780,10 @@ itcl::body Rappture::VtkGlyphViewer::Connect {} {
             if { [info exists env(SESSION)] } {
                 set session $env(SESSION)
             }
+            lappend info "version" "$Rappture::version"
+            lappend info "build" "$Rappture::build"
+            lappend info "svnurl" "$Rappture::svnurl"
+            lappend info "installdir" "$Rappture::installdir"
             lappend info "hub" [exec hostname]
             lappend info "client" "vtkglyphviewer"
             lappend info "user" $user
