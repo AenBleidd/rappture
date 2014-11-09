@@ -1294,7 +1294,7 @@ itcl::body Rappture::ResultSelector::_getParamDesc {which {xmlobj "current"}} {
             set desc ""
             foreach col [lrange [$_resultset diff names] 1 end] {
                 set quantity $_cntlInfo($this-$col-label)
-                set val [lindex [$_resultset get $col $xmlobj] 0]
+                set val [$_resultset get $col $xmlobj]
                 append desc "$quantity = $val\n"
             }
             return [string trim $desc]
