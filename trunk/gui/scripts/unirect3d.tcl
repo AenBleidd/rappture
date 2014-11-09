@@ -165,9 +165,7 @@ itcl::body Rappture::Unirect3d::mesh {} {
 
 # ----------------------------------------------------------------------
 # method values 
-#       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
-#       on the nanovis server.
+#       Returns a Tcl list that represents the field values
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::values {} {
     if { [$_values length] > 0 } {
@@ -178,9 +176,7 @@ itcl::body Rappture::Unirect3d::values {} {
 
 # ----------------------------------------------------------------------
 # method valuesObj 
-#       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
-#       on the nanovis server.
+#       Returns a BLT vector that represents the field values
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::valuesObj {} {
     return $_values
