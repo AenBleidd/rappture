@@ -426,7 +426,6 @@ itcl::body Rappture::Field::valueLimits { cname } {
 itcl::body Rappture::Field::limits {which} {
     set min ""
     set max ""
-    blt::vector tmp zero
 
     foreach cname [array names _comp2dims] {
         switch -- $_comp2dims($cname) {
@@ -452,14 +451,16 @@ itcl::body Rappture::Field::limits {which} {
                 set vname [lindex $_comp2xy($cname) $pos]
 
                 if {$log} {
-                    # on a log scale, use abs value and ignore 0's
+                    blt::vector tmp zero
+                    # on a log scale, use abs value and ignore zeros
                     $vname dup tmp
                     $vname dup zero
-                    zero expr {tmp == 0}            ;# find the 0's
+                    zero expr {tmp == 0}            ;# find the zeros
                     tmp expr {abs(tmp)}             ;# get the abs value
-                    tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+                    tmp expr {tmp + zero*max(tmp)}  ;# replace zeros with abs max
                     set axisMin [blt::vector expr min(tmp)]
                     set axisMax [blt::vector expr max(tmp)]
+                    blt::vector destroy tmp zero
                 } else {
                     set axisMin [$vname min]
                     set axisMax [$vname max]
@@ -476,7 +477,7 @@ itcl::body Rappture::Field::limits {which} {
                     set max $axisMax
                 }
             }
-            2D - 3D {
+            default {
                 if {[info exists _comp2limits($cname)]} {
 		    array set limits $_comp2limits($cname) 
 		    switch -- $which {
@@ -518,7 +519,6 @@ itcl::body Rappture::Field::limits {which} {
             set max $axisMax
         }
     }
-    blt::vector destroy tmp zero
     set val [$_field get "${axis}axis.min"]
     if {"" != $val && "" != $min} {
         if {$val > $min} {
