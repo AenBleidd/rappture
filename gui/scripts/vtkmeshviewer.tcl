@@ -93,7 +93,6 @@ itcl::class Rappture::VtkMeshViewer {
     private method SetObjectStyle { dataobj } 
     private method SetOrientation { side }
     private method SetPolydataOpacity {}
-    private method Slice {option args} 
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
@@ -186,24 +185,16 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     array set _settings {
         -axesvisible            1
         -axislabels             1
+        -axisminorticks         1
         -outline                0
         -polydataedges          0
         -polydatalighting       1
         -polydataopacity        1.0
         -polydatavisible        1
         -polydatawireframe      0
-        -xcutaway               0
-        -xdirection             -1
         -xgrid                  0
-        -xposition              0
-        -ycutaway               0
-        -ydirection             -1
         -ygrid                  0
-        -yposition              0
-        -zcutaway               0
-        -zdirection             -1
         -zgrid                  0
-        -zposition              0
     }
     array set _widget {
         -polydataopacity        100
@@ -284,7 +275,6 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
 
     BuildPolydataTab
     BuildAxisTab
-    #BuildCutawayTab
     BuildCameraTab
 
     # Hack around the Tk panewindow.  The problem is that the requested 
@@ -834,7 +824,8 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        InitSettings -xgrid -ygrid -zgrid -axismode -axesvisible -axislabels
+        InitSettings -xgrid -ygrid -zgrid -axismode \
+            -axesvisible -axislabels -axisminorticks
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
@@ -902,9 +893,7 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         InitSettings -polydataedges -polydatalighting -polydataopacity \
             -polydatavisible -polydatawireframe
  
-        SendCmd "axis lformat all %g"
-        # Too many major ticks, so turn off minor ticks
-        SendCmd "axis minticks all 0"
+        #SendCmd "axis lformat all %g"
 
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
         $_arcball quaternion $q 
@@ -1194,6 +1183,10 @@ itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
+        "-axisminorticks" {
+            set bool $_settings($what)
+            SendCmd "axis minticks all $bool"
+        }
         "-xgrid" {
             set bool $_settings($what)
             SendCmd "axis grid x $bool"
@@ -1210,30 +1203,6 @@ itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
             set mode [$itk_component(axismode) value]
             set mode [$itk_component(axismode) translate $mode]
             SendCmd "axis flymode $mode"
-        }
-        "-xcutaway" - "-ycutaway" - "-zcutaway" {
-            set axis [string range $what 1 1]
-            set bool $_settings($what)
-            if { $bool } {
-                set pos [expr $_settings(-${axis}position) * 0.01]
-                set dir $_settings(-${axis}direction)
-                $itk_component(${axis}CutScale) configure -state normal \
-                    -troughcolor white
-                SendCmd "renderer clipplane $axis $pos $dir"
-            } else {
-                $itk_component(${axis}CutScale) configure -state disabled \
-                    -troughcolor grey82
-                SendCmd "renderer clipplane $axis 1 -1"
-            }
-        }
-        "-xposition" - "-yposition" - "-zposition" {
-            set axis [string range $what 1 1]
-            set pos [expr $_settings($what) * 0.01]
-            SendCmd "renderer clipplane ${axis} $pos -1"
-        }
-        "-xdirection" - "-ydirection" - "-zdirection" {
-            set axis [string range $what 1 1]
-            puts stderr "direction not implemented"
         }
         default {
             error "don't know how to fix $what"
@@ -1385,35 +1354,40 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
-        -icon [Rappture::icon axis1]]
+        -icon [Rappture::icon axis2]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
         -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
-        -text "Show Axis Labels" \
+        -text "Axis Labels" \
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-
-    checkbutton $inner.gridx \
-        -text "Show X Grid" \
+    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    checkbutton $inner.xgrid \
+        -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
         -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
-    checkbutton $inner.gridy \
-        -text "Show Y Grid" \
+    checkbutton $inner.ygrid \
+        -text "Y" \
         -variable [itcl::scope _settings(-ygrid)] \
         -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
-    checkbutton $inner.gridz \
-        -text "Show Z Grid" \
+    checkbutton $inner.zgrid \
+        -text "Z" \
         -variable [itcl::scope _settings(-zgrid)] \
         -command [itcl::code $this AdjustSetting -zgrid] \
+        -font "Arial 9"
+    checkbutton $inner.minorticks \
+        -text "Minor Ticks" \
+        -variable [itcl::scope _settings(-axisminorticks)] \
+        -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1430,16 +1404,19 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 2 \
-        1,0 $inner.labels  -anchor w -cspan 2 \
-        2,0 $inner.gridx   -anchor w -cspan 2 \
-        3,0 $inner.gridy   -anchor w -cspan 2 \
-        4,0 $inner.gridz   -anchor w -cspan 2 \
-        5,0 $inner.mode_l  -anchor w -cspan 2 -padx { 2 0 } \
-        6,0 $inner.mode    -fill x   -cspan 2 
+        0,0 $inner.visible -anchor w -cspan 4 \
+        1,0 $inner.labels  -anchor w -cspan 4 \
+        2,0 $inner.minorticks  -anchor w -cspan 4 \
+        4,0 $inner.grid_l  -anchor w \
+        4,1 $inner.xgrid   -anchor w \
+        4,2 $inner.ygrid   -anchor w \
+        4,3 $inner.zgrid   -anchor w \
+        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
+        5,1 $inner.mode    -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r7 c6 -resize expand
+    blt::table configure $inner r3 -height 0.125i
 }
 
 itcl::body Rappture::VtkMeshViewer::BuildCameraTab {} {
@@ -1488,147 +1465,6 @@ itcl::body Rappture::VtkMeshViewer::BuildCameraTab {} {
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
-}
-
-itcl::body Rappture::VtkMeshViewer::BuildCutawayTab {} {
-
-    set fg [option get $itk_component(hull) font Font]
-    
-    set inner [$itk_component(main) insert end \
-        -title "Cutaway Along Axis" \
-        -icon [Rappture::icon cutbutton]] 
-
-    $inner configure -borderwidth 4
-
-    # X-value slicer...
-    itk_component add xCutButton {
-        Rappture::PushButton $inner.xbutton \
-            -onimage [Rappture::icon x-cutplane] \
-            -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this AdjustSetting -xcutaway] \
-            -variable [itcl::scope _settings(-xcutaway)]
-    }
-    Rappture::Tooltip::for $itk_component(xCutButton) \
-        "Toggle the X-axis cutaway on/off"
-
-    itk_component add xCutScale {
-        ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move x] \
-            -variable [itcl::scope _settings(-xposition)]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-    }
-    # Set the default cutaway value before disabling the scale.
-    $itk_component(xCutScale) set 100
-    $itk_component(xCutScale) configure -state disabled
-    Rappture::Tooltip::for $itk_component(xCutScale) \
-        "@[itcl::code $this Slice tooltip x]"
-
-    itk_component add xDirButton {
-        Rappture::PushButton $inner.xdir \
-            -onimage [Rappture::icon arrow-down] \
-            -onvalue -1 \
-            -offimage [Rappture::icon arrow-up] \
-            -offvalue 1 \
-            -command [itcl::code $this AdjustSetting -xdirection] \
-            -variable [itcl::scope _settings(-xdirection)]
-    }
-    set _settings(-xdirection) -1 
-    Rappture::Tooltip::for $itk_component(xDirButton) \
-        "Toggle the direction of the X-axis cutaway"
-
-    # Y-value slicer...
-    itk_component add yCutButton {
-        Rappture::PushButton $inner.ybutton \
-            -onimage [Rappture::icon y-cutplane] \
-            -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this AdjustSetting -ycutaway] \
-            -variable [itcl::scope _settings(-ycutaway)]
-    }
-    Rappture::Tooltip::for $itk_component(yCutButton) \
-        "Toggle the Y-axis cutaway on/off"
-
-    itk_component add yCutScale {
-        ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move y] \
-            -variable [itcl::scope _settings(-yposition)]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-    }
-    Rappture::Tooltip::for $itk_component(yCutScale) \
-        "@[itcl::code $this Slice tooltip y]"
-    # Set the default cutaway value before disabling the scale.
-    $itk_component(yCutScale) set 100
-    $itk_component(yCutScale) configure -state disabled
-
-    itk_component add yDirButton {
-        Rappture::PushButton $inner.ydir \
-            -onimage [Rappture::icon arrow-down] \
-            -onvalue -1 \
-            -offimage [Rappture::icon arrow-up] \
-            -offvalue 1 \
-            -command [itcl::code $this AdjustSetting -ydirection] \
-            -variable [itcl::scope _settings(-ydirection)]
-    }
-    Rappture::Tooltip::for $itk_component(yDirButton) \
-        "Toggle the direction of the Y-axis cutaway"
-    set _settings(-ydirection) -1 
-
-    # Z-value slicer...
-    itk_component add zCutButton {
-        Rappture::PushButton $inner.zbutton \
-            -onimage [Rappture::icon z-cutplane] \
-            -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this AdjustSetting -zcutaway] \
-            -variable [itcl::scope _settings(-zcutaway)]
-    }
-    Rappture::Tooltip::for $itk_component(zCutButton) \
-        "Toggle the Z-axis cutaway on/off"
-
-    itk_component add zCutScale {
-        ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move z] \
-            -variable [itcl::scope _settings(-zposition)]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-    }
-    $itk_component(zCutScale) set 100
-    $itk_component(zCutScale) configure -state disabled
-    Rappture::Tooltip::for $itk_component(zCutScale) \
-        "@[itcl::code $this Slice tooltip z]"
-
-    itk_component add zDirButton {
-        Rappture::PushButton $inner.zdir \
-            -onimage [Rappture::icon arrow-down] \
-            -onvalue -1 \
-            -offimage [Rappture::icon arrow-up] \
-            -offvalue 1 \
-            -command [itcl::code $this AdjustSetting -zdirection] \
-            -variable [itcl::scope _settings(-zdirection)]
-    }
-    set _settings(-zdirection) -1 
-    Rappture::Tooltip::for $itk_component(zDirButton) \
-        "Toggle the direction of the Z-axis cutaway"
-
-    blt::table $inner \
-        0,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
-        1,0 $itk_component(xCutScale)   -fill y \
-        0,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
-        1,1 $itk_component(yCutScale)   -fill y \
-        0,2 $itk_component(zCutButton)  -anchor e -padx 2 -pady 2 \
-        1,2 $itk_component(zCutScale)   -fill y \
-
-    blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r1 c3 -resize expand
 }
 
 #
@@ -1791,36 +1627,6 @@ itcl::body Rappture::VtkMeshViewer::IsValidObject { dataobj } {
     return 1
 }
 
-# ----------------------------------------------------------------------
-# USAGE: Slice move x|y|z <newval>
-#
-# Called automatically when the user drags the slider to move the
-# cut plane that slices 3D data.  Gets the current value from the
-# slider and moves the cut plane to the appropriate point in the
-# data set.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkMeshViewer::Slice {option args} {
-    switch -- $option {
-        "move" {
-            set axis [lindex $args 0]
-            set newval [lindex $args 1]
-            if {[llength $args] != 2} {
-                error "wrong # args: should be \"Slice move x|y|z newval\""
-            }
-            set newpos [expr {0.01*$newval}]
-            SendCmd "renderer clipplane $axis $newpos -1"
-        }
-        "tooltip" {
-            set axis [lindex $args 0]
-            set val [$itk_component(${axis}CutScale) get]
-            return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
-        }
-        default {
-            error "bad option \"$option\": should be axis, move, or tooltip"
-        }
-    }
-}
-
 itcl::body Rappture::VtkMeshViewer::SetOrientation { side } { 
     array set positions {
         front "1 0 0 0"
@@ -1841,4 +1647,3 @@ itcl::body Rappture::VtkMeshViewer::SetOrientation { side } {
     set _view(ypan) 0
     set _view(zoom) 1.0
 }
-
