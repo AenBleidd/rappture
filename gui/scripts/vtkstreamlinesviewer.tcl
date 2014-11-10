@@ -225,6 +225,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     array set _settings [subst {
         axesVisible		1
         axisLabelsVisible	1
+        axisMinorTicks          1
         axisXGrid		0
         axisYGrid		0
         axisZGrid		0
@@ -969,7 +970,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	$_arcball resize $w $h
 	DoResize
 	InitSettings axisXGrid axisYGrid axisZGrid axis-mode \
-	    axesVisible axisLabelsVisible 
+	    axesVisible axisLabelsVisible axisMinorTicks
         # This "imgflush" is to force an image returned before vtkvis starts
         # reading a (big) dataset.  This will display an empty plot with axes
         # at the correct image size.
@@ -1326,16 +1327,16 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
     }
     switch -- $what {
         "volumeOpacity" {
-            set val $_settings(volumeOpacity)
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "polydata opacity $sval"
         }
         "volumeWireframe" {
-            set bool $_settings(volumeWireframe)
+            set bool $_settings($what)
             SendCmd "polydata wireframe $bool"
         }
         "volumeVisible" {
-            set bool $_settings(volumeVisible)
+            set bool $_settings($what)
             SendCmd "polydata visible $bool"
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(volume) \
@@ -1346,20 +1347,24 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             }
         }
         "volumeLighting" {
-            set bool $_settings(volumeLighting)
+            set bool $_settings($what)
             SendCmd "polydata lighting $bool"
         }
         "volumeEdges" {
-            set bool $_settings(volumeEdges)
+            set bool $_settings($what)
             SendCmd "polydata edges $bool"
         }
         "axesVisible" {
-            set bool $_settings(axesVisible)
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
         "axisLabelsVisible" {
-            set bool $_settings(axisLabelsVisible)
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
+        }
+        "axisMinorTicks" {
+            set bool $_settings($what)
+            SendCmd "axis minticks all $bool"
         }
         "axisXGrid" - "axisYGrid" - "axisZGrid" {
             set axis [string tolower [string range $what 4 4]]
@@ -1455,17 +1460,17 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             set _legendPending 1
         }
         "streamlinesOpacity" {
-            set val $_settings(streamlinesOpacity)
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "streamlines opacity $sval"
         }
         "streamlinesScale" {
-            set val $_settings(streamlinesScale)
+            set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "streamlines scale $sval $sval $sval"
         }
         "streamlinesLighting" {
-            set bool $_settings(streamlinesLighting)
+            set bool $_settings($what)
             SendCmd "streamlines lighting $bool"
         }
         "field" {
@@ -1773,35 +1778,40 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
-        -icon [Rappture::icon axis1]]
+        -icon [Rappture::icon axis2]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable [itcl::scope _settings(axesVisible)] \
         -command [itcl::code $this AdjustSetting axesVisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
-        -text "Show Axis Labels" \
+        -text "Axis Labels" \
         -variable [itcl::scope _settings(axisLabelsVisible)] \
         -command [itcl::code $this AdjustSetting axisLabelsVisible] \
         -font "Arial 9"
-
+    label $inner.grid_l -text "Grid" -font "Arial 9" 
     checkbutton $inner.xgrid \
-        -text "Show X Grid" \
+        -text "X" \
         -variable [itcl::scope _settings(axisXGrid)] \
         -command [itcl::code $this AdjustSetting axisXGrid] \
         -font "Arial 9"
     checkbutton $inner.ygrid \
-        -text "Show Y Grid" \
+        -text "Y" \
         -variable [itcl::scope _settings(axisYGrid)] \
         -command [itcl::code $this AdjustSetting axisYGrid] \
         -font "Arial 9"
     checkbutton $inner.zgrid \
-        -text "Show Z Grid" \
+        -text "Z" \
         -variable [itcl::scope _settings(axisZGrid)] \
         -command [itcl::code $this AdjustSetting axisZGrid] \
+        -font "Arial 9"
+    checkbutton $inner.minorticks \
+        -text "Minor Ticks" \
+        -variable [itcl::scope _settings(axisMinorTicks)] \
+        -command [itcl::code $this AdjustSetting axisMinorTicks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1818,18 +1828,20 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 2 \
-        1,0 $inner.labels  -anchor w -cspan 2 \
-        2,0 $inner.xgrid   -anchor w -cspan 2 \
-        3,0 $inner.ygrid   -anchor w -cspan 2 \
-        4,0 $inner.zgrid   -anchor w -cspan 2 \
-        5,0 $inner.mode_l  -anchor w -cspan 2 -padx { 2 0 } \
-        6,0 $inner.mode    -fill x   -cspan 2 
+        0,0 $inner.visible -anchor w -cspan 4 \
+        1,0 $inner.labels  -anchor w -cspan 4 \
+        2,0 $inner.minorticks  -anchor w -cspan 4 \
+        4,0 $inner.grid_l  -anchor w \
+        4,1 $inner.xgrid   -anchor w \
+        4,2 $inner.ygrid   -anchor w \
+        4,3 $inner.zgrid   -anchor w \
+        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
+        5,1 $inner.mode    -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r7 c6 -resize expand
+    blt::table configure $inner r3 -height 0.125i
 }
-
 
 itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
@@ -2146,13 +2158,14 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
         set settings(-opacity) 1
     }
     array set settings $style
+    StartBufferingCommands
     SendCmd "streamlines add $tag"
     SendCmd "streamlines seed visible off $tag"
     set seeds [$dataobj hints seeds]
     if { $seeds != "" && ![info exists _seeds($dataobj)] } {
         set length [string length $seeds]
         SendCmd "streamlines seed fmesh 200 data follows $length $tag"
-        SendCmd "$seeds"
+        append _outbuf $seeds
         set _seeds($dataobj) 1
     }
     SendCmd "cutplane add $tag"
@@ -2163,6 +2176,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     set _settings(volumeOpacity) $settings(-opacity)
     set _settings(volumeWireframe) $settings(-wireframe)
     set _settings(volumeOpacity) [expr $settings(-opacity) * 100.0]
+    StopBufferingCommands
     SetColormap $dataobj $comp
 }
 
