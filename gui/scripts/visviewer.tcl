@@ -46,8 +46,10 @@ itcl::class ::Rappture::VisViewer {
     protected variable _maxConnects 100
     protected variable _outbuf       ;    # buffer for outgoing commands
     protected variable _buffering 0
+    protected variable _cmdSeq 0     ;    # Command sequence number
 
-    private variable _logging 0
+    private variable _trace 0        ;    # Protocol tracing for console
+    private variable _logging 0      ;    # Command logging to file
 
     protected variable _dispatcher "";  # dispatcher for !events
     protected variable _hosts ""    ;   # list of hosts for server
@@ -319,6 +321,7 @@ itcl::body Rappture::VisViewer::Disconnect {} {
     set _sid ""
     set _buffer(in) ""
     set _outbuf ""
+    set _cmdSeq 0
 }
 
 #
@@ -399,6 +402,7 @@ itcl::body Rappture::VisViewer::SendHelper {} {
     }
     puts -nonewline $_sid $_buffer(out)
     flush $_sid 
+    set _buffer(out) ""
     set _done($this) 1;                 # Success
 }
 
@@ -452,16 +456,22 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     # the server is ready first.  Wait for the socket to become writable
     # before sending anything.
     set _done($this) 1
+    if {$_buffer(out) != ""} {
+        puts stderr "ERROR: re-entered SendBytes: buffer=([string range $_buffer(out) 0 70]...)"
+        puts stderr "New cmd $_cmdSeq: [string range $bytes 0 70]..."
+    }
     set _buffer(out) $bytes
-    if {1} {
+    if {0} {
         # Let's try this approach: allow a write to block so we don't
         # re-enter SendBytes
         SendHelper
     } else {
         # This can cause us to re-enter SendBytes during the tkwait, which 
         # is not safe because the _buffer will be clobbered
+        blt::busy hold $itk_component(main)
         fileevent $_sid writable [itcl::code $this SendHelper]
         tkwait variable ::Rappture::VisViewer::_done($this)
+        blt::busy release $itk_component(main)
     }
     set _buffer(out) ""
     if { [IsConnected] } {
@@ -546,6 +556,9 @@ itcl::body Rappture::VisViewer::ReceiveHelper {} {
     }
     if { [string compare -length 3 $line "nv>"] == 0 } {
         ReceiveEcho <<line $line
+        if ($_trace) {
+            puts stderr "<<[string range $line 0 70]"
+        }
         append _buffer(in) [string range $line 3 end]
         append _buffer(in) "\n"
         if {[info complete $_buffer(in)]} {
@@ -808,8 +821,12 @@ itcl::body Rappture::VisViewer::TraceComm {channel {data ""}} {
 # widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VisViewer::SendDebugCommand {} {
+    incr _cmdSeq
     set cmd [$itk_component(command) get]
     append cmd "\n"
+    if {$_trace} {
+        puts stderr "$_cmdSeq>>[string range $cmd 0 70]"
+    }
     SendBytes $cmd
     $itk_component(command) delete 0 end
 }
@@ -1173,6 +1190,10 @@ itcl::body Rappture::VisViewer::StopBufferingCommands { } {
 #       sent later.
 #
 itcl::body Rappture::VisViewer::SendCmd {string} {
+    incr _cmdSeq
+    if {$_trace} {
+        puts stderr "$_cmdSeq>>[string range $string 0 70]"
+    }
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
@@ -1188,6 +1209,10 @@ itcl::body Rappture::VisViewer::SendCmd {string} {
 #       sent later.
 #
 itcl::body Rappture::VisViewer::SendCmdNoWait {string} {
+    incr _cmdSeq
+    if {$_trace} {
+        puts stderr "$_cmdSeq>>[string range $string 0 70]"
+    }
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
