@@ -925,10 +925,6 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 	#
         InitSettings view3D background
 
-        # Let's see how this goes.  I think it's preferable to overloading the
-        # axis title with the exponent.
-        SendCmd "axis exp 0 0 0 1"
-
 	SendCmd "axis lrot z 90"
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
@@ -1022,9 +1018,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 
     if { $_reset } {
 	SendCmd "axis tickpos outside"
-	foreach axis { x y z } {
-	    SendCmd "axis lformat $axis %g"
-	}
+        #SendCmd "axis lformat all %g"
         
 	foreach axis { x y z } {
             set label [$_first hints ${axis}label]
@@ -1324,9 +1318,7 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
         }
         "axisMinorTicks" {
             set bool $_settings($what)
-	    foreach axis { x y z } { 
-		SendCmd "axis minticks ${axis} $bool"
-	    }
+            SendCmd "axis minticks all $bool"
         }
         "axisVisible" {
             set bool $_settings($what)
@@ -1846,7 +1838,6 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(axisMinorTicks)] \
         -command [itcl::code $this AdjustSetting axisMinorTicks] \
         -font "Arial 9"
-
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
 
