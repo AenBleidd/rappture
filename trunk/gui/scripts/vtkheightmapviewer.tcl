@@ -937,9 +937,16 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	#
         InitSettings -isheightmap -background
 
-        # Let's see how this goes.  I think it's preferable to overloading the
-        # axis title with the exponent.
-        SendCmd "axis exp 0 0 0 1"
+        # Setting a custom exponent and label format for axes is causing
+        # a problem with rounding.  Near zero ticks aren't rounded by 
+        # the %g format.  The VTK CubeAxes seem to currently work best
+        # when allowed to automatically set the exponent and precision 
+        # based on the axis ranges.  This does tend to result in less 
+        # visual clutter, so I think it is best to use the automatic 
+        # settings by default.  We can test more fine-grained
+        # controls on the axis settings tab if necessary.
+        # -Leif
+        #SendCmd "axis exp 0 0 0 1"
 
 	SendCmd "axis lrot z 90"
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -1040,9 +1047,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 
     if { $_reset } {
 	SendCmd "axis tickpos outside"
-	foreach axis { x y z } {
-	    SendCmd "axis lformat $axis %g"
-	}
+        #SendCmd "axis lformat all %g"
         
 	foreach axis { x y z } {
             if { $axis == "z" } {
@@ -1365,9 +1370,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "-axisminorticks" {
             set bool $_settings($what)
-	    foreach axis { x y z } { 
-		SendCmd "axis minticks ${axis} $bool"
-	    }
+            SendCmd "axis minticks all $bool"
         }
         "-axisvisible" {
             set bool $_settings($what)
@@ -2065,7 +2068,6 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axisminorticks)] \
         -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
-
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
 
