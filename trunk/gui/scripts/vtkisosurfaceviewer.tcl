@@ -873,12 +873,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::Disconnect {} {
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
     set _outbuf ""
-    array unset _datasets 
-    array unset _data 
-    array unset _colormaps 
-    array unset _seeds 
-    array unset _dataset2style 
-    array unset _obj2datasets 
+    array unset _datasets
+    array unset _data
+    array unset _colormaps
+    array unset _dataset2style
+    array unset _obj2datasets
 }
 
 # ----------------------------------------------------------------------
