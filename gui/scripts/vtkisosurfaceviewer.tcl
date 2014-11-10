@@ -236,7 +236,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     }
     array set _settings {
         -axesvisible                    1
-        -axislabelsvisible              1
+        -axislabels                     1
+        -axisminorticks                 1
         -axismode                       "static"
         -background                     black
         -colormap                       BCGYR
@@ -998,10 +999,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         PanCamera
         set _first ""
         InitSettings -xgrid -ygrid -zgrid -axismode \
-            -axesvisible -axislabelsvisible 
-        SendCmd "axis lformat all %g"
-        # Too many major ticks, so turn off minor ticks
-        SendCmd "axis minticks all 0"
+            -axesvisible -axislabels -axisminorticks
+        #SendCmd "axis lformat all %g"
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
@@ -1034,7 +1033,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
                     lappend info "dataset_tag"   $tag
                     SendCmd "clientinfo [list $info]"
                 }
-                append _outbuf "dataset add $tag data follows $length\n"
+                SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
@@ -1373,23 +1372,27 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "-axesvisible" {
-            set bool $_settings(-axesvisible)
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "-axislabelsvisible" {
-            set bool $_settings(-axislabelsvisible)
+        "-axislabels" {
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
-        "-xgrid" - "-ygrid" - "-zgrid" {
-            set axis [string tolower [string range $what 1 1]]
+        "-axisminorticks" {
             set bool $_settings($what)
-            SendCmd "axis grid $axis $bool"
+            SendCmd "axis minticks all $bool"
         }
         "-axismode" {
             set mode [$itk_component(axisMode) value]
             set mode [$itk_component(axisMode) translate $mode]
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
+        }
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            SendCmd "axis grid $axis $bool"
         }
         "-cutplaneedges" {
             set bool $_settings($what)
@@ -1790,31 +1793,36 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
         -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
-        -text "Show Axis Labels" \
-        -variable [itcl::scope _settings(-axislabelsvisible)] \
-        -command [itcl::code $this AdjustSetting -axislabelsvisible] \
+        -text "Axis Labels" \
+        -variable [itcl::scope _settings(-axislabels)] \
+        -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-
-    checkbutton $inner.gridx \
-        -text "Show X Grid" \
+    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    checkbutton $inner.xgrid \
+        -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
         -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
-    checkbutton $inner.gridy \
-        -text "Show Y Grid" \
+    checkbutton $inner.ygrid \
+        -text "Y" \
         -variable [itcl::scope _settings(-ygrid)] \
         -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
-    checkbutton $inner.gridz \
-        -text "Show Z Grid" \
+    checkbutton $inner.zgrid \
+        -text "Z" \
         -variable [itcl::scope _settings(-zgrid)] \
         -command [itcl::code $this AdjustSetting -zgrid] \
+        -font "Arial 9"
+    checkbutton $inner.minorticks \
+        -text "Minor Ticks" \
+        -variable [itcl::scope _settings(-axisminorticks)] \
+        -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1831,16 +1839,19 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 2 \
-        1,0 $inner.labels  -anchor w -cspan 2 \
-        2,0 $inner.gridx   -anchor w -cspan 2 \
-        3,0 $inner.gridy   -anchor w -cspan 2 \
-        4,0 $inner.gridz   -anchor w -cspan 2 \
-        5,0 $inner.mode_l  -anchor w -cspan 2 -padx { 2 0 } \
-        6,0 $inner.mode    -fill x   -cspan 2 
+        0,0 $inner.visible -anchor w -cspan 4 \
+        1,0 $inner.labels  -anchor w -cspan 4 \
+        2,0 $inner.minorticks  -anchor w -cspan 4 \
+        4,0 $inner.grid_l  -anchor w \
+        4,1 $inner.xgrid   -anchor w \
+        4,2 $inner.ygrid   -anchor w \
+        4,3 $inner.zgrid   -anchor w \
+        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
+        5,1 $inner.mode    -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r7 c6 -resize expand
+    blt::table configure $inner r3 -height 0.125i
 }
 
 
@@ -2608,7 +2619,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::GenerateContourList {} {
         return ""
     }
     if { $_contourList(numLevels) < 1 } {
-        puts stderr "numLevels < 1"
+        # There are tools that set 0 levels to get cutplanes only
+        #puts stderr "numLevels < 1"
         return ""
     }
     if { [llength $_contourList(reqValues)] > 1 } {
