@@ -201,25 +201,26 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
     $_arcball quaternion $q
 
     array set _settings {
-        -axesvisible                    1
-        -axislabelsvisible              1
-	-background                     black
-	-colormap                       BCGYR
-	-colormapvisible                1
-	-field                          "Default"
-	-isolinecolor                   white
-        -isolinesvisible                0
-        -legendvisible                  1
-        -numcontours                    10
-        -surfaceedges                   0
-        -surfacelighting                1
-        -surfaceopacity                 100
-        -outline                        0
-        -surfacevisible                 1
-        -surfacewireframe               0
-        -xaxisgrid                      0
-        -yaxisgrid                      0
-        -zaxisgrid                      0
+        -axesvisible                1
+        -axislabels                 1
+        -axisminorticks             1
+	-background                 black
+	-colormap                   BCGYR
+	-colormapvisible            1
+	-field                      "Default"
+	-isolinecolor               white
+        -isolinesvisible            0
+        -legendvisible              1
+        -numcontours                10
+        -surfaceedges               0
+        -surfacelighting            1
+        -surfaceopacity             100
+        -outline                    0
+        -surfacevisible             1
+        -surfacewireframe           0
+        -xgrid                      0
+        -ygrid                      0
+        -zgrid                      0
     }
     array set _changed {
         -colormap                0
@@ -908,10 +909,8 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
         PanCamera
         set _first ""
         InitSettings -xaxisgrid -yaxisgrid -zaxisgrid -axismode \
-            -axesvisible -axislabelsvisible 
-        foreach axis { x y z } {
-	    SendCmd "axis lformat $axis %g"
-	}
+            -axesvisible -axislabels -axisminorticks
+        #SendCmd "axis lformat all %g"
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
@@ -1268,12 +1267,16 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "-axesvisible" {
-            set bool $_settings(-axesvisible)
+            set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "-axislabelsvisible" {
-            set bool $_settings(-axislabelsvisible)
+        "-axislabels" {
+            set bool $_settings($what)
             SendCmd "axis labels all $bool"
+        }
+        "-axisminorticks" {
+            set bool $_settings($what)
+            SendCmd "axis minticks all $bool"
         }
         "-xaxisgrid" - "-yaxisgrid" - "-zaxisgrid" {
             set axis [string tolower [string range $what 1 1]]
@@ -1670,31 +1673,36 @@ itcl::body Rappture::VtkSurfaceViewer::BuildAxisTab {} {
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
         -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
-        -text "Show Axis Labels" \
-        -variable [itcl::scope _settings(-axislabelsvisible)] \
-        -command [itcl::code $this AdjustSetting -axislabelsvisible] \
+        -text "Axis Labels" \
+        -variable [itcl::scope _settings(-axislabels)] \
+        -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-
-    checkbutton $inner.gridx \
-        -text "Show X Grid" \
+    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    checkbutton $inner.xgrid \
+        -text "X" \
         -variable [itcl::scope _settings(-xaxisgrid)] \
         -command [itcl::code $this AdjustSetting -xaxisgrid] \
         -font "Arial 9"
-    checkbutton $inner.gridy \
-        -text "Show Y Grid" \
+    checkbutton $inner.ygrid \
+        -text "Y" \
         -variable [itcl::scope _settings(-yaxisgrid)] \
         -command [itcl::code $this AdjustSetting -yaxisgrid] \
         -font "Arial 9"
-    checkbutton $inner.gridz \
-        -text "Show Z Grid" \
+    checkbutton $inner.zgrid \
+        -text "Z" \
         -variable [itcl::scope _settings(-zaxisgrid)] \
         -command [itcl::code $this AdjustSetting -zaxisgrid] \
+        -font "Arial 9"
+    checkbutton $inner.minorticks \
+        -text "Minor Ticks" \
+        -variable [itcl::scope _settings(-axisminorticks)] \
+        -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1711,18 +1719,20 @@ itcl::body Rappture::VtkSurfaceViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 2 \
-        1,0 $inner.labels  -anchor w -cspan 2 \
-        2,0 $inner.gridx   -anchor w -cspan 2 \
-        3,0 $inner.gridy   -anchor w -cspan 2 \
-        4,0 $inner.gridz   -anchor w -cspan 2 \
-        5,0 $inner.mode_l  -anchor w -cspan 2 -padx { 2 0 } \
-        6,0 $inner.mode    -fill x   -cspan 2 
+        0,0 $inner.visible -anchor w -cspan 4 \
+        1,0 $inner.labels  -anchor w -cspan 4 \
+        2,0 $inner.minorticks  -anchor w -cspan 4 \
+        4,0 $inner.grid_l  -anchor w \
+        4,1 $inner.xgrid   -anchor w \
+        4,2 $inner.ygrid   -anchor w \
+        4,3 $inner.zgrid   -anchor w \
+        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
+        5,1 $inner.mode    -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r7 c6 -resize expand
+    blt::table configure $inner r3 -height 0.125i
 }
-
 
 itcl::body Rappture::VtkSurfaceViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
