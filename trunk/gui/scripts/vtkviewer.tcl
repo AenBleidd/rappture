@@ -256,6 +256,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         zdirection      -1
         visible         1
         labels          1
+        minorticks      1
     }]
     array set _settings [subst {
         legend                  1
@@ -1031,7 +1032,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         $_arcball resize $w $h
         DoResize
         InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-            axis-visible axis-labels
+            axis-visible axis-labels axis-minorticks
 
         StopBufferingCommands
         SendCmd "imgflush"
@@ -1665,12 +1666,14 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "molecule" } {
-                    SendCmd [subst {molecule rscale $_settings(molecule-rscale) $dataset
-molecule ascale $_settings(molecule-atomscale) $dataset
-molecule bscale $_settings(molecule-bondscale) $dataset
-molecule bstyle $_settings(molecule-bondstyle) $dataset
-molecule atoms $_settings(molecule-atoms-visible) $dataset
-molecule bonds $_settings(molecule-bonds-visible) $dataset}]
+                    StartBufferingCommands
+                    SendCmd [subst {molecule rscale $_settings(molecule-rscale) $dataset}]
+                    SendCmd [subst {molecule ascale $_settings(molecule-atomscale) $dataset}]
+                    SendCmd [subst {molecule bscale $_settings(molecule-bondscale) $dataset}]
+                    SendCmd [subst {molecule bstyle $_settings(molecule-bondstyle) $dataset}]
+                    SendCmd [subst {molecule atoms $_settings(molecule-atoms-visible) $dataset}]
+                    SendCmd [subst {molecule bonds $_settings(molecule-bonds-visible) $dataset}]
+                    StopBufferingCommands
                 }
             }
         }
@@ -1703,6 +1706,10 @@ molecule bonds $_settings(molecule-bonds-visible) $dataset}]
         "axis-labels" {
             set bool $_axis(labels)
             SendCmd "axis labels all $bool"
+        }
+        "axis-minorticks" {
+            set bool $_axis(minorticks)
+            SendCmd "axis minticks all $bool"
         }
         "axis-xgrid" {
             set bool $_axis(xgrid)
@@ -2125,35 +2132,40 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
-        -icon [Rappture::icon axis1]]
+        -icon [Rappture::icon axis2]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable [itcl::scope _axis(visible)] \
         -command [itcl::code $this AdjustSetting axis-visible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
-        -text "Show Axis Labels" \
+        -text "Axis Labels" \
         -variable [itcl::scope _axis(labels)] \
         -command [itcl::code $this AdjustSetting axis-labels] \
         -font "Arial 9"
-
-    checkbutton $inner.gridx \
-        -text "Show X Grid" \
+    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    checkbutton $inner.xgrid \
+        -text "X" \
         -variable [itcl::scope _axis(xgrid)] \
         -command [itcl::code $this AdjustSetting axis-xgrid] \
         -font "Arial 9"
-    checkbutton $inner.gridy \
-        -text "Show Y Grid" \
+    checkbutton $inner.ygrid \
+        -text "Y" \
         -variable [itcl::scope _axis(ygrid)] \
         -command [itcl::code $this AdjustSetting axis-ygrid] \
         -font "Arial 9"
-    checkbutton $inner.gridz \
-        -text "Show Z Grid" \
+    checkbutton $inner.zgrid \
+        -text "Z" \
         -variable [itcl::scope _axis(zgrid)] \
         -command [itcl::code $this AdjustSetting axis-zgrid] \
+        -font "Arial 9"
+    checkbutton $inner.minorticks \
+        -text "Minor Ticks" \
+        -variable [itcl::scope _axis(minorticks)] \
+        -command [itcl::code $this AdjustSetting axis-minorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -2170,16 +2182,19 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 2 \
-        1,0 $inner.labels  -anchor w -cspan 2 \
-        2,0 $inner.gridx   -anchor w -cspan 2 \
-        3,0 $inner.gridy   -anchor w -cspan 2 \
-        4,0 $inner.gridz   -anchor w -cspan 2 \
-        5,0 $inner.mode_l  -anchor w -cspan 2 -padx { 2 0 } \
-        6,0 $inner.mode    -fill x   -cspan 2 
+        0,0 $inner.visible -anchor w -cspan 4 \
+        1,0 $inner.labels  -anchor w -cspan 4 \
+        2,0 $inner.minorticks  -anchor w -cspan 4 \
+        4,0 $inner.grid_l  -anchor w \
+        4,1 $inner.xgrid   -anchor w \
+        4,2 $inner.ygrid   -anchor w \
+        4,3 $inner.zgrid   -anchor w \
+        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
+        5,1 $inner.mode    -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r7 c6 -resize expand
+    blt::table configure $inner r3 -height 0.125i
 }
 
 itcl::body Rappture::VtkViewer::BuildCameraTab {} {
