@@ -86,16 +86,23 @@ proc Rappture::bugreport::activate {err} {
         set w [winfo reqwidth .bugreport]
         set h [winfo reqheight .bugreport]
 
-        set rootx [winfo rootx .main]
-        set rooty [winfo rooty .main]
-        set mw [winfo reqwidth .main]
-        set mh [winfo reqheight .main]
-        
-        set x [expr { $rootx + (($mw-$w)/2) }]
-        if {$x < 0} {set x 0}
-        set y [expr { $rooty + (($mh-$h)/2) }]
-        if {$y < 0} {set y 0}
-        
+        set x [winfo rootx .main]
+        set y [winfo rooty .main]
+
+        set mw [winfo width .main]
+        if { $mw == 1 } {
+            set mw [winfo reqwidth .main]
+        }            
+        set mh [winfo height .main]
+        if { $mh == 1 } {
+            set mh [winfo reqwidth .main]
+        }            
+        if { $mw > $w } {
+            set x [expr { $x + (($mw-$w)/2) }]
+        }
+        if { $mh > $h } {
+            set y [expr { $y + (($mh-$h)/2) }]
+        }
         wm geometry .bugreport +$x+$y
         raise .bugreport
         return
@@ -150,15 +157,24 @@ proc Rappture::bugreport::activate {err} {
     set w [winfo reqwidth .bugreport]
     set h [winfo reqheight .bugreport]
 
-    set rootx [winfo rootx .main]
-    set rooty [winfo rooty .main]
-    set mw [winfo reqwidth .main]
-    set mh [winfo reqheight .main]
+    set x [winfo rootx .main]
+    set y [winfo rooty .main]
 
-    set x [expr { $rootx + (($mw-$w)/2) }]
-    if {$x < 0} {set x 0}
-    set y [expr { $rooty + (($mh-$h)/2) }]
-    if {$y < 0} {set y 0}
+    set mw [winfo width .main]
+    if { $mw == 1 } {
+        set mw [winfo reqwidth .main]
+    }            
+    set mh [winfo height .main]
+    if { $mh == 1 } {
+        set mh [winfo reqwidth .main]
+    }            
+
+    if { $mw > $w } {
+        set x [expr { $x + (($mw-$w)/2) }]
+    }
+    if { $mh > $h } {
+        set y [expr { $y + (($mh-$h)/2) }]
+    }
 
     wm geometry .bugreport +$x+$y
     wm deiconify .bugreport
