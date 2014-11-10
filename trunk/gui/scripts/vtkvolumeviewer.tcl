@@ -247,7 +247,8 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
     array set _settings {
         -axesvisible                    1
-        -axislabelsvisible              1
+        -axislabels                     1
+        -axisminorticks                 1
         -background                     black
         -cutplanelighting               1
         -cutplaneopacity                100
@@ -1018,7 +1019,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         DoRotate
         InitSettings -volumeoutline -background \
             -xgridvisible -ygridvisible -zgridvisible -axisflymode \
-            -axesvisible -axislabelsvisible
+            -axesvisible -axislabels -axisminorticks
         PanCamera
     }
 
@@ -1496,9 +1497,13 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "-axislabelsvisible" {
+        "-axislabels" {
             set bool $_settings($what)
             SendCmd "axis labels all $bool"
+        }
+        "-axisminorticks" {
+            set bool $_settings($what)
+            SendCmd "axis minticks all $bool"
         }
         "-xgridvisible" - "-ygridvisible" - "-zgridvisible" {
             set axis [string tolower [string range $what 1 1 ]]
@@ -1649,7 +1654,7 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
         set rgb [Color2RGB $color]
         SendCmd "axis color all $rgb"
         SendCmd "outline color $rgb"
-        SendCmd "cutplane color $rgb"
+        SendCmd "$_cutplaneCmd color $rgb"
         $itk_component(legend) itemconfigure labels -fill $color 
         $itk_component(legend) itemconfigure limits -fill $color 
     }
@@ -1877,35 +1882,35 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
-        -icon [Rappture::icon axis1]]
+        -icon [Rappture::icon axis2]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.visible \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
         -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
-        -text "Show Axis Labels" \
-        -variable [itcl::scope _settings(-axislabelsvisible)] \
-        -command [itcl::code $this AdjustSetting -axislabelsvisible] \
+        -text "Axis Labels" \
+        -variable [itcl::scope _settings(-axislabels)] \
+        -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
 
-    checkbutton $inner.gridx \
-        -text "Show X Grid" \
+    checkbutton $inner.xgrid \
+        -text "X" \
         -variable [itcl::scope _settings(-xgridvisible)] \
-        -command [itcl::code $this AdjustSetting -xgridvisible] \
+        -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
-    checkbutton $inner.gridy \
-        -text "Show Y Grid" \
+    checkbutton $inner.ygrid \
+        -text "Y" \
         -variable [itcl::scope _settings(-ygridvisible)] \
-        -command [itcl::code $this AdjustSetting -ygridvisible] \
+        -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
-    checkbutton $inner.gridz \
-        -text "Show Z Grid" \
+    checkbutton $inner.zgrid \
+        -text "Z" \
         -variable [itcl::scope _settings(-zgridvisible)] \
-        -command [itcl::code $this AdjustSetting -zgridvisible] \
+        -command [itcl::code $this AdjustSetting -zgrid] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1922,16 +1927,19 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 2 \
-        1,0 $inner.labels  -anchor w -cspan 2 \
-        2,0 $inner.gridx   -anchor w -cspan 2 \
-        3,0 $inner.gridy   -anchor w -cspan 2 \
-        4,0 $inner.gridz   -anchor w -cspan 2 \
-        5,0 $inner.mode_l  -anchor w -cspan 2 -padx { 2 0 } \
-        6,0 $inner.mode    -fill x   -cspan 2 
+        0,0 $inner.visible -anchor w -cspan 4 \
+        1,0 $inner.labels  -anchor w -cspan 4 \
+        2,0 $inner.minorticks  -anchor w -cspan 4 \
+        4,0 $inner.grid_l  -anchor w \
+        4,1 $inner.xgrid   -anchor w \
+        4,2 $inner.ygrid   -anchor w \
+        4,3 $inner.zgrid   -anchor w \
+        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
+        5,1 $inner.mode    -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r7 c1 -resize expand
+    blt::table configure $inner r7 c6 -resize expand
+    blt::table configure $inner r3 -height 0.125i
 }
 
 
@@ -2480,7 +2488,7 @@ itcl::body Rappture::VtkVolumeViewer::Slice {option args} {
                 error "wrong # args: should be \"Slice move x|y|z newval\""
             }
             set newpos [expr {0.01*$newval}]
-            SendCmd "cutplane slice $axis $newpos"
+            SendCmd "$_cutplaneCmd slice $axis $newpos"
         }
         "tooltip" {
             set axis [lindex $args 0]
