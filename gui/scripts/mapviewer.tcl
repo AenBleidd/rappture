@@ -59,7 +59,6 @@ itcl::class Rappture::MapViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { colormap }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -1539,10 +1538,6 @@ itcl::configbody Rappture::MapViewer::plotforeground {
         #fix this!
         #SendCmd "color background $r $g $b"
     }
-}
-
-itcl::body Rappture::MapViewer::limits { dataobj } {
-    error "no limits"
 }
 
 itcl::body Rappture::MapViewer::BuildTerrainTab {} {

@@ -56,7 +56,7 @@ itcl::class Rappture::VtkViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { colormap }
+    public method limits { dataobj }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -2702,6 +2702,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -bondscale 0.075
                 -bondstyle "cylinder"
                 -bondsvisible 1
+                -color "elementDefault"
                 -edgecolor black
                 -edges 0
                 -labels 0

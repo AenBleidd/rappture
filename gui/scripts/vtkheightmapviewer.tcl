@@ -57,7 +57,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits3 { dataobj }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -1834,16 +1833,6 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
             SendCmd "axis color all $rgb"
         }
     }
-}
-
-itcl::body Rappture::VtkHeightmapViewer::limits3 { dataobj } {
-    lappend limits x [$dataobj limits x]
-    lappend limits y [$dataobj limits y] 
-    if { [catch { $dataobj limits $_curFldName } vlim] != 0 } {
-        set vlim [$dataobj limits v] 
-    }
-    lappend limits v $vlim
-    return $limits
 }
 
 itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
