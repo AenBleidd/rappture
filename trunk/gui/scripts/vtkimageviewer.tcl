@@ -57,7 +57,6 @@ itcl::class Rappture::VtkImageViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits3 { dataobj }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -1627,16 +1626,6 @@ itcl::configbody Rappture::VtkImageViewer::plotforeground {
             SendCmd "axis color all $rgb"
         }
     }
-}
-
-itcl::body Rappture::VtkImageViewer::limits3 { dataobj } {
-    lappend limits x [$dataobj limits x]
-    lappend limits y [$dataobj limits y] 
-    if { [catch { $dataobj limits $_curFldName } vlim] != 0 } {
-        set vlim [$dataobj limits v] 
-    }
-    lappend limits v $vlim
-    return $limits
 }
 
 itcl::body Rappture::VtkImageViewer::BuildImageTab {} {

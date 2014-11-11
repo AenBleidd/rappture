@@ -56,7 +56,6 @@ itcl::class Rappture::VtkSurfaceViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { colormap }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -1499,14 +1498,6 @@ itcl::configbody Rappture::VtkSurfaceViewer::plotforeground {
 	SendCmd "axis color all $rgb"
         SendCmd "outline color $rgb"
     }
-}
-
-itcl::body Rappture::VtkSurfaceViewer::limits { dataobj } {
-    foreach { limits(xmin) limits(xmax) } [$dataobj limits x] break
-    foreach { limits(ymin) limits(ymax) } [$dataobj limits y] break
-    foreach { limits(zmin) limits(zmax) } [$dataobj limits z] break
-    foreach { limits(vmin) limits(vmax) } [$dataobj limits v] break
-    return [array get limits]
 }
 
 itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
