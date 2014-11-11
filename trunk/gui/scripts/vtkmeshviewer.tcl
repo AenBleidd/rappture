@@ -56,7 +56,7 @@ itcl::class Rappture::VtkMeshViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { colormap }
+    public method limits { dataobj }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -80,7 +80,6 @@ itcl::class Rappture::VtkMeshViewer {
     # The following methods are only used by this class.
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildPolydataTab {}
     private method EventuallyResize { w h } 
@@ -100,8 +99,6 @@ itcl::class Rappture::VtkMeshViewer {
     private variable _obj2ovride;	# maps dataobj => style override
     private variable _datasets;		# contains all the dataobj-component 
                                    	# datasets in the server
-    private variable _colormaps;	# contains all the colormaps
-                                  	# in the server.
     private variable _dataset2style;	# maps dataobj-component to transfunc
     private variable _style2datasets;	# maps tf back to list of 
 					# dataobj-components using the tf.
@@ -712,9 +709,8 @@ itcl::body Rappture::VtkMeshViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    array unset _datasets 
-    array unset _data 
-    array unset _colormaps 
+    array unset _datasets
+    array unset _data
     global readyForNextFrame
     set readyForNextFrame 1
 }
@@ -1154,6 +1150,7 @@ itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-polydataopacity" {
+            set _settings($what) [expr $_widget($what) * 0.01]
             EventuallySetPolydataOpacity
         }
         "-polydatawireframe" {
