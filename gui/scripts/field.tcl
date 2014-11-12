@@ -1700,16 +1700,18 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
         array set data [Rappture::DicomToVtk files [list $path]]
     }
 
-    foreach key [array names data] {
-        if {$key == "vtkdata"} {
-            if {1} {
-                set f [open /tmp/$cname.vtk "w"]
-                fconfigure $f -translation binary -encoding binary
-                puts -nonewline $f $data(vtkdata)
-                close $f
+    if 0 {
+        foreach key [array names data] {
+            if {$key == "vtkdata"} {
+                if 0 {
+                    set f [open /tmp/$cname.vtk "w"]
+                    fconfigure $f -translation binary -encoding binary
+                    puts -nonewline $f $data(vtkdata)
+                    close $f
+                }
+            } else {
+                puts stderr "$key = \"$data($key)\""
             }
-        } else {
-            puts stderr "$key = \"$data($key)\""
         }
     }
 
