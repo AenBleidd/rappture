@@ -1721,7 +1721,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     checkbutton $inner.visibility -text "Visible" -font $fg \
         -variable [itcl::scope _settings(-volumevisible)] \
-        -command [itcl::code $this AdjustSetting -volumevisible] \
+        -command [itcl::code $this AdjustSetting -volumevisible]
 
     label $inner.ambient_l -text "Ambient" -font $fg
     ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
@@ -1749,6 +1749,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -command [itcl::code $this AdjustSetting -specularexponent] \
         -troughcolor grey92
 
+    # Opacity
     label $inner.opacity_l -text "Opacity" -font $fg
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(-opacity)] \
@@ -1758,6 +1759,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     label $inner.transferfunction_l \
         -text "Transfer Function" -font "Arial 9 bold" 
 
+    # Tooth thickness
     label $inner.thin -text "Thin" -font $fg
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
         -variable [itcl::scope _settings(-thickness)] \
@@ -1766,6 +1768,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     label $inner.thick -text "Thick" -font $fg
 
+    # Colormap 
     label $inner.colormap_l -text "Colormap" -font $fg
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
@@ -1777,6 +1780,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     $itk_component(colormap) value "default"
     set _settings(-colormap) "default"
 
+    # Component
     label $inner.volcomponents_l -text "Component" -font $fg
     itk_component add volcomponents {
         Rappture::Combobox $inner.volcomponents -editable no
@@ -2348,7 +2352,6 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
     return $wmap
 }
 
-
 itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
     switch -- $name {
         "ramp-up" {
@@ -2516,5 +2519,3 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
     }
     return ""
 }
-
-
