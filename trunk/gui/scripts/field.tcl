@@ -457,7 +457,7 @@ itcl::body Rappture::Field::limits {which} {
                     $vname dup zero
                     zero expr {tmp == 0}            ;# find the zeros
                     tmp expr {abs(tmp)}             ;# get the abs value
-                    tmp expr {tmp + zero*max(tmp)}  ;# replace zeros with abs max
+                    tmp expr {tmp + zero*max(tmp)}  ;# replace 0s with abs max
                     set axisMin [blt::vector expr min(tmp)]
                     set axisMax [blt::vector expr max(tmp)]
                     blt::vector destroy tmp zero
