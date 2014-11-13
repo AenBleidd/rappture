@@ -61,24 +61,9 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     }
     public method scale {args}
 
-    protected method Connect {}
-    protected method CurrentDatasets {args}
-    protected method Disconnect {}
-    protected method DoResize {}
-    protected method DoRotate {}
-    protected method DoChangeContourLevels {}
-    protected method AdjustSetting {what {value ""}}
-    protected method InitSettings { args  }
-    protected method Pan {option x y}
-    protected method Pick {x y}
-    protected method Rebuild {}
-    protected method ReceiveDataset { args }
-    protected method ReceiveImage { args }
-    protected method ReceiveLegend { colormap title vmin vmax size }
-    protected method Rotate {option x y}
-    protected method Zoom {option}
-
     # The following methods are only used by this class.
+
+    private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name }
@@ -86,26 +71,44 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method BuildDownloadPopup { widget command } 
     private method BuildIsosurfaceTab {}
     private method Combo { option }
+    private method Connect {}
+    private method CurrentDatasets {args}
+    private method Disconnect {}
+    private method DoChangeContourLevels {}
+    private method DoResize {}
+    private method DoRotate {}
     private method DrawLegend {}
     private method EnterLegend { x y } 
-    private method EventuallyResize { w h } 
     private method EventuallyChangeContourLevels {} 
-    private method EventuallyRotate { q } 
     private method EventuallyRequestLegend {} 
+    private method EventuallyResize { w h } 
+    private method EventuallyRotate { q } 
     private method EventuallySetCutplane { axis args } 
+    private method GenerateContourList {}
     private method GetImage { args } 
     private method GetVtkData { args } 
+    private method InitSettings { args  }
     private method IsValidObject { dataobj } 
     private method LeaveLegend {}
     private method MotionLegend { x y } 
+    private method Pan {option x y}
     private method PanCamera {}
+    private method Pick {x y}
+    private method Rebuild {}
+    private method ReceiveDataset { args }
+    private method ReceiveImage { args }
+    private method ReceiveLegend { colormap title vmin vmax size }
     private method RequestLegend {}
+    private method Rotate {option x y}
+    private method SetCurrentColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
-    private method Slice {option args} 
-    private method SetCurrentColormap { color }
     private method SetOrientation { side }
-    private method GenerateContourList {}
+    private method Slice {option args} 
+    private method Zoom {option}
+    private method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
 
     private variable _arcball ""
 
@@ -214,18 +217,17 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw              0.853553
-        qx              -0.353553
-        qy              0.353553
-        qz              0.146447
-        zoom            1.0 
-        xpan            0
-        ypan            0
-        ortho           0
+        -ortho           0
+        -qw              0.853553
+        -qx              -0.353553
+        -qy              0.353553
+        -qz              0.146447
+        -xpan            0
+        -ypan            0
+        -zoom            1.0 
     }
     set _arcball [blt::arcball create 100 100]
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
+    $_arcball quaternion [ViewToQuaternion]
 
     array set _contourList {
         numLevels       10
@@ -495,8 +497,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DoChangeContourLevels {} {
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::DoRotate {} {
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient [ViewToQuaternion]" 
     set _rotatePending 0
 }
 
@@ -520,7 +521,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::EventuallyResize { w h } {
 set rotate_delay 100
 
 itcl::body Rappture::VtkIsosurfaceViewer::EventuallyRotate { q } {
-    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+    foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     if { !$_rotatePending } {
         set _rotatePending 1
         global rotate_delay 
@@ -984,21 +985,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        #
+
         # Reset the camera and other view parameters
-        #
-        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-        $_arcball quaternion $q
-        if {$_view(ortho)} {
-            SendCmd "camera mode ortho"
-        } else {
-            SendCmd "camera mode persp"
-        }
+        $_arcball quaternion [ViewToQuaternion]
         DoRotate
         PanCamera
         set _first ""
         InitSettings -xgrid -ygrid -zgrid -axismode \
-            -axesvisible -axislabels -axisminorticks
+            -axesvisible -axislabels -axisminorticks -ortho
         #SendCmd "axis lformat all %g"
         StopBufferingCommands
         SendCmd "imgflush"
@@ -1181,22 +1175,22 @@ itcl::body Rappture::VtkIsosurfaceViewer::CurrentDatasets {args} {
 itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*1.25}]
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*0.8}]
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "reset" {
             array set _view {
-                qw     0.853553
-                qx     -0.353553
-                qy     0.353553
-                qz     0.146447
-                zoom   1.0
-                xpan   0
-                ypan   0
+                -qw     0.853553
+                -qx     -0.353553
+                -qy     0.353553
+                -qz     0.146447
+                -xpan   0
+                -ypan   0
+                -zoom   1.0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1204,8 +1198,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-            $_arcball quaternion $q
+            $_arcball quaternion [ViewToQuaternion]
             DoRotate
             SendCmd "camera reset"
         }
@@ -1213,8 +1206,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::PanCamera {} {
-    set x $_view(xpan)
-    set y $_view(ypan)
+    set x $_view(-xpan)
+    set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
 
@@ -1292,8 +1285,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Pan {option x y} {
             set h [winfo height $itk_component(view)]
             set x [expr $x / double($w)]
             set y [expr $y / double($h)]
-            set _view(xpan) [expr $_view(xpan) + $x]
-            set _view(ypan) [expr $_view(ypan) + $y]
+            set _view(-xpan) [expr $_view(-xpan) + $x]
+            set _view(-ypan) [expr $_view(-ypan) + $y]
             PanCamera
             return
         }
@@ -1315,8 +1308,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::Pan {option x y} {
             set dy [expr ($_click(y) - $y)/double($h)]
             set _click(x) $x
             set _click(y) $y
-            set _view(xpan) [expr $_view(xpan) - $dx]
-            set _view(ypan) [expr $_view(ypan) - $dy]
+            set _view(-xpan) [expr $_view(-xpan) - $dx]
+            set _view(-ypan) [expr $_view(-ypan) - $dy]
             PanCamera
         }
         "release" {
@@ -1358,18 +1351,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "-background" {
-            set bgcolor [$itk_component(background) value]
-	    array set fgcolors {
-		"black" "white"
-		"white" "black"
-		"grey"	"black"
-	    }
-            configure -plotbackground $bgcolor \
-		-plotforeground $fgcolors($bgcolor)
-	    $itk_component(view) delete "legend"
-	    DrawLegend
-        }
         "-axesvisible" {
             set bool $_settings($what)
             SendCmd "axis visible all $bool"
@@ -1388,14 +1369,33 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
-        "-xgrid" - "-ygrid" - "-zgrid" {
-            set axis [string tolower [string range $what 1 1]]
-            set bool $_settings($what)
-            SendCmd "axis grid $axis $bool"
+        "-background" {
+            set bgcolor [$itk_component(background) value]
+	    array set fgcolors {
+		"black" "white"
+		"white" "black"
+		"grey"	"black"
+	    }
+            configure -plotbackground $bgcolor \
+		-plotforeground $fgcolors($bgcolor)
+	    $itk_component(view) delete "legend"
+	    DrawLegend
         }
         "-cutplaneedges" {
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
+        }
+        "-cutplanelighting" {
+            set bool $_settings($what)
+            SendCmd "cutplane lighting $bool"
+        }
+        "-cutplaneopacity" {
+            set _settings($what) [expr $_widget($what) * 0.01]
+            SendCmd "cutplane opacity $_settings($what)"
+        }
+        "-cutplanepreinterp" {
+            set bool $_settings($what)
+            SendCmd "cutplane preinterp $bool"
         }
         "-cutplanesvisible" {
             set bool $_settings($what)
@@ -1417,41 +1417,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "cutplane wireframe $bool"
         }
-        "-cutplanelighting" {
-            set bool $_settings($what)
-            SendCmd "cutplane lighting $bool"
-        }
-        "-cutplaneopacity" {
-            set _settings($what) [expr $_widget($what) * 0.01]
-            SendCmd "cutplane opacity $_settings($what)"
-        }
-        "-cutplanepreinterp" {
-            set bool $_settings($what)
-            SendCmd "cutplane preinterp $bool"
-        }
-        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
-            set axis [string tolower [string range $what 1 1]]
-            set bool $_settings($what)
-            if { $bool } {
-                $itk_component(${axis}position) configure -state normal \
-                    -troughcolor white
-            } else {
-                $itk_component(${axis}position) configure -state disabled \
-                    -troughcolor grey82
-            }
-	    SendCmd "cutplane axis $axis $bool"
-        }
-        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
-            set axis [string tolower [string range $what 1 1]]
-            set pos [expr $_settings($what) * 0.01]
-            SendCmd "cutplane slice ${axis} ${pos}"
-            set _cutplanePending 0
-        }
         "-colormap" {
             set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
-            set _settings(-colormap) $color
+            set _settings($what) $color
 	    if { $color == "none" } {
 		if { $_settings(-colormapvisible) } {
 		    SendCmd "contour3d colormode constant {}"
@@ -1466,59 +1436,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 	    }
             StopBufferingCommands
 	    EventuallyRequestLegend
-        }
-        "-numcontours" {
-            set _settings($what) [$itk_component(numcontours) value]
-            if { $_contourList(numLevels) != $_settings($what) } {
-                set _contourList(numLevels) $_settings($what)
-                EventuallyChangeContourLevels
-            }
-        }
-        "-isosurfacewireframe" {
-            set bool $_settings($what)
-	    SendCmd "contour3d wireframe $bool"
-        }
-        "-isosurfacevisible" {
-            set bool $_settings($what)
-	    SendCmd "contour3d visible 0"
-            if { $bool } {
-                foreach tag [CurrentDatasets -visible] {
-                    SendCmd "contour3d visible $bool $tag"
-                }
-            }
-            if { $bool } {
-                Rappture::Tooltip::for $itk_component(contour) \
-                    "Hide the isosurface"
-            } else {
-                Rappture::Tooltip::for $itk_component(contour) \
-                    "Show the isosurface"
-            }
-        }
-        "-isosurfacelighting" {
-            set bool $_settings($what)
-	    SendCmd "contour3d lighting $bool"
-        }
-        "-isosurfaceedges" {
-            set bool $_settings($what)
-	    SendCmd "contour3d edges $bool"
-        }
-        "-outline" {
-            set bool $_settings($what)
-	    SendCmd "outline visible 0"
-            if { $bool } {
-                foreach tag [CurrentDatasets -visible] {
-                    SendCmd "outline visible $bool $tag"
-                }
-            }
-        }
-        "-isolinecolor" {
-            set color [$itk_component(isolineColor) value]
-	    set _settings($what) $color
-	    DrawLegend
-        }
-        "-isosurfaceopacity" {
-            set _settings($what) [expr $_widget($what) * 0.01]
-	    SendCmd "contour3d opacity $_settings($what)"
         }
         "-field" {
             set label [$itk_component(field) value]
@@ -1549,11 +1466,95 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             GenerateContourList
             DrawLegend
         }
+        "-isolinecolor" {
+            set color [$itk_component(isolineColor) value]
+	    set _settings($what) $color
+	    DrawLegend
+        }
+        "-isosurfaceedges" {
+            set bool $_settings($what)
+	    SendCmd "contour3d edges $bool"
+        }
+        "-isosurfacelighting" {
+            set bool $_settings($what)
+	    SendCmd "contour3d lighting $bool"
+        }
+        "-isosurfaceopacity" {
+            set _settings($what) [expr $_widget($what) * 0.01]
+	    SendCmd "contour3d opacity $_settings($what)"
+        }
+        "-isosurfacevisible" {
+            set bool $_settings($what)
+	    SendCmd "contour3d visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "contour3d visible $bool $tag"
+                }
+            }
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(contour) \
+                    "Hide the isosurface"
+            } else {
+                Rappture::Tooltip::for $itk_component(contour) \
+                    "Show the isosurface"
+            }
+        }
+        "-isosurfacewireframe" {
+            set bool $_settings($what)
+	    SendCmd "contour3d wireframe $bool"
+        }
         "-legendvisible" {
             if { !$_settings($what) } {
                 $itk_component(view) delete legend
 	    }
 	    DrawLegend
+        }
+        "-numcontours" {
+            set _settings($what) [$itk_component(numcontours) value]
+            if { $_contourList(numLevels) != $_settings($what) } {
+                set _contourList(numLevels) $_settings($what)
+                EventuallyChangeContourLevels
+            }
+        }
+        "-ortho" {
+            set bool $_view($what)
+            if { $bool } {
+                SendCmd "camera mode ortho"
+            } else {
+                SendCmd "camera mode persp"
+            }
+        }
+        "-outline" {
+            set bool $_settings($what)
+	    SendCmd "outline visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "outline visible $bool $tag"
+                }
+            }
+        }
+        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            if { $bool } {
+                $itk_component(${axis}position) configure -state normal \
+                    -troughcolor white
+            } else {
+                $itk_component(${axis}position) configure -state disabled \
+                    -troughcolor grey82
+            }
+	    SendCmd "cutplane axis $axis $bool"
+        }
+        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set axis [string tolower [string range $what 1 1]]
+            set pos [expr $_settings($what) * 0.01]
+            SendCmd "cutplane slice ${axis} ${pos}"
+            set _cutplanePending 0
+        }
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            SendCmd "axis grid $axis $bool"
         }
         default {
             error "don't know how to fix $what"
@@ -1870,7 +1871,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _view($tag)]
+            -textvariable [itcl::scope _view(-$tag)]
         bind $inner.${tag} <KeyPress-Return> \
             [itcl::code $this camera set ${tag}]
         blt::table $inner \
@@ -1881,8 +1882,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     }
     checkbutton $inner.ortho \
         -text "Orthographic Projection" \
-        -variable [itcl::scope _view(ortho)] \
-        -command [itcl::code $this camera set ortho] \
+        -variable [itcl::scope _view(-ortho)] \
+        -command [itcl::code $this AdjustSetting -ortho] \
         -font "Arial 9"
     blt::table $inner \
             $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
@@ -2061,30 +2062,30 @@ itcl::body Rappture::VtkIsosurfaceViewer::camera {option args} {
             puts [array get _view]
         }
         "set" {
-            set who [lindex $args 0]
-            set x $_view($who)
+            set what [lindex $args 0]
+            set x $_view($what)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
                 return
             }
-            switch -- $who {
-                "ortho" {
-                    if {$_view(ortho)} {
+            switch -- $what {
+                "-ortho" {
+                    if {$_view($what)} {
                         SendCmd "camera mode ortho"
                     } else {
                         SendCmd "camera mode persp"
                     }
                 }
-                "xpan" - "ypan" {
+                "-xpan" - "-ypan" {
                     PanCamera
                 }
-                "qx" - "qy" - "qz" - "qw" {
-                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                "-qx" - "-qy" - "-qz" - "-qw" {
+                    set q [ViewToQuaternion]
                     $_arcball quaternion $q
                     EventuallyRotate $q
                 }
-                "zoom" {
-                    SendCmd "camera zoom $_view(zoom)"
+                "-zoom" {
+                    SendCmd "camera zoom $_view(-zoom)"
                 }
              }
         }
@@ -2592,16 +2593,16 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
         top   "0.707107 -0.707107 0 0"
         bottom "0.707107 0.707107 0 0"
     }
-    foreach name { qw qx qy qz } value $positions($side) {
+    foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
     } 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
     SendCmd "camera reset"
-    set _view(xpan) 0
-    set _view(ypan) 0
-    set _view(zoom) 1.0
+    set _view(-xpan) 0
+    set _view(-ypan) 0
+    set _view(-zoom) 1.0
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::GenerateContourList {} { 
