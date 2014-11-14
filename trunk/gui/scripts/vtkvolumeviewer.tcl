@@ -62,7 +62,6 @@ itcl::class Rappture::VtkVolumeViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
-    private method BuildViewTab {}
     private method BuildVolumeComponents {}
     private method ComputeAlphamap { cname } 
     private method ComputeTransferFunction { cname }
@@ -120,6 +119,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method BuildCameraTab {}
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command } 
+    private method BuildViewTab {}
     private method BuildVolumeTab {}
     private method DrawLegend {}
     private method DrawLegendOld {}
@@ -267,13 +267,13 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         -volumevisible                  1
         -xcutplaneposition              50
         -xcutplanevisible               1
-        -xgridvisible                   0
+        -xgrid                          0
         -ycutplaneposition              50
         -ycutplanevisible               1
-        -ygridvisible                   0
+        -ygrid                          0
         -zcutplaneposition              50
         -zcutplanevisible               1
-        -zgridvisible                   0
+        -zgrid                          0
     }
 
     itk_component add view {
@@ -513,7 +513,7 @@ itcl::body Rappture::VtkVolumeViewer::EventuallyRequestLegend {} {
 set rotate_delay 100
 
 itcl::body Rappture::VtkVolumeViewer::EventuallyRotate { q } {
-    QuaternionToView $q 
+    QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
         global rotate_delay 
@@ -1018,7 +1018,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         }
         DoRotate
         InitSettings -volumeoutline -background \
-            -xgridvisible -ygridvisible -zgridvisible -axisflymode \
+            -xgrid -ygrid -zgrid -axisflymode \
             -axesvisible -axislabels -axisminorticks
         PanCamera
     }
@@ -1505,8 +1505,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis minticks all $bool"
         }
-        "-xgridvisible" - "-ygridvisible" - "-zgridvisible" {
-            set axis [string tolower [string range $what 1 1 ]]
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string range $what 1 1]
             set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
         }
@@ -1547,7 +1547,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
-            set axis [string tolower [string range $what 1 1]]
+            set axis [string range $what 1 1]
             set bool $_settings($what)
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
@@ -1561,7 +1561,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
-            set axis [string tolower [string range $what 1 1]]
+            set axis [string range $what 1 1]
             set pos [expr $_settings($what) * 0.01]
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "$_cutplaneCmd slice ${axis} ${pos} $dataset"
@@ -1661,7 +1661,6 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1876,7 +1875,6 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1896,21 +1894,26 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
-        -variable [itcl::scope _settings(-xgridvisible)] \
+        -variable [itcl::scope _settings(-xgrid)] \
         -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
     checkbutton $inner.ygrid \
         -text "Y" \
-        -variable [itcl::scope _settings(-ygridvisible)] \
+        -variable [itcl::scope _settings(-ygrid)] \
         -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
     checkbutton $inner.zgrid \
         -text "Z" \
-        -variable [itcl::scope _settings(-zgridvisible)] \
+        -variable [itcl::scope _settings(-zgrid)] \
         -command [itcl::code $this AdjustSetting -zgrid] \
+        -font "Arial 9"
+    checkbutton $inner.minorticks \
+        -text "Minor Ticks" \
+        -variable [itcl::scope _settings(-axisminorticks)] \
+        -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1941,7 +1944,6 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
     blt::table configure $inner r7 c6 -resize expand
     blt::table configure $inner r3 -height 0.125i
 }
-
 
 itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
@@ -2470,7 +2472,6 @@ itcl::body Rappture::VtkVolumeViewer::SetLegendTip { x y } {
     Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: Slice move x|y|z <newval>
 #
@@ -2500,7 +2501,6 @@ itcl::body Rappture::VtkVolumeViewer::Slice {option args} {
         }
     }
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: _dropdown post
@@ -2881,7 +2881,6 @@ itcl::body Rappture::VtkVolumeViewer::HideAllMarkers {} {
         $_transferFunctionEditors($cname) hideMarkers 
     }
 }
-
 
 #
 # GetDatasetsWithComponents --
