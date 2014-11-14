@@ -38,7 +38,7 @@ set elements [subst {
     $f1.component.flow.particles(right).axis x 
     $f1.component.flow.particles(right).color khaki
     $f1.component.flow.particles(right).position 90%
-    $f1.component.style  "-color blue:red -levels 6 -opacity 1"
+    $f1.component.style  "-color blue:red -levels 6"
     $f1.component.flow.box(one).label "Region 1"
     $f1.component.flow.box(one).color cyan
     $f1.component.flow.box(one).corner(1) "0 -100 -100" 
@@ -74,7 +74,7 @@ set elements [subst {
     $f2.component.flow.particles(right).axis x 
     $f2.component.flow.particles(right).color pink
     $f2.component.flow.particles(right).position 90%
-    $f2.component.style  "-color rainbow -levels 6 -opacity 1"
+    $f2.component.style  "-color rainbow -levels 6"
     $f2.camera.position {
 	qw 1 qx 0 qy 0 qz 0 pan-x 0 pan-y 0 zoom 1.0
     }
@@ -99,7 +99,7 @@ set elements [subst {
     $f3.component.flow.particles(right).axis x 
     $f3.component.flow.particles(right).color khaki
     $f3.component.flow.particles(right).position 90%
-    $f3.component.style  "-color blue:red -levels 6 -opacity 1"
+    $f3.component.style  "-color blue:red -levels 6"
     $f3.component.elemtype vectors
     $f3.component.elemsize 3
     $f3.component.mesh output.mesh(sio2)
