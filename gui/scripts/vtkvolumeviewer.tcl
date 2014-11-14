@@ -247,6 +247,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
     array set _settings {
         -axesvisible                    1
+        -axisflymode                    static
         -axislabels                     1
         -axisminorticks                 1
         -background                     black
@@ -1926,7 +1927,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
-    $itk_component(axismode) value "static"
+    $itk_component(axismode) value $_settings(-axisflymode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
 
     blt::table $inner \
@@ -1962,6 +1963,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set row 1
     set labels { qx qy qz qw xpan ypan zoom }
@@ -1989,7 +1991,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner r* c0 c1 -resize none
+    blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
