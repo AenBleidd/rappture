@@ -1207,10 +1207,19 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     }
     # Step 1: Verify that there's only one cell tag of any kind.
     set numCells 0
-    foreach type { cells
-        vertices lines polygons trianglestrips
-        triangles quads
-        tetrahedrons hexahedrons wedges pyramids } {
+    foreach type {
+        cells
+        hexahedrons
+        lines
+        polygons
+        pyramids
+        quads
+        tetrahedrons
+        triangles
+        trianglestrips
+        vertices
+        wedges
+    } {
         set data [$_xmlobj get $path.unstructured.$type]
         if { $data != "" } {
             incr numCells
@@ -1226,10 +1235,19 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
         puts stderr "WARNING: bad unstructured grid \"$path\": too many <cells>, <triangles>, <quads>... descriptions found: should be only one."
         return 0
     }
-    foreach type { cells
-        vertices lines polygons trianglestrips
-        triangles quads
-        tetrahedrons hexahedrons wedges pyramids } {
+    foreach type {
+        cells
+        hexahedrons
+        lines
+        polygons
+        pyramids
+        quads
+        tetrahedrons
+        triangles
+        trianglestrips
+        vertices
+        wedges
+    } {
         set data [$_xmlobj get $path.unstructured.$type]
         if { $data != "" } {
             break
