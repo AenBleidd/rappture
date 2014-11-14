@@ -2299,9 +2299,9 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
 
     set isovalues [$_transferFunctionEditors($cname) values]
 
-    # Currently using volume shading opacity to scale opacity in
-    # the volume shader. The transfer function always sets full
-    # opacity
+    # Transfer function should be normalized with [0,1] range
+    # The volume shading opacity setting is used to scale opacity
+    # in the volume shader. 
     set max 1.0
 
     # Use the component-wise thickness setting from the slider

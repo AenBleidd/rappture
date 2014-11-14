@@ -252,11 +252,10 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         $this-ambient           60
         $this-diffuse           40
         $this-light2side        1
-        $this-opacity           100
+        $this-opacity           50
         $this-specularLevel     30
         $this-specularExponent  90
         $this-thickness         350
-        $this-transp            50
         $this-cutplaneVisible   0
         $this-xcutplane         1
         $this-xcutposition      0
@@ -739,7 +738,7 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
         -color BCGYR
         -levels 6
         -markers ""
-        -opacity 1.0
+        -opacity 0.5
     }
     array unset _limits 
     array unset _volcomponents 
@@ -964,12 +963,10 @@ itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
         return
     }
 
-    # Ensure that the global opacity and thickness settings (in the slider
-    # settings widgets) are used for the active transfer-function.  Update the
-    # values in the _settings varible.
-    set value $_settings($this-opacity)
-    set opacity [expr { double($value) * 0.01 }]
-    set _settings($this-$tf-opacity) $opacity
+    # Ensure that the global thickness setting (in the slider settings widget)
+    # is used for the active transfer-function. Update the values in the
+    # _settings varible.
+
     set value $_settings($this-thickness)
     # Scale values between 0.00001 and 0.01000
     set thickness [expr {double($value) * 0.0001}]
@@ -1199,7 +1196,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     # Reset the camera and other view parameters
     InitSettings light2side ambient diffuse specularLevel specularExponent \
-        transp isosurface grid axes volume outline \
+        opacity isosurface grid axes volume outline \
         cutplaneVisible xcutplane ycutplane zcutplane
 
     # nothing to send -- activate the proper volume
@@ -1621,23 +1618,14 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "$tag configure -light2side $val"
             }
         }
-        transp {
+        opacity {
             if { $_first != "" } {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
-                set opacity [expr { 0.01 * double($_settings($this-transp)) }]
+                set opacity [expr { 0.01 * double($_settings($this-opacity)) }]
                 SendCmd "$tag configure -opacity $opacity"
             }
         }
-        opacity {
-            if { $_first != "" && $_activeTf != "" } {
-                set opacity [expr { 0.01 * double($_settings($this-opacity)) }]
-                set tf $_activeTf
-                set _settings($this-$tf-opacity) $opacity
-                updateTransferFunctions
-            }
-        }
-
         thickness {
             if { $_first != "" && $_activeTf != "" } {
                 set val $_settings($this-thickness)
@@ -1763,13 +1751,9 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
     array set styles {
         -color BCGYR
         -levels 6
-        -light 40
-        -opacity 1.0
-        -transp 50
+        -opacity 0.5
     }
     array set styles [lindex [$dataobj components -style $cname] 0]
-    set _settings($this-light) $styles(-light)
-    set _settings($this-transp) $styles(-transp)
     set _settings($this-opacity) [expr $styles(-opacity) * 100]
     set _obj2style($dataobj-$cname) $cname
     lappend _style2objs($cname) $dataobj $cname
@@ -1789,9 +1773,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     array set styles {
         -color BCGYR
         -levels 6
-        -opacity 1.0
-        -light 40
-        -transp 50
+        -opacity 0.5
     }
     set dataobj ""; set comp ""
     foreach {dataobj comp} $_style2objs($tf) break
@@ -1799,7 +1781,6 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
         return 0
     }
     array set styles [lindex [$dataobj components -style $comp] 0]
-
 
     # We have to parse the style attributes for a volume using this
     # transfer-function *once*.  This sets up the initial isomarkers for the
@@ -1830,12 +1811,16 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     } else {
         set cmap [ColorsToColormap $styles(-color)]
     }
-    set tag $this-$tf
-    if { ![info exists _settings($tag-opacity)] } {
-        set _settings($tag-opacity) $styles(-opacity)
+
+    if { ![info exists _settings($this-opacity)] } {
+        set _settings($this-opacity) [expr $styles(-opacity) * 100]
     }
-    set max 1.0 ;#$_settings($tag-opacity)
-    
+
+    # Transfer function should be normalized with [0,1] range
+    # The volume shading opacity setting is used to scale opacity
+    # in the volume shader.
+    set max 1.0
+
     set isovalues {}
     foreach m $_isomarkers($tf) {
         lappend isovalues [$m relval]
@@ -1843,6 +1828,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
 
+    set tag $this-$tf
     if { ![info exists _settings($tag-thickness)]} {
         set _settings($tag-thickness) 0.005
     }
@@ -2221,10 +2207,10 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         -showvalue off -command [itcl::code $this AdjustSetting specularExponent]
 
     label $inner.clear -text "Clear" -font $fg
-    ::scale $inner.transp -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-transp)] \
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings($this-opacity)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting transp]
+        -showvalue off -command [itcl::code $this AdjustSetting opacity]
     label $inner.opaque -text "Opaque" -font $fg
 
     label $inner.thin -text "Thin" -font $fg
@@ -2256,7 +2242,7 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         6,0 $inner.specularExponent_l -anchor e -pady 2 \
         6,1 $inner.specularExponent -cspan 3 -pady 2 -fill x \
         7,0 $inner.clear -anchor e -pady 2 \
-        7,1 $inner.transp -cspan 2 -pady 2 -fill x \
+        7,1 $inner.opacity -cspan 2 -pady 2 -fill x \
         7,3 $inner.opaque -anchor w -pady 2 \
         8,0 $inner.thin -anchor e -pady 2 \
         8,1 $inner.thickness -cspan 2 -pady 2 -fill x \
