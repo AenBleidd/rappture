@@ -2301,7 +2301,7 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
 
     # Transfer function should be normalized with [0,1] range
     # The volume shading opacity setting is used to scale opacity
-    # in the volume shader. 
+    # in the volume shader.
     set max 1.0
 
     # Use the component-wise thickness setting from the slider
