@@ -23,7 +23,6 @@
 # \
 exec tclsh "$0" ${1+"$@"}
 # tclsh executes the rest...
-
 package require Rappture
 
 # ----------------------------------------------------------------------
@@ -35,7 +34,6 @@ package require Rappture
 # ----------------------------------------------------------------------
 proc diff {path lib1 lib2} {
     set knowntypes {boolean choice cloud curve field group histogram image integer loader log mesh note number periodicelement phase sequence string structure table unirect2d}
-
     set type1 [$lib1 element -as type $path]
     set type2 [$lib2 element -as type $path]
     if {($type1 eq "" && $type2 ne "") || ($type1 ne "" && $type2 eq "")} {
@@ -489,8 +487,10 @@ proc diff {path lib1 lib2} {
                 }
             }
         }
+        loader {
+        }
         default {
-            error "don't know how to compare type \"$type\""
+            puts stderr "ignoring \"$type1\" for \"$path\""
         }
     }
     return $diffs
@@ -556,15 +556,23 @@ proc diffdatalines {path lib1 lib2} {
 }
 
 # ======================================================================
-if {$argc != 2} {
+
+if {$argc < 2} {
     puts stderr "USAGE: rpdiff file1.xml file2.xml"
     exit 9
 }
 set lib1 [Rappture::library [lindex $argv 0]]
 set lib2 [Rappture::library [lindex $argv 1]]
+set path "output"
+if { $argc > 2 } {
+   set arg [lindex $argv 2]
+   if { $arg == "-path" && $argc == 4 } {
+      set path [lindex $argv 3]
+   }
+} 
 
 # compute the differences
-set diffs [diff output $lib1 $lib2]
+set diffs [diff $path $lib1 $lib2]
 
 if {[llength $diffs] == 0} {
     exit 0
