@@ -1828,6 +1828,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -1853,7 +1854,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -2127,11 +2128,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         -cutplanesvisible       0 
         -edgecolor              black
         -edges                  0
-        -isosurfaceopacity      0.6
         -isosurfacevisible      1
         -levels                 10
         -lighting               1
         -linewidth              1.0
+        -opacity                0.6
         -outline                0
         -wireframe              0
         -xcutplaneposition      50
@@ -2143,7 +2144,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first || $style(-levels) == 1 } {
-        set style(-isosurfaceopacity) 1.0
+        set style(-opacity) 1.0
     }
 
     # This is too complicated.  We want to set the colormap, number of
@@ -2156,7 +2157,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     # the code to handle aberrant cases.
 
     if { $_changed(-isosurfaceopacity) } {
-        set style(-isosurfaceopacity) $_settings(-isosurfaceopacity)
+        set style(-opacity) $_settings(-isosurfaceopacity)
     }
     if { $_changed(-numcontours) } {
         set style(-levels) $_settings(-numcontours)
@@ -2205,8 +2206,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set _settings(-isosurfacelighting) $style(-lighting)
     SendCmd "contour3d linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "contour3d linewidth $style(-linewidth) $tag"
-    SendCmd "contour3d opacity $style(-isosurfaceopacity) $tag"
-    set _settings(-isosurfaceopacity) $style(-isosurfaceopacity)
+    SendCmd "contour3d opacity $style(-opacity) $tag"
+    set _settings(-isosurfaceopacity) $style(-opacity)
     SetCurrentColormap $style(-color) 
     SendCmd "contour3d wireframe $style(-wireframe) $tag"
     set _settings(-isosurfacewireframe) $style(-wireframe)
