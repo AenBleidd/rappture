@@ -2537,7 +2537,7 @@ itcl::body Rappture::VtkVolumeViewer::Combo {option} {
         }
         invoke {
             $itk_component(field) value _curFldLabel
-            AdjustSetting field
+            AdjustSetting -field
         }
         default {
             error "bad option \"$option\": should be post, unpost, select"
