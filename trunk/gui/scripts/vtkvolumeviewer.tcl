@@ -2539,10 +2539,10 @@ itcl::body Rappture::VtkVolumeViewer::Combo {option} {
             $c itemconfigure title -fill red
         }
         deactivate {
-            $c itemconfigure title -fill white 
+            $c itemconfigure title -fill $itk_option(-plotforeground) 
         }
         invoke {
-            $itk_component(field) value _curFldLabel
+            $itk_component(field) value $_curFldLabel
             AdjustSetting -field
         }
         default {
