@@ -989,11 +989,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 
         # Reset the camera and other view parameters
         $_arcball quaternion [ViewToQuaternion]
+        InitSettings -ortho
         DoRotate
         PanCamera
         set _first ""
-        InitSettings -xgrid -ygrid -zgrid -axismode \
-            -axesvisible -axislabels -axisminorticks -ortho
+        InitSettings -background \
+            -xgrid -ygrid -zgrid -axismode \
+            -axesvisible -axislabels -axisminorticks
         #SendCmd "axis lformat all %g"
         StopBufferingCommands
         SendCmd "imgflush"
@@ -2189,6 +2191,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set _settings(-zcutplaneposition) $style(-zcutplaneposition)
  
     SendCmd "cutplane add $tag"
+    SendCmd "cutplane color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
 
     SendCmd "outline add $tag"
