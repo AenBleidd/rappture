@@ -690,7 +690,7 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
             continue;                     # Object doesn't contain valid data.
         }
         # Determine limits for each axis.
-        foreach axis {x y z v} {
+        foreach axis { x y z } {
             foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
                 if { ![info exists _limits($axis)] } {
@@ -1018,13 +1018,15 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             SendCmd "camera mode persp"
         }
         DoRotate
-        InitSettings -volumeoutline -background \
+        PanCamera
+        set _first ""
+        InitSettings -background \
             -xgrid -ygrid -zgrid -axisflymode \
             -axesvisible -axislabels -axisminorticks
-        PanCamera
-    }
-
-    SendCmd "imgflush"
+        StopBufferingCommands
+        SendCmd "imgflush"
+        StartBufferingCommands
+     }
     set _first ""
 
     SendCmd "dataset visible 0"
@@ -1118,13 +1120,12 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     InitSettings -color \
         -volumeambient -volumediffuse -volumespecularlevel \
         -volumespecularexponent -volumeblendmode -volumethickness \
-        -volumeopacity -volumequality -volumevisible \
+        -volumelighting -volumeopacity -volumequality -volumeoutline -volumevisible \
         -cutplanesvisible \
         -xcutplaneposition -ycutplaneposition -zcutplaneposition \
         -xcutplanevisible -ycutplanevisible -zcutplanevisible
 
     if { $_reset } {
-        InitSettings -volumelighting
         SendCmd "camera reset"
         SendCmd "camera zoom $_view(-zoom)"
         RequestLegend
@@ -2119,7 +2120,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         4,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
         5,1 $itk_component(yCutScale)   -fill y \
         4,2 $itk_component(zCutButton)  -anchor e -padx 2 -pady 2 \
-        5,2 $itk_component(zCutScale)   -fill y \
+        5,2 $itk_component(zCutScale)   -fill y
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r5 c3 -resize expand
@@ -2233,24 +2234,29 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     array set styles {
         -color      BCGYR
         -lighting   1
+        -opacity    0.5
         -outline    0
         -visible    1
     }
     array set styles [$dataobj style $cname]
     set _settings($cname-volumelighting)        $styles(-lighting)
+    set _settings($cname-volumeopacity)         [expr $styles(-opacity) * 100]
     set _settings($cname-volumeoutline)         $styles(-outline)
     set _settings($cname-volumevisible)         $styles(-visible)
 
     $itk_component(colormap) value $styles(-color)
 
     SendCmd "outline add $tag"
+    SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $styles(-outline) $tag"
 
     SendCmd "$_cutplaneCmd add $tag"
+    SendCmd "$_cutplaneCmd color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "$_cutplaneCmd visible 0 $tag"
 
     SendCmd "volume add $tag"
     SendCmd "volume lighting $styles(-lighting) $tag"
+    SendCmd "volume opacity $styles(-opacity) $tag"
     SendCmd "volume visible $styles(-visible) $tag"
 
     SetInitialTransferFunction $dataobj $cname
