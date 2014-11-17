@@ -2231,27 +2231,31 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     # Parse style string.
     set tag $dataobj-$cname
     array set styles {
-        -color BCGYR
-        -volumelighting         1
-        -volumeoutline          0
-        -volumevisible          1
+        -color      BCGYR
+        -lighting   1
+        -outline    0
+        -visible    1
     }
     array set styles [$dataobj style $cname]
-    SendCmd "volume add $tag"
-    set _settings($cname-volumelighting)        $styles(-volumelighting)
-    set _settings($cname-volumeoutline)         $styles(-volumeoutline)
-    set _settings($cname-volumevisible)         $styles(-volumevisible)
+    set _settings($cname-volumelighting)        $styles(-lighting)
+    set _settings($cname-volumeoutline)         $styles(-outline)
+    set _settings($cname-volumevisible)         $styles(-visible)
 
     $itk_component(colormap) value $styles(-color)
 
+    SendCmd "outline add $tag"
+    SendCmd "outline visible $styles(-outline) $tag"
+
     SendCmd "$_cutplaneCmd add $tag"
     SendCmd "$_cutplaneCmd visible 0 $tag"
-    SendCmd "volume lighting $styles(-volumelighting) $tag"
+
+    SendCmd "volume add $tag"
+    SendCmd "volume lighting $styles(-lighting) $tag"
+    SendCmd "volume visible $styles(-visible) $tag"
+
     SetInitialTransferFunction $dataobj $cname
     SendCmd "volume colormap $cname $tag"
     SendCmd "$_cutplaneCmd colormap $cname-opaque $tag"
-    SendCmd "outline add $tag"
-    SendCmd "outline visible $styles(-volumeoutline) $tag"
 }
 
 itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {

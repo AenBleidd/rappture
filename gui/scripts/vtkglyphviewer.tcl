@@ -1855,6 +1855,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -1880,7 +1881,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
