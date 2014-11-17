@@ -1087,10 +1087,11 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             if { ![info exists _layers($layer)] } {
                 if { $_reportClientInfo }  {
                     set cinfo {}
-                    lappend cinfo "tool_id"       [$dataobj hints toolId]
-                    lappend cinfo "tool_name"     [$dataobj hints toolName]
-                    lappend cinfo "tool_version"  [$dataobj hints toolRevision]
-                    lappend cinfo "tool_title"    [$dataobj hints toolTitle]
+                    lappend cinfo "tool_id"       [$dataobj hints toolid]
+                    lappend cinfo "tool_name"     [$dataobj hints toolname]
+                    lappend cinfo "tool_title"    [$dataobj hints tooltitle]
+                    lappend cinfo "tool_command"  [$dataobj hints toolcommand]
+                    lappend cinfo "tool_revision" [$dataobj hints toolrevision]
                     lappend cinfo "dataset_label" [$dataobj hints label]
                     lappend cinfo "dataset_tag"   $layer
                     SendCmd [list "clientinfo" $cinfo]

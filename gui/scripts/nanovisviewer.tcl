@@ -932,10 +932,11 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                 set nbytes [string length $data]
                 if { $_reportClientInfo }  {
                     set info {}
-                    lappend info "tool_id"       [$dataobj hints toolId]
-                    lappend info "tool_name"     [$dataobj hints toolName]
-                    lappend info "tool_version"  [$dataobj hints toolRevision]
-                    lappend info "tool_title"    [$dataobj hints toolTitle]
+                    lappend info "tool_id"       [$dataobj hints toolid]
+                    lappend info "tool_name"     [$dataobj hints toolname]
+                    lappend info "tool_title"    [$dataobj hints tooltitle]
+                    lappend info "tool_command"  [$dataobj hints toolcommand]
+                    lappend info "tool_revision" [$dataobj hints toolrevision]
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $nbytes
                     lappend info "dataset_tag"   $tag
