@@ -1070,7 +1070,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	    SendCmd [list axis name $axis $label]
 
 	    if {$axis == "z" && [$_first hints ${axis}units] == ""} {
-		set units [lindex $_fields($_curFldName) 1]
+                if {$_curFldName != ""} {
+                    set units [lindex $_fields($_curFldName) 1]
+                }
 	    } else {
 		set units [$_first hints ${axis}units]
 	    }
@@ -1715,7 +1717,8 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
 	set cmap $_currentColormap
-	SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+	#SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        SendCmd "legend2 $cmap $w $h"
     }
 }
 
