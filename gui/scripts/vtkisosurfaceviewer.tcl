@@ -1839,8 +1839,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
             -textvariable [itcl::scope _view(-$tag)]
-        bind $inner.${tag} <KeyPress-Return> \
-            [itcl::code $this camera set ${tag}]
+        bind $inner.${tag} <Return> \
+            [itcl::code $this camera set -${tag}]
+        bind $inner.${tag} <KP_Enter> \
+            [itcl::code $this camera set -${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
