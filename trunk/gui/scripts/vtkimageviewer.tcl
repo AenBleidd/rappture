@@ -1029,7 +1029,9 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 	    SendCmd [list axis name $axis $label]
 
 	    if {$axis == "z" && [$_first hints ${axis}units] == ""} {
-		set units [lindex $_fields($_curFldName) 1]
+                if {$_curFldName != ""} {
+                    set units [lindex $_fields($_curFldName) 1]
+                }
 	    } else {
 		set units [$_first hints ${axis}units]
 	    }
@@ -1551,7 +1553,8 @@ itcl::body Rappture::VtkImageViewer::RequestLegend {} {
     }
     # Set the legend on the first image dataset.
     if { $_currentColormap != "" && $_currentColormap != "none" } {
-	SendCmd "legend $_currentColormap scalar $_curFldName {} $w $h 0"
+	#SendCmd "legend $_currentColormap scalar $_curFldName {} $w $h 0"
+        SendCmd "legend2 $_currentColormap $w $h"
     }
 }
 
