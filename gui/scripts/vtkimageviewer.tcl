@@ -79,7 +79,7 @@ itcl::class Rappture::VtkImageViewer {
     private method EnterLegend { x y } 
     private method EventuallyRequestLegend {} 
     private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
+    private method EventuallyRotate { q }
     private method GetImage { args } 
     private method GetVtkData { args } 
     private method InitSettings { args  }
@@ -212,30 +212,30 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-        axisFlymode		"static"
-        axisLabels              1
-        axisMinorTicks		1
-        axisVisible		1
-        axisXGrid		0
-        axisYGrid		0
-        axisZGrid		0
-        backingColor            white
-        backingVisible          1
-        colormapDiscrete        0
-        field			"Default"
-        legendVisible           0
-        level                   127.5
-        numColors               256
-        opacity                 100
-        outline			0
-        saveOpacity		100
-        stretchToFit		0
-        view3D                  0
-        window                  255.0
+        -axisflymode            "static"
+        -axislabels             1
+        -axisminorticks         1
+        -axisvisible            1
+        -backingcolor           white
+        -backingvisible         1
+        -colormapdiscrete       0
+        -field                  "Default"
+        -legendvisible          0
+        -level                  127.5
+        -numcolors              256
+        -opacity                100
+        -outline                0
+        -saveopacity            100
+        -stretchtofit           0
+        -view3d                 0
+        -window                 255.0
+        -xgrid                  0
+        -ygrid                  0
+        -zgrid                  0
     }
     array set _changed {
-        opacity                 0
-        colormap                0
+        -colormap               0
+        -opacity                0
     }
     itk_component add view {
         canvas $itk_component(plotarea).view \
@@ -314,8 +314,8 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
         Rappture::PushButton $f.mode \
             -onimage [Rappture::icon surface] \
             -offimage [Rappture::icon surface] \
-            -variable [itcl::scope _settings(view3D)] \
-            -command [itcl::code $this AdjustSetting view3D] \
+            -variable [itcl::scope _settings(-view3d)] \
+            -command [itcl::code $this AdjustSetting -view3d] \
     }
     Rappture::Tooltip::for $itk_component(mode) \
         "Toggle the surface/contour on/off"
@@ -325,8 +325,8 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
         Rappture::PushButton $f.stretchtofit \
             -onimage [Rappture::icon stretchtofit] \
             -offimage [Rappture::icon stretchtofit] \
-            -variable [itcl::scope _settings(stretchToFit)] \
-            -command [itcl::code $this AdjustSetting stretchToFit] \
+            -variable [itcl::scope _settings(-stretchtofit)] \
+            -command [itcl::code $this AdjustSetting -stretchtofit] \
     }
     Rappture::Tooltip::for $itk_component(stretchtofit) \
         "Stretch plot to fit window on/off"
@@ -654,7 +654,7 @@ itcl::body Rappture::VtkImageViewer::scale {args} {
         }
     }
     if { [array size found] > 1 } {
-        set _settings(stretchToFit) 1
+        set _settings(-stretchtofit) 1
     } else {
         # Check if the range of the x and y axes requires that we stretch
         # the contour to fit the plotting area.  This can happen when the
@@ -663,7 +663,7 @@ itcl::body Rappture::VtkImageViewer::scale {args} {
         foreach {ymin ymax} $_limits(y) break
         if { (($xmax - $xmin) > (($ymax -$ymin) * $_maxScale)) ||
              ((($xmax - $xmin) * $_maxScale) < ($ymax -$ymin)) } {
-            set _settings(stretchToFit) 1
+            set _settings(-stretchtofit) 1
         }
     }
 }
@@ -917,19 +917,19 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 	set _height $h
 	$_arcball resize $w $h
 	DoResize
-	if { $_settings(stretchToFit) } {
-	    AdjustSetting stretchToFit
+	if { $_settings(-stretchtofit) } {
+	    AdjustSetting -stretchToFit
 	}
     }
     if { $_reset } {
 	#
 	# Reset the camera and other view parameters
 	#
-        InitSettings view3D background
+        InitSettings -view3d -background
 
 	SendCmd "axis lrot z 90"
 	$_arcball quaternion [ViewToQuaternion]
-        if {$_settings(view3D) } {
+        if {$_settings(-view3d) } {
             if { $_view(-ortho)} {
                 SendCmd "camera mode ortho"
             } else {
@@ -1017,7 +1017,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings stretchToFit outline
+    InitSettings -stretchtofit -outline
 
     if { $_reset } {
 	SendCmd "axis tickpos outside"
@@ -1047,7 +1047,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 	# Reset the camera and other view parameters
 	#
 	$_arcball quaternion [ViewToQuaternion]
-        if {$_settings(view3D) } {
+        if {$_settings(-view3d) } {
             if { $_view(-ortho)} {
                 SendCmd "camera mode ortho"
             } else {
@@ -1057,8 +1057,8 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
             SendCmd "camera reset"
         }
 	PanCamera
-	InitSettings axisXGrid axisYGrid axisZGrid \
-	    axisVisible axisLabels field view3D
+	InitSettings -xgrid -ygrid -zgrid \
+            -axisvisible -axislabels -field -view3d
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }
@@ -1155,7 +1155,7 @@ itcl::body Rappture::VtkImageViewer::Zoom {option} {
                 }
             }
             $_arcball quaternion [ViewToQuaternion]
-            if {$_settings(view3D) } {
+            if {$_settings(-view3d) } {
                 DoRotate
             }
             SendCmd "camera reset"
@@ -1289,9 +1289,9 @@ itcl::body Rappture::VtkImageViewer::Pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkImageViewer::InitSettings { args } {
     foreach spec $args {
-        if { [info exists _settings($_first-$spec)] } {
+        if { [info exists _settings($_first${spec})] } {
             # Reset global setting with dataobj specific setting
-            set _settings($spec) $_settings($_first-$spec)
+            set _settings($spec) $_settings($_first${spec})
         }
         AdjustSetting $spec
     }
@@ -1309,30 +1309,25 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "axisFlymode" {
+        "-axisflymode" {
             set mode [$itk_component(axisflymode) value]
             set mode [$itk_component(axisflymode) translate $mode]
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
-        "axisLabels" {
+        "-axislabels" {
             set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
-        "axisMinorTicks" {
+        "-axisminorticks" {
             set bool $_settings($what)
             SendCmd "axis minticks all $bool"
         }
-        "axisVisible" {
+        "-axisvisible" {
             set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "axisXGrid" - "axisYGrid" - "axisZGrid" {
-            set axis [string tolower [string range $what 4 4]]
-            set bool $_settings($what)
-            SendCmd "axis grid $axis $bool"
-        }
-        "background" {
+        "-background" {
             set bg [$itk_component(background) value]
 	    array set fgcolors {
 		"black" "white"
@@ -1347,49 +1342,49 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             SendCmd "axis color all [Color2RGB $fg]"
 	    DrawLegend
         }
-        "backingColor" {
+        "-backingcolor" {
             set color [$itk_component(backingcolor) value]
 	    if { $color == "none" } {
-		if { $_settings(backingVisible) } {
+		if { $_settings(-backingvisible) } {
 		    SendCmd "image backing 0"
-		    set _settings(backingVisible) 0
+		    set _settings(-backingvisible) 0
 		}
 	    } else {
-		if { !$_settings(backingVisible) } {
+		if { !$_settings(-backingvisible) } {
 		    SendCmd "image backing 1"
-		    set _settings(backingVisible) 1
+		    set _settings(-backingvisible) 1
 		}
 		SendCmd "image color [Color2RGB $color]"
 	    }
         }
-        "backingVisible" {
+        "-backingvisible" {
 	    set bool $_settings($what)
             SendCmd "image backing $bool"
         }
-        "colormap" {
+        "-colormap" {
             set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
             set _settings($what) $color
             SetCurrentColormap $color
-            if {$_settings(colormapDiscrete)} {
-                 SendCmd "colormap res $_settings(numColors) $color"
+            if {$_settings(-colormapdiscrete)} {
+                 SendCmd "colormap res $_settings(-numcolors) $color"
             }
             StopBufferingCommands
 	    EventuallyRequestLegend
         }
-        "colormapDiscrete" {
+        "-colormapdiscrete" {
             set bool $_settings($what)
             StartBufferingCommands
             if {$bool} {
-                SendCmd "colormap res $_settings(numColors)"
+                SendCmd "colormap res $_settings(-numcolors)"
             } else {
                 SendCmd "colormap res default"
             }
             StopBufferingCommands
             EventuallyRequestLegend
         }
-        "field" {
+        "-field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
             set _settings($what) $fname
@@ -1413,17 +1408,17 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             SendCmd "camera reset"
             DrawLegend
         }
-        "view3D" {
+        "-view3d" {
 	    set bool $_settings($what)
             set c $itk_component(view)
             StartBufferingCommands
             # Fix image scale: 0 for contours, 1 for images.
             if { $bool } {
-                set _settings(opacity) $_settings(saveOpacity)
+                set _settings(-opacity) $_settings(-saveopacity)
             } else {
-                set _settings(opacity) 100
+                set _settings(-opacity) 100
             }
-            AdjustSetting opacity
+            AdjustSetting -opacity
  	    if { $bool } {
 		$itk_component(opacity) configure -state normal
 		$itk_component(opacity_l) configure -state normal
@@ -1437,7 +1432,7 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
 		$itk_component(opacity) configure -state disabled
 		$itk_component(opacity_l) configure -state disabled
                 SendCmd "camera mode image"
-                if {$_settings(stretchToFit)} {
+                if {$_settings(-stretchtofit)} {
                     SendCmd "camera aspect window"
                 }
             }
@@ -1464,38 +1459,38 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             }
             StopBufferingCommands
         }
-        "window" {
+        "-window" {
             set val $_settings($what)
             SendCmd "image window $val"
         }
-        "level" {
+        "-level" {
             set val $_settings($what)
             SendCmd "image level $val"
         }
-        "legendVisible" {
+        "-legendvisible" {
             if { !$_settings($what) } {
 		$itk_component(view) delete legend
 	    }
 	    DrawLegend
         }
-        "opacity" {
+        "-opacity" {
             set _changed($what) 1
-	    if { $_settings(view3D) } {
-                set _settings(saveOpacity) $_settings($what)
+	    if { $_settings(-view3d) } {
+                set _settings(-saveopacity) $_settings($what)
                 set val [expr $_settings($what) * 0.01]
                 SendCmd "image opacity $val"
             } else {
 		SendCmd "image opacity 1.0"
             }
         }
-        "outline" {
+        "-outline" {
             set bool $_settings($what)
             SendCmd "outline visible $bool"
 	}
-        "stretchToFit" {
+        "-stretchtofit" {
 	    set bool $_settings($what)
 	    if { $bool } {
-		if { $_settings(view3D) } {
+		if { $_settings(-view3d) } {
 		    SendCmd "camera aspect native"
 		} else {
 		    SendCmd "camera aspect window"
@@ -1504,6 +1499,11 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
 		SendCmd "camera aspect native"
 	    }
 	}
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            SendCmd "axis grid $axis $bool"
+        }
 	default {
             error "don't know how to fix $what"
         }
@@ -1593,17 +1593,17 @@ itcl::body Rappture::VtkImageViewer::BuildColormap { name } {
 itcl::configbody Rappture::VtkImageViewer::mode {
     switch -- $itk_option(-mode) {
 	"volume" {
-	    set _settings(view3D) 1
+	    set _settings(-view3d) 1
 	}
 	"vtkimage" {
-	    set _settings(view3D) 0
+	    set _settings(-view3d) 0
 	} 
 	default {
 	    error "unknown mode settings \"$itk_option(-mode)\""
 	}
     }
     if { !$_reset } {
-        AdjustSetting view3D
+        AdjustSetting -view3d
     }
 }
 
@@ -1645,32 +1645,32 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
 
     checkbutton $inner.legend \
         -text "Legend" \
-        -variable [itcl::scope _settings(legendVisible)] \
-        -command [itcl::code $this AdjustSetting legendVisible] \
+        -variable [itcl::scope _settings(-legendvisible)] \
+        -command [itcl::code $this AdjustSetting -legendvisible] \
         -font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings(outline)] \
-        -command [itcl::code $this AdjustSetting outline] \
+        -variable [itcl::scope _settings(-outline)] \
+        -command [itcl::code $this AdjustSetting -outline] \
         -font "Arial 9"
 
     checkbutton $inner.backing \
         -text "Backing" \
-        -variable [itcl::scope _settings(backingVisible)] \
-        -command [itcl::code $this AdjustSetting backingVisible] \
+        -variable [itcl::scope _settings(-backingvisible)] \
+        -command [itcl::code $this AdjustSetting -backingvisible] \
         -font "Arial 9"
 
     checkbutton $inner.stretch \
         -text "Stretch to fit" \
-        -variable [itcl::scope _settings(stretchToFit)] \
-        -command [itcl::code $this AdjustSetting stretchToFit] \
+        -variable [itcl::scope _settings(-stretchtofit)] \
+        -command [itcl::code $this AdjustSetting -stretchtofit] \
         -font "Arial 9"
 
     checkbutton $inner.colormapDiscrete \
         -text "Discrete Colormap" \
-        -variable [itcl::scope _settings(colormapDiscrete)] \
-        -command [itcl::code $this AdjustSetting colormapDiscrete] \
+        -variable [itcl::scope _settings(-colormapdiscrete)] \
+        -command [itcl::code $this AdjustSetting -colormapdiscrete] \
         -font "Arial 9"
 
     itk_component add field_l {
@@ -1682,7 +1682,7 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
     bind $inner.field <<Value>> \
-        [itcl::code $this AdjustSetting field]
+        [itcl::code $this AdjustSetting -field]
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9" 
     itk_component add colormap {
@@ -1692,7 +1692,7 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
 
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
-        [itcl::code $this AdjustSetting colormap]
+        [itcl::code $this AdjustSetting -colormap]
 
     label $inner.backingcolor_l -text "Backing Color" -font "Arial 9" 
     itk_component add backingcolor {
@@ -1710,9 +1710,9 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
         "white"              "white"            \
 	"none"		     "none"
 
-    $itk_component(backingcolor) value "white"
+    $itk_component(backingcolor) value $_settings(-backingcolor)
     bind $inner.backingcolor <<Value>> \
-	[itcl::code $this AdjustSetting backingColor]
+	[itcl::code $this AdjustSetting -backingcolor]
 
     label $inner.background_l -text "Background Color" -font "Arial 9" 
     itk_component add background {
@@ -1724,7 +1724,8 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
         "grey"               "grey"             
 
     $itk_component(background) value "white"
-    bind $inner.background <<Value>> [itcl::code $this AdjustSetting background]
+    bind $inner.background <<Value>> \
+        [itcl::code $this AdjustSetting -background]
 
     itk_component add opacity_l {
         label $inner.opacity_l -text "Opacity" -font "Arial 9"
@@ -1733,9 +1734,9 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
     }
     itk_component add opacity {
         ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-            -variable [itcl::scope _settings(opacity)] \
+            -variable [itcl::scope _settings(-opacity)] \
             -showvalue off \
-            -command [itcl::code $this AdjustSetting opacity]
+            -command [itcl::code $this AdjustSetting -opacity]
     }
 
     itk_component add window_l {
@@ -1745,9 +1746,9 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
     }
     itk_component add window {
         ::scale $inner.window -from 0 -to 255 -orient horizontal \
-            -variable [itcl::scope _settings(window)] \
+            -variable [itcl::scope _settings(-window)] \
             -showvalue off \
-            -command [itcl::code $this AdjustSetting window]
+            -command [itcl::code $this AdjustSetting -window]
     }
     itk_component add level_l {
         label $inner.level_l -text "Level" -font "Arial 9"
@@ -1756,9 +1757,9 @@ itcl::body Rappture::VtkImageViewer::BuildImageTab {} {
     }
     itk_component add level {
         ::scale $inner.level -from 0 -to 255 -orient horizontal \
-            -variable [itcl::scope _settings(level)] \
+            -variable [itcl::scope _settings(-level)] \
             -showvalue off \
-            -command [itcl::code $this AdjustSetting level]
+            -command [itcl::code $this AdjustSetting -level]
     }
 
     frame $inner.separator1 -height 2 -relief sunken -bd 1
@@ -1803,34 +1804,34 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Axes" \
-        -variable [itcl::scope _settings(axisVisible)] \
-        -command [itcl::code $this AdjustSetting axisVisible] \
+        -variable [itcl::scope _settings(-axisvisible)] \
+        -command [itcl::code $this AdjustSetting -axisvisible] \
         -font "Arial 9"
     checkbutton $inner.labels \
         -text "Axis Labels" \
-        -variable [itcl::scope _settings(axisLabels)] \
-        -command [itcl::code $this AdjustSetting axisLabels] \
+        -variable [itcl::scope _settings(-axislabels)] \
+        -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
     label $inner.grid_l -text "Grid" -font "Arial 9" 
     checkbutton $inner.xgrid \
         -text "X" \
-        -variable [itcl::scope _settings(axisXGrid)] \
-        -command [itcl::code $this AdjustSetting axisXGrid] \
+        -variable [itcl::scope _settings(-xgrid)] \
+        -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
     checkbutton $inner.ygrid \
         -text "Y" \
-        -variable [itcl::scope _settings(axisYGrid)] \
-        -command [itcl::code $this AdjustSetting axisYGrid] \
+        -variable [itcl::scope _settings(-ygrid)] \
+        -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
     checkbutton $inner.zgrid \
         -text "Z" \
-        -variable [itcl::scope _settings(axisZGrid)] \
-        -command [itcl::code $this AdjustSetting axisZGrid] \
+        -variable [itcl::scope _settings(-zgrid)] \
+        -command [itcl::code $this AdjustSetting -zgrid] \
         -font "Arial 9"
     checkbutton $inner.minorticks \
         -text "Minor Ticks" \
-        -variable [itcl::scope _settings(axisMinorTicks)] \
-        -command [itcl::code $this AdjustSetting axisMinorTicks] \
+        -variable [itcl::scope _settings(-axisminorticks)] \
+        -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1843,8 +1844,8 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
-    $itk_component(axisflymode) value "static"
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisFlymode]
+    $itk_component(axisflymode) value $_settings(-axisflymode)
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 4 \
@@ -1861,7 +1862,6 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
     blt::table configure $inner r7 c6 -resize expand
     blt::table configure $inner r3 -height 0.125i
 }
-
 
 itcl::body Rappture::VtkImageViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
@@ -1881,6 +1881,7 @@ itcl::body Rappture::VtkImageViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -1908,7 +1909,7 @@ itcl::body Rappture::VtkImageViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -2044,28 +2045,28 @@ itcl::body Rappture::VtkImageViewer::SetObjectStyle { dataobj comp } {
     # controls are specified as style hints by each dataset.  It complicates
     # the code to handle aberrant cases.
 
-    if { $_changed(opacity) } {
-        set style(-opacity) [expr $_settings(opacity) * 0.01]
+    if { $_changed(-opacity) } {
+        set style(-opacity) [expr $_settings(-opacity) * 0.01]
     }
-    if { $_changed(colormap) } {
-        set style(-color) $_settings(colormap)
+    if { $_changed(-colormap) } {
+        set style(-color) $_settings(-colormap)
     }
     if { $_currentColormap == "" } {
         $itk_component(colormap) value $style(-color)
     }
     if { [info exists style(-stretchtofit)] } {
-        set _settings(stretchToFit) $style(-stretchtofit)
-        AdjustSetting stretchToFit
+        set _settings(-stretchtofit) $style(-stretchtofit)
+        AdjustSetting -stretchToFit
     }
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
-    SendCmd "outline visible $_settings(outline) $tag"
+    SendCmd "outline visible $_settings(-outline) $tag"
     SendCmd "image add $tag"
     SetCurrentColormap $style(-color) 
     set color [$itk_component(backingcolor) value]
     SendCmd "image color [Color2RGB $color] $tag"
     SendCmd "image opacity $style(-opacity) $tag"
-    set _settings(opacity) [expr $style(-opacity) * 100.0]
+    set _settings(-opacity) [expr $style(-opacity) * 100.0]
 }
 
 itcl::body Rappture::VtkImageViewer::IsValidObject { dataobj } {
@@ -2124,7 +2125,7 @@ itcl::body Rappture::VtkImageViewer::DrawLegend {} {
 	}
     }
     set x [expr $w - 2]
-    if { !$_settings(legendVisible) } {
+    if { !$_settings(-legendvisible) } {
 	$c delete legend
 	return
     } 
@@ -2132,17 +2133,17 @@ itcl::body Rappture::VtkImageViewer::DrawLegend {} {
 	set y 2 
 	# If there's a legend title, create a text item for the title.
         $c create text $x $y \
-	    -anchor ne \
-	    -fill $itk_option(-plotforeground) -tags "title legend" \
-	    -font $font 
+            -anchor ne \
+            -fill $itk_option(-plotforeground) -tags "title legend" \
+            -font $font
         if { $title != "" } {
             incr y $lineht
         }
 	$c create text $x $y \
-	    -anchor ne \
-	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
-	    -font $font
-	incr y $lineht
+            -anchor ne \
+            -fill $itk_option(-plotforeground) -tags "vmax legend" \
+            -font $font
+        incr y $lineht
 	$c create image $x $y \
 	    -anchor ne \
 	    -image $_image(legend) -tags "colormap legend"
@@ -2306,7 +2307,7 @@ itcl::body Rappture::VtkImageViewer::Combo {option} {
         }
         invoke {
             $itk_component(field) value $_curFldLabel
-            AdjustSetting field
+            AdjustSetting -field
         }
         default {
             error "bad option \"$option\": should be post, unpost, select"
