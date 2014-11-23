@@ -587,16 +587,16 @@ itcl::body Rappture::NanovisViewer::scale {args} {
             if {"" != $min && "" != $max} {
                 if { ![info exists _limits($axis)] } {
                     set _limits($axis) [list $min $max]
-                } else {
-                    foreach {amin amax} $_limits($axis) break
-                    if {$min < $amin} {
-                        set amin $min
-                    }
-                    if {$max > $amax} {
-                        set amax $max
-                    }
-                    set _limits($axis) [list $amin $amax]
+                    continue
                 }
+                foreach {amin amax} $_limits($axis) break
+                if {$min < $amin} {
+                    set amin $min
+                }
+                if {$max > $amax} {
+                    set amax $max
+                }
+                set _limits($axis) [list $amin $amax]
             }
         }
     }

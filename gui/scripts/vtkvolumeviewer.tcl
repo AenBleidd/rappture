@@ -81,7 +81,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _alphamap
     private variable _current "";       # Currently selected component 
     private variable _volcomponents   ; # Array of components found 
-    private variable _componentsList   ; # Array of components found 
+    private variable _componentsList   ; # List of component names
     private variable _cname2style
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
@@ -172,6 +172,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _fields 
     private variable _curFldName ""
     private variable _curFldLabel ""
+    private variable _colorMode "scalar"; #  Mode of colormap (vmag or scalar)
     private variable _cutplaneCmd "imgcutplane"
     private variable _allowMultiComponent 0
     private variable _activeVolumes;   # Array of volumes that are active.
@@ -249,6 +250,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         -axislabels                     1
         -axisminorticks                 1
         -background                     black
+        -color                          "default"
         -cutplanelighting               1
         -cutplaneopacity                100
         -cutplanesvisible               0
@@ -678,8 +680,9 @@ itcl::body Rappture::VtkVolumeViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::scale {args} {
-    array unset _limits 
-    array unset _volcomponents 
+    array unset _limits
+    array unset _volcomponents
+    set _componentsList ""
 
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
@@ -687,21 +690,20 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
         }
         # Determine limits for each axis.
         foreach axis { x y z } {
-            foreach { min max } [$dataobj limits $axis] break
-            if {"" != $min && "" != $max} {
-                if { ![info exists _limits($axis)] } {
-                    set _limits($axis) [list $min $max]
-                } else {
-                    foreach {amin amax} $_limits($axis) break
-                    if {$min < $amin} {
-                        set amin $min
-                    }
-                    if {$max > $amax} {
-                        set amax $max
-                    }
-                    set _limits($axis) [list $amin $amax]
-                }
+            set lim [$dataobj limits $axis]
+            if { ![info exists _limits($axis)] } {
+                set _limits($axis) $lim
+                continue
             }
+            foreach {min max} $lim break
+            foreach {amin amax} $_limits($axis) break
+            if { $amin > $min } {
+                set amin $min
+            }
+            if { $amax < $max } {
+                set amax $max
+            }
+            set _limits($axis) [list $amin $amax]
         }
         # Determine limits for each field.
         foreach { fname lim } [$dataobj fieldlimits] {
@@ -727,19 +729,19 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
             lappend _volcomponents($cname) $dataobj-$cname
             array unset limits
             array set limits [$dataobj valueLimits $cname]
-            foreach {min max} $limits(v) break
             if { ![info exists _limits($cname)] } {
-                set _limits($cname) [list $min $max]
-            } else {
-                foreach {vmin vmax} $_limits($cname) break
-                if { $min < $vmin } {
-                    set vmin $min
-                }
-                if { $max > $vmax } {
-                    set vmax $max
-                }
-                set _limits($cname) [list $vmin $vmax]
+                set _limits($cname) $limits(v)
+                continue
             }
+            foreach {min max} $limits(v) break
+            foreach {vmin vmax} $_limits($cname) break
+            if { $vmin > $min } {
+                set vmin $min
+            }
+            if { $vmax < $max } {
+                set vmax $max
+            }
+            set _limits($cname) [list $vmin $vmax]
         }
     }
     BuildVolumeComponents
@@ -1592,6 +1594,12 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 if { !$_allowMultiComponent && $components > 1 } {
                     puts stderr "Can't use a vector field in a volume"
                     return
+                } else {
+                    if { $components > 1 } {
+                        set _colorMode vmag
+                    } else {
+                        set _colorMode scalar
+                    }
                 }
                 set _curFldName $fname
                 set _curFldLabel $label
@@ -1600,6 +1608,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 return
             }
             foreach dataset [CurrentDatasets -visible $_first] {
+                #SendCmd "$_cutplaneCmd colormode $_colorMode $_curFldName $dataset"
                 SendCmd "dataset scalar $_curFldName $dataset"
             }
             SendCmd "camera reset"
@@ -1632,7 +1641,7 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
         if { [info exists _dataset2style($dataset)] } {
             SendCmdNoWait \
                 "legend2 $_dataset2style($dataset) $w $h"
-                #"legend $_dataset2style($dataset) scalar $_curFldName {} $w $h 0"
+                #"legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
             break;
         }
     }
@@ -1827,8 +1836,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -color]
-    $itk_component(colormap) value "default"
-    set _settings(-color) "default"
+    $itk_component(colormap) value $_settings(-color)
 
     label $inner.blendmode_l -text "Blend Mode" -font $font
     itk_component add blendmode {
