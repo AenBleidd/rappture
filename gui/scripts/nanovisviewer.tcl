@@ -1950,6 +1950,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set row 1
     set labels { qw qx qy qz xpan ypan zoom }
@@ -1968,7 +1969,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         incr row
     }
 
-    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
