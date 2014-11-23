@@ -62,23 +62,8 @@ itcl::class Rappture::VtkViewer {
     }
     public method scale {args}
 
-    protected method Connect {}
-    protected method CurrentDatasets {args}
-    protected method Disconnect {}
-    protected method DoResize {}
-    protected method DoRotate {}
-    protected method AdjustSetting {what {value ""}}
-    protected method InitSettings { args  }
-    protected method Pan {option x y}
-    protected method Pick {x y}
-    protected method Rebuild {}
-    protected method ReceiveDataset { args }
-    protected method ReceiveImage { args }
-    protected method ReceiveLegend { colormap title vmin vmax size }
-    protected method Rotate {option x y}
-    protected method Zoom {option}
-
     # The following methods are only used by this class.
+    private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name styles }
@@ -88,6 +73,11 @@ itcl::class Rappture::VtkViewer {
     private method BuildMoleculeTab {}
     private method BuildPolydataTab {}
     private method ChangeColormap { dataobj comp color }
+    private method Connect {}
+    private method CurrentDatasets {args}
+    private method Disconnect {}
+    private method DoResize {}
+    private method DoRotate {}
     private method DrawLegend {}
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
@@ -100,11 +90,22 @@ itcl::class Rappture::VtkViewer {
     private method EventuallySetPolydataOpacity { args } 
     private method GetImage { args } 
     private method GetVtkData { args } 
+    private method InitSettings { args  }
     private method IsValidObject { dataobj } 
     private method LeaveLegend {}
     private method MotionLegend { x y } 
+    private method Pan {option x y}
     private method PanCamera {}
+    private method Pick {x y}
+    private method QuaternionToView { q } { 
+        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    }
+    private method Rebuild {}
+    private method ReceiveDataset { args }
+    private method ReceiveImage { args }
+    private method ReceiveLegend { colormap title vmin vmax size }
     private method RequestLegend {}
+    private method Rotate {option x y}
     private method SetAtomScale {}
     private method SetBondScale {}
     private method SetColormap { dataobj comp }
@@ -117,6 +118,10 @@ itcl::class Rappture::VtkViewer {
     private method SetOrientation { side }
     private method SetPolydataOpacity {}
     private method Slice {option args} 
+    private method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
+    private method Zoom {option}
 
     private variable _arcball ""
     private variable _dlist "";		# list of data objects
@@ -219,24 +224,23 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     #
     # Populate parser with commands handle incoming requests
     #
-    $_parser alias image    [itcl::code $this ReceiveImage]
-    $_parser alias dataset  [itcl::code $this ReceiveDataset]
-    $_parser alias legend   [itcl::code $this ReceiveLegend]
+    $_parser alias image [itcl::code $this ReceiveImage]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
+    $_parser alias legend [itcl::code $this ReceiveLegend]
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw              0.853553
-        qx              -0.353553
-        qy              0.353553
-        qz              0.146447
-        zoom            1.0 
-        xpan            0
-        ypan            0
-        ortho           0
+        -ortho           0
+        -qw              0.853553
+        -qx              -0.353553
+        -qy              0.353553
+        -qz              0.146447
+        -xpan            0
+        -ypan            0
+        -zoom            1.0
     }
     set _arcball [blt::arcball create 100 100]
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
+    $_arcball quaternion [ViewToQuaternion]
 
     set _limits(zmin) 0.0
     set _limits(zmax) 1.0
@@ -357,12 +361,15 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    BuildAxisTab
-    #BuildCutawayTab
-    BuildCameraTab
+    if { [catch {
+        BuildAxisTab
+        #BuildCutawayTab
+        BuildCameraTab
+    } errs] != 0 } {
+        puts stderr errs=$errs
+    }
 
     # Legend
-
     set _image(legend) [image create photo]
     itk_component add legend {
         canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
@@ -388,8 +395,6 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         [itcl::code $this Rotate drag %x %y]
     bind $itk_component(view) <ButtonRelease-1> \
         [itcl::code $this Rotate release %x %y]
-    bind $itk_component(view) <Configure> \
-        [itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
@@ -467,8 +472,7 @@ itcl::body Rappture::VtkViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkViewer::DoRotate {} {
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient [ViewToQuaternion]" 
     set _rotatePending 0
 }
 
@@ -483,7 +487,7 @@ itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
 }
 
 itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
-    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+    QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
         $_dispatcher event -after $_rotateDelay !rotate
@@ -919,6 +923,7 @@ itcl::body Rappture::VtkViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
+    set _outbuf ""
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
@@ -1067,7 +1072,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $length
                     lappend info "dataset_tag"   $tag
-                    SendCmd [list "clientinfo" $info]
+                    SendCmd "clientinfo [list $info]"
                 }
                 SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
@@ -1122,10 +1127,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 molecule-visible molecule-wireframe molecule-labels
         }
 
-        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-        $_arcball quaternion $q 
+        $_arcball quaternion [ViewToQuaternion]
         SendCmd "camera reset"
-        if { $_view(ortho)} {
+        if { $_view(-ortho)} {
             SendCmd "camera mode ortho"
         } else {
             SendCmd "camera mode persp"
@@ -1206,22 +1210,22 @@ itcl::body Rappture::VtkViewer::CurrentDatasets {args} {
 itcl::body Rappture::VtkViewer::Zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*1.25}]
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*0.8}]
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "reset" {
             array set _view {
-                qw      0.853553
-                qx      -0.353553
-                qy      0.353553
-                qz      0.146447
-                zoom    1.0
-                xpan    0
-                ypan    0
+                -qw      0.853553
+                -qx      -0.353553
+                -qy      0.353553
+                -qz      0.146447
+                -xpan    0
+                -ypan    0
+                -zoom    1.0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1229,8 +1233,7 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-            $_arcball quaternion $q
+            $_arcball quaternion [ViewToQuaternion]
             DoRotate
             SendCmd "camera reset"
         }
@@ -1238,8 +1241,8 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
 }
 
 itcl::body Rappture::VtkViewer::PanCamera {} {
-    set x $_view(xpan)
-    set y $_view(ypan)
+    set x $_view(-xpan)
+    set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
 
@@ -1316,8 +1319,8 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
             set h [winfo height $itk_component(view)]
             set x [expr $x / double($w)]
             set y [expr $y / double($h)]
-            set _view(xpan) [expr $_view(xpan) + $x]
-            set _view(ypan) [expr $_view(ypan) + $y]
+            set _view(-xpan) [expr $_view(-xpan) + $x]
+            set _view(-ypan) [expr $_view(-ypan) + $y]
             PanCamera
             return
         }
@@ -1339,8 +1342,8 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
             set dy [expr ($_click(y) - $y)/double($h)]
             set _click(x) $x
             set _click(y) $y
-            set _view(xpan) [expr $_view(xpan) - $dx]
-            set _view(ypan) [expr $_view(ypan) - $dy]
+            set _view(-xpan) [expr $_view(-xpan) - $dx]
+            set _view(-ypan) [expr $_view(-ypan) - $dy]
             PanCamera
         }
         "release" {
@@ -1875,8 +1878,8 @@ itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkViewer::plotbackground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
-        SendCmd "screen bgcolor $r $g $b"
+        set rgb [Color2RGB $itk_option(-plotbackground)]
+        SendCmd "screen bgcolor $rgb"
     }
 }
 
@@ -1885,9 +1888,9 @@ itcl::configbody Rappture::VtkViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkViewer::plotforeground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set rgb [Color2RGB $itk_option(-plotforeground)]
+        SendCmd "axis color all $rgb"
+        SendCmd "outline color $rgb"
     }
 }
 
@@ -2222,11 +2225,11 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _view($tag)]
+            -textvariable [itcl::scope _view(-$tag)]
         bind $inner.${tag} <Return> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this camera set -${tag}]
         bind $inner.${tag} <KP_Enter> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this camera set -${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
@@ -2235,8 +2238,8 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
     }
     checkbutton $inner.ortho \
         -text "Orthographic Projection" \
-        -variable [itcl::scope _view(ortho)] \
-        -command [itcl::code $this camera set ortho] \
+        -variable [itcl::scope _view(-ortho)] \
+        -command [itcl::code $this camera set -ortho] \
         -font "Arial 9"
     blt::table $inner \
             $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
@@ -2546,30 +2549,30 @@ itcl::body Rappture::VtkViewer::camera {option args} {
             puts [array get _view]
         }
         "set" {
-            set who [lindex $args 0]
-            set x $_view($who)
+            set what [lindex $args 0]
+            set x $_view($what)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
                 return
             }
-            switch -- $who {
-                "ortho" {
-                    if {$_view(ortho)} {
+            switch -- $what {
+                "-ortho" {
+                    if {$_view($what)} {
                         SendCmd "camera mode ortho"
                     } else {
                         SendCmd "camera mode persp"
                     }
                 }
-                "xpan" - "ypan" {
+                "-xpan" - "-ypan" {
                     PanCamera
                 }
-                "qx" - "qy" - "qz" - "qw" {
-                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                "-qx" - "-qy" - "-qz" - "-qw" {
+                    set q [ViewToQuaternion]
                     $_arcball quaternion $q
                     EventuallyRotate $q
                 }
-                "zoom" {
-                    SendCmd "camera zoom $_view(zoom)"
+                "-zoom" {
+                    SendCmd "camera zoom $_view($what)"
                 }
             }
         }
@@ -3039,16 +3042,16 @@ itcl::body Rappture::VtkViewer::SetOrientation { side } {
         top   "0.707107 -0.707107 0 0"
         bottom "0.707107 0.707107 0 0"
     }
-    foreach name { qw qx qy qz } value $positions($side) {
+    foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
     } 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
     SendCmd "camera reset"
-    set _view(xpan) 0
-    set _view(ypan) 0
-    set _view(zoom) 1.0
+    set _view(-xpan) 0
+    set _view(-ypan) 0
+    set _view(-zoom) 1.0
 }
 
 itcl::body Rappture::VtkViewer::SetOpacity { dataset } { 

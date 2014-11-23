@@ -43,11 +43,6 @@ itcl::class Rappture::FlowvisViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
 
-    private variable _volcomponents   ; # Array of components found 
-    private variable _componentsList   ; # Array of components found 
-    private method BuildVolumeComponents {}
-    private method GetDatasetsWithComponent { cname } 
-
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
     } {
@@ -76,57 +71,62 @@ itcl::class Rappture::FlowvisViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
-    protected method Connect {}
-    protected method CurrentVolumeIds {{what -all}}
-    protected method Disconnect {}
-    protected method Resize {}
-    protected method ResizeLegend {}
-    protected method AdjustSetting {what {value ""}}
-    protected method InitSettings { args }
-    protected method Pan {option x y}
-    protected method Rebuild {}
-    protected method ReceiveData { args }
-    protected method ReceiveImage { args }
-    protected method ReceiveLegend { tf vmin vmax size }
-    protected method Rotate {option x y}
-    protected method SendTransferFuncs {}
-    protected method Slice {option args}
-    protected method SlicerTip {axis}
-    protected method Zoom {option}
-
     # soon to be removed.
-    protected method Flow {option args}
-    protected method Play {}
-    protected method Pause {}
-
+    private method Flow {option args}
+    private method Play {}
+    private method Pause {}
 
     # The following methods are only used by this class.
-
+    private method AdjustSetting {what {value ""}}
     private method AddIsoMarker { x y }
     private method BuildCameraTab {}
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
+    private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
     private method ComputeTransferFunc { tf }
+    private method Connect {}
+    private method CurrentVolumeIds {{what -all}}
+    private method Disconnect {}
     private method EventuallyResize { w h } 
     private method EventuallyGoto { nSteps } 
     private method EventuallyResizeLegend { } 
     private method FlowCmd { dataobj comp nbytes extents }
+    private method GetDatasetsWithComponent { cname } 
+    private method GetFlowInfo { widget }
     private method GetMovie { widget width height }
     private method GetPngImage { widget width height }
+    private method InitSettings { args }
     private method NameTransferFunc { dataobj comp }
+    private method Pan {option x y}
     private method PanCamera {}
     private method ParseLevelsOption { tf levels }
     private method ParseMarkersOption { tf markers }
-    private method WaitIcon { option widget }
-    private method str2millisecs { value } 
-    private method millisecs2str { value } 
-    private method GetFlowInfo { widget }
-    private method particles { tag name } 
-    private method box { tag name } 
-    private method streams { tag name } 
-    private method arrows { tag name } 
+    private method QuaternionToView { q } { 
+        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    }
+    private method Rebuild {}
+    private method ReceiveData { args }
+    private method ReceiveImage { args }
+    private method ReceiveLegend { tf vmin vmax size }
+    private method Resize {}
+    private method ResizeLegend {}
+    private method Rotate {option x y}
+    private method SendTransferFuncs {}
     private method SetOrientation { side }
+    private method Slice {option args}
+    private method SlicerTip {axis}
+    private method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
+    private method WaitIcon { option widget }
+    private method Zoom {option}
+    private method arrows { tag name } 
+    private method box { tag name } 
+    private method millisecs2str { value } 
+    private method particles { tag name } 
+    private method str2millisecs { value } 
+    private method streams { tag name } 
 
     private variable _arcball ""
     private variable _dlist ""     ;# list of data objects
@@ -148,6 +148,8 @@ itcl::class Rappture::FlowvisViewer {
     private common   _settings
     private variable _activeTf ""  ;# The currently active transfer function.
     private variable _first ""     ;# This is the topmost volume.
+    private variable _volcomponents   ; # Array of components found 
+    private variable _componentsList   ; # Array of components found 
     private variable _nextToken 0
     private variable _icon 0
     private variable _flow
@@ -217,29 +219,28 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw      0.853553
-        qx      -0.353553
-        qy      0.353553
-        qz      0.146447
-        zoom    1.0
-        xpan    0
-        ypan    0
+        -qw      0.853553
+        -qx      -0.353553
+        -qy      0.353553
+        -qz      0.146447
+        -xpan    0
+        -ypan    0
+        -zoom    1.0
     }
     set _arcball [blt::arcball create 100 100]
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
+    $_arcball quaternion [ViewToQuaternion]
 
     set _limits(v) [list 0.0 1.0]
     set _reset 1
 
     array set _settings [subst {
-        $this-qw                $_view(qw)
-        $this-qx                $_view(qx)
-        $this-qy                $_view(qy)
-        $this-qz                $_view(qz)
-        $this-zoom              $_view(zoom)    
-        $this-xpan              $_view(xpan)
-        $this-ypan              $_view(ypan)
+        $this-qw                $_view(-qw)
+        $this-qx                $_view(-qx)
+        $this-qy                $_view(-qy)
+        $this-qz                $_view(-qz)
+        $this-zoom              $_view(-zoom)    
+        $this-xpan              $_view(-xpan)
+        $this-ypan              $_view(-ypan)
         $this-arrows            0
         $this-currenttime       0
         $this-duration          1:00
@@ -1212,20 +1213,20 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         }
 
     }
-    set _settings($this-qw)    $_view(qw)
-    set _settings($this-qx)    $_view(qx)
-    set _settings($this-qy)    $_view(qy)
-    set _settings($this-qz)    $_view(qz)
-    set _settings($this-xpan)  $_view(xpan)
-    set _settings($this-ypan)  $_view(ypan)
-    set _settings($this-zoom)  $_view(zoom)
+    set _settings($this-qw)    $_view(-qw)
+    set _settings($this-qx)    $_view(-qx)
+    set _settings($this-qy)    $_view(-qy)
+    set _settings($this-qz)    $_view(-qz)
+    set _settings($this-xpan)  $_view(-xpan)
+    set _settings($this-ypan)  $_view(-ypan)
+    set _settings($this-zoom)  $_view(-zoom)
 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
     SendCmd "camera reset"
     PanCamera
-    SendCmd "camera zoom $_view(zoom)"
+    SendCmd "camera zoom $_view(-zoom)"
 
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
@@ -1304,24 +1305,24 @@ itcl::body Rappture::FlowvisViewer::CurrentVolumeIds {{what -all}} {
 itcl::body Rappture::FlowvisViewer::Zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            set _settings($this-zoom) $_view(zoom)
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*1.25}]
+            set _settings($this-zoom) $_view(-zoom)
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            set _settings($this-zoom) $_view(zoom)
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*0.8}]
+            set _settings($this-zoom) $_view(-zoom)
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "reset" {
             array set _view {
-                qw      0.853553
-                qx      -0.353553
-                qy      0.353553
-                qz      0.146447
-                zoom    1.0
-                xpan   0
-                ypan   0
+                -qw      0.853553
+                -qx      -0.353553
+                -qy      0.353553
+                -qz      0.146447
+                -zoom    1.0
+                -xpan    0
+                -ypan    0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1329,24 +1330,24 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+            set q [ViewToQuaternion]
             $_arcball quaternion $q
             SendCmd "camera orient $q"
             SendCmd "camera reset"
-            set _settings($this-qw)    $_view(qw)
-            set _settings($this-qx)    $_view(qx)
-            set _settings($this-qy)    $_view(qy)
-            set _settings($this-qz)    $_view(qz)
-            set _settings($this-xpan)  $_view(xpan)
-            set _settings($this-ypan)  $_view(ypan)
-            set _settings($this-zoom)  $_view(zoom)
+            set _settings($this-qw)    $_view(-qw)
+            set _settings($this-qx)    $_view(-qx)
+            set _settings($this-qy)    $_view(-qy)
+            set _settings($this-qz)    $_view(-qz)
+            set _settings($this-xpan)  $_view(-xpan)
+            set _settings($this-ypan)  $_view(-ypan)
+            set _settings($this-zoom)  $_view(-zoom)
         }
     }
 }
 
 itcl::body Rappture::FlowvisViewer::PanCamera {} {
-    set x $_view(xpan)
-    set y $_view(ypan)
+    set x $_view(-xpan)
+    set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
 
@@ -1384,11 +1385,11 @@ itcl::body Rappture::FlowvisViewer::Rotate {option x y} {
                 }
 
                 set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-                foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
-                set _settings($this-qw) $_view(qw)
-                set _settings($this-qx) $_view(qx)
-                set _settings($this-qy) $_view(qy)
-                set _settings($this-qz) $_view(qz)
+                QuaternionToView $q
+                set _settings($this-qw) $_view(-qw)
+                set _settings($this-qx) $_view(-qx)
+                set _settings($this-qy) $_view(-qy)
+                set _settings($this-qz) $_view(-qz)
                 SendCmd "camera orient $q"
 
                 set _click(x) $x
@@ -1421,11 +1422,11 @@ itcl::body Rappture::FlowvisViewer::Pan {option x y} {
     if { $option == "set" } {
         set x [expr $x / double($w)]
         set y [expr $y / double($h)]
-        set _view(xpan) [expr $_view(xpan) + $x]
-        set _view(ypan) [expr $_view(ypan) + $y]
+        set _view(-xpan) [expr $_view(-xpan) + $x]
+        set _view(-ypan) [expr $_view(-ypan) + $y]
         PanCamera
-        set _settings($this-xpan) $_view(xpan)
-        set _settings($this-ypan) $_view(ypan)
+        set _settings($this-xpan) $_view(-xpan)
+        set _settings($this-ypan) $_view(-ypan)
         return
     }
     if { $option == "click" } {
@@ -1438,11 +1439,11 @@ itcl::body Rappture::FlowvisViewer::Pan {option x y} {
         set dy [expr ($_click(y) - $y)/double($h)]
         set _click(x) $x
         set _click(y) $y
-        set _view(xpan) [expr $_view(xpan) - $dx]
-        set _view(ypan) [expr $_view(ypan) - $dy]
+        set _view(-xpan) [expr $_view(-xpan) - $dx]
+        set _view(-ypan) [expr $_view(-ypan) - $dy]
         PanCamera
-        set _settings($this-xpan) $_view(xpan)
-        set _settings($this-ypan) $_view(ypan)
+        set _settings($this-xpan) $_view(-xpan)
+        set _settings($this-ypan) $_view(-ypan)
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -2383,9 +2384,9 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
         entry $inner.${tag} -font "Arial 9"  -bg white \
             -textvariable [itcl::scope _settings($this-$tag)]
         bind $inner.${tag} <Return> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this camera set -${tag}]
         bind $inner.${tag} <KP_Enter> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this camera set -${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
@@ -2587,27 +2588,27 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
             puts [array get _view]
         }
         "set" {
-            set who [lindex $args 0]
-            set x $_settings($this-$who)
+            set what [lindex $args 0]
+            set x $_settings(${this}${what})
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
-                set _settings($this-$who) $_view($who)
+                set _settings(${this}${what}) $_view($what)
                 return
             }
-            switch -- $who {
-                "xpan" - "ypan" {
-                    set _view($who) $_settings($this-$who)
+            switch -- $what {
+                "-xpan" - "-ypan" {
+                    set _view($what) $_settings(${this}${what})
                     PanCamera
                 }
-                "qx" - "qy" - "qz" - "qw" {
-                    set _view($who) $_settings($this-$who)
-                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                "-qx" - "-qy" - "-qz" - "-qw" {
+                    set _view($what) $_settings(${this}${what})
+                    set q [ViewToQuaternion]
                     $_arcball quaternion $q
                     SendCmd "camera orient $q"
                 }
-                "zoom" {
-                    set _view($who) $_settings($this-$who)
-                    SendCmd "camera zoom $_view(zoom)"
+                "-zoom" {
+                    set _view($what) $_settings(${this}${what})
+                    SendCmd "camera zoom $_view($what)"
                 }
             }
         }
@@ -2985,19 +2986,19 @@ itcl::body Rappture::FlowvisViewer::SetOrientation { side } {
         top   "0.707107 -0.707107 0 0" 
         bottom "0.707107 0.707107 0 0" 
     } 
-    foreach name { qw qx qy qz } value $positions($side) { 
+    foreach name { -qw -qx -qy -qz } value $positions($side) { 
         set _view($name) $value
     } 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q" 
     SendCmd "camera reset"
-    set _view(xpan) 0.0
-    set _view(ypan) 0.0
-    set _view(zoom) 1.0
-    set _settings($this-xpan) $_view(xpan)
-    set _settings($this-ypan) $_view(ypan)
-    set _settings($this-zoom) $_view(zoom)
+    set _view(-xpan) 0.0
+    set _view(-ypan) 0.0
+    set _view(-zoom) 1.0
+    set _settings($this-xpan) $_view(-xpan)
+    set _settings($this-ypan) $_view(-ypan)
+    set _settings($this-zoom) $_view(-zoom)
 }
 
 # Reset global settings from dataset's settings.

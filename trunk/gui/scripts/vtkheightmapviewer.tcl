@@ -62,50 +62,54 @@ itcl::class Rappture::VtkHeightmapViewer {
     }
     public method scale {args}
 
-    protected method CameraReset {}
-    protected method Connect {}
-    protected method CurrentDatasets {args}
-    protected method Disconnect {}
-    protected method DoResize {}
-    protected method DoRotate {}
-    protected method AdjustSetting {what {value ""}}
-    protected method AdjustMode {}
-    protected method InitSettings { args  }
-    protected method Pan {option x y}
-    protected method Pick {x y}
-    protected method Rebuild {}
-    protected method ReceiveDataset { args }
-    protected method ReceiveImage { args }
-    protected method ReceiveLegend { colormap title min max size }
-    protected method Rotate {option x y}
-    protected method Zoom {option}
-
     # The following methods are only used by this class.
+    private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name }
     private method BuildContourTab {}
     private method BuildDownloadPopup { widget command } 
+    private method CameraReset {}
     private method Combo { option }
+    private method Connect {}
+    private method CurrentDatasets {args}
+    private method Disconnect {}
+    private method DoResize {}
+    private method DoRotate {}
     private method DrawLegend {}
     private method EnterLegend { x y } 
     private method EventuallyRequestLegend {} 
     private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
+    private method EventuallyRotate { q }
+    private method GetHeightmapScale {} 
     private method GetImage { args } 
     private method GetVtkData { args } 
+    private method InitSettings { args  }
     private method IsValidObject { dataobj } 
     private method LeaveLegend {}
     private method MotionLegend { x y } 
+    private method Pan {option x y}
     private method PanCamera {}
+    private method Pick {x y}
+    private method QuaternionToView { q } { 
+        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    }
+    private method Rebuild {}
+    private method ReceiveDataset { args }
+    private method ReceiveImage { args }
+    private method ReceiveLegend { colormap title min max size }
     private method RequestLegend {}
+    private method ResetAxes {}
+    private method Rotate {option x y}
     private method SetCurrentColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
-    private method GetHeightmapScale {} 
-    private method ResetAxes {}
     private method SetOrientation { side }
     private method UpdateContourList {}
+    private method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
+    private method Zoom {option}
 
     private variable _arcball ""
     private variable _dlist ""     ;    # list of data objects
@@ -200,18 +204,17 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw	0.36
-        qx	0.25
-        qy	0.50
-        qz	0.70
-        zoom	1.0 
-        xpan	0
-        ypan	0
-        ortho	0
+        -ortho           0
+        -qw              0.36
+        -qx              0.25
+        -qy              0.50
+        -qz              0.70
+        -xpan            0
+        -ypan            0
+        -zoom            1.0
     }
     set _arcball [blt::arcball create 100 100]
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
+    $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
         -axisflymode		"static"
@@ -440,8 +443,7 @@ itcl::body Rappture::VtkHeightmapViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkHeightmapViewer::DoRotate {} {
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient [ViewToQuaternion]" 
     set _rotatePending 0
 }
 
@@ -465,7 +467,7 @@ itcl::body Rappture::VtkHeightmapViewer::EventuallyResize { w h } {
 set rotate_delay 100
 
 itcl::body Rappture::VtkHeightmapViewer::EventuallyRotate { q } {
-    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+    QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
         global rotate_delay 
@@ -948,10 +950,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         #SendCmd "axis exp 0 0 0 1"
 
 	SendCmd "axis lrot z 90"
-	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-	$_arcball quaternion $q 
+	$_arcball quaternion [ViewToQuaternion]
         if {$_settings(-isheightmap) } {
-            if { $_view(ortho)} {
+            if { $_view(-ortho)} {
                 SendCmd "camera mode ortho"
             } else {
                 SendCmd "camera mode persp"
@@ -994,7 +995,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $length
                     lappend info "dataset_tag"   $tag
-                    SendCmd [list "clientinfo" $info]
+                    SendCmd "clientinfo [list $info]"
                 }
                 SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
@@ -1085,10 +1086,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	# Reset the camera and other view parameters
 	#
 	ResetAxes
-	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-	$_arcball quaternion $q 
+	$_arcball quaternion [ViewToQuaternion]
         if {$_settings(-isheightmap) } {
-            if { $_view(ortho)} {
+            if { $_view(-ortho)} {
                 SendCmd "camera mode ortho"
             } else {
                 SendCmd "camera mode persp"
@@ -1163,13 +1163,13 @@ itcl::body Rappture::VtkHeightmapViewer::CurrentDatasets {args} {
 
 itcl::body Rappture::VtkHeightmapViewer::CameraReset {} {
     array set _view {
-        qw      0.36
-        qx      0.25
-        qy      0.50
-        qz      0.70
-        zoom    1.0
-        xpan    0
-        ypan    0 
+        -qw      0.36
+        -qx      0.25
+        -qy      0.50
+        -qz      0.70
+        -xpan    0
+        -ypan    0
+        -zoom    1.0
     }
     if { $_first != "" } {
         set location [$_first hints camera]
@@ -1177,8 +1177,7 @@ itcl::body Rappture::VtkHeightmapViewer::CameraReset {} {
             array set _view $location
         }
     }
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
+    $_arcball quaternion [ViewToQuaternion]
     if {$_settings(-isheightmap) } {
         DoRotate
     }
@@ -1196,18 +1195,18 @@ itcl::body Rappture::VtkHeightmapViewer::CameraReset {} {
 itcl::body Rappture::VtkHeightmapViewer::Zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*1.25}]
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            SendCmd "camera zoom $_view(zoom)"
+            set _view(-zoom) [expr {$_view(-zoom)*0.8}]
+            SendCmd "camera zoom $_view(-zoom)"
         }
         "reset" {
             array set _view {
-                zoom    1.0
-                xpan    0
-                ypan    0 
+                -xpan    0
+                -ypan    0
+                -zoom    1.0
             }
             SendCmd "camera reset"
         }
@@ -1215,8 +1214,8 @@ itcl::body Rappture::VtkHeightmapViewer::Zoom {option} {
 }
 
 itcl::body Rappture::VtkHeightmapViewer::PanCamera {} {
-    set x $_view(xpan)
-    set y $_view(ypan)
+    set x $_view(-xpan)
+    set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
 
@@ -1294,8 +1293,8 @@ itcl::body Rappture::VtkHeightmapViewer::Pan {option x y} {
             set h [winfo height $itk_component(view)]
             set x [expr $x / double($w)]
             set y [expr $y / double($h)]
-            set _view(xpan) [expr $_view(xpan) + $x]
-            set _view(ypan) [expr $_view(ypan) + $y]
+            set _view(-xpan) [expr $_view(-xpan) + $x]
+            set _view(-ypan) [expr $_view(-ypan) + $y]
             PanCamera
             return
         }
@@ -1317,8 +1316,8 @@ itcl::body Rappture::VtkHeightmapViewer::Pan {option x y} {
             set dy [expr ($_click(y) - $y)/double($h)]
             set _click(x) $x
             set _click(y) $y
-            set _view(xpan) [expr $_view(xpan) - $dx]
-            set _view(ypan) [expr $_view(ypan) - $dy]
+            set _view(-xpan) [expr $_view(-xpan) - $dx]
+            set _view(-ypan) [expr $_view(-ypan) - $dy]
             PanCamera
         }
         "release" {
@@ -1534,7 +1533,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		$itk_component(opacity_l) configure -state normal
 		$itk_component(scale_l) configure -state normal
 		$itk_component(outline) configure -state disabled
-                if {$_view(ortho)} {
+                if {$_view(-ortho)} {
                     SendCmd "camera mode ortho"
                 } else {
                     SendCmd "camera mode persp"
@@ -1557,7 +1556,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
             ResetAxes
             if { $bool } {
-                set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                set q [ViewToQuaternion]
                 $_arcball quaternion $q
                 SendCmd "camera orient $q" 
             } else {
@@ -1833,8 +1832,8 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
         if { !$_reset } {
-            SendCmd "outline color $rgb"
             SendCmd "axis color all $rgb"
+            SendCmd "outline color $rgb"
         }
     }
 }
@@ -2116,11 +2115,11 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _view($tag)]
+            -textvariable [itcl::scope _view(-$tag)]
         bind $inner.${tag} <Return> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this camera set -${tag}]
         bind $inner.${tag} <KP_Enter> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this camera set -${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
@@ -2129,8 +2128,8 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
     }
     checkbutton $inner.ortho \
         -text "Orthographic Projection" \
-        -variable [itcl::scope _view(ortho)] \
-        -command [itcl::code $this camera set ortho] \
+        -variable [itcl::scope _view(-ortho)] \
+        -command [itcl::code $this camera set -ortho] \
         -font "Arial 9"
     blt::table $inner \
             $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
@@ -2151,30 +2150,30 @@ itcl::body Rappture::VtkHeightmapViewer::camera {option args} {
             puts [array get _view]
         }
         "set" {
-            set who [lindex $args 0]
-            set x $_view($who)
+            set what [lindex $args 0]
+            set x $_view($what)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
                 return
             }
-            switch -- $who {
-                "ortho" {
-                    if {$_view(ortho)} {
+            switch -- $what {
+                "-ortho" {
+                    if {$_view($what)} {
                         SendCmd "camera mode ortho"
                     } else {
                         SendCmd "camera mode persp"
                     }
                 }
-                "xpan" - "ypan" {
+                "-xpan" - "-ypan" {
                     PanCamera
                 }
-                "qx" - "qy" - "qz" - "qw" {
-                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                "-qx" - "-qy" - "-qz" - "-qw" {
+                    set q [ViewToQuaternion]
                     $_arcball quaternion $q
                     EventuallyRotate $q
                 }
-                "zoom" {
-                    SendCmd "camera zoom $_view(zoom)"
+                "-zoom" {
+                    SendCmd "camera zoom $_view($what)"
                 }
             }
         }
@@ -2606,16 +2605,16 @@ itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } {
         top    "1 0 0 0"
         bottom "0 1 0 0"
     }
-    foreach name { qw qx qy qz } value $positions($side) {
+    foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
     } 
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
     SendCmd "camera reset"
-    set _view(xpan) 0
-    set _view(ypan) 0
-    set _view(zoom) 1.0
+    set _view(-xpan) 0
+    set _view(-ypan) 0
+    set _view(-zoom) 1.0
 }
 
 itcl::body Rappture::VtkHeightmapViewer::UpdateContourList {} { 
