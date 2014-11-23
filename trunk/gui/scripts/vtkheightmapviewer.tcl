@@ -217,32 +217,32 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-        -axisflymode		"static"
+        -axisflymode            "static"
         -axislabels             1
-        -axisminorticks		1
-        -axisvisible		1
+        -axisminorticks         1
+        -axisvisible            1
         -colormap               BCGYR
         -colormapdiscrete       0
         -colormapvisible        1
-        -edges			0
-        -field			"Default"
-        -heightmapscale		50
-        -isheightmap		0
+        -edges                  0
+        -field                  "Default"
+        -heightmapscale         50
+        -isheightmap            0
         -isolinecolor           black
         -isolinesvisible        1
         -legendvisible          1
-        -lighting		1
-        -numisolines		10
+        -lighting               1
+        -numisolines            10
         -opacity                100
-        -outline		0
-        -savelighting		1
-        -saveopacity		100
-        -saveoutline		0
-        -stretchtofit		0
-        -wireframe		0
-        -xgrid		        0
-        -ygrid		        0
-        -zgrid		        0
+        -outline                0
+        -savelighting           1
+        -saveopacity            100
+        -saveoutline            0
+        -stretchtofit           0
+        -wireframe              0
+        -xgrid                  0
+        -ygrid                  0
+        -zgrid                  0
     }
     array set _changed {
         -colormap               0
@@ -1379,11 +1379,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "-xgrid" - "-ygrid" - "-zgrid" {
-            set axis [string tolower [string range $what 1 1]]
-            set bool $_settings($what)
-            SendCmd "axis grid $axis $bool"
-        }
         "-background" {
             set bg [$itk_component(background) value]
 	    array set fgcolors {
@@ -1667,6 +1662,11 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "heightmap wireframe $bool"
         }
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            SendCmd "axis grid $axis $bool"
+        }
 	default {
             error "don't know how to fix $what"
         }
@@ -1778,7 +1778,6 @@ itcl::body Rappture::VtkHeightmapViewer::SetCurrentColormap { name } {
     set _currentColormap $name
     SendCmd "heightmap colormap $_currentColormap"
 }
-
 
 #
 # BuildColormap --
@@ -2092,7 +2091,6 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
     blt::table configure $inner r3 -height 0.125i
 }
 
-
 itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
         -title "Camera Settings" \
@@ -2111,6 +2109,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -2138,7 +2137,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
