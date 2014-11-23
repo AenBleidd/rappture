@@ -1174,15 +1174,15 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             set extents [$dataobj extents $comp]
             # I have a field. Is a vector field or a volume field?
             if { !$isvtk && $extents == 1 } {
-                set cmd "volume data follows $nbytes $tag\n"
+                SendCmd "volume data follows $nbytes $tag"
             } else {
                 set cmd [FlowCmd $dataobj $comp $nbytes $extents]
                 if { $cmd == "" } {
                     puts stderr "no command"
                     continue
                 }
+                append _outbuf $cmd
             }
-            append _outbuf $cmd
             append _outbuf $data
             NameTransferFunc $dataobj $comp
             set _recvObjs($tag) 1

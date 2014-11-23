@@ -6,7 +6,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2005  Purdue Research Foundation
+#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -62,7 +62,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     public method scale {args}
 
     # The following methods are only used by this class.
-
     private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
@@ -228,7 +227,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         -qz              0.146447
         -xpan            0
         -ypan            0
-        -zoom            1.0 
+        -zoom            1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -240,38 +239,38 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         values          ""
     }
     array set _settings {
-        -axesvisible                    1
-        -axislabels                     1
-        -axisminorticks                 1
-        -axismode                       "static"
-        -background                     black
-        -colormap                       BCGYR
-        -colormapvisible                1
-        -cutplaneedges                  0
-        -cutplanelighting               1
-        -cutplaneopacity                1.0
-        -cutplanepreinterp              1
-        -cutplanesvisible               0
-        -cutplanewireframe              0
-        -field                          "Default"
-        -isolinecolor                   white
-        -isosurfaceedges                0
-        -isosurfacelighting             1
-        -isosurfaceopacity              0.6
-        -isosurfacevisible              1
-        -isosurfacewireframe            0
-        -legendvisible                  1
-        -numcontours                    10
-        -outline                        0
-        -xcutplaneposition              50
-        -xcutplanevisible               1
-        -xgrid                          0
-        -ycutplaneposition              50
-        -ycutplanevisible               1
-        -ygrid                          0
-        -zcutplaneposition              50
-        -zcutplanevisible               1
-        -zgrid                          0
+        -axesvisible                1
+        -axislabels                 1
+        -axisminorticks             1
+        -axismode                   "static"
+        -background                 black
+        -colormap                   BCGYR
+        -colormapvisible            1
+        -cutplaneedges              0
+        -cutplanelighting           1
+        -cutplaneopacity            1.0
+        -cutplanepreinterp          1
+        -cutplanesvisible           0
+        -cutplanewireframe          0
+        -field                      "Default"
+        -isolinecolor               white
+        -isosurfaceedges            0
+        -isosurfacelighting         1
+        -isosurfaceopacity          0.6
+        -isosurfacevisible          1
+        -isosurfacewireframe        0
+        -legendvisible              1
+        -numcontours                10
+        -outline                    0
+        -xcutplaneposition          50
+        -xcutplanevisible           1
+        -xgrid                      0
+        -ycutplaneposition          50
+        -ycutplanevisible           1
+        -ygrid                      0
+        -zcutplaneposition          50
+        -zcutplanevisible           1
+        -zgrid                      0
     }
     array set _changed {
         -colormap                0
@@ -389,8 +388,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     } errs] != 0 } {
         puts stderr errs=$errs
     }
-    # Legend
 
+    # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
         canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
@@ -594,7 +593,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::add {dataobj {settings ""}} {
     set _obj2ovride($dataobj-raise) $params(-raise)
     $_dispatcher event -idle !rebuild
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
@@ -907,8 +905,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
-            puts $f $bytes
+            set f [open "last.ppm" "w"]
+            fconfigure $f -encoding binary
+            puts -nonewline $f $bytes
             close $f
         }
         $_image(plot) configure -data $bytes
@@ -989,6 +988,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
     StartBufferingCommands
+
     if { $_reset } {
         set _width $w
         set _height $h
@@ -1022,10 +1022,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
-		if 0 { 
-		    set f [open "/tmp/isosurface.vtk" "w"]
-		    puts $f $bytes
-		    close $f
+                if 0 {
+                    set f [open "/tmp/isosurface.vtk" "w"]
+                    fconfigure $f -translation binary -encoding binary
+                    puts -nonewline $f $bytes
+                    close $f
                 }
                 set length [string length $bytes]
                 if { $_reportClientInfo }  {
@@ -1075,6 +1076,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	    if { $label == "" } {
                 set label [string toupper $axis]
 	    }
+            # May be a space in the axis label
 	    SendCmd [list axis name $axis $label]
         }
         if { [array size _fields] < 2 } {
@@ -1184,7 +1186,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::PanCamera {} {
     set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: Rotate click <x> <y>
@@ -1535,7 +1536,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         }
     }
 }
-
 
 #
 # RequestLegend --
@@ -2321,7 +2321,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: Slice move x|y|z <newval>
 #
@@ -2389,7 +2388,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     if { [string match "component*" $fname] } {
 	set title ""
     } else {

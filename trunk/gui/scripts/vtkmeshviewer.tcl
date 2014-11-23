@@ -163,8 +163,8 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     #
     # Populate parser with commands handle incoming requests
     #
-    $_parser alias image    [itcl::code $this ReceiveImage]
-    $_parser alias dataset  [itcl::code $this ReceiveDataset]
+    $_parser alias image [itcl::code $this ReceiveImage]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -735,7 +735,7 @@ itcl::body Rappture::VtkMeshViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
+            set f [open "last.ppm" "w"]
             fconfigure $f -encoding binary
             puts -nonewline $f $bytes
             close $f
@@ -843,6 +843,12 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
             set bytes [$dataobj vtkdata -full]
             if { $bytes == "" } {
                 continue
+            }
+            if 0 {
+                set f [open /tmp/vtkmesh.vtk "w"]
+                fconfigure $f -translation binary -encoding binary
+                puts -nonewline $f $bytes
+                close $f
             }
             set length [string length $bytes]
             if { $_reportClientInfo }  {

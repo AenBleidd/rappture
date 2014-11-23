@@ -917,8 +917,9 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveImage { args } {
     StopWaiting
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
-            puts $f $bytes
+            set f [open "last.ppm" "w"]
+            fconfigure $f -encoding binary
+            puts -nonewline $f $bytes
             close $f
         }
         $_image(plot) configure -data $bytes
@@ -1041,6 +1042,12 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
+		if 0 { 
+                    set f [open /tmp/vtkvolume.vtk "w"]
+                    fconfigure $f -translation binary -encoding binary
+                    puts -nonewline $f $bytes
+                    close $f
+		}
                 set length [string length $bytes]
                 if { $_reportClientInfo }  {
                     set info {}

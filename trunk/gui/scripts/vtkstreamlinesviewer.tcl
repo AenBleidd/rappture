@@ -874,8 +874,9 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
-            puts $f $bytes
+            set f [open "last.ppm" "w"]
+            fconfigure $f -encoding binary
+            puts -nonewline $f $bytes
             close $f
         }
         $_image(plot) configure -data $bytes
@@ -989,7 +990,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 		if 0 { 
                     set f [open /tmp/vtkstreamlines.vtk "w"]
                     fconfigure $f -translation binary -encoding binary
-                    puts $f $bytes
+                    puts -nonewline $f $bytes
                     close $f
 		}
                 if { $_reportClientInfo }  {
