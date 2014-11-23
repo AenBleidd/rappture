@@ -246,6 +246,9 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     set _limits(zmax) 1.0
 
     array set _axis [subst {
+        labels          1
+        minorticks      1
+        visible         1
         xgrid           0
         ygrid           0
         zgrid           0
@@ -258,12 +261,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         xdirection      -1
         ydirection      -1
         zdirection      -1
-        visible         1
-        labels          1
-        minorticks      1
     }]
     array set _settings [subst {
-        legend                  1
         glyphs-edges            0
         glyphs-lighting         1
         glyphs-opacity          100
@@ -271,18 +270,12 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         glyphs-palette          BCGYR
         glyphs-visible          1
         glyphs-wireframe        0
-        polydata-edges          0
-        polydata-lighting       1
-        polydata-opacity        100
-        polydata-outline        0
-        polydata-palette        BCGYR
-        polydata-visible        1
-        polydata-wireframe      0
+        legend                  1
+        molecule-atoms-visible  1
         molecule-atomscale      0.3
+        molecule-bonds-visible  1
         molecule-bondscale      0.075
         molecule-bondstyle      "cylinder"
-        molecule-atoms-visible  1
-        molecule-bonds-visible  1
         molecule-edges          0
         molecule-labels         0
         molecule-lighting       1
@@ -294,6 +287,13 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         molecule-rscale         "covalent"
         molecule-visible        1
         molecule-wireframe      0
+        polydata-edges          0
+        polydata-lighting       1
+        polydata-opacity        100
+        polydata-outline        0
+        polydata-palette        BCGYR
+        polydata-visible        1
+        polydata-wireframe      0
     }]
     itk_component add view {
         canvas $itk_component(plotarea).view \
