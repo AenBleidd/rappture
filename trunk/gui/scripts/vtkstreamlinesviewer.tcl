@@ -193,17 +193,17 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     # X-Cutplane event
     $_dispatcher register !xcutplane
     $_dispatcher dispatch $this !xcutplane \
-        "[itcl::code $this AdjustSetting cutplaneXPosition]; list"
+        "[itcl::code $this AdjustSetting -cutplanexposition]; list"
 
     # Y-Cutplane event
     $_dispatcher register !ycutplane
     $_dispatcher dispatch $this !ycutplane \
-        "[itcl::code $this AdjustSetting cutplaneYPosition]; list"
+        "[itcl::code $this AdjustSetting -cutplaneyposition]; list"
 
     # Z-Cutplane event
     $_dispatcher register !zcutplane
     $_dispatcher dispatch $this !zcutplane \
-        "[itcl::code $this AdjustSetting cutplaneZPosition]; list"
+        "[itcl::code $this AdjustSetting -cutplanezposition]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -227,36 +227,37 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings [subst {
-        axesVisible		1
-        axisLabelsVisible	1
-        axisMinorTicks          1
-        axisXGrid		0
-        axisYGrid		0
-        axisZGrid		0
-        cutplaneEdges		0
-        cutplaneLighting	1
-        cutplaneOpacity		100
-        cutplaneVisible		0
-        cutplaneWireframe	0
-        cutplaneXPosition	50
-        cutplaneXVisible	1
-        cutplaneYPosition	50
-        cutplaneYVisible	1
-        cutplaneZPosition	50
-        cutplaneZVisible	1
-        legendVisible           1
-        streamlinesLighting     1
-        streamlinesMode		lines
-        streamlinesNumSeeds	200
-        streamlinesOpacity	100
-        streamlinesScale        1
-        streamlinesSeedsVisible 0
-        streamlinesVisible	1
-        volumeEdges		0
-        volumeLighting		1
-        volumeOpacity		40
-        volumeVisible		1
-        volumeWireframe		0
+        -axesvisible                1
+        -axislabelsvisible          1
+        -axisminorticks             1
+        -axismode                   "static"
+        -cutplaneedges              0
+        -cutplanelighting           1
+        -cutplaneopacity            100
+        -cutplanevisible            0
+        -cutplanewireframe          0
+        -cutplanexposition          50
+        -cutplanexvisible           1
+        -cutplaneyposition          50
+        -cutplaneyvisible           1
+        -cutplanezposition          50
+        -cutplanezvisible           1
+        -legendvisible              1
+        -streamlineslighting        1
+        -streamlinesmode            lines
+        -streamlinesnumseeds        200
+        -streamlinesopacity         100
+        -streamlinesscale           1
+        -streamlinesseedsvisible    0
+        -streamlinesvisible         1
+        -volumeedges                0
+        -volumelighting             1
+        -volumeopacity              40
+        -volumevisible              1
+        -volumewireframe            0
+        -xgrid                      0
+        -ygrid                      0
+        -zgrid                      0
     }]
 
     itk_component add view {
@@ -335,8 +336,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         Rappture::PushButton $f.volume \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -variable [itcl::scope _settings(volumeVisible)] \
-            -command [itcl::code $this AdjustSetting volumeVisible] 
+            -variable [itcl::scope _settings(-volumevisible)] \
+            -command [itcl::code $this AdjustSetting -volumevisible] 
     }
     $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
@@ -347,8 +348,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         Rappture::PushButton $f.streamlines \
             -onimage [Rappture::icon streamlines-on] \
             -offimage [Rappture::icon streamlines-off] \
-            -variable [itcl::scope _settings(streamlinesVisible)] \
-            -command [itcl::code $this AdjustSetting streamlinesVisible] \
+            -variable [itcl::scope _settings(-streamlinesvisible)] \
+            -command [itcl::code $this AdjustSetting -streamlinesvisible] \
     }
     $itk_component(streamlines) select
     Rappture::Tooltip::for $itk_component(streamlines) \
@@ -359,8 +360,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings(cutplaneVisible)] \
-            -command [itcl::code $this AdjustSetting cutplaneVisible] 
+            -variable [itcl::scope _settings(-cutplanevisible)] \
+            -command [itcl::code $this AdjustSetting -cutplanevisible] 
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -967,8 +968,8 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	set _height $h
 	$_arcball resize $w $h
 	DoResize
-	InitSettings axisXGrid axisYGrid axisZGrid axis-mode \
-	    axesVisible axisLabelsVisible axisMinorTicks
+	InitSettings -xgrid -ygrid -zgrid -axismode \
+	    -axesvisible -axislabelsvisible -axisminorticks
         # This "imgflush" is to force an image returned before vtkvis starts
         # reading a (big) dataset.  This will display an empty plot with axes
         # at the correct image size.
@@ -1061,15 +1062,15 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     }
 
     if { $_reset } {
-        InitSettings streamlinesSeedsVisible streamlinesOpacity \
-            streamlinesVisible streamlinesColormap \
-            streamlinesLighting \
-            streamlinesColormap field \
-            volumeVisible volumeEdges volumeLighting volumeOpacity \
-            volumeWireframe \
-	    cutplaneVisible \
-	    cutplaneXPosition cutplaneYPosition cutplaneZPosition \
-	    cutplaneXVisible cutplaneYVisible cutplaneZVisible
+        InitSettings -streamlinesseedsvisible -streamlinesopacity \
+            -streamlinesvisible -streamlinescolormap \
+            -streamlineslighting \
+            -streamlinescolormap -field \
+            -volumevisible -volumeedges -volumelighting -volumeopacity \
+            -volumewireframe \
+	    -cutplanevisible \
+	    -cutplanexposition -cutplaneyposition -cutplanezposition \
+	    -cutplanexvisible -cutplaneyvisible -cutplanezvisible
 
 	# Reset the camera and other view parameters
 	$_arcball quaternion [ViewToQuaternion]
@@ -1302,9 +1303,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::InitSettings { args } {
     foreach spec $args {
-        if { [info exists _settings($_first-$spec)] } {
+        if { [info exists _settings($_first${spec})] } {
             # Reset global setting with dataobj specific setting
-            set _settings($spec) $_settings($_first-$spec)
+            set _settings($spec) $_settings($_first${spec})
         }
         AdjustSetting $spec
     }
@@ -1322,80 +1323,47 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "volumeOpacity" {
-            set val $_settings($what)
-            set sval [expr { 0.01 * double($val) }]
-            SendCmd "polydata opacity $sval"
-        }
-        "volumeWireframe" {
-            set bool $_settings($what)
-            SendCmd "polydata wireframe $bool"
-        }
-        "volumeVisible" {
-            set bool $_settings($what)
-            SendCmd "polydata visible $bool"
-            if { $bool } {
-                Rappture::Tooltip::for $itk_component(volume) \
-                    "Hide the volume"
-            } else {
-                Rappture::Tooltip::for $itk_component(volume) \
-                    "Show the volume"
-            }
-        }
-        "volumeLighting" {
-            set bool $_settings($what)
-            SendCmd "polydata lighting $bool"
-        }
-        "volumeEdges" {
-            set bool $_settings($what)
-            SendCmd "polydata edges $bool"
-        }
-        "axesVisible" {
+        "-axesvisible" {
             set bool $_settings($what)
             SendCmd "axis visible all $bool"
         }
-        "axisLabelsVisible" {
+        "-axislabelsvisible" {
             set bool $_settings($what)
             SendCmd "axis labels all $bool"
         }
-        "axisMinorTicks" {
+        "-axisminorticks" {
             set bool $_settings($what)
             SendCmd "axis minticks all $bool"
         }
-        "axisXGrid" - "axisYGrid" - "axisZGrid" {
-            set axis [string tolower [string range $what 4 4]]
-            set bool $_settings($what)
-            SendCmd "axis grid $axis $bool"
-        }
-        "axis-mode" {
+        "-axismode" {
             set mode [$itk_component(axismode) value]
             set mode [$itk_component(axismode) translate $mode]
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
-        "cutplaneEdges" {
+        "-cutplaneedges" {
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
         }
-        "cutplaneVisible" {
+        "-cutplanevisible" {
             set bool $_settings($what)
             SendCmd "cutplane visible $bool"
         }
-        "cutplaneWireframe" {
+        "-cutplanewireframe" {
             set bool $_settings($what)
             SendCmd "cutplane wireframe $bool"
         }
-        "cutplaneLighting" {
+        "-cutplanelighting" {
             set bool $_settings($what)
             SendCmd "cutplane lighting $bool"
         }
-        "cutplaneOpacity" {
+        "-cutplaneopacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "cutplane opacity $sval"
         }
-        "cutplaneXVisible" - "cutplaneYVisible" - "cutplaneZVisible" {
-            set axis [string tolower [string range $what 8 8]]
+        "-cutplanexvisible" - "-cutplaneyvisible" - "-cutplanezvisible" {
+            set axis [string range $what 9 9]
             set bool $_settings($what)
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
@@ -1406,73 +1374,16 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             }
             SendCmd "cutplane axis $axis $bool"
         }
-        "cutplaneXPosition" - "cutplaneYPosition" - "cutplaneZPosition" {
-            set axis [string tolower [string range $what 8 8]]
+        "-cutplanexposition" - "-cutplaneyposition" - "-cutplanezposition" {
+            set axis [string range $what 9 9]
             set pos [expr $_settings($what) * 0.01]
             SendCmd "cutplane slice ${axis} ${pos}"
             set _cutplanePending 0
         }
-        "streamlinesSeedsVisible" {
-            set bool $_settings($what)
-            SendCmd "streamlines seed visible $bool"
-        }
-        "streamlinesNumSeeds" {
-            set density $_settings($what)
-            EventuallyReseed $density
-        }
-        "streamlinesVisible" {
-            set bool $_settings($what)
-            SendCmd "streamlines visible $bool"
-            if { $bool } {
-                Rappture::Tooltip::for $itk_component(streamlines) \
-                    "Hide the streamlines"
-            } else {
-                Rappture::Tooltip::for $itk_component(streamlines) \
-                    "Show the streamlines"
-            }
-        }
-        "streamlinesMode" {
-            set mode [$itk_component(streammode) value]
-            set _settings(streamlinesMode) $mode
-            switch -- $mode {
-                "lines" {
-                    SendCmd "streamlines lines"
-                }
-                "ribbons" {
-                    SendCmd "streamlines ribbons 3 0"
-                }
-                "tubes" {
-                    SendCmd "streamlines tubes 5 3"
-                }
-            }
-        }
-        "streamlinesColormap" {
-            set colormap [$itk_component(colormap) value]
-            set _settings(streamlinesColormap) $colormap
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach {dataobj comp} [split $dataset -] break
-                ChangeColormap $dataobj $comp $colormap
-            }
-            set _legendPending 1
-        }
-        "streamlinesOpacity" {
-            set val $_settings($what)
-            set sval [expr { 0.01 * double($val) }]
-            SendCmd "streamlines opacity $sval"
-        }
-        "streamlinesScale" {
-            set val $_settings($what)
-            set sval [expr { 0.01 * double($val) }]
-            SendCmd "streamlines scale $sval $sval $sval"
-        }
-        "streamlinesLighting" {
-            set bool $_settings($what)
-            SendCmd "streamlines lighting $bool"
-        }
-        "field" {
+        "-field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(field) $fname
+            set _settings($what) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
@@ -1495,6 +1406,96 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             SendCmd "streamlines colormode $_colorMode $_curFldName"
             SendCmd "cutplane colormode $_colorMode $_curFldName"
             DrawLegend
+        }
+        "-streamlinesseedsvisible" {
+            set bool $_settings($what)
+            SendCmd "streamlines seed visible $bool"
+        }
+        "-streamlinesnumseeds" {
+            set density $_settings($what)
+            EventuallyReseed $density
+        }
+        "-streamlinesvisible" {
+            set bool $_settings($what)
+            SendCmd "streamlines visible $bool"
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(streamlines) \
+                    "Hide the streamlines"
+            } else {
+                Rappture::Tooltip::for $itk_component(streamlines) \
+                    "Show the streamlines"
+            }
+        }
+        "-streamlinesmode" {
+            set mode [$itk_component(streammode) value]
+            set _settings($what) $mode
+            switch -- $mode {
+                "lines" {
+                    SendCmd "streamlines lines"
+                }
+                "ribbons" {
+                    SendCmd "streamlines ribbons 3 0"
+                }
+                "tubes" {
+                    SendCmd "streamlines tubes 5 3"
+                }
+            }
+        }
+        "-streamlinescolormap" {
+            set colormap [$itk_component(colormap) value]
+            set _settings($what) $colormap
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+                ChangeColormap $dataobj $comp $colormap
+            }
+            set _legendPending 1
+        }
+        "-streamlinesopacity" {
+            set val $_settings($what)
+            set sval [expr { 0.01 * double($val) }]
+            SendCmd "streamlines opacity $sval"
+        }
+        "-streamlinesscale" {
+            set val $_settings($what)
+            set sval [expr { 0.01 * double($val) }]
+            SendCmd "streamlines scale $sval $sval $sval"
+        }
+        "-streamlineslighting" {
+            set bool $_settings($what)
+            SendCmd "streamlines lighting $bool"
+        }
+        "-volumeopacity" {
+            set val $_settings($what)
+            set sval [expr { 0.01 * double($val) }]
+            SendCmd "polydata opacity $sval"
+        }
+        "-volumewireframe" {
+            set bool $_settings($what)
+            SendCmd "polydata wireframe $bool"
+        }
+        "-volumevisible" {
+            set bool $_settings($what)
+            SendCmd "polydata visible $bool"
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(volume) \
+                    "Hide the volume"
+            } else {
+                Rappture::Tooltip::for $itk_component(volume) \
+                    "Show the volume"
+            }
+        }
+        "-volumelighting" {
+            set bool $_settings($what)
+            SendCmd "polydata lighting $bool"
+        }
+        "-volumeedges" {
+            set bool $_settings($what)
+            SendCmd "polydata edges $bool"
+        }
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string range $what 1 1]
+            set bool $_settings($what)
+            SendCmd "axis grid $axis $bool"
         }
         default {
             error "don't know how to fix $what"
@@ -1579,7 +1580,6 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     }
 }
 
-
 #
 # BuildColormap --
 #
@@ -1589,10 +1589,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name styles } {
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(volumeOpacity)] } {
-        set _settings(volumeOpacity) $style(-opacity)
+    if { ![info exists _settings(-volumeopacity)] } {
+        set _settings(-volumeopacity) $style(-opacity)
     }
-    set max $_settings(volumeOpacity)
+    set max $_settings(-volumeopacity)
 
     set wmap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
@@ -1632,34 +1632,34 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildVolumeTab {} {
 
     checkbutton $inner.volume \
         -text "Show Volume" \
-        -variable [itcl::scope _settings(volumeVisible)] \
-        -command [itcl::code $this AdjustSetting volumeVisible] \
+        -variable [itcl::scope _settings(-volumevisible)] \
+        -command [itcl::code $this AdjustSetting -volumevisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(volumeWireframe)] \
-        -command [itcl::code $this AdjustSetting volumeWireframe] \
+        -variable [itcl::scope _settings(-volumewireframe)] \
+        -command [itcl::code $this AdjustSetting -volumewireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(volumeLighting)] \
-        -command [itcl::code $this AdjustSetting volumeLighting] \
+        -variable [itcl::scope _settings(-volumelighting)] \
+        -command [itcl::code $this AdjustSetting -volumelighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(volumeEdges)] \
-        -command [itcl::code $this AdjustSetting volumeEdges] \
+        -variable [itcl::scope _settings(-volumeedges)] \
+        -command [itcl::code $this AdjustSetting -volumeedges] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(volumeOpacity)] \
+        -variable [itcl::scope _settings(-volumeopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting volumeOpacity]
+        -command [itcl::code $this AdjustSetting -volumeopacity]
 
     blt::table $inner \
         0,0 $inner.wireframe -anchor w -pady 2 -cspan 2 \
@@ -1671,7 +1671,6 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildVolumeTab {} {
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r4 c1 -resize expand
 }
-
 
 itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 
@@ -1685,20 +1684,20 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 
     checkbutton $inner.streamlines \
         -text "Show Streamlines" \
-        -variable [itcl::scope _settings(streamlinesVisible)] \
-        -command [itcl::code $this AdjustSetting streamlinesVisible] \
+        -variable [itcl::scope _settings(-streamlinesvisible)] \
+        -command [itcl::code $this AdjustSetting -streamlinesvisible] \
         -font "Arial 9"
     
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(streamlinesLighting)] \
-        -command [itcl::code $this AdjustSetting streamlinesLighting] \
+        -variable [itcl::scope _settings(-streamlineslighting)] \
+        -command [itcl::code $this AdjustSetting -streamlineslighting] \
         -font "Arial 9"
 
     checkbutton $inner.seeds \
         -text "Show Seeds" \
-        -variable [itcl::scope _settings(streamlinesSeedsVisible)] \
-        -command [itcl::code $this AdjustSetting streamlinesSeedsVisible] \
+        -variable [itcl::scope _settings(-streamlinesseedsvisible)] \
+        -command [itcl::code $this AdjustSetting -streamlinesseedsvisible] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1709,36 +1708,36 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         "lines"    "lines" \
         "ribbons"   "ribbons" \
         "tubes"     "tubes" 
-    $itk_component(streammode) value $_settings(streamlinesMode)
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting streamlinesMode]
+    $itk_component(streammode) value $_settings(-streamlinesmode)
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -streamlinesmode]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(streamlinesOpacity)] \
+        -variable [itcl::scope _settings(-streamlinesopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting streamlinesOpacity]
+        -command [itcl::code $this AdjustSetting -streamlinesopacity]
 
     label $inner.density_l -text "No. Seeds" -font "Arial 9"
     ::scale $inner.density -from 1 -to 1000 -orient horizontal \
-        -variable [itcl::scope _settings(streamlinesNumSeeds)] \
+        -variable [itcl::scope _settings(-streamlinesnumseeds)] \
         -width 10 \
         -showvalue on \
-        -command [itcl::code $this AdjustSetting streamlinesNumSeeds]
+        -command [itcl::code $this AdjustSetting -streamlinesnumseeds]
 
     label $inner.scale_l -text "Scale" -font "Arial 9"
     ::scale $inner.scale -from 1 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(streamlinesScale)] \
+        -variable [itcl::scope _settings(-streamlinesscale)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting streamlinesScale]
+        -command [itcl::code $this AdjustSetting -streamlinesscale]
 
     label $inner.field_l -text "Color by" -font "Arial 9" 
     itk_component add field {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
     bind $inner.field <<Value>> \
-        [itcl::code $this AdjustSetting field]
+        [itcl::code $this AdjustSetting -field]
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9" 
     itk_component add colormap {
@@ -1748,7 +1747,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
-        [itcl::code $this AdjustSetting streamlinesColormap]
+        [itcl::code $this AdjustSetting -streamlinescolormap]
 
     blt::table $inner \
         0,0 $inner.field_l     -anchor w -pady 2  \
@@ -1780,35 +1779,35 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Axes" \
-        -variable [itcl::scope _settings(axesVisible)] \
-        -command [itcl::code $this AdjustSetting axesVisible] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
         -text "Axis Labels" \
-        -variable [itcl::scope _settings(axisLabelsVisible)] \
-        -command [itcl::code $this AdjustSetting axisLabelsVisible] \
+        -variable [itcl::scope _settings(-axislabelsvisible)] \
+        -command [itcl::code $this AdjustSetting -axislabelsvisible] \
         -font "Arial 9"
     label $inner.grid_l -text "Grid" -font "Arial 9" 
     checkbutton $inner.xgrid \
         -text "X" \
-        -variable [itcl::scope _settings(axisXGrid)] \
-        -command [itcl::code $this AdjustSetting axisXGrid] \
+        -variable [itcl::scope _settings(-xgrid)] \
+        -command [itcl::code $this AdjustSetting -xgrid] \
         -font "Arial 9"
     checkbutton $inner.ygrid \
         -text "Y" \
-        -variable [itcl::scope _settings(axisYGrid)] \
-        -command [itcl::code $this AdjustSetting axisYGrid] \
+        -variable [itcl::scope _settings(-ygrid)] \
+        -command [itcl::code $this AdjustSetting -ygrid] \
         -font "Arial 9"
     checkbutton $inner.zgrid \
         -text "Z" \
-        -variable [itcl::scope _settings(axisZGrid)] \
-        -command [itcl::code $this AdjustSetting axisZGrid] \
+        -variable [itcl::scope _settings(-zgrid)] \
+        -command [itcl::code $this AdjustSetting -zgrid] \
         -font "Arial 9"
     checkbutton $inner.minorticks \
         -text "Minor Ticks" \
-        -variable [itcl::scope _settings(axisMinorTicks)] \
-        -command [itcl::code $this AdjustSetting axisMinorTicks] \
+        -variable [itcl::scope _settings(-axisminorticks)] \
+        -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
     label $inner.mode_l -text "Mode" -font "Arial 9" 
@@ -1821,8 +1820,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"         
-    $itk_component(axismode) value "static"
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
+    $itk_component(axismode) value $_settings(-axismode)
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 4 \
@@ -1858,6 +1857,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
         0,1 $inner.view -anchor w -pady 2
+    blt::table configure $inner r0 -resize none
 
     set labels { qx qy qz qw xpan ypan zoom }
     set row 1
@@ -1885,7 +1885,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
@@ -1902,43 +1902,43 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 
     checkbutton $inner.visible \
         -text "Show Cutplanes" \
-        -variable [itcl::scope _settings(cutplaneVisible)] \
-        -command [itcl::code $this AdjustSetting cutplaneVisible] \
+        -variable [itcl::scope _settings(-cutplanevisible)] \
+        -command [itcl::code $this AdjustSetting -cutplanevisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(cutplaneWireframe)] \
-        -command [itcl::code $this AdjustSetting cutplaneWireframe] \
+        -variable [itcl::scope _settings(-cutplanewireframe)] \
+        -command [itcl::code $this AdjustSetting -cutplanewireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(cutplaneLighting)] \
-        -command [itcl::code $this AdjustSetting cutplaneLighting] \
+        -variable [itcl::scope _settings(-cutplanelighting)] \
+        -command [itcl::code $this AdjustSetting -cutplanelighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(cutplaneEdges)] \
-        -command [itcl::code $this AdjustSetting cutplaneEdges] \
+        -variable [itcl::scope _settings(-cutplaneedges)] \
+        -command [itcl::code $this AdjustSetting -cutplaneedges] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(cutplaneOpacity)] \
+        -variable [itcl::scope _settings(-cutplaneopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting cutplaneOpacity]
-    $inner.opacity set $_settings(cutplaneOpacity)
+        -command [itcl::code $this AdjustSetting -cutplaneopacity]
+    $inner.opacity set $_settings(-cutplaneopacity)
 
     # X-value slicer...
     itk_component add xCutButton {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane-red] \
             -offimage [Rappture::icon x-cutplane-red] \
-            -command [itcl::code $this AdjustSetting cutplaneXVisible] \
-            -variable [itcl::scope _settings(cutplaneXVisible)]
+            -command [itcl::code $this AdjustSetting -cutplanexvisible] \
+            -variable [itcl::scope _settings(-cutplanexvisible)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X-axis cutplane on/off"
@@ -1949,7 +1949,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
-            -variable [itcl::scope _settings(cutplaneXPosition)] \
+            -variable [itcl::scope _settings(-cutplanexposition)] \
 	    -foreground red3 -font "Arial 9 bold"
     } {
         usual
@@ -1966,8 +1966,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane-green] \
             -offimage [Rappture::icon y-cutplane-green] \
-            -command [itcl::code $this AdjustSetting cutplaneYVisible] \
-            -variable [itcl::scope _settings(cutplaneYVisible)]
+            -command [itcl::code $this AdjustSetting -cutplaneyvisible] \
+            -variable [itcl::scope _settings(-cutplaneyvisible)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y-axis cutplane on/off"
@@ -1978,7 +1978,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
-            -variable [itcl::scope _settings(cutplaneYPosition)] \
+            -variable [itcl::scope _settings(-cutplaneyposition)] \
 	    -foreground green3 -font "Arial 9 bold"
     } {
         usual
@@ -1995,8 +1995,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane-blue] \
             -offimage [Rappture::icon z-cutplane-blue] \
-            -command [itcl::code $this AdjustSetting cutplaneZVisible] \
-            -variable [itcl::scope _settings(cutplaneZVisible)]
+            -command [itcl::code $this AdjustSetting -cutplanezvisible] \
+            -variable [itcl::scope _settings(-cutplanezvisible)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z-axis cutplane on/off"
@@ -2007,7 +2007,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
-            -variable [itcl::scope _settings(cutplaneZPosition)] \
+            -variable [itcl::scope _settings(-cutplanezposition)] \
 	    -foreground blue3 -font "Arial 9 bold"
     } {
         usual
@@ -2170,11 +2170,11 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     SendCmd "cutplane add $tag"
     SendCmd "polydata add $tag"
     SendCmd "polydata colormode constant {} $tag"
-    set _settings(volumeEdges) $settings(-edges)
-    set _settings(volumeLighting) $settings(-lighting)
-    set _settings(volumeOpacity) $settings(-opacity)
-    set _settings(volumeWireframe) $settings(-wireframe)
-    set _settings(volumeOpacity) [expr $settings(-opacity) * 100.0]
+    set _settings(-volumeedges) $settings(-edges)
+    set _settings(-volumelighting) $settings(-lighting)
+    set _settings(-volumeopacity) $settings(-opacity)
+    set _settings(-volumewireframe) $settings(-wireframe)
+    set _settings(-volumeopacity) [expr $settings(-opacity) * 100.0]
     StopBufferingCommands
     SetColormap $dataobj $comp
 }
@@ -2232,7 +2232,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend {} {
     } else {
         set title $fname
     }
-    if { $_settings(legendVisible) } {
+    if { $_settings(-legendvisible) } {
         set x [expr $w - 2]
         if { [$c find withtag "legend"] == "" } {
             set y 2 
@@ -2410,7 +2410,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
         }
         invoke {
             $itk_component(field) value $_curFldLabel
-            AdjustSetting field
+            AdjustSetting -field
         }
         default {
             error "bad option \"$option\": should be post, unpost, select"
