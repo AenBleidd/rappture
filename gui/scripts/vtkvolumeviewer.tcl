@@ -62,28 +62,21 @@ itcl::class Rappture::VtkVolumeViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
+    private method AddNewMarker { x y } 
     private method BuildVolumeComponents {}
     private method ComputeAlphamap { cname } 
     private method ComputeTransferFunction { cname }
     private method GetColormap { cname color } 
     private method GetDatasetsWithComponent { cname } 
     private method HideAllMarkers {} 
-    private method AddNewMarker { x y } 
     private method InitComponentSettings { cname } 
     private method ParseLevelsOption { cname levels }
     private method ParseMarkersOption { cname markers }
+    private method RemoveMarker { x y }
     private method ResetColormap { cname color }
     private method SendTransferFunctions {}
     private method SetInitialTransferFunction { dataobj cname }
-    private method SetOrientation { side }
     private method SwitchComponent { cname } 
-    private method RemoveMarker { x y }
-    private method ViewToQuaternion {} { 
-        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
-    }
-    private method QuaternionToView { q } { 
-        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
-    }
 
     private variable _alphamap
     private variable _current "";       # Currently selected component 
@@ -97,24 +90,8 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _parsedFunction
     private variable _transferFunctionEditors
 
-    protected method Connect {}
-    protected method CurrentDatasets {args}
-    protected method Disconnect {}
-    protected method DoResize {}
-    protected method DoRotate {}
-    protected method AdjustSetting {what {value ""}}
-    protected method InitSettings { args  }
-    protected method Pan {option x y}
-    protected method Pick {x y}
-    protected method Rebuild {}
-    protected method ReceiveDataset { args }
-    protected method ReceiveImage { args }
-    protected method ReceiveLegend { colormap title vmin vmax size }
-    protected method Rotate {option x y}
-    protected method Zoom {option}
-
     # The following methods are only used by this class.
-
+    private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildCutplaneTab {}
@@ -124,6 +101,11 @@ itcl::class Rappture::VtkVolumeViewer {
     private method DrawLegend {}
     private method DrawLegendOld {}
     private method Combo { option }
+    private method Connect {}
+    private method CurrentDatasets {args}
+    private method Disconnect {}
+    private method DoResize {}
+    private method DoRotate {}
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
     private method EventuallyRequestLegend {} 
@@ -131,14 +113,30 @@ itcl::class Rappture::VtkVolumeViewer {
     private method EventuallySetCutplane { axis args } 
     private method GetImage { args } 
     private method GetVtkData { args } 
+    private method InitSettings { args  }
     private method IsValidObject { dataobj } 
     private method LeaveLegend {}
-    private method MotionLegend { x y } 
+    private method MotionLegend { x y }
+    private method Pan {option x y}
     private method PanCamera {}
+    private method Pick {x y}
+    private method QuaternionToView { q } { 
+        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    }
+    private method Rebuild {}
+    private method ReceiveDataset { args }
+    private method ReceiveImage { args }
+    private method ReceiveLegend { colormap title vmin vmax size }
     private method RequestLegend {}
+    private method Rotate {option x y}
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
+    private method SetOrientation { side }
     private method Slice {option args} 
+    private method ViewToQuaternion {} { 
+        return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
+    }
+    private method Zoom {option}
 
     private variable _arcball ""
     private variable _dlist ""     ;    # list of data objects
@@ -233,14 +231,14 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
+        -ortho           0
         -qw              0.853553
         -qx              -0.353553
         -qy              0.353553
         -qz              0.146447
-        -zoom            1.0 
         -xpan            0
         -ypan            0
-        -ortho           0
+        -zoom            1.0 
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -413,8 +411,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         [itcl::code $this Rotate drag %x %y]
     bind $itk_component(view) <ButtonRelease-1> \
         [itcl::code $this Rotate release %x %y]
-    bind $itk_component(view) <Configure> \
-        [itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(view) <ButtonPress-2> \
@@ -1056,9 +1052,9 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $length
                     lappend info "dataset_tag"   $tag
-                    SendCmd [list "clientinfo" $info]
+                    SendCmd "clientinfo [list $info]"
                 }
-                append _outbuf "dataset add $tag data follows $length\n"
+                SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
@@ -1208,9 +1204,9 @@ itcl::body Rappture::VtkVolumeViewer::Zoom {option} {
                 -qx      -0.353553
                 -qy      0.353553
                 -qz      0.146447
+                -xpan    0
+                -ypan    0
                 -zoom    1.0
-                -xpan   0
-                -ypan   0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1230,7 +1226,6 @@ itcl::body Rappture::VtkVolumeViewer::PanCamera {} {
     set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: Rotate click <x> <y>

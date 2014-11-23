@@ -112,6 +112,9 @@ itcl::class Rappture::NanovisViewer {
     private method PanCamera {}
     private method ParseLevelsOption { cname levels }
     private method ParseMarkersOption { cname markers }
+    private method QuaternionToView { q } { 
+        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    }
     private method Rebuild {}
     private method ReceiveData { args }
     private method ReceiveImage { args }
@@ -125,10 +128,10 @@ itcl::class Rappture::NanovisViewer {
     private method SlicerTip {axis}
     private method SwitchComponent { cname } 
     private method ToggleVolume { tag name }
-    private method Zoom {option}
     private method ViewToQuaternion {} { 
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
+    private method Zoom {option}
 
     private variable _arcball ""
 
@@ -1135,7 +1138,7 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                 }
 
                 set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-                foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+                QuaternionToView $q
                 set _settings(-qw) $_view(-qw)
                 set _settings(-qx) $_view(-qx)
                 set _settings(-qy) $_view(-qy)

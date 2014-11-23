@@ -94,6 +94,9 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
+    private method QuaternionToView { q } { 
+        foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    }
     private method Rebuild {}
     private method ReceiveDataset { args }
     private method ReceiveImage { args }
@@ -106,10 +109,10 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
     private method Slice {option args}
-    private method Zoom {option}
     private method ViewToQuaternion {} { 
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
+    private method Zoom {option}
 
     private variable _arcball ""
 
@@ -463,6 +466,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
 
     EnableWaitDialog 500
     Connect
+    # FIXME: Removing this update breaks wizard mode (see examples/3D)
+    # However, it also allows an error in the initialization order
+    # where FieldResult::add is called from ResultViewer before this
+    # constructor is completed.
+    #update
 }
 
 # ----------------------------------------------------------------------
@@ -522,7 +530,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::EventuallyResize { w h } {
 set rotate_delay 100
 
 itcl::body Rappture::VtkIsosurfaceViewer::EventuallyRotate { q } {
-    foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
+    QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
         global rotate_delay 
@@ -1150,13 +1158,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                -qw     0.853553
-                -qx     -0.353553
-                -qy     0.353553
-                -qz     0.146447
-                -xpan   0
-                -ypan   0
-                -zoom   1.0
+                -qw      0.853553
+                -qx      -0.353553
+                -qy      0.353553
+                -qz      0.146447
+                -xpan    0
+                -ypan    0
+                -zoom    1.0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1232,7 +1240,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rotate {option x y} {
 
 itcl::body Rappture::VtkIsosurfaceViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
-        SendCmdNoSplash "dataset getscalar pixel $x $y $tag"
+        SendCmd "dataset getscalar pixel $x $y $tag"
     } 
 }
 
@@ -2020,8 +2028,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
     blt::table configure $inner r9 c4 -resize expand
 }
 
-
-
 #
 #  camera -- 
 #
@@ -2054,7 +2060,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::camera {option args} {
                     EventuallyRotate $q
                 }
                 "-zoom" {
-                    SendCmd "camera zoom $_view(-zoom)"
+                    SendCmd "camera zoom $_view($what)"
                 }
              }
         }
@@ -2565,7 +2571,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {
     }
     foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"

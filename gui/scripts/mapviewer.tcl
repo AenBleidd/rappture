@@ -64,50 +64,50 @@ itcl::class Rappture::MapViewer {
     }
     public method scale {args}
 
-    protected method AdjustSetting {what {value ""}}
-    protected method Connect {}
-    protected method CurrentLayers {args}
-    protected method Disconnect {}
-    protected method DoPan {}
-    protected method DoResize {}
-    protected method DoRotate {}
-    protected method InitSettings { args  }
-    protected method KeyPress { key }
-    protected method KeyRelease { key }
-    protected method MouseClick { button x y }
-    protected method MouseDoubleClick { button x y }
-    protected method MouseDrag { button x y }
-    protected method MouseMotion {}
-    protected method MouseRelease { button x y }
-    protected method MouseScroll { direction }
-    protected method Pan {option x y}
-    protected method Pin {option x y}
-    protected method Rebuild {}
-    protected method ReceiveMapInfo { args }
-    protected method ReceiveScreenInfo { args }
-    protected method ReceiveImage { args }
-    protected method Rotate {option x y}
-    protected method Select {option x y}
-    protected method Zoom {option {x 0} {y 0}}
+    private method KeyPress { key }
+    private method KeyRelease { key }
+    private method MouseClick { button x y }
+    private method MouseDoubleClick { button x y }
+    private method MouseDrag { button x y }
+    private method MouseMotion {}
+    private method MouseRelease { button x y }
+    private method MouseScroll { direction }
 
     # The following methods are only used by this class.
+    private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildLayerTab {}
     private method BuildTerrainTab {}
     private method ChangeLayerVisibility { dataobj layer }
+    private method Connect {}
+    private method CurrentLayers {args}
+    private method Disconnect {}
+    private method DoPan {}
+    private method DoResize {}
+    private method DoRotate {}
+    private method EarthFile {}
     private method EventuallyHandleMotionEvent { x y }
     private method EventuallyPan { dx dy }
     private method EventuallyResize { w h } 
     private method EventuallyRotate { dx dy } 
     private method GetImage { args } 
     private method GetNormalizedMouse { x y }
+    private method InitSettings { args  }
     private method MapIsGeocentric {}
+    private method Pan {option x y}
+    private method Pin {option x y}
+    private method Rebuild {}
+    private method ReceiveMapInfo { args }
+    private method ReceiveScreenInfo { args }
+    private method ReceiveImage { args }
+    private method Rotate {option x y}
+    private method Select {option x y}
     private method SetLayerStyle { dataobj layer }
     private method SetTerrainStyle { style }
     private method SetOpacity { dataset }
     private method UpdateLayerControls {}
-    private method EarthFile {}
+    private method Zoom {option {x 0} {y 0}}
 
     private variable _dlist "";		# list of data objects
     private variable _obj2datasets
@@ -1094,7 +1094,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     lappend cinfo "tool_revision" [$dataobj hints toolrevision]
                     lappend cinfo "dataset_label" [$dataobj hints label]
                     lappend cinfo "dataset_tag"   $layer
-                    SendCmd [list "clientinfo" $cinfo]
+                    SendCmd "clientinfo [list $cinfo]"
                 }
                 set _layers($layer) 1
                 SetLayerStyle $dataobj $layer
@@ -1525,8 +1525,8 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MapViewer::plotbackground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
-        SendCmd "screen bgcolor $r $g $b"
+        set rgb [Color2RGB $itk_option(-plotbackground)]
+        SendCmd "screen bgcolor $rgb"
     }
 }
 
@@ -1535,9 +1535,8 @@ itcl::configbody Rappture::MapViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MapViewer::plotforeground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
-        #fix this!
-        #SendCmd "color background $r $g $b"
+        set rgb [Color2RGB $itk_option(-plotforeground)]
+        # FIXME: Set font foreground colors
     }
 }
 
