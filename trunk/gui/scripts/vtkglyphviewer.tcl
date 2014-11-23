@@ -1040,10 +1040,9 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
         InitSettings \
-            -glyphlighting \
             -field \
-            -glyphedges -glyphlighting -glyphopacity \
-            -glyphwireframe
+            -glyphedges -glyphlighting -glyphnormscale -glyphopacity \
+            -glyphorient -glyphscale -glyphscalemode -glyphshape -glyphwireframe
 
         #-cutplanexposition -cutplaneyposition -cutplanezposition \
             -cutplanexvisible -cutplaneyvisible -cutplanezvisible \
@@ -2247,6 +2246,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     # Omitting field name for gorient and smode commands
     # defaults to active scalars or vectors depending on mode
     SendCmd "glyphs gorient $style(-orientGlyphs) {} $tag"
+    set _settings(-glyphorient) $style(-orientGlyphs)
     SendCmd "glyphs smode $style(-scaleMode) {} $tag"
     set _settings(-glyphscalemode) $style(-scaleMode)
     $itk_component(scaleMode) value "[$itk_component(scaleMode) label $style(-scaleMode)]"
