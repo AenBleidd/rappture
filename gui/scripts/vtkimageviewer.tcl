@@ -830,8 +830,9 @@ itcl::body Rappture::VtkImageViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
-            puts $f $bytes
+            set f [open "last.ppm" "w"]
+            fconfigure $f -encoding binary
+            puts -nonewline $f $bytes
             close $f
         }
         $_image(plot) configure -data $bytes
@@ -957,7 +958,8 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
                 set bytes [$dataobj vtkdata $comp]
 		if 0 { 
                     set f [open /tmp/vtkimage.vtk "w"]
-                    puts $f $bytes
+                    fconfigure $f -translation binary -encoding binary
+                    puts -nonewline $f $bytes
                     close $f
 		}
                 set length [string length $bytes]
@@ -1625,8 +1627,8 @@ itcl::configbody Rappture::VtkImageViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
         if { !$_reset } {
-            SendCmd "outline color $rgb"
             SendCmd "axis color all $rgb"
+            SendCmd "outline color $rgb"
         }
     }
 }

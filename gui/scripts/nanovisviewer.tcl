@@ -928,7 +928,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                     set data [$dataobj vtkdata $cname]
                     if 0 {
                         set f [open "/tmp/volume.vtk" "w"]
-                        puts $f $data
+                        fconfigure $f -translation binary -encoding binary
+                        puts -nonewline $f $data
                         close $f
                     }
                 }

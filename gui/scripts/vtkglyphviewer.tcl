@@ -859,8 +859,9 @@ itcl::body Rappture::VtkGlyphViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
-            puts $f $bytes
+            set f [open "last.ppm" "w"]
+            fconfigure $f -encoding binary
+            puts -nonewline $f $bytes
             close $f
         }
         $_image(plot) configure -data $bytes
@@ -977,7 +978,8 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
                 set bytes [$dataobj vtkdata $comp]
                 if 0 { 
                     set f [open "/tmp/glyph.vtk" "w"]
-                    puts $f $bytes
+                    fconfigure $f -translation binary -encoding binary
+                    puts -nonewline $f $bytes
                     close $f
                 }
                 set length [string length $bytes]

@@ -950,7 +950,7 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
         if 0 {
-            set f [open "last.ppm" "w"] 
+            set f [open "last.ppm" "w"]
             fconfigure $f -encoding binary
             puts -nonewline $f $bytes
             close $f
@@ -1060,6 +1060,12 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set bytes [$dataobj data $comp]
                 if { $bytes == "" } {
                     continue
+                }
+                if 0 {
+                    set f [open /tmp/vtkviewer.vtk "w"]
+                    fconfigure $f -translation binary -encoding binary
+                    puts -nonewline $f $bytes
+                    close $f
                 }
                 set length [string length $bytes]
                 if { $_reportClientInfo }  {
