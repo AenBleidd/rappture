@@ -1475,7 +1475,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "-volumelighting" {
             set bool $_settings($what)
-            set _settings($_current{$what}) $bool
+            set _settings($_current${what}) $bool
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume lighting $bool $tag"
             }
