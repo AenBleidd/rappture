@@ -239,11 +239,11 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     $_tree set root "type" $mapType
 
     foreach {key path} {
-        toolId          tool.id
-        toolName        tool.name
-        toolCommand     tool.execute
-        toolTitle       tool.title
-        toolRevision    tool.version.application.revision
+        toolid          tool.id
+        toolname        tool.name
+        toolcommand     tool.execute
+        tooltitle       tool.title
+        toolrevision    tool.version.application.revision
     } {
         set str [$xmlobj get $path]
         if { "" != $str } {
