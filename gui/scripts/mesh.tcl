@@ -425,6 +425,18 @@ itcl::body Rappture::Mesh::InitHints {} {
             set _hints($key) $str
         }
     }
+    foreach {key path} {
+        toolid          tool.id
+        toolname        tool.name
+        toolcommand     tool.execute
+        tooltitle       tool.title
+        toolrevision    tool.version.application.revision
+    } {
+        set str [$_xmlobj get $path]
+        if { "" != $str } {
+            set _hints($key) $str
+        }
+    }
 }
 
 itcl::body Rappture::Mesh::GetDimension { path } {
