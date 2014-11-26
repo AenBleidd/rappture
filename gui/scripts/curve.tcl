@@ -111,7 +111,7 @@ itcl::body Rappture::Curve::mesh {cname} {
 # ----------------------------------------------------------------------
 # USAGE: values ?<name>?
 #
-# Returns the xvec for the specified curve component <name>.
+# Returns the yvec for the specified curve component <name>.
 # If the name is not specified, then it returns the vectors for the
 # overall curve (sum of all components).
 # ----------------------------------------------------------------------
