@@ -367,7 +367,7 @@ itcl::body Rappture::Field::values {cname} {
         error "method \"values\" is not implemented for dx file data"
     }
     if {[info exists _comp2unirect2d($cname)]} {
-        return [$_comp2unirect2d($cname) values]
+        return $_values
     }
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) blob]

@@ -175,9 +175,8 @@ itcl::body Rappture::Unirect2d::destructor {} {
 
 # ----------------------------------------------------------------------
 # method blob 
-#       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
-#       on the nanovis server.
+#       Returns a Tcl list that represents the Tcl command and data to
+#       recreate the uniform rectangular grid on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::blob {} {
     set data "unirect2d"
@@ -188,9 +187,7 @@ itcl::body Rappture::Unirect2d::blob {} {
 
 # ----------------------------------------------------------------------
 # method mesh
-#       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
-#       on the nanovis server.
+#       Returns a Tcl list that represents the mesh limits and dims.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::mesh {} {
     lappend out $_xMin $_xMax $_xNum $_yMin $_yMax $_yNum
