@@ -11,6 +11,7 @@
 #    rappture ?-run? ?-tool <toolfile>?
 #    rappture -builder ?-tool <toolfile>?
 #    rappture -tester ?-tool <toolfile>? ?-testdir <directory>?
+#    rappture -execute driver.xml ?-tool <toolfile>?
 #
 #  The default option is "-run", which brings up the GUI used to
 #  run the tool.  If the <toolfile> is not specified, it defaults
@@ -52,6 +53,24 @@ while {[llength $argv] > 0} {
                 set mainscript [file join $testdir scripts main.tcl]
                 set reqpkgs Tk
             }
+            -execute {
+                # for web services and simulation cache -- don't load Tk
+                set reqpkgs ""
+                if {[llength $argv] < 1} {
+                    puts stderr "error: missing driver.xml file for -execute option"
+                    exit 1
+                }
+                set driverxml [lindex $argv 0]
+                set argv [lrange $argv 1 end]
+
+                if {![file readable $driverxml]} {
+                    puts stderr "error: driver file \"$driverxml\" not found"
+                    exit 1
+                }
+
+                set dir [file dirname [info script]]
+                set mainscript [file join $dir execute.tcl]
+            }
             -tool {
                 set toolxml [lindex $argv 0]
                 set argv [lrange $argv 1 end]
@@ -88,6 +107,7 @@ while {[llength $argv] > 0} {
                 puts stderr "  rappture ?-run? ?-tool toolFile? ?-nosim 0/1? ?-load file file ...?"
                 puts stderr "  rappture -builder ?-tool toolFile?"
                 puts stderr "  rappture -tester ?-auto? ?-tool toolFile? ?-testdir directory?"
+                puts stderr "  rappture -execute driver.xml ?-tool toolFile?"
                 exit 1
             }
         }
