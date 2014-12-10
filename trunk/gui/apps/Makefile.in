@@ -23,6 +23,7 @@ SCRIPTS	= \
 		about \
 		copy_rappture_examples \
 		encodedata \
+		$(srcdir)/execute.tcl \
 		$(srcdir)/launcher.tcl \
 		$(srcdir)/mapviewer-test \
 		$(srcdir)/grabdata \
