@@ -103,5 +103,5 @@ if {[info exists tcl_platform(user)]} {
     $runxml put output.user $::tcl_platform(user)
 }
 
-puts [$runxml xml]
+puts "<?xml version=\"1.0\"?>\n[$runxml xml]"
 exit $status
