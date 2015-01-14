@@ -147,11 +147,10 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
 
         # Extract each point and add it to the points list
         foreach {x y z} $line break
-        foreach axis {x y z} units $_units {
-            set value [Rappture::Units::convert [set $axis] \
-                        -context $units -to $units -units off]
-            set $axis $value;           # Set the (x/y/z) coordinate to 
-                                        # converted value.
+        foreach axis {x y z} {
+            # Units on point coordinates are NOT supported
+            set value [set $axis]
+            # Update limits
             if { ![info exists _limits($axis)] } {
                 set _limits($axis) [list $value $value]
             } else {
