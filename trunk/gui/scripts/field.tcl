@@ -1522,12 +1522,13 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
     }
 
-    if {$_dim == 1} {
+    if {$_dim < 2} {
+        puts stderr "ERROR: Can't convert 1D cloud/mesh to curve.  Please use curve output for 1D meshes."
+        return 0
+
 	# 1D data: Create vectors for graph widget.
-	# Is this used anywhere?
-	#
-	# OOPS!  This is 1D data
-	# Forget the cloud/field -- store BLT vectors
+	# The prophet tool currently outputs 1D clouds with fields
+        # Band Structure Lab used to (see isosurface1 test in rappture-bat)
 	#
 	# Is there a natural growth path in generating output from 1D to 
 	# higher dimensions?  If there isn't, let's kill this in favor
@@ -1535,17 +1536,17 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	# (methods such as xmarkers) or the <curve> need to be added 
 	# to the <field>.
 	# 
-	set xv [blt::vector create x$_counter]
-	set yv [blt::vector create y$_counter]
-	
-	$yv set [$mesh points]
-	$xv seq 0 1 [$yv length]
-	# sort x-coords in increasing order
-	$xv sort $yv
-	set _comp2dims($cname) "1D"
-	set _comp2xy($cname) [list $xv $yv]
-	incr _counter
-	return 1
+	#set xv [blt::vector create x$_counter]
+	#set yv [blt::vector create y$_counter]
+
+        # This only works with a Cloud mesh type, since the points method
+        # is not implemented for the Mesh object
+	#$xv set [$mesh points]
+        # TODO: Put field values in yv
+	#set _comp2dims($cname) "1D"
+	#set _comp2xy($cname) [list $xv $yv]
+	#incr _counter
+	#return 1
     } 
     if {$_dim == 2} {
 	# 2D data: By default surface or contour plot using heightmap widget.
