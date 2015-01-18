@@ -84,6 +84,7 @@ itcl::class ::Rappture::XyLegend {
     private method Hide { args } 
     private method Lower { args } 
     private method Raise { args } 
+    private method Recolor {} 
     private method PopupMenu { x y }
     private method Rename {} 
     private method SelectAll {}
@@ -157,6 +158,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
         difference ""
         delete ""
         rename ""
+        recolor ""
     }
     foreach { but icon} $commands {
         set title [string totitle $but]
@@ -173,7 +175,8 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     grid $controls.difference -column 1 -row 0 -sticky w
     grid $controls.average    -column 1 -row 1 -sticky w
     grid $controls.rename     -column 1 -row 2 -sticky w
-    grid $controls.delete     -column 1 -row 3 -sticky w
+    grid $controls.recolor    -column 1 -row 3 -sticky w
+    grid $controls.delete     -column 1 -row 4 -sticky w
 
     grid columnconfigure $controls 0  -weight 1
     grid columnconfigure $controls 1 -weight 1
@@ -392,7 +395,7 @@ itcl::body Rappture::XyLegend::Delete { args } {
 itcl::body Rappture::XyLegend::Check {} {
     set nodes [$itk_component(legend) curselection]
     foreach n { hide show toggle raise lower 
-        rename average difference delete } {
+        rename average difference delete recolor } {
         $itk_component(controls).$n configure -state disabled
     }
     foreach node $nodes {
@@ -410,17 +413,17 @@ itcl::body Rappture::XyLegend::Check {} {
         0 {
         }
         1 {
-            foreach n { hide show toggle rename } {
+            foreach n { hide show toggle rename recolor } {
                 $itk_component(controls).$n configure -state normal
             }
         }
         2 {
-            foreach n { hide show toggle difference average } {
+            foreach n { hide show toggle difference average recolor } {
                 $itk_component(controls).$n configure -state normal
             }
         }
         default {
-            foreach n { hide show toggle average } {
+            foreach n { hide show toggle average recolor } {
                 $itk_component(controls).$n configure -state normal
             }
         }
@@ -610,5 +613,23 @@ itcl::body Rappture::XyLegend::Editor {option args} {
         default {
             error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
         }
+    }
+}
+
+itcl::body Rappture::XyLegend::Recolor {} {
+    set nodes [$itk_component(legend) curselection]
+    if { $nodes == "" } {
+        return
+    }
+    foreach node $nodes {
+        set elem [$_tree label $node]
+        if { $_lastColorIndex == 0 } {
+            set _lastColorIndex [llength $_autocolors]
+        }
+        incr _lastColorIndex -1
+        set color [lindex $_autocolors $_lastColorIndex]
+        $_graph element configure $elem -color $color
+        set im [$itk_component(legend) entry cget $node -icon]
+        $_graph legend icon $elem $im
     }
 }
