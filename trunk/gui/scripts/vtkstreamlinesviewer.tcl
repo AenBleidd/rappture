@@ -948,7 +948,6 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveDataset { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
-    update
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
