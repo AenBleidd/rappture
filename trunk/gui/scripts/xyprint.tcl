@@ -1328,7 +1328,7 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     set code [read $f]
     close $f
     if { [catch { $parser eval $code }] != 0 } {
-        file delete $_settingsFiles
+        file delete $_settingsFile
     }
     # Now see if there's an entry for this tool/plot combination.  The data
     # associated with the variable is itself code to update the graph (clone).
