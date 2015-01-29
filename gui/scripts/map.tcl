@@ -128,7 +128,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             $_tree set $child $key [$layers get $layer.$key] 
         }
         # Common settings (for all layer types) with defaults
-        foreach { key defval } { visible true } {
+        foreach { key defval } { visible 1 cache 1 } {
             $_tree set $child $key $defval
             set val [$layers get $layer.$key]
             if {$val != ""} {

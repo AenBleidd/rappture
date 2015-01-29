@@ -1877,15 +1877,15 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                     "gdal" {
                         SendCmd [list map layer add image gdal \
-                                     $info(gdal.url) $layer]
+                                     $info(gdal.url) $info(cache) $layer]
                     }
                     "tms" {
                         SendCmd [list map layer add image tms \
-                                     $info(tms.url) $layer]
+                                     $info(tms.url) $info(cache) $layer]
                     }
                     "wms" {
                         SendCmd [list map layer add image wms \
-                                     $info(wms.url) \
+                                     $info(wms.url) $info(cache)\
                                      $info(wms.layers) \
                                      $info(wms.format) \
                                      $info(wms.transparent) \
@@ -1893,7 +1893,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                     "xyz" {
                         SendCmd [list map layer add image xyz \
-                                     $info(xyz.url) \
+                                     $info(xyz.url) $info(cache) \
                                      $layer]
                     }
                 }                        
