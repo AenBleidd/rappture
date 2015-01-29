@@ -10,7 +10,7 @@
 #    set clientToken [XAuth::credentials get nanoHUB.org -token]
 #    set clientSecret [XAuth::credentials get nanoHUB.org -secret]
 #
-#    XAuth::init $site $clientToken $clientSecret $username $password
+#    XAuth::init $site $clientToken $clientSecret -user $username $password
 #    XAuth::call $site $method $params
 #
 #  Check out this awesome description of the whole XAuth process:
@@ -19,7 +19,7 @@
 #
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2015  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -286,18 +286,54 @@ itcl::class JsonObject {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: XAuth::init <site> <clientToken> <clientSecret> <username> <password>
+# USAGE: XAuth::init <site> <clientToken> <clientSecret> -user <u> <p>
+# USAGE: XAuth::init <site> <clientToken> <clientSecret> -session <n> <t>
 #
-# Should be called to initialize this library.  Sends the <username>
-# and <password> to the <site> for authentication.  The <client> ID
-# is registered with the OAuth provider to identify the application.
+# Should be called to initialize this library.  Can be initialized
+# one of two ways:
+#
+#   -user <u> <p> ...... sends username <u> and password <p>
+#   -session <n> <t> ... sends tool session number <n> and token <t>
+#
+# Sends the credentials to the <site> for authentication.  The client
+# token and secret are registered to identify the application.
 # If successful, this call stores an authenticated session token in
 # the tokens array for the <site> URL.  Subsequent calls to XAuth::call
 # use this token to identify the user.
 # ----------------------------------------------------------------------
-proc XAuth::init {site clientToken clientSecret uname passw} {
+proc XAuth::init {site clientToken clientSecret args} {
     variable clients
     variable tokens
+
+    set option [lindex $args 0]
+    switch -- $option {
+        -user {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"-user name password\""
+            }
+            set uname [lindex $args 1]
+            set passw [lindex $args 2]
+        }
+        -session {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"-session number token\""
+            }
+            set snum [lindex $args 1]
+            set stok [lindex $args 2]
+
+            # store session info for later -- no need for oauth stuff
+            set tokens($site) [list session $snum $stok]
+            set clients($site) [list $clientToken $clientSecret]
+            return
+        }
+        default {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"XAuth::init site token secret ?-option? arg arg\""
+            }
+            set uname [lindex $args 0]
+            set passw [lindex $args 1]
+        }
+    }
 
     if {![regexp {^https://} $site]} {
         error "bad site URL \"$site\": should be https://..."
@@ -359,7 +395,7 @@ proc XAuth::init {site clientToken clientSecret uname passw} {
     }
 
     # success! store the session token for later
-    set tokens($site) [list $got(oauth_token) $got(oauth_token_secret)]
+    set tokens($site) [list oauth $got(oauth_token) $got(oauth_token_secret)]
     set clients($site) [list $clientToken $clientSecret]
 }
 
@@ -384,38 +420,54 @@ proc XAuth::call {site method {params ""}} {
         error "must call XAuth::init for $site first to authenticate"
     }
     foreach {clientToken clientSecret} $clients($site) break
-    foreach {userToken userSecret} $tokens($site) break
+    foreach {scheme userToken userSecret} $tokens($site) break
 
     set url $site/$method
-    set nonce [XAuth::nonce]
-    set tstamp [clock seconds]
 
-    # BE CAREFUL -- put all query parameters in alphabetical order
-    array set qparams [list \
-        oauth_consumer_key $clientToken \
-        oauth_nonce $nonce \
-        oauth_signature_method "HMAC-SHA1" \
-        oauth_timestamp $tstamp \
-        oauth_token $userToken \
-        oauth_version "1.0" \
-        x_auth_mode "client_auth" \
-    ]
-    array set qparams $params
+    switch -- $scheme {
+        oauth {
+            set nonce [XAuth::nonce]
+            set tstamp [clock seconds]
 
-    set query ""
-    foreach key [lsort [array names qparams]] {
-        lappend query $key $qparams($key)
+            # BE CAREFUL -- put all query parameters in alphabetical order
+            array set qparams [list \
+                oauth_consumer_key $clientToken \
+                oauth_nonce $nonce \
+                oauth_signature_method "HMAC-SHA1" \
+                oauth_timestamp $tstamp \
+                oauth_token $userToken \
+                oauth_version "1.0" \
+                x_auth_mode "client_auth" \
+            ]
+            array set qparams $params
+
+            set query ""
+            foreach key [lsort [array names qparams]] {
+                lappend query $key $qparams($key)
+            }
+            set query [eval http::formatQuery $query]
+
+            set base "POST&[urlencode $url]&[urlencode $query]"
+            set key "$clientSecret&$userSecret"
+            set sig [urlencode [base64::encode [sha1::hmac -bin -key $key $base]]]
+
+            # build the header and send the request
+            set auth [format "OAuth oauth_consumer_key=\"%s\", oauth_token=\"%s\", oauth_nonce=\"%s\", oauth_signature_method=\"HMAC-SHA1\", oauth_signature=\"%s\", oauth_timestamp=\"%s\", oauth_version=\"1.0\"" $clientToken $userToken $nonce $sig $tstamp]
+            set hdr [list Authorization $auth]
+        }
+        session {
+            set hdr [list sessionnum $userToken sessiontoken $userSecret]
+            set query ""
+            foreach {key val} $params {
+                lappend query $key $val
+            }
+            set query [eval http::formatQuery $query]
+        }
+        default {
+            error "internal error -- don't understand call scheme \"$scheme\""
+        }
     }
-    set query [eval http::formatQuery $query]
-
-    set base "POST&[urlencode $url]&[urlencode $query]"
-    set key "$clientSecret&$userSecret"
-    set sig [urlencode [base64::encode [sha1::hmac -bin -key $key $base]]]
-
-    # build the header and send the request
-    set auth [format "OAuth oauth_consumer_key=\"%s\", oauth_token=\"%s\", oauth_nonce=\"%s\", oauth_signature_method=\"HMAC-SHA1\", oauth_signature=\"%s\", oauth_timestamp=\"%s\", oauth_version=\"1.0\"" $clientToken $userToken $nonce $sig $tstamp]
-
-    return [XAuth::fetch $url -headers [list Authorization $auth] -query $query]
+    return [XAuth::fetch $url -headers $hdr -query $query]
 }
 
 # ----------------------------------------------------------------------
@@ -595,22 +647,29 @@ proc XAuth::credentials {option args} {
 
     switch -- $option {
         load {
-            set fname "~/.xauth"
             if {[llength $args] == 1} {
                 set fname [lindex $args 0]
-            } elseif {[llength $args] > 1} {
+            } elseif {[llength $args] == 0} {
+                if {[file exists ~/.xauth]} {
+                    set fname "~/.xauth"
+                } else {
+                    set fname ""
+                }
+            } else {
                 error "wrong # args: should be \"credentials load ?file?\""
             }
 
-            if {![file readable $fname]} {
-                error "file \"$fname\" not found"
-            }
-            set fid [open $fname r]
-            set info [read $fid]
-            close $fid
+            if {$fname ne ""} {
+                if {![file readable $fname]} {
+                    error "file \"$fname\" not found"
+                }
+                set fid [open $fname r]
+                set info [read $fid]
+                close $fid
 
-            if {[catch {$parser eval $info} result]} {
-                error "error in sites file \"$fname\": $result"
+                if {[catch {$parser eval $info} result]} {
+                    error "error in sites file \"$fname\": $result"
+                }
             }
         }
         add {
