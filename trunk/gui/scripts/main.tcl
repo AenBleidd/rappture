@@ -92,35 +92,8 @@ Rappture::grab::init
 Rappture::getopts argv params {
     value -tool tool.xml
     list  -load ""
+    value -input ""
     value -nosim 0
-}
-
-proc ReadToolParameters { numTries } {
-    incr numTries -1 
-    if { $numTries < 0 } {
-	return
-    }
-    global env
-    set paramsFile $env(TOOL_PARAMETERS)
-    if { ![file readable $paramsFile] } {
-	after 500 ReadToolParmeters $numTries
-	return
-    }
-    catch { 
-        set f [open $paramsFile "r"]
-        set contents [read $f]
-        close $f
-        set pattern {^file\((.*)\):(.*)$} 
-        foreach line [split $contents "\n"] {
-            if { [regexp $pattern $line match path rest] } {
-                set ::Rappture::parameters($path) $rest
-            }
-        }
-    }
-}
-
-if { [info exists env(TOOL_PARAMETERS)] } {
-    ReadToolParameters 10
 }
 
 set loadobjs {}
@@ -133,6 +106,17 @@ foreach runfile $params(-load) {
     lappend loadobjs $result
 }
 
+set inputobj {}
+if {$params(-input) ne ""} {
+    if {![file exists $params(-input)]} {
+        puts stderr "can't find input file: \"$params(-input)\""
+        exit 1
+    }
+    if {[catch {Rappture::library $params(-input)} result] == 0} {
+        set inputobj $result
+    }
+}
+
 # open the XML file containing the tool parameters
 if {![file exists $params(-tool)]} {
     # check to see if the user specified any run.xml files to load.
@@ -142,7 +126,7 @@ if {![file exists $params(-tool)]} {
     # run new simulations, otherwise they can only revisualize the
     # run.xml files they are loading.
     set pseudotool ""
-    if {0 == [llength $loadobjs]} {
+    if {[llength $loadobjs] == 0 && $inputobj eq ""} {
         puts stderr "can't find tool \"$params(-tool)\""
         exit 1
     }
@@ -150,7 +134,8 @@ if {![file exists $params(-tool)]} {
     # we could just use run.xml files as tool.xml, but
     # if there are loaders or notes, they will still need
     # examples/ and docs/ dirs from the install location
-    foreach runobj $loadobjs {
+    set check [concat $loadobjs $inputobj]
+    foreach runobj $check {
         set tdir \
             [string trim [$runobj get tool.version.application.directory(tool)]]
         if {[file isdirectory $tdir] && \
@@ -373,20 +358,43 @@ if {[llength [$win.pager page]] > 2} {
 }
 
 # load previous xml runfiles
-if {0 != [llength $params(-load)]} {
+if {[llength $params(-load)] > 0} {
     foreach runobj $loadobjs {
-        # this doesn't seem to work with loaders
-        # loaders seem to get their value after this point
-        # may need to tell loader elements to update its value
-        $tool load $runobj
         $f.analyze load $runobj
     }
+    # load the inputs for the very last run
+    $tool load $runobj
+
     # don't need simulate button if we cannot simulate
     if {$params(-nosim)} {
         $f.analyze configure -simcontrol off
     }
     $f.analyze configure -notebookpage analyze
     $win.pager current analyzer
+} elseif {$params(-input) ne ""} {
+    $tool load $inputobj
+}
+
+# let components (loaders) settle after the newly loaded runs
+update
+
+foreach path [array names ::Rappture::parameters] {
+    set fname $::Rappture::parameters($path)
+    if {[catch {
+          set fid [open $fname r]
+          set info [read $fid]
+          close $fid}] == 0} {
+
+        set w [$tool widgetfor $path]
+        if {$w ne ""} {
+            if {[catch {$w value [string trim $info]} result]} {
+                puts stderr "WARNING: bad tool parameter value for \"$path\""
+                puts stderr "  $result"
+            }
+        } else {
+            puts stderr "WARNING: can't find control for tool parameter: $path"
+        }
+    }
 }
 
 wm deiconify .main

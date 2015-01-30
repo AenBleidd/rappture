@@ -26,7 +26,79 @@
 # ======================================================================
 set mainscript ""
 set alist ""
+set loadlist ""
 set toolxml ""
+
+# ----------------------------------------------------------------------
+#  Look for parameters passed into the tool session.  If there are
+#  any "file" parameters, they indicate files that should be loaded
+#  for browsing or executed to get results:
+#
+#    file(load):/path/to/run.xml
+#    file(execute):/path/to/driver.xml
+# ----------------------------------------------------------------------
+set params(opt) ""
+set params(load) ""
+set params(execute) ""
+set params(input) ""
+
+if {[info exists env(TOOL_PARAMETERS)]} {
+    # if we can't find the file, wait a little
+    set ntries 25
+    while {$ntries > 0 && ![file exists $env(TOOL_PARAMETERS)]} {
+        after 200
+        incr ntries -1
+    }
+
+    if {![file exists $env(TOOL_PARAMETERS)]} {
+        # still no file after all that? then skip parameters
+        puts stderr "WARNING: can't read tool parameters in file \"$env(TOOL_PARAMETERS)\"\nFile not found."
+
+    } elseif {[catch {
+        # read the file and parse the contents
+        set fid [open $env(TOOL_PARAMETERS) r]
+        set info [read $fid]
+        close $fid
+    } result] != 0} {
+        puts stderr "WARNING: can't read tool parameters in file \"$env(TOOL_PARAMETERS)\"\n$result"
+
+    } else {
+        # parse the contents of the tool parameter file
+        foreach line [split $info \n] {
+            set line [string trim $line]
+            if {$line eq "" || [regexp {^#} $line]} {
+                continue
+            }
+
+            if {[regexp {^([a-zA-Z]+)(\(into\:)(.+)\)\:(.+)$} $line match type name path value]
+                || [regexp {^([a-zA-Z]+)(\([^)]+\))?\:(.+)} $line match type name value]} {
+                if {$type eq "file"} {
+                    switch -exact -- $name {
+                        "(load)" - "" {
+                            lappend params(load) $value
+                            set params(opt) "-load"
+                        }
+                        "(execute)" {
+                            set params(execute) $value
+                            set params(opt) "-execute"
+                        }
+                        "(input)" {
+                            set params(input) $value
+                            set params(opt) "-input"
+                        }
+                        "(into:" {
+                            namespace eval ::Rappture { # forward decl }
+                            set ::Rappture::parameters($path) $value
+                        }
+                        default {
+                            puts stderr "WARNING: directive $name not recognized for file parameter \"$value\""
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 # scan through the arguments and look for the function
 while {[llength $argv] > 0} {
@@ -80,7 +152,7 @@ while {[llength $argv] > 0} {
                 }
                 lappend alist -tool $toolxml
             }
-            -tool - -testdir - -nosim {
+            -testdir - -nosim {
                 lappend alist $opt [lindex $argv 0]
                 set argv [lrange $argv 1 end]
             }
@@ -92,13 +164,12 @@ while {[llength $argv] > 0} {
                 set reqpkgs ""
             }
             -load {
-                lappend alist $opt
                 while { [llength $argv] > 0 } {
                     set val [lindex $argv 0]
                     if { [string index $val 0] == "-" } {
                         break
                     }
-                    lappend alist $val
+                    lappend loadlist $val
                     set argv [lrange $argv 1 end]
                 }
             }
@@ -114,12 +185,64 @@ while {[llength $argv] > 0} {
     }
 }
 
-# If no arguments, assume that it's the -run option
+# If no arguments, check to see if there are any tool parameters.
+# If not, then assume that it's the -run option.
 if {$mainscript eq ""} {
-    package require RapptureGUI
-    set guidir $RapptureGUI::library
-    set mainscript [file join $guidir scripts main.tcl]
-    set reqpkgs Tk
+    switch -- $params(opt) {
+        -load {
+            # add tool parameters to the end of any files given on cmd line
+            set loadlist [concat $loadlist $params(load)]
+            set alist [concat $alist -load $loadlist]
+
+            package require RapptureGUI
+            set guidir $RapptureGUI::library
+            set mainscript [file join $guidir scripts main.tcl]
+            set reqpkgs Tk
+        }
+        -execute {
+            if {[llength $params(execute)] != 1} {
+                puts stderr "ERROR: wrong number of (execute) files in TOOL_PARAMETERS (should be only 1)"
+                exit 1
+            }
+            set driverxml [lindex $params(execute) 0]
+            if {![file readable $driverxml]} {
+                puts stderr "error: driver file \"$driverxml\" not found"
+                exit 1
+            }
+            set dir [file dirname [info script]]
+            set mainscript [file join $dir execute.tcl]
+            set reqpkgs ""
+        }
+        "" - "-input" {
+            package require RapptureGUI
+            set guidir $RapptureGUI::library
+            set mainscript [file join $guidir scripts main.tcl]
+            set reqpkgs Tk
+
+            # finalize the -input argument for "rappture -run"
+            if {$params(input) ne ""} {
+                if {![file readable $params(input)]} {
+                    puts stderr "error: driver file \"$params(input)\" not found"
+                    exit 1
+                }
+                set alist [concat $alist -input $params(input)]
+            }
+
+            # finalize any pending -load arguments for "rappture -run"
+            if {[llength $loadlist] > 0} {
+                set alist [concat $alist -load $loadlist]
+            }
+        }
+        default {
+            puts stderr "internal error: funny action \"$params(opt)\" inferred from TOOL_PARAMETERS"
+            exit 1
+        }
+    }
+} else {
+    # finalize any pending -load arguments for "rappture -run"
+    if {[llength $loadlist] > 0} {
+        set alist [concat $alist -load $loadlist]
+    }
 }
 
 # Invoke the main program with the args
