@@ -2199,8 +2199,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     foreach axis {x y z} {
         set pos [expr $_settings(-${axis}cutplaneposition) * 0.01]
         set visible $_settings(-${axis}cutplanevisible)
-        SendCmd "cutplane slice $axis $pos"
-        SendCmd "cutplane axis $axis $visible"
+        SendCmd "cutplane slice $axis $pos $tag"
+        SendCmd "cutplane axis $axis $visible $tag"
     }
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
 
