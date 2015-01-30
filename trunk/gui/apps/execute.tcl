@@ -66,9 +66,76 @@ if {$toolxml eq ""} {
 set installdir [file dirname [file normalize $toolxml]]
 set toolobj [Rappture::library $toolxml]
 set TaskObj [Rappture::Task ::#auto $toolobj $installdir]
+set LogFid ""
 
-# tasks in execute mode run quietly and don't try to save results
-$TaskObj configure -jobstats "" -resultdir ""
+# Define some things that we need for logging status...
+# ----------------------------------------------------------------------
+proc log_output {message} {
+    global LogFid
+
+    if {$LogFid ne ""} {
+        #
+        # Scan through and pick out any =RAPPTURE-PROGRESS=> messages.
+        #
+        set percent ""
+        while {[regexp -indices \
+                {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)} $message \
+                 match percent mesg]} {
+
+            foreach {i0 i1} $percent break
+            set percent [string range $message $i0 $i1]
+
+            foreach {i0 i1} $mesg break
+            set mesg [string range $message $i0 $i1]
+
+            foreach {i0 i1} $match break
+            set message [string replace $message $i0 $i1]
+        }
+        if {$percent ne ""} {
+            # report the last percent progress found
+            log_append progress "$percent% - $mesg"
+        }
+    }
+}
+
+# Actually write to the log file
+proc log_append {level message} {
+    global LogFid
+
+    if {$LogFid ne ""} {
+        set date [clock format [clock seconds] -format {%Y-%m-%dT%H:%M:%S%z}]
+        set host [info hostname]
+        puts $LogFid "$date $host rappture [pid] \[$level\] $message"
+        flush $LogFid
+    }
+}
+
+# Actually write to the log file
+proc log_stats {args} {
+    set line ""
+    foreach {key val} $args {
+        append line "$key=$val "
+    }
+    log_append usage $line
+}
+
+# Parse command line options to see 
+# ----------------------------------------------------------------------
+Rappture::getopts argv params {
+    value -status ""
+    value -output ""
+    value -cleanup no
+}
+
+if {$params(-status) ne ""} {
+    set LogFid [open $params(-status) w]
+    $TaskObj configure -logger {log_append status} -jobstats log_stats
+}
+
+if {$params(-output) eq ""} {
+    # no output? then run quietly and don't try to save results
+    $TaskObj configure -jobstats "" -resultdir ""
+}
 
 # Transfer input values from driver to TaskObj, and then run.
 # ----------------------------------------------------------------------
@@ -79,6 +146,11 @@ foreach path [Rappture::entities -as path $driverobj input] {
     if {[$driverobj element -as type $path.current] ne ""} {
         lappend args $path [$driverobj get $path.current]
     }
+}
+
+if {$params(-status) ne ""} {
+    # recording status? then look through output for progress messages
+    lappend args -output log_output
 }
 
 # run the desired case...
@@ -94,14 +166,28 @@ if {$status == 0 && [Rappture::library isvalid $result]} {
     $runxml put output.log $result
     $runxml put output.status failed
 }
-$runxml put output.time [clock format [clock seconds]]
 
-$runxml put tool.version.rappture.version $::Rappture::version
-$runxml put tool.version.rappture.revision $::Rappture::build
-
-if {[info exists tcl_platform(user)]} {
-    $runxml put output.user $::tcl_platform(user)
+# Handle output
+# ----------------------------------------------------------------------
+switch -- $params(-output) {
+    "" {
+        # no output file -- write to stdout
+        puts "<?xml version=\"1.0\"?>\n[$runxml xml]"
+    }
+    "@default" {
+        # do the usual Rappture thing -- move to results dir
+        # but ignore any errors if it fails
+        catch {$TaskObj save $runxml}
+    }
+    default {
+        # save to the specified file
+        $TaskObj save $runxml $params(-output)
+    }
 }
 
-puts "<?xml version=\"1.0\"?>\n[$runxml xml]"
+if {$params(-cleanup)} {
+    file delete -force -- $driverxml
+}
+
+log_append status "exit $status"
 exit $status
