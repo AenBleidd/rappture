@@ -2196,6 +2196,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
  
     SendCmd "cutplane add $tag"
     SendCmd "cutplane color [Color2RGB $itk_option(-plotforeground)] $tag"
+    foreach axis {x y z} {
+        set pos [expr $_settings(-${axis}cutplaneposition) * 0.01]
+        set visible $_settings(-${axis}cutplanevisible)
+        SendCmd "cutplane slice $axis $pos"
+        SendCmd "cutplane axis $axis $visible"
+    }
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
 
     SendCmd "outline add $tag"
