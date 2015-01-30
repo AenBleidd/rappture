@@ -30,7 +30,14 @@ itcl::class Rappture::Tool {
     }
     public method run {args} {
         sync  ;# sync all widget values to XML
-        eval $_task run $args
+
+        foreach {status result} [eval $_task run $args] break
+        if {$status == 0} {
+            # move good results to the data/results directory
+            $_task save $result
+        }
+
+        return [list $status $result]
     }
     public method abort {} {
         $_task abort

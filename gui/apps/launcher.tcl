@@ -212,6 +212,14 @@ if {$mainscript eq ""} {
             set dir [file dirname [info script]]
             set mainscript [file join $dir execute.tcl]
             set reqpkgs ""
+
+            # When executing from TOOL_PARAMETERS file directives,
+            # report status, clean up, and save output to data/results.
+            # This helps the web services interface do its thing.
+            set alist [list \
+                -output @default \
+                -status rappture.status \
+                -cleanup yes]
         }
         "" - "-input" {
             package require RapptureGUI
