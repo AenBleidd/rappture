@@ -105,15 +105,6 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     # Trimming for now.  May need a <verbatim> flag to indicate to leave
     # the string alone. 
     set str [string trim [$_owner xml get $path.default]]
-    if { [info exists ::Rappture::parameters($path.default)] } {
-        set fileName $::Rappture::parameters($path.default)
-        catch { 
-            set f [open $fileName "r"]
-            set contents [read $f]
-            close $f
-            set str $contents
-        } 
-    }
     if {"" != $str} {
         value $str
     }
