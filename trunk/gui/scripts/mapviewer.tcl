@@ -242,7 +242,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         time                   12
     }]
 
-    set _settings(time) [clock format [clock seconds] -format %k]
+    set _settings(time) [clock format [clock seconds] -format %k -gmt 1]
 
     itk_component add view {
         canvas $itk_component(plotarea).view \
@@ -1605,7 +1605,7 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
         -font "Arial 9" -anchor w
 
     itk_component add time_l {
-        label $inner.time_l -text "Time" -font "Arial 9"
+        label $inner.time_l -text "Time (UTC)" -font "Arial 9"
     } {
         ignore -font
     }
