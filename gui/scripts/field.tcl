@@ -40,9 +40,9 @@
 #	mesh	    2	points-on-mesh			heightmap	vtkvis
 #	mesh	    3	points-on-mesh			isosurface	vtkvis
 #	dx	    3	DX				volume		nanovis
-#	unirect2d   2	unirect3d + extents > 1	flow	flow		nanovis
-#	unirect3d   3	unirect2d + extents > 1	flow	flow		nanovis
-#	
+#	unirect2d   2	unirect2d + extents > 1	flow	flow		nanovis
+#	unirect3d   3	unirect3d + extents > 1	flow	flow		nanovis
+#
 # With <views>, can specify which viewer for specific datasets.  So it's OK
 # for the same dataset to be viewed in more than one way.
 #  o Any 2D dataset can be viewed as a contour/heightmap. 
