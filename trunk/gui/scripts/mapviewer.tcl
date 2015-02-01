@@ -78,6 +78,7 @@ itcl::class Rappture::MapViewer {
     private method BuildCameraTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildLayerTab {}
+    private method BuildMapTab {}
     private method BuildTerrainTab {}
     private method ChangeLayerVisibility { dataobj layer }
     private method Connect {}
@@ -184,6 +185,9 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_parser alias camera   [itcl::code $this camera]
     $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
 
+    # Millisecond delay before animated wait dialog appears
+    set _waitTimeout 500
+
     # Settings for mouse motion events: these are required
     # to update the Lat/Long coordinate display
     array set _motion {
@@ -235,7 +239,11 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         terrain-lighting       0
         terrain-vertscale      1.0
         terrain-wireframe      0
+        time                   12
     }]
+
+    set _settings(time) [clock format [clock seconds] -format %k]
+
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -300,6 +308,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     BuildLayerTab
+    BuildMapTab
     BuildTerrainTab
     BuildCameraTab
 
@@ -939,6 +948,7 @@ itcl::body Rappture::MapViewer::ReceiveImage { args } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
     }
+    set _waitTimeout 0
 }
 
 #
@@ -1045,8 +1055,10 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 append _outbuf $bytes
             } else {
                 if { $_mapsettings(type) == "geocentric" } {
+                    $itk_component(grid) configure -state normal
                     SendCmd "map reset geocentric"
                 }  else {
+                    $itk_component(grid) configure -state disabled
                     set proj $_mapsettings(projection)
                     if { $proj == "" } { 
                         SendCmd "map reset projected global-mercator"
@@ -1518,6 +1530,10 @@ itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "map terrain wireframe $bool"
         }
+        "time" {
+            set val $_settings($what)
+            SendCmd "map time $val"
+        }
         default {
             error "don't know how to fix $what"
         }
@@ -1544,14 +1560,14 @@ itcl::configbody Rappture::MapViewer::plotforeground {
     }
 }
 
-itcl::body Rappture::MapViewer::BuildTerrainTab {} {
+itcl::body Rappture::MapViewer::BuildMapTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
-        -title "Terrain Settings" \
-        -icon [Rappture::icon surface]]
+        -title "Map Settings" \
+        -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.posdisp \
@@ -1560,11 +1576,15 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         -command [itcl::code $this AdjustSetting coords-visible] \
         -font "Arial 9" -anchor w 
 
-    checkbutton $inner.grid \
+    itk_component add grid {
+        checkbutton $inner.grid \
         -text "Show Graticule" \
         -variable [itcl::scope _settings(grid)] \
         -command [itcl::code $this AdjustSetting grid] \
         -font "Arial 9" -anchor w 
+    } {
+	ignore -font
+    }
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
@@ -1583,6 +1603,42 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         -variable [itcl::scope _settings(terrain-edges)] \
         -command [itcl::code $this AdjustSetting terrain-edges] \
         -font "Arial 9" -anchor w
+
+    itk_component add time_l {
+        label $inner.time_l -text "Time" -font "Arial 9"
+    } {
+        ignore -font
+    }
+    itk_component add time {
+        ::scale $inner.time -from 0 -to 23.9 -orient horizontal \
+            -resolution 0.1 \
+            -variable [itcl::scope _settings(time)] \
+            -showvalue on \
+            -command [itcl::code $this AdjustSetting time]
+    }
+
+    blt::table $inner \
+        0,0 $inner.posdisp   -cspan 2 -anchor w -pady 2 \
+        1,0 $inner.grid      -cspan 2 -anchor w -pady 2 \
+        2,0 $inner.wireframe -cspan 2 -anchor w -pady 2 \
+        3,0 $inner.lighting  -cspan 2 -anchor w -pady 2 \
+        4,0 $inner.time_l    -cspan 2 -anchor w -pady 2 \
+        4,1 $inner.time      -cspan 2 -fill x   -pady 2
+#        4,0 $inner.edges     -cspan 2  -anchor w -pady 2
+
+    blt::table configure $inner r* c* -resize none
+    blt::table configure $inner r5 c1 -resize expand
+}
+
+itcl::body Rappture::MapViewer::BuildTerrainTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Terrain Settings" \
+        -icon [Rappture::icon surface]]
+    $inner configure -borderwidth 4
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
     itk_component add terrainpalette {
@@ -1604,18 +1660,13 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
     $inner.vscale set $_settings(terrain-vertscale)
 
     blt::table $inner \
-        0,0 $inner.posdisp   -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.grid      -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        5,0 $inner.vscale_l  -anchor w -pady 2 \
-        5,1 $inner.vscale    -fill x   -pady 2 \
-        6,0 $inner.palette_l -anchor w -pady 2 \
-        6,1 $inner.palette   -fill x   -pady 2  
+        0,0 $inner.vscale_l  -anchor w -pady 2 \
+        0,1 $inner.vscale    -fill x   -pady 2 \
+        1,0 $inner.palette_l -anchor w -pady 2 \
+        1,1 $inner.palette   -fill x   -pady 2  
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r8 c1 -resize expand
+    blt::table configure $inner r3 c1 -resize expand
 }
 
 itcl::body Rappture::MapViewer::BuildLayerTab {} {
