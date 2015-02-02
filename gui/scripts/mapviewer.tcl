@@ -80,7 +80,6 @@ itcl::class Rappture::MapViewer {
     private method BuildLayerTab {}
     private method BuildMapTab {}
     private method BuildTerrainTab {}
-    private method ChangeLayerVisibility { dataobj layer }
     private method Connect {}
     private method CurrentLayers {args}
     private method Disconnect {}
@@ -104,9 +103,10 @@ itcl::class Rappture::MapViewer {
     private method ReceiveImage { args }
     private method Rotate {option x y}
     private method Select {option x y}
+    private method SetLayerOpacity { dataobj layer {value 100}}
     private method SetLayerStyle { dataobj layer }
+    private method SetLayerVisibility { dataobj layer }
     private method SetTerrainStyle { style }
-    private method SetOpacity { dataset }
     private method UpdateLayerControls {}
     private method Zoom {option {x 0} {y 0}}
 
@@ -121,6 +121,7 @@ itcl::class Rappture::MapViewer {
     private variable _rotate;
     private variable _motion;
     private variable _settings
+    private variable _opacity
     private variable _visibility
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
@@ -1056,9 +1057,13 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             } else {
                 if { $_mapsettings(type) == "geocentric" } {
                     $itk_component(grid) configure -state normal
+                    $itk_component(time_l) configure -state normal
+                    $itk_component(time) configure -state normal
                     SendCmd "map reset geocentric"
                 }  else {
                     $itk_component(grid) configure -state disabled
+                    $itk_component(time_l) configure -state disabled
+                    $itk_component(time) configure -state disabled
                     set proj $_mapsettings(projection)
                     if { $proj == "" } { 
                         SendCmd "map reset projected global-mercator"
@@ -1095,6 +1100,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     set _first ""
     set count 0
 
+    set haveTerrain 0
     foreach dataobj [get -objects] {
         set _obj2datasets($dataobj) ""
         foreach layer [$dataobj layers] {
@@ -1115,14 +1121,25 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 set _layers($layer) 1
                 SetLayerStyle $dataobj $layer
             }
+            if {$info(type) == "elevation"} {
+                set haveTerrain 1
+            }
             lappend _obj2datasets($dataobj) $layer
             # FIXME: This is overriding all layers' initial visibility setting
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "map layer visible 1 $layer"
                 set _visibility($layer) 1
-                #SetLayerOpacity $layer
+                #SetLayerOpacity $dataobj $layer
             }
         }
+    }
+
+    if ($haveTerrain) {
+        $itk_component(vscale_l) configure -state normal
+        $itk_component(vscale) configure -state normal
+    } else {
+        $itk_component(vscale_l) configure -state disabled
+        $itk_component(vscale) configure -state disabled
     }
 
     if {$_reset} {
@@ -1640,7 +1657,7 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         -icon [Rappture::icon surface]]
     $inner configure -borderwidth 4
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
+    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
     itk_component add terrainpalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
@@ -1650,20 +1667,24 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting terrain-palette]
 
-    label $inner.vscale_l -text "Vertical Scale" -font "Arial 9" -anchor w 
-    ::scale $inner.vscale -from 0 -to 10 -orient horizontal \
-        -variable [itcl::scope _settings(terrain-vertscale)] \
-        -width 10 \
-        -resolution 0.1 \
-        -showvalue on \
-        -command [itcl::code $this AdjustSetting terrain-vertscale]
+    itk_component add vscale_l {
+        label $inner.vscale_l -text "Vertical Scale" -font "Arial 9" -anchor w
+    }
+    itk_component add vscale {
+        ::scale $inner.vscale -from 0 -to 10 -orient horizontal \
+            -variable [itcl::scope _settings(terrain-vertscale)] \
+            -width 10 \
+            -resolution 0.1 \
+            -showvalue on \
+            -command [itcl::code $this AdjustSetting terrain-vertscale]
+    }
     $inner.vscale set $_settings(terrain-vertscale)
 
     blt::table $inner \
         0,0 $inner.vscale_l  -anchor w -pady 2 \
-        0,1 $inner.vscale    -fill x   -pady 2 \
-        1,0 $inner.palette_l -anchor w -pady 2 \
-        1,1 $inner.palette   -fill x   -pady 2  
+        0,1 $inner.vscale    -fill x   -pady 2
+#        1,0 $inner.palette_l -anchor w -pady 2 \
+#        1,1 $inner.palette   -fill x   -pady 2  
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r3 c1 -resize expand
@@ -1920,7 +1941,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
+                set _opacity($layer) $info(opacity)
             }
+            set _opacity($layer) [expr $settings(-opacity) * 100]
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
                     "debug" {
@@ -1985,6 +2008,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
+            set _opacity($layer) [expr $settings(-opacity) * 100]
             SendCmd [list map layer add line $info(ogr.url) $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
@@ -2000,6 +2024,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
+            set _opacity($layer) [expr $settings(-opacity) * 100]
             SendCmd [list map layer add polygon $info(ogr.url) $layer]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
@@ -2023,6 +2048,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(opacity)] } {
                 set settings(-opacity) $info(opacity)
             }
+            set _opacity($layer) [expr $settings(-opacity) * 100]
             set contentExpr $info(content)
             if {[info exists info(priority)]} {
                 set priorityExpr $info(priority)
@@ -2042,19 +2068,13 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     }
 }
 
-itcl::body Rappture::MapViewer::SetOpacity { dataset } { 
-    foreach {dataobj layer} [split $dataset -] break
-    set type [$dataobj type $layer]
-    set val $_settings(-opacity)
+itcl::body Rappture::MapViewer::SetLayerOpacity { dataobj layer {value 100}} {
+    set val $_opacity($layer)
     set sval [expr { 0.01 * double($val) }]
-    if { !$_obj2ovride($dataobj-raise) } {
-        # This is wrong.  Need to figure out why raise isn't set with 1
-        #set sval [expr $sval * .6]
-    }
-    SendCmd "$type opacity $sval $dataset"
+    SendCmd "map layer opacity $sval $layer"
 }
 
-itcl::body Rappture::MapViewer::ChangeLayerVisibility { dataobj layer } { 
+itcl::body Rappture::MapViewer::SetLayerVisibility { dataobj layer } {
     set bool $_visibility($layer)
     SendCmd "map layer visible $bool $layer"
 }
@@ -2072,15 +2092,26 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
         foreach layer [$dataobj layers] {
 	    array unset info
 	    array set info [$dataobj layer $layer]
-            checkbutton $f.$layer \
+            checkbutton $f.${layer}-visible \
                 -text $info(label) \
+                -font "Arial 9" -anchor w \
                 -variable [itcl::scope _visibility($layer)] \
                 -command [itcl::code $this \
-                              ChangeLayerVisibility $dataobj $layer] \
-		    -font "Arial 9" -anchor w 
-            blt::table $f $row,0 $f.$layer -anchor w -pady 2 
-            Rappture::Tooltip::for $f.$layer $info(description)
+                              SetLayerVisibility $dataobj $layer]
+            blt::table $f $row,0 $f.${layer}-visible -anchor w -pady 2 -cspan 2
+            Rappture::Tooltip::for $f.${layer}-visible $info(description)
             incr row
+            if { $info(type) != "elevation" } {
+                label $f.${layer}-opacity_l -text "Opacity" -font "Arial 9"
+                ::scale $f.${layer}-opacity -from 0 -to 100 \
+                    -orient horizontal -showvalue off \
+                    -variable [itcl::scope _opacity($layer)] \
+                    -command [itcl::code $this \
+                                  SetLayerOpacity $dataobj $layer]
+                blt::table $f $row,0 $f.${layer}-opacity_l -anchor w -pady 2
+                blt::table $f $row,1 $f.${layer}-opacity -anchor w -pady 2
+                incr row
+            }
 	}
     }
     if { $row > 0 } {
