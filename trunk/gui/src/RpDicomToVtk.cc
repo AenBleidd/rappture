@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include "tcl.h"
 
+// #define RP_DICOM_TRACE
+
 static int
 DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
@@ -94,12 +96,16 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int study = 0;
     int series = 0;
 
+#ifdef RP_DICOM_TRACE
     fprintf(stderr, "Num Studies: %d\n", numStudies);
+#endif
     vtkStringArray *files;
 #if 0
     for (int i = 0; i < numStudies; i++) {
         int numSeries = sorter->GetNumberOfSeriesInStudy(i);
+#ifdef RP_DICOM_TRACE
         fprintf(stderr, "Study %d: %d series\n", i, numSeries);
+#endif
         int k = sorter->GetFirstSeriesInStudy(i);
         for (int j = 0; j < numSeries; j++) {
             files = sorter->GetFileNamesForSeries(k+j);
@@ -143,9 +149,11 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_Obj *eltObj;
 #ifdef USE_VTK_DICOM_PACKAGE
     vtkStringArray *ids = reader->GetStackIDs();
+#ifdef RP_DICOM_TRACE
     for (int i = 0; i < ids->GetNumberOfValues(); i++) {
         fprintf(stderr, "Stack: %s\n", ids->GetValue(i).c_str());
     }
+#endif
     vtkIntArray *fidxArray = reader->GetFileIndexArray();
     vtkDICOMMetaData *md = reader->GetMetaData();
     int numComp = fidxArray->GetNumberOfComponents();
@@ -159,8 +167,9 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         fprintf(stderr, "\n");
     }
 #endif
+#ifdef RP_DICOM_TRACE
     fprintf(stderr, "Number of data elements: %d\n", md->GetNumberOfDataElements());
-
+#endif
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("num_files", -1));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewIntObj(md->GetNumberOfInstances()));
     Tcl_ListObjAppendElement(interp, metaDataObj, Tcl_NewStringObj("num_components", -1));
@@ -233,17 +242,17 @@ DicomToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 #endif
 
     Tcl_ListObjAppendList(interp, objPtr, metaDataObj);
-
+#ifdef RP_DICOM_TRACE
     fprintf(stderr, "writing VTK\n");
-
+#endif
     vtkSmartPointer<vtkDataSetWriter> writer = vtkSmartPointer<vtkDataSetWriter>::New();
     writer->SetInputConnection(reader->GetOutputPort());
     writer->SetFileTypeToBinary();
     writer->WriteToOutputStringOn();
     writer->Update();
-
+#ifdef RP_DICOM_TRACE
     fprintf(stderr, "writing VTK...done\n");
-
+#endif
     Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("vtkdata", -1));
 
     eltObj = Tcl_NewByteArrayObj((unsigned char *)writer->GetBinaryOutputString(),

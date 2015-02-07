@@ -87,7 +87,7 @@ GetDouble(Tcl_Interp *interp, const char *s, double *valuePtr)
     *valuePtr = d;
     return TCL_OK;
 }
-    
+
 /* 
  *  ReadPoints string dimVar pointsVar
  */
