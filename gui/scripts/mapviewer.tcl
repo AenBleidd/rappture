@@ -1797,7 +1797,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             foreach name {x y z heading pitch distance srs verticalDatum} value $args {
                 set _view($name) $value
             }
-            puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
+#            puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
         }
         "go" {
             SendCmd "camera go $args"
