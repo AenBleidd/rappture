@@ -1268,6 +1268,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         }
         "-cutplanesvisible" {
             set bool $_settings($what)
+            # We only set cutplanes on the first dataset.
             set datasets [CurrentDatasets -cutplanes]
             set tag [lindex $datasets 0]
             SendCmd "cutplane visible $bool $tag"
@@ -1362,6 +1363,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
             set axis [string range $what 1 1]
             set bool $_settings($what)
+            # We only set cutplanes on the first dataset.
             set datasets [CurrentDatasets -cutplanes] 
             set tag [lindex $datasets 0]
             SendCmd "cutplane state $bool $axis $tag"
