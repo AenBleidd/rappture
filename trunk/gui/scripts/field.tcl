@@ -76,7 +76,6 @@ itcl::class Rappture::Field {
     private variable _fld2Units;        # field name => units
     private variable _hints 
     private variable _viewer "";        # Hints which viewer to use
-    private variable _xv "";            # For 1D meshes only.  Holds the points
     private variable _isValid 0;        # Indicates if the field contains
                                         # valid data.
     private variable _isValidComponent; #  Array of valid components found
@@ -147,7 +146,8 @@ itcl::class Rappture::Field {
     private variable _comp2limits;	#  Array of limits per component
     private variable _type "" 
     private variable _comp2flowhints 
-    private variable _comp2mesh 
+    private variable _comp2mesh  ;# list of: mesh object, BLT vector of values
+    private variable _values ""  ;# Only used for unirect2d - list of values
     private common _counter 0    ;# counter for unique vector names
 
     private method AvsToVtk { cname contents } 
@@ -160,7 +160,6 @@ itcl::class Rappture::Field {
 
     private method VerifyVtkDataSet { contents } 
     private method VectorLimits { vector vectorsize {comp -1} }
-    private variable _values ""
 }
 
 # ----------------------------------------------------------------------
@@ -301,9 +300,8 @@ itcl::body Rappture::Field::components {args} {
 # ----------------------------------------------------------------------
 # USAGE: mesh ?<name>?
 #
-# Returns a list {xvec yvec} for the specified field component <name>.
-# If the name is not specified, then it returns the vectors for the
-# overall field (sum of all components).
+# For 1D data (curve), returns a BLT vector of x values for the field
+# component <name>.  Otherwise, this method is unused
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::mesh {{cname -overall}} {
     if {$cname == "-overall" || $cname == "component0"} {
@@ -312,26 +310,25 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
     if {[info exists _comp2xy($cname)]} {
         return [lindex $_comp2xy($cname) 0]  ;# return xv
     }
-    if { [info exists _comp2vtk($cname)] } {
+    if {[info exists _comp2vtk($cname)]} {
 	# FIXME: extract mesh from VTK file data.
-        if { $_comp2dims($cname) == "1D" } {
-            return $_xv
-        } 
         error "method \"mesh\" is not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
-        return ""  ;# no mesh -- it's embedded in the blob data
+        error "method \"mesh\" is not implemented for DX file data"
     }
     if {[info exists _comp2mesh($cname)]} {
-        return ""  ;# no mesh -- it's embedded in the value data
+        # FIXME: This only works for cloud
+        set mesh [lindex $_comp2mesh($cname) 0]
+        return [$mesh points]
     }
     if {[info exists _comp2unirect2d($cname)]} {
-        set mobj [lindex $_comp2unirect2d($cname) 0]
-        return [$mobj mesh]
+        # FIXME: unirec2d mesh is a list: xMin xMax xNum yMin yMax yNum
+        return [$_comp2unirect2d($cname) mesh]
     }
     if {[info exists _comp2unirect3d($cname)]} {
-        set mobj [lindex $_comp2unirect3d($cname) 0]
-        return [$mobj mesh]
+        # This returns a list of x,y,z points
+        return [$_comp2unirect3d($cname) mesh]
     }
     error "can't get field mesh: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -339,9 +336,8 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
 # ----------------------------------------------------------------------
 # USAGE: values ?<name>?
 #
-# Returns a list {xvec yvec} for the specified field component <name>.
-# If the name is not specified, then it returns the vectors for the
-# overall field (sum of all components).
+# For 1D data (curve), returns a BLT vector of field values (y coords)
+# for the field component <name>.  Otherwise, this method is unused
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::values {cname} {
     if {$cname == "component0"} {
@@ -350,21 +346,16 @@ itcl::body Rappture::Field::values {cname} {
     if {[info exists _comp2xy($cname)]} {
         return [lindex $_comp2xy($cname) 1]  ;# return yv
     }
-    # VTK file data 
     if { [info exists _comp2vtk($cname)] } {
 	# FIXME: extract the values from the VTK file data
-        if { $_comp2dims($cname) == "1D" } {
-            return $_values
-        } 
-        error "method \"values\" is not implemented for vtk file data"
+        error "method \"values\" is not implemented for VTK file data"
     }
-    # Points-on-mesh
+    if {[info exists _comp2dx($cname)]} {
+        error "method \"values\" is not implemented for DX file data"
+    }
     if { [info exists _comp2mesh($cname)] } {
 	set vector [lindex $_comp2mesh($cname) 1]
         return [$vector range 0 end]
-    }
-    if {[info exists _comp2dx($cname)]} {
-        error "method \"values\" is not implemented for dx file data"
     }
     if {[info exists _comp2unirect2d($cname)]} {
         return $_values
@@ -372,7 +363,7 @@ itcl::body Rappture::Field::values {cname} {
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) values]
     }
-    error "can't get field values. Unknown component \"$cname\": should be [join [lsort [array names _comp2dims]] {, }]"
+    error "can't get field values. Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
 
 # ----------------------------------------------------------------------
@@ -1383,7 +1374,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
         }
 	return $out
     }
-    error "can't find vtkdata for $cname. This method should only be called by the vtkheightmap widget"
+    error "can't find vtkdata for $cname"
 }
 
 #
