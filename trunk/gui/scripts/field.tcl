@@ -323,7 +323,7 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
         return [$mesh points]
     }
     if {[info exists _comp2unirect2d($cname)]} {
-        # FIXME: unirec2d mesh is a list: xMin xMax xNum yMin yMax yNum
+        # FIXME: unirect2d mesh is a list: xMin xMax xNum yMin yMax yNum
         return [$_comp2unirect2d($cname) mesh]
     }
     if {[info exists _comp2unirect3d($cname)]} {
