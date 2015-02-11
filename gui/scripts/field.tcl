@@ -370,7 +370,7 @@ itcl::body Rappture::Field::values {cname} {
         return $_values
     }
     if {[info exists _comp2unirect3d($cname)]} {
-        return [$_comp2unirect3d($cname) blob]
+        return [$_comp2unirect3d($cname) values]
     }
     error "can't get field values. Unknown component \"$cname\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -1441,7 +1441,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             lappend limits $axis [$_comp2unirect3d($cname) limits $axis]
         }
         # Get the data limits 
-        set vector [$_comp2unirect3d($cname) valuesObj]
+        set vector [$_comp2unirect3d($cname) values]
         set minmax [VectorLimits $vector $vectorsize]
         lappend limits $cname $minmax
         lappend limits v      $minmax

@@ -26,7 +26,6 @@ itcl::class Rappture::Unirect3d {
     public method blob {}
     public method mesh {}
     public method values {}
-    public method valuesObj {}
     public method units { axis }
     public method label { axis }
     public method hints {{keyword ""}} 
@@ -140,8 +139,8 @@ itcl::body Rappture::Unirect3d::blob {} {
 
 # ----------------------------------------------------------------------
 # method mesh 
-#       Returns a Tcl list that represents the points  of the uniform
-#       grid.
+#       Returns a Tcl list that represents the points of the uniform
+#       grid.  Each point has x,y and z values in the list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::mesh {} {
     set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
@@ -162,21 +161,10 @@ itcl::body Rappture::Unirect3d::mesh {} {
 }
 
 # ----------------------------------------------------------------------
-# method values 
-#       Returns a Tcl list that represents the field values
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::values {} {
-    if { [$_values length] > 0 } {
-        return [$_values range 0 end]
-    }
-    return ""
-}
-
-# ----------------------------------------------------------------------
-# method valuesObj 
+# method values
 #       Returns a BLT vector that represents the field values
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::valuesObj {} {
+itcl::body Rappture::Unirect3d::values {} {
     return $_values
 }
 
