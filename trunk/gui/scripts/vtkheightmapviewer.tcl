@@ -1072,6 +1072,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	    # May be a space in the axis label.
 	    SendCmd [list axis name $axis $label]
 
+            set units ""
 	    if {$axis == "z" && [$_first hints ${axis}units] == ""} {
                 if {$_curFldName != ""} {
                     set units [lindex $_fields($_curFldName) 1]
