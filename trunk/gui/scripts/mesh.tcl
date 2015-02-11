@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
 #  COMPONENT: mesh - represents a structured mesh for a device
@@ -17,29 +17,29 @@
 # ======================================================================
 package require Itcl
 
-namespace eval Rappture { 
-    # forward declaration 
+namespace eval Rappture {
+    # forward declaration
 }
 
 itcl::class Rappture::Mesh {
-    private variable _xmlobj ""  ;	# Ref to XML obj with device data
-    private variable _mesh ""    ;	# Lib obj representing this mesh
-    private variable _dim	0;	# Dimension of mesh (1, 2, or 3)
-    private variable _type "";		# Indicates the type of mesh.
-    private variable _axis2units;	# System of units for x, y, z
-    private variable _axis2labels;      # 
-    private variable _hints 
-    private variable _limits        ;	# Array of mesh limits. Keys are 
-					# xmin, xmax, ymin, ymax, ...
-    private variable _numPoints 0   ;	# # of points in mesh
-    private variable _numCells 0   ;	# # of cells in mesh
-    private variable _vtkdata "";	# Mesh in vtk file format.
+    private variable _xmlobj ""  ;      # Ref to XML obj with device data
+    private variable _mesh ""    ;      # Lib obj representing this mesh
+    private variable _dim        0;     # Dimension of mesh (1, 2, or 3)
+    private variable _type "";          # Indicates the type of mesh.
+    private variable _axis2units;       # System of units for x, y, z
+    private variable _axis2labels;      #
+    private variable _hints
+    private variable _limits        ;   # Array of mesh limits. Keys are
+                                        # xmin, xmax, ymin, ymax, ...
+    private variable _numPoints 0   ;   # # of points in mesh
+    private variable _numCells 0   ;    # # of cells in mesh
+    private variable _vtkdata "";       # Mesh in vtk file format.
     private variable _isValid 0;        # Indicates if the mesh is valid.
-    constructor {xmlobj path} { 
-	# defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-	# defined below 
+    destructor {
+        # defined below
     }
     public method points {}
     public method elements {}
@@ -57,28 +57,28 @@ itcl::class Rappture::Mesh {
     public proc release {obj}
     public method vtkdata {{what -partial}}
     public method type {} {
-	return $_type
+        return $_type
     }
     public method numpoints {} {
-	return $_numPoints
+        return $_numPoints
     }
     public method numcells {} {
-	return $_numCells
+        return $_numCells
     }
 
-    private common _xp2obj       ;	# used for fetch/release ref counting
-    private common _obj2ref      ;	# used for fetch/release ref counting
-    private variable _xv	""
-    private variable _yv	""
-    private variable _zv	""
-    private variable _xCoords	"";	# For the blt contour only
-    private variable _yCoords	"";	# For the blt contour only
-    
+    private common _xp2obj       ;        # used for fetch/release ref counting
+    private common _obj2ref      ;        # used for fetch/release ref counting
+    private variable _xv        ""
+    private variable _yv        ""
+    private variable _zv        ""
+    private variable _xCoords        "";  # For the blt contour only
+    private variable _yCoords        "";  # For the blt contour only
+
     private method ReadNodesElements {path}
-    private method GetDimension { path } 
-    private method GetDouble { path } 
-    private method GetInt { path } 
-    private method InitHints {} 
+    private method GetDimension { path }
+    private method GetDouble { path }
+    private method GetInt { path }
+    private method InitHints {}
     private method ReadGrid { path }
     private method ReadUnstructuredGrid { path }
     private method ReadVtk { path }
@@ -163,9 +163,9 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     set first [lindex $units 0]
     foreach u $units axis { x y z } {
         if { $u != "" } {
-            set _axis2units($axis) $u 
+            set _axis2units($axis) $u
         } else {
-            set _axis2units($axis) $first 
+            set _axis2units($axis) $first
         }
     }
     foreach label [$_mesh get labels] axis { x y z } {
@@ -178,22 +178,22 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 
     # Meshes comes in a variety of flavors
     #
-    # Dimensionality is determined from the <dimension> tag.  
+    # Dimensionality is determined from the <dimension> tag.
     #
     # <vtk> described mesh
     # <element> +  <node> definitions
-    # <grid>		rectangular mesh 
+    # <grid>		rectangular mesh
     # <unstructured>    homogeneous cell type mesh.
 
     # Check that only one mesh type was defined.
     set subcount 0
     foreach cname [$_mesh children] {
-	foreach type { vtk grid unstructured } {
-	    if { $cname == $type } {
-		incr subcount
-		break
-	    } 
-	}
+        foreach type { vtk grid unstructured } {
+            if { $cname == $type } {
+                incr subcount
+                break
+            }
+        }
     }
     if {[$_mesh element "node"] != "" ||
         [$_mesh element "element"] != ""} {
@@ -205,16 +205,16 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
         return
     }
     if { $subcount > 1 } {
-	puts stderr "WARNING: too many mesh types specified for \"$path\"."
+        puts stderr "WARNING: too many mesh types specified for \"$path\"."
         return
     }
     set result 0
     if { [$_mesh element "vtk"] != ""} {
-	set result [ReadVtk $path]
+        set result [ReadVtk $path]
     } elseif {[$_mesh element "grid"] != "" } {
-	set result [ReadGrid $path]
+        set result [ReadGrid $path]
     } elseif {[$_mesh element "unstructured"] != "" } {
-	set result [ReadUnstructuredGrid $path]
+        set result [ReadUnstructuredGrid $path]
     } elseif {[$_mesh element "node"] != "" && [$_mesh element "element"] != ""} {
         set result [ReadNodesElements $path]
     }
@@ -230,27 +230,27 @@ itcl::body Rappture::Mesh::destructor {} {
     itcl::delete object $_mesh
 
     if { $_xCoords != "" } {
-	blt::vector destroy $_xCoords
+        blt::vector destroy $_xCoords
     }
     if { $_yCoords != "" } {
-	blt::vector destroy $_yCoords
+        blt::vector destroy $_yCoords
     }
 }
 
 #
-# vtkdata -- 
+# vtkdata --
 #
-#	This is called by the field object to generate a VTK file to send to
-#	the remote render server.  Returns the vtkDataSet object containing
-#	(at this point) just the mesh.  The field object doesn't know (or
-#	care) what type of mesh is used.  The field object will add field
-#	arrays before generating output to send to the remote render server.
+#        This is called by the field object to generate a VTK file to send to
+#        the remote render server.  Returns the vtkDataSet object containing
+#        (at this point) just the mesh.  The field object doesn't know (or
+#        care) what type of mesh is used.  The field object will add field
+#        arrays before generating output to send to the remote render server.
 #
 itcl::body Rappture::Mesh::vtkdata {{what -partial}} {
     if {$what == "-full"} {
         append out "# vtk DataFile Version 3.0\n"
-	append out "[hints label]\n"
-	append out "ASCII\n"
+        append out "[hints label]\n"
+        append out "ASCII\n"
         append out $_vtkdata
         return $out
     } else {
@@ -339,12 +339,12 @@ itcl::body Rappture::Mesh::elements {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::mesh { {type "vtk"} } {
     switch $type {
-	"vtk" { 
-	    return ""
-	}
-	default { 
-	    error "Requested mesh type \"$type\" is unknown."
-	}
+        "vtk" {
+            return ""
+        }
+        default {
+            error "Requested mesh type \"$type\" is unknown."
+        }
     }
 }
 
@@ -442,7 +442,7 @@ itcl::body Rappture::Mesh::InitHints {} {
 itcl::body Rappture::Mesh::GetDimension { path } {
     set string [$_xmlobj get $path.dim]
     if { $string == "" } {
-	puts stderr "WARNING: no tag <dim> found in mesh \"$path\"."
+        puts stderr "WARNING: no tag <dim> found in mesh \"$path\"."
         return 0
     }
     if { [scan $string "%d" _dim] == 1 } {
@@ -478,7 +478,7 @@ itcl::body Rappture::Mesh::ReadVtk { path } {
     if { ![GetDimension $path] } {
         return 0
     }
-    # Create a VTK file with the mesh in it.  
+    # Create a VTK file with the mesh in it.
     set _vtkdata [$_xmlobj get $path.vtk]
     append out "# vtk DataFile Version 3.0\n"
     append out "mesh\n"
@@ -520,33 +520,33 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     set numRectilinear 0
     set numCurvilinear 0
     foreach axis { x y z } {
-	set min    [$_xmlobj get "$path.grid.${axis}axis.min"]
-	set max    [$_xmlobj get "$path.grid.${axis}axis.max"]
-	set num    [$_xmlobj get "$path.grid.${axis}axis.numpoints"]
-	set coords [$_xmlobj get "$path.grid.${axis}coords"]
-	set dim    [$_xmlobj get "$path.grid.${axis}dim"]
-	if { $min != "" && $max != "" && $num != "" && $num > 0 } {
-	    set ${axis}Min $min
-	    set ${axis}Max $max
-	    set ${axis}Num $num
+        set min    [$_xmlobj get "$path.grid.${axis}axis.min"]
+        set max    [$_xmlobj get "$path.grid.${axis}axis.max"]
+        set num    [$_xmlobj get "$path.grid.${axis}axis.numpoints"]
+        set coords [$_xmlobj get "$path.grid.${axis}coords"]
+        set dim    [$_xmlobj get "$path.grid.${axis}dim"]
+        if { $min != "" && $max != "" && $num != "" && $num > 0 } {
+            set ${axis}Min $min
+            set ${axis}Max $max
+            set ${axis}Num $num
             if {$min > $max} {
                 puts stderr "ERROR: grid $axis axis minimum larger than maximum"
                 return 0
             }
-	    incr numUniform
-	} elseif { $coords != "" } {
-	    incr numRectilinear
-	    set ${axis}Coords $coords
-	} elseif { $dim != "" } {
+            incr numUniform
+        } elseif { $coords != "" } {
+            incr numRectilinear
+            set ${axis}Coords $coords
+        } elseif { $dim != "" } {
             set ${axis}Num $dim
             incr numCurvilinear
         }
     }
     set _dim [expr $numRectilinear + $numUniform + $numCurvilinear]
     if { $_dim == 0 } {
-	# No data found.
+        # No data found.
         puts stderr "WARNING: bad grid \"$path\": no data found"
-	return 0
+        return 0
     }
     if { $numCurvilinear > 0 } {
         # This is the 2D/3D curilinear case. We found <xdim>, <ydim>, or <zdim>
@@ -559,7 +559,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             puts stderr "WARNING: bad grid \"$path\": no <points> found."
             return 0
         }
-	if { ![info exists xNum] } {
+        if { ![info exists xNum] } {
             puts stderr "WARNING: bad grid \"$path\": invalid dimensions for curvilinear grid: missing <xdim> from grid description."
             return 0
         }
@@ -571,7 +571,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         set numCoords [$all length]
         if { [info exists zNum] } {
             set _dim 3
-	    set _numPoints [expr $xNum * $yNum * $zNum]
+            set _numPoints [expr $xNum * $yNum * $zNum]
             set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
             if { ($_numPoints*3) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
@@ -582,19 +582,19 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
                 return 0
             }
             $all split $xv $yv $zv
-	    foreach axis {x y z} {
+            foreach axis {x y z} {
                 set vector [set ${axis}v]
                 set _limits($axis) [$vector limits]
-	    }
-	    append out "DATASET STRUCTURED_GRID\n"
-	    append out "DIMENSIONS $xNum $yNum $zNum\n"
-	    append out "POINTS $_numPoints double\n"
+            }
+            append out "DATASET STRUCTURED_GRID\n"
+            append out "DIMENSIONS $xNum $yNum $zNum\n"
+            append out "POINTS $_numPoints double\n"
             append out [$all range 0 end]
             append out "\n"
-	    set _vtkdata $out
+            set _vtkdata $out
         } elseif { [info exists yNum] } {
             set _dim 2
-	    set _numPoints [expr $xNum * $yNum]
+            set _numPoints [expr $xNum * $yNum]
             set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
             if { ($_numPoints*2) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim>"
@@ -604,19 +604,19 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
                 puts stderr "WARNING: bad grid \"$path\": wrong \# of coordinates for 2D grid"
                 return 0
             }
-	    foreach axis {x y} {
+            foreach axis {x y} {
                 set vector [set ${axis}v]
                 set _limits($axis) [$vector limits]
-	    }
+            }
             set _limits(z) [list 0 0]
             $zv seq 0 0 [$xv length]
             $all merge $xv $yv $zv
-	    append out "DATASET STRUCTURED_GRID\n"
-	    append out "DIMENSIONS $xNum $yNum 1\n"
-	    append out "POINTS $_numPoints double\n"
+            append out "DATASET STRUCTURED_GRID\n"
+            append out "DIMENSIONS $xNum $yNum 1\n"
+            append out "POINTS $_numPoints double\n"
             append out [$all range 0 end]
             append out "\n"
-	    set _vtkdata $out
+            set _vtkdata $out
         } else {
             set _dim 1
             set _numPoints $xNum
@@ -631,18 +631,18 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             $yv seq 0 0 [$xv length]
             $zv seq 0 0 [$xv length]
             $all merge $xv $yv $zv
-	    append out "DATASET STRUCTURED_GRID\n"
-	    append out "DIMENSIONS $xNum 1 1\n"
-	    append out "POINTS $_numPoints double\n"
+            append out "DATASET STRUCTURED_GRID\n"
+            append out "DIMENSIONS $xNum 1 1\n"
+            append out "POINTS $_numPoints double\n"
             append out [$all range 0 end]
             append out "\n"
-	    set _vtkdata $out
-	}
+            set _vtkdata $out
+        }
         blt::vector destroy $all $xv $yv $zv
-	return 1
+        return 1
     }
     if { $numRectilinear == 0 && $numUniform > 0} {
-	# This is the special case where all axes 2D/3D are uniform.  
+        # This is the special case where all axes 2D/3D are uniform.
         # This results in a STRUCTURED_POINTS
         if { $_dim == 1 } {
             if {$xNum == 1} {
@@ -650,17 +650,17 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             } else {
                 set xSpace [expr ($xMax - $xMin) / double($xNum - 1)]
             }
-	    set _numPoints $xNum
+            set _numPoints $xNum
             set _numCells [expr $xNum - 1]
-	    append out "DATASET STRUCTURED_POINTS\n"
-	    append out "DIMENSIONS $xNum 1 1\n"
-	    append out "ORIGIN $xMin 0 0\n"
-	    append out "SPACING $xSpace 0 0\n"
-	    set _vtkdata $out
+            append out "DATASET STRUCTURED_POINTS\n"
+            append out "DIMENSIONS $xNum 1 1\n"
+            append out "ORIGIN $xMin 0 0\n"
+            append out "SPACING $xSpace 0 0\n"
+            set _vtkdata $out
             set _limits(x) [list $xMin $xMax]
             set _limits(y) [list 0 0]
             set _limits(z) [list 0 0]
-	} elseif { $_dim == 2 } {
+        } elseif { $_dim == 2 } {
             if {$xNum == 1} {
                 set xSpace 0
             } else {
@@ -671,18 +671,18 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             } else {
                 set ySpace [expr ($yMax - $yMin) / double($yNum - 1)]
             }
-	    set _numPoints [expr $xNum * $yNum]
+            set _numPoints [expr $xNum * $yNum]
             set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
-	    append out "DATASET STRUCTURED_POINTS\n"
-	    append out "DIMENSIONS $xNum $yNum 1\n"
-	    append out "ORIGIN $xMin $yMin 0\n"
-	    append out "SPACING $xSpace $ySpace 0\n"
-	    set _vtkdata $out
-	    foreach axis {x y} {
-		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
-	    }
+            append out "DATASET STRUCTURED_POINTS\n"
+            append out "DIMENSIONS $xNum $yNum 1\n"
+            append out "ORIGIN $xMin $yMin 0\n"
+            append out "SPACING $xSpace $ySpace 0\n"
+            set _vtkdata $out
+            foreach axis {x y} {
+                set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
+            }
             set _limits(z) [list 0 0]
-	} elseif { $_dim == 3 } {
+        } elseif { $_dim == 3 } {
             if {$xNum == 1} {
                 set xSpace 0
             } else {
@@ -698,31 +698,31 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             } else {
                 set zSpace [expr ($zMax - $zMin) / double($zNum - 1)]
             }
-	    set _numPoints [expr $xNum * $yNum * $zNum]
+            set _numPoints [expr $xNum * $yNum * $zNum]
             set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
-	    append out "DATASET STRUCTURED_POINTS\n"
-	    append out "DIMENSIONS $xNum $yNum $zNum\n"
-	    append out "ORIGIN $xMin $yMin $zMin\n"
-	    append out "SPACING $xSpace $ySpace $zSpace\n"
-	    set _vtkdata $out
-	    foreach axis {x y z} {
-		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
-	    }
-	} else { 
-	    puts stderr "WARNING: bad grid \"$path\": bad dimension \"$_dim\""
+            append out "DATASET STRUCTURED_POINTS\n"
+            append out "DIMENSIONS $xNum $yNum $zNum\n"
+            append out "ORIGIN $xMin $yMin $zMin\n"
+            append out "SPACING $xSpace $ySpace $zSpace\n"
+            set _vtkdata $out
+            foreach axis {x y z} {
+                set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
+            }
+        } else {
+            puts stderr "WARNING: bad grid \"$path\": bad dimension \"$_dim\""
             return 0
-	}
-	return 1
+        }
+        return 1
     }
     # This is the hybrid case.  Some axes are uniform, others are nonuniform.
     set xv [blt::vector create \#auto]
     if { [info exists xMin] } {
-	$xv seq $xMin $xMax $xNum
+        $xv seq $xMin $xMax $xNum
     } else {
-	$xv set [$_xmlobj get $path.grid.xcoords]
-	set xMin [$xv min]
-	set xMax [$xv max]
-	set xNum [$xv length]
+        $xv set [$_xmlobj get $path.grid.xcoords]
+        set xMin [$xv min]
+        set xMax [$xv max]
+        set xNum [$xv length]
     }
     set yv [blt::vector create \#auto]
     if { $_dim > 1 } {
@@ -739,80 +739,80 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     }
     set zv [blt::vector create \#auto]
     if { $_dim == 3 } {
-	if { [info exists zMin] } {
-	    $zv seq $zMin $zMax $zNum
-	}  else {
-	    $zv set [$_xmlobj get $path.grid.zcoords]
-	    set zMin [$zv min]
-	    set zMax [$zv max]
-	    set zNum [$zv length]
-	}
+        if { [info exists zMin] } {
+            $zv seq $zMin $zMax $zNum
+        }  else {
+            $zv set [$_xmlobj get $path.grid.zcoords]
+            set zMin [$zv min]
+            set zMax [$zv max]
+            set zNum [$zv length]
+        }
     } else {
-	set zNum 1
+        set zNum 1
     }
     if { $_dim == 3 } {
-	set _numPoints [expr $xNum * $yNum * $zNum]
+        set _numPoints [expr $xNum * $yNum * $zNum]
         set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
-	append out "DATASET RECTILINEAR_GRID\n"
-	append out "DIMENSIONS $xNum $yNum $zNum\n"
-	append out "X_COORDINATES $xNum double\n"
-	append out [$xv range 0 end]
-	append out "\n"
-	append out "Y_COORDINATES $yNum double\n"
-	append out [$yv range 0 end]
-	append out "\n"
-	append out "Z_COORDINATES $zNum double\n"
-	append out [$zv range 0 end]
-	append out "\n"
-	set _vtkdata $out
-	foreach axis {x y z} {
-	    if { [info exists ${axis}Min] } {
-		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
-	    }
-	}
+        append out "DATASET RECTILINEAR_GRID\n"
+        append out "DIMENSIONS $xNum $yNum $zNum\n"
+        append out "X_COORDINATES $xNum double\n"
+        append out [$xv range 0 end]
+        append out "\n"
+        append out "Y_COORDINATES $yNum double\n"
+        append out [$yv range 0 end]
+        append out "\n"
+        append out "Z_COORDINATES $zNum double\n"
+        append out [$zv range 0 end]
+        append out "\n"
+        set _vtkdata $out
+        foreach axis {x y z} {
+            if { [info exists ${axis}Min] } {
+                set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
+            }
+        }
     } elseif { $_dim == 2 } {
-	set _numPoints [expr $xNum * $yNum]
+        set _numPoints [expr $xNum * $yNum]
         set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
-	append out "DATASET RECTILINEAR_GRID\n"
-	append out "DIMENSIONS $xNum $yNum 1\n"
-	append out "X_COORDINATES $xNum double\n"
-	append out [$xv range 0 end]
-	append out "\n"
-	append out "Y_COORDINATES $yNum double\n"
-	append out [$yv range 0 end]
-	append out "\n"
-	append out "Z_COORDINATES 1 double\n"
-	append out "0\n"
-	foreach axis {x y} {
-	    if { [info exists ${axis}Min] } {
-		set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
-	    }
-	}
+        append out "DATASET RECTILINEAR_GRID\n"
+        append out "DIMENSIONS $xNum $yNum 1\n"
+        append out "X_COORDINATES $xNum double\n"
+        append out [$xv range 0 end]
+        append out "\n"
+        append out "Y_COORDINATES $yNum double\n"
+        append out [$yv range 0 end]
+        append out "\n"
+        append out "Z_COORDINATES 1 double\n"
+        append out "0\n"
+        foreach axis {x y} {
+            if { [info exists ${axis}Min] } {
+                set _limits($axis) [list [set ${axis}Min] [set ${axis}Max]]
+            }
+        }
         set _limits(z) [list 0 0]
-	set _vtkdata $out
+        set _vtkdata $out
     } elseif { $_dim == 1 } {
         set _numPoints $xNum
         set _numCells [expr $xNum - 1]
-	append out "DATASET RECTILINEAR_GRID\n"
-	append out "DIMENSIONS $xNum 1 1\n"
-	append out "X_COORDINATES $xNum double\n"
-	append out [$xv range 0 end]
-	append out "\n"
-	append out "Y_COORDINATES 1 double\n"
-	append out "0\n"
-	append out "Z_COORDINATES 1 double\n"
-	append out "0\n"
+        append out "DATASET RECTILINEAR_GRID\n"
+        append out "DIMENSIONS $xNum 1 1\n"
+        append out "X_COORDINATES $xNum double\n"
+        append out [$xv range 0 end]
+        append out "\n"
+        append out "Y_COORDINATES 1 double\n"
+        append out "0\n"
+        append out "Z_COORDINATES 1 double\n"
+        append out "0\n"
         if { [info exists xMin] } {
             set _limits(x) [list $xMin $xMax]
         }
         set _limits(y) [list 0 0]
         set _limits(z) [list 0 0]
-	set _vtkdata $out
+        set _vtkdata $out
     } else {
-	puts stderr "WARNING: bad grid \"$path\": invalid dimension \"$_dim\""
+        puts stderr "WARNING: bad grid \"$path\": invalid dimension \"$_dim\""
         return 0
     }
-    blt::vector destroy $xv $yv $zv 
+    blt::vector destroy $xv $yv $zv
     return 1
 }
 
@@ -846,14 +846,14 @@ itcl::body Rappture::Mesh::WriteTriangles { path xv yv zv triangles } {
     set data {}
     set celltypes {}
     foreach { a b c } $triangles {
-	append data " 3 $a $b $c\n"
-	append celltypes "5\n"
-	incr _numCells
+        append data " 3 $a $b $c\n"
+        append celltypes "5\n"
+        incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     set count [expr $_numCells * 4]
     append out "CELLS $_numCells $count\n"
@@ -878,14 +878,14 @@ itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
     set data {}
     set celltypes {}
     foreach { a b c d } $quads {
-	append data " 4 $a $b $c $d\n"
-	append celltypes "9\n"
-	incr _numCells
+        append data " 4 $a $b $c $d\n"
+        append celltypes "9\n"
+        incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     set count [expr $_numCells * 5]
     append out "CELLS $_numCells $count\n"
@@ -915,14 +915,14 @@ itcl::body Rappture::Mesh::WriteVertices { path xv yv zv vertices } {
         if { $numIndices == 0 } {
             continue
         }
-	append data " $numIndices $line\n"
-	incr _numCells
+        append data " $numIndices $line\n"
+        incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     append out "VERTICES $_numCells $count\n"
     append out $data
@@ -949,14 +949,14 @@ itcl::body Rappture::Mesh::WriteLines { path xv yv zv polylines } {
         if { $numIndices == 0 } {
             continue
         }
-	append data " $numIndices $line\n"
-	incr _numCells
+        append data " $numIndices $line\n"
+        incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     append out "LINES $_numCells $count\n"
     append out $data
@@ -983,14 +983,14 @@ itcl::body Rappture::Mesh::WritePolygons { path xv yv zv polygons } {
         if { $numIndices == 0 } {
             continue
         }
-	append data " $numIndices $line\n"
-	incr _numCells
+        append data " $numIndices $line\n"
+        incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     append out "POLYGONS $_numCells $count\n"
     append out $data
@@ -1017,14 +1017,14 @@ itcl::body Rappture::Mesh::WriteTriangleStrips { path xv yv zv trianglestrips } 
         if { $numIndices == 0 } {
             continue
         }
-	append data " $numIndices $line\n"
-	incr _numCells
+        append data " $numIndices $line\n"
+        incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     append out "TRIANGLE_STRIPS $_numCells $count\n"
     append out $data
@@ -1046,14 +1046,14 @@ itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
     set data {}
     set celltypes {}
     foreach { a b c d } $tetras {
-	append data " 4 $a $b $c $d\n"
-	append celltypes "10\n"
-	incr _numCells
+        append data " 4 $a $b $c $d\n"
+        append celltypes "10\n"
+        incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     set count [expr $_numCells * 5]
     append out "CELLS $_numCells $count\n"
@@ -1075,14 +1075,14 @@ itcl::body Rappture::Mesh::WriteHexahedrons { path xv yv zv hexas } {
     set data {}
     set celltypes {}
     foreach { a b c d e f g h } $hexas {
-	append data " 8 $a $b $c $d $e $f $g $h\n"
-	append celltypes "12\n"
-	incr _numCells
+        append data " 8 $a $b $c $d $e $f $g $h\n"
+        append celltypes "12\n"
+        incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     set count [expr $_numCells * 9]
     append out "CELLS $_numCells $count\n"
@@ -1104,14 +1104,14 @@ itcl::body Rappture::Mesh::WriteWedges { path xv yv zv wedges } {
     set data {}
     set celltypes {}
     foreach { a b c d e f } $wedges {
-	append data " 6 $a $b $c $d $e $f\n"
-	append celltypes "13\n"
-	incr _numCells
+        append data " 6 $a $b $c $d $e $f\n"
+        append celltypes "13\n"
+        incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     set count [expr $_numCells * 7]
     append out "CELLS $_numCells $count\n"
@@ -1133,14 +1133,14 @@ itcl::body Rappture::Mesh::WritePyramids { path xv yv zv pyramids } {
     set data {}
     set celltypes {}
     foreach { a b c d e } $pyramids {
-	append data " 5 $a $b $c $d $e\n"
-	append celltypes "14\n"
-	incr _numCells
+        append data " 5 $a $b $c $d $e\n"
+        append celltypes "14\n"
+        incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	append out " $x $y $z\n"
+        append out " $x $y $z\n"
     }
     set count [expr $_numCells * 6]
     append out "CELLS $_numCells $count\n"
@@ -1152,7 +1152,7 @@ itcl::body Rappture::Mesh::WritePyramids { path xv yv zv pyramids } {
     set _limits(z) [$zv limits]
 
     set _vtkdata $out
-    return 1 
+    return 1
 }
 
 itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
@@ -1240,7 +1240,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     # The generic <cells> tag requires there be a <celltypes> tag too.
     set celltypes [$_xmlobj get $path.unstructured.celltypes]
     if { $numCells == 0 && $celltypes != "" } {
-	puts stderr "WARNING: bad unstuctured grid \"$path\": no <cells> description found."
+        puts stderr "WARNING: bad unstuctured grid \"$path\": no <cells> description found."
         return 0
     }
     if { $numCells > 1 } {
@@ -1265,7 +1265,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
             break
         }
     }
-    # Step 2: Allow points to be specified as <points> or 
+    # Step 2: Allow points to be specified as <points> or
     #         <xcoords>, <ycoords>, <zcoords>.  Split and convert into
     #         3 vectors, one for each coordinate.
     if { $_dim == 1 } {
@@ -1413,47 +1413,47 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     # Scan for nodes.  Each node represents a vertex.
     set data {}
     foreach cname [$_xmlobj children -type node $path] {
-	append data "[$_xmlobj get $path.$cname]\n"
-    }	
+        append data "[$_xmlobj get $path.$cname]\n"
+    }
     Rappture::ReadPoints $data _dim points
     if { $_dim == 2 } {
-	set all [blt::vector create \#auto]
-	set xv [blt::vector create \#auto]
-	set yv [blt::vector create \#auto]
-	set zv [blt::vector create \#auto]
-	$all set $points
-	$all split $xv $yv
-	set _numPoints [$xv length]
+        set all [blt::vector create \#auto]
+        set xv [blt::vector create \#auto]
+        set yv [blt::vector create \#auto]
+        set zv [blt::vector create \#auto]
+        $all set $points
+        $all split $xv $yv
+        set _numPoints [$xv length]
         set _limits(x) [$xv limits]
         set _limits(y) [$yv limits]
         set _limits(z) [list 0 0]
-	# 2D Dataset. All Z coordinates are 0
-	$zv seq 0.0 0.0 $_numPoints
-	$all merge $xv $yv $zv
-	set points [$all range 0 end]
-	blt::vector destroy $all $xv $yv $zv
+        # 2D Dataset. All Z coordinates are 0
+        $zv seq 0.0 0.0 $_numPoints
+        $all merge $xv $yv $zv
+        set points [$all range 0 end]
+        blt::vector destroy $all $xv $yv $zv
     } elseif { $_dim == 3 } {
-	set all [blt::vector create \#auto]
-	set xv [blt::vector create \#auto]
-	set yv [blt::vector create \#auto]
-	set zv [blt::vector create \#auto]
-	$all set $points
-	$all split $xv $yv $zv
-	set _numPoints [$xv length]
+        set all [blt::vector create \#auto]
+        set xv [blt::vector create \#auto]
+        set yv [blt::vector create \#auto]
+        set zv [blt::vector create \#auto]
+        $all set $points
+        $all split $xv $yv $zv
+        set _numPoints [$xv length]
         set _limits(x) [$xv limits]
         set _limits(y) [$yv limits]
         set _limits(z) [$zv limits]
-	set points [$all range 0 end]
-	blt::vector destroy $all $xv $yv $zv
+        set points [$all range 0 end]
+        blt::vector destroy $all $xv $yv $zv
     } else {
-	error "bad dimension \"$_dim\" for nodes mesh"
+        error "bad dimension \"$_dim\" for nodes mesh"
     }
     array set node2celltype {
-	3 5
-	4 10
-	8 12
-	6 13
-	5 14
+        3 5
+        4 10
+        8 12
+        6 13
+        5 14
     }
     set count 0
     set _numCells 0
@@ -1462,13 +1462,13 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     # Next scan for elements.  Each element represents a cell.
     foreach cname [$_xmlobj children -type element $path] {
         set nodeList [$_mesh get $cname.nodes]
-	set numNodes [llength $nodeList]
-	if { ![info exists node2celltype($numNodes)] } {
-	    puts stderr "WARNING: bad nodes/elements mesh \$path\": unknown number of indices \"$_numNodes\": should be 3, 4, 5, 6, or 8"
-	    return 0
-	}
-	set celltype $node2celltype($numNodes)
-	append celltypes "  $celltype\n"
+        set numNodes [llength $nodeList]
+        if { ![info exists node2celltype($numNodes)] } {
+            puts stderr "WARNING: bad nodes/elements mesh \$path\": unknown number of indices \"$_numNodes\": should be 3, 4, 5, 6, or 8"
+            return 0
+        }
+        set celltype $node2celltype($numNodes)
+        append celltypes "  $celltype\n"
         if { $celltype == 12 } {
             # Formerly used voxels instead of hexahedrons. We're converting
             # it here to be backward compatible and still fault-tolerant of
@@ -1478,11 +1478,11 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
                 lappend newList [lindex $nodeList $i]
             }
             set nodeList $newList
-        } 
-	append data "  $numNodes $nodeList\n"
-	incr _numCells
-	incr count $numNodes 
- 	incr count;			# One extra for the VTK celltype id.
+        }
+        append data "  $numNodes $nodeList\n"
+        incr _numCells
+        incr count $numNodes
+        incr count;                        # One extra for the VTK celltype id.
     }
 
     append out "DATASET UNSTRUCTURED_GRID\n"
@@ -1495,7 +1495,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     append out $celltypes
     append out "\n"
     set _vtkdata $out
-    set _isValid 1 
+    set _isValid 1
 }
 
 itcl::body Rappture::Mesh::GetCellType { name } {
