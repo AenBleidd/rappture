@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkmeshviewer - Vtk mesh viewer
 #
@@ -57,8 +57,8 @@ itcl::class Rappture::VtkMeshViewer {
     public method get {args}
     public method isconnected {}
     public method limits { dataobj }
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -66,47 +66,47 @@ itcl::class Rappture::VtkMeshViewer {
     private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method BuildPolydataTab {}
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
     private method DoResize {}
     private method DoRotate {}
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
-    private method EventuallySetPolydataOpacity {} 
-    private method GetImage { args } 
-    private method GetVtkData { args } 
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { q }
+    private method EventuallySetPolydataOpacity {}
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method InitSettings { args  }
-    private method IsValidObject { dataobj } 
+    private method IsValidObject { dataobj }
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
     private method ReceiveDataset { args }
     private method ReceiveImage { args }
     private method Rotate {option x y}
-    private method SetObjectStyle { dataobj } 
+    private method SetObjectStyle { dataobj }
     private method SetOrientation { side }
     private method SetPolydataOpacity {}
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
 
     private variable _arcball ""
-    private variable _dlist "";		# list of data objects
+    private variable _dlist "";         # list of data objects
     private variable _obj2datasets
-    private variable _obj2ovride;	# maps dataobj => style override
-    private variable _datasets;		# contains all the dataobj-component 
-                                   	# datasets in the server
-    private variable _dataset2style;	# maps dataobj-component to transfunc
-    private variable _style2datasets;	# maps tf back to list of 
-					# dataobj-components using the tf.
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _datasets;         # contains all the dataobj-component
+                                        # datasets in the server
+    private variable _dataset2style;    # maps dataobj-component to transfunc
+    private variable _style2datasets;   # maps tf back to list of
+                                        # dataobj-components using the tf.
     private variable _click;            # info used for rotate operations
     private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
@@ -199,7 +199,7 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     }
     array set _widget {
         -polydataopacity        100
-    }        
+    }
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -210,7 +210,7 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no 
+            -tearoff no
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -231,8 +231,8 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -278,13 +278,13 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     BuildAxisTab
     BuildCameraTab
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for rotation via mouse
@@ -371,7 +371,7 @@ itcl::body Rappture::VtkMeshViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkMeshViewer::DoRotate {} {
-    SendCmd "camera orient [ViewToQuaternion]" 
+    SendCmd "camera orient [ViewToQuaternion]"
     set _rotatePending 0
 }
 
@@ -496,7 +496,7 @@ itcl::body Rappture::VtkMeshViewer::get {args} {
                 if { ![IsValidObject $dataobj] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -524,7 +524,7 @@ itcl::body Rappture::VtkMeshViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -813,7 +813,7 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_reset } {
@@ -896,7 +896,7 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         # These are settings that rely on a dataset being loaded.
         InitSettings -polydataedges -polydatalighting -polydataopacity \
             -polydatavisible -polydatawireframe
- 
+
         #SendCmd "axis lformat all %g"
 
         $_arcball quaternion [ViewToQuaternion]
@@ -932,7 +932,7 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkMeshViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentDatasets: can't specify dataobj after \"-all\""
@@ -951,7 +951,7 @@ itcl::body Rappture::VtkMeshViewer::CurrentDatasets {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1067,7 +1067,7 @@ itcl::body Rappture::VtkMeshViewer::Rotate {option x y} {
 itcl::body Rappture::VtkMeshViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
         SendCmd "dataset getscalar pixel $x $y $tag"
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1244,7 +1244,7 @@ itcl::body Rappture::VtkMeshViewer::limits { dataobj } {
         set tmpfile file[pid].vtk
         set f [open "$tmpfile" "w"]
         fconfigure $f -translation binary -encoding binary
-        puts $f $data 
+        puts $f $data
         close $f
         set reader [vtkDataSetReader $tag-xvtkDataSetReader]
         $reader SetFileName $tmpfile
@@ -1292,19 +1292,19 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
         -text "Show Mesh" \
         -variable [itcl::scope _settings(-polydatavisible)] \
         -command [itcl::code $this AdjustSetting -polydatavisible] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.outline \
         -text "Show Outline" \
         -variable [itcl::scope _settings(-outline)] \
         -command [itcl::code $this AdjustSetting -outline] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(-polydatawireframe)] \
         -command [itcl::code $this AdjustSetting -polydatawireframe] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
@@ -1319,7 +1319,7 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
         -font "Arial 9" -anchor w
 
     itk_component add field_l {
-        label $inner.field_l -text "Field" -font "Arial 9" 
+        label $inner.field_l -text "Field" -font "Arial 9"
     } {
         ignore -font
     }
@@ -1329,7 +1329,7 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
+    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _widget(-polydataopacity)] \
         -width 10 \
@@ -1344,7 +1344,7 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
         3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
         4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
         5,0 $inner.opacity_l -anchor w -pady 2 \
-        5,1 $inner.opacity   -fill x   -pady 2 
+        5,1 $inner.opacity   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c1 -resize expand
@@ -1371,7 +1371,7 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
@@ -1393,7 +1393,7 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axismode {
         Rappture::Combobox $inner.mode -width 10 -editable no
@@ -1402,7 +1402,7 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
         "static_triad"    "static" \
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
-        "outer_edges"     "outer"         
+        "outer_edges"     "outer"
     $itk_component(axismode) value "static"
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
@@ -1474,10 +1474,10 @@ itcl::body Rappture::VtkMeshViewer::BuildCameraTab {} {
 }
 
 #
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::VtkMeshViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -1522,7 +1522,7 @@ itcl::body Rappture::VtkMeshViewer::GetVtkData { args } {
 }
 
 itcl::body Rappture::VtkMeshViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -1535,15 +1535,15 @@ itcl::body Rappture::VtkMeshViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Helvetica 9 " \
-        -value vtk  
+        -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -1564,7 +1564,7 @@ itcl::body Rappture::VtkMeshViewer::BuildDownloadPopup { popup command } {
         1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -1633,7 +1633,7 @@ itcl::body Rappture::VtkMeshViewer::IsValidObject { dataobj } {
     return 1
 }
 
-itcl::body Rappture::VtkMeshViewer::SetOrientation { side } { 
+itcl::body Rappture::VtkMeshViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
         back  "0 0 1 0"
@@ -1644,7 +1644,7 @@ itcl::body Rappture::VtkMeshViewer::SetOrientation { side } {
     }
     foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"

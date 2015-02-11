@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtksurfaceviewer - Vtk 3D boundary surface viewer
 #
@@ -56,8 +56,8 @@ itcl::class Rappture::VtkSurfaceViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -66,7 +66,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name }
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method BuildSurfaceTab {}
     private method Combo { option }
     private method Connect {}
@@ -75,20 +75,20 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method DoResize {}
     private method DoRotate {}
     private method DrawLegend {}
-    private method EnterLegend { x y } 
-    private method EventuallyRequestLegend {} 
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
-    private method GetImage { args } 
-    private method GetVtkData { args } 
+    private method EnterLegend { x y }
+    private method EventuallyRequestLegend {}
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { q }
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method InitSettings { args  }
-    private method IsValidObject { dataobj } 
+    private method IsValidObject { dataobj }
     private method LeaveLegend {}
-    private method MotionLegend { x y } 
+    private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -102,7 +102,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
     private method UpdateContourList {}
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
@@ -112,7 +112,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2datasets
     private variable _obj2ovride   ;    # maps dataobj => style override
-    private variable _datasets     ;    # contains all the dataobj-component 
+    private variable _datasets     ;    # contains all the dataobj-component
                                    ;    # datasets in the server
     private variable _colormaps    ;    # contains all the colormaps
                                    ;    # in the server.
@@ -147,9 +147,9 @@ itcl::class Rappture::VtkSurfaceViewer {
     private variable _rotatePending 0
     private variable _legendPending 0
     private variable _field      ""
-    private variable _colorMode "scalar";	#  Mode of colormap (vmag or scalar)
-    private variable _fieldNames {} 
-    private variable _fields 
+    private variable _colorMode "scalar";        #  Mode of colormap (vmag or scalar)
+    private variable _fieldNames {}
+    private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
 }
@@ -242,7 +242,7 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff 0 
+            -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -262,8 +262,8 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -310,7 +310,7 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
             -variable [itcl::scope _settings(-surfacevisible)] \
-            -command [itcl::code $this AdjustSetting -surfacevisible] 
+            -command [itcl::code $this AdjustSetting -surfacevisible]
     }
     $itk_component(surface) select
     Rappture::Tooltip::for $itk_component(surface) \
@@ -328,20 +328,20 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
     # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for rotation via mouse
@@ -428,7 +428,7 @@ itcl::body Rappture::VtkSurfaceViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkSurfaceViewer::DoRotate {} {
-    SendCmd "camera orient [ViewToQuaternion]" 
+    SendCmd "camera orient [ViewToQuaternion]"
     set _rotatePending 0
 }
 
@@ -455,7 +455,7 @@ itcl::body Rappture::VtkSurfaceViewer::EventuallyRotate { q } {
     QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay 
+        global rotate_delay
         $_dispatcher event -after $rotate_delay !rotate
     }
 }
@@ -554,7 +554,7 @@ itcl::body Rappture::VtkSurfaceViewer::get {args} {
                 if { ![IsValidObject $dataobj] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -582,7 +582,7 @@ itcl::body Rappture::VtkSurfaceViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -818,7 +818,7 @@ itcl::body Rappture::VtkSurfaceViewer::ReceiveImage { args } {
         #set date [clock format $time]
         #set w [image width $_image(plot)]
         #set h [image height $_image(plot)]
-        #puts stderr "$date: received image ${w}x${h} image"        
+        #puts stderr "$date: received image ${w}x${h} image"
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -889,7 +889,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_reset } {
@@ -959,9 +959,9 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
     }
 
     if { $_first != "" } {
-	$itk_component(field) choices delete 0 end
-	$itk_component(fieldmenu) delete 0 end
-	array unset _fields
+        $itk_component(field) choices delete 0 end
+        $itk_component(fieldmenu) delete 0 end
+        array unset _fields
         set _curFldName ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
@@ -989,25 +989,25 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
     }
     InitSettings -isolinesvisible -surfacevisible -outline
     if { $_reset } {
-	# These are settings that rely on a dataset being loaded.
+        # These are settings that rely on a dataset being loaded.
         InitSettings \
             -surfacelighting \
             -field \
             -surfaceedges -surfacelighting -surfaceopacity \
-	    -surfacewireframe \
+            -surfacewireframe \
             -numcontours
 
         Zoom reset
-	foreach axis { x y z } {
+        foreach axis { x y z } {
             # Another problem fixed by a <view>. We looking into a data
             # object for the name of the axes. This should be global to
             # the viewer itself.
-	    set label [$_first hints ${axis}label]
-	    if { $label == "" } {
+            set label [$_first hints ${axis}label]
+            if { $label == "" } {
                 set label [string toupper $axis]
-	    }
-	    # May be a space in the axis label.
-	    SendCmd [list axis name $axis $label]
+            }
+            # May be a space in the axis label.
+            SendCmd [list axis name $axis $label]
         }
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
@@ -1031,7 +1031,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkSurfaceViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentDatasets: can't specify dataobj after \"-all\""
@@ -1050,7 +1050,7 @@ itcl::body Rappture::VtkSurfaceViewer::CurrentDatasets {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1169,7 +1169,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rotate {option x y} {
 itcl::body Rappture::VtkSurfaceViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
         SendCmd "dataset getscalar pixel $x $y $tag"
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1273,41 +1273,41 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-background" {
             set bgcolor [$itk_component(background) value]
-	    array set fgcolors {
-		"black" "white"
-		"white" "black"
-		"grey"	"black"
-	    }
+            array set fgcolors {
+                "black" "white"
+                "white" "black"
+                "grey"  "black"
+            }
             configure -plotbackground $bgcolor \
-		-plotforeground $fgcolors($bgcolor)
-	    $itk_component(view) delete "legend"
-	    DrawLegend
+                -plotforeground $fgcolors($bgcolor)
+            $itk_component(view) delete "legend"
+            DrawLegend
         }
         "-colormap" {
             set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
             set _settings($what) $color
-	    if { $color == "none" } {
-		if { $_settings(-colormapvisible) } {
-		    SendCmd "contour2d colormode constant {}"
+            if { $color == "none" } {
+                if { $_settings(-colormapvisible) } {
+                    SendCmd "contour2d colormode constant {}"
                     SendCmd "polydata colormode constant {}"
-		    set _settings(-colormapvisible) 0
-		}
-	    } else {
-		if { !$_settings(-colormapvisible) } {
-		    #SendCmd "contour2d colormode $_colorMode $_curFldName"
+                    set _settings(-colormapvisible) 0
+                }
+            } else {
+                if { !$_settings(-colormapvisible) } {
+                    #SendCmd "contour2d colormode $_colorMode $_curFldName"
                     SendCmd "polydata colormode $_colorMode $_curFldName"
-		    set _settings(-colormapvisible) 1
-		}
-		SetCurrentColormap $color
+                    set _settings(-colormapvisible) 1
+                }
+                SetCurrentColormap $color
                 if {$_settings(-colormapdiscrete)} {
                     set numColors [expr $_settings(-numcontours) + 1]
                     SendCmd "colormap res $numColors $color"
                 }
-	    }
+            }
             StopBufferingCommands
-	    EventuallyRequestLegend
+            EventuallyRequestLegend
         }
         "-colormapdiscrete" {
             set bool $_settings($what)
@@ -1356,20 +1356,20 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-isolinecolor" {
             set color [$itk_component(isolineColor) value]
-	    set _settings($what) $color
+            set _settings($what) $color
             SendCmd "contour2d linecolor [Color2RGB $color]"
-	    DrawLegend
+            DrawLegend
         }
         "-isolinesvisible" {
             set bool $_settings($what)
-	    SendCmd "contour2d visible $bool"
-	    DrawLegend
+            SendCmd "contour2d visible $bool"
+            DrawLegend
         }
         "-legendvisible" {
             if { !$_settings($what) } {
                 $itk_component(view) delete legend
-	    }
-	    DrawLegend
+            }
+            DrawLegend
         }
         "-numcontours" {
             set _settings($what) [$itk_component(numcontours) value]
@@ -1387,24 +1387,24 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-outline" {
             set bool $_settings($what)
-	    SendCmd "outline visible $bool"
+            SendCmd "outline visible $bool"
         }
         "-surfaceedges" {
             set bool $_settings($what)
-	    SendCmd "polydata edges $bool"
+            SendCmd "polydata edges $bool"
         }
         "-surfacelighting" {
             set bool $_settings($what)
-	    SendCmd "polydata lighting $bool"
+            SendCmd "polydata lighting $bool"
         }
         "-surfaceopacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
-	    SendCmd "polydata opacity $sval"
+            SendCmd "polydata opacity $sval"
         }
         "-surfacevisible" {
             set bool $_settings($what)
-	    SendCmd "polydata visible $bool"
+            SendCmd "polydata visible $bool"
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(surface) \
                     "Hide the surface"
@@ -1412,11 +1412,11 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
                 Rappture::Tooltip::for $itk_component(surface) \
                     "Show the surface"
             }
-	    DrawLegend
+            DrawLegend
         }
         "-surfacewireframe" {
             set bool $_settings($what)
-	    SendCmd "polydata wireframe $bool"
+            SendCmd "polydata wireframe $bool"
         }
         "-xgrid" - "-ygrid" - "-zgrid" {
             set axis [string tolower [string range $what 1 1]]
@@ -1433,14 +1433,14 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
 # RequestLegend --
 #
 #       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.  
+#       is determined from the height of the canvas.
 #
 # This should be called when
-#	1.  A new current colormap is set.
-#	2.  Window is resized.
-#	3.  The limits of the data have changed.  (Just need a redraw).
-#	4.  Number of isolines have changed. (Just need a redraw).
-#	5.  Legend becomes visible (Just need a redraw).
+#        1.  A new current colormap is set.
+#        2.  Window is resized.
+#        3.  The limits of the data have changed.  (Just need a redraw).
+#        4.  Number of isolines have changed. (Just need a redraw).
+#        5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
     set _legendPending 0
@@ -1456,25 +1456,25 @@ itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
         return
     }
     if { [string match "component*" $fname] } {
-	set title ""
+        set title ""
     } else {
-	if { [info exists _fields($fname)] } {
-	    foreach { title units } $_fields($fname) break
-	    if { $units != "" } {
-		set title [format "%s (%s)" $title $units]
-	    }
-	} else {
-	    set title $fname
-	}
+        if { [info exists _fields($fname)] } {
+            foreach { title units } $_fields($fname) break
+            if { $units != "" } {
+                set title [format "%s (%s)" $title $units]
+            }
+        } else {
+            set title $fname
+        }
     }
     # If there's a title too, subtract one more line
     if { $title != "" } {
-        incr h -$lineht 
+        incr h -$lineht
     }
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
-	set cmap $_currentColormap
-	SendCmdNoWait "legend $cmap scalar $_curFldName {} $w $h 0"
+        set cmap $_currentColormap
+        SendCmdNoWait "legend $cmap scalar $_curFldName {} $w $h 0"
     }
 }
 
@@ -1494,7 +1494,7 @@ itcl::configbody Rappture::VtkSurfaceViewer::plotbackground {
 itcl::configbody Rappture::VtkSurfaceViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
-	SendCmd "axis color all $rgb"
+        SendCmd "axis color all $rgb"
         SendCmd "outline color $rgb"
     }
 }
@@ -1557,7 +1557,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         -command [itcl::code $this AdjustSetting -legendvisible] \
         -font "Arial 9"
 
-    label $inner.linecolor_l -text "Isolines" -font "Arial 9" 
+    label $inner.linecolor_l -text "Isolines" -font "Arial 9"
     itk_component add isolineColor {
         Rappture::Combobox $inner.linecolor -width 10 -editable 0
     }
@@ -1571,20 +1571,20 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         "orange"             "orange"           \
         "red"                "red"              \
         "white"              "white"            \
-	"none"		     "none"
+        "none"               "none"
 
     $itk_component(isolineColor) value "white"
     bind $inner.linecolor <<Value>> \
-	[itcl::code $this AdjustSetting -isolinecolor]
+        [itcl::code $this AdjustSetting -isolinecolor]
 
-    label $inner.background_l -text "Background" -font "Arial 9" 
+    label $inner.background_l -text "Background" -font "Arial 9"
     itk_component add background {
         Rappture::Combobox $inner.background -width 10 -editable 0
     }
     $inner.background choices insert end \
         "black"              "black"            \
         "white"              "white"            \
-        "grey"               "grey"             
+        "grey"               "grey"
 
     $itk_component(background) value $_settings(-background)
     bind $inner.background <<Value>> \
@@ -1598,7 +1598,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         -command [itcl::code $this AdjustSetting -surfaceopacity]
 
     itk_component add field_l {
-        label $inner.field_l -text "Field" -font "Arial 9" 
+        label $inner.field_l -text "Field" -font "Arial 9"
     } {
         ignore -font
     }
@@ -1608,7 +1608,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
-    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
@@ -1634,8 +1634,8 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         1,1 $inner.colormap   -anchor w -pady 2  -fill x \
         2,0 $inner.linecolor_l  -anchor w -pady 2  \
         2,1 $inner.linecolor    -anchor w -pady 2 -fill x  \
-	3,0 $inner.background_l -anchor w -pady 2 \
-	3,1 $inner.background -anchor w -pady 2  -fill x \
+        3,0 $inner.background_l -anchor w -pady 2 \
+        3,1 $inner.background -anchor w -pady 2  -fill x \
         4,0 $inner.numcontours_l -anchor w -pady 2 \
         4,1 $inner.numcontours -anchor w -pady 2 \
         5,0 $inner.colormapDiscrete -anchor w -pady 2 -cspan 2 \
@@ -1673,7 +1673,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
@@ -1695,7 +1695,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axisMode {
         Rappture::Combobox $inner.mode -width 10 -editable 0
@@ -1704,7 +1704,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildAxisTab {} {
         "static_triad"    "static" \
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
-        "outer_edges"     "outer"         
+        "outer_edges"     "outer"
     $itk_component(axisMode) value $_settings(-axismode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
@@ -1776,10 +1776,10 @@ itcl::body Rappture::VtkSurfaceViewer::BuildCameraTab {} {
 }
 
 #
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::VtkSurfaceViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -1827,7 +1827,7 @@ itcl::body Rappture::VtkSurfaceViewer::GetVtkData { args } {
 }
 
 itcl::body Rappture::VtkSurfaceViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -1840,16 +1840,16 @@ itcl::body Rappture::VtkSurfaceViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Arial 9 " \
-        -value vtk  
+        -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Arial 9 " \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -1870,7 +1870,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildDownloadPopup { popup command } {
         1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -1931,7 +1931,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     }
     set _settings(-isolinesvisible) $style(-isolinesvisible)
     set _settings(-surfacevisible) $style(-surfacevisible)
- 
+
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
@@ -1947,7 +1947,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "polydata linewidth $style(-linewidth) $tag"
     SendCmd "polydata opacity $style(-opacity) $tag"
     set _settings(-surfaceopacity) [expr $style(-opacity) * 100.0]
-    SetCurrentColormap $style(-color) 
+    SetCurrentColormap $style(-color)
     SendCmd "polydata wireframe $style(-wireframe) $tag"
     set _settings(-surfacewireframe) $style(-wireframe)
 
@@ -2002,21 +2002,21 @@ itcl::body Rappture::VtkSurfaceViewer::SetLegendTip { x y } {
 
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     set ih [image height $_image(legend)]
     set iy [expr $y - ($lineht + 2)]
 
     if { [string match "component*" $fname] } {
-	set title ""
+        set title ""
     } else {
-	if { [info exists _fields($fname)] } {
-	    foreach { title units } $_fields($fname) break
-	    if { $units != "" } {
-		set title [format "%s (%s)" $title $units]
-	    }
-	} else {
-	    set title $fname
-	}
+        if { [info exists _fields($fname)] } {
+            foreach { title units } $_fields($fname) break
+            if { $units != "" } {
+                set title [format "%s (%s)" $title $units]
+            }
+        } else {
+            set title $fname
+        }
     }
     # If there's a legend title, increase the offset by the line height.
     if { $title != "" } {
@@ -2030,8 +2030,8 @@ itcl::body Rappture::VtkSurfaceViewer::SetLegendTip { x y } {
         set _image(swatch) [image create photo -width 24 -height 24]
     }
     set color [eval format "\#%02x%02x%02x" $pixel]
-    $_image(swatch) put black  -to 0 0 23 23 
-    $_image(swatch) put $color -to 1 1 22 22 
+    $_image(swatch) put black  -to 0 0 23 23
+    $_image(swatch) put $color -to 1 1 22 22
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
@@ -2042,27 +2042,27 @@ itcl::body Rappture::VtkSurfaceViewer::SetLegendTip { x y } {
     } else {
         set value 0.0
     }
-    set tx [expr $x + 15] 
+    set tx [expr $x + 15]
     set ty [expr $y - 5]
     if { [info exists _isolines($y)] } {
         Rappture::Tooltip::text $c [format "$title %g (isoline)" $_isolines($y)]
     } else {
         Rappture::Tooltip::text $c [format "$title %g" $value]
     }
-    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
+    Rappture::Tooltip::tooltip show $c +$tx,+$ty
 }
 
 #
-# ReceiveLegend -- 
+# ReceiveLegend --
 #
-#	Invoked automatically whenever the "legend" command comes in from
-#	the rendering server.  Indicates that binary image data with the
-#	specified <size> will follow.
+#        Invoked automatically whenever the "legend" command comes in from
+#        the rendering server.  Indicates that binary image data with the
+#        specified <size> will follow.
 #
 itcl::body Rappture::VtkSurfaceViewer::ReceiveLegend { colormap title min max size } {
     #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
     set _title $title
-    regsub {\(mag\)} $title "" _title 
+    regsub {\(mag\)} $title "" _title
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2071,8 +2071,8 @@ itcl::body Rappture::VtkSurfaceViewer::ReceiveLegend { colormap title min max si
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
         if { [catch {DrawLegend} errs] != 0 } {
-	    global errorInfo
-	    puts stderr "errs=$errs errorInfo=$errorInfo"
+            global errorInfo
+            puts stderr "errs=$errs errorInfo=$errorInfo"
         }
     }
 }
@@ -2091,49 +2091,49 @@ itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
     set lineht [font metrics $font -linespace]
 
     if { [string match "component*" $fname] } {
-	set title ""
+        set title ""
     } else {
-	if { [info exists _fields($fname)] } {
-	    foreach { title units } $_fields($fname) break
-	    if { $units != "" } {
-		set title [format "%s (%s)" $title $units]
-	    }
-	} else {
-	    set title $fname
-	}
+        if { [info exists _fields($fname)] } {
+            foreach { title units } $_fields($fname) break
+            if { $units != "" } {
+                set title [format "%s (%s)" $title $units]
+            }
+        } else {
+            set title $fname
+        }
     }
     set x [expr $w - 2]
     if { !$_settings(-legendvisible) } {
-	$c delete legend
-	return
-    } 
+        $c delete legend
+        return
+    }
     if { [$c find withtag "legend"] == "" } {
-	set y 2 
-	# If there's a legend title, create a text item for the title.
+        set y 2
+        # If there's a legend title, create a text item for the title.
         $c create text $x $y \
-	    -anchor ne \
-	    -fill $itk_option(-plotforeground) -tags "title legend" \
-	    -font $font 
+            -anchor ne \
+            -fill $itk_option(-plotforeground) -tags "title legend" \
+            -font $font
         if { $title != "" } {
             incr y $lineht
         }
-	$c create text $x $y \
-	    -anchor ne \
-	    -fill $itk_option(-plotforeground) -tags "vmax legend" \
-	    -font $font
-	incr y $lineht
-	$c create image $x $y \
-	    -anchor ne \
-	    -image $_image(legend) -tags "colormap legend"
-	$c create rectangle $x $y 1 1 \
-	    -fill "" -outline "" -tags "sensor legend"
-	$c create text $x [expr {$h-2}] \
-	    -anchor se \
-	    -fill $itk_option(-plotforeground) -tags "vmin legend" \
-	    -font $font
-	$c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
-	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
-	$c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
+        $c create text $x $y \
+            -anchor ne \
+            -fill $itk_option(-plotforeground) -tags "vmax legend" \
+            -font $font
+        incr y $lineht
+        $c create image $x $y \
+            -anchor ne \
+            -image $_image(legend) -tags "colormap legend"
+        $c create rectangle $x $y 1 1 \
+            -fill "" -outline "" -tags "sensor legend"
+        $c create text $x [expr {$h-2}] \
+            -anchor se \
+            -fill $itk_option(-plotforeground) -tags "vmin legend" \
+            -font $font
+        $c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
+        $c bind sensor <Leave> [itcl::code $this LeaveLegend]
+        $c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
     }
     $c delete isoline
     set x2 $x
@@ -2152,10 +2152,10 @@ itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
             set range 1.0;              # Min is greater or equal to max.
         }
         set tags "isoline legend"
-	set offset [expr 2 + $lineht]
-	if { $title != "" } {
-	    incr offset $lineht
-	}
+        set offset [expr 2 + $lineht]
+        if { $title != "" } {
+            incr offset $lineht
+        }
         foreach value $_contourList {
             set norm [expr 1.0 - (($value - $vmin) / $range)]
             set y1 [expr int(round(($norm * $ih) + $offset))]
@@ -2174,15 +2174,15 @@ itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
     $c itemconfigure title -text $title
     if { [info exists _limits($_curFldName)] } {
         foreach { vmin vmax } $_limits($_curFldName) break
-	$c itemconfigure vmin -text [format %g $vmin]
-	$c itemconfigure vmax -text [format %g $vmax]
+        $c itemconfigure vmin -text [format %g $vmin]
+        $c itemconfigure vmax -text [format %g $vmax]
     }
     set y 2
     # If there's a legend title, move the title to the correct position
     if { $title != "" } {
         $c itemconfigure title -text $title
-	$c coords title $x $y
-	incr y $lineht
+        $c coords title $x $y
+        incr y $lineht
         $c raise title
     }
     $c coords vmax $x $y
@@ -2205,7 +2205,7 @@ itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
 # the value back to the gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkSurfaceViewer::Combo {option} {
-    set c $itk_component(view) 
+    set c $itk_component(view)
     switch -- $option {
         post {
             foreach { x1 y1 x2 y2 } [$c bbox title] break
@@ -2220,7 +2220,7 @@ itcl::body Rappture::VtkSurfaceViewer::Combo {option} {
             $c itemconfigure title -fill red
         }
         deactivate {
-            $c itemconfigure title -fill $itk_option(-plotforeground) 
+            $c itemconfigure title -fill $itk_option(-plotforeground)
         }
         invoke {
             $itk_component(field) value $_curFldLabel
@@ -2238,7 +2238,7 @@ itcl::body Rappture::VtkSurfaceViewer::Combo {option} {
 itcl::body Rappture::VtkSurfaceViewer::SetCurrentColormap { name } {
     # Keep track of the colormaps that we build.
     if { ![info exists _colormaps($name)] } {
-        BuildColormap $name 
+        BuildColormap $name
         set _colormaps($name) 1
     }
     set _currentColormap $name
@@ -2260,7 +2260,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildColormap { name } {
     SendCmd "colormap add $name { $cmap } { $wmap }"
 }
 
-itcl::body Rappture::VtkSurfaceViewer::SetOrientation { side } { 
+itcl::body Rappture::VtkSurfaceViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
         back  "0 0 1 0"
@@ -2281,7 +2281,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetOrientation { side } {
     set _view(-zoom) 1.0
 }
 
-itcl::body Rappture::VtkSurfaceViewer::UpdateContourList {} { 
+itcl::body Rappture::VtkSurfaceViewer::UpdateContourList {} {
     if { ![info exists _limits($_curFldName)] } {
         return
     }
