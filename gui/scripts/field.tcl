@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: field - extracts data from an XML description of a field
 #
@@ -24,12 +24,12 @@
 #	vtk		(range of z-axis is zero).
 #	unirect2d	(deprecated)
 #	cloud		(x,y point coordinates) (deprecated)
-#	mesh 
+#	mesh
 # 3D Datasets
-#	vtk 
+#	vtk
 #	unirect3d       (deprecated)
 #	cloud		(x,y,z coordinates) (deprecated)
-#	mesh 
+#	mesh
 #	dx		(FIXME: make dx-to-vtk converter work)
 #	ucd avs
 #
@@ -45,9 +45,9 @@
 #
 # With <views>, can specify which viewer for specific datasets.  So it's OK
 # for the same dataset to be viewed in more than one way.
-#  o Any 2D dataset can be viewed as a contour/heightmap. 
+#  o Any 2D dataset can be viewed as a contour/heightmap.
 #  o Any 3D dataset can be viewed as a isosurface.
-#  o Any 2D dataset with vector data can be streamlines or flow.  
+#  o Any 2D dataset with vector data can be streamlines or flow.
 #  o Any 3D uniform rectilinear dataset can be viewed as a volume.
 #  o Any 3D dataset with vector data can be streamlines or flow.
 #
@@ -58,8 +58,8 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { 
-    # forward declaration 
+namespace eval Rappture {
+    # forward declaration
 }
 
 itcl::class Rappture::Field {
@@ -74,18 +74,18 @@ itcl::class Rappture::Field {
     private variable _fld2Components;   # field name => number of components
     private variable _fld2Label;        # field name => label
     private variable _fld2Units;        # field name => units
-    private variable _hints 
+    private variable _hints
     private variable _viewer "";        # Hints which viewer to use
     private variable _isValid 0;        # Indicates if the field contains
                                         # valid data.
     private variable _isValidComponent; #  Array of valid components found
     private variable _alwaysConvertDX 0;
 
-    constructor {xmlobj path} { 
-        # defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method blob { cname }
     public method components {args}
@@ -125,12 +125,12 @@ itcl::class Rappture::Field {
         return $_isValid
     }
     public method viewer {} {
-        return $_viewer 
+        return $_viewer
     }
     protected method Build {}
     protected method _getValue {expr}
 
-    private variable _path "";          # Path of this object in the XML 
+    private variable _path "";          # Path of this object in the XML
     private variable _units ""   ;      # system of units for this field
     private variable _zmax 0     ;# length of the device
 
@@ -142,23 +142,23 @@ itcl::class Rappture::Field {
     private variable _comp2unirect3d ;# maps component name => unirect3d obj
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
-    private variable _comp2extents 
+    private variable _comp2extents
     private variable _comp2limits;        #  Array of limits per component
-    private variable _type "" 
-    private variable _comp2flowhints 
+    private variable _type ""
+    private variable _comp2flowhints
     private variable _comp2mesh  ;# list of: mesh object, BLT vector of values
     private variable _values ""  ;# Only used for unirect2d - list of values
     private common _counter 0    ;# counter for unique vector names
 
-    private method AvsToVtk { cname contents } 
-    private method DicomToVtk { cname contents } 
-    private method BuildPointsOnMesh { cname } 
-    protected method GetAssociation { cname } 
-    protected method GetTypeAndSize { cname } 
-    protected method ReadVtkDataSet { cname contents } 
-    private method InitHints {} 
+    private method AvsToVtk { cname contents }
+    private method DicomToVtk { cname contents }
+    private method BuildPointsOnMesh { cname }
+    protected method GetAssociation { cname }
+    protected method GetTypeAndSize { cname }
+    protected method ReadVtkDataSet { cname contents }
+    private method InitHints {}
 
-    private method VerifyVtkDataSet { contents } 
+    private method VerifyVtkDataSet { contents }
     private method VectorLimits { vector vectorsize {comp -1} }
 }
 
@@ -283,13 +283,13 @@ itcl::body Rappture::Field::components {args} {
     }
     # Now handle the tests.
     switch -- $params(what) {
-        -name { 
+        -name {
             set rlist $components
         }
-        -style { 
+        -style {
             foreach cname $components {
                 if { [info exists _comp2style($cname)] } {
-                    lappend rlist $_comp2style($cname) 
+                    lappend rlist $_comp2style($cname)
                 }
             }
         }
@@ -398,7 +398,7 @@ itcl::body Rappture::Field::blob {cname} {
 # ----------------------------------------------------------------------
 # USAGE: valueLimits <cname>
 #
-# Returns an array for the requested component with a list {min max} 
+# Returns an array for the requested component with a list {min max}
 # representing the limits for each axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::valueLimits { cname } {
@@ -422,17 +422,17 @@ itcl::body Rappture::Field::limits {which} {
         switch -- $_comp2dims($cname) {
             1D {
                 switch -- $which {
-                    x - xlin { 
-                        set pos 0; set log 0; set axis x 
+                    x - xlin {
+                        set pos 0; set log 0; set axis x
                     }
-                    xlog { 
-                        set pos 0; set log 1; set axis x 
+                    xlog {
+                        set pos 0; set log 1; set axis x
                     }
-                    y - ylin - v - vlin { 
-                        set pos 1; set log 0; set axis y 
+                    y - ylin - v - vlin {
+                        set pos 1; set log 0; set axis y
                     }
-                    ylog - vlog { 
-                        set pos 1; set log 1; set axis y 
+                    ylog - vlog {
+                        set pos 1; set log 1; set axis y
                     }
                     default {
                         error "bad axis \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
@@ -470,7 +470,7 @@ itcl::body Rappture::Field::limits {which} {
             }
             default {
                 if {[info exists _comp2limits($cname)]} {
-                    array set limits $_comp2limits($cname) 
+                    array set limits $_comp2limits($cname)
                     switch -- $which {
                         x - xlin - xlog {
                             set axis x
@@ -535,7 +535,7 @@ itcl::body Rappture::Field::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::fieldlimits {} {
     foreach cname [array names _comp2limits] {
-        array set limits $_comp2limits($cname) 
+        array set limits $_comp2limits($cname)
         foreach fname [fieldnames $cname] {
             if { ![info exists limits($fname)] } {
                 puts stderr "ERROR: field \"$fname\" unknown in \"$cname\""
@@ -561,7 +561,7 @@ itcl::body Rappture::Field::fieldlimits {} {
     }
     return ""
 }
- 
+
 # ----------------------------------------------------------------------
 # USAGE: controls get ?<name>?
 # USAGE: controls validate <path> <value>
@@ -785,7 +785,7 @@ itcl::body Rappture::Field::Build {} {
             global env
             if { [info exists env(VTKVOLUME)] } {
                 set _viewer "vtkvolume"
-            } 
+            }
             set type "opendx"
         } elseif {[$_field element $cname.dx] != ""} {
             global env
@@ -807,7 +807,7 @@ itcl::body Rappture::Field::Build {} {
         if { [$_field element $cname.extents] != "" } {
             set extents [$_field get $cname.extents]
         } else {
-            set extents 1 
+            set extents 1
         }
         set _comp2extents($cname) $extents
         set _type $type
@@ -971,7 +971,7 @@ itcl::body Rappture::Field::Build {} {
         puts stderr "ERROR: All components of field \"$_path\" are invalid."
         return 0
     }
-    # Sanity check.  Verify that all components of the field have the same 
+    # Sanity check.  Verify that all components of the field have the same
     # dimension.
     set dim ""
     foreach cname [array names _comp2dims] {
@@ -988,7 +988,7 @@ itcl::body Rappture::Field::Build {} {
     # FIXME: about.scalars and about.vectors are temporary.  With views
     #        the label and units for each field will be specified there.
     #
-    # FIXME: Test that every <field><component> has the same field names, 
+    # FIXME: Test that every <field><component> has the same field names,
     #        units, components.
     #
     # Override what we found in the VTK file with names that the user
@@ -1060,7 +1060,7 @@ itcl::body Rappture::Field::_getValue {expr} {
 #
 # isunirect2d  --
 #
-# Returns if the field is a unirect2d object.  
+# Returns if the field is a unirect2d object.
 #
 itcl::body Rappture::Field::isunirect2d { } {
     return [expr [array size _comp2unirect2d] > 0]
@@ -1069,7 +1069,7 @@ itcl::body Rappture::Field::isunirect2d { } {
 #
 # isunirect3d  --
 #
-# Returns if the field is a unirect3d object.  
+# Returns if the field is a unirect3d object.
 #
 itcl::body Rappture::Field::isunirect3d { } {
     return [expr [array size _comp2unirect3d] > 0]
@@ -1078,7 +1078,7 @@ itcl::body Rappture::Field::isunirect3d { } {
 #
 # flowhints  --
 #
-# Returns the hints associated with a flow vector field.  
+# Returns the hints associated with a flow vector field.
 #
 itcl::body Rappture::Field::flowhints { cname } {
     if { [info exists _comp2flowhints($cname)] } {
@@ -1090,7 +1090,7 @@ itcl::body Rappture::Field::flowhints { cname } {
 #
 # style  --
 #
-# Returns the style associated with a component of the field.  
+# Returns the style associated with a component of the field.
 #
 itcl::body Rappture::Field::style { cname } {
     if { [info exists _comp2style($cname)] } {
@@ -1127,7 +1127,7 @@ itcl::body Rappture::Field::numComponents {cname} {
 #
 # extents --
 #
-# Returns if the field is a unirect2d object.  
+# Returns if the field is a unirect2d object.
 #
 itcl::body Rappture::Field::extents {{cname -overall}} {
     if {$cname == "-overall" } {
@@ -1143,7 +1143,7 @@ itcl::body Rappture::Field::extents {{cname -overall}} {
             }
         }
         return $max
-    } 
+    }
     if { $cname == "component0"} {
         set cname [lindex [components -name] 0]
     }
@@ -1160,7 +1160,7 @@ itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
     set tmpfile file[pid].vtk
     set f [open "$tmpfile" "w"]
     fconfigure $f -translation binary -encoding binary
-    puts $f $contents 
+    puts $f $contents
     close $f
 
     $reader SetFileName $tmpfile
@@ -1194,7 +1194,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set tmpfile file[pid].vtk
     set f [open "$tmpfile" "w"]
     fconfigure $f -translation binary -encoding binary
-    puts $f $contents 
+    puts $f $contents
     close $f
 
     $reader SetFileName $tmpfile
@@ -1235,7 +1235,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         set xv [blt::vector create \#auto]
         for { set i 0 } { $i < $numPoints } { incr i } {
             set point [$dataset GetPoint $i]
-            $xv append [lindex $point 0] 
+            $xv append [lindex $point 0]
         }
         set yv [blt::vector create \#auto]
         set dataAttrs [$dataset GetPointData]
@@ -1252,13 +1252,13 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         }
         set numTuples [$array GetNumberOfTuples]
         for { set i 0 } { $i < $numTuples } { incr i } {
-            $yv append [$array GetComponent $i 0] 
+            $yv append [$array GetComponent $i 0]
         }
         $xv sort $yv
         set _comp2xy($cname) [list $xv $yv]
     }
-    lappend limits x [list $xmin $xmax] 
-    lappend limits y [list $ymin $ymax] 
+    lappend limits x [list $xmin $xmax]
+    lappend limits y [list $ymin $ymax]
     lappend limits z [list $zmin $zmax]
     set dataAttrs [$dataset GetPointData]
     if { $dataAttrs == ""} {
@@ -1286,7 +1286,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
             lappend _comp2fldName($cname) $fname
         }
     }
-    
+
     lappend limits v [list $vmin $vmax]
     set _comp2limits($cname) $limits
 
@@ -1303,13 +1303,13 @@ itcl::body Rappture::Field::vtkdata {cname} {
     if {$cname == "component0"} {
         set cname "component"
     }
-    # DX: Convert DX to VTK 
+    # DX: Convert DX to VTK
     if {[info exists _comp2dx($cname)]} {
         set data $_comp2dx($cname)
         set data [Rappture::encoding::decode $data]
         return [Rappture::DxToVtk $data]
     }
-    # VTK file data: 
+    # VTK file data:
     if { [info exists _comp2vtk($cname)] } {
         return $_comp2vtk($cname)
     }
@@ -1363,7 +1363,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
                 error "unknown element type \"$_comp2type($cname)\""
             }
         }
-        append out [$vector range 0 end] 
+        append out [$vector range 0 end]
         append out "\n"
         if 0 {
             VerifyVtkDataSet $out
@@ -1412,7 +1412,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         if { [$_field element $cname.extents] != "" } {
             set vectorsize [$_field get $cname.extents]
         } else {
-            set vectorsize 1 
+            set vectorsize 1
         }
         set _type unirect3d
         set _dim 3
@@ -1427,7 +1427,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         foreach axis { x y z } {
             lappend limits $axis [$_comp2unirect3d($cname) limits $axis]
         }
-        # Get the data limits 
+        # Get the data limits
         set vector [$_comp2unirect3d($cname) values]
         set minmax [VectorLimits $vector $vectorsize]
         lappend limits $cname $minmax
@@ -1445,7 +1445,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         if { [$_field element $cname.extents] != "" } {
             set vectorsize [$_field get $cname.extents]
         } else {
-            set vectorsize 1 
+            set vectorsize 1
         }
         set _type unirect2d
         set _dim 2
@@ -1481,7 +1481,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         "mesh" {
             set mesh [Rappture::Mesh::fetch $_xmlobj $path]
             set _type mesh
-        }            
+        }
         "unirect2d" {
             if { $_viewer == "" } {
                 set _viewer "heightmap"
@@ -1496,7 +1496,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     }
     set _dim [$mesh dimensions]
     if { $_dim == 3 } {
-        set dim 0 
+        set dim 0
         foreach axis {x y z} {
             foreach {min max} [$mesh limits $axis] {
                 if { $min < $max } {
@@ -1517,12 +1517,12 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         # The prophet tool currently outputs 1D clouds with fields
         # Band Structure Lab used to (see isosurface1 test in rappture-bat)
         #
-        # Is there a natural growth path in generating output from 1D to 
+        # Is there a natural growth path in generating output from 1D to
         # higher dimensions?  If there isn't, let's kill this in favor
         # or explicitly using a <curve> instead.  Otherwise, the features
-        # (methods such as xmarkers) or the <curve> need to be added 
+        # (methods such as xmarkers) or the <curve> need to be added
         # to the <field>.
-        # 
+        #
         #set xv [blt::vector create x$_counter]
         #set yv [blt::vector create y$_counter]
 
@@ -1534,7 +1534,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         #set _comp2xy($cname) [list $xv $yv]
         #incr _counter
         #return 1
-    } 
+    }
     if {$_dim == 2} {
         # 2D data: By default surface or contour plot using heightmap widget.
         set v [blt::vector create \#auto]
@@ -1581,7 +1581,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         lappend _comp2limits($cname) $cname $minmax
         lappend _comp2limits($cname) v $minmax
         return 1
-    } 
+    }
     if {$_dim == 3} {
         # 3D data: By default isosurfaces plot using isosurface widget.
         if { $_viewer == "" } {
@@ -1718,12 +1718,12 @@ itcl::body Rappture::Field::GetTypeAndSize { cname } {
         "scalars"              1
         "tcoords"              2
         "tensors"              9
-        "vectors"              3 
+        "vectors"              3
     }
     set type [$_field get $cname.elemtype]
     if { $type == "" } {
         set type "scalars"
-    } 
+    }
     if { ![info exists type2components($type)] } {
         error "unknown <elemtype> \"$type\" in field"
     }
@@ -1740,7 +1740,7 @@ itcl::body Rappture::Field::GetAssociation { cname } {
     if { $assoc == "" } {
         set _comp2assoc($cname) "pointdata"
         return
-    } 
+    }
     switch -- $assoc {
         "pointdata" - "celldata" - "fielddata" {
             set _comp2assoc($cname) $assoc
