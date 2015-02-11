@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkheightmapviewer - Vtk heightmap viewer
 #
@@ -57,8 +57,8 @@ itcl::class Rappture::VtkHeightmapViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -68,7 +68,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method BuildCameraTab {}
     private method BuildColormap { name }
     private method BuildContourTab {}
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method CameraReset {}
     private method Combo { option }
     private method Connect {}
@@ -77,21 +77,21 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method DoResize {}
     private method DoRotate {}
     private method DrawLegend {}
-    private method EnterLegend { x y } 
-    private method EventuallyRequestLegend {} 
-    private method EventuallyResize { w h } 
+    private method EnterLegend { x y }
+    private method EventuallyRequestLegend {}
+    private method EventuallyResize { w h }
     private method EventuallyRotate { q }
-    private method GetHeightmapScale {} 
-    private method GetImage { args } 
-    private method GetVtkData { args } 
+    private method GetHeightmapScale {}
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method InitSettings { args  }
-    private method IsValidObject { dataobj } 
+    private method IsValidObject { dataobj }
     private method LeaveLegend {}
-    private method MotionLegend { x y } 
+    private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -103,10 +103,10 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method Rotate {option x y}
     private method SetCurrentColormap { color }
     private method SetLegendTip { x y }
-    private method SetObjectStyle { dataobj comp } 
+    private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
     private method UpdateContourList {}
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
@@ -115,8 +115,8 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2datasets
     private variable _obj2ovride   ;    # maps dataobj => style override
-    private variable _comp2scale;	# maps dataset to the heightmap scale.
-    private variable _datasets     ;    # contains all the dataobj-component 
+    private variable _comp2scale;       # maps dataset to the heightmap scale.
+    private variable _datasets     ;    # contains all the dataobj-component
                                    ;    # datasets in the server
     private variable _colormaps    ;    # contains all the colormaps
                                    ;    # in the server.
@@ -132,7 +132,7 @@ itcl::class Rappture::VtkHeightmapViewer {
                                         # -stretchtofit
 
     private variable _click        ;    # info used for rotate operations
-    private variable _limits       ;    # Holds overall limits for all dataobjs 
+    private variable _limits       ;    # Holds overall limits for all dataobjs
                                         # using the viewer.
     private variable _view         ;    # view params for 3D view
     private variable _settings
@@ -157,8 +157,8 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _resizePending 0
     private variable _rotatePending 0
     private variable _legendPending 0
-    private variable _fieldNames {} 
-    private variable _fields 
+    private variable _fieldNames {}
+    private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
@@ -254,13 +254,13 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth -background 
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu \
             -relief flat \
-            -tearoff no 
+            -tearoff no
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -280,8 +280,8 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -349,17 +349,17 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         BuildAxisTab
         BuildCameraTab
     } errs] != 0 } {
-	global errorInfo
+        global errorInfo
         puts stderr "errs=$errs errorInfo=$errorInfo"
     }
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for panning via mouse
@@ -443,7 +443,7 @@ itcl::body Rappture::VtkHeightmapViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkHeightmapViewer::DoRotate {} {
-    SendCmd "camera orient [ViewToQuaternion]" 
+    SendCmd "camera orient [ViewToQuaternion]"
     set _rotatePending 0
 }
 
@@ -470,7 +470,7 @@ itcl::body Rappture::VtkHeightmapViewer::EventuallyRotate { q } {
     QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay 
+        global rotate_delay
         $_dispatcher event -after $rotate_delay !rotate
     }
 }
@@ -569,7 +569,7 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
                 if { ![IsValidObject $dataobj] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -597,7 +597,7 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -617,13 +617,13 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
     }
 }
 
-# 
+#
 # scale  --
 #
 #       This gets called either incrementally as new simulations are
 #       added or all at once as a sequence of heightmaps.
-#       This  accounts for all objects--even those not showing on the 
-#       screen.  Because of this, the limits are appropriate for all 
+#       This  accounts for all objects--even those not showing on the
+#       screen.  Because of this, the limits are appropriate for all
 #       objects as the user scans through data in the ResultSet viewer.
 #
 itcl::body Rappture::VtkHeightmapViewer::scale {args} {
@@ -815,10 +815,10 @@ itcl::body Rappture::VtkHeightmapViewer::Disconnect {} {
     $_dispatcher cancel !rotate
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
-    array unset _datasets 
-    array unset _data 
-    array unset _colormaps 
-    array unset _obj2datasets 
+    array unset _datasets
+    array unset _data
+    array unset _colormaps
+    array unset _obj2datasets
     global readyForNextFrame
     set readyForNextFrame 1
 }
@@ -850,7 +850,7 @@ itcl::body Rappture::VtkHeightmapViewer::ReceiveImage { args } {
         $_image(plot) configure -data $bytes
         set time [clock seconds]
         set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -921,37 +921,37 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_width != $w || $_height != $h || $_reset } {
-	set _width $w
-	set _height $h
-	$_arcball resize $w $h
-	DoResize
-	if { $_settings(-stretchtofit) } {
-	    AdjustSetting -stretchtofit
-	}
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
+        DoResize
+        if { $_settings(-stretchtofit) } {
+            AdjustSetting -stretchtofit
+        }
     }
     if { $_reset } {
-	#
-	# Reset the camera and other view parameters
-	#
+        #
+        # Reset the camera and other view parameters
+        #
         InitSettings -isheightmap -background
 
         # Setting a custom exponent and label format for axes is causing
-        # a problem with rounding.  Near zero ticks aren't rounded by 
+        # a problem with rounding.  Near zero ticks aren't rounded by
         # the %g format.  The VTK CubeAxes seem to currently work best
-        # when allowed to automatically set the exponent and precision 
-        # based on the axis ranges.  This does tend to result in less 
-        # visual clutter, so I think it is best to use the automatic 
+        # when allowed to automatically set the exponent and precision
+        # based on the axis ranges.  This does tend to result in less
+        # visual clutter, so I think it is best to use the automatic
         # settings by default.  We can test more fine-grained
         # controls on the axis settings tab if necessary.
         # -Leif
         #SendCmd "axis exp 0 0 0 1"
 
-	SendCmd "axis lrot z 90"
-	$_arcball quaternion [ViewToQuaternion]
+        SendCmd "axis lrot z 90"
+        $_arcball quaternion [ViewToQuaternion]
         if {$_settings(-isheightmap) } {
             if { $_view(-ortho)} {
                 SendCmd "camera mode ortho"
@@ -960,8 +960,8 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             }
             DoRotate
             SendCmd "camera reset"
-	}
-	PanCamera
+        }
+        PanCamera
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
@@ -980,12 +980,12 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
-		if 0 { 
+                if 0 {
                     set f [open /tmp/vtkheightmap.vtk "w"]
                     fconfigure $f -translation binary -encoding binary
                     puts -nonewline $f $bytes
                     close $f
-		}
+                }
                 set length [string length $bytes]
                 if { $_reportClientInfo }  {
                     set info {}
@@ -1010,17 +1010,17 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
                 # and heightmap
                 SendCmd "dataset visible 1 $tag"
             }
-	    if { ![info exists _comp2scale($tag)] || 
-		 $_comp2scale($tag) != $scale } {
-		SendCmd "heightmap heightscale $scale $tag"
-		set _comp2scale($tag) $scale
-	    }
+            if { ![info exists _comp2scale($tag)] ||
+                 $_comp2scale($tag) != $scale } {
+                SendCmd "heightmap heightscale $scale $tag"
+                set _comp2scale($tag) $scale
+            }
         }
     }
     if { $_first != ""  } {
-	$itk_component(field) choices delete 0 end
-	$itk_component(fieldmenu) delete 0 end
-	array unset _fields
+        $itk_component(field) choices delete 0 end
+        $itk_component(fieldmenu) delete 0 end
+        array unset _fields
         set _curFldName ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
@@ -1049,47 +1049,47 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
     InitSettings -stretchtofit -outline
 
     if { $_reset } {
-	SendCmd "axis tickpos outside"
+        SendCmd "axis tickpos outside"
         #SendCmd "axis lformat all %g"
-        
-	foreach axis { x y z } {
+
+        foreach axis { x y z } {
             if { $axis == "z" } {
                 set label [$_first hints label]
             } else {
                 set label [$_first hints ${axis}label]
             }
-	    if { $label == "" } {
-		if {$axis == "z"} {
+            if { $label == "" } {
+                if {$axis == "z"} {
                     if { [string match "component*" $_curFldName] } {
                         set label [string toupper $axis]
                     } else {
                         set label $_curFldLabel
                     }
-		} else {
-		    set label [string toupper $axis]
-		}
-	    }
-	    # May be a space in the axis label.
-	    SendCmd [list axis name $axis $label]
+                } else {
+                    set label [string toupper $axis]
+                }
+            }
+            # May be a space in the axis label.
+            SendCmd [list axis name $axis $label]
 
             set units ""
-	    if {$axis == "z" && [$_first hints ${axis}units] == ""} {
+            if {$axis == "z" && [$_first hints ${axis}units] == ""} {
                 if {$_curFldName != ""} {
                     set units [lindex $_fields($_curFldName) 1]
                 }
-	    } else {
-		set units [$_first hints ${axis}units]
-	    }
-	    if { $units != "" } {
-		# May be a space in the axis units.
-		SendCmd [list axis units $axis $units]
-	    }
-	}
-	#
-	# Reset the camera and other view parameters
-	#
-	ResetAxes
-	$_arcball quaternion [ViewToQuaternion]
+            } else {
+                set units [$_first hints ${axis}units]
+            }
+            if { $units != "" } {
+                # May be a space in the axis units.
+                SendCmd [list axis units $axis $units]
+            }
+        }
+        #
+        # Reset the camera and other view parameters
+        #
+        ResetAxes
+        $_arcball quaternion [ViewToQuaternion]
         if {$_settings(-isheightmap) } {
             if { $_view(-ortho)} {
                 SendCmd "camera mode ortho"
@@ -1099,9 +1099,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             DoRotate
             SendCmd "camera reset"
         }
-	PanCamera
-	InitSettings -xgrid -ygrid -zgrid \
-	    -axisvisible -axislabels -heightmapscale -field -isheightmap \
+        PanCamera
+        InitSettings -xgrid -ygrid -zgrid \
+            -axisvisible -axislabels -heightmapscale -field -isheightmap \
             -numisolines
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
@@ -1110,7 +1110,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         set _reset 0
     }
     global readyForNextFrame
-    set readyForNextFrame 0;		# Don't advance to the next frame
+    set readyForNextFrame 0;                # Don't advance to the next frame
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -1128,7 +1128,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkHeightmapViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentDatasets: can't specify dataobj after \"-all\""
@@ -1147,7 +1147,7 @@ itcl::body Rappture::VtkHeightmapViewer::CurrentDatasets {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1278,7 +1278,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rotate {option x y} {
 itcl::body Rappture::VtkHeightmapViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
         SendCmd "dataset getscalar pixel $x $y $tag"
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1382,42 +1382,42 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "-background" {
             set bg [$itk_component(background) value]
-	    array set fgcolors {
-		"black" "white"
-		"white" "black"
-		"grey"	"black"
-	    }
+            array set fgcolors {
+                "black" "white"
+                "white" "black"
+                "grey"  "black"
+            }
             set fg $fgcolors($bg)
             configure -plotbackground $bg -plotforeground $fg
-	    $itk_component(view) delete "legend"
+            $itk_component(view) delete "legend"
             SendCmd "screen bgcolor [Color2RGB $bg]"
             SendCmd "outline color [Color2RGB $fg]"
             SendCmd "axis color all [Color2RGB $fg]"
-	    DrawLegend
+            DrawLegend
         }
         "-colormap" {
             set _changed($what) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
             set _settings($what) $color
-	    if { $color == "none" } {
-		if { $_settings(-colormapvisible) } {
-		    SendCmd "heightmap surface 0"
-		    set _settings(-colormapvisible) 0
-		}
-	    } else {
-		if { !$_settings(-colormapvisible) } {
-		    SendCmd "heightmap surface 1"
-		    set _settings(-colormapvisible) 1
-		}
-		SetCurrentColormap $color
+            if { $color == "none" } {
+                if { $_settings(-colormapvisible) } {
+                    SendCmd "heightmap surface 0"
+                    set _settings(-colormapvisible) 0
+                }
+            } else {
+                if { !$_settings(-colormapvisible) } {
+                    SendCmd "heightmap surface 1"
+                    set _settings(-colormapvisible) 1
+                }
+                SetCurrentColormap $color
                 if {$_settings(-colormapdiscrete)} {
                     set numColors [expr $_settings(-numisolines) + 1]
                     SendCmd "colormap res $numColors $color"
                 }
-	    }
+            }
             StopBufferingCommands
-	    EventuallyRequestLegend
+            EventuallyRequestLegend
         }
         "-colormapvisible" {
             set bool $_settings($what)
@@ -1460,26 +1460,26 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-	    set label [$_first hints label]
-	    if { $label == "" } {
+            set label [$_first hints label]
+            if { $label == "" } {
                 if { [string match "component*" $_curFldName] } {
                     set label Z
                 } else {
                     set label $_curFldLabel
                 }
-	    }
-	    # May be a space in the axis label.
-	    SendCmd [list axis name z $label]
+            }
+            # May be a space in the axis label.
+            SendCmd [list axis name z $label]
 
-	    if { [$_first hints zunits] == "" } {
-		set units [lindex $_fields($_curFldName) 1]
-	    } else {
-		set units [$_first hints zunits]
-	    }
-	    if { $units != "" } {
-		# May be a space in the axis units.
-		SendCmd [list axis units z $units]
-	    }
+            if { [$_first hints zunits] == "" } {
+                set units [lindex $_fields($_curFldName) 1]
+            } else {
+                set units [$_first hints zunits]
+            }
+            if { $units != "" } {
+                # May be a space in the axis units.
+                SendCmd [list axis units z $units]
+            }
             # Get the new limits because the field changed.
             ResetAxes
             SendCmd "dataset scalar $_curFldName"
@@ -1489,19 +1489,19 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-heightmapscale" {
-	    if { $_settings(-isheightmap) } {
-		set scale [GetHeightmapScale]
-                # Have to set the datasets individually because we are 
+            if { $_settings(-isheightmap) } {
+                set scale [GetHeightmapScale]
+                # Have to set the datasets individually because we are
                 # tracking them in _comp2scale.
                 foreach dataset [CurrentDatasets -all] {
-		    SendCmd "heightmap heightscale $scale $dataset"
-		    set _comp2scale($dataset) $scale
-		}
-		ResetAxes
-	    }
+                    SendCmd "heightmap heightscale $scale $dataset"
+                    set _comp2scale($dataset) $scale
+                }
+                ResetAxes
+            }
         }
         "-isheightmap" {
-	    set bool $_settings($what)
+            set bool $_settings($what)
             set c $itk_component(view)
             StartBufferingCommands
             # Fix heightmap scale: 0 for contours, 1 for heightmaps.
@@ -1518,31 +1518,31 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
             InitSettings -lighting -opacity -outline
             set scale [GetHeightmapScale]
-            # Have to set the datasets individually because we are 
+            # Have to set the datasets individually because we are
             # tracking them in _comp2scale.
             foreach dataset [CurrentDatasets -all] {
                 SendCmd "heightmap heightscale $scale $dataset"
                 set _comp2scale($dataset) $scale
             }
-	    if { $bool } {
-		$itk_component(lighting) configure -state normal
-		$itk_component(opacity) configure -state normal
-		$itk_component(scale) configure -state normal
-		$itk_component(opacity_l) configure -state normal
-		$itk_component(scale_l) configure -state normal
-		$itk_component(outline) configure -state disabled
+            if { $bool } {
+                $itk_component(lighting) configure -state normal
+                $itk_component(opacity) configure -state normal
+                $itk_component(scale) configure -state normal
+                $itk_component(opacity_l) configure -state normal
+                $itk_component(scale_l) configure -state normal
+                $itk_component(outline) configure -state disabled
                 if {$_view(-ortho)} {
                     SendCmd "camera mode ortho"
                 } else {
                     SendCmd "camera mode persp"
                 }
-	    } else {
-		$itk_component(lighting) configure -state disabled
-		$itk_component(opacity) configure -state disabled
-		$itk_component(scale) configure -state disabled
-		$itk_component(opacity_l) configure -state disabled
-		$itk_component(scale_l) configure -state disabled
-		$itk_component(outline) configure -state normal
+            } else {
+                $itk_component(lighting) configure -state disabled
+                $itk_component(opacity) configure -state disabled
+                $itk_component(scale) configure -state disabled
+                $itk_component(opacity_l) configure -state disabled
+                $itk_component(scale_l) configure -state disabled
+                $itk_component(outline) configure -state normal
                 SendCmd "camera mode image"
             }
             if {$_settings(-stretchtofit)} {
@@ -1556,14 +1556,14 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             if { $bool } {
                 set q [ViewToQuaternion]
                 $_arcball quaternion $q
-                SendCmd "camera orient $q" 
+                SendCmd "camera orient $q"
             } else {
                 bind $c <ButtonPress-1> {}
                 bind $c <B1-Motion> {}
                 bind $c <ButtonRelease-1> {}
             }
             Zoom reset
-            # Fix the mouse bindings for rotation/panning and the 
+            # Fix the mouse bindings for rotation/panning and the
             # camera mode. Ideally we'd create a bindtag for these.
             if { $bool } {
                 # Bindings for rotation via mouse
@@ -1578,39 +1578,39 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "-isolinecolor" {
             set color [$itk_component(isolinecolor) value]
-	    if { $color == "none" } {
-		if { $_settings(-isolinesvisible) } {
-		    SendCmd "heightmap isolines 0"
-		    set _settings(-isolinesvisible) 0
-		}
-	    } else {
-		if { !$_settings(-isolinesvisible) } {
-		    SendCmd "heightmap isolines 1"
-		    set _settings(-isolinesvisible) 1
-		}
-		SendCmd "heightmap isolinecolor [Color2RGB $color]"
-	    }
-	    DrawLegend
+            if { $color == "none" } {
+                if { $_settings(-isolinesvisible) } {
+                    SendCmd "heightmap isolines 0"
+                    set _settings(-isolinesvisible) 0
+                }
+            } else {
+                if { !$_settings(-isolinesvisible) } {
+                    SendCmd "heightmap isolines 1"
+                    set _settings(-isolinesvisible) 1
+                }
+                SendCmd "heightmap isolinecolor [Color2RGB $color]"
+            }
+            DrawLegend
         }
         "-isolinesvisible" {
-	    set bool $_settings($what)
+            set bool $_settings($what)
             SendCmd "heightmap isolines $bool"
-	    DrawLegend
+            DrawLegend
         }
         "-legendvisible" {
             if { !$_settings($what) } {
-		$itk_component(view) delete legend
-	    }
-	    DrawLegend
+                $itk_component(view) delete legend
+            }
+            DrawLegend
         }
         "-lighting" {
-	    if { $_settings(-isheightmap) } {
+            if { $_settings(-isheightmap) } {
                 set _settings(-savelighting) $_settings($what)
-		set bool $_settings($what)
-		SendCmd "heightmap lighting $bool"
-	    } else {
-		SendCmd "heightmap lighting 0"
-	    }
+                set bool $_settings($what)
+                SendCmd "heightmap lighting $bool"
+            } else {
+                SendCmd "heightmap lighting 0"
+            }
         }
         "-numisolines" {
             set _settings($what) [$itk_component(numisolines) value]
@@ -1629,36 +1629,36 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         "-opacity" {
             set _changed($what) 1
             set val [expr $_settings($what) * 0.01]
-	    if { $_settings(-isheightmap) } {
+            if { $_settings(-isheightmap) } {
                 set _settings(-saveopacity) $_settings($what)
                 SendCmd "heightmap opacity $val"
             } else {
-		SendCmd "heightmap opacity 1.0"
+                SendCmd "heightmap opacity 1.0"
             }
         }
         "-outline" {
-	    if { $_settings(-isheightmap) } {
-		SendCmd "outline visible 0"
+            if { $_settings(-isheightmap) } {
+                SendCmd "outline visible 0"
             } else {
                 set _settings(-saveoutline) $_settings($what)
                 set bool $_settings($what)
                 SendCmd "outline visible $bool"
             }
-	}
+        }
         "-stretchtofit" {
-	    set bool $_settings($what)
-	    if { $bool } {
-		set heightScale [GetHeightmapScale]
-		if {$heightScale == 0} {
-		    SendCmd "camera aspect window"
-		} else {
-		    SendCmd "camera aspect square"
-		}
-	    } else {
-		SendCmd "camera aspect native"
-	    }
+            set bool $_settings($what)
+            if { $bool } {
+                set heightScale [GetHeightmapScale]
+                if {$heightScale == 0} {
+                    SendCmd "camera aspect window"
+                } else {
+                    SendCmd "camera aspect square"
+                }
+            } else {
+                SendCmd "camera aspect native"
+            }
             Zoom reset
-	}
+        }
         "-wireframe" {
             set bool $_settings($what)
             SendCmd "heightmap wireframe $bool"
@@ -1668,7 +1668,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
         }
-	default {
+        default {
             error "don't know how to fix $what"
         }
     }
@@ -1678,48 +1678,48 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 # RequestLegend --
 #
 #       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.  
+#       is determined from the height of the canvas.
 #
 # This should be called when
-#	1.  A new current colormap is set.
-#	2.  Window is resized.
-#	3.  The limits of the data have changed.  (Just need a redraw).
-#	4.  Number of isolines have changed. (Just need a redraw).
-#	5.  Legend becomes visible (Just need a redraw).
+#        1.  A new current colormap is set.
+#        2.  Window is resized.
+#        3.  The limits of the data have changed.  (Just need a redraw).
+#        4.  Number of isolines have changed. (Just need a redraw).
+#        5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     set _legendPending 0
     set font "Arial 8"
     set w 12
     set lineht [font metrics $font -linespace]
-    # color ramp height = (canvas height) - (min and max value lines) - 2 
+    # color ramp height = (canvas height) - (min and max value lines) - 2
     set h [expr {$_height - 2 * ($lineht + 2)}]
     set _legendHeight $h
 
     set fname $_curFldName
     if { [string match "component*" $fname] } {
-	set title ""
+        set title ""
     } else {
-	if { [info exists _fields($fname)] } {
-	    foreach { title units } $_fields($fname) break
-	    if { $units != "" } {
-		set title [format "%s (%s)" $title $units]
-	    }
-	} else {
-	    set title $fname
-	}
+        if { [info exists _fields($fname)] } {
+            foreach { title units } $_fields($fname) break
+            if { $units != "" } {
+                set title [format "%s (%s)" $title $units]
+            }
+        } else {
+            set title $fname
+        }
     }
     # If there's a title too, substract one more line
     if { $title != "" } {
-        incr h -$lineht 
+        incr h -$lineht
     }
     if { $h < 1 } {
         return
     }
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
-	set cmap $_currentColormap
-	#SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        set cmap $_currentColormap
+        #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
         SendCmd "legend2 $cmap $w $h"
     }
 }
@@ -1773,7 +1773,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
 itcl::body Rappture::VtkHeightmapViewer::SetCurrentColormap { name } {
     # Keep track of the colormaps that we build.
     if { $name != "none" && ![info exists _colormaps($name)] } {
-        BuildColormap $name 
+        BuildColormap $name
         set _colormaps($name) 1
     }
     set _currentColormap $name
@@ -1799,15 +1799,15 @@ itcl::body Rappture::VtkHeightmapViewer::BuildColormap { name } {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkHeightmapViewer::mode {
     switch -- $itk_option(-mode) {
-	"heightmap" {
-	    set _settings(-isheightmap) 1
-	}
-	"contour" {
-	    set _settings(-isheightmap) 0
-	} 
-	default {
-	    error "unknown mode settings \"$itk_option(-mode)\""
-	}
+        "heightmap" {
+            set _settings(-isheightmap) 1
+        }
+        "contour" {
+            set _settings(-isheightmap) 0
+        }
+        default {
+            error "unknown mode settings \"$itk_option(-mode)\""
+        }
     }
     if { !$_reset } {
         AdjustSetting -isheightmap
@@ -1823,7 +1823,7 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotbackground {
         if { !$_reset } {
             SendCmd "screen bgcolor $rgb"
         }
-	$itk_component(view) configure -background $itk_option(-plotbackground)
+        $itk_component(view) configure -background $itk_option(-plotbackground)
     }
 }
 
@@ -1863,13 +1863,13 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         -font "Arial 9"
 
     itk_component add lighting {
-	checkbutton $inner.lighting \
-	    -text "Enable Lighting" \
-	    -variable [itcl::scope _settings(-lighting)] \
-	    -command [itcl::code $this AdjustSetting -lighting] \
-	    -font "Arial 9"
+        checkbutton $inner.lighting \
+            -text "Enable Lighting" \
+            -variable [itcl::scope _settings(-lighting)] \
+            -command [itcl::code $this AdjustSetting -lighting] \
+            -font "Arial 9"
     } {
-	ignore -font
+        ignore -font
     }
     checkbutton $inner.edges \
         -text "Edges" \
@@ -1905,7 +1905,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         -font "Arial 9"
 
     itk_component add field_l {
-        label $inner.field_l -text "Field" -font "Arial 9" 
+        label $inner.field_l -text "Field" -font "Arial 9"
     } {
         ignore -font
     }
@@ -1915,7 +1915,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
-    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
@@ -1924,7 +1924,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -colormap]
 
-    label $inner.isolinecolor_l -text "Isolines Color" -font "Arial 9" 
+    label $inner.isolinecolor_l -text "Isolines Color" -font "Arial 9"
     itk_component add isolinecolor {
         Rappture::Combobox $inner.isolinecolor -width 10 -editable no
     }
@@ -1938,20 +1938,20 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         "orange"             "orange"           \
         "red"                "red"              \
         "white"              "white"            \
-	"none"		     "none"
+        "none"               "none"
 
     $itk_component(isolinecolor) value $_settings(-isolinecolor)
     bind $inner.isolinecolor <<Value>> \
-	[itcl::code $this AdjustSetting -isolinecolor]
+        [itcl::code $this AdjustSetting -isolinecolor]
 
-    label $inner.background_l -text "Background Color" -font "Arial 9" 
+    label $inner.background_l -text "Background Color" -font "Arial 9"
     itk_component add background {
         Rappture::Combobox $inner.background -width 10 -editable no
     }
     $inner.background choices insert end \
         "black"              "black"            \
         "white"              "white"            \
-        "grey"               "grey"             
+        "grey"               "grey"
 
     $itk_component(background) value "white"
     bind $inner.background <<Value>> \
@@ -1998,8 +1998,8 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         1,1 $inner.colormap   -anchor w -pady 2 -fill x  \
         2,0 $inner.isolinecolor_l  -anchor w -pady 2  \
         2,1 $inner.isolinecolor    -anchor w -pady 2 -fill x  \
-	3,0 $inner.background_l -anchor w -pady 2 \
-	3,1 $inner.background -anchor w -pady 2  -fill x \
+        3,0 $inner.background_l -anchor w -pady 2 \
+        3,1 $inner.background -anchor w -pady 2  -fill x \
         4,0 $inner.numisolines_l -anchor w -pady 2 \
         4,1 $inner.numisolines -anchor w -pady 2 \
         5,0 $inner.stretch    -anchor w -pady 2 -cspan 2 \
@@ -2041,7 +2041,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
@@ -2063,7 +2063,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axisflymode {
         Rappture::Combobox $inner.mode -width 10 -editable no
@@ -2072,7 +2072,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
         "static_triad"    "static" \
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
-        "outer_edges"     "outer"         
+        "outer_edges"     "outer"
     $itk_component(axisflymode) value $_settings(-axisflymode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
 
@@ -2080,12 +2080,12 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
         0,0 $inner.visible -anchor w -cspan 4 \
         1,0 $inner.labels  -anchor w -cspan 4 \
         2,0 $inner.minorticks  -anchor w -cspan 4 \
-	4,0 $inner.grid_l  -anchor w \
+        4,0 $inner.grid_l  -anchor w \
         4,1 $inner.xgrid   -anchor w \
         4,2 $inner.ygrid   -anchor w \
         4,3 $inner.zgrid   -anchor w \
         5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
-        5,1 $inner.mode    -fill x -cspan 3 
+        5,1 $inner.mode    -fill x -cspan 3
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c6 -resize expand
@@ -2144,10 +2144,10 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
 }
 
 #
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::VtkHeightmapViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -2195,7 +2195,7 @@ itcl::body Rappture::VtkHeightmapViewer::GetVtkData { args } {
 }
 
 itcl::body Rappture::VtkHeightmapViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -2208,16 +2208,16 @@ itcl::body Rappture::VtkHeightmapViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Arial 9 " \
-        -value vtk  
+        -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Arial 9 " \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -2238,7 +2238,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildDownloadPopup { popup command } {
         1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -2249,7 +2249,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildDownloadPopup { popup command } {
 #
 # SetObjectStyle --
 #
-#       Set the style of the heightmap/contour object.  This gets calls 
+#       Set the style of the heightmap/contour object.  This gets calls
 #       for each dataset once as it is loaded.  It can overridden by
 #       the user controls.
 #
@@ -2340,8 +2340,8 @@ itcl::body Rappture::VtkHeightmapViewer::ReceiveLegend { colormap title min max 
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
         if { [catch {DrawLegend} errs] != 0 } {
-	    global errorInfo
-	    puts stderr "errs=$errs errorInfo=$errorInfo"
+            global errorInfo
+            puts stderr "errs=$errs errorInfo=$errorInfo"
         }
     }
 }
@@ -2358,27 +2358,27 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     if { [string match "component*" $fname] } {
-	set title ""
+        set title ""
     } else {
-	if { [info exists _fields($fname)] } {
-	    foreach { title units } $_fields($fname) break
-	    if { $units != "" } {
-		set title [format "%s (%s)" $title $units]
-	    }
-	} else {
-	    set title $fname
-	}
+        if { [info exists _fields($fname)] } {
+            foreach { title units } $_fields($fname) break
+            if { $units != "" } {
+                set title [format "%s (%s)" $title $units]
+            }
+        } else {
+            set title $fname
+        }
     }
     set x [expr $w - 2]
     if { !$_settings(-legendvisible) } {
-	$c delete legend
-	return
-    } 
+        $c delete legend
+        return
+    }
     if { [$c find withtag "legend"] == "" } {
-	set y 2 
-	# If there's a legend title, create a text item for the title.
+        set y 2
+        # If there's a legend title, create a text item for the title.
         $c create text $x $y \
             -anchor ne \
             -fill $itk_option(-plotforeground) -tags "title legend" \
@@ -2386,23 +2386,23 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
         if { $title != "" } {
             incr y $lineht
         }
-	$c create text $x $y \
+        $c create text $x $y \
             -anchor ne \
             -fill $itk_option(-plotforeground) -tags "vmax legend" \
             -font $font
         incr y $lineht
-	$c create image $x $y \
-	    -anchor ne \
-	    -image $_image(legend) -tags "colormap legend"
-	$c create rectangle $x $y 1 1 \
-	    -fill "" -outline "" -tags "sensor legend"
-	$c create text $x [expr {$h-2}] \
-	    -anchor se \
-	    -fill $itk_option(-plotforeground) -tags "vmin legend" \
-	    -font $font
-	$c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
-	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
-	$c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
+        $c create image $x $y \
+            -anchor ne \
+            -image $_image(legend) -tags "colormap legend"
+        $c create rectangle $x $y 1 1 \
+            -fill "" -outline "" -tags "sensor legend"
+        $c create text $x [expr {$h-2}] \
+            -anchor se \
+            -fill $itk_option(-plotforeground) -tags "vmin legend" \
+            -font $font
+        $c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
+        $c bind sensor <Leave> [itcl::code $this LeaveLegend]
+        $c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
     }
     $c delete isoline
     set x2 $x
@@ -2413,7 +2413,7 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 
     # Draw the isolines on the legend.
     array unset _isolines
-    if { $color != "none"  && [info exists _limits($_curFldName)] && 
+    if { $color != "none"  && [info exists _limits($_curFldName)] &&
          $_settings(-isolinesvisible) && $_currentNumIsolines > 0 } {
 
         foreach { vmin vmax } $_limits($_curFldName) break
@@ -2422,10 +2422,10 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
             set range 1.0;              # Min is greater or equal to max.
         }
         set tags "isoline legend"
-	set offset [expr 2 + $lineht]
-	if { $title != "" } {
-	    incr offset $lineht
-	}
+        set offset [expr 2 + $lineht]
+        if { $title != "" } {
+            incr offset $lineht
+        }
         foreach value $_contourList {
             set norm [expr 1.0 - (($value - $vmin) / $range)]
             set y1 [expr int(round(($norm * $ih) + $offset))]
@@ -2433,8 +2433,8 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
                 set _isolines([expr $y1 + $off]) $value
                 set _isolines([expr $y1 - $off]) $value
             }
-	    $c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags
-	}
+            $c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags
+        }
     }
 
     $c bind title <ButtonPress> [itcl::code $this Combo post]
@@ -2443,15 +2443,15 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     # Reset the item coordinates according the current size of the plot.
     if { [info exists _limits($_curFldName)] } {
         foreach { vmin vmax } $_limits($_curFldName) break
-	$c itemconfigure vmin -text [format %g $vmin]
-	$c itemconfigure vmax -text [format %g $vmax]
+        $c itemconfigure vmin -text [format %g $vmin]
+        $c itemconfigure vmax -text [format %g $vmax]
     }
     set y 2
     # If there's a legend title, move the title to the correct position
     if { $title != "" } {
         $c itemconfigure title -text $title
-	$c coords title $x $y
-	incr y $lineht
+        $c coords title $x $y
+        incr y $lineht
     }
     $c coords vmax $x $y
     incr y $lineht
@@ -2499,22 +2499,22 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     set ih [image height $_image(legend)]
     # Subtract off the offset of the color ramp from the top of the canvas
     set iy [expr $y - ($lineht + 2)]
 
     if { [string match "component*" $fname] } {
-	set title ""
+        set title ""
     } else {
-	if { [info exists _fields($fname)] } {
-	    foreach { title units } $_fields($fname) break
-	    if { $units != "" } {
-		set title [format "%s (%s)" $title $units]
-	    }
-	} else {
-	    set title $fname
-	}
+        if { [info exists _fields($fname)] } {
+            foreach { title units } $_fields($fname) break
+            if { $units != "" } {
+                set title [format "%s (%s)" $title $units]
+            }
+        } else {
+            set title $fname
+        }
     }
     # If there's a legend title, increase the offset by the line height.
     if { $title != "" } {
@@ -2530,8 +2530,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
         set _image(swatch) [image create photo -width 24 -height 24]
     }
     set color [eval format "\#%02x%02x%02x" $pixel]
-    $_image(swatch) put black  -to 0 0 23 23 
-    $_image(swatch) put $color -to 1 1 22 22 
+    $_image(swatch) put black  -to 0 0 23 23
+    $_image(swatch) put $color -to 1 1 22 22
 
     # Compute the value of the point
     if { [info exists _limits($fname)] } {
@@ -2541,7 +2541,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     } else {
         set value 0.0
     }
-    set tipx [expr $x + 15] 
+    set tipx [expr $x + 15]
     set tipy [expr $y - 5]
     .rappturetooltip configure -icon $_image(swatch)
     if { [info exists _isolines($y)] } {
@@ -2549,7 +2549,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     } else {
         Rappture::Tooltip::text $c [format "$title %g" $value]
     }
-    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
+    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy
 }
 
 # ----------------------------------------------------------------------
@@ -2564,7 +2564,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
 # the value back to the gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkHeightmapViewer::Combo {option} {
-    set c $itk_component(view) 
+    set c $itk_component(view)
     switch -- $option {
         post {
             foreach { x1 y1 x2 y2 } [$c bbox title] break
@@ -2577,7 +2577,7 @@ itcl::body Rappture::VtkHeightmapViewer::Combo {option} {
             $c itemconfigure title -fill red
         }
         deactivate {
-            $c itemconfigure title -fill $itk_option(-plotforeground) 
+            $c itemconfigure title -fill $itk_option(-plotforeground)
         }
         invoke {
             $itk_component(field) value $_curFldLabel
@@ -2591,14 +2591,14 @@ itcl::body Rappture::VtkHeightmapViewer::Combo {option} {
 
 itcl::body Rappture::VtkHeightmapViewer::GetHeightmapScale {} {
     if {  $_settings(-isheightmap) } {
-	set val $_settings(-heightmapscale)
-	set sval [expr { $val >= 50 ? double($val)/50.0 : 1.0/(2.0-(double($val)/50.0)) }]
-	return $sval
+        set val $_settings(-heightmapscale)
+        set sval [expr { $val >= 50 ? double($val)/50.0 : 1.0/(2.0-(double($val)/50.0)) }]
+        return $sval
     }
-    return 0 
+    return 0
 }
 
-itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } { 
+itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } {
     array set positions {
         front  "0.707107 0.707107 0 0"
         back   "0 0 0.707107 0.707107"
@@ -2609,7 +2609,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } {
     }
     foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
@@ -2619,7 +2619,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetOrientation { side } {
     set _view(-zoom) 1.0
 }
 
-itcl::body Rappture::VtkHeightmapViewer::UpdateContourList {} { 
+itcl::body Rappture::VtkHeightmapViewer::UpdateContourList {} {
     if {$_currentNumIsolines == 0} {
         set _contourList ""
         return
