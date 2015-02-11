@@ -25,8 +25,10 @@ namespace eval Rappture {
 itcl::class Rappture::Map {
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
-    private common _nextLayer 0;        # Counter used to generate unique
+    private common _nextLayer 0;       # Counter used to generate unique
                                        # layer names.
+    private common _nextViewpoint 0;   # Counter used to generate unique
+                                       # viewpoint names.
     private common _layerTypes
     private common _mapTypes
     array set _layerTypes {
@@ -51,15 +53,17 @@ itcl::class Rappture::Map {
         # defined below 
     }
 
-    public method isGeocentric {} 
-    public method layers {}
-    public method layer { layerName }
+    public method earthfile {}
     public method hints { args }
+    public method isGeocentric {}
     public method isvalid {} {
         return $_isValid;
     }
+    public method layer { layerName }
+    public method layers {}
     public method type { layerName }
-    public method earthfile {}
+    public method viewpoint { viewpointName }
+    public method viewpoints {}
 }
 
 # ----------------------------------------------------------------------
@@ -214,11 +218,25 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     }
     $_tree set root "label"       [$map get "about.label"]
     $_tree set root "style"       [$map get "style"]
- 
+    $_tree set root "camera"      [$map get "camera"]
+    set parent [$_tree insert root -label "viewpoints"]
+    set viewpoints [$map element -as object "viewpoints"]
+    if { $viewpoints != "" } {
+        foreach viewpoint [$viewpoints children -type viewpoint] {
+            set name "viewpoint[incr _nextViewpoint]"
+            set child [$_tree insert $parent -label $name]
+            $_tree set $child "name" $viewpoint
+            foreach key { label description x y z distance heading pitch srs verticalDatum } {
+                set val [$viewpoints get $viewpoint.$key]
+                $_tree set $child $key $val
+            }
+        }
+    }
+
     set projection [$map get "projection"]
     set extents    [$map get "extents"]
     if { $projection  == "" } {
-        if {$extents != ""} {
+        if { $extents != "" } {
             error "cannot specify extents without a projection"
         }
         set projection "global-mercator"; # Default projection.
@@ -267,6 +285,19 @@ itcl::body Rappture::Map::layers {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: viewpoints
+#
+# Returns a list of IDs for the viewpoints in the map
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::viewpoints {} {
+    set list {}
+    foreach node [$_tree children root->"viewpoints"] {
+        lappend list [$_tree label $node] 
+    }
+    return $list
+}
+
+# ----------------------------------------------------------------------
 # USAGE: layer <layerName>
 #
 # Returns an array of settings for the named layer
@@ -275,6 +306,19 @@ itcl::body Rappture::Map::layer { layerName } {
     set id [$_tree findchild root->"layers" $layerName]
     if { $id < 0 } {
         error "unknown layer \"$layerName\""
+    }
+    return [$_tree get $id]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: viewopint <viewopintName>
+#
+# Returns an array of settings for the named viewpoint
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::viewpoint { viewopintName } {
+    set id [$_tree findchild root->"viewpoints" $viewopintName]
+    if { $id < 0 } {
+        error "unknown viewpoint \"$viewpointName\""
     }
     return [$_tree get $id]
 }

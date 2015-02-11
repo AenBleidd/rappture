@@ -115,6 +115,7 @@ itcl::class Rappture::MapViewer {
     private variable _obj2ovride;	# maps dataobj => style override
     private variable _layers;		# Contains the names of all the 
                                    	# layer in the server.
+    private variable _viewpoints;
     private variable _click;            # info used for rotate operations
     private variable _view;             # view params for 3D view
     private variable _pan;
@@ -771,11 +772,23 @@ itcl::body Rappture::MapViewer::scale {args} {
                 set _mapsettings(y2) $y2
             }
         }
+        if { [info exists hints(camera)] } {
+            if { ![info exists _mapsettings(camera)] } {
+                set _mapsettings(camera) $hints(camera)
+            }
+        }
         foreach layer [$dataobj layers] {
             if { [$dataobj type $layer] == "elevation" } {
                 set _haveTerrain 1
                 break
             } 
+        }
+        foreach viewpoint [$dataobj viewpoints] {
+            set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
+            array set vp $_viewpoints($viewpoint)
+            foreach key { x y z distance heading pitch srs verticalDatum } {
+                puts stderr "$viewpoint $key $vp($key)"
+            }
         }
     }
     if { $_haveTerrain } {
