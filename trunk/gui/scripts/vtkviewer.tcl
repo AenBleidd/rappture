@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkviewer - Vtk drawing object viewer
 #
@@ -57,8 +57,8 @@ itcl::class Rappture::VtkViewer {
     public method get {args}
     public method isconnected {}
     public method limits { dataobj }
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -68,7 +68,7 @@ itcl::class Rappture::VtkViewer {
     private method BuildCameraTab {}
     private method BuildColormap { name styles }
     private method BuildCutawayTab {}
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method BuildGlyphsTab {}
     private method BuildMoleculeTab {}
     private method BuildPolydataTab {}
@@ -79,25 +79,25 @@ itcl::class Rappture::VtkViewer {
     private method DoResize {}
     private method DoRotate {}
     private method DrawLegend {}
-    private method EnterLegend { x y } 
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
-    private method EventuallySetAtomScale { args } 
-    private method EventuallySetBondScale { args } 
-    private method EventuallySetGlyphsOpacity { args } 
-    private method EventuallySetMoleculeOpacity { args } 
-    private method EventuallySetMoleculeQuality { args } 
-    private method EventuallySetPolydataOpacity { args } 
-    private method GetImage { args } 
-    private method GetVtkData { args } 
+    private method EnterLegend { x y }
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { q }
+    private method EventuallySetAtomScale { args }
+    private method EventuallySetBondScale { args }
+    private method EventuallySetGlyphsOpacity { args }
+    private method EventuallySetMoleculeOpacity { args }
+    private method EventuallySetMoleculeQuality { args }
+    private method EventuallySetPolydataOpacity { args }
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method InitSettings { args  }
-    private method IsValidObject { dataobj } 
+    private method IsValidObject { dataobj }
     private method LeaveLegend {}
-    private method MotionLegend { x y } 
+    private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -113,27 +113,27 @@ itcl::class Rappture::VtkViewer {
     private method SetLegendTip { x y }
     private method SetMoleculeOpacity {}
     private method SetMoleculeQuality {}
-    private method SetObjectStyle { dataobj comp } 
+    private method SetObjectStyle { dataobj comp }
     private method SetOpacity { dataset }
     private method SetOrientation { side }
     private method SetPolydataOpacity {}
-    private method Slice {option args} 
-    private method ViewToQuaternion {} { 
+    private method Slice {option args}
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
 
     private variable _arcball ""
-    private variable _dlist "";		# list of data objects
+    private variable _dlist "";         # list of data objects
     private variable _obj2datasets
-    private variable _obj2ovride;	# maps dataobj => style override
-    private variable _datasets;		# contains all the dataobj-component 
-                                   	# datasets in the server
-    private variable _colormaps;	# contains all the colormaps
-                                  	# in the server.
-    private variable _dataset2style;	# maps dataobj-component to transfunc
-    private variable _style2datasets;	# maps tf back to list of 
-					# dataobj-components using the tf.
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _datasets;         # contains all the dataobj-component
+                                        # datasets in the server
+    private variable _colormaps;        # contains all the colormaps
+                                        # in the server.
+    private variable _dataset2style;    # maps dataobj-component to transfunc
+    private variable _style2datasets;   # maps tf back to list of
+                                        # dataobj-components using the tf.
     private variable _click;            # info used for rotate operations
     private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
@@ -318,8 +318,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -372,20 +372,20 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for rotation via mouse
@@ -472,7 +472,7 @@ itcl::body Rappture::VtkViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkViewer::DoRotate {} {
-    SendCmd "camera orient [ViewToQuaternion]" 
+    SendCmd "camera orient [ViewToQuaternion]"
     set _rotatePending 0
 }
 
@@ -673,7 +673,7 @@ itcl::body Rappture::VtkViewer::get {args} {
                 if { ![IsValidObject $dataobj] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -701,7 +701,7 @@ itcl::body Rappture::VtkViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -924,9 +924,9 @@ itcl::body Rappture::VtkViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     set _outbuf ""
-    array unset _datasets 
-    array unset _data 
-    array unset _colormaps 
+    array unset _datasets
+    array unset _data
+    array unset _colormaps
     global readyForNextFrame
     set readyForNextFrame 1
 }
@@ -1028,7 +1028,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_reset } {
@@ -1122,11 +1122,11 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     if { $_reset } {
         if { $_haveGlyphs } {
             InitSettings glyphs-edges glyphs-lighting glyphs-opacity \
-                glyphs-visible glyphs-wireframe 
+                glyphs-visible glyphs-wireframe
         }
         if { $_havePolydata } {
             InitSettings polydata-edges polydata-lighting polydata-opacity \
-                polydata-visible polydata-wireframe 
+                polydata-visible polydata-wireframe
         }
         if { $_haveMolecules } {
             InitSettings molecule-edges molecule-lighting molecule-opacity \
@@ -1146,7 +1146,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     }
 
     if { $_haveMolecules } {
-        #InitSettings molecule-representation 
+        #InitSettings molecule-representation
     }
     set _reset 0
     global readyForNextFrame
@@ -1169,7 +1169,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentDatasets: can't specify dataobj after \"-all\""
@@ -1188,7 +1188,7 @@ itcl::body Rappture::VtkViewer::CurrentDatasets {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1307,7 +1307,7 @@ itcl::body Rappture::VtkViewer::Rotate {option x y} {
 itcl::body Rappture::VtkViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
         SendCmd "dataset getscalar pixel $x $y $tag"
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1753,7 +1753,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 SendCmd "renderer clipplane $axis 1 -1"
             }
         }
-        "axis-xposition" - "axis-yposition" - "axis-zposition" - 
+        "axis-xposition" - "axis-yposition" - "axis-zposition" -
         "axis-xdirection" - "axis-ydirection" - "axis-zdirection" {
             set axis [string range $what 5 5]
             #set dir $_axis(${axis}direction)
@@ -1911,7 +1911,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
             set tmpfile file[pid].vtk
             set f [open "$tmpfile" "w"]
             fconfigure $f -translation binary -encoding binary
-            puts $f $data 
+            puts $f $data
             close $f
             set reader [vtkDataSetReader $tag-xvtkDataSetReader]
             $reader SetFileName $tmpfile
@@ -2005,19 +2005,19 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
         -text "Show Glyphs" \
         -variable [itcl::scope _settings(glyphs-visible)] \
         -command [itcl::code $this AdjustSetting glyphs-visible] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.outline \
         -text "Show Outline" \
         -variable [itcl::scope _settings(glyphs-outline)] \
         -command [itcl::code $this AdjustSetting glyphs-outline] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(glyphs-wireframe)] \
         -command [itcl::code $this AdjustSetting glyphs-wireframe] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
@@ -2031,7 +2031,7 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
         -command [itcl::code $this AdjustSetting glyphs-edges] \
         -font "Arial 9" -anchor w
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
+    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
     itk_component add glyphspalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
@@ -2040,7 +2040,7 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting glyphs-palette]
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
+    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(glyphs-opacity)] \
         -width 10 \
@@ -2057,7 +2057,7 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
         5,0 $inner.opacity_l -anchor w -pady 2 \
         5,1 $inner.opacity   -fill x   -pady 2 \
         6,0 $inner.palette_l -anchor w -pady 2 \
-        6,1 $inner.palette   -fill x   -pady 2  
+        6,1 $inner.palette   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r8 c1 -resize expand
@@ -2077,19 +2077,19 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -text "Show Mesh" \
         -variable [itcl::scope _settings(polydata-visible)] \
         -command [itcl::code $this AdjustSetting polydata-visible] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.outline \
         -text "Show Outline" \
         -variable [itcl::scope _settings(polydata-outline)] \
         -command [itcl::code $this AdjustSetting polydata-outline] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(polydata-wireframe)] \
         -command [itcl::code $this AdjustSetting polydata-wireframe] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
@@ -2103,7 +2103,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -command [itcl::code $this AdjustSetting polydata-edges] \
         -font "Arial 9" -anchor w
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
+    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
     itk_component add meshpalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
@@ -2112,7 +2112,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting polydata-palette]
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
+    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(polydata-opacity)] \
         -width 10 \
@@ -2129,7 +2129,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         5,0 $inner.opacity_l -anchor w -pady 2 \
         5,1 $inner.opacity   -fill x   -pady 2 \
         6,0 $inner.palette_l -anchor w -pady 2 \
-        6,1 $inner.palette   -fill x   -pady 2  
+        6,1 $inner.palette   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r8 c1 -resize expand
@@ -2156,7 +2156,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
         -variable [itcl::scope _axis(labels)] \
         -command [itcl::code $this AdjustSetting axis-labels] \
         -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _axis(xgrid)] \
@@ -2178,7 +2178,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting axis-minorticks] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axismode {
         Rappture::Combobox $inner.mode -width 10 -editable no
@@ -2187,7 +2187,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
         "static_triad"    "static" \
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
-        "outer_edges"     "outer"         
+        "outer_edges"     "outer"
     $itk_component(axismode) value "static"
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
 
@@ -2261,10 +2261,10 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
 itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
 
     set fg [option get $itk_component(hull) font Font]
-    
+
     set inner [$itk_component(main) insert end \
         -title "Cutaway Along Axis" \
-        -icon [Rappture::icon cutbutton]] 
+        -icon [Rappture::icon cutbutton]]
 
     $inner configure -borderwidth 4
 
@@ -2304,7 +2304,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
             -command [itcl::code $this AdjustSetting axis-xdirection] \
             -variable [itcl::scope _axis(xdirection)]
     }
-    set _axis(xdirection) -1 
+    set _axis(xdirection) -1
     Rappture::Tooltip::for $itk_component(xDirButton) \
         "Toggle the direction of the X-axis cutaway"
 
@@ -2346,7 +2346,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
     }
     Rappture::Tooltip::for $itk_component(yDirButton) \
         "Toggle the direction of the Y-axis cutaway"
-    set _axis(ydirection) -1 
+    set _axis(ydirection) -1
 
     # Z-value slicer...
     itk_component add zCutButton {
@@ -2383,7 +2383,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
             -command [itcl::code $this AdjustSetting axis-zdirection] \
             -variable [itcl::scope _axis(zdirection)]
     }
-    set _axis(zdirection) -1 
+    set _axis(zdirection) -1
     Rappture::Tooltip::for $itk_component(zDirButton) \
         "Toggle the direction of the Z-axis cutaway"
 
@@ -2451,11 +2451,11 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     }
     $inner.rep choices insert end \
         "ballandstick"  "Ball and Stick" \
-        "spheres"	"Spheres"        \
-        "sticks"	"Sticks"	 \
-        "rods"		"Rods"           \
-        "wireframe"     "Wireframe"	 \
-        "spacefilling"  "Space Filling" 
+        "spheres"       "Spheres"        \
+        "sticks"        "Sticks"         \
+        "rods"          "Rods"           \
+        "wireframe"     "Wireframe"      \
+        "spacefilling"  "Space Filling"
 
     bind $inner.rep <<Value>> \
         [itcl::code $this AdjustSetting molecule-representation]
@@ -2468,16 +2468,16 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         Rappture::Combobox $inner.rscale -width 20 -editable no
     }
     $inner.rscale choices insert end \
-        "atomic"	"Atomic"   \
-        "covalent"	"Covalent" \
-        "van_der_waals"	"VDW"	   \
-        "none"		"Constant"
+        "atomic"        "Atomic"   \
+        "covalent"      "Covalent" \
+        "van_der_waals" "VDW"      \
+        "none"          "Constant"
 
     bind $inner.rscale <<Value>> \
         [itcl::code $this AdjustSetting molecule-rscale]
     $inner.rscale value "Covalent"
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" 
+    label $inner.palette_l -text "Palette" -font "Arial 9"
     itk_component add moleculepalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
@@ -2542,16 +2542,16 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         15,0 $inner.opacity     -fill x    -padx 2 \
         16,0 $inner.quality_l   -anchor w -pady {3 0} \
         17,0 $inner.quality     -fill x    -padx 2
-    
+
     blt::table configure $inner r* -resize none
     blt::table configure $inner r18 -resize expand
 }
 
 #
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::VtkViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -2599,7 +2599,7 @@ itcl::body Rappture::VtkViewer::GetVtkData { args } {
 }
 
 itcl::body Rappture::VtkViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -2612,15 +2612,15 @@ itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Helvetica 9 " \
-        -value vtk  
+        -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -2641,7 +2641,7 @@ itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
         1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -2918,7 +2918,7 @@ itcl::body Rappture::VtkViewer::DrawLegend {} {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     if { $_settings(legend) } {
         set x [expr $w - 2]
         if { [$c find withtag "legend"] == "" } {
@@ -2983,7 +2983,7 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     set imgHeight [image height $_image(legend)]
     set coords [$c coords colormap]
     set imgX [expr $w - [image width $_image(legend)] - 2]
@@ -2997,17 +2997,17 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
         set _image(swatch) [image create photo -width 24 -height 24]
     }
     set color [eval format "\#%02x%02x%02x" $pixel]
-    $_image(swatch) put black  -to 0 0 23 23 
-    $_image(swatch) put $color -to 1 1 22 22 
+    $_image(swatch) put black  -to 0 0 23 23
+    $_image(swatch) put $color -to 1 1 22 22
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
     set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
     set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
-    set tipx [expr $x + 15] 
+    set tipx [expr $x + 15]
     set tipy [expr $y - 5]
     Rappture::Tooltip::text $c "$_title $value"
-    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
+    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy
 }
 
 # ----------------------------------------------------------------------
@@ -3040,7 +3040,7 @@ itcl::body Rappture::VtkViewer::Slice {option args} {
     }
 }
 
-itcl::body Rappture::VtkViewer::SetOrientation { side } { 
+itcl::body Rappture::VtkViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
         back  "0 0 1 0"
@@ -3051,7 +3051,7 @@ itcl::body Rappture::VtkViewer::SetOrientation { side } {
     }
     foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
@@ -3061,7 +3061,7 @@ itcl::body Rappture::VtkViewer::SetOrientation { side } {
     set _view(-zoom) 1.0
 }
 
-itcl::body Rappture::VtkViewer::SetOpacity { dataset } { 
+itcl::body Rappture::VtkViewer::SetOpacity { dataset } {
     foreach {dataobj comp} [split $dataset -] break
     set type [$dataobj type $comp]
     set val $_settings($type-opacity)

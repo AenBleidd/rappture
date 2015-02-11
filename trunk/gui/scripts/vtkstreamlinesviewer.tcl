@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkstreamlinesviewer - Vtk streamlines object viewer
 #
@@ -56,8 +56,8 @@ itcl::class Rappture::VtkStreamlinesViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -67,7 +67,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method BuildCameraTab {}
     private method BuildColormap { name colors }
     private method BuildCutplaneTab {}
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method BuildStreamsTab {}
     private method BuildVolumeTab {}
     private method DrawLegend {}
@@ -78,21 +78,21 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method DoResize {}
     private method DoReseed {}
     private method DoRotate {}
-    private method EnterLegend { x y } 
-    private method EventuallyResize { w h } 
-    private method EventuallyReseed { numPoints } 
-    private method EventuallyRotate { q } 
-    private method EventuallySetCutplane { axis args } 
-    private method GetImage { args } 
-    private method GetVtkData { args } 
+    private method EnterLegend { x y }
+    private method EventuallyResize { w h }
+    private method EventuallyReseed { numPoints }
+    private method EventuallyRotate { q }
+    private method EventuallySetCutplane { axis args }
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method InitSettings { args  }
-    private method IsValidObject { dataobj } 
+    private method IsValidObject { dataobj }
     private method LeaveLegend {}
-    private method MotionLegend { x y } 
+    private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -104,10 +104,10 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method SetColormap { dataobj comp }
     private method ChangeColormap { dataobj comp color }
     private method SetLegendTip { x y }
-    private method SetObjectStyle { dataobj comp } 
-    private method Slice {option args} 
+    private method SetObjectStyle { dataobj comp }
+    private method Slice {option args}
     private method SetOrientation { side }
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
@@ -117,7 +117,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2datasets
     private variable _obj2ovride   ;    # maps dataobj => style override
-    private variable _datasets     ;    # contains all the dataobj-component 
+    private variable _datasets     ;    # contains all the dataobj-component
                                    ;    # datasets in the server
     private variable _colormaps    ;    # contains all the colormaps
                                    ;    # in the server.
@@ -146,9 +146,9 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _rotatePending 0
     private variable _cutplanePending 0
     private variable _legendPending 0
-    private variable _vectorFields 
-    private variable _scalarFields 
-    private variable _fields 
+    private variable _vectorFields
+    private variable _scalarFields
+    private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _field      ""
@@ -270,7 +270,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no 
+            -tearoff no
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -290,8 +290,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -337,7 +337,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
             -variable [itcl::scope _settings(-volumevisible)] \
-            -command [itcl::code $this AdjustSetting -volumevisible] 
+            -command [itcl::code $this AdjustSetting -volumevisible]
     }
     $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
@@ -361,7 +361,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
             -variable [itcl::scope _settings(-cutplanevisible)] \
-            -command [itcl::code $this AdjustSetting -cutplanevisible] 
+            -command [itcl::code $this AdjustSetting -cutplanevisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -381,20 +381,20 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
 
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for rotation via mouse
@@ -479,7 +479,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::DoRotate {} {
-    SendCmd "camera orient [ViewToQuaternion]" 
+    SendCmd "camera orient [ViewToQuaternion]"
     set _rotatePending 0
 }
 
@@ -516,7 +516,7 @@ itcl::body Rappture::VtkStreamlinesViewer::EventuallyRotate { q } {
     QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay 
+        global rotate_delay
         $_dispatcher event -after $rotate_delay !rotate
     }
 }
@@ -620,7 +620,7 @@ itcl::body Rappture::VtkStreamlinesViewer::get {args} {
                 if { ![IsValidObject $dataobj] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -648,7 +648,7 @@ itcl::body Rappture::VtkStreamlinesViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -790,13 +790,13 @@ itcl::body Rappture::VtkStreamlinesViewer::Connect {} {
 
             set info {}
             set user "???"
-	    if { [info exists env(USER)] } {
+            if { [info exists env(USER)] } {
                 set user $env(USER)
-	    }
+            }
             set session "???"
-	    if { [info exists env(SESSION)] } {
+            if { [info exists env(SESSION)] } {
                 set session $env(SESSION)
-	    }
+            }
             lappend info "version" "$Rappture::version"
             lappend info "build" "$Rappture::build"
             lappend info "svnurl" "$Rappture::svnurl"
@@ -850,12 +850,12 @@ itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     $_dispatcher cancel !zcutplane
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
-    array unset _datasets 
-    array unset _data 
-    array unset _colormaps 
-    array unset _seeds 
-    array unset _dataset2style 
-    array unset _obj2datasets 
+    array unset _datasets
+    array unset _data
+    array unset _colormaps
+    array unset _seeds
+    array unset _dataset2style
+    array unset _obj2datasets
 }
 
 # ----------------------------------------------------------------------
@@ -883,7 +883,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveImage { args } {
         $_image(plot) configure -data $bytes
         set time [clock seconds]
         set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -963,12 +963,12 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 
     set _first ""
     if { $_reset } {
-	set _width $w
-	set _height $h
-	$_arcball resize $w $h
-	DoResize
-	InitSettings -xgrid -ygrid -zgrid -axismode \
-	    -axesvisible -axislabelsvisible -axisminorticks
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
+        DoResize
+        InitSettings -xgrid -ygrid -zgrid -axismode \
+            -axesvisible -axislabelsvisible -axisminorticks
         # This "imgflush" is to force an image returned before vtkvis starts
         # reading a (big) dataset.  This will display an empty plot with axes
         # at the correct image size.
@@ -987,12 +987,12 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
                 set length [string length $bytes]
-		if 0 { 
+                if 0 {
                     set f [open /tmp/vtkstreamlines.vtk "w"]
                     fconfigure $f -translation binary -encoding binary
                     puts -nonewline $f $bytes
                     close $f
-		}
+                }
                 if { $_reportClientInfo }  {
                     set info {}
                     lappend info "tool_id"       [$dataobj hints toolid]
@@ -1031,9 +1031,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                 SendCmd [list axis units $axis $units]
             }
         }
-	$itk_component(field) choices delete 0 end
-	$itk_component(fieldmenu) delete 0 end
-	array unset _fields
+        $itk_component(field) choices delete 0 end
+        $itk_component(fieldmenu) delete 0 end
+        array unset _fields
         set _curFldName ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
@@ -1067,19 +1067,19 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             -streamlinescolormap -field \
             -volumevisible -volumeedges -volumelighting -volumeopacity \
             -volumewireframe \
-	    -cutplanevisible \
-	    -cutplanexposition -cutplaneyposition -cutplanezposition \
-	    -cutplanexvisible -cutplaneyvisible -cutplanezvisible
+            -cutplanevisible \
+            -cutplanexposition -cutplaneyposition -cutplanezposition \
+            -cutplanexvisible -cutplaneyvisible -cutplanezvisible
 
-	# Reset the camera and other view parameters
-	$_arcball quaternion [ViewToQuaternion]
-	if {$_view(-ortho)} {
-	    SendCmd "camera mode ortho"
-	} else {
-	    SendCmd "camera mode persp"
-	}
-	DoRotate
-	PanCamera
+        # Reset the camera and other view parameters
+        $_arcball quaternion [ViewToQuaternion]
+        if {$_view(-ortho)} {
+            SendCmd "camera mode ortho"
+        } else {
+            SendCmd "camera mode persp"
+        }
+        DoRotate
+        PanCamera
         Zoom reset
         SendCmd "camera reset"
         set _reset 0
@@ -1100,7 +1100,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentDatasets: can't specify dataobj after \"-all\""
@@ -1119,7 +1119,7 @@ itcl::body Rappture::VtkStreamlinesViewer::CurrentDatasets {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1238,7 +1238,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rotate {option x y} {
 itcl::body Rappture::VtkStreamlinesViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
         SendCmdNoWait "dataset getscalar pixel $x $y $tag"
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1665,7 +1665,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildVolumeTab {} {
         1,0 $inner.lighting  -anchor w -pady 2 -cspan 2 \
         2,0 $inner.edges     -anchor w -pady 2 -cspan 3 \
         3,0 $inner.opacity_l -anchor w -pady 2 \
-        3,1 $inner.opacity   -fill x   -pady 2 
+        3,1 $inner.opacity   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r4 c1 -resize expand
@@ -1686,7 +1686,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -variable [itcl::scope _settings(-streamlinesvisible)] \
         -command [itcl::code $this AdjustSetting -streamlinesvisible] \
         -font "Arial 9"
-    
+
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _settings(-streamlineslighting)] \
@@ -1699,14 +1699,14 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -command [itcl::code $this AdjustSetting -streamlinesseedsvisible] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
     itk_component add streammode {
         Rappture::Combobox $inner.mode -width 10 -editable no
     }
     $inner.mode choices insert end \
         "lines"    "lines" \
         "ribbons"   "ribbons" \
-        "tubes"     "tubes" 
+        "tubes"     "tubes"
     $itk_component(streammode) value $_settings(-streamlinesmode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -streamlinesmode]
 
@@ -1731,14 +1731,14 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -showvalue off \
         -command [itcl::code $this AdjustSetting -streamlinesscale]
 
-    label $inner.field_l -text "Color by" -font "Arial 9" 
+    label $inner.field_l -text "Color by" -font "Arial 9"
     itk_component add field {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
-    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
@@ -1787,7 +1787,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axislabelsvisible)] \
         -command [itcl::code $this AdjustSetting -axislabelsvisible] \
         -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
@@ -1809,7 +1809,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axismode {
         Rappture::Combobox $inner.mode -width 10 -editable no
@@ -1818,7 +1818,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
         "static_triad"    "static" \
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
-        "outer_edges"     "outer"         
+        "outer_edges"     "outer"
     $itk_component(axismode) value $_settings(-axismode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
@@ -1892,10 +1892,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
 itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 
     set fg [option get $itk_component(hull) font Font]
-    
+
     set inner [$itk_component(main) insert end \
         -title "Cutplane Settings" \
-        -icon [Rappture::icon cutbutton]] 
+        -icon [Rappture::icon cutbutton]]
 
     $inner configure -borderwidth 4
 
@@ -1949,7 +1949,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
             -variable [itcl::scope _settings(-cutplanexposition)] \
-	    -foreground red3 -font "Arial 9 bold"
+            -foreground red3 -font "Arial 9 bold"
     } {
         usual
         ignore -borderwidth -highlightthickness -foreground -font
@@ -1978,7 +1978,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
             -variable [itcl::scope _settings(-cutplaneyposition)] \
-	    -foreground green3 -font "Arial 9 bold"
+            -foreground green3 -font "Arial 9 bold"
     } {
         usual
         ignore -borderwidth -highlightthickness -foreground -font
@@ -2007,7 +2007,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
             -variable [itcl::scope _settings(-cutplanezposition)] \
-	    -foreground blue3 -font "Arial 9 bold"
+            -foreground blue3 -font "Arial 9 bold"
     } {
         usual
         ignore -borderwidth -highlightthickness -foreground -font
@@ -2023,7 +2023,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         2,0 $inner.edges                -anchor w -pady 2 -cspan 4 \
         3,0 $inner.opacity_l            -anchor w -pady 2 -cspan 1 \
         3,1 $inner.opacity              -fill x   -pady 2 -cspan 3 \
-	4,0 $itk_component(xCutButton)  -anchor w -padx 2 -pady 2 \
+        4,0 $itk_component(xCutButton)  -anchor w -padx 2 -pady 2 \
         5,0 $itk_component(yCutButton)  -anchor w -padx 2 -pady 2 \
         6,0 $itk_component(zCutButton)  -anchor w -padx 2 -pady 2 \
         4,1 $itk_component(xCutScale)   -fill y -rspan 4 \
@@ -2035,10 +2035,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 }
 
 #
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::VtkStreamlinesViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -2086,7 +2086,7 @@ itcl::body Rappture::VtkStreamlinesViewer::GetVtkData { args } {
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -2099,15 +2099,15 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildDownloadPopup { popup command } 
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Helvetica 9 " \
-        -value vtk  
+        -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -2128,7 +2128,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildDownloadPopup { popup command } 
         1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -2195,7 +2195,7 @@ itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
 itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin vmax size } {
     set _legendPending 0
     set _title $title
-    regsub {\(mag\)} $title "" _title 
+    regsub {\(mag\)} $title "" _title
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2222,7 +2222,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend {} {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     if { [info exists _fields($fname)] } {
         foreach { title units } $_fields($fname) break
         if { $units != "" } {
@@ -2234,7 +2234,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend {} {
     if { $_settings(-legendvisible) } {
         set x [expr $w - 2]
         if { [$c find withtag "legend"] == "" } {
-            set y 2 
+            set y 2
             $c create text $x $y \
                 -anchor ne \
                 -fill $itk_option(-plotforeground) -tags "title legend" \
@@ -2309,7 +2309,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     set imgHeight [image height $_image(legend)]
     set coords [$c coords colormap]
     set imgX [expr $w - [image width $_image(legend)] - 2]
@@ -2332,8 +2332,8 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
         set _image(swatch) [image create photo -width 24 -height 24]
     }
     set color [eval format "\#%02x%02x%02x" $pixel]
-    $_image(swatch) put black  -to 0 0 23 23 
-    $_image(swatch) put $color -to 1 1 22 22 
+    $_image(swatch) put black  -to 0 0 23 23
+    $_image(swatch) put $color -to 1 1 22 22
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
@@ -2344,10 +2344,10 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     } else {
         set value 0.0
     }
-    set tipx [expr $x + 15] 
+    set tipx [expr $x + 15]
     set tipy [expr $y - 5]
     Rappture::Tooltip::text $c "$title $value"
-    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
+    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy
 }
 
 # ----------------------------------------------------------------------
@@ -2392,7 +2392,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Slice {option args} {
 # the value back to the gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
-    set c $itk_component(view) 
+    set c $itk_component(view)
     switch -- $option {
         post {
             foreach { x1 y1 x2 y2 } [$c bbox title] break
@@ -2405,7 +2405,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
             $c itemconfigure title -fill red
         }
         deactivate {
-            $c itemconfigure title -fill white 
+            $c itemconfigure title -fill white
         }
         invoke {
             $itk_component(field) value $_curFldLabel
@@ -2417,7 +2417,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
     }
 }
 
-itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } { 
+itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
         back  "0 0 1 0"
@@ -2428,10 +2428,10 @@ itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } {
     }
     foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient $q"
     SendCmd "camera reset"
     set _view(-xpan) 0
     set _view(-ypan) 0
