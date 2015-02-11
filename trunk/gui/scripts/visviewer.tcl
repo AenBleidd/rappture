@@ -1,9 +1,9 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
-#  VisViewer - 
+#  VisViewer -
 #
-#  This class is the base class for the various visualization viewers 
+#  This class is the base class for the various visualization viewers
 #  that use the nanoserver render farm.
 #
 # ======================================================================
@@ -31,7 +31,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _sid ""      ;   # socket connection to server
     private common _done            ;   # Used to indicate status of send.
     private variable _buffer        ;   # buffer for incoming/outgoing commands
-    private variable _initialized 
+    private variable _initialized
     private variable _isOpen 0
     private variable _afterId -1
     private variable _icon 0
@@ -73,21 +73,21 @@ itcl::class ::Rappture::VisViewer {
     private method ServerDown {}
     private method SendHelper {}
     private method SendHelper.old {}
-    private method WaitDialog { state } 
+    private method WaitDialog { state }
 
-    protected method ToggleConsole {} 
-    private method DebugConsole {} 
-    private method BuildConsole {} 
-    private method HideConsole {} 
-    private method TraceComm { channel {data {}} } 
-    private method SendDebugCommand {} 
+    protected method ToggleConsole {}
+    private method DebugConsole {}
+    private method BuildConsole {}
+    private method HideConsole {}
+    private method TraceComm { channel {data {}} }
+    private method SendDebugCommand {}
 
     protected method CheckConnection {}
     protected method Color2RGB { color }
     protected method ColorsToColormap { colors }
     protected method Connect { servers }
     protected method Disconnect {}
-    protected method EnableWaitDialog { timeout } 
+    protected method EnableWaitDialog { timeout }
     protected method Euler2XYZ { theta phi psi }
     protected method Flush {}
     protected method GetColormapList { args }
@@ -101,11 +101,11 @@ itcl::class ::Rappture::VisViewer {
     protected method SendCmdNoWait {string}
     protected method SendEcho { channel {data ""} }
     protected method StartBufferingCommands {}
-    protected method StartWaiting {} 
+    protected method StartWaiting {}
     protected method StopBufferingCommands {}
-    protected method StopWaiting {} 
+    protected method StopWaiting {}
 
-    private method Waiting { option widget } 
+    private method Waiting { option widget }
 
     private proc CheckNameList { namelist }  {
         foreach host $namelist {
@@ -199,10 +199,10 @@ itcl::body Rappture::VisViewer::constructor { servers args } {
 
     global env
     if { [info exists env(VISRECORDER)] } {
-	set _logging 1
-	if { [file exists /tmp/recording.log] } {
-	    file delete /tmp/recording.log
-	}
+        set _logging 1
+        if { [file exists /tmp/recording.log] } {
+            file delete /tmp/recording.log
+        }
     }
     eval itk_initialize $args
 }
@@ -258,7 +258,7 @@ itcl::body Rappture::VisViewer::ServerDown {} {
 #
 #    Connect to the visualization server (e.g. nanovis, pymolproxy).
 #    Creates an event callback that is triggered when we are idle
-#    (no I/O with the server) for some specified time. 
+#    (no I/O with the server) for some specified time.
 #
 itcl::body Rappture::VisViewer::Connect { servers } {
     blt::busy hold $itk_component(hull) -cursor watch
@@ -281,7 +281,7 @@ itcl::body Rappture::VisViewer::Connect { servers } {
         incr _numConnectTries
         set _hostname $server
         fconfigure $_sid -translation binary -encoding binary
-        
+
         # Read back the server identification string.
         if { [gets $_sid data] <= 0 } {
             set _sid ""
@@ -317,7 +317,7 @@ itcl::body Rappture::VisViewer::Connect { servers } {
 itcl::body Rappture::VisViewer::Disconnect {} {
     after cancel $_afterId
     $_dispatcher cancel !timeout
-    catch {close $_sid} 
+    catch {close $_sid}
     set _sid ""
     set _buffer(in) ""
     set _outbuf ""
@@ -343,9 +343,9 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #
 # CheckConection --
 #
-#   This routine is called whenever we're about to send/receive data on 
-#   the socket connection to the visualization server.  If we're connected, 
-#   then reset the timeout event.  Otherwise try to reconnect to the 
+#   This routine is called whenever we're about to send/receive data on
+#   the socket connection to the visualization server.  If we're connected,
+#   then reset the timeout event.  Otherwise try to reconnect to the
 #   visualization server.
 #
 itcl::body Rappture::VisViewer::CheckConnection {} {
@@ -401,7 +401,7 @@ itcl::body Rappture::VisViewer::SendHelper {} {
         return 0
     }
     puts -nonewline $_sid $_buffer(out)
-    flush $_sid 
+    flush $_sid
     set _buffer(out) ""
     set _done($this) 1;                 # Success
 }
@@ -466,7 +466,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
         # re-enter SendBytes
         SendHelper
     } else {
-        # This can cause us to re-enter SendBytes during the tkwait, which 
+        # This can cause us to re-enter SendBytes during the tkwait, which
         # is not safe because the _buffer will be clobbered
         blt::busy hold $itk_component(main)
         fileevent $_sid writable [itcl::code $this SendHelper]
@@ -486,30 +486,30 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 # StartWaiting --
 #
-#    Read some number of bytes from the visualization server. 
+#    Read some number of bytes from the visualization server.
 #
 
 itcl::body Rappture::VisViewer::StartWaiting {} {
     if { $_waitTimeout > 0 } {
-        after cancel $_afterId 
+        after cancel $_afterId
         set _afterId [after $_waitTimeout [itcl::code $this WaitDialog on]]
     }
 }
 
-itcl::body Rappture::VisViewer::StopWaiting {} { 
+itcl::body Rappture::VisViewer::StopWaiting {} {
     if { $_waitTimeout > 0 } {
         WaitDialog off
     }
 }
 
-itcl::body Rappture::VisViewer::EnableWaitDialog { value } { 
+itcl::body Rappture::VisViewer::EnableWaitDialog { value } {
     set _waitTimeout $value
 }
 
 #
 # ReceiveBytes --
 #
-#    Read some number of bytes from the visualization server. 
+#    Read some number of bytes from the visualization server.
 #
 itcl::body Rappture::VisViewer::ReceiveBytes { size } {
     if { ![CheckConnection] } {
@@ -630,7 +630,7 @@ itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
     }
 }
 
-# 
+#
 # ReceiveEcho --
 #
 #     Echoes received data to clients interested in this widget.  If the
@@ -653,14 +653,14 @@ itcl::body Rappture::VisViewer::WaitDialog { state } {
             return
         }
         set inner [frame $itk_component(plotarea).view.splash]
-        $inner configure -relief raised -bd 2 
+        $inner configure -relief raised -bd 2
         label $inner.text1 -text "Working...\nPlease wait." \
-            -font "Arial 10" 
-        label $inner.icon 
+            -font "Arial 10"
+        label $inner.icon
         pack $inner -expand yes -anchor c
         blt::table $inner \
             0,0 $inner.text1 -anchor w \
-            0,1 $inner.icon 
+            0,1 $inner.icon
         Waiting start $inner.icon
     } else {
         if { ![winfo exists $itk_component(plotarea).view.splash] } {
@@ -720,9 +720,9 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
     label $f.send.l -text "Send:"
     pack $f.send.l -side left
     itk_component add command {
-	entry $f.send.e -background white
+        entry $f.send.e -background white
     } {
-	ignore -background
+        ignore -background
     }
     pack $f.send.e -side left -expand yes -fill x
     bind $f.send.e <Return> [itcl::code $this SendDebugCommand]
@@ -730,9 +730,9 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
     scrollbar $f.sb -orient vertical -command "$f.comm yview"
     pack $f.sb -side right -fill y
     itk_component add trace {
-	text $f.comm -wrap char -yscrollcommand "$f.sb set" -background white
+        text $f.comm -wrap char -yscrollcommand "$f.sb set" -background white
     } {
-	ignore -background
+        ignore -background
     }
     pack $f.comm -expand yes -fill both
     bind $f.comm <Control-F1> [itcl::code $this ToggleConsole]
@@ -740,7 +740,7 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
     bind $f.send.e <Control-F1> [itcl::code $this ToggleConsole]
 
     $itk_component(trace) tag configure error -foreground red \
-	-font -*-courier-medium-o-normal-*-*-120-*
+        -font -*-courier-medium-o-normal-*-*-120-*
     $itk_component(trace) tag configure incoming -foreground blue
 }
 
@@ -752,9 +752,9 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
 #
 itcl::body Rappture::VisViewer::ToggleConsole {} {
     if { $_debugConsole } {
-	set _debugConsole 0
+        set _debugConsole 0
     } else {
-	set _debugConsole 1
+        set _debugConsole 1
     }
     DebugConsole
 }
@@ -762,24 +762,24 @@ itcl::body Rappture::VisViewer::ToggleConsole {} {
 #
 # DebugConsole --
 #
-#    Based on the value of the variable _debugConsole, turns on/off 
-#    debugging. This is done by setting/unsetting a procedure that 
-#    is called whenever new characters are received or sent on the 
+#    Based on the value of the variable _debugConsole, turns on/off
+#    debugging. This is done by setting/unsetting a procedure that
+#    is called whenever new characters are received or sent on the
 #    socket to the render server.  Additionally, the debug console
 #    is created if necessary and hidden/shown.
 #
 itcl::body Rappture::VisViewer::DebugConsole {} {
     if { ![winfo exists .renderconsole] } {
-	BuildConsole
+        BuildConsole
     }
     if { $_debugConsole } {
-	$this configure -sendcommand [itcl::code $this TraceComm]
-	$this configure -receivecommand [itcl::code $this TraceComm]
-	wm deiconify .renderconsole
+        $this configure -sendcommand [itcl::code $this TraceComm]
+        $this configure -receivecommand [itcl::code $this TraceComm]
+        wm deiconify .renderconsole
     } else {
-	$this configure -sendcommand ""
-	$this configure -receivecommand ""
-	wm withdraw .renderconsole
+        $this configure -sendcommand ""
+        $this configure -receivecommand ""
+        wm withdraw .renderconsole
     }
 }
 
@@ -865,10 +865,10 @@ itcl::body Rappture::VisViewer::HandleError { args } {
             Rappture::Balloon $popup \
                 -title "Render Server Error"
             set inner [$popup component inner]
-            label $inner.summary -text "" -anchor w 
+            label $inner.summary -text "" -anchor w
 
             Rappture::Scroller $inner.scrl \
-                -xscrollmode auto -yscrollmode auto 
+                -xscrollmode auto -yscrollmode auto
             text $inner.scrl.text \
                 -font "Arial 9 " -background white -relief sunken -bd 1 \
                 -height 5 -wrap word -width 60
@@ -877,9 +877,9 @@ itcl::body Rappture::VisViewer::HandleError { args } {
                 -font "Arial 9"
             blt::table $inner \
                 0,0 $inner.scrl -fill both \
-                1,0 $inner.ok 
-            $inner.scrl.text tag configure normal -font "Arial 9" 
-            $inner.scrl.text tag configure italic -font "Arial 9 italic" 
+                1,0 $inner.ok
+            $inner.scrl.text tag configure normal -font "Arial 9"
+            $inner.scrl.text tag configure italic -font "Arial 9 italic"
             $inner.scrl.text tag configure bold -font "Arial 10 bold"
             $inner.scrl.text tag configure code -font "Courier 10 bold"
         } else {
@@ -888,7 +888,7 @@ itcl::body Rappture::VisViewer::HandleError { args } {
         update
         set inner [$popup component inner]
         $inner.scrl.text delete 0.0 end
-        
+
         $inner.scrl.text configure -state normal
         $inner.scrl.text insert end "The following error was reported by the render server:\n\n" bold
         $inner.scrl.text insert end $bytes code
@@ -958,60 +958,60 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
         }
         "blue-to-grey" {
             return {
-                0.0                     0.000 0.600 0.800 
-                0.14285714285714285     0.400 0.900 1.000 
-                0.2857142857142857      0.600 1.000 1.000 
-                0.42857142857142855     0.800 1.000 1.000 
-                0.5714285714285714      0.900 0.900 0.900 
-                0.7142857142857143      0.600 0.600 0.600 
-                0.8571428571428571      0.400 0.400 0.400 
+                0.0                     0.000 0.600 0.800
+                0.14285714285714285     0.400 0.900 1.000
+                0.2857142857142857      0.600 1.000 1.000
+                0.42857142857142855     0.800 1.000 1.000
+                0.5714285714285714      0.900 0.900 0.900
+                0.7142857142857143      0.600 0.600 0.600
+                0.8571428571428571      0.400 0.400 0.400
                 1.0                     0.200 0.200 0.200
             }
         }
         "white-to-blue" {
-            return { 
-                0.0                     0.900 1.000 1.000 
-                0.1111111111111111      0.800 0.983 1.000 
-                0.2222222222222222      0.700 0.950 1.000 
-                0.3333333333333333      0.600 0.900 1.000 
-                0.4444444444444444      0.500 0.833 1.000 
-                0.5555555555555556      0.400 0.750 1.000 
-                0.6666666666666666      0.300 0.650 1.000 
-                0.7777777777777778      0.200 0.533 1.000 
-                0.8888888888888888      0.100 0.400 1.000 
+            return {
+                0.0                     0.900 1.000 1.000
+                0.1111111111111111      0.800 0.983 1.000
+                0.2222222222222222      0.700 0.950 1.000
+                0.3333333333333333      0.600 0.900 1.000
+                0.4444444444444444      0.500 0.833 1.000
+                0.5555555555555556      0.400 0.750 1.000
+                0.6666666666666666      0.300 0.650 1.000
+                0.7777777777777778      0.200 0.533 1.000
+                0.8888888888888888      0.100 0.400 1.000
                 1.0                     0.000 0.250 1.000
             }
         }
         "brown-to-blue" {
             return {
-                0.0                             0.200   0.100   0.000 
-                0.09090909090909091             0.400   0.187   0.000 
-                0.18181818181818182             0.600   0.379   0.210 
-                0.2727272727272727              0.800   0.608   0.480 
-                0.36363636363636365             0.850   0.688   0.595 
-                0.45454545454545453             0.950   0.855   0.808 
-                0.5454545454545454              0.800   0.993   1.000 
-                0.6363636363636364              0.600   0.973   1.000 
-                0.7272727272727273              0.400   0.940   1.000 
-                0.8181818181818182              0.200   0.893   1.000 
-                0.9090909090909091              0.000   0.667   0.800 
-                1.0                             0.000   0.480   0.600 
+                0.0                             0.200   0.100   0.000
+                0.09090909090909091             0.400   0.187   0.000
+                0.18181818181818182             0.600   0.379   0.210
+                0.2727272727272727              0.800   0.608   0.480
+                0.36363636363636365             0.850   0.688   0.595
+                0.45454545454545453             0.950   0.855   0.808
+                0.5454545454545454              0.800   0.993   1.000
+                0.6363636363636364              0.600   0.973   1.000
+                0.7272727272727273              0.400   0.940   1.000
+                0.8181818181818182              0.200   0.893   1.000
+                0.9090909090909091              0.000   0.667   0.800
+                1.0                             0.000   0.480   0.600
             }
         }
         "blue-to-brown" {
             return {
-                0.0                             0.000   0.480   0.600 
-                0.09090909090909091             0.000   0.667   0.800 
-                0.18181818181818182             0.200   0.893   1.000 
-                0.2727272727272727              0.400   0.940   1.000 
-                0.36363636363636365             0.600   0.973   1.000 
-                0.45454545454545453             0.800   0.993   1.000 
-                0.5454545454545454              0.950   0.855   0.808 
-                0.6363636363636364              0.850   0.688   0.595 
-                0.7272727272727273              0.800   0.608   0.480 
-                0.8181818181818182              0.600   0.379   0.210 
-                0.9090909090909091              0.400   0.187   0.000 
-                1.0                             0.200   0.100   0.000 
+                0.0                             0.000   0.480   0.600
+                0.09090909090909091             0.000   0.667   0.800
+                0.18181818181818182             0.200   0.893   1.000
+                0.2727272727272727              0.400   0.940   1.000
+                0.36363636363636365             0.600   0.973   1.000
+                0.45454545454545453             0.800   0.993   1.000
+                0.5454545454545454              0.950   0.855   0.808
+                0.6363636363636364              0.850   0.688   0.595
+                0.7272727272727273              0.800   0.608   0.480
+                0.8181818181818182              0.600   0.379   0.210
+                0.9090909090909091              0.400   0.187   0.000
+                1.0                             0.200   0.100   0.000
             }
         }
         "blue-to-orange" {
@@ -1049,36 +1049,36 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
         "rainbow" {
             set clist {
                 "#EE82EE"
-                "#4B0082" 
-                "blue" 
-                "#008000" 
-                "yellow" 
-                "#FFA500" 
-                "red" 
+                "#4B0082"
+                "blue"
+                "#008000"
+                "yellow"
+                "#FFA500"
+                "red"
             }
         }
         "BGYOR" {
             set clist {
-                "blue" 
-                "#008000" 
-                "yellow" 
-                "#FFA500" 
-                "red" 
+                "blue"
+                "#008000"
+                "yellow"
+                "#FFA500"
+                "red"
             }
         }
         "ROYGB" {
             set clist {
-                "red" 
-                "#FFA500" 
-                "yellow" 
-                "#008000" 
-                "blue" 
+                "red"
+                "#FFA500"
+                "yellow"
+                "#008000"
+                "blue"
             }
         }
         "RYGCB" {
             set clist {
-                "red" 
-                "yellow" 
+                "red"
+                "yellow"
                 "green"
                 "cyan"
                 "blue"
@@ -1086,50 +1086,50 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
         }
         "BCGYR" {
             set clist {
-                "blue" 
+                "blue"
                 "cyan"
                 "green"
-                "yellow" 
-                "red" 
+                "yellow"
+                "red"
             }
         }
         "spectral" {
             return {
-                0.0 0.150 0.300 1.000 
-                0.1 0.250 0.630 1.000 
-                0.2 0.450 0.850 1.000 
-                0.3 0.670 0.970 1.000 
-                0.4 0.880 1.000 1.000 
-                0.5 1.000 1.000 0.750 
-                0.6 1.000 0.880 0.600 
-                0.7 1.000 0.680 0.450 
-                0.8 0.970 0.430 0.370 
-                0.9 0.850 0.150 0.196 
+                0.0 0.150 0.300 1.000
+                0.1 0.250 0.630 1.000
+                0.2 0.450 0.850 1.000
+                0.3 0.670 0.970 1.000
+                0.4 0.880 1.000 1.000
+                0.5 1.000 1.000 0.750
+                0.6 1.000 0.880 0.600
+                0.7 1.000 0.680 0.450
+                0.8 0.970 0.430 0.370
+                0.9 0.850 0.150 0.196
                 1.0 0.650 0.000 0.130
             }
         }
         "green-to-magenta" {
             return {
-                0.0 0.000 0.316 0.000 
-                0.06666666666666667 0.000 0.526 0.000 
-                0.13333333333333333 0.000 0.737 0.000 
-                0.2 0.000 0.947 0.000 
-                0.26666666666666666 0.316 1.000 0.316 
-                0.3333333333333333 0.526 1.000 0.526 
-                0.4 0.737 1.000 0.737 
-                0.4666666666666667 1.000 1.000 1.000 
-                0.5333333333333333 1.000 0.947 1.000 
-                0.6 1.000 0.737 1.000 
-                0.6666666666666666 1.000 0.526 1.000 
-                0.7333333333333333 1.000 0.316 1.000 
-                0.8 0.947 0.000 0.947 
-                0.8666666666666667 0.737 0.000 0.737 
-                0.9333333333333333 0.526 0.000 0.526 
+                0.0 0.000 0.316 0.000
+                0.06666666666666667 0.000 0.526 0.000
+                0.13333333333333333 0.000 0.737 0.000
+                0.2 0.000 0.947 0.000
+                0.26666666666666666 0.316 1.000 0.316
+                0.3333333333333333 0.526 1.000 0.526
+                0.4 0.737 1.000 0.737
+                0.4666666666666667 1.000 1.000 1.000
+                0.5333333333333333 1.000 0.947 1.000
+                0.6 1.000 0.737 1.000
+                0.6666666666666666 1.000 0.526 1.000
+                0.7333333333333333 1.000 0.316 1.000
+                0.8 0.947 0.000 0.947
+                0.8666666666666667 0.737 0.000 0.737
+                0.9333333333333333 0.526 0.000 0.526
                 1.0 0.316 0.000 0.316
             }
         }
         "greyscale" {
-            return { 
+            return {
                 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0
             }
         }
@@ -1160,7 +1160,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
 # StartBufferingCommands --
 #
 itcl::body Rappture::VisViewer::StartBufferingCommands { } {
-    incr _buffering 
+    incr _buffering
     if { $_buffering == 1 } {
         set _outbuf ""
     }
@@ -1186,7 +1186,7 @@ itcl::body Rappture::VisViewer::StopBufferingCommands { } {
 # SendCmd
 #
 #       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
+#       sending data objects to the server, buffer the commands to be
 #       sent later.
 #
 itcl::body Rappture::VisViewer::SendCmd {string} {
@@ -1205,7 +1205,7 @@ itcl::body Rappture::VisViewer::SendCmd {string} {
 # SendCmdNoWait
 #
 #       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
+#       sending data objects to the server, buffer the commands to be
 #       sent later.
 #
 itcl::body Rappture::VisViewer::SendCmdNoWait {string} {
