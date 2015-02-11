@@ -309,10 +309,14 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    BuildLayerTab
-    BuildMapTab
-    BuildTerrainTab
-    BuildCameraTab
+    if { [catch {
+        BuildLayerTab
+        BuildMapTab
+        BuildTerrainTab
+        BuildCameraTab
+    } errs] != 0 } {
+        puts stderr errs=$errs
+    }
 
     # Legend
 
@@ -787,7 +791,9 @@ itcl::body Rappture::MapViewer::scale {args} {
             set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
             array set vp $_viewpoints($viewpoint)
             foreach key { x y z distance heading pitch srs verticalDatum } {
-                puts stderr "$viewpoint $key $vp($key)"
+                if { [info exists vp($key)] } {
+                    puts stderr "$viewpoint $key $vp($key)"
+                }
             }
         }
     }
