@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: mapviewer - Map object viewer
 #
@@ -38,7 +38,7 @@ itcl::class Rappture::MapViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    private variable _layersFrame "";	# Name of layers frame widget
+    private variable _layersFrame "";   # Name of layers frame widget
     private variable _mapsettings;      # Global map settings
 
     constructor { hostlist args } {
@@ -59,8 +59,8 @@ itcl::class Rappture::MapViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -76,7 +76,7 @@ itcl::class Rappture::MapViewer {
     # The following methods are only used by this class.
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method BuildLayerTab {}
     private method BuildMapTab {}
     private method BuildTerrainTab {}
@@ -89,9 +89,9 @@ itcl::class Rappture::MapViewer {
     private method EarthFile {}
     private method EventuallyHandleMotionEvent { x y }
     private method EventuallyPan { dx dy }
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { dx dy } 
-    private method GetImage { args } 
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { dx dy }
+    private method GetImage { args }
     private method GetNormalizedMouse { x y }
     private method InitSettings { args  }
     private method MapIsGeocentric {}
@@ -110,11 +110,11 @@ itcl::class Rappture::MapViewer {
     private method UpdateLayerControls {}
     private method Zoom {option {x 0} {y 0}}
 
-    private variable _dlist "";		# list of data objects
+    private variable _dlist "";         # list of data objects
     private variable _obj2datasets
-    private variable _obj2ovride;	# maps dataobj => style override
-    private variable _layers;		# Contains the names of all the 
-                                   	# layer in the server.
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _layers;           # Contains the names of all the
+                                        # layer in the server.
     private variable _viewpoints;
     private variable _click;            # info used for rotate operations
     private variable _view;             # view params for 3D view
@@ -158,7 +158,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     set _serverType "geovis"
 
     if { [catch {
-	
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -266,8 +266,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -322,20 +322,20 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
 
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     bind $itk_component(view) <Configure> \
@@ -483,7 +483,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     eval itk_initialize $args
     Connect
 } errs] != 0 } {
-	puts stderr errs=$errs
+        puts stderr errs=$errs
     }
 }
 
@@ -664,7 +664,7 @@ itcl::body Rappture::MapViewer::get {args} {
                 if { ![$dataobj isvalid] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -692,7 +692,7 @@ itcl::body Rappture::MapViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -740,7 +740,7 @@ itcl::body Rappture::MapViewer::scale {args} {
         if { ![$dataobj isvalid] } {
             continue
         }
-        array unset hints 
+        array unset hints
         array set hints [$dataobj hints]
         if { ![info exists _mapsettings(label)] } {
             set _mapsettings(label) $hints(label)
@@ -785,7 +785,7 @@ itcl::body Rappture::MapViewer::scale {args} {
             if { [$dataobj type $layer] == "elevation" } {
                 set _haveTerrain 1
                 break
-            } 
+            }
         }
         foreach viewpoint [$dataobj viewpoints] {
             set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
@@ -940,7 +940,7 @@ itcl::body Rappture::MapViewer::Disconnect {} {
     $_dispatcher cancel !rotate
     # disconnected -- no more data sitting on server
     array unset _layers
-    array unset _layersFrame 
+    array unset _layersFrame
     global readyForNextFrame
     set readyForNextFrame 1
 }
@@ -1084,7 +1084,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     $itk_component(time_l) configure -state disabled
                     $itk_component(time) configure -state disabled
                     set proj $_mapsettings(projection)
-                    if { $proj == "" } { 
+                    if { $proj == "" } {
                         SendCmd "map reset projected global-mercator"
                     } elseif { ![info exists _mapsettings(extents)] || $_mapsettings(extents) == "" } {
                         SendCmd [list map reset "projected" $proj]
@@ -1093,7 +1093,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                         foreach key "x1 y1 x2 y2" {
                             set $key $_mapsettings($key)
                         }
-                        SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2] 
+                        SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2]
                     }
                 }
                 # XXX: Remove these after implementing batch load of layers with reset
@@ -1101,7 +1101,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             }
 
             # Most terrain settings are global to the map and apply even
-            # if there is no elevation layer.  The exception is the 
+            # if there is no elevation layer.  The exception is the
             # vertical scale, which only applies if there is an elevation
             # layer
             if { [info exists _mapsettings(style)] } {
@@ -1123,8 +1123,8 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     foreach dataobj [get -objects] {
         set _obj2datasets($dataobj) ""
         foreach layer [$dataobj layers] {
-	    array unset info
-	    array set info [$dataobj layer $layer]
+            array unset info
+            array set info [$dataobj layer $layer]
             if { ![info exists _layers($layer)] } {
                 if { $_reportClientInfo }  {
                     set cinfo {}
@@ -1202,7 +1202,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::CurrentLayers {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentLayers: can't specify dataobj after \"-all\""
@@ -1221,7 +1221,7 @@ itcl::body Rappture::MapViewer::CurrentLayers {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1610,23 +1610,23 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
         -text "Show Coordinate Readout" \
         -variable [itcl::scope _settings(coords-visible)] \
         -command [itcl::code $this AdjustSetting coords-visible] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     itk_component add grid {
         checkbutton $inner.grid \
         -text "Show Graticule" \
         -variable [itcl::scope _settings(grid)] \
         -command [itcl::code $this AdjustSetting grid] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
     } {
-	ignore -font
+        ignore -font
     }
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(terrain-wireframe)] \
         -command [itcl::code $this AdjustSetting terrain-wireframe] \
-        -font "Arial 9" -anchor w 
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
@@ -1703,7 +1703,7 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
         0,0 $inner.vscale_l  -anchor w -pady 2 \
         0,1 $inner.vscale    -fill x   -pady 2
 #        1,0 $inner.palette_l -anchor w -pady 2 \
-#        1,1 $inner.palette   -fill x   -pady 2  
+#        1,1 $inner.palette   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r3 c1 -resize expand
@@ -1720,7 +1720,7 @@ itcl::body Rappture::MapViewer::BuildLayerTab {} {
     $inner configure -borderwidth 4
     set f [frame $inner.layers]
     blt::table $inner \
-        0,0 $f -fill both 
+        0,0 $f -fill both
     set _layersFrame $inner
 }
 
@@ -1801,7 +1801,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
 }
 
 #
-#  camera -- 
+#  camera --
 #
 # USAGE: camera get
 #        This is called by the server to transfer the
@@ -1810,7 +1810,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
 #        Reset the camera to the default view
 #
 itcl::body Rappture::MapViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "get" {
             # We got the camera settings from the server
             foreach name {x y z heading pitch distance srs verticalDatum} value $args {
@@ -1873,7 +1873,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
 }
 
 itcl::body Rappture::MapViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -1886,11 +1886,11 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
 
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -1910,7 +1910,7 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
         0,0 $inner.summary -cspan 2  \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -1989,7 +1989,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                                      $info(xyz.url) $info(cache) \
                                      $layer]
                     }
-                }                        
+                }
             }
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
@@ -2098,7 +2098,7 @@ itcl::body Rappture::MapViewer::SetLayerVisibility { dataobj layer } {
     SendCmd "map layer visible $bool $layer"
 }
 
-itcl::body Rappture::MapViewer::UpdateLayerControls {} { 
+itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     set row 0
     set inner $_layersFrame
     if { [winfo exists $inner.layers] } {
@@ -2109,8 +2109,8 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     set f $inner.layers
     foreach dataobj [get -objects] {
         foreach layer [$dataobj layers] {
-	    array unset info
-	    array set info [$dataobj layer $layer]
+            array unset info
+            array set info [$dataobj layer $layer]
             checkbutton $f.${layer}-visible \
                 -text $info(label) \
                 -font "Arial 9" -anchor w \
@@ -2131,7 +2131,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 blt::table $f $row,1 $f.${layer}-opacity -anchor w -pady 2
                 incr row
             }
-	}
+        }
     }
     if { $row > 0 } {
         blt::table configure $f r* c* -resize none
@@ -2142,7 +2142,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
 #
 # Generate an OSG Earth file to send to server.  This is inteneded
 # as a stopgap and testing tool until the protocol is fleshed out.
-# 
+#
 # Note that the lighting settings are required to be "hard-coded"
 # as below for the runtime control to work.  Don't make those user
 # configurable.
@@ -2150,7 +2150,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
 # Also note: Use "true"/"false" for boolean settings.  Not sure if
 # the parser in OSG Earth accepts all of Tcl's forms of boolean vals.
 #
-itcl::body Rappture::MapViewer::EarthFile {} { 
+itcl::body Rappture::MapViewer::EarthFile {} {
     append out "<map"
     append out " name=\"$_mapsettings(label)\""
     append out " type=\"$_mapsettings(type)\""
@@ -2220,4 +2220,4 @@ itcl::body Rappture::MapViewer::EarthFile {} {
     }
     append out "</map>\n"
     return $out
-} 
+}
