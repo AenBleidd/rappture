@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
 #  COMPONENT: map - extracts data from an XML description of a field
@@ -18,8 +18,8 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { 
-    # forward declaration 
+namespace eval Rappture {
+    # forward declaration
 }
 
 itcl::class Rappture::Map {
@@ -46,11 +46,11 @@ itcl::class Rappture::Map {
     }
     protected method Parse { xmlobj path }
 
-    constructor {xmlobj path} { 
-        # defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method earthfile {}
@@ -122,14 +122,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         # Unique identifier for layer.
         set name "layer[incr _nextLayer]"
         set child [$_tree insert $parent -label $name]
-        set layerType [$layers get $layer.type] 
+        set layerType [$layers get $layer.type]
         if { ![info exists _layerTypes($layerType)] } {
             error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
         }
         $_tree set $child "name" $layer
         $_tree set $child "type" $layerType
         foreach key { label description } {
-            $_tree set $child $key [$layers get $layer.$key] 
+            $_tree set $child $key [$layers get $layer.$key]
         }
         # Common settings (for all layer types) with defaults
         foreach { key defval } { visible 1 cache 1 } {
@@ -155,7 +155,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 set value [$layers get $layer.gdal.$key]
                 $_tree set $child "gdal.$key" $value
             }
-            set file [$layers get $layer.gdal.file] 
+            set file [$layers get $layer.gdal.file]
             if { $file != "" } {
                 # FIXME: Add test for valid file path
                 $_tree set $child "gdal.url" $file
@@ -168,7 +168,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 set value [$layers get $layer.ogr.$key]
                 $_tree set $child "ogr.$key" $value
             }
-            set file [$layers get $layer.ogr.file] 
+            set file [$layers get $layer.ogr.file]
             if { $file != "" } {
                 # FIXME: Add test for valid file path
                 $_tree set $child "ogr.url" $file
@@ -250,7 +250,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     set mapType [$map get "type"]
     if { $mapType == "" } {
         set mapType "projected";           # Default type is "projected".
-    } 
+    }
     if { ![info exists _mapTypes($mapType)] } {
         error "unknown map type \"$mapType\": should be one of [array names _mapTypes]"
     }
@@ -279,7 +279,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
 itcl::body Rappture::Map::layers {} {
     set list {}
     foreach node [$_tree children root->"layers"] {
-        lappend list [$_tree label $node] 
+        lappend list [$_tree label $node]
     }
     return $list
 }
@@ -292,7 +292,7 @@ itcl::body Rappture::Map::layers {} {
 itcl::body Rappture::Map::viewpoints {} {
     set list {}
     foreach node [$_tree children root->"viewpoints"] {
-        lappend list [$_tree label $node] 
+        lappend list [$_tree label $node]
     }
     return $list
 }
@@ -339,13 +339,13 @@ itcl::body Rappture::Map::type { layerName } {
 # ----------------------------------------------------------------------
 # USAGE: isGeocentric
 #
-# Returns if the map is geocentric (1) or projected (0) 
-# ---------------------------------------------------------------------- 
-itcl::body Rappture::Map::isGeocentric {} { 
+# Returns if the map is geocentric (1) or projected (0)
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::isGeocentric {} {
     return [expr {[hints "type"] eq "geocentric"}]
-} 
+}
 
-itcl::body Rappture::Map::earthfile {} { 
+itcl::body Rappture::Map::earthfile {} {
     array set info [$_tree get root]
     append out "<map"
     append out " name=\"$info(label)\""
@@ -407,4 +407,4 @@ itcl::body Rappture::Map::earthfile {} {
         }
     }
     append out "</map>\n"
-} 
+}
