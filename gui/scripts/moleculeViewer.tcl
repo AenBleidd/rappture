@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: MoleculeViewer - view a molecule in 3D
 #
@@ -26,19 +26,19 @@ itcl::class Rappture::MoleculeViewer {
     itk_option define -backdrop backdrop Backdrop "black"
     itk_option define -device device Device ""
 
-    constructor {tool args} { 
-        # defined below 
+    constructor {tool args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method snap {w h}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method emblems {option}
     public method download {option args}
@@ -62,7 +62,7 @@ itcl::class Rappture::MoleculeViewer {
     private variable _click      ;# info used for _move operations
     private variable _download "";# snapshot for download
 }
-                                                                                
+
 itk::usual MoleculeViewer {
 }
 
@@ -235,14 +235,14 @@ itcl::body Rappture::MoleculeViewer::add {dataobj {settings ""}} {
         -param ""
     }
     array set params $settings
- 
+
     set pos [lsearch -exact $_dlist $dataobj]
 
     if {$pos < 0} {
         if {![Rappture::library isvalid $dataobj]} {
             error "bad value \"$dataobj\": should be Rappture::library object"
         }
-    
+
         set emblem [$dataobj get components.molecule.about.emblems]
         if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
             emblems off
