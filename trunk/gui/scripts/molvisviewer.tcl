@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
 #  COMPONENT: molvisviewer - view a molecule in 3D
@@ -51,7 +51,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _dobj2raise;       # maps dataobj => raise flag 0/1
 
     private variable _active;           # array of active models.
-    private variable _obj2models;       # array containing list of models 
+    private variable _obj2models;       # array containing list of models
                                         # for each data object.
     private variable _view
     private variable _click
@@ -62,12 +62,12 @@ itcl::class Rappture::MolvisViewer {
 
     private variable _imagecache
     private variable _state
-    private variable _labels  "default"
+    private variable _labels "default"
     private variable _cacheid ""
     private variable _cacheimage ""
-    private variable _first	""
+    private variable _first ""
 
-    private common _settings  ;         # Array of settings for all known 
+    private common _settings  ;         # Array of settings for all known
                                         # widgets
     private variable _initialized
 
@@ -80,7 +80,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _rotatePending 0;
     private variable _width
     private variable _height
-    private variable _reset 1;		# Restore camera settings
+    private variable _reset 1;          # Restore camera settings
     private variable _cell 0;           # Restore camera settings
 
     constructor { servers args } {
@@ -95,18 +95,18 @@ itcl::class Rappture::MolvisViewer {
         Rappture::VisViewer::SetServerList "pymol" $namelist
     }
     private method BuildSettingsTab {}
-    private method DoResize {} 
-    private method DoRotate {} 
-    private method DoUpdate {} 
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { a b c } 
-    private method EventuallyChangeSettings { args } 
+    private method DoResize {}
+    private method DoRotate {}
+    private method DoUpdate {}
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { a b c }
+    private method EventuallyChangeSettings { args }
     private method GetImage { widget }
     private method ReceiveImage { size cacheid frame rock }
     private method WaitIcon { option widget }
     private method AddImageControls { frame widget }
     private method SetWaitVariable { value } {
-        set _getimage $value 
+        set _getimage $value
     }
     private method WaitForResponse {} {
         tkwait variable [itcl::scope _getimage]
@@ -124,15 +124,15 @@ itcl::class Rappture::MolvisViewer {
 
     public method Connect {}
     public method Disconnect {}
-    public method ResetView {} 
+    public method ResetView {}
     public method add {dataobj {options ""}}
     public method delete {args}
     public method download {option args}
     public method get {}
     public method isconnected {}
     public method labels {option {model "all"}}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
 
     private method UpdateState { args }
@@ -235,7 +235,7 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
         $this-showcell  yes
         $this-showlabels-initialized no
     }]
-    
+
     itk_component add 3dview {
         label $itk_component(plotarea).view -image $_image(plot) \
             -highlightthickness 0 -borderwidth 0
@@ -293,7 +293,7 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
     $itk_component(labels) deselect
     Rappture::Tooltip::for $itk_component(labels) \
         "Show/hide the labels on atoms"
-    pack $itk_component(labels) -padx 2 -pady {6 2} 
+    pack $itk_component(labels) -padx 2 -pady {6 2}
 
     itk_component add rock {
         Rappture::PushButton $f.rock \
@@ -302,7 +302,7 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
             -command [itcl::code $this Rock toggle] \
             -variable [itcl::scope _settings($this-rock)]
     }
-    pack $itk_component(rock) -padx 2 -pady 2 
+    pack $itk_component(rock) -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(rock) "Rock model back and forth"
 
     itk_component add ortho {
@@ -318,7 +318,7 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
 
     BuildSettingsTab
 
-    # HACK ALERT. Initially force a requested width of the 3dview label. 
+    # HACK ALERT. Initially force a requested width of the 3dview label.
 
     # It's a chicken-and-the-egg problem.  The size of the 3dview label is set
     # from the size of the image retrieved from the server.  But the size of
@@ -462,7 +462,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
             set showlabels [$dataobj get components.molecule.about.emblems]
             if { $showlabels != "" && [string is boolean $showlabels] } {
                 set _settings($this-showlabels) $showlabels
-            } 
+            }
         }
 
         lappend _dlist $dataobj
@@ -566,13 +566,13 @@ itcl::body Rappture::MolvisViewer::download {option args} {
                     -text "PDB Protein Data Bank Format File" \
                     -variable [itcl::scope _downloadPopup(format)] \
                     -font "Arial 10 " \
-                    -value pdb  
+                    -value pdb
                 Rappture::Tooltip::for $inner.pdb \
                     "Save as PDB Protein Data Bank format file."
                 radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
                     -variable [itcl::scope _downloadPopup(format)] \
                     -font "Arial 10 " \
-                    -value image 
+                    -value image
                 Rappture::Tooltip::for $inner.image \
                     "Save as image."
                 set f [frame $inner.frame]
@@ -588,7 +588,7 @@ itcl::body Rappture::MolvisViewer::download {option args} {
                     -image [Rappture::icon cancel]
                 blt::table $f \
                     0,0 $f.ok \
-                    0,1 $f.cancel 
+                    0,1 $f.cancel
                 blt::table $inner \
                     0,0 $inner.summary -anchor w \
                     1,0 $inner.pdb -anchor w \
@@ -627,14 +627,14 @@ itcl::body Rappture::MolvisViewer::download {option args} {
                         AddImageControls $inner [lindex $args 0]
                     } else {
                         set inner [$popup component inner]
-                    }                   
+                    }
                     update
                     # Activate the popup and call for the output.
                     foreach { widget toolName plotName } $args break
                     SetWaitVariable 0
                     $popup activate $widget left
                     set bool [WaitForResponse]
-                    $popup deactivate 
+                    $popup deactivate
                     if { $bool } {
                         return [GetImage $widget]
                     }
@@ -673,7 +673,7 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     if { "" == $hosts } {
         return 0
     }
-    set _reset 1 
+    set _reset 1
     set result [VisViewer::Connect $hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -683,13 +683,13 @@ itcl::body Rappture::MolvisViewer::Connect {} {
 
             set info {}
             set user "???"
-	    if { [info exists env(USER)] } {
+            if { [info exists env(USER)] } {
                 set user $env(USER)
-	    }
+            }
             set session "???"
-	    if { [info exists env(SESSION)] } {
+            if { [info exists env(SESSION)] } {
                 set session $env(SESSION)
-	    }
+            }
             lappend info "version" "$Rappture::version"
             lappend info "build" "$Rappture::build"
             lappend info "svnurl" "$Rappture::svnurl"
@@ -759,7 +759,7 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
     global count
     incr count
     if { $cacheid != $_cacheid } {
-        array unset _imagecache 
+        array unset _imagecache
         set _cacheid $cacheid
     }
     set data [ReceiveBytes $size]
@@ -797,7 +797,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
         "spheres"     "spheres"         \
         "sticks"      "sticks"          \
         "lines"       "lines"           \
-        "cartoon"     "cartoon"         
+        "cartoon"     "cartoon"
 
     bind $inner.rep <<Value>> [itcl::code $this Representation]
     $inner.rep value "ball and stick"
@@ -882,7 +882,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (that automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
     set _cell 0
 
@@ -896,24 +896,24 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     set _first ""
     set dlist [get]
     foreach dataobj $dlist {
-	if { $_first == "" } {
-	    set _first $dataobj
-	}
+        if { $_first == "" } {
+            set _first $dataobj
+        }
         set model [$dataobj get components.molecule.model]
         if {"" == $model } {
             set model "molecule"
             scan $dataobj "::libraryObj%d" suffix
             set model $model$suffix
         }
-        lappend _obj2models($dataobj) $model 
+        lappend _obj2models($dataobj) $model
         set state [$dataobj get components.molecule.state]
-        if {"" == $state} { 
-            set state $_state(server) 
+        if {"" == $state} {
+            set state $_state(server)
         }
         if { ![info exists _mlist($model)] } {  # new, turn on
             set _mlist($model) 2
         } elseif { $_mlist($model) == 1 } {     # on, leave on
-            set _mlist($model) 3 
+            set _mlist($model) 3
         } elseif { $_mlist($model) == 0 } {     # off, turn on
             set _mlist($model) 2
         }
@@ -1001,7 +1001,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                         set element    ""
                         set charge     ""
                         if { "" == $lammpstypemap} {
-                            set atom $type 
+                            set atom $type
                         } else {
                             set atom [lindex $lammpstypemap [expr {$type - 1}]]
                             if { "" == $atom} {
@@ -1011,7 +1011,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                         set pdbline [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $id $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
                         append data3 $pdbline
                     }
-                    # only read first model 
+                    # only read first model
                     if {[regexp "^ITEM: ATOMS" $lammpsline]} {
                       incr modelcount
                       if {$modelcount > 1} {
@@ -1024,7 +1024,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                     set _pdbdata $data3
                     set numBytes [string length $data3]
 
-                    # We know we're buffered here, so append the "loadpdb" 
+                    # We know we're buffered here, so append the "loadpdb"
                     # command with the data payload immediately afterwards.
                     ServerCmd "loadpdb -defer follows $model $state $numBytes"
                     append _outbuf $data3
@@ -1056,7 +1056,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set _cell 1
         }
     }
-        
+
     # enable/disable models as required (0=off->off, 1=on->off, 2=off->on,
     # 3=on->on)
 
@@ -1073,7 +1073,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set _mlist($model) 1
         }
         if { $_mlist($model) == 1 } {
-            if {  [info exists _model($model-newtransparency)] || 
+            if {  [info exists _model($model-newtransparency)] ||
                   [info exists _model($model-newrep)] } {
                 if { ![info exists _model($model-newrep)] } {
                     set _model($model-newrep) $_model($model-rep)
@@ -1117,9 +1117,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     if { $_reset } {
         # Set or restore viewing parameters.  We do this for the first
         # model and assume this works for everything else.
-        set w  [winfo width $itk_component(3dview)] 
-        set h  [winfo height $itk_component(3dview)] 
-        ServerCmd [subst { 
+        set w  [winfo width $itk_component(3dview)]
+        set h  [winfo height $itk_component(3dview)]
+        ServerCmd [subst {
             reset
             screen $w $h
             rotate $_view(mx) $_view(my) $_view(mz)
@@ -1133,13 +1133,13 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     }
     if { $changed } {
         # Default settings for all models.
-        SphereScale update 
+        SphereScale update
         StickRadius update
-        labels update 
-        Opacity update 
-        CartoonTrace update 
+        labels update
+        Opacity update
+        CartoonTrace update
         Cell update
-        OrthoProjection update 
+        OrthoProjection update
         Representation update
     }
     set inner [$itk_component(main) panel "Settings"]
@@ -1187,10 +1187,10 @@ itcl::body Rappture::MolvisViewer::DoResize { } {
     ServerCmd "screen $_width $_height"
     $_image(plot) configure -width $_width -height $_height
     # Immediately invalidate cache, defer update until mapped
-    array unset _imagecache 
+    array unset _imagecache
     set _resizePending 0
 }
-    
+
 itcl::body Rappture::MolvisViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
@@ -1202,14 +1202,14 @@ itcl::body Rappture::MolvisViewer::EventuallyResize { w h } {
 
 itcl::body Rappture::MolvisViewer::DoRotate {} {
     ServerCmd "rotate $_view(a) $_view(b) $_view(c)"
-    array unset _imagecache 
+    array unset _imagecache
     set _rotatePending 0
 }
-    
+
 itcl::body Rappture::MolvisViewer::EventuallyRotate { a b c } {
-    set _view(a) $a 
+    set _view(a) $a
     set _view(b) $b
-    set _view(c) $c 
+    set _view(c) $c
     if { !$_rotatePending } {
         $_dispatcher event -after 100 !rotate
         set _rotatePending 1
@@ -1245,14 +1245,14 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set dy $y
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
-        array unset _imagecache 
+        array unset _imagecache
         ServerCmd "pan $dx $dy"
         return
     }
     if { ![info exists _mevent(x)] } {
         set option "click"
     }
-    if { $option == "click" } { 
+    if { $option == "click" } {
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
@@ -1260,7 +1260,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set dy [expr $y - $_mevent(y)]
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
-        array unset _imagecache 
+        array unset _imagecache
         ServerCmd "pan $dx $dy"
     }
     set _mevent(x) $x
@@ -1293,7 +1293,7 @@ itcl::body Rappture::MolvisViewer::Zoom {option {factor 10}} {
             ServerCmd "reset"
         }
     }
-    array unset _imagecache 
+    array unset _imagecache
 }
 
 itcl::body Rappture::MolvisViewer::UpdateState { args } {
@@ -1323,7 +1323,7 @@ itcl::body Rappture::MolvisViewer::Rock { option } {
     if { ![winfo viewable $itk_component(3dview)] } {
         return
     }
-    set _rocker(on) $_settings($this-rock) 
+    set _rocker(on) $_settings($this-rock)
     if { $option == "step"} {
         if { $_rocker(client) >= 10 } {
             set _rocker(dir) -1
@@ -1553,12 +1553,12 @@ itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
         set option [$itk_component(representation) translate $value]
     }
     if { $option == $_mrep } {
-        return 
+        return
     }
     if { $option == "update" } {
         set option $_settings($this-model)
     }
-    array unset _imagecache 
+    array unset _imagecache
     if { $option == "sticks" } {
         set _settings($this-modelimg) [Rappture::icon lines]
     }  else {
@@ -1658,7 +1658,7 @@ itcl::body Rappture::MolvisViewer::Cell {option} {
         # nothing to do
         return
     }
-    array unset _imagecache 
+    array unset _imagecache
     if { $cell } {
         Rappture::Tooltip::for $itk_component(ortho) \
             "Hide the cell."
@@ -1722,13 +1722,13 @@ itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
         }
     }
 }
-            
+
 itcl::body Rappture::MolvisViewer::GetImage { widget } {
     set token "print[incr _nextToken]"
     set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
     set $var ""
 
-    set controls $_downloadPopup(image_controls) 
+    set controls $_downloadPopup(image_controls)
     set combo $controls.size
     set size [$combo translate [$combo value]]
     switch -- $size {
@@ -1750,7 +1750,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     }
     # Setup an automatic timeout procedure.
     $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
-    
+
     set popup .molvisviewerimagedownload
     if { ![winfo exists $popup] } {
         Rappture::Balloon $popup -title "Generating file..."
@@ -1764,9 +1764,9 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
             0,0 $inner.title -cspan 2 \
             1,0 $inner.please -anchor w \
             1,1 $inner.icon -anchor e  \
-            2,0 $inner.cancel -cspan 2 
-        blt::table configure $inner r0 -pady 4 
-        blt::table configure $inner r2 -pady 4 
+            2,0 $inner.cancel -cspan 2
+        blt::table configure $inner r0 -pady 4
+        blt::table configure $inner r2 -pady 4
         bind $inner.cancel <Return> [list $inner.cancel invoke]
         bind $inner.cancel <KP_Enter> [list $inner.cancel invoke]
     } else {
@@ -1774,18 +1774,18 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     }
     set combo $controls.bgcolor
     set bgcolor [$combo translate [$combo value]]
-    
+
     $_dispatcher event -after 60000 !pngtimeout
     WaitIcon start $inner.icon
     grab set $inner
     focus $inner.cancel
-    
+
     ServerCmd "print $token $width $height $bgcolor"
 
     $popup activate $widget below
-    # We wait here for either 
-    #  1) the png to be delivered or 
-    #  2) timeout or  
+    # We wait here for either
+    #  1) the png to be delivered or
+    #  2) timeout or
     #  3) user cancels the operation.
     tkwait variable $var
 
@@ -1825,9 +1825,9 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
 #        SphereScale update ?model?
 #
 # Used internally to change the molecular atom scale used to render
-# our scene.  
+# our scene.
 #
-# Note: Only sets the specified radius for active models.  If the model 
+# Note: Only sets the specified radius for active models.  If the model
 #       is inactive, then it overridden with the value "0.1".
 # ----------------------------------------------------------------------
 
@@ -1863,7 +1863,7 @@ itcl::body Rappture::MolvisViewer::SphereScale { option {models "all"} } {
 # Used internally to change the stick radius used to render
 # our scene.
 #
-# Note: Only sets the specified radius for active models.  If the model 
+# Note: Only sets the specified radius for active models.  If the model
 #       is inactive, then it overridden with the value "0.25".
 # ----------------------------------------------------------------------
 
@@ -1899,7 +1899,7 @@ itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
 # Used internally to change the opacity (transparency) used to render
 # our scene.
 #
-# Note: Only sets the specified transparency for active models.  If the model 
+# Note: Only sets the specified transparency for active models.  If the model
 #       is inactive, then it overridden with the value "0.75".
 # ----------------------------------------------------------------------
 
@@ -1970,7 +1970,7 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
 # update the positions of the labels so they sit on top of each atom.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::CartoonTrace {option {models "all"}} {
-    array unset _imagecache 
+    array unset _imagecache
     set trace $_settings($this-cartoontrace)
     if { $option == "update" } {
         set trace $_settings($this-cartoontrace)
@@ -1995,7 +1995,7 @@ itcl::body Rappture::MolvisViewer::CartoonTrace {option {models "all"}} {
 }
 
 itcl::body Rappture::MolvisViewer::AddImageControls { inner widget } {
-    label $inner.size_l -text "Size:" -font "Arial 9" 
+    label $inner.size_l -text "Size:" -font "Arial 9"
     set _downloadPopup(image_controls) $inner
     set img $_image(plot)
     set res "[image width $img]x[image height $img]"
@@ -2005,14 +2005,14 @@ itcl::body Rappture::MolvisViewer::AddImageControls { inner widget } {
         "standard"  "Standard (1200x1200)"          \
         "highquality"  "High Quality (2400x2400)"
 
-    label $inner.bgcolor_l -text "Background:" -font "Arial 9" 
+    label $inner.bgcolor_l -text "Background:" -font "Arial 9"
     Rappture::Combobox $inner.bgcolor -width 30 -editable no
     $inner.bgcolor choices insert end \
         "black"  "Black" \
         "white"  "White" \
-        "none"  "Transparent (PNG only)"         
+        "none"  "Transparent (PNG only)"
 
-    label $inner.format_l -text "Format:" -font "Arial 9" 
+    label $inner.format_l -text "Format:" -font "Arial 9"
     Rappture::Combobox $inner.format -width 30 -editable no
     $inner.format choices insert end \
         "png"  "PNG (Portable Network Graphics format)" \
@@ -2033,7 +2033,7 @@ itcl::body Rappture::MolvisViewer::AddImageControls { inner widget } {
         -image [Rappture::icon cancel]
     blt::table $f \
         0,0 $f.ok  \
-        0,1 $f.cancel 
+        0,1 $f.cancel
 
     blt::table $inner \
         0,0 $inner.format_l -anchor e \
@@ -2047,14 +2047,14 @@ itcl::body Rappture::MolvisViewer::AddImageControls { inner widget } {
     blt::table configure $inner r3 -pady { 4 4 }
     $inner.bgcolor value "Black"
     $inner.size value "Draft (400x400)"
-    $inner.format value  "PNG (Portable Network Graphics format)" 
+    $inner.format value  "PNG (Portable Network Graphics format)"
 }
 
 itcl::body Rappture::MolvisViewer::snap { w h } {
     if { $w <= 0 || $h <= 0 } {
         set w [image width $_image(plot)]
         set h [image height $_image(plot)]
-    } 
+    }
     set tag "$_state(client),$_rocker(client)"
     if { $_image(id) != "$tag" } {
         while { ![info exists _imagecache($tag)] } {
@@ -2121,7 +2121,7 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
         origin set $values
     }
 
-    # Scale and translate points 
+    # Scale and translate points
     for { set i 0 } { $i < 8 } { incr i } {
         point${i} expr "(point${i} * scale) + origin"
     }

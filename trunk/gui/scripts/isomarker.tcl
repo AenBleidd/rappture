@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
 #  COMPONENT: nanovisviewer::isomarker - Marker for 3D volume rendering
@@ -23,29 +23,29 @@ itcl::class Rappture::IsoMarker {
     private variable _tick      ""
     private variable _canvas    ""
     private variable _nvobj     "";     # Parent nanovis object.
-    private variable _tf        "";     # Transfer function that this marker is 
+    private variable _tf        "";     # Transfer function that this marker is
                                         # associated with.
     private variable _activeMotion   0
     private variable _activePress    0
     private common   _normalIcon [Rappture::icon nvlegendmark]
     private common   _activeIcon [Rappture::icon nvlegendmark2]
-    private method EnterTick {} 
-    private method LeaveTick {} 
-    private method StartDrag { x y } 
-    private method ContinueDrag { x y } 
-    private method StopDrag { x y } 
+    private method EnterTick {}
+    private method LeaveTick {}
+    private method StartDrag { x y }
+    private method ContinueDrag { x y }
+    private method StopDrag { x y }
 
     constructor {c obj tf args} {}
-    destructor {} 
-    public method transferfunc {} 
-    public method activate { bool } 
-    public method visible { bool } 
-    public method screenpos {} 
-    public method absval { {x "-get"} } 
+    destructor {}
+    public method transferfunc {}
+    public method activate { bool }
+    public method visible { bool }
+    public method screenpos {}
+    public method absval { {x "-get"} }
     public method relval  { {x "-get"} }
 }
 
-itcl::body Rappture::IsoMarker::constructor {c obj tf args} { 
+itcl::body Rappture::IsoMarker::constructor {c obj tf args} {
     set _canvas $c
     set _nvobj $obj
     set _tf $tf
@@ -94,14 +94,14 @@ itcl::body Rappture::IsoMarker::visible { bool } {
     }
 }
 
-itcl::body Rappture::IsoMarker::screenpos { } { 
+itcl::body Rappture::IsoMarker::screenpos { } {
     set x [relval]
     if { $x < 0.0 } {
         set x 0.0
     } elseif { $x > 1.0 } {
-        set x 1.0 
+        set x 1.0
     }
-    set low 10 
+    set low 10
     set w [winfo width $_canvas]
     set high [expr {$w  - 10}]
     set x [expr {round($x*($high - $low) + $low)}]
@@ -132,14 +132,14 @@ itcl::body Rappture::IsoMarker::relval  { {x "-get"} } {
             }
         }
         return [expr {($_value - $min) / ($max - $min)}]
-    } 
+    }
     if { $max == $min } {
         set min 0.0
         set max 1.0
     }
     if { [catch {expr $max - $min} r] != 0 } {
         return 0.0
-    }           
+    }
     absval [expr {($x * $r) + $min}]
 }
 
@@ -155,7 +155,7 @@ itcl::body Rappture::IsoMarker::LeaveTick {} {
 }
 
 itcl::body Rappture::IsoMarker::StartDrag { x y } {
-    $_canvas raise $_tick 
+    $_canvas raise $_tick
     set _activePress 1
     activate yes
     $_canvas itemconfigure limits -state hidden
@@ -164,7 +164,7 @@ itcl::body Rappture::IsoMarker::StartDrag { x y } {
 
 itcl::body Rappture::IsoMarker::StopDrag { x y } {
     if { ![$_nvobj removeDuplicateMarker $this $x]} {
-        ContinueDrag $x $y 
+        ContinueDrag $x $y
     }
     set _activePress 0
     activate no
@@ -177,7 +177,7 @@ itcl::body Rappture::IsoMarker::ContinueDrag { x y } {
     relval [expr {double($x-10)/($w-20)}]
     $_nvobj overMarker $this $x
     $_nvobj updateTransferFunctions
-    $_canvas raise $_tick 
+    $_canvas raise $_tick
     set _activePress 1
     activate yes
     $_canvas itemconfigure limits -state hidden
