@@ -1,5 +1,7 @@
-
+# HACK: The Img library needs to be loaded before RapptureGUI
+# to avoid conflicts with libjpeg, libtiff, etc.
 package ifneeded RapptureGUI @PACKAGE_VERSION@ [format {
+    package require Img
     set dir [file normalize "%s"]
     set version @PACKAGE_VERSION@
     lappend auto_path [file join $dir scripts]
@@ -11,4 +13,3 @@ package ifneeded RapptureGUI @PACKAGE_VERSION@ [format {
     load [file join $dir "RapptureGUI${version}${ext}"]
     package provide RapptureGUI $version
 } $dir]
-
