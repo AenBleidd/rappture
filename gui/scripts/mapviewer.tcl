@@ -103,9 +103,11 @@ itcl::class Rappture::MapViewer {
     private method ReceiveImage { args }
     private method Rotate {option x y}
     private method Select {option x y}
-    private method SetLayerOpacity { dataobj layer {value 100}}
+    private method SetHeading { {value 0} }
+    private method SetLayerOpacity { dataobj layer {value 100} }
     private method SetLayerStyle { dataobj layer }
     private method SetLayerVisibility { dataobj layer }
+    private method SetPitch { {value -89.999} }
     private method SetTerrainStyle { style }
     private method UpdateLayerControls {}
     private method Zoom {option {x 0} {y 0}}
@@ -309,14 +311,10 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    if { [catch {
-        BuildLayerTab
-        BuildMapTab
-        BuildTerrainTab
-        BuildCameraTab
-    } errs] != 0 } {
-        puts stderr errs=$errs
-    }
+    BuildLayerTab
+    BuildMapTab
+    BuildTerrainTab
+    BuildCameraTab
 
     # Legend
 
@@ -440,6 +438,50 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <KeyPress-Down> \
             [itcl::code $this Pan set 0 10]
 
+        bind $itk_component(view) <Shift-KeyPress-Left> \
+            [itcl::code $this Pan set 2 0]
+        bind $itk_component(view) <Shift-KeyPress-Right> \
+            [itcl::code $this Pan set -2 0]
+        bind $itk_component(view) <Shift-KeyPress-Up> \
+            [itcl::code $this Pan set 0 -2]
+        bind $itk_component(view) <Shift-KeyPress-Down> \
+            [itcl::code $this Pan set 0 2]
+
+        # Bindings for rotation via keyboard
+        bind $itk_component(view) <Control-Left> \
+            [itcl::code $this Rotate set 10 0]
+        bind $itk_component(view) <Control-Right> \
+            [itcl::code $this Rotate set -10 0]
+        bind $itk_component(view) <Control-Up> \
+            [itcl::code $this Rotate set 0 -10]
+        bind $itk_component(view) <Control-Down> \
+            [itcl::code $this Rotate set 0 10]
+
+        bind $itk_component(view) <Control-Shift-Left> \
+            [itcl::code $this Rotate set 2 0]
+        bind $itk_component(view) <Control-Shift-Right> \
+            [itcl::code $this Rotate set -2 0]
+        bind $itk_component(view) <Control-Shift-Up> \
+            [itcl::code $this Rotate set 0 -2]
+        bind $itk_component(view) <Control-Shift-Down> \
+            [itcl::code $this Rotate set 0 2]
+
+        # Bindings for zoom via keyboard
+        bind $itk_component(view) <KeyPress-Prior> \
+            [itcl::code $this Zoom out]
+        bind $itk_component(view) <KeyPress-Next> \
+            [itcl::code $this Zoom in]
+        bind $itk_component(view) <KeyPress-Home> \
+            [itcl::code $this camera reset]
+
+        # Keyboard shortcuts
+        # Reset heading to North
+        bind $itk_component(view) <n> \
+            [itcl::code $this SetHeading]
+        # Reset pitch to top-down (2D) view
+        bind $itk_component(view) <p> \
+            [itcl::code $this SetPitch]
+
         # Binding for mouse motion events
         set _motion(compress) 1
         if {$_motion(enable)} {
@@ -449,21 +491,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         #bind $itk_component(view) <Motion> \
         #    +[itcl::code $this SendCmd "map pin hover %x %y"]
     }
-
-    bind $itk_component(view) <Shift-KeyPress-Left> \
-        [itcl::code $this Pan set 2 0]
-    bind $itk_component(view) <Shift-KeyPress-Right> \
-        [itcl::code $this Pan set -2 0]
-    bind $itk_component(view) <Shift-KeyPress-Up> \
-        [itcl::code $this Pan set 0 -2]
-    bind $itk_component(view) <Shift-KeyPress-Down> \
-        [itcl::code $this Pan set 0 2]
-
-    # Bindings for zoom via keyboard
-    bind $itk_component(view) <KeyPress-Prior> \
-        [itcl::code $this Zoom out]
-    bind $itk_component(view) <KeyPress-Next> \
-        [itcl::code $this Zoom in]
 
     bind $itk_component(view) <Enter> "focus $itk_component(view)"
 
@@ -1401,6 +1428,15 @@ itcl::body Rappture::MapViewer::Rotate {option x y} {
             $itk_component(view) configure -cursor ""
             catch {unset _click}
         }
+        "set" {
+            set w [winfo width $itk_component(view)]
+            set h [winfo height $itk_component(view)]
+            set dx [expr $x / double($w)]
+            set dy [expr $y / double($h)]
+            if {[expr (abs($dx) > 0.0 || abs($dy) > 0.0)]} {
+                EventuallyRotate $dx $dy
+            }
+        }
         default {
             error "bad option \"$option\": should be click, drag, release"
         }
@@ -1504,6 +1540,16 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             error "unknown option \"$option\": should set, click, drag, or release"
         }
     }
+}
+
+itcl::body Rappture::MapViewer::SetHeading { {value 0} } {
+    set _view(heading) $value
+    camera set heading
+}
+
+itcl::body Rappture::MapViewer::SetPitch { {value -89.999} } {
+    set _view(pitch) $value
+    camera set pitch
 }
 
 # ----------------------------------------------------------------------
