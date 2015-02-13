@@ -109,6 +109,9 @@ itcl::class Rappture::MapViewer {
     private method SetLayerVisibility { dataobj layer }
     private method SetPitch { {value -89.999} }
     private method SetTerrainStyle { style }
+    private method ToggleGrid {}
+    private method ToggleLighting {}
+    private method ToggleWireframe {}
     private method UpdateLayerControls {}
     private method Zoom {option {x 0} {y 0}}
 
@@ -257,10 +260,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     }
 
     set c $itk_component(view)
-    #bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
-    #bind $c <KeyPress-Right> [list %W xview scroll -10 units]
-    #bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
-    #bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
     bind $c <Enter> "focus %W"
     bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
@@ -481,6 +480,12 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         # Reset pitch to top-down (2D) view
         bind $itk_component(view) <p> \
             [itcl::code $this SetPitch]
+        bind $itk_component(view) <g> \
+            [itcl::code $this ToggleGrid]
+        bind $itk_component(view) <l> \
+            [itcl::code $this ToggleLighting]
+        bind $itk_component(view) <w> \
+            [itcl::code $this ToggleWireframe]
 
         # Binding for mouse motion events
         set _motion(compress) 1
@@ -1841,6 +1846,34 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         incr row
     }
 
+    label $inner.heading_slider_l -text "Heading" -font "Arial 9"
+    ::scale $inner.heading_slider -font "Arial 9" \
+        -from -180 -to 180 -orient horizontal \
+        -variable [itcl::scope _view(heading)] \
+        -showvalue on \
+        -command [itcl::code $this camera set heading]
+
+    blt::table $inner \
+            $row,0 $inner.heading_slider_l -anchor w -pady 2
+    blt::table $inner \
+            $row,1 $inner.heading_slider -fill x -anchor w -pady 2
+    blt::table configure $inner r$row -resize none
+    incr row
+
+    label $inner.pitch_slider_l -text "Pitch" -font "Arial 9"
+    ::scale $inner.pitch_slider -font "Arial 9" \
+        -from -10 -to -90 -orient horizontal \
+        -variable [itcl::scope _view(pitch)] \
+        -showvalue on \
+        -command [itcl::code $this camera set pitch]
+
+    blt::table $inner \
+            $row,0 $inner.pitch_slider_l -anchor w -pady 2
+    blt::table $inner \
+            $row,1 $inner.pitch_slider -fill x -anchor w -pady 2
+    blt::table configure $inner r$row -resize none
+    incr row
+
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
@@ -1962,6 +1995,21 @@ itcl::body Rappture::MapViewer::BuildDownloadPopup { popup command } {
     raise $inner.image_button
     $inner.image_button invoke
     return $inner
+}
+
+itcl::body Rappture::MapViewer::ToggleGrid {} {
+    set _settings(grid) [expr !$_settings(grid)]
+    AdjustSetting grid
+}
+
+itcl::body Rappture::MapViewer::ToggleLighting {} {
+    set _settings(terrain-lighting) [expr !$_settings(terrain-lighting)]
+    AdjustSetting terrain-lighting
+}
+
+itcl::body Rappture::MapViewer::ToggleWireframe {} {
+    set _settings(terrain-wireframe) [expr !$_settings(terrain-wireframe)]
+    AdjustSetting terrain-wireframe
 }
 
 itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
