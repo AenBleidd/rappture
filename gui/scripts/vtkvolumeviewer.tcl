@@ -1980,7 +1980,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     set row 1
     set labels { qx qy qz qw xpan ypan zoom }
     foreach tag $labels {
-        label $inner.${tag}-label -text $tag -font "Arial 9"
+        label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
             -textvariable [itcl::scope _view(-$tag)]
         bind $inner.${tag} <Return> \
@@ -1988,7 +1988,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
         bind $inner.${tag} <KP_Enter> \
             [itcl::code $this camera set -${tag}]
         blt::table $inner \
-            $row,0 $inner.${tag}-label -anchor e -pady 2 \
+            $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
         blt::table configure $inner r$row -resize none
         incr row
