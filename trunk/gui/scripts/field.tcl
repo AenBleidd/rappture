@@ -1520,7 +1520,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         # Is there a natural growth path in generating output from 1D to
         # higher dimensions?  If there isn't, let's kill this in favor
         # or explicitly using a <curve> instead.  Otherwise, the features
-        # (methods such as xmarkers) or the <curve> need to be added
+        # (methods such as xmarkers) of the <curve> need to be added
         # to the <field>.
         #
         #set xv [blt::vector create x$_counter]
