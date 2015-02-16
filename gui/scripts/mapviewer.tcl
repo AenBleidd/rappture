@@ -38,8 +38,9 @@ itcl::class Rappture::MapViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    private variable _layersFrame "";   # Name of layers frame widget
-    private variable _mapsettings;      # Global map settings
+    private variable _layersFrame "";     # Name of layers frame widget
+    private variable _viewpointsFrame ""; # Name of viewpoints frame widget
+    private variable _mapsettings;        # Global map settings
 
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
@@ -80,6 +81,7 @@ itcl::class Rappture::MapViewer {
     private method BuildLayerTab {}
     private method BuildMapTab {}
     private method BuildTerrainTab {}
+    private method BuildViewpointsTab {}
     private method Connect {}
     private method CurrentLayers {args}
     private method Disconnect {}
@@ -93,6 +95,7 @@ itcl::class Rappture::MapViewer {
     private method EventuallyRotate { dx dy }
     private method GetImage { args }
     private method GetNormalizedMouse { x y }
+    private method GoToViewpoint { dataobj viewpoint }
     private method InitSettings { args  }
     private method MapIsGeocentric {}
     private method Pan {option x y}
@@ -113,6 +116,7 @@ itcl::class Rappture::MapViewer {
     private method ToggleLighting {}
     private method ToggleWireframe {}
     private method UpdateLayerControls {}
+    private method UpdateViewpointControls {}
     private method Zoom {option {x 0} {y 0}}
 
     private variable _dlist "";         # list of data objects
@@ -311,6 +315,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     BuildLayerTab
+    BuildViewpointsTab
     BuildMapTab
     BuildTerrainTab
     BuildCameraTab
@@ -391,6 +396,8 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             +[itcl::code $this SendCmd "map setpos %x %y"]
         bind $itk_component(view) <Double-1> \
             [itcl::code $this camera go %x %y 0.4]
+        bind $itk_component(view) <Shift-Double-1> \
+            [itcl::code $this camera go %x %y 1.0]
 
         # Pin placemark annotations
         bind $itk_component(view) <Control-ButtonPress-1> \
@@ -640,10 +647,9 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-#       Clients use this to delete a dataobj from the plot.  If no dataobjs
-#       are specified, then all dataobjs are deleted.  No data objects are
-#       deleted.  They are only removed from the display list.
-#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.  No data objects are
+# deleted.  They are only removed from the display list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::delete {args} {
     if { [llength $args] == 0} {
@@ -822,7 +828,7 @@ itcl::body Rappture::MapViewer::scale {args} {
         foreach viewpoint [$dataobj viewpoints] {
             set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
             array set vp $_viewpoints($viewpoint)
-            foreach key { x y z distance heading pitch srs verticalDatum } {
+            foreach key { label description x y z distance heading pitch srs verticalDatum } {
                 if { [info exists vp($key)] } {
                     puts stderr "$viewpoint $key $vp($key)"
                 }
@@ -942,7 +948,7 @@ itcl::body Rappture::MapViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+#   Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::MapViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -959,8 +965,8 @@ itcl::body Rappture::MapViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+#   Clients use this method to disconnect from the current rendering
+#   server.
 #
 itcl::body Rappture::MapViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1213,6 +1219,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     }
 
     UpdateLayerControls
+    UpdateViewpointControls
     set _reset 0
     global readyForNextFrame
     set readyForNextFrame 0;            # Don't advance to the next frame
@@ -1321,9 +1328,9 @@ itcl::body Rappture::MapViewer::MouseScroll {direction} {
 #
 # EventuallyHandleMotionEvent --
 #
-#       This routine compresses (no button press) motion events.  It
-#       delivers a server mouse command once every 100 milliseconds (if a
-#       motion event is pending).
+#   This routine compresses (no button press) motion events.  It
+#   delivers a server mouse command once every 100 milliseconds (if a
+#   motion event is pending).
 #
 itcl::body Rappture::MapViewer::EventuallyHandleMotionEvent {x y} {
     set _motion(x) $x
@@ -1573,9 +1580,9 @@ itcl::body Rappture::MapViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+#   Changes/updates a specific setting in the widget.  There are
+#   usually user-setable option.  Commands are sent to the render
+#   server.
 #
 itcl::body Rappture::MapViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1672,18 +1679,21 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
     } {
         ignore -font
     }
+    Rappture::Tooltip::for $inner.grid "Toggle graticule (grid) display <g>"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(terrain-wireframe)] \
         -command [itcl::code $this AdjustSetting terrain-wireframe] \
         -font "Arial 9" -anchor w
+    Rappture::Tooltip::for $inner.wireframe "Toggle wireframe rendering of terrain geometry <w>"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _settings(terrain-lighting)] \
         -command [itcl::code $this AdjustSetting terrain-lighting] \
         -font "Arial 9" -anchor w
+    Rappture::Tooltip::for $inner.lighting "Toggle sky lighting of terrain <l>"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
@@ -1724,7 +1734,7 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Terrain Settings" \
-        -icon [Rappture::icon surface]]
+        -icon [Rappture::icon terrain]]
     $inner configure -borderwidth 4
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
@@ -1761,7 +1771,6 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
 }
 
 itcl::body Rappture::MapViewer::BuildLayerTab {} {
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1773,6 +1782,20 @@ itcl::body Rappture::MapViewer::BuildLayerTab {} {
     blt::table $inner \
         0,0 $f -fill both
     set _layersFrame $inner
+}
+
+itcl::body Rappture::MapViewer::BuildViewpointsTab {} {
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Places" \
+        -icon [Rappture::icon placemark16]]
+    $inner configure -borderwidth 4
+    set f [frame $inner.viewpoints]
+    blt::table $inner \
+        0,0 $f -fill both
+    set _viewpointsFrame $inner
 }
 
 itcl::body Rappture::MapViewer::BuildCameraTab {} {
@@ -1949,6 +1972,29 @@ itcl::body Rappture::MapViewer::camera {option args} {
             }
         }
     }
+}
+
+itcl::body Rappture::MapViewer::GoToViewpoint { dataobj viewpoint } {
+    if 0 {
+    array set view {
+        x 0
+        y 0
+        z 0
+        heading 0
+        pitch -89.999
+        distance 0
+        srs ""
+        verticalDatum ""
+    }
+    }
+    array set view [$dataobj viewpoint $viewpoint]
+    foreach key {x y z heading pitch distance srs verticalDatum} {
+        if { [info exists view($key)] } {
+            set _view($key) $view($key)
+        }
+    }
+    set duration 2.0
+    SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
 }
 
 itcl::body Rappture::MapViewer::GetImage { args } {
@@ -2201,30 +2247,80 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
         }
     }
     set f $inner.layers
+    set attrib [list]
     foreach dataobj [get -objects] {
         foreach layer [$dataobj layers] {
             array unset info
             array set info [$dataobj layer $layer]
-            checkbutton $f.${layer}-visible \
+            checkbutton $f.${layer}_visible \
                 -text $info(label) \
                 -font "Arial 9" -anchor w \
                 -variable [itcl::scope _visibility($layer)] \
                 -command [itcl::code $this \
                               SetLayerVisibility $dataobj $layer]
-            blt::table $f $row,0 $f.${layer}-visible -anchor w -pady 2 -cspan 2
-            Rappture::Tooltip::for $f.${layer}-visible $info(description)
+            blt::table $f $row,0 $f.${layer}_visible -anchor w -pady 2 -cspan 2
             incr row
             if { $info(type) != "elevation" } {
-                label $f.${layer}-opacity_l -text "Opacity" -font "Arial 9"
-                ::scale $f.${layer}-opacity -from 0 -to 100 \
+                label $f.${layer}_opacity_l -text "Opacity" -font "Arial 9"
+                ::scale $f.${layer}_opacity -from 0 -to 100 \
                     -orient horizontal -showvalue off \
                     -variable [itcl::scope _opacity($layer)] \
                     -command [itcl::code $this \
                                   SetLayerOpacity $dataobj $layer]
-                blt::table $f $row,0 $f.${layer}-opacity_l -anchor w -pady 2
-                blt::table $f $row,1 $f.${layer}-opacity -anchor w -pady 2
+                Rappture::Tooltip::for $f.${layer}_opacity "Set opacity of $info(label) layer"
+                blt::table $f $row,0 $f.${layer}_opacity_l -anchor w -pady 2
+                blt::table $f $row,1 $f.${layer}_opacity -anchor w -pady 2
                 incr row
             }
+            set tooltip [list $info(description)]
+            if { [info exists info(attribution)] &&
+                 $info(attribution) != ""} {
+                lappend tooltip $info(attribution)
+            }
+            Rappture::Tooltip::for $f.${layer}_visible [join $tooltip \n]
+        }
+        set mapAttrib [$dataobj hints "attribution"]
+        if { $mapAttrib != "" } {
+            lappend attrib $mapAttrib
+        }
+    }
+    SendCmd "[list map attrib [join $attrib ,]]"
+    label $f.map_attrib -text [join $attrib \n] -font "Arial 9"
+    blt::table $f $row,0 $f.map_attrib -anchor sw -pady 2 -cspan 2
+    #incr row
+    if { $row > 0 } {
+        blt::table configure $f r* c* -resize none
+        blt::table configure $f r$row c1 -resize expand
+    }
+}
+
+itcl::body Rappture::MapViewer::UpdateViewpointControls {} {
+    set row 0
+    set inner $_viewpointsFrame
+    if { [winfo exists $inner.viewpoints] } {
+        foreach w [winfo children $inner.viewpoints] {
+            destroy $w
+        }
+    }
+    set f $inner.viewpoints
+    foreach dataobj [get -objects] {
+        foreach viewpoint [$dataobj viewpoints] {
+            array unset info
+            array set info [$dataobj viewpoint $viewpoint]
+            button $f.${viewpoint}_go \
+                -relief flat -compound left \
+                -image [Rappture::icon placemark16] \
+                -text $info(label) \
+                -font "Arial 9" -anchor w \
+                -command [itcl::code $this \
+                              GoToViewpoint $dataobj $viewpoint]
+            label $f.${viewpoint}_label \
+                -text $info(label) \
+                -font "Arial 9" -anchor w
+            blt::table $f $row,0 $f.${viewpoint}_go -anchor w -pady 2 -cspan 2
+            #blt::table $f $row,1 $f.${viewpoint}_label -anchor w -pady 2
+            Rappture::Tooltip::for $f.${viewpoint}_go $info(description)
+            incr row
         }
     }
     if { $row > 0 } {
