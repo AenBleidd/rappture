@@ -85,9 +85,6 @@ itcl::body Rappture::Map::destructor {} {
     }
 }
 
-#
-# hints --
-#
 itcl::body Rappture::Map::hints { args } {
     switch -- [llength $args] {
         0 {
@@ -106,7 +103,7 @@ itcl::body Rappture::Map::hints { args } {
 #
 # Parse --
 #
-#       Parses the map description in the XML object.
+#   Parses the map description in the XML object.
 #
 itcl::body Rappture::Map::Parse { xmlobj path } {
 
@@ -128,7 +125,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         }
         $_tree set $child "name" $layer
         $_tree set $child "type" $layerType
-        foreach key { label description } {
+        foreach key { label description attribution } {
             $_tree set $child $key [$layers get $layer.$key]
         }
         # Common settings (for all layer types) with defaults
@@ -217,6 +214,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         }
     }
     $_tree set root "label"       [$map get "about.label"]
+    $_tree set root "attribution" [$map get "about.attribution"]
     $_tree set root "style"       [$map get "style"]
     $_tree set root "camera"      [$map get "camera"]
     set parent [$_tree insert root -label "viewpoints"]
