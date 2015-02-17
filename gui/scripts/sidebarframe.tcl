@@ -246,7 +246,7 @@ itcl::body Rappture::SidebarFrame::insert {pos args} {
         frame $f.$pname
     }
 
-    $itk_component(tabs) insert end $pname \
+    $itk_component(tabs) insert $pos $pname \
         -image $panel(-icon) -text "" -padx 0 -pady 0 \
         -command [itcl::code $this _toggleTab $pname]
 
@@ -263,7 +263,11 @@ itcl::body Rappture::SidebarFrame::insert {pos args} {
         [list ::Rappture::Tooltip::tooltip cancel]
 
     set _panels($pname-title) $panel(-title)
-    lappend _panels(all) $pname
+    if { ![info exists _panels(all)] || $pos == "end" } {
+        lappend _panels(all) $pname
+    } else {
+        set _panels(all) [linsert $_panels(all) $pos $pname]
+    }
     if {$_selected == ""} {
         set _selected $pname
         if {$_state == "open"} {
