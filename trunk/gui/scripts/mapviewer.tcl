@@ -88,11 +88,13 @@ itcl::class Rappture::MapViewer {
     private method DoPan {}
     private method DoResize {}
     private method DoRotate {}
+    private method DoSelect {}
     private method EarthFile {}
     private method EventuallyHandleMotionEvent { x y }
     private method EventuallyPan { dx dy }
     private method EventuallyResize { w h }
     private method EventuallyRotate { dx dy }
+    private method EventuallySelect { x y }
     private method GetImage { args }
     private method GetNormalizedMouse { x y }
     private method GoToViewpoint { dataobj viewpoint }
@@ -129,6 +131,7 @@ itcl::class Rappture::MapViewer {
     private variable _view;             # view params for 3D view
     private variable _pan;
     private variable _rotate;
+    private variable _select;
     private variable _motion;
     private variable _settings
     private variable _opacity
@@ -184,6 +187,10 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
+    # Select event
+    $_dispatcher register !select
+    $_dispatcher dispatch $this !select "[itcl::code $this DoSelect]; list"
+
     # <Motion> event
     $_dispatcher register !motion
     $_dispatcher dispatch $this !motion "[itcl::code $this MouseMotion]; list"
@@ -222,6 +229,13 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         delay           100
         elevation       0
         pending         0
+    }
+    array set _select {
+        compress        1
+        delay           100
+        pending         0
+        x               0
+        y               0
     }
     # This array holds the Viewpoint parameters that the
     # server sends on "camera get".
@@ -392,7 +406,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
             [itcl::code $this Pan drag %x %y]
         bind $itk_component(view) <ButtonRelease-1> \
             [itcl::code $this Pan release %x %y]
-        bind $itk_component(view) <Button-1> \
+        bind $itk_component(view) <ButtonPress-1> \
             +[itcl::code $this SendCmd "map setpos %x %y"]
         bind $itk_component(view) <Double-1> \
             [itcl::code $this camera go %x %y 0.4]
@@ -562,6 +576,13 @@ itcl::body Rappture::MapViewer::DoRotate {} {
     set _rotate(pending) 0
 }
 
+itcl::body Rappture::MapViewer::DoSelect {} {
+    SendCmd "map box update $_select(x) $_select(y)"
+    set _select(x) 0
+    set _select(y) 0
+    set _select(pending) 0
+}
+
 itcl::body Rappture::MapViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
@@ -601,6 +622,19 @@ itcl::body Rappture::MapViewer::EventuallyRotate { dx dy } {
     if { !$_rotate(pending) } {
         set _rotate(pending) 1
         $_dispatcher event -after $_rotate(delay) !rotate
+    }
+}
+
+itcl::body Rappture::MapViewer::EventuallySelect { x y } {
+    set _select(x) $x
+    set _select(y) $y
+    if { !$_select(compress) } {
+        DoSelect
+        return
+    }
+    if { !$_select(pending) } {
+        set _select(pending) 1
+        $_dispatcher event -after $_select(delay) !select
     }
 }
 
@@ -1465,7 +1499,7 @@ itcl::body Rappture::MapViewer::Select {option x y} {
         }
         "drag" {
             if {$_b1mode == "select"} {
-                SendCmd "map box update $x $y"
+                EventuallySelect $x $y
             }
         }
         "release" {
@@ -1710,6 +1744,7 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
         ::scale $inner.time -from 0 -to 23.9 -orient horizontal \
             -resolution 0.1 \
             -variable [itcl::scope _settings(time)] \
+            -width 10 \
             -showvalue on \
             -command [itcl::code $this AdjustSetting time]
     }
@@ -1873,6 +1908,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
     ::scale $inner.heading_slider -font "Arial 9" \
         -from -180 -to 180 -orient horizontal \
         -variable [itcl::scope _view(heading)] \
+        -width 10 \
         -showvalue on \
         -command [itcl::code $this camera set heading]
 
@@ -1887,6 +1923,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
     ::scale $inner.pitch_slider -font "Arial 9" \
         -from -10 -to -90 -orient horizontal \
         -variable [itcl::scope _view(pitch)] \
+        -width 10 \
         -showvalue on \
         -command [itcl::code $this camera set pitch]
 
@@ -2265,6 +2302,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 ::scale $f.${layer}_opacity -from 0 -to 100 \
                     -orient horizontal -showvalue off \
                     -variable [itcl::scope _opacity($layer)] \
+                    -width 10 \
                     -command [itcl::code $this \
                                   SetLayerOpacity $dataobj $layer]
                 Rappture::Tooltip::for $f.${layer}_opacity "Set opacity of $info(label) layer"
