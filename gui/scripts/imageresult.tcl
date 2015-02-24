@@ -71,7 +71,9 @@ itcl::body Rappture::ImageResult::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
-    Rappture::Panes $itk_interior.panes -sashwidth 1 -sashrelief solid -sashpadding 2
+    Rappture::Panes $itk_interior.panes \
+        -sashwidth 2 -sashrelief solid -sashpadding 1
+
     pack $itk_interior.panes -expand yes -fill both
     set main [$itk_interior.panes pane 0]
     $itk_interior.panes fraction 0 1
