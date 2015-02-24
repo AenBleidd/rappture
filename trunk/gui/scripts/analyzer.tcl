@@ -314,7 +314,11 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     }
 
     itk_component add results {
-        Rappture::Panes $w.pane -sashwidth 1 -sashrelief solid -sashpadding {4 0}
+        Rappture::Panes $w.pane \
+            -sashwidth 2 -sashrelief solid -sashpadding {2 0}
+    } {
+        usual
+        ignore -sashwidth -sashrelief -sashpadding
     }
     pack $itk_component(results) -expand yes -fill both
     set f [$itk_component(results) pane 0]
