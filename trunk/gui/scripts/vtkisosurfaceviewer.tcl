@@ -93,8 +93,10 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method LegendPointToValue { x y }
     private method LegendProbeSingleContour { x y }
     private method LegendRangeAction { option args }
+    private method LegendRangeValidate { widget which value }
     private method LegendTitleAction { option }
     private method MotionLegend { x y }
+    private method MouseOver2Which {}
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
@@ -110,12 +112,14 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method SetCurrentColormap { color }
     private method SetCurrentFieldName { dataobj }
     private method SetLegendTip { x y }
+    private method SetMinMaxGauges { min max }
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
     private method SetupMouseRotationBindings {}
     private method SetupMousePanningBindings {}
     private method SetupKeyboardBindings {}
     private method Slice {option args}
+    private method ToggleCustomRange { args }
     private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
@@ -171,6 +175,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _curFldLabel ""
 
     private variable _mouseOver "";     # what called LegendRangeAction, vmin or vmax
+    private variable _customRangeClick 1;   # what called ToggleCustomRange
 }
 
 itk::usual VtkIsosurfaceViewer {
@@ -257,8 +262,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
         -colormap                   BCGYR
         -colormapvisible            1
         -customrange                0
-        -customrangevmin            0
-        -customrangevmax            1
+        -customrangemin             0
+        -customrangemax             1
         -cutplaneedges              0
         -cutplanelighting           1
         -cutplaneopacity            1.0
@@ -774,21 +779,16 @@ itcl::body Rappture::VtkIsosurfaceViewer::scale { args } {
                 # set reasonable defaults for
                 # customrangevmin and customrangevmax
                 foreach {min max} $lim break
-                if { ![info exists _settings(-customrangevmin)] } {
-                    set _settings(-customrangevmin) $min
-                }
-                if { ![info exists _settings(-customrangevmax)] } {
-                    set _settings(-customrangevmax) $max
-                }
+                SetMinMaxGauges $min $max
+                set _settings(-customrangemin) $min
+                set _settings(-customrangemax) $max
 
                 continue
             }
             foreach {min max} $lim break
             foreach {fmin fmax} $_limits($fname) break
-#            if { $fname == $_curFldName && ! $_settings(-customrange) } {}
             if { ! $_settings(-customrange) } {
-                set _settings(-customrangevmin) $fmin
-                set _settings(-customrangevmax) $fmax
+                SetMinMaxGauges $fmin $fmax
             }
             if { $fmin > $min } {
                 set fmin $min
@@ -1116,6 +1116,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         InitSettings \
             -isosurfacelighting \
             -field \
+            -range \
             -isosurfacevisible \
             -isosurfaceedges -isosurfacelighting -isosurfaceopacity \
             -isosurfacewireframe \
@@ -1490,14 +1491,15 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             if { ![info exists _limits($_curFldName)] } {
                 SendCmd "dataset maprange all"
             } else {
-                foreach { vmin vmax } $_limits($_curFldName) break
                 if { $_settings(-customrange) } {
-                    if { $_settings(-customrangevmin) > $vmin } {
-                        set vmin $_settings(-customrangevmin)
-                    }
-                    if { $_settings(-customrangevmax) < $vmax } {
-                        set vmax $_settings(-customrangevmax)
-                    }
+                    set vmin [$itk_component(min) value]
+                    set vmax [$itk_component(max) value]
+                } else {
+                    foreach { vmin vmax } $_limits($_curFldName) break
+                    # set the min / max gauges with limits from the field
+                    # the legend's min and max text will be updated
+                    # when the legend is redrawn in DrawLegend
+                    SetMinMaxGauges $vmin $vmax
                 }
                 SendCmd "dataset maprange explicit $vmin $vmax $_curFldName"
             }
@@ -1575,37 +1577,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-range" {
-            foreach { vmin vmax } $_limits($_curFldName) break
             if { $_settings(-customrange) } {
-                $itk_component(l_min) configure -state normal
-                $itk_component(min) configure -state normal
-                $itk_component(l_max) configure -state normal
-                $itk_component(max) configure -state normal
-#                foreach { vmin vmax } $_limits($_curFldName) break
-#                if { $_settings(-customrangevmin) < $vmin } {
-#                    set _settings(-customrangevmin) $vmin
-#                }
-#                if { $_settings(-customrangevmin) > $vmax } {
-#                    set _settings(-customrangevmin) $vmax
-#                }
-#                if { $_settings(-customrangevmax) < $vmin } {
-#                    set _settings(-customrangevmax) $vmin
-#                }
-#                if { $_settings(-customrangevmax) > $vmax } {
-#                    set _settings(-customrangevmax) $vmax
-#                }
-#
-                if { $_settings(-customrangevmin) > $vmin } {
-                    set vmin $_settings(-customrangevmin)
-                }
-                if { $_settings(-customrangevmax) < $vmax } {
-                    set vmax $_settings(-customrangevmax)
-                }
+                set vmin [$itk_component(min) value]
+                set vmax [$itk_component(max) value]
             } else {
-                $itk_component(l_min) configure -state disabled
-                $itk_component(min) configure -state disabled
-                $itk_component(l_max) configure -state disabled
-                $itk_component(max) configure -state disabled
+                foreach { vmin vmax } $_limits($_curFldName) break
             }
             GenerateContourList
             SendCmd [list contour3d contourlist $_contourList(values)]
@@ -1836,7 +1812,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         checkbutton $inner.crange \
             -text "Use Custom Range:" \
             -variable [itcl::scope _settings(-customrange)] \
-            -command [itcl::code $this AdjustSetting -range] \
+            -command [itcl::code $this ToggleCustomRange] \
             -font "Arial 9"
     }
 
@@ -1844,28 +1820,20 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         label $inner.l_min -text "Min" -font "Arial 9"
     }
     itk_component add min {
-        entry $inner.min -font "Arial 9" -bg white \
-            -textvariable [itcl::scope _settings(-customrangevmin)]
-    } {
-        ignore -font -background
+        Rappture::Gauge $inner.min \
+            -validatecommand [itcl::code $this LegendRangeValidate "" vmin]
     }
-    bind $inner.min <Return> \
-        [itcl::code $this AdjustSetting -range]
-    bind $inner.min <KP_Enter> \
+    bind $itk_component(min) <<Value>> \
         [itcl::code $this AdjustSetting -range]
 
     itk_component add l_max {
         label $inner.l_max -text "Max" -font "Arial 9"
     }
     itk_component add max {
-        entry $inner.max -font "Arial 9" -bg white \
-            -textvariable [itcl::scope _settings(-customrangevmax)]
-    } {
-        ignore -font -background
+        Rappture::Gauge $inner.max \
+            -validatecommand [itcl::code $this LegendRangeValidate "" vmax]
     }
-    bind $inner.max <Return> \
-        [itcl::code $this AdjustSetting -range]
-    bind $inner.max <KP_Enter> \
+    bind $itk_component(max) <<Value>> \
         [itcl::code $this AdjustSetting -range]
 
     $itk_component(min) configure -state disabled
@@ -2467,8 +2435,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendPointToValue { x y } {
     # Compute the value of the point
     if { [info exists _limits($fname)] } {
         if { $_settings(-customrange) } {
-            set vmin $_settings(-customrangevmin)
-            set vmax $_settings(-customrangevmax)
+            set vmin [$itk_component(min) value]
+            set vmax [$itk_component(max) value]
         } else {
             foreach { vmin vmax } $_limits($fname) break
         }
@@ -2667,9 +2635,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
         $c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
         $c bind sensor <Leave> [itcl::code $this LeaveLegend]
         $c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
-        $c bind sensor <ButtonPress-1>   [itcl::code $this LegendB1Motion press %x %y]
+#        $c bind sensor <ButtonPress-1>   [itcl::code $this LegendB1Motion press %x %y]
 #        $c bind sensor <B1-Motion>       [itcl::code $this LegendB1Motion motion %x %y]
-        $c bind sensor <ButtonRelease-1> [itcl::code $this LegendB1Motion release %x %y]
+#        $c bind sensor <ButtonRelease-1> [itcl::code $this LegendB1Motion release %x %y]
 
     }
     $c delete isoline
@@ -2684,8 +2652,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
          $_settings(-numcontours) > 0 } {
 
         if { $_settings(-customrange) } {
-            set vmin $_settings(-customrangevmin)
-            set vmax $_settings(-customrangevmax)
+            set vmin [$itk_component(min) value]
+            set vmax [$itk_component(max) value]
         } else {
             foreach { vmin vmax } $_limits($_curFldName) break
         }
@@ -2716,8 +2684,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     $c itemconfigure title -text $title
     if { [info exists _limits($_curFldName)] } {
         if { $_settings(-customrange) } {
-            set vmin $_settings(-customrangevmin)
-            set vmax $_settings(-customrangevmax)
+            set vmin [$itk_component(min) value]
+            set vmax [$itk_component(max) value]
         } else {
             foreach { vmin vmax } $_limits($_curFldName) break
         }
@@ -2791,13 +2759,90 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendTitleAction {option} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: LegendRangeValidate <widget> <which> <value>
+#
+# Used internally to validate a legend range min/max value.
+# Returns a boolean value telling if <value> was accepted (1) or rejected (0)
+# If the value is rejected, a tooltip/warning message is popped up
+# near the widget that asked for the validation, specified by <widget>
+#
+# <widget> is the widget where a tooltip/warning message should show up on
+# <which> is either "vmin" or "vmax".
+# <value> is the value to be validated.
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeValidate {widget which value} {
+
+    #check for a valid value
+    if {[string is double $value] != 1} {
+        set msg "should be valid number"
+        if {$widget != ""} {
+            Rappture::Tooltip::cue $widget $msg
+        } else {
+            # error "bad value \"$value\": $msg"
+            error $msg
+        }
+        return 0
+    }
+
+    switch -- $which {
+        vmin {
+            # check for min > max
+            if {$value > [$itk_component(max) value]} {
+                set msg "min > max, change max first"
+                if {$widget != ""} {
+                    Rappture::Tooltip::cue $widget $msg
+                } else {
+                    # error "bad value \"$value\": $msg"
+                    error $msg
+                }
+                return 0
+            }
+        }
+        vmax {
+            # check for max < min
+            if {$value < [$itk_component(min) value]} {
+                set msg "max < min, change min first"
+                if {$widget != ""} {
+                    Rappture::Tooltip::cue $widget $msg
+                } else {
+                    # error "bad value \"$value\": $msg"
+                    error $msg
+                }
+                return 0
+            }
+        }
+        default {
+            error "bad option \"$which\": should be vmin, vmax"
+        }
+    }
+}
+
+
+itcl::body Rappture::VtkIsosurfaceViewer::MouseOver2Which {} {
+    switch -- $_mouseOver {
+        vmin {
+            set which min
+        }
+        vmax {
+            set which max
+        }
+        default {
+            error "bad _mouseOver \"$_mouseOver\": should be vmin, vmax"
+        }
+    }
+    return $which
+}
+
+
+# ----------------------------------------------------------------------
 # USAGE: LegendRangeAction enter <which>
 # USAGE: LegendRangeAction leave <which>
 #
-# USAGE: LegendTitleAction popup <which>
-# USAGE: LegendTitleAction activate
-# USAGE: LegendTitleAction validate <value>
-# USAGE: LegendTitleAction apply <value>
+# USAGE: LegendRangeAction popup <which>
+# USAGE: LegendRangeAction activate
+# USAGE: LegendRangeAction validate <value>
+# USAGE: LegendRangeAction apply <value>
 #
 # Used internally to handle the mouseover and popup entry for the field range
 # inputs.  The enter option is invoked when the user moves the mouse over the
@@ -2813,7 +2858,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendTitleAction {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeAction {option args} {
     set c $itk_component(view)
-# FIXME: check $which for valid values
+
     switch -- $option {
         enter {
             set which [lindex $args 0]
@@ -2831,7 +2876,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeAction {option args} {
         }
         activate {
             foreach { x1 y1 x2 y2 } [$c bbox $_mouseOver] break
-            set info(text) $_settings(-customrange$_mouseOver)
+            set which [MouseOver2Which]
+            set info(text) [$itk_component($which) value]
             set info(x) [expr $x1 + [winfo rootx $c]]
             set info(y) [expr $y1 + [winfo rooty $c]]
             set info(w) [expr $x2 - $x1]
@@ -2842,21 +2888,136 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeAction {option args} {
             if {[llength $args] != 1} {
                 error "wrong # args: should be \"editor validate value\""
             }
+
+            set value [lindex $args 0]
+            if {[LegendRangeValidate $itk_component(editor) $_mouseOver $value] == 0} {
+                return 0
+            }
+
+            # value was good, apply it
+            # reset the mouse rotation bindings
             SetupMouseRotationBindings
         }
         apply {
             if {[llength $args] != 1} {
                 error "wrong # args: should be \"editor apply value\""
             }
-            set _settings(-customrange$_mouseOver) [lindex $args 0]
-            $itk_component(crange) select
-            AdjustSetting -range
+            set value [string trim [lindex $args 0]]
+
+            set which [MouseOver2Which]
+
+            # only set custom range if value changed
+            if {[$itk_component($which) value] != $value} {
+                # set the flag stating the custom range came from the legend
+                # change the value in the gauge
+                # turn on crange to enable the labels and gauges
+                # call AdjustSetting -range (inside ToggleCustomRange)
+                # to update drawing and legend
+                set _customRangeClick 0
+                $itk_component($which) value $value
+                $itk_component(crange) select
+                ToggleCustomRange
+            }
         }
         default {
             error "bad option \"$option\": should be enter, leave, activate, validate, apply"
         }
     }
 }
+
+
+# ----------------------------------------------------------------------
+# USAGE: ToggleCustomRange
+#
+# Called whenever the custom range is turned on or off. Used to save
+# the custom min and custom max set by the user. When the -customrange
+# setting is turned on, the range min and range max gauges are set
+# with the last value set by the user, or the default range if no
+# previous min and max were set.
+#
+# When the custom range is turned on, we check how it was turned on
+# by querying _customRangeClick. If the variable is 1, this means
+# the user clicked the crange checkbutton and we should pull the
+# custom range values from our backup variables. If the variable is 0,
+# the custom range was enabled through the user manipulating the
+# min and max value in the legend.
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkIsosurfaceViewer::ToggleCustomRange {args} {
+    if { ! $_settings(-customrange) } {
+        # custom range was turned off
+
+        # disable the min/max labels and gauge widgets
+        $itk_component(l_min) configure -state disabled
+        $itk_component(min) configure -state disabled
+        $itk_component(l_max) configure -state disabled
+        $itk_component(max) configure -state disabled
+
+        # backup the custom range
+        set _settings(-customrangemin) [$itk_component(min) value]
+        set _settings(-customrangemax) [$itk_component(max) value]
+
+        # set the gauges to dataset's min and max
+        foreach { vmin vmax } $_limits($_curFldName) break
+        SetMinMaxGauges $vmin $vmax
+    } else {
+        # custom range was turned on
+
+        # enable the min/max labels and gauge widgets
+        $itk_component(l_min) configure -state normal
+        $itk_component(min) configure -state normal
+        $itk_component(l_max) configure -state normal
+        $itk_component(max) configure -state normal
+
+        # if the custom range is being turned on by clicking the
+        # checkbox, restore the min and max gauges from the backup
+        # variables. otherwise, new values for the min and max
+        # widgets will be set later from the legend's editor.
+        if { $_customRangeClick } {
+            SetMinMaxGauges $_settings(-customrangemin) $_settings(-customrangemax)
+        }
+
+        # reset the click flag
+        set _customRangeClick 1
+    }
+    AdjustSetting -range
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: SetMinMaxGauges <min> <max>
+#
+# Set the min and max gauges in the correct order, avoiding the
+# error where you try to set the min > max before updating the max or
+# set the max < min before updating the min.
+#
+# There are five range cases to consider with our current range validation.
+# For example:
+# [2,3] -> [0,1]       : update min first, max last
+# [2,3] -> [4,5]       : update max first, min last
+# [2,3] -> [0,2.5]     : update min or max first
+# [2,3] -> [2.5,5]     : update min or max first
+# [2,3] -> [2.25,2.75] : update min or max first
+#
+# In 4 of the cases we can update min first and max last, so we only
+# need to check the case where old max < new min, where we update
+# max first and min last.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkIsosurfaceViewer::SetMinMaxGauges {min max} {
+
+    if { [$itk_component(max) value] < $min} {
+        # old max < new min
+        # shift range toward right
+        # extend max first, then update min
+        $itk_component(max) value $max
+        $itk_component(min) value $min
+    } else {
+        # extend min first, then update max
+        $itk_component(min) value $min
+        $itk_component(max) value $max
+    }
+}
+
 
 #
 # SetCurrentColormap --
@@ -2926,11 +3087,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::GenerateContourList {} {
         # if custom range has been set and are within the field's
         # range, use the custom min and max to generate contour list values
         if { $_settings(-customrange) } {
-            if { $_settings(-customrangevmin) > $vmin } {
-                set vmin $_settings(-customrangevmin)
+            if { [$itk_component(min) value] > $vmin } {
+                set vmin [$itk_component(min) value]
             }
-            if { $_settings(-customrangevmax) < $vmax } {
-                set vmax $_settings(-customrangevmax)
+            if { [$itk_component(max) value] < $vmax } {
+                set vmax [$itk_component(max) value]
             }
         }
 
