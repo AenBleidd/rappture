@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: Panes - creates a series of adjustable panes
 #
