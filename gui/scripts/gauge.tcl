@@ -41,6 +41,7 @@ itcl::class Rappture::Gauge {
     itk_option define -samplewidth sampleWidth SampleWidth 0
     itk_option define -sampleheight sampleHeight SampleHeight 0
     itk_option define -log log Log ""
+    itk_option define -validatecommand validateCommand ValidateCommand ""
 
     constructor {args} { # defined below }
 
@@ -235,12 +236,12 @@ itcl::body Rappture::Gauge::value {args} {
                 }
             }
             real {
-		# "scan" will reject the number if the string is "NaN" or
-		# "Inf" or the empty string.  It also is accepts large numbers
-		# (e.g. 111111111111111111111) that "string is double"
-		# rejects.  The problem with "scan" is that it doesn't care if
-		# there are extra characters trailing the number (eg. "123a").
-		# The extra %s substitution is used to detect this case.
+                # "scan" will reject the number if the string is "NaN" or
+                # "Inf" or the empty string.  It also is accepts large numbers
+                # (e.g. 111111111111111111111) that "string is double"
+                # rejects.  The problem with "scan" is that it doesn't care if
+                # there are extra characters trailing the number (eg. "123a").
+                # The extra %s substitution is used to detect this case.
                 if { [scan $nv "%g%s" dummy1 dummy2] != 1 } {
                     error "bad value \"$nv\": should be a real number"
                 }
@@ -287,6 +288,15 @@ itcl::body Rappture::Gauge::value {args} {
             if {$nv > $maxv} {
                 error "maximum value allowed here is $convMaxVal"
             }
+        }
+
+        #
+        # If there's a -validatecommand option, then invoke the code
+        # now to check the new value.
+        #
+        if {[string length $itk_option(-validatecommand)] > 0} {
+            set cmd "uplevel #0 [list $itk_option(-validatecommand) [list $newval]]"
+            set result [eval $cmd]
         }
 
         if {$onlycheck} {
