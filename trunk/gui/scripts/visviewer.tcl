@@ -59,6 +59,8 @@ itcl::class ::Rappture::VisViewer {
     protected variable _numConnectTries 0
     protected variable _debugConsole 0
     protected variable _reportClientInfo 1
+    # Number of milliscends to wait for server reply before displaying wait
+    # dialog.  If set to 0, dialog is never displayed.
     protected variable _waitTimeout 0
 
     constructor { servers args } {
@@ -485,9 +487,8 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 # StartWaiting --
 #
-#    Read some number of bytes from the visualization server.
+#    Display a waiting dialog after a timeout has passed
 #
-
 itcl::body Rappture::VisViewer::StartWaiting {} {
     if { $_waitTimeout > 0 } {
         after cancel $_afterId
@@ -495,6 +496,11 @@ itcl::body Rappture::VisViewer::StartWaiting {} {
     }
 }
 
+#
+# StopWaiting --
+#
+#    Take down waiting dialog
+#
 itcl::body Rappture::VisViewer::StopWaiting {} {
     if { $_waitTimeout > 0 } {
         WaitDialog off
