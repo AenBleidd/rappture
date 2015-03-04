@@ -1237,7 +1237,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rotate {option x y} {
 
 itcl::body Rappture::VtkStreamlinesViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
-        SendCmdNoWait "dataset getscalar pixel $x $y $tag"
+        SendCmd "dataset getscalar pixel $x $y $tag"
     }
 }
 
@@ -1521,7 +1521,7 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            SendCmdNoWait \
+            SendCmd \
                 "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
             break;
         }

@@ -1639,7 +1639,7 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            SendCmdNoWait \
+            SendCmd \
                 "legend2 $_dataset2style($dataset) $w $h"
                 #"legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
             break;
