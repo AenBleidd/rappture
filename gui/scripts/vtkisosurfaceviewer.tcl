@@ -1662,7 +1662,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
     # Set the legend on the first isosurface dataset.
     if { $_currentColormap != ""  } {
         set cmap $_currentColormap
-        SendCmdNoWait "legend $cmap scalar $_curFldName {} $w $h 0"
+        SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
     }
 }
 

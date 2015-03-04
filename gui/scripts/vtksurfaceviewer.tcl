@@ -1474,7 +1474,7 @@ itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
         set cmap $_currentColormap
-        SendCmdNoWait "legend $cmap scalar $_curFldName {} $w $h 0"
+        SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
     }
 }
 

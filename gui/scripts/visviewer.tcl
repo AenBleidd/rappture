@@ -98,7 +98,6 @@ itcl::class ::Rappture::VisViewer {
     protected method ReceiveEcho { channel {data ""} }
     protected method SendBytes { bytes }
     protected method SendCmd {string}
-    protected method SendCmdNoWait {string}
     protected method SendEcho { channel {data ""} }
     protected method StartBufferingCommands {}
     protected method StartWaiting {}
@@ -1190,25 +1189,6 @@ itcl::body Rappture::VisViewer::StopBufferingCommands { } {
 #       sent later.
 #
 itcl::body Rappture::VisViewer::SendCmd {string} {
-    incr _cmdSeq
-    if {$_trace} {
-        puts stderr "$_cmdSeq>>[string range $string 0 70]"
-    }
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-    }
-}
-
-#
-# SendCmdNoWait
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be
-#       sent later.
-#
-itcl::body Rappture::VisViewer::SendCmdNoWait {string} {
     incr _cmdSeq
     if {$_trace} {
         puts stderr "$_cmdSeq>>[string range $string 0 70]"
