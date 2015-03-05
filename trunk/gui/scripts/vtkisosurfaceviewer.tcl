@@ -1423,6 +1423,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "cutplane lighting $bool"
         }
         "-cutplaneopacity" {
+            set _changed($what) 1
             set _settings($what) [expr $_widget($what) * 0.01]
             SendCmd "cutplane opacity $_settings($what)"
         }
@@ -1523,6 +1524,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "contour3d lighting $bool"
         }
         "-isosurfaceopacity" {
+            set _changed($what) 1
             set _settings($what) [expr $_widget($what) * 0.01]
             SendCmd "contour3d opacity $_settings($what)"
         }
@@ -1553,6 +1555,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-numcontours" {
+            set _changed($what) 1
             set _settings($what) [$itk_component(numcontours) value]
             if { $_contourList(numLevels) != $_settings($what) } {
                 set _contourList(numLevels) $_settings($what)
@@ -1820,7 +1823,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         label $inner.l_min -text "Min" -font "Arial 9"
     }
     itk_component add min {
-        Rappture::Gauge $inner.min \
+        Rappture::Gauge $inner.min -font "Arial 9" \
             -validatecommand [itcl::code $this LegendRangeValidate "" vmin]
     }
     bind $itk_component(min) <<Value>> \
@@ -1830,7 +1833,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         label $inner.l_max -text "Max" -font "Arial 9"
     }
     itk_component add max {
-        Rappture::Gauge $inner.max \
+        Rappture::Gauge $inner.max -font "Arial 9" \
             -validatecommand [itcl::code $this LegendRangeValidate "" vmax]
     }
     bind $itk_component(max) <<Value>> \
@@ -2327,6 +2330,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         SendCmd "cutplane slice $axis $pos $tag"
         SendCmd "cutplane axis $axis $visible $tag"
     }
+    SendCmd "cutplane opacity $_settings(-cutplaneopacity) $tag"
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
 
     SendCmd "outline add $tag"
@@ -2416,7 +2420,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendB1Motion { status x y } {
     }
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: LegendPointToValue <x> <y>
 #
@@ -2448,7 +2451,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendPointToValue { x y } {
     return $value
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: LegendProbeSingleContour <x> <y>
 #
@@ -2460,7 +2462,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendProbeSingleContour { x y } {
     set value [LegendPointToValue $x $y]
     SendCmd [list contour3d contourlist $value]
 }
-
 
 #
 # SetLegendTip --
@@ -2818,7 +2819,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeValidate {widget which valu
     }
 }
 
-
 itcl::body Rappture::VtkIsosurfaceViewer::MouseOver2Which {} {
     switch -- $_mouseOver {
         vmin {
@@ -2833,7 +2833,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::MouseOver2Which {} {
     }
     return $which
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: LegendRangeAction enter <which>
@@ -2925,7 +2924,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeAction {option args} {
     }
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: ToggleCustomRange
 #
@@ -2983,7 +2981,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::ToggleCustomRange {args} {
     AdjustSetting -range
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: SetMinMaxGauges <min> <max>
 #
@@ -3017,7 +3014,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetMinMaxGauges {min max} {
         $itk_component(max) value $max
     }
 }
-
 
 #
 # SetCurrentColormap --
@@ -3081,18 +3077,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::GenerateContourList {} {
     if { [llength $_contourList(reqValues)] > 1 } {
         set values $_contourList(reqValues)
     } else {
-        # use the field limits to calculate the contour list values
-        foreach { vmin vmax } $_limits($_curFldName) break
-
-        # if custom range has been set and are within the field's
-        # range, use the custom min and max to generate contour list values
+        # if custom range has been set, use the custom min and max
+        # to generate contour list values
         if { $_settings(-customrange) } {
-            if { [$itk_component(min) value] > $vmin } {
-                set vmin [$itk_component(min) value]
-            }
-            if { [$itk_component(max) value] < $vmax } {
-                set vmax [$itk_component(max) value]
-            }
+            set vmin [$itk_component(min) value]
+            set vmax [$itk_component(max) value]
+        } else {
+            # use the field limits to calculate the contour list values
+            foreach { vmin vmax } $_limits($_curFldName) break
         }
 
         set v [blt::vector create \#auto]
