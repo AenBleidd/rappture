@@ -99,6 +99,7 @@ itcl::body Rappture::Gauge::constructor {args} {
         label $itk_component(vframe).value -width 7 \
             -borderwidth 1 -relief flat -textvariable [itcl::scope _value]
     } {
+        keep -font
         rename -background -textbackground textBackground Background
     }
     pack $itk_component(value) -side left -expand yes -fill both
