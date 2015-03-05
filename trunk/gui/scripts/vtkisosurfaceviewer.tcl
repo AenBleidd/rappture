@@ -86,7 +86,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method GenerateContourList {}
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method LegendB1Motion {status x y}
@@ -292,9 +292,25 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     }
     array set _changed {
         -colormap                0
-        -isosurfaceopacity       0
+        -cutplaneedges           0
+        -cutplanelighting        0
         -cutplaneopacity         0
+        -cutplanepreinterp       0
+        -cutplanesvisible        0
+        -cutplanewireframe       0
+        -isosurfaceedges         0
+        -isosurfacelighting      0
+        -isosurfaceopacity       0
+        -isosurfacevisible       0
+        -isosurfacewireframe     0
         -numcontours             0
+        -outline                 0
+        -xcutplaneposition       0
+        -xcutplanevisible        0
+        -ycutplaneposition       0
+        -ycutplanevisible        0
+        -zcutplaneposition       0
+        -zcutplanevisible        0
     }
     array set _widget {
         -isosurfaceopacity       60
@@ -1415,10 +1431,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-cutplaneedges" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
         }
         "-cutplanelighting" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "cutplane lighting $bool"
         }
@@ -1428,10 +1446,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "cutplane opacity $_settings($what)"
         }
         "-cutplanepreinterp" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "cutplane preinterp $bool"
         }
         "-cutplanesvisible" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "cutplane visible 0"
             if { $bool } {
@@ -1448,6 +1468,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-cutplanewireframe" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "cutplane wireframe $bool"
         }
@@ -1516,10 +1537,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-isosurfaceedges" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "contour3d edges $bool"
         }
         "-isosurfacelighting" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "contour3d lighting $bool"
         }
@@ -1529,6 +1552,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "contour3d opacity $_settings($what)"
         }
         "-isosurfacevisible" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "contour3d visible 0"
             if { $bool } {
@@ -1545,6 +1569,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-isosurfacewireframe" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "contour3d wireframe $bool"
         }
@@ -1571,6 +1596,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-outline" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "outline visible 0"
             if { $bool } {
@@ -1592,6 +1618,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
+            set _changed($what) 1
             set axis [string tolower [string range $what 1 1]]
             set bool $_settings($what)
             if { $bool } {
@@ -1604,6 +1631,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             SendCmd "cutplane axis $axis $bool"
         }
         "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set _changed($what) 1
             set axis [string tolower [string range $what 1 1]]
             set pos [expr $_settings($what) * 0.01]
             SendCmd "cutplane slice ${axis} ${pos}"
@@ -2259,7 +2287,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color                  BCGYR
+        -cutplaneedges          0
+        -cutplanelighting       1
+        -cutplaneopacity        1.0
+        -cutplanepreinterp      1
         -cutplanesvisible       0
+        -cutplanewireframe      0
         -edgecolor              black
         -edges                  0
         -isosurfacevisible      1
@@ -2290,8 +2323,17 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     # controls are specified as style hints by each dataset.  It complicates
     # the code to handle aberrant cases.
 
+    if { $_changed(-isosurfaceedges) } {
+        set style(-edges) $_settings(-isosurfaceedges)
+    }
+    if { $_changed(-isosurfacelighting) } {
+        set style(-lighting) $_settings(-isosurfacelighting)
+    }
     if { $_changed(-isosurfaceopacity) } {
         set style(-opacity) $_settings(-isosurfaceopacity)
+    }
+    if { $_changed(-isosurfacewireframe) } {
+        set style(-wireframe) $_settings(-isosurfacewireframe)
     }
     if { $_changed(-numcontours) } {
         set style(-levels) $_settings(-numcontours)
@@ -2313,37 +2355,45 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         }
         EventuallyChangeContourLevels
     }
-    set _settings(-isosurfacevisible) $style(-isosurfacevisible)
-    set _settings(-cutplanesvisible)  $style(-cutplanesvisible)
-    set _settings(-xcutplanevisible)  $style(-xcutplanevisible)
-    set _settings(-ycutplanevisible)  $style(-ycutplanevisible)
-    set _settings(-zcutplanevisible)  $style(-zcutplanevisible)
-    set _settings(-xcutplaneposition) $style(-xcutplaneposition)
-    set _settings(-ycutplaneposition) $style(-ycutplaneposition)
-    set _settings(-zcutplaneposition) $style(-zcutplaneposition)
+    foreach setting {-outline -isosurfacevisible -cutplanesvisible \
+                     -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+                     -xcutplaneposition -ycutplaneposition -zcutplaneposition \
+                     -cutplaneedges -cutplanelighting -cutplaneopacity \
+                     -cutplanepreinterp -cutplanewireframe} {
+        if {$_changed($setting)} {
+            # User-modified UI setting overrides style
+            set style($setting) $_settings($setting)
+        } else {
+            # Set UI control to style setting (tool provided or default)
+            set _settings($setting) $style($setting)
+        }
+    }
 
     SendCmd "cutplane add $tag"
     SendCmd "cutplane color [Color2RGB $itk_option(-plotforeground)] $tag"
     foreach axis {x y z} {
-        set pos [expr $_settings(-${axis}cutplaneposition) * 0.01]
-        set visible $_settings(-${axis}cutplanevisible)
+        set pos [expr $style(-${axis}cutplaneposition) * 0.01]
+        set visible $style(-${axis}cutplanevisible)
         SendCmd "cutplane slice $axis $pos $tag"
         SendCmd "cutplane axis $axis $visible $tag"
     }
-    SendCmd "cutplane opacity $_settings(-cutplaneopacity) $tag"
+    SendCmd "cutplane edges $style(-cutplaneedges) $tag"
+    SendCmd "cutplane lighting $style(-cutplanelighting) $tag"
+    SendCmd "cutplane opacity $style(-cutplaneopacity) $tag"
+    SendCmd "cutplane preinterp $style(-cutplanepreinterp) $tag"
+    SendCmd "cutplane wireframe $style(-cutplanewireframe) $tag"
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
 
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
-    set _settings(-outline) $style(-outline)
 
     GenerateContourList
     SendCmd [list contour3d add contourlist $_contourList(values) $tag]
     SendCmd "contour3d visible $style(-isosurfacevisible) $tag"
     SendCmd "contour3d edges $style(-edges) $tag"
     set _settings(-isosurfaceedges) $style(-edges)
-    #SendCmd "contour3d color [Color2RGB $settings(-color)] $tag"
+    #SendCmd "contour3d color [Color2RGB $style(-color)] $tag"
     SendCmd "contour3d lighting $style(-lighting) $tag"
     set _settings(-isosurfacelighting) $style(-lighting)
     SendCmd "contour3d linecolor [Color2RGB $style(-edgecolor)] $tag"
