@@ -1119,6 +1119,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
     if { $w < 2 || $h < 2 } {
+        update
         $_dispatcher event -idle !rebuild
         return
     }
