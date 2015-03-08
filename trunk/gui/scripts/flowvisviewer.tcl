@@ -133,7 +133,7 @@ itcl::class Rappture::FlowvisViewer {
     private variable _obj2ovride   ;# maps dataobj => style override
     private variable _serverObjs   ;# maps dataobj-component to volume ID
                                     # in the server
-    private variable _recvObjs  ;   # list of data objs to send to server
+    private variable _recvObjs     ;# list of data objs to send to server
     private variable _obj2style    ;# maps dataobj-component to transfunc
     private variable _style2objs   ;# maps tf back to list of
                                     # dataobj-components using the tf.
@@ -147,8 +147,8 @@ itcl::class Rappture::FlowvisViewer {
     private common   _settings
     private variable _activeTf ""  ;# The currently active transfer function.
     private variable _first ""     ;# This is the topmost volume.
-    private variable _volcomponents   ; # Array of components found
-    private variable _componentsList  ; # Array of components found
+    private variable _volcomponents   ;# Array of components found
+    private variable _componentsList  ;# Array of components found
     private variable _nextToken 0
     private variable _icon 0
     private variable _flow
