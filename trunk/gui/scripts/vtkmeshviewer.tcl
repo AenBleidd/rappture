@@ -341,6 +341,8 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     set _image(download) [image create photo]
 
     eval itk_initialize $args
+
+    EnableWaitDialog 900
     Connect
 }
 

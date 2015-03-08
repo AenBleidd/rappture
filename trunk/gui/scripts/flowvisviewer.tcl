@@ -568,6 +568,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     eval itk_initialize $args
 
+    EnableWaitDialog 900
     Connect
 }
 

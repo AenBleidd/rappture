@@ -442,6 +442,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     set _image(download) [image create photo]
 
     eval itk_initialize $args
+
+    EnableWaitDialog 900
     Connect
 }
 

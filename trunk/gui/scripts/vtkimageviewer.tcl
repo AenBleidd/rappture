@@ -170,7 +170,6 @@ itk::usual VtkImageViewer {
 itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
 
-    EnableWaitDialog 900
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -394,7 +393,10 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
     }
 
     set _image(download) [image create photo]
+
     eval itk_initialize $args
+
+    EnableWaitDialog 900
     Connect
     set _beforeConnect 0
 }
