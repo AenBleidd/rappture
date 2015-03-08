@@ -155,6 +155,10 @@ itcl::body Rappture::FieldResult::destructor {} {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::add {dataobj {settings ""}} {
+    if { ![info exists itk_component(renderer)] } { 
+        puts stderr "add: no renderer created."
+        return
+    }
     eval $itk_component(renderer) add $dataobj [list $settings]
 }
 
@@ -165,6 +169,10 @@ itcl::body Rappture::FieldResult::add {dataobj {settings ""}} {
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::get {} {
+    if { ![info exists itk_component(renderer)] } { 
+        puts stderr "get: no renderer created."
+        return
+    }
     return [$itk_component(renderer) get]
 }
 
@@ -190,6 +198,10 @@ itcl::body Rappture::FieldResult::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::scale {args} {
+    if { ![info exists itk_component(renderer)] } { 
+        puts stderr "scale: no renderer created."
+        return
+    }
     eval $itk_component(renderer) scale $args
 }
 
@@ -204,9 +216,17 @@ itcl::body Rappture::FieldResult::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::download {option args} {
+    if { ![info exists itk_component(renderer)] } { 
+        puts stderr "download: no renderer created."
+        return
+    }
     eval $itk_component(renderer) download $option $args
 }
 
 itcl::body Rappture::FieldResult::snap { w h } {
+    if { ![info exists itk_component(renderer)] } { 
+        puts stderr "snap: no renderer created."
+        return
+    }
     return [$itk_component(renderer) snap $w $h]
 }
