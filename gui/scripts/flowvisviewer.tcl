@@ -192,7 +192,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     $_dispatcher register !play
     $_dispatcher dispatch $this !play "[itcl::code $this flow next]; list"
-   
+
     # Draw legend event
     $_dispatcher register !goto
     $_dispatcher dispatch $this !goto "[itcl::code $this flow goto2]; list"
@@ -233,7 +233,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         $this-qx                $_view(-qx)
         $this-qy                $_view(-qy)
         $this-qz                $_view(-qz)
-        $this-zoom              $_view(-zoom)   
+        $this-zoom              $_view(-zoom)
         $this-xpan              $_view(-xpan)
         $this-ypan              $_view(-ypan)
         $this-arrows            0
@@ -363,7 +363,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     blt::table $itk_component(plotarea) \
         0,0 $itk_component(3dview) -fill both -reqwidth $w \
         1,0 $itk_component(legend) -fill x
-    blt::table configure $itk_component(plotarea) r1 -resize none   
+    blt::table configure $itk_component(plotarea) r1 -resize none
     # Create flow controls...
 
     itk_component add flowcontrols {
@@ -1109,7 +1109,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
 #
 # Called automatically whenever something changes that affects the data
 # in the widget.  Clears any existing data and rebuilds the widget to
-# display new data. 
+# display new data.
 #
 itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set w [winfo width $itk_component(3dview)]
@@ -1122,7 +1122,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).  
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     # Hide all the isomarkers. Can't remove them. Have to remember the
@@ -2666,7 +2666,7 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
         append cmd " -linewidth $info(linewidth) "
         append cmd " -corner1 {$info(corner1)} "
         append cmd " -corner2 {$info(corner2)}\n"
-    }   
+    }
     append cmd "$tag data follows $nbytes $extents\n"
     return $cmd
 }
@@ -2856,7 +2856,7 @@ itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
     update
     # We wait here for either
     #  1) the png to be delivered or
-    #  2) timeout or 
+    #  2) timeout or
     #  3) user cancels the operation.
     tkwait variable $var
 
@@ -2908,7 +2908,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
     WaitIcon start $inner.icon
     grab set $inner
     focus $inner.cancel
-   
+
     flow duration
     flow speed
     set nframes [expr round($_flow(duration) / $_flow(delay))]
@@ -2920,13 +2920,13 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
 
     set start [clock seconds]
     SendCmd "flow video $token -width $w -height $h -numframes $nframes "
-   
+
     $popup activate $widget below
     update idletasks
     update
     # We wait here until
     #  1. the movie is delivered or
-    #  2. we've timed out or 
+    #  2. we've timed out or
     #  3. the user has canceled the operation.b
     tkwait variable $var
 
