@@ -1,7 +1,6 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: flowvisviewer - 3D flow rendering
-#
 #
 # This widget performs volume and flow rendering on 3D scalar/vector datasets.
 # It connects to the Flowvis server running on a rendering farm, transmits
@@ -64,8 +63,8 @@ itcl::class Rappture::FlowvisViewer {
     public method isconnected {}
     public method limits { cname }
     public method overMarker { m x }
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method removeDuplicateMarker { m x }
     public method scale {args}
@@ -88,11 +87,11 @@ itcl::class Rappture::FlowvisViewer {
     private method Connect {}
     private method CurrentVolumeIds {{what -all}}
     private method Disconnect {}
-    private method EventuallyResize { w h } 
-    private method EventuallyGoto { nSteps } 
-    private method EventuallyResizeLegend { } 
+    private method EventuallyResize { w h }
+    private method EventuallyGoto { nSteps }
+    private method EventuallyResizeLegend { }
     private method FlowCmd { dataobj comp nbytes extents }
-    private method GetDatasetsWithComponent { cname } 
+    private method GetDatasetsWithComponent { cname }
     private method GetFlowInfo { widget }
     private method GetMovie { widget width height }
     private method GetPngImage { widget width height }
@@ -102,7 +101,7 @@ itcl::class Rappture::FlowvisViewer {
     private method PanCamera {}
     private method ParseLevelsOption { tf levels }
     private method ParseMarkersOption { tf markers }
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -116,47 +115,43 @@ itcl::class Rappture::FlowvisViewer {
     private method SetOrientation { side }
     private method Slice {option args}
     private method SlicerTip {axis}
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method WaitIcon { option widget }
     private method Zoom {option}
-    private method arrows { tag name } 
-    private method box { tag name } 
-    private method millisecs2str { value } 
-    private method particles { tag name } 
-    private method str2millisecs { value } 
-    private method streams { tag name } 
+    private method arrows { tag name }
+    private method box { tag name }
+    private method millisecs2str { value }
+    private method particles { tag name }
+    private method str2millisecs { value }
+    private method streams { tag name }
 
     private variable _arcball ""
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _serverObjs   ;# maps dataobj-component to volume ID 
+    private variable _serverObjs   ;# maps dataobj-component to volume ID
                                     # in the server
-    private variable _recvObjs  ;# list of data objs to send to server
+    private variable _recvObjs  ;   # list of data objs to send to server
     private variable _obj2style    ;# maps dataobj-component to transfunc
-    private variable _style2objs   ;# maps tf back to list of 
+    private variable _style2objs   ;# maps tf back to list of
                                     # dataobj-components using the tf.
-    private variable _obj2flow;         # Maps dataobj-component to a flow.
+    private variable _obj2flow;     # Maps dataobj-component to a flow.
 
-    private variable _reset 1;		# Connection to server has been reset 
+    private variable _reset 1      ;# Connection to server has been reset
     private variable _click        ;# info used for rotate operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
-    private variable _isomarkers    ;# array of isosurface level values 0..1
+    private variable _isomarkers   ;# array of isosurface level values 0..1
     private common   _settings
     private variable _activeTf ""  ;# The currently active transfer function.
     private variable _first ""     ;# This is the topmost volume.
-    private variable _volcomponents   ; # Array of components found 
-    private variable _componentsList   ; # Array of components found 
+    private variable _volcomponents   ; # Array of components found
+    private variable _componentsList  ; # Array of components found
     private variable _nextToken 0
     private variable _icon 0
     private variable _flow
-    # This 
-    # indicates which isomarkers and transfer
-    # function to use when changing markers,
-    # opacity, or thickness.
     private common _downloadPopup          ;# download options from popup
 
     private common _hardcopy
@@ -197,7 +192,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     $_dispatcher register !play
     $_dispatcher dispatch $this !play "[itcl::code $this flow next]; list"
-    
+   
     # Draw legend event
     $_dispatcher register !goto
     $_dispatcher dispatch $this !goto "[itcl::code $this flow goto2]; list"
@@ -238,7 +233,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         $this-qx                $_view(-qx)
         $this-qy                $_view(-qy)
         $this-qz                $_view(-qz)
-        $this-zoom              $_view(-zoom)    
+        $this-zoom              $_view(-zoom)   
         $this-xpan              $_view(-xpan)
         $this-ypan              $_view(-ypan)
         $this-arrows            0
@@ -329,7 +324,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
             -variable [itcl::scope _settings($this-cutplaneVisible)] \
-            -command [itcl::code $this AdjustSetting cutplaneVisible] 
+            -command [itcl::code $this AdjustSetting cutplaneVisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -360,7 +355,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     bind $itk_component(legend) <Configure> \
         [itcl::code $this EventuallyResizeLegend]
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
@@ -368,11 +363,11 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     blt::table $itk_component(plotarea) \
         0,0 $itk_component(3dview) -fill both -reqwidth $w \
         1,0 $itk_component(legend) -fill x
-    blt::table configure $itk_component(plotarea) r1 -resize none    
+    blt::table configure $itk_component(plotarea) r1 -resize none   
     # Create flow controls...
 
     itk_component add flowcontrols {
-        frame $itk_interior.flowcontrols 
+        frame $itk_interior.flowcontrols
     } {
         usual
         rename -background -controlbackground controlBackground Background
@@ -419,7 +414,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
             -onimage [Rappture::icon flow-pause] \
             -offimage [Rappture::icon flow-play] \
             -variable [itcl::scope _settings($this-play)] \
-            -command [itcl::code $this flow toggle] 
+            -command [itcl::code $this flow toggle]
     }
     set fg [option get $itk_component(hull) font Font]
     Rappture::Tooltip::for $itk_component(play) \
@@ -471,7 +466,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
             -highlightthickness 0
     } {
         usual
-        ignore -highlightthickness 
+        ignore -highlightthickness
         rename -background -controlbackground controlBackground Background
     }
 
@@ -480,7 +475,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
             -highlightthickness 0
     } {
         usual
-        ignore -highlightthickness 
+        ignore -highlightthickness
         rename -background -controlbackground controlBackground Background
     }
 
@@ -490,7 +485,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
             -min 1 -max 10 -width 3 -font "arial 9"
     } {
         usual
-        ignore -highlightthickness 
+        ignore -highlightthickness
         rename -background -controlbackground controlBackground Background
     }
     Rappture::Tooltip::for $itk_component(speed) \
@@ -507,9 +502,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         0,3 $itk_component(loop) -padx {2 0} \
         0,4 $itk_component(dial) -fill x -padx {2 0 } \
         0,5 $itk_component(duration) -padx { 0 0} \
-        0,7 $itk_component(speed) -padx {2 3} 
+        0,7 $itk_component(speed) -padx {2 3}
 
-#        0,6 $itk_component(speedlabel) -padx {2 0} 
+#        0,6 $itk_component(speedlabel) -padx {2 0}
     blt::table configure $itk_component(flowcontrols) c* -resize none
     blt::table configure $itk_component(flowcontrols) c4 -resize both
     blt::table configure $itk_component(flowcontrols) r0 -pady 1
@@ -709,7 +704,7 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
     }
     # If anything changed, then rebuild the plot
     if {$changed} {
-        # Repair the reverse lookup 
+        # Repair the reverse lookup
         foreach tf [array names _style2objs] {
             set list {}
             foreach {dataobj comp} $_style2objs($tf) break
@@ -742,8 +737,8 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
         -markers ""
         -opacity 0.5
     }
-    array unset _limits 
-    array unset _volcomponents 
+    array unset _limits
+    array unset _volcomponents
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
             continue;                     # Object doesn't contain valid data.
@@ -887,7 +882,7 @@ itcl::body Rappture::FlowvisViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
-    set _reset 1 
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -897,13 +892,13 @@ itcl::body Rappture::FlowvisViewer::Connect {} {
 
             set info {}
             set user "???"
-	    if { [info exists env(USER)] } {
+            if { [info exists env(USER)] } {
                 set user $env(USER)
-	    }
+            }
             set session "???"
-	    if { [info exists env(SESSION)] } {
+            if { [info exists env(SESSION)] } {
                 set session $env(SESSION)
-	    }
+            }
             lappend info "version" "$Rappture::version"
             lappend info "build" "$Rappture::build"
             lappend info "svnurl" "$Rappture::svnurl"
@@ -1004,11 +999,11 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
         "image" {
             $_image(plot) configure -data $bytes
             #puts stderr "image received [image width $_image(plot)] by [image height $_image(plot)]"
-        } 
+        }
         "print" {
             set tag $this-$info(-token)
             set _hardcopy($tag) $bytes
-        } 
+        }
         "movie" {
             set tag $this-$info(-token)
             set _hardcopy($tag) $bytes
@@ -1024,12 +1019,12 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
 #
 #       The procedure is the response from the render server to each "legend"
 #       command.  The server sends back a "legend" command invoked our
-#       the slave interpreter.  The purpose is to collect data of the image 
+#       the slave interpreter.  The purpose is to collect data of the image
 #       representing the legend in the canvas.  In addition, the isomarkers
 #       of the active transfer function are displayed.
 #
 #       I don't know is this is the right place to display the isomarkers.
-#       I don't know all the different paths used to draw the plot. There's 
+#       I don't know all the different paths used to draw the plot. There's
 #       "Rebuild", "add", etc.
 #
 itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
@@ -1114,7 +1109,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
 #
 # Called automatically whenever something changes that affects the data
 # in the widget.  Clears any existing data and rebuilds the widget to
-# display new data.  
+# display new data. 
 #
 itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set w [winfo width $itk_component(3dview)]
@@ -1127,7 +1122,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).  
     StartBufferingCommands
 
     # Hide all the isomarkers. Can't remove them. Have to remember the
@@ -1481,9 +1476,9 @@ itcl::body Rappture::FlowvisViewer::Flow {option args} {
             switch -- $action {
                 record {
                     if { [$itk_component(rewind) cget -relief] != "sunken" } {
-                        $itk_component(rewind) configure -relief sunken 
-                        $itk_component(stop) configure -relief raised 
-                        $itk_component(play) configure -relief raised 
+                        $itk_component(rewind) configure -relief sunken
+                        $itk_component(stop) configure -relief raised
+                        $itk_component(play) configure -relief raised
                         set inner $itk_component(settingsFrame)
                         set frames [$inner.framecnt value]
                         set _settings(nsteps) $frames
@@ -1493,9 +1488,9 @@ itcl::body Rappture::FlowvisViewer::Flow {option args} {
                 }
                 stop {
                     if { [$itk_component(stop) cget -relief] != "sunken" } {
-                        $itk_component(rewind) configure -relief raised 
-                        $itk_component(stop) configure -relief sunken 
-                        $itk_component(play) configure -relief raised 
+                        $itk_component(rewind) configure -relief raised
+                        $itk_component(stop) configure -relief sunken
+                        $itk_component(play) configure -relief raised
                         _pause
                         set cmds "flow reset"
                         SendCmd $cmds
@@ -1504,10 +1499,10 @@ itcl::body Rappture::FlowvisViewer::Flow {option args} {
                 play {
                     if { [$itk_component(play) cget -relief] != "sunken" } {
                         $itk_component(rewind) configure -relief raised
-                        $itk_component(stop) configure -relief raised 
+                        $itk_component(stop) configure -relief raised
                         $itk_component(play) configure \
                             -image [Rappture::icon flow-pause] \
-                            -relief sunken 
+                            -relief sunken
                         bind $itk_component(play) <ButtonPress> \
                             [itcl::code $this _pause]
                         flow next
@@ -1547,7 +1542,7 @@ itcl::body Rappture::FlowvisViewer::Pause {} {
     # Toggle the button to "play" mode
     $itk_component(play) configure \
         -image [Rappture::icon flow-start] \
-        -relief raised 
+        -relief raised
     bind $itk_component(play) <ButtonPress> \
         [itcl::code $this Flow movie play toggle]
 }
@@ -1575,9 +1570,9 @@ itcl::body Rappture::FlowvisViewer::InitSettings { args } {
 itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
         colormap {
-            set color [$itk_component(colormap) value] 
-            set _settings(colormap) $color 
-            #ResetColormap $color 
+            set color [$itk_component(colormap) value]
+            set _settings(colormap) $color
+            #ResetColormap $color
         }
         ambient {
             if { $_first != "" } {
@@ -1666,7 +1661,7 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
             if { $_settings($this-legend) } {
                 blt::table $itk_component(plotarea) \
                     0,0 $itk_component(3dview) -fill both \
-                    1,0 $itk_component(legend) -fill x 
+                    1,0 $itk_component(legend) -fill x
                 blt::table configure $itk_component(plotarea) r1 -resize none
             } else {
                 blt::table forget $itk_component(legend)
@@ -1689,7 +1684,7 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
             set axis [string range $what 0 0]
             set bool $_settings($this-$what)
             if { [isconnected] } {
-                set vols [CurrentVolumeIds -cutplanes] 
+                set vols [CurrentVolumeIds -cutplanes]
                 SendCmd "cutplane state $bool $axis $vols"
             }
             if { $bool } {
@@ -1793,9 +1788,9 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
     #
-    # FIXME: The current way we generate transfer-function names completely 
-    #        ignores the -markers option.  The problem is that we are forced 
-    #        to compute the name from an increasing complex set of values: 
+    # FIXME: The current way we generate transfer-function names completely
+    #        ignores the -markers option.  The problem is that we are forced
+    #        to compute the name from an increasing complex set of values:
     #        color, levels, marker, opacity.  I think the cow's out of the
     #        barn on this one.
 
@@ -1941,21 +1936,21 @@ itcl::body Rappture::FlowvisViewer::ParseLevelsOption { tf levels } {
             set m [Rappture::IsoMarker \#auto $c $this $tf]
             $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
             $m relval $x
-            lappend _isomarkers($tf) $m 
+            lappend _isomarkers($tf) $m
         }
     } else {
         foreach x $levels {
             set m [Rappture::IsoMarker \#auto $c $this $tf]
             $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
             $m relval $x
-            lappend _isomarkers($tf) $m 
+            lappend _isomarkers($tf) $m
         }
     }
 }
 
 #
 # The -markers option takes a list of zero or more values (the values
-# may be separated either by spaces or commas) that have the following 
+# may be separated either by spaces or commas) that have the following
 # format:
 #
 #   N%  Percent of current total data range.  Converted to
@@ -1971,7 +1966,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
     foreach marker $markers {
         set n [scan $marker "%g%s" value suffix]
         if { $n == 2 && $suffix == "%" } {
-            # ${n}% : Set relative value. 
+            # ${n}% : Set relative value.
             set value [expr {$value * 0.01}]
             set m [Rappture::IsoMarker \#auto $c $this $tf]
             $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
@@ -1988,7 +1983,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: UndateTransferFuncs 
+# USAGE: UndateTransferFuncs
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::updateTransferFunctions {} {
     $_dispatcher event -after 100 !send_transfunc
@@ -1998,7 +1993,7 @@ itcl::body Rappture::FlowvisViewer::AddIsoMarker { x y } {
     if { $_activeTf == "" } {
         error "active transfer function isn't set"
     }
-    set tf $_activeTf 
+    set tf $_activeTf
     set c $itk_component(legend)
     set m [Rappture::IsoMarker \#auto $c $this $tf]
     $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
@@ -2157,7 +2152,7 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
         1,0 $inner.grid  -cspan 2 -anchor w \
         2,0 $inner.outline  -cspan 2 -anchor w \
         3,0 $inner.volume  -cspan 2 -anchor w \
-        4,0 $inner.legend  -cspan 2 -anchor w 
+        4,0 $inner.legend  -cspan 2 -anchor w
 
     bind $inner <Map> [itcl::code $this GetFlowInfo $inner]
 
@@ -2224,7 +2219,7 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         -showvalue off -command [itcl::code $this AdjustSetting thickness]
     label $inner.thick -text "Thick" -font $fg
 
-    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
@@ -2366,21 +2361,21 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    label $inner.view_l -text "view" -font "Arial 9" 
-    set f [frame $inner.view] 
-    foreach side { front back left right top bottom } { 
+    label $inner.view_l -text "view" -font "Arial 9"
+    set f [frame $inner.view]
+    foreach side { front back left right top bottom } {
         button $f.$side  -image [Rappture::icon view$side] \
-            -command [itcl::code $this SetOrientation $side] 
-        Rappture::Tooltip::for $f.$side "Change the view to $side" 
-        pack $f.$side -side left 
+            -command [itcl::code $this SetOrientation $side]
+        Rappture::Tooltip::for $f.$side "Change the view to $side"
+        pack $f.$side -side left
     }
 
     blt::table $inner \
         0,0 $inner.view_l -anchor e -pady 2 \
-        0,1 $inner.view -anchor w -pady 2 
+        0,1 $inner.view -anchor w -pady 2
     blt::table configure $inner r0 -resize none
 
-    set row 1 
+    set row 1
     set labels { qw qx qy qz xpan ypan zoom }
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
@@ -2434,7 +2429,7 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 
     blt::table $inner \
         1,0 $inner.showstreams  -anchor w \
-        2,0 $inner.showarrows  -anchor w 
+        2,0 $inner.showarrows  -anchor w
     blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
 
@@ -2457,10 +2452,10 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
             -command [itcl::code $this particles $key $name] \
             -font "Arial 9"
         Rappture::Tooltip::for $inner.part$row $info(description)
-        blt::table $inner $row,0 $inner.part$row -anchor w 
+        blt::table $inner $row,0 $inner.part$row -anchor w
         if { !$_settings($this-particles-$name) } {
             $inner.part$row select
-        } 
+        }
         incr row
     }
     set boxes [$flowobj boxes]
@@ -2484,13 +2479,13 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
         blt::table $inner $row,0 $inner.box$row -anchor w
         if { !$_settings($this-box-$name) } {
             $inner.box$row select
-        } 
+        }
         incr row
     }
     blt::table configure $inner r* -resize none
     blt::table configure $inner r$row -resize expand
     blt::table configure $inner c3 -resize expand
-    event generate [winfo parent [winfo parent $w]] <Configure> 
+    event generate [winfo parent [winfo parent $w]] <Configure>
 }
 
 itcl::body Rappture::FlowvisViewer::particles { tag name } {
@@ -2584,9 +2579,9 @@ itcl::body Rappture::FlowvisViewer::EventuallyGoto { nSteps } {
     }
 }
 
-#  camera -- 
+#  camera --
 itcl::body Rappture::FlowvisViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -2671,7 +2666,7 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
         append cmd " -linewidth $info(linewidth) "
         append cmd " -corner1 {$info(corner1)} "
         append cmd " -corner2 {$info(corner2)}\n"
-    }    
+    }   
     append cmd "$tag data follows $nbytes $extents\n"
     return $cmd
 }
@@ -2739,13 +2734,13 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
         }
         "stop" {
             if { $_flow(state) } {
-                flow off 
+                flow off
                 flow reset
             }
         }
         "pause" {
             if { $_flow(state) } {
-                flow off 
+                flow off
             }
         }
         "play" {
@@ -2758,14 +2753,14 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
                 if { $_settings($this-currenttime) >= $_flow(duration) } {
                     set _settings($this-step) 1
                     SendCmd "flow reset"
-                } 
+                }
                 flow next
             }
         }
         "toggle" {
             if { $_settings($this-play) } {
                 flow play
-            } else { 
+            } else {
                 flow pause
             }
         }
@@ -2790,7 +2785,7 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
                 SendCmd "flow next"
             }
             $_dispatcher event -after $_flow(delay) !play
-        } 
+        }
         default {
             error "bad option \"$option\": should be play, stop, toggle, or reset."
         }
@@ -2841,9 +2836,9 @@ itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
             0,0 $inner.title -cspan 2 \
             1,0 $inner.please -anchor w \
             1,1 $inner.icon -anchor e  \
-            2,0 $inner.cancel -cspan 2 
-        blt::table configure $inner r0 -pady 4 
-        blt::table configure $inner r2 -pady 4 
+            2,0 $inner.cancel -cspan 2
+        blt::table configure $inner r0 -pady 4
+        blt::table configure $inner r2 -pady 4
         bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
     } else {
         set inner [$popup component inner]
@@ -2859,9 +2854,9 @@ itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
     $popup activate $widget below
     update idletasks
     update
-    # We wait here for either 
-    #  1) the png to be delivered or 
-    #  2) timeout or  
+    # We wait here for either
+    #  1) the png to be delivered or
+    #  2) timeout or 
     #  3) user cancels the operation.
     tkwait variable $var
 
@@ -2900,20 +2895,20 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
             0,0 $inner.title -cspan 2 \
             1,0 $inner.please -anchor w \
             1,1 $inner.icon -anchor e  \
-            2,0 $inner.cancel -cspan 2 
-        blt::table configure $inner r0 -pady 4 
-        blt::table configure $inner r2 -pady 4 
+            2,0 $inner.cancel -cspan 2
+        blt::table configure $inner r0 -pady 4
+        blt::table configure $inner r2 -pady 4
         bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
     } else {
         set inner [$popup component inner]
     }
-    update 
+    update
     # Timeout is set to 10 minutes.
     $_dispatcher event -after 600000 !movietimeout
     WaitIcon start $inner.icon
     grab set $inner
     focus $inner.cancel
-    
+   
     flow duration
     flow speed
     set nframes [expr round($_flow(duration) / $_flow(delay))]
@@ -2925,13 +2920,13 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
 
     set start [clock seconds]
     SendCmd "flow video $token -width $w -height $h -numframes $nframes "
-    
+   
     $popup activate $widget below
-    update idletasks 
+    update idletasks
     update
     # We wait here until
-    #  1. the movie is delivered or 
-    #  2. we've timed out or  
+    #  1. the movie is delivered or
+    #  2. we've timed out or 
     #  3. the user has canceled the operation.b
     tkwait variable $var
 
@@ -2946,7 +2941,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
     update
 
     # This will both cancel the movie generation (if it hasn't already
-    # completed) and reset the flow. 
+    # completed) and reset the flow.
     SendCmd "flow reset"
     if { $_hardcopy($this-$token) != "" } {
         return [list .mpg $_hardcopy($this-$token)]
@@ -2980,21 +2975,21 @@ itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
     return [format %02d:%02d [expr round($min)] [expr round($sec)]]
 }
 
-itcl::body Rappture::FlowvisViewer::SetOrientation { side } { 
-    array set positions { 
-        front "1 0 0 0" 
-        back  "0 0 1 0" 
-        left  "0.707107 0 -0.707107 0" 
-        right "0.707107 0 0.707107 0" 
-        top   "0.707107 -0.707107 0 0" 
-        bottom "0.707107 0.707107 0 0" 
-    } 
-    foreach name { -qw -qx -qy -qz } value $positions($side) { 
+itcl::body Rappture::FlowvisViewer::SetOrientation { side } {
+    array set positions {
+        front "1 0 0 0"
+        back  "0 0 1 0"
+        left  "0.707107 0 -0.707107 0"
+        right "0.707107 0 0.707107 0"
+        top   "0.707107 -0.707107 0 0"
+        bottom "0.707107 0.707107 0 0"
+    }
+    foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient $q"
     SendCmd "camera reset"
     set _view(-xpan) 0.0
     set _view(-ypan) 0.0
@@ -3005,7 +3000,7 @@ itcl::body Rappture::FlowvisViewer::SetOrientation { side } {
 }
 
 # Reset global settings from dataset's settings.
-itcl::body Rappture::FlowvisViewer::BuildVolumeComponents {} { 
+itcl::body Rappture::FlowvisViewer::BuildVolumeComponents {} {
     $itk_component(volcomponents) choices delete 0 end
     foreach name $_componentsList {
         $itk_component(volcomponents) choices insert end $name $name
@@ -3015,7 +3010,7 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeComponents {} {
 }
 
 # Reset global settings from dataset's settings.
-itcl::body Rappture::FlowvisViewer::GetDatasetsWithComponent { cname } { 
+itcl::body Rappture::FlowvisViewer::GetDatasetsWithComponent { cname } {
     if { ![info exists _volcomponents($cname)] } {
         return ""
     }

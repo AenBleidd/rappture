@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: nanovisviewer - 3D volume rendering
 #
@@ -18,9 +18,9 @@ package require Img
 
 #
 # FIXME:
-#       Need to Add DX readers this client to examine the data before 
+#       Need to Add DX readers this client to examine the data before
 #       it's sent to the server.  This will eliminate 90% of the insanity in
-#       computing the limits of all the volumes.  I can rip out all the 
+#       computing the limits of all the volumes.  I can rip out all the
 #       "receive data" "send transfer function" event crap.
 #
 #       This means we can compute the transfer function (relative values) and
@@ -28,7 +28,7 @@ package require Img
 #       come from the server.  This will also prevent the flashing that occurs
 #       when a new volume is drawn (using the default transfer function) and
 #       then when the correct transfer function has been sent and linked to
-#       the volume.  
+#       the volume.
 #
 option add *NanovisViewer.width 4i widgetDefault
 option add *NanovisViewer*cursor crosshair widgetDefault
@@ -74,45 +74,45 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method isconnected {}
     public method limits { tf }
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
     public method updateTransferFunctions {}
 
     # The following methods are only used by this class.
 
-    private method AddNewMarker { x y } 
+    private method AddNewMarker { x y }
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
     private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
-    private method ComputeAlphamap { cname } 
+    private method ComputeAlphamap { cname }
     private method ComputeTransferFunction { cname }
     private method Connect {}
     private method CurrentDatasets {{what -all}}
     private method Disconnect {}
     private method DoResize {}
     private method DrawLegend { cname }
-    private method EventuallyRedrawLegend { } 
-    private method EventuallyResize { w h } 
+    private method EventuallyRedrawLegend { }
+    private method EventuallyResize { w h }
     private method FixLegend {}
-    private method GetAlphamap { cname color } 
-    private method GetColormap { cname color } 
-    private method GetDatasetsWithComponent { cname } 
+    private method GetAlphamap { cname color }
+    private method GetColormap { cname color }
+    private method GetDatasetsWithComponent { cname }
     private method GetVolumeInfo { w }
-    private method HideAllMarkers {} 
-    private method InitComponentSettings { cname } 
+    private method HideAllMarkers {}
+    private method InitComponentSettings { cname }
     private method InitSettings { args }
-    private method NameToAlphamap { name } 
+    private method NameToAlphamap { name }
     private method NameTransferFunction { dataobj comp }
     private method Pan {option x y}
     private method PanCamera {}
     private method ParseLevelsOption { cname levels }
     private method ParseMarkersOption { cname markers }
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -126,25 +126,25 @@ itcl::class Rappture::NanovisViewer {
     private method SetOrientation { side }
     private method Slice {option args}
     private method SlicerTip {axis}
-    private method SwitchComponent { cname } 
+    private method SwitchComponent { cname }
     private method ToggleVolume { tag name }
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
 
     private variable _arcball ""
 
-    private variable _dlist ""     ;# list of data objects
-    private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _serverDatasets   ;# contains all the dataobj-component 
-                                   ;# to volumes in the server
+    private variable _dlist ""         ;# list of data objects
+    private variable _obj2ovride       ;# maps dataobj => style override
+    private variable _serverDatasets   ;# contains all the dataobj-component
+                                       ;# to volumes in the server
     private variable _recvdDatasets;    # list of data objs to send to server
     private variable _dataset2style;    # maps dataobj-component to transfunc
-    private variable _style2datasets;   # maps tf back to list of 
+    private variable _style2datasets;   # maps tf back to list of
                                         # dataobj-components using the tf.
 
-    private variable _reset 1;		# Connection to server has been reset.
+    private variable _reset 1;          # Connection to server has been reset.
     private variable _click;            # Info used for rotate operations.
     private variable _limits;           # Autoscale min/max for all axes
     private variable _view;             # View params for 3D view
@@ -152,9 +152,9 @@ itcl::class Rappture::NanovisViewer {
     private variable _transferFunctionEditors
     private variable _settings
     private variable _first "" ;        # This is the topmost volume.
-    private variable _current "";       # Currently selected component 
-    private variable _volcomponents   ; # Array of components found 
-    private variable _componentsList   ; # Array of components found 
+    private variable _current "";       # Currently selected component
+    private variable _volcomponents    ;# Array of components found
+    private variable _componentsList   ;# Array of components found
     private variable _cname2style
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
@@ -316,7 +316,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
             -variable [itcl::scope _settings(-cutplanesvisible)] \
-            -command [itcl::code $this AdjustSetting -cutplanesvisible] 
+            -command [itcl::code $this AdjustSetting -cutplanesvisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -328,7 +328,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         BuildCutplanesTab
         BuildCameraTab
     } errs] != 0 } {
-	global errorInfo
+        global errorInfo
         puts stderr "errs=$errs errorInfo=$errorInfo"
     }
 
@@ -348,14 +348,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     bind $itk_component(legend) <Enter> \
         [list focus $itk_component(legend)]
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(3dview)
     blt::table $itk_component(plotarea) \
         0,0 $itk_component(3dview) -fill both -reqwidth $w \
-        1,0 $itk_component(legend) -fill x 
+        1,0 $itk_component(legend) -fill x
     blt::table configure $itk_component(plotarea) r1 -resize none
 
     # Bindings for rotation via mouse
@@ -430,7 +430,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
         itcl::delete object $_transferFunctionEditors($cname)
     }
     catch { blt::arcball destroy $_arcball }
-    array unset _settings 
+    array unset _settings
 }
 
 # ----------------------------------------------------------------------
@@ -564,8 +564,8 @@ itcl::body Rappture::NanovisViewer::scale {args} {
         -levels   6
         -markers  ""
     }
-    array unset _limits 
-    array unset _volcomponents 
+    array unset _limits
+    array unset _volcomponents
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
             continue;                     # Object doesn't contain valid data.
@@ -633,7 +633,7 @@ itcl::body Rappture::NanovisViewer::download {option args} {
             # This is better than writing to temporary files.  When we switch
             # to the BLT picture image it won't be necessary to decode the
             # image data.
-            if { [image width $_image(plot)] > 0 && 
+            if { [image width $_image(plot)] > 0 &&
                  [image height $_image(plot)] > 0 } {
                 set bytes [$_image(plot) data -format "jpeg -quality 100"]
                 set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -659,7 +659,7 @@ itcl::body Rappture::NanovisViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
-    set _reset 1 
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -750,7 +750,7 @@ itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
-        ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"       
+        ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"
         $_image(plot) configure -data $bytes
     } elseif { $info(-type) == "print" } {
         set tag $this-print-$info(-token)
@@ -823,7 +823,7 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
 #
 #       The procedure is the response from the render server to each "legend"
 #       command.  The server sends back a "legend" command invoked our
-#       the slave interpreter.  The purpose is to collect data of the image 
+#       the slave interpreter.  The purpose is to collect data of the image
 #       representing the legend in the canvas.  In addition, the
 #       active transfer function is displayed.
 #
@@ -906,7 +906,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_width != $w || $_height != $h || $_reset } {
@@ -958,24 +958,24 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     }
     set _first [lindex [get] 0]
     if { $_reset } {
-	#
-	# Reset the camera and other view parameters
-	#
+        #
+        # Reset the camera and other view parameters
+        #
         set _settings(-qw)    $_view(-qw)
         set _settings(-qx)    $_view(-qx)
         set _settings(-qy)    $_view(-qy)
         set _settings(-qz)    $_view(-qz)
-	set _settings(-xpan)  $_view(-xpan)
-	set _settings(-ypan)  $_view(-ypan)
-	set _settings(-zoom)  $_view(-zoom)
+        set _settings(-xpan)  $_view(-xpan)
+        set _settings(-ypan)  $_view(-ypan)
+        set _settings(-zoom)  $_view(-zoom)
 
         set q [ViewToQuaternion]
         $_arcball quaternion $q
         SendCmd "camera orient $q"
         SendCmd "camera reset"
-	PanCamera
-	SendCmd "camera zoom $_view(-zoom)"
-	
+        PanCamera
+        SendCmd "camera zoom $_view(-zoom)"
+
         #cutplane state 0 all
         foreach axis {x y z} {
             # Turn off cutplanes for all volumes
@@ -987,23 +987,23 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             -axesvisible -xcutplanevisible -ycutplanevisible -zcutplanevisible \
             -current
 
-	if {"" != $_first} {
-	    set axis [$_first hints updir]
-	    if { "" != $axis } {
-		SendCmd "up $axis"
-	    }
-	    set location [$_first hints camera]
-	    if { $location != "" } {
-		array set _view $location
-	    }
-	}
+        if {"" != $_first} {
+            set axis [$_first hints updir]
+            if { "" != $axis } {
+                SendCmd "up $axis"
+            }
+            set location [$_first hints camera]
+            if { $location != "" } {
+                array set _view $location
+            }
+        }
     }
     # Outline seems to need to be reset every update.
-    InitSettings -outlinevisible -cutplanesvisible 
+    InitSettings -outlinevisible -cutplanesvisible
     # nothing to send -- activate the proper ivol
     SendCmd "volume state 0"
     if {"" != $_first} {
-        set datasets [array names _serverDatasets $_first-*] 
+        set datasets [array names _serverDatasets $_first-*]
         if { $datasets != "" } {
             SendCmd "volume state 1 $datasets"
         }
@@ -1085,7 +1085,7 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set q [ViewToQuaternion]          
+            set q [ViewToQuaternion]
             $_arcball quaternion $q
             SendCmd "camera orient $q"
             SendCmd "camera reset"
@@ -1232,7 +1232,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
     }
     switch -- $what {
         "-ambient" {
-            # Other parts of the code use the ambient setting to 
+            # Other parts of the code use the ambient setting to
             # tell if the component settings have been initialized
             if { ![info exists _settings($_current${what})] } {
                 InitComponentSettings $_current
@@ -1249,14 +1249,14 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         }
         "-background" {
             set bgcolor [$itk_component(background) value]
-	    array set fgcolors {
-		"black" "white"
-		"white" "black"
-		"grey"	"black"
-	    }
+            array set fgcolors {
+                "black" "white"
+                "white" "black"
+                "grey"  "black"
+            }
             configure -plotbackground $bgcolor \
-		-plotforeground $fgcolors($bgcolor)
- 	    DrawLegend $_current
+                -plotforeground $fgcolors($bgcolor)
+            DrawLegend $_current
         }
         "-colormap" {
             set color [$itk_component(colormap) value]
@@ -1293,7 +1293,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             if { $_settings($what) } {
                 blt::table $itk_component(plotarea) \
                     0,0 $itk_component(3dview) -fill both \
-                    1,0 $itk_component(legend) -fill x 
+                    1,0 $itk_component(legend) -fill x
                 blt::table configure $itk_component(plotarea) r1 -resize none
             } else {
                 blt::table forget $itk_component(legend)
@@ -1346,7 +1346,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             # visibility of all the all volumes.  Whenever it's changed, you
             # have to synchronize each of the local controls (see below) with
             # this.
-            set datasets [CurrentDatasets] 
+            set datasets [CurrentDatasets]
             set bool $_settings($what)
             SendCmd "volume data state $bool $datasets"
             foreach cname $_componentsList {
@@ -1355,7 +1355,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             set _settings(-volumevisible) $bool
         }
         "-volumevisible" {
-            # This is the component specific control.  It changes the 
+            # This is the component specific control.  It changes the
             # visibility of only the current component.
             set _settings($_current${what}) $_settings($what)
             foreach tag [GetDatasetsWithComponent $_current] {
@@ -1366,7 +1366,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             set axis [string range $what 1 1]
             set bool $_settings($what)
             # We only set cutplanes on the first dataset.
-            set datasets [CurrentDatasets -cutplanes] 
+            set datasets [CurrentDatasets -cutplanes]
             set tag [lindex $datasets 0]
             SendCmd "cutplane state $bool $axis $tag"
             if { $bool } {
@@ -1476,7 +1476,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
         } else {
             ParseLevelsOption $cname $styles(-levels)
         }
-        
+
     }
     set wmap [ComputeAlphamap $cname]
     set _cname2transferFunction($cname) [list $cmap $wmap]
@@ -1497,7 +1497,7 @@ itcl::body Rappture::NanovisViewer::RemoveMarker { x y } {
         continue
     }
     # Add a new marker to the current transfer function
-    $_transferFunctionEditors($_current) deleteMarker $x $y 
+    $_transferFunctionEditors($_current) deleteMarker $x $y
 }
 
 # ----------------------------------------------------------------------
@@ -1522,8 +1522,8 @@ itcl::configbody Rappture::NanovisViewer::plotforeground {
         SendCmd "volume outline color $rgb"
         SendCmd "grid axiscolor $rgb"
         SendCmd "grid linecolor $rgb"
-        $itk_component(legend) itemconfigure labels -fill $color 
-        $itk_component(legend) itemconfigure limits -fill $color 
+        $itk_component(legend) itemconfigure labels -fill $color
+        $itk_component(legend) itemconfigure limits -fill $color
     }
 }
 
@@ -1570,7 +1570,7 @@ itcl::body Rappture::NanovisViewer::ParseLevelsOption { cname levels } {
 
 #
 # The -markers option takes a list of zero or more values (the values
-# may be separated either by spaces or commas) that have the following 
+# may be separated either by spaces or commas) that have the following
 # format:
 #
 #   N%  Percent of current total data range.  Converted to
@@ -1588,7 +1588,7 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
     foreach marker $markers {
         set n [scan $marker "%g%s" value suffix]
         if { $n == 2 && $suffix == "%" } {
-            # $n% : Set relative value (0..1). 
+            # $n% : Set relative value (0..1).
             lappend list [expr {$value * 0.01}]
         } else {
             # $n : absolute value, compute relative
@@ -1601,7 +1601,7 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: UndateTransferFuncs 
+# USAGE: UndateTransferFuncs
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::updateTransferFunctions {} {
     $_dispatcher event -idle !send_transfunc
@@ -1628,7 +1628,7 @@ itcl::body Rappture::NanovisViewer::limits { cname } {
     }
     if { $min != "" } {
         set _limits(min) $min
-    } 
+    }
     if { $max != "" } {
         set _limits(max) $max
     }
@@ -1682,14 +1682,14 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         -command [itcl::code $this AdjustSetting -volume] \
         -font "Arial 9"
 
-    label $inner.background_l -text "Background" -font "Arial 9" 
+    label $inner.background_l -text "Background" -font "Arial 9"
     itk_component add background {
         Rappture::Combobox $inner.background -width 10 -editable no
     }
     $inner.background choices insert end \
         "black"              "black"            \
         "white"              "white"            \
-        "grey"               "grey"             
+        "grey"               "grey"
 
     $itk_component(background) value $_settings(-background)
     bind $inner.background <<Value>> \
@@ -1722,7 +1722,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     label $inner.lighting_l \
         -text "Lighting / Material Properties" \
-        -font "Arial 9 bold" 
+        -font "Arial 9 bold"
 
     checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
         -variable [itcl::scope _settings(-light2side)] \
@@ -1766,7 +1766,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -troughcolor grey92
 
     label $inner.transferfunction_l \
-        -text "Transfer Function" -font "Arial 9 bold" 
+        -text "Transfer Function" -font "Arial 9 bold"
 
     # Tooth thickness
     label $inner.thin -text "Thin" -font $fg
@@ -1777,7 +1777,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     label $inner.thick -text "Thick" -font $fg
 
-    # Colormap 
+    # Colormap
     label $inner.colormap_l -text "Colormap" -font $fg
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
@@ -1818,7 +1818,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         10,2 $inner.colormap                  -padx 2 -cspan 3 -fill x \
         11,1 $inner.thin             -anchor e \
         11,2 $inner.thickness                 -cspan 2 -fill x \
-        11,4 $inner.thick -anchor w  
+        11,4 $inner.thick -anchor w
 
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner r* -pady { 2 0 }
@@ -2041,10 +2041,10 @@ itcl::body Rappture::NanovisViewer::EventuallyRedrawLegend {} {
     }
 }
 
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::NanovisViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -2118,16 +2118,16 @@ itcl::body Rappture::NanovisViewer::GetVolumeInfo { w } {
             -command [itcl::code $this ToggleVolume $key $name] \
             -font "Arial 9"
         Rappture::Tooltip::for $inner.vol$row $info(description)
-        blt::table $inner $row,0 $inner.vol$row -anchor w 
+        blt::table $inner $row,0 $inner.vol$row -anchor w
         if { !$_settings(-volume-$name) } {
             $inner.vol$row select
-        } 
+        }
         incr row
     }
     blt::table configure $inner r* -resize none
     blt::table configure $inner r$row -resize expand
     blt::table configure $inner c3 -resize expand
-    event generate [winfo parent [winfo parent $w]] <Configure> 
+    event generate [winfo parent [winfo parent $w]] <Configure>
 }
 
 itcl::body Rappture::NanovisViewer::ToggleVolume { tag name } {
@@ -2135,7 +2135,7 @@ itcl::body Rappture::NanovisViewer::ToggleVolume { tag name } {
     SendCmd "volume state $bool $name"
 }
 
-itcl::body Rappture::NanovisViewer::SetOrientation { side } { 
+itcl::body Rappture::NanovisViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
         back  "0 0 1 0"
@@ -2146,10 +2146,10 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
     }
     foreach name { -qw -qx -qy -qz } value $positions($side) {
         set _view($name) $value
-    } 
+    }
     set q [ViewToQuaternion]
     $_arcball quaternion $q
-    SendCmd "camera orient $q" 
+    SendCmd "camera orient $q"
     SendCmd "camera reset"
     set _view(-xpan) 0
     set _view(-ypan) 0
@@ -2167,7 +2167,7 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
 #    match what's used as global settings above. This is called the first
 #    time we try to switch to a given component in SwitchComponent below.
 #
-itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } { 
+itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
     # Expanding component name for key.
     array set _settings [subst {
         $cname-ambient           60
@@ -2189,7 +2189,7 @@ itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
 #    menu in the volume tab.  It synchronizes the global volume settings
 #    with the settings of the new current component.
 #
-itcl::body Rappture::NanovisViewer::SwitchComponent { cname } { 
+itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
     if { ![info exists _settings($cname-ambient)] } {
         InitComponentSettings $cname
     }
@@ -2217,7 +2217,7 @@ itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
 #    only one component, don't display the label or the combobox in the
 #    volume settings tab.
 #
-itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} { 
+itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} {
     $itk_component(volcomponents) choices delete 0 end
     foreach name $_componentsList {
         $itk_component(volcomponents) choices insert end $name $name
@@ -2227,14 +2227,14 @@ itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} {
     set parent [winfo parent $itk_component(volcomponents)]
     if { [llength $_componentsList] <= 1 } {
         # Unpack the components label and dropdown if there's only one
-        # component. 
+        # component.
         blt::table forget $parent.volcomponents_l $parent.volcomponents
     } else {
-        # Pack the components label and dropdown into the table there's 
-        # more than one component to select. 
+        # Pack the components label and dropdown into the table there's
+        # more than one component to select.
         blt::table $parent \
             0,0 $parent.volcomponents_l -anchor e -cspan 2 \
-            0,2 $parent.volcomponents -cspan 3 -fill x 
+            0,2 $parent.volcomponents -cspan 3 -fill x
     }
 }
 
@@ -2246,7 +2246,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} {
 #    For example, this is used where we want to change the settings of
 #    volumes that have the current component.
 #
-itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } { 
+itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } {
     if { ![info exists _volcomponents($cname)] } {
         return ""
     }
@@ -2267,27 +2267,27 @@ itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } {
 #    delete and recreate markers from the <style> since the user may have
 #    created, deleted, or moved markers.
 #
-itcl::body Rappture::NanovisViewer::HideAllMarkers {} { 
+itcl::body Rappture::NanovisViewer::HideAllMarkers {} {
     foreach cname [array names _transferFunctionEditors] {
-        $_transferFunctionEditors($cname) hideMarkers 
+        $_transferFunctionEditors($cname) hideMarkers
     }
 }
 
-itcl::body Rappture::NanovisViewer::GetColormap { cname color } { 
+itcl::body Rappture::NanovisViewer::GetColormap { cname color } {
     if { $color == "default" } {
         return $_cname2defaultcolormap($cname)
     }
     return [ColorsToColormap $color]
 }
 
-itcl::body Rappture::NanovisViewer::GetAlphamap { cname name } { 
+itcl::body Rappture::NanovisViewer::GetAlphamap { cname name } {
     if { $name == "default" } {
         return $_cname2defaultalphamap($cname)
     }
     return [NameToAlphamap $name]
 }
 
-itcl::body Rappture::NanovisViewer::ResetColormap { cname color } { 
+itcl::body Rappture::NanovisViewer::ResetColormap { cname color } {
     # Get the current transfer function
     if { ![info exists _cname2transferFunction($cname)] } {
         return
@@ -2299,7 +2299,7 @@ itcl::body Rappture::NanovisViewer::ResetColormap { cname color } {
     EventuallyRedrawLegend
 }
 
-itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } { 
+itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
     if { ![info exists _transferFunctionEditors($cname)] } {
         return [list 0.0 0.0 1.0 1.0]
     }
@@ -2318,7 +2318,7 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
     # settings widget
     # Scale values between 0.00001 and 0.01000
     set delta [expr {double($_settings($cname-thickness)) * 0.0001}]
-    
+
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
     set wmap ""
@@ -2365,120 +2365,120 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
 itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
     switch -- $name {
         "ramp-up" {
-            set wmap { 
-                0.0 0.0 
-                1.0 1.0 
+            set wmap {
+                0.0 0.0
+                1.0 1.0
             }
         }
         "ramp-down" {
-            set wmap { 
-                0.0 1.0 
-                1.0 0.0 
+            set wmap {
+                0.0 1.0
+                1.0 0.0
             }
         }
         "vee" {
-            set wmap { 
-                0.0 1.0 
-                0.5 0.0 
-                1.0 1.0 
+            set wmap {
+                0.0 1.0
+                0.5 0.0
+                1.0 1.0
             }
         }
         "tent-1" {
-            set wmap { 
-                0.0 0.0 
-                0.5 1.0 
-                1.0 0.0 
+            set wmap {
+                0.0 0.0
+                0.5 1.0
+                1.0 0.0
             }
         }
         "tent-2" {
-            set wmap { 
-                0.0 0.0 
-                0.25 1.0 
-                0.5 0.0 
-                0.75 1.0 
-                1.0 0.0 
+            set wmap {
+                0.0 0.0
+                0.25 1.0
+                0.5 0.0
+                0.75 1.0
+                1.0 0.0
             }
         }
         "tent-3" {
-            set wmap { 
-                0.0 0.0 
+            set wmap {
+                0.0 0.0
                 0.16666 1.0
                 0.33333 0.0
                 0.5     1.0
                 0.66666 0.0
                 0.83333 1.0
-                1.0 0.0 
+                1.0 0.0
             }
         }
         "tent-4" {
-            set wmap { 
-                0.0     0.0 
+            set wmap {
+                0.0     0.0
                 0.125   1.0
                 0.25    0.0
                 0.375   1.0
-                0.5     0.0        
+                0.5     0.0
                 0.625   1.0
                 0.75    0.0
                 0.875   1.0
-                1.0     0.0 
+                1.0     0.0
             }
         }
         "sinusoid-1" {
             set wmap {
-                0.0                     0.000 0.600 0.800 
-                0.14285714285714285     0.400 0.900 1.000 
-                0.2857142857142857      0.600 1.000 1.000 
-                0.42857142857142855     0.800 1.000 1.000 
-                0.5714285714285714      0.900 0.900 0.900 
-                0.7142857142857143      0.600 0.600 0.600 
-                0.8571428571428571      0.400 0.400 0.400 
+                0.0                     0.000 0.600 0.800
+                0.14285714285714285     0.400 0.900 1.000
+                0.2857142857142857      0.600 1.000 1.000
+                0.42857142857142855     0.800 1.000 1.000
+                0.5714285714285714      0.900 0.900 0.900
+                0.7142857142857143      0.600 0.600 0.600
+                0.8571428571428571      0.400 0.400 0.400
                 1.0                     0.200 0.200 0.200
             }
         }
         "sinusoid-2" {
-            set wmap { 
-                0.0                     0.900 1.000 1.000 
-                0.1111111111111111      0.800 0.983 1.000 
-                0.2222222222222222      0.700 0.950 1.000 
-                0.3333333333333333      0.600 0.900 1.000 
-                0.4444444444444444      0.500 0.833 1.000 
-                0.5555555555555556      0.400 0.750 1.000 
-                0.6666666666666666      0.300 0.650 1.000 
-                0.7777777777777778      0.200 0.533 1.000 
-                0.8888888888888888      0.100 0.400 1.000 
+            set wmap {
+                0.0                     0.900 1.000 1.000
+                0.1111111111111111      0.800 0.983 1.000
+                0.2222222222222222      0.700 0.950 1.000
+                0.3333333333333333      0.600 0.900 1.000
+                0.4444444444444444      0.500 0.833 1.000
+                0.5555555555555556      0.400 0.750 1.000
+                0.6666666666666666      0.300 0.650 1.000
+                0.7777777777777778      0.200 0.533 1.000
+                0.8888888888888888      0.100 0.400 1.000
                 1.0                     0.000 0.250 1.000
             }
         }
         "sinusoid-6" {
             set wmap {
-                0.0                             0.200   0.100   0.000 
-                0.09090909090909091             0.400   0.187   0.000 
-                0.18181818181818182             0.600   0.379   0.210 
-                0.2727272727272727              0.800   0.608   0.480 
-                0.36363636363636365             0.850   0.688   0.595 
-                0.45454545454545453             0.950   0.855   0.808 
-                0.5454545454545454              0.800   0.993   1.000 
-                0.6363636363636364              0.600   0.973   1.000 
-                0.7272727272727273              0.400   0.940   1.000 
-                0.8181818181818182              0.200   0.893   1.000 
-                0.9090909090909091              0.000   0.667   0.800 
-                1.0                             0.000   0.480   0.600 
+                0.0                             0.200   0.100   0.000
+                0.09090909090909091             0.400   0.187   0.000
+                0.18181818181818182             0.600   0.379   0.210
+                0.2727272727272727              0.800   0.608   0.480
+                0.36363636363636365             0.850   0.688   0.595
+                0.45454545454545453             0.950   0.855   0.808
+                0.5454545454545454              0.800   0.993   1.000
+                0.6363636363636364              0.600   0.973   1.000
+                0.7272727272727273              0.400   0.940   1.000
+                0.8181818181818182              0.200   0.893   1.000
+                0.9090909090909091              0.000   0.667   0.800
+                1.0                             0.000   0.480   0.600
             }
         }
         "sinusoid-10" {
             set wmap {
-                0.0                             0.000   0.480   0.600 
-                0.09090909090909091             0.000   0.667   0.800 
-                0.18181818181818182             0.200   0.893   1.000 
-                0.2727272727272727              0.400   0.940   1.000 
-                0.36363636363636365             0.600   0.973   1.000 
-                0.45454545454545453             0.800   0.993   1.000 
-                0.5454545454545454              0.950   0.855   0.808 
-                0.6363636363636364              0.850   0.688   0.595 
-                0.7272727272727273              0.800   0.608   0.480 
-                0.8181818181818182              0.600   0.379   0.210 
-                0.9090909090909091              0.400   0.187   0.000 
-                1.0                             0.200   0.100   0.000 
+                0.0                             0.000   0.480   0.600
+                0.09090909090909091             0.000   0.667   0.800
+                0.18181818181818182             0.200   0.893   1.000
+                0.2727272727272727              0.400   0.940   1.000
+                0.36363636363636365             0.600   0.973   1.000
+                0.45454545454545453             0.800   0.993   1.000
+                0.5454545454545454              0.950   0.855   0.808
+                0.6363636363636364              0.850   0.688   0.595
+                0.7272727272727273              0.800   0.608   0.480
+                0.8181818181818182              0.600   0.379   0.210
+                0.9090909090909091              0.400   0.187   0.000
+                1.0                             0.200   0.100   0.000
             }
         }
         "step-2" {
@@ -2516,12 +2516,12 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
         "step-12" {
             set wmap {
                 "#EE82EE"
-                "#4B0082" 
-                "blue" 
-                "#008000" 
-                "yellow" 
-                "#FFA500" 
-                "red" 
+                "#4B0082"
+                "blue"
+                "#008000"
+                "yellow"
+                "#FFA500"
+                "red"
             }
         }
         default {
