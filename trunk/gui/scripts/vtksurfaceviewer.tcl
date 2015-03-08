@@ -883,6 +883,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
+        update
         $_dispatcher event -idle !rebuild
         return
     }

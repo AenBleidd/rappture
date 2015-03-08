@@ -1018,10 +1018,10 @@ itcl::body Rappture::VtkViewer::ReceiveDataset { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Rebuild {} {
-
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
+        update
         $_dispatcher event -idle !rebuild
         return
     }

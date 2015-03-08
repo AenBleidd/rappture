@@ -472,11 +472,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
 
     EnableWaitDialog 500
     Connect
-    # FIXME: Removing this update breaks wizard mode (see examples/3D)
-    # However, it also allows an error in the initialization order
-    # where FieldResult::add is called from ResultViewer before this
-    # constructor is completed.
-    #update
 }
 
 # ----------------------------------------------------------------------
@@ -1053,6 +1048,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
+        update
         $_dispatcher event -idle !rebuild
         return
     }
