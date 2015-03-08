@@ -399,7 +399,7 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
 
-    EnableWaitDialog 500
+    EnableWaitDialog 900
     Connect
 }
 
