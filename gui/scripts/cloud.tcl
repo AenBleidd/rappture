@@ -47,7 +47,7 @@ itcl::class Rappture::Cloud {
     public method limits {which}
     public method hints {{key ""}}
     public method numpoints {} {
-	return $_numPoints
+        return $_numPoints
     }
     public method isvalid {} {
         return $_isValid
@@ -165,7 +165,7 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
             }
         }
         append _points "$x $y $z\n"
-	incr _numPoints
+        incr _numPoints
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
