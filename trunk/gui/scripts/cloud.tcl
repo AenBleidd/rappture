@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: cloud - represents the mesh for a cloud of points
 #
@@ -20,8 +20,8 @@ itcl::class Rappture::Cloud {
     private variable _xmlobj "";        # ref to XML obj with device data
     private variable _cloud "";         # lib obj representing this cloud
     private variable _units "" ;        # system of units for x, y, z
-    private variable _axis2label;       # 
-    private variable _axis2units;       # 
+    private variable _axis2label;       #
+    private variable _axis2units;       #
     private variable _limits;           # limits x, y, z
     private common _xp2obj ;            # Used for fetch/release ref counting
     private common _obj2ref ;           # Used for fetch/release ref counting
@@ -31,11 +31,11 @@ itcl::class Rappture::Cloud {
     private variable _dim 0
     private variable _isValid 0;        # Indicates if the data is valid.
 
-    constructor {xmlobj path} { 
-        # defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method points {}
     public method mesh {}
@@ -118,9 +118,9 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
     set list {}
     foreach u $_units axis { x y z } {
         if { $u != "" } {
-            set _axis2units($axis) $u 
+            set _axis2units($axis) $u
         } else {
-            set _axis2units($axis) $first 
+            set _axis2units($axis) $first
         }
         lappend list $_axis2units($axis)
     }
@@ -155,10 +155,10 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
                 set _limits($axis) [list $value $value]
             } else {
                 foreach { min max } $_limits($axis) break
-                if {$value < $min} { 
+                if {$value < $min} {
                     set min $value
                 }
-                if {$value > $max} { 
+                if {$value > $max} {
                     set max $value
                 }
                 set _limits($axis) [list $min $max]
