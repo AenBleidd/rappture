@@ -914,6 +914,7 @@ itcl::body Rappture::Field::Build {} {
                 close $f
             }
             if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
+                unset contents
                 ReadVtkDataSet $cname $vtkdata
                 if 0 {
                     set f [open /tmp/$_path.$cname.vtk "w"]
@@ -921,7 +922,8 @@ itcl::body Rappture::Field::Build {} {
                     close $f
                 }
             } else {
-                puts stderr "Can't parse dx data: $vtkdata"
+                unset contents
+                puts stderr "Can't parse dx data"
             }
             if { $_alwaysConvertDX ||
                  ($_viewer != "nanovis" && $_viewer != "flowvis") } {
@@ -931,6 +933,8 @@ itcl::body Rappture::Field::Build {} {
                 set _type "dx"
                 set _comp2dx($cname) $data
             }
+            unset data
+            unset vtkdata
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
                 set _comp2flowhints($cname) \
@@ -1388,6 +1392,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     set path [$_field get $cname.mesh]
     if {[$_xmlobj element $path] == ""} {
         # Unknown mesh designated.
+        puts stderr "ERROR: Unknown mesh \"$path\""
         return 0
     }
     set viewer [$_field get "about.view"]
@@ -1590,6 +1595,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         set v [blt::vector create \#auto]
         $v set [$_field get $cname.values]
         if { [$v length] == 0 } {
+            puts stderr "ERROR: No field values"
             return 0
         }
         set numFieldValues [$v length]
