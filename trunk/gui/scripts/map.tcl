@@ -148,9 +148,13 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         $_tree set $child "driver" "debug"
         set colorramp [$layers element -as type $layer.colorramp]
         if { $colorramp != "" } {
-            foreach key { url colormap } {
+            $_tree set $child "colorramp.elevdriver" "gdal"
+            $_tree set $child "colorramp.colormap" "0 0 0 0 1 1 1 1 1 1"
+            foreach key { url colormap elevdriver } {
                 set value [$layers get $layer.colorramp.$key]
-                $_tree set $child "colorramp.$key" $value
+                if {$value != ""} {
+                    $_tree set $child "colorramp.$key" $value
+                }
             }
             set file [$layers get $layer.colorramp.file]
             if { $file != "" } {

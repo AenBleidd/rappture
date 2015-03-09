@@ -2270,8 +2270,8 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     switch -- $info(type) {
         "image" {
             array set settings {
-                -min_level 0
-                -max_level 23
+                -minlevel 0
+                -maxlevel 23
                 -opacity 1.0
             }
             if { [info exists info(style)] } {
@@ -2288,7 +2288,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         set cmapName $layer
                         SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
                         SendCmd [list map layer add $layer image colorramp \
-                                     $info(colorramp.url) $info(cache) $info(profile)  \
+                                     $info(colorramp.url) $info(cache) $info(colorramp.elevdriver) $info(profile)  \
                                      $cmapName]
                     }
                     "debug" {
