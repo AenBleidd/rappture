@@ -35,7 +35,7 @@ itcl::class Rappture::Map {
         "image"         0
         "elevation"     1
         "polygon"       2
-        "points"        3
+        "point"         3
         "icon"          4
         "line"          5
         "label"         6
@@ -125,7 +125,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         }
         $_tree set $child "name" $layer
         $_tree set $child "type" $layerType
-        foreach key { label description attribution } {
+        foreach key { label description attribution profile srs verticalDatum } {
             $_tree set $child $key [$layers get $layer.$key]
         }
         # Common settings (for all layer types) with defaults
@@ -146,6 +146,19 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             }
         }
         $_tree set $child "driver" "debug"
+        set colorramp [$layers element -as type $layer.colorramp]
+        if { $colorramp != "" } {
+            foreach key { url colormap } {
+                set value [$layers get $layer.colorramp.$key]
+                $_tree set $child "colorramp.$key" $value
+            }
+            set file [$layers get $layer.colorramp.file]
+            if { $file != "" } {
+                # FIXME: Add test for valid file path
+                $_tree set $child "colorramp.url" $file
+            }
+            $_tree set $child "driver" "colorramp"
+        }
         set gdal [$layers element -as type $layer.gdal]
         if { $gdal != "" } {
             foreach key { url } {

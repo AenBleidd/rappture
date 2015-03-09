@@ -78,18 +78,25 @@ itcl::class Rappture::MapViewer {
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildDownloadPopup { widget command }
+    private method BuildHelpTab {}
     private method BuildLayerTab {}
     private method BuildMapTab {}
     private method BuildTerrainTab {}
     private method BuildViewpointsTab {}
     private method Connect {}
     private method CurrentLayers {args}
+    private method DisablePanningMouseBindings {}
+    private method DisableRotationMouseBindings {}
+    private method DisableZoomMouseBindings {}
     private method Disconnect {}
     private method DoPan {}
     private method DoResize {}
     private method DoRotate {}
     private method DoSelect {}
     private method EarthFile {}
+    private method EnablePanningMouseBindings {}
+    private method EnableRotationMouseBindings {}
+    private method EnableZoomMouseBindings {}
     private method EventuallyHandleMotionEvent { x y }
     private method EventuallyPan { dx dy }
     private method EventuallyResize { w h }
@@ -103,9 +110,10 @@ itcl::class Rappture::MapViewer {
     private method Pan {option x y}
     private method Pin {option x y}
     private method Rebuild {}
+    private method ReceiveImage { args }
+    private method ReceiveLegend { args }
     private method ReceiveMapInfo { args }
     private method ReceiveScreenInfo { args }
-    private method ReceiveImage { args }
     private method Rotate {option x y}
     private method Select {option x y}
     private method SetHeading { {value 0} }
@@ -199,12 +207,13 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image    [itcl::code $this ReceiveImage]
+    $_parser alias legend   [itcl::code $this ReceiveLegend]
     $_parser alias map      [itcl::code $this ReceiveMapInfo]
     $_parser alias camera   [itcl::code $this camera]
     $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
 
     # Millisecond delay before animated wait dialog appears
-    set _waitTimeout 500
+    set _waitTimeout 900
 
     # Settings for mouse motion events: these are required
     # to update the Lat/Long coordinate display
@@ -333,6 +342,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     BuildMapTab
     BuildTerrainTab
     BuildCameraTab
+    BuildHelpTab
 
     # Legend
 
@@ -348,14 +358,17 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
-    set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w
+        0,0 $itk_component(view) -fill both -reqwidth 10000
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
+
+    EnablePanningMouseBindings
+    EnableRotationMouseBindings
+    EnableZoomMouseBindings
 
     if {$_useServerManip} {
         # Bindings for keyboard events
@@ -364,34 +377,15 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         bind $itk_component(view) <KeyRelease> \
             [itcl::code $this KeyRelease %N]
 
-        # Bindings for rotation via mouse
-        bind $itk_component(view) <ButtonPress-1> \
-            [itcl::code $this MouseClick 1 %x %y]
+        # Zoom to point
         bind $itk_component(view) <Double-1> \
             [itcl::code $this MouseDoubleClick 1 %x %y]
-        bind $itk_component(view) <B1-Motion> \
-            [itcl::code $this MouseDrag 1 %x %y]
-        bind $itk_component(view) <ButtonRelease-1> \
-            [itcl::code $this MouseRelease 1 %x %y]
-
-        # Bindings for panning via mouse
-        bind $itk_component(view) <ButtonPress-2> \
-            [itcl::code $this MouseClick 2 %x %y]
-        bind $itk_component(view) <Double-2> \
-            [itcl::code $this MouseDoubleClick 2 %x %y]
-        bind $itk_component(view) <B2-Motion> \
-            [itcl::code $this MouseDrag 2 %x %y]
-        bind $itk_component(view) <ButtonRelease-2> \
-            [itcl::code $this MouseRelease 2 %x %y]
-
-        bind $itk_component(view) <ButtonPress-3> \
-            [itcl::code $this MouseClick 3 %x %y]
         bind $itk_component(view) <Double-3> \
             [itcl::code $this MouseDoubleClick 3 %x %y]
-        bind $itk_component(view) <B3-Motion> \
-            [itcl::code $this MouseDrag 3 %x %y]
-        bind $itk_component(view) <ButtonRelease-3> \
-            [itcl::code $this MouseRelease 3 %x %y]
+
+        # Unused
+        bind $itk_component(view) <Double-2> \
+            [itcl::code $this MouseDoubleClick 2 %x %y]
 
         # Binding for mouse motion events
         if {$_motion(enable)} {
@@ -399,52 +393,33 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
                 [itcl::code $this EventuallyHandleMotionEvent %x %y]
         }
     } else {
-        # Bindings for panning via mouse
-        bind $itk_component(view) <ButtonPress-1> \
-            [itcl::code $this Pan click %x %y]
-        bind $itk_component(view) <B1-Motion> \
-            [itcl::code $this Pan drag %x %y]
-        bind $itk_component(view) <ButtonRelease-1> \
-            [itcl::code $this Pan release %x %y]
-        bind $itk_component(view) <ButtonPress-1> \
-            +[itcl::code $this SendCmd "map setpos %x %y"]
+        # Zoom to point
         bind $itk_component(view) <Double-1> \
             [itcl::code $this camera go %x %y 0.4]
+        # Travel to point (no zoom)
         bind $itk_component(view) <Shift-Double-1> \
             [itcl::code $this camera go %x %y 1.0]
+        # Zoom out centered on point
+        bind $itk_component(view) <Double-3> \
+            [itcl::code $this camera go %x %y 2.5]
 
         # Pin placemark annotations
         bind $itk_component(view) <Control-ButtonPress-1> \
-            +[itcl::code $this Pin add %x %y]
+            [itcl::code $this Pin add %x %y]
         bind $itk_component(view) <Control-ButtonPress-3> \
-            +[itcl::code $this Pin delete %x %y]
+            [itcl::code $this Pin delete %x %y]
 
+        # Draw selection rectangle
         bind $itk_component(view) <Shift-ButtonPress-1> \
             [itcl::code $this Select click %x %y]
         bind $itk_component(view) <B1-Motion> \
             +[itcl::code $this Select drag %x %y]
         bind $itk_component(view) <Shift-ButtonRelease-1> \
-            +[itcl::code $this Select release %x %y]
+            [itcl::code $this Select release %x %y]
 
-        if {1} {
-        # Bindings for rotation via mouse
-        bind $itk_component(view) <ButtonPress-2> \
-            [itcl::code $this Rotate click %x %y]
-        bind $itk_component(view) <B2-Motion> \
-            [itcl::code $this Rotate drag %x %y]
-        bind $itk_component(view) <ButtonRelease-2> \
-            [itcl::code $this Rotate release %x %y]
-        }
-
-        # Bindings for zoom via mouse
-        bind $itk_component(view) <ButtonPress-3> \
-            [itcl::code $this Zoom click %x %y]
-        bind $itk_component(view) <B3-Motion> \
-            [itcl::code $this Zoom drag %x %y]
-        bind $itk_component(view) <ButtonRelease-3> \
-            [itcl::code $this Zoom release %x %y]
-        bind $itk_component(view) <Double-3> \
-            [itcl::code $this camera go %x %y 2.5]
+        # Update coordinate readout
+        bind $itk_component(view) <ButtonPress-1> \
+            +[itcl::code $this SendCmd "map setpos %x %y"]
         bind $itk_component(view) <Double-3> \
             +[itcl::code $this SendCmd "map setpos %x %y"]
 
@@ -1044,6 +1019,29 @@ itcl::body Rappture::MapViewer::ReceiveImage { args } {
 }
 
 #
+# ReceiveLegend
+#
+# Invoked automatically whenever the "legend" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
+#
+itcl::body Rappture::MapViewer::ReceiveLegend { colormap min max size } {
+puts stderr "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
+    if { [IsConnected] } {
+        set bytes [ReceiveBytes $size]
+        if { ![info exists _image(legend)] } {
+            set _image(legend) [image create photo]
+        }
+        $_image(legend) configure -data $bytes
+puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
+        #if { [catch {DrawLegend} errs] != 0 } {
+        #    global errorInfo
+        #    puts stderr "errs=$errs errorInfo=$errorInfo"
+        #}
+    }
+}
+
+#
 # ReceiveMapInfo --
 #
 itcl::body Rappture::MapViewer::ReceiveMapInfo { args } {
@@ -1118,6 +1116,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
+        update idletasks
         $_dispatcher event -idle !rebuild
         return
     }
@@ -1146,26 +1145,40 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 SendCmd "map load data follows $length"
                 append _outbuf $bytes
             } else {
+                if { [info exists _mapsettings(style)] } {
+                    array set settings {
+                        -color white
+                    }
+                    array set settings $_mapsettings(style)
+                }
+                set bgcolor [Color2RGB $settings(-color)]
                 if { $_mapsettings(type) == "geocentric" } {
                     $itk_component(grid) configure -state normal
                     $itk_component(time_l) configure -state normal
                     $itk_component(time) configure -state normal
-                    SendCmd "map reset geocentric"
+                    $itk_component(pitch_slider_l) configure -state normal
+                    $itk_component(pitch_slider) configure -state normal
+                    EnableRotationMouseBindings
+                    SendCmd "map reset geocentric $bgcolor"
                 }  else {
                     $itk_component(grid) configure -state disabled
                     $itk_component(time_l) configure -state disabled
                     $itk_component(time) configure -state disabled
+                    $itk_component(pitch_slider_l) configure -state disabled
+                    $itk_component(pitch_slider) configure -state disabled
+                    DisableRotationMouseBindings
                     set proj $_mapsettings(projection)
+                    SendCmd "screen bgcolor $bgcolor"
                     if { $proj == "" } {
-                        SendCmd "map reset projected global-mercator"
+                        SendCmd "map reset projected $bgcolor global-mercator"
                     } elseif { ![info exists _mapsettings(extents)] || $_mapsettings(extents) == "" } {
-                        SendCmd [list map reset "projected" $proj]
+                        SendCmd "map reset projected $bgcolor [list $proj]"
                     } else {
                         #foreach {x1 y1 x2 y2} $_mapsettings(extents) break
                         foreach key "x1 y1 x2 y2" {
                             set $key $_mapsettings($key)
                         }
-                        SendCmd [list map reset "projected" $proj $x1 $y1 $x2 $y2]
+                        SendCmd "map reset projected $bgcolor [list $proj] $x1 $y1 $x2 $y2"
                     }
                 }
                 # XXX: Remove these after implementing batch load of layers with reset
@@ -1266,6 +1279,78 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     blt::busy release $itk_component(hull)
 }
 
+itcl::body Rappture::MapViewer::EnablePanningMouseBindings {} {
+    if {$_useServerManip} {
+        bind $itk_component(view) <ButtonPress-1> \
+            [itcl::code $this MouseClick 1 %x %y]
+        bind $itk_component(view) <B1-Motion> \
+            [itcl::code $this MouseDrag 1 %x %y]
+        bind $itk_component(view) <ButtonRelease-1> \
+            [itcl::code $this MouseRelease 1 %x %y]
+    } else {
+        bind $itk_component(view) <ButtonPress-1> \
+            [itcl::code $this Pan click %x %y]
+        bind $itk_component(view) <B1-Motion> \
+            [itcl::code $this Pan drag %x %y]
+        bind $itk_component(view) <ButtonRelease-1> \
+            [itcl::code $this Pan release %x %y]
+    }
+}
+
+itcl::body Rappture::MapViewer::DisablePanningMouseBindings {} {
+    bind $itk_component(view) <ButtonPress-1> {}
+    bind $itk_component(view) <B1-Motion> {}
+    bind $itk_component(view) <ButtonRelease-1> {}
+}
+
+itcl::body Rappture::MapViewer::EnableRotationMouseBindings {} {
+    if {$_useServerManip} {
+        bind $itk_component(view) <ButtonPress-2> \
+            [itcl::code $this Rotate click %x %y]
+        bind $itk_component(view) <B2-Motion> \
+            [itcl::code $this Rotate drag %x %y]
+        bind $itk_component(view) <ButtonRelease-2> \
+            [itcl::code $this Rotate release %x %y]
+    } else {
+        # Bindings for rotation via mouse
+        bind $itk_component(view) <ButtonPress-2> \
+            [itcl::code $this MouseClick 2 %x %y]
+        bind $itk_component(view) <B2-Motion> \
+            [itcl::code $this MouseDrag 2 %x %y]
+        bind $itk_component(view) <ButtonRelease-2> \
+            [itcl::code $this MouseRelease 2 %x %y]
+    }
+}
+
+itcl::body Rappture::MapViewer::DisableRotationMouseBindings {} {
+    bind $itk_component(view) <ButtonPress-2> {}
+    bind $itk_component(view) <B2-Motion> {}
+    bind $itk_component(view) <ButtonRelease-2> {}
+}
+
+itcl::body Rappture::MapViewer::EnableZoomMouseBindings {} {
+    if {$_useServerManip} {
+        bind $itk_component(view) <ButtonPress-3> \
+            [itcl::code $this MouseClick 3 %x %y]
+        bind $itk_component(view) <B3-Motion> \
+            [itcl::code $this MouseDrag 3 %x %y]
+        bind $itk_component(view) <ButtonRelease-3> \
+            [itcl::code $this MouseRelease 3 %x %y]
+    } else {
+        bind $itk_component(view) <ButtonPress-3> \
+            [itcl::code $this Zoom click %x %y]
+        bind $itk_component(view) <B3-Motion> \
+            [itcl::code $this Zoom drag %x %y]
+        bind $itk_component(view) <ButtonRelease-3> \
+            [itcl::code $this Zoom release %x %y]
+    }
+}
+
+itcl::body Rappture::MapViewer::DisableZoomMouseBindings {} {
+    bind $itk_component(view) <ButtonPress-3> {}
+    bind $itk_component(view) <B3-Motion> {}
+    bind $itk_component(view) <ButtonRelease-3> {}
+}
 # ----------------------------------------------------------------------
 # USAGE: CurrentLayers ?-all -visible? ?dataobjs?
 #
@@ -1689,7 +1774,6 @@ itcl::configbody Rappture::MapViewer::plotforeground {
 }
 
 itcl::body Rappture::MapViewer::BuildMapTab {} {
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1763,7 +1847,6 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
 }
 
 itcl::body Rappture::MapViewer::BuildTerrainTab {} {
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1919,13 +2002,17 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize none
     incr row
 
-    label $inner.pitch_slider_l -text "Pitch" -font "Arial 9"
-    ::scale $inner.pitch_slider -font "Arial 9" \
-        -from -10 -to -90 -orient horizontal \
-        -variable [itcl::scope _view(pitch)] \
-        -width 10 \
-        -showvalue on \
-        -command [itcl::code $this camera set pitch]
+    itk_component add pitch_slider_l {
+        label $inner.pitch_slider_l -text "Pitch" -font "Arial 9"
+    }
+    itk_component add pitch_slider {
+        ::scale $inner.pitch_slider -font "Arial 9" \
+            -from -10 -to -90 -orient horizontal \
+            -variable [itcl::scope _view(pitch)] \
+            -width 10 \
+            -showvalue on \
+            -command [itcl::code $this camera set pitch]
+    }
 
     blt::table $inner \
             $row,0 $inner.pitch_slider_l -anchor w -pady 2
@@ -1937,6 +2024,61 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
     blt::table configure $inner c* r* -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
+}
+
+itcl::body Rappture::MapViewer::BuildHelpTab {} {
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Help" \
+        -icon [Rappture::icon question_mark12]]
+    $inner configure -borderwidth 4
+
+    set helptext {*************************
+Mouse bindings:
+*************************
+  Left - Panning
+  Middle - Rotation
+  Right - Zoom
+
+Zoom/travel:
+  Left double-click:
+    Zoom to point
+  Left shift-double:
+    Travel to point
+  Right double-click:
+    Zoom out from point
+
+Pins:
+  Ctl-Left: Drop pin
+  Ctl-Right: Delete pin
+
+Select:
+  Shift-Left click-drag
+
+*************************
+Keyboard bindings:
+*************************
+  g - Toggle graticule
+  l - Toggle lighting
+  n - Set North up
+  p - Reset pitch
+  w - Toggle wireframe
+  arrows - panning
+  Shift-arrows - fine pan
+  Ctl-arrows - rotation
+  Ctl-Shift-arrows:
+    fine rotation
+  PgUp/PgDown - zoom
+  Home - Reset camera
+*************************}
+
+    text $inner.info -width 25 -bg white
+    $inner.info insert end $helptext
+    $inner.info configure -state disabled
+    blt::table $inner \
+        0,0 $inner.info -fill both
 }
 
 #
@@ -2109,7 +2251,7 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
 
     SendCmd "map terrain edges $settings(-edges)"
     set _settings(terrain-edges) $settings(-edges)
-    #SendCmd "map terrain color [Color2RGB $settings(-color)]"
+    SendCmd "map terrain color [Color2RGB $settings(-color)]"
     #SendCmd "map terrain colormode constant"
     SendCmd "map terrain lighting $settings(-lighting)"
     set _settings(terrain-lighting) $settings(-lighting)
@@ -2142,29 +2284,34 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set _opacity($layer) [expr $settings(-opacity) * 100]
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
+                    "colorramp" {
+                        set cmapName $layer
+                        SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
+                        SendCmd [list map layer add $layer image colorramp \
+                                     $info(colorramp.url) $info(cache) $info(profile)  \
+                                     $cmapName]
+                    }
                     "debug" {
-                        SendCmd [list map layer add image debug $layer]
+                        SendCmd [list map layer add $layer image debug]
                     }
                     "gdal" {
-                        SendCmd [list map layer add image gdal \
-                                     $info(gdal.url) $info(cache) $layer]
+                        SendCmd [list map layer add $layer image gdal \
+                                     $info(gdal.url) $info(cache)]
                     }
                     "tms" {
-                        SendCmd [list map layer add image tms \
-                                     $info(tms.url) $info(cache) $layer]
+                        SendCmd [list map layer add $layer image tms \
+                                     $info(tms.url) $info(cache)]
                     }
                     "wms" {
-                        SendCmd [list map layer add image wms \
-                                     $info(wms.url) $info(cache)\
+                        SendCmd [list map layer add $layer image wms \
+                                     $info(wms.url) $info(cache) \
                                      $info(wms.layers) \
                                      $info(wms.format) \
-                                     $info(wms.transparent) \
-                                     $layer]
+                                     $info(wms.transparent)]
                     }
                     "xyz" {
-                        SendCmd [list map layer add image xyz \
-                                     $info(xyz.url) $info(cache) \
-                                     $layer]
+                        SendCmd [list map layer add $layer image xyz \
+                                     $info(xyz.url) $info(cache)]
                     }
                 }
             }
@@ -2172,8 +2319,8 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
         }
         "elevation" {
             array set settings {
-                -min_level 0
-                -max_level 23
+                -minlevel 0
+                -maxlevel 23
             }
             if { [info exists info(style)] } {
                 array set settings $info(style)
@@ -2181,12 +2328,12 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
                     "gdal" {
-                        SendCmd [list map layer add elevation gdal \
-                                     $info(gdal.url) $layer]
+                        SendCmd [list map layer add $layer elevation gdal \
+                                     $info(gdal.url)]
                     }
                     "tms" {
-                        SendCmd [list map layer add elevation tms \
-                                     $info(tms.url) $layer]
+                        SendCmd [list map layer add $layer elevation tms \
+                                     $info(tms.url)]
                     }
                 }
             }
@@ -2205,7 +2352,30 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 set settings(-opacity) $info(opacity)
             }
             set _opacity($layer) [expr $settings(-opacity) * 100]
-            SendCmd [list map layer add line $info(ogr.url) $layer]
+            foreach {r g b} [Color2RGB $settings(-color)] {}
+            if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
+                SendCmd [list map layer add $layer line $info(ogr.url) $r $g $b $settings(-width) $settings(-minrange) $settings(-maxrange)]
+            } else {
+                SendCmd [list map layer add $layer line $info(ogr.url) $r $g $b $settings(-width)]
+            }
+            SendCmd "map layer opacity $settings(-opacity) $layer"
+        }
+        "point" {
+            array set settings {
+                -color black
+                -minbias 1000
+                -opacity 1.0
+                -size 1
+            }
+            if { [info exists info(style)] } {
+                array set settings $info(style)
+            }
+            if { [info exists info(opacity)] } {
+                set settings(-opacity) $info(opacity)
+            }
+            set _opacity($layer) [expr $settings(-opacity) * 100]
+            foreach {r g b} [Color2RGB $settings(-color)] {}
+            SendCmd [list map layer add $layer point $info(ogr.url) $r $g $b $settings(-size)]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "polygon" {
@@ -2221,7 +2391,8 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 set settings(-opacity) $info(opacity)
             }
             set _opacity($layer) [expr $settings(-opacity) * 100]
-            SendCmd [list map layer add polygon $info(ogr.url) $layer]
+            foreach {r g b} [Color2RGB $settings(-color)] {}
+            SendCmd [list map layer add $layer polygon $info(ogr.url) $r $g $b]
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
         "label" {
@@ -2233,10 +2404,10 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 -fontsize 16.0
                 -halocolor white
                 -halowidth 2.0
-                -layout "ltr"
+                -layout "left-to-right"
                 -minbias 1000
                 -opacity 1.0
-                -removedupe 1
+                -removedupes 1
             }
             if { [info exists info(style)] } {
                 array set settings $info(style)
@@ -2251,7 +2422,13 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             } else {
                 set priorityExpr ""
             }
-            SendCmd [list map layer add text $info(ogr.url) $contentExpr $priorityExpr $layer]
+            foreach {fgR fgG fgB} [Color2RGB $settings(-color)] {}
+            foreach {bgR bgG bgB} [Color2RGB $settings(-halocolor)] {}
+            if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
+                SendCmd [list map layer add $layer text $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-minrange) $settings(-maxrange)]
+            } else {
+                SendCmd [list map layer add $layer text $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter)]
+            }
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
     }
@@ -2285,6 +2462,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     }
     set f $inner.layers
     set attrib [list]
+    set imgIdx 0
     foreach dataobj [get -objects] {
         foreach layer [$dataobj layers] {
             array unset info
@@ -2297,7 +2475,10 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                               SetLayerVisibility $dataobj $layer]
             blt::table $f $row,0 $f.${layer}_visible -anchor w -pady 2 -cspan 2
             incr row
-            if { $info(type) != "elevation" } {
+            if { $info(type) == "image" } {
+                incr imgIdx
+            }
+            if { $info(type) != "elevation" && ($info(type) != "image" || $imgIdx > 1) } {
                 label $f.${layer}_opacity_l -text "Opacity" -font "Arial 9"
                 ::scale $f.${layer}_opacity -from 0 -to 100 \
                     -orient horizontal -showvalue off \
