@@ -93,6 +93,7 @@ itcl::class Rappture::MapViewer {
     private method DoResize {}
     private method DoRotate {}
     private method DoSelect {}
+    private method DrawLegend { colormap min max }
     private method EarthFile {}
     private method EnablePanningMouseBindings {}
     private method EnableRotationMouseBindings {}
@@ -114,6 +115,7 @@ itcl::class Rappture::MapViewer {
     private method ReceiveLegend { args }
     private method ReceiveMapInfo { args }
     private method ReceiveScreenInfo { args }
+    private method RequestLegend { colormap w h }
     private method Rotate {option x y}
     private method Select {option x y}
     private method SetHeading { {value 0} }
@@ -613,6 +615,18 @@ itcl::body Rappture::MapViewer::EventuallySelect { x y } {
     }
 }
 
+itcl::body Rappture::MapViewer::DrawLegend { colormap min max } {
+    if { [info exists itk_component(legend-$colormap) ] } {
+        $itk_component(legend-$colormap-min) configure -text $min
+        $itk_component(legend-$colormap-max) configure -text $max
+        $itk_component(legend-$colormap) configure -image $_image(legend-$colormap)
+    }
+}
+
+itcl::body Rappture::MapViewer::RequestLegend { colormap w h } {
+    SendCmd "legend $colormap $w $h 0 [Color2RGB #d9d9d9]"
+}
+
 # ----------------------------------------------------------------------
 # USAGE: add <dataobj> ?<settings>?
 #
@@ -1030,14 +1044,20 @@ puts stderr "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
-            set _image(legend) [image create photo]
+            set _image(legend-$colormap) [image create photo]
         }
-        $_image(legend) configure -data $bytes
-puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-        #if { [catch {DrawLegend} errs] != 0 } {
-        #    global errorInfo
-        #    puts stderr "errs=$errs errorInfo=$errorInfo"
-        #}
+        if 0 {
+            set f [open "/tmp/legend-${colormap}.ppm" "w"]
+            fconfigure $f -translation binary -encoding binary
+            puts $f $bytes
+            close $f
+        }
+        $_image(legend-$colormap) configure -data $bytes
+puts stderr "read $size bytes for [image width $_image(legend-$colormap)]x[image height $_image(legend-$colormap)] legend>"
+        if { [catch {DrawLegend $colormap $min $max} errs] != 0 } {
+            global errorInfo
+            puts stderr "errs=$errs errorInfo=$errorInfo"
+        }
     }
 }
 
@@ -2477,6 +2497,27 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             incr row
             if { $info(type) == "image" } {
                 incr imgIdx
+                if { $info(driver) == "colorramp" } {
+                    set colormap $layer
+                    if { ![info exists _image(legend-$colormap)] } {
+                        set _image(legend-$colormap) [image create photo]
+                    }
+                    itk_component add legend-$colormap-min {
+                        label $f.${layer}_legend-$colormap-min -text 0
+                    }
+                    itk_component add legend-$colormap-max {
+                        label $f.${layer}_legend-$colormap-max -text 1
+                    }
+                    itk_component add legend-$colormap {
+                        label $f.${layer}_legend-$colormap -image $_image(legend-$colormap)
+                    }
+                    blt::table $f $row,0 $f.${layer}_legend-$colormap-min -anchor w -pady 0
+                    blt::table $f $row,1 $f.${layer}_legend-$colormap-max -anchor e -pady 0
+                    incr row
+                    blt::table $f $row,0 $f.${layer}_legend-$colormap -anchor w -pady 2 -cspan 2
+                    incr row
+                    RequestLegend $colormap 256 16
+                }
             }
             if { $info(type) != "elevation" && ($info(type) != "image" || $imgIdx > 1) } {
                 label $f.${layer}_opacity_l -text "Opacity" -font "Arial 9"
