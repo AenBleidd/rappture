@@ -29,6 +29,7 @@ itcl::class ::Rappture::VisViewer {
 
     private common _done            ;   # Used to indicate status of send.
     private variable _buffer        ;   # buffer for incoming/outgoing commands
+    private variable _outbuf       ;    # buffer for outgoing commands
     private variable _blockOnWrite 0;   # Should writes to socket block?
     private variable _initialized
     private variable _isOpen 0
@@ -46,7 +47,6 @@ itcl::class ::Rappture::VisViewer {
     protected variable _serverType "???";# Type of server.
     protected variable _sid ""      ;   # socket connection to server
     protected variable _maxConnects 100
-    protected variable _outbuf       ;    # buffer for outgoing commands
     protected variable _buffering 0
     protected variable _cmdSeq 0     ;    # Command sequence number
     protected variable _dispatcher "";  # dispatcher for !events

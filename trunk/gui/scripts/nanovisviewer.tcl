@@ -949,7 +949,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                     SendCmd "clientinfo [list $info]"
                 }
                 SendCmd "volume data follows $nbytes $tag"
-                append _outbuf $data
+                SendData $data
                 set _recvdDatasets($tag) 1
                 set _serverDatasets($tag) 0
             }

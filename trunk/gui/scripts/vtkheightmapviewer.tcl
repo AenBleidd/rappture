@@ -1001,7 +1001,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
                     SendCmd "clientinfo [list $info]"
                 }
                 SendCmd "dataset add $tag data follows $length"
-                append _outbuf $bytes
+                SendData $bytes
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
             }

@@ -1163,7 +1163,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 }
                 set length [string length $bytes]
                 SendCmd "map load data follows $length"
-                append _outbuf $bytes
+                SendData $bytes
             } else {
                 if { [info exists _mapsettings(style)] } {
                     array set settings {

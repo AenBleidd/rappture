@@ -90,7 +90,6 @@ itcl::class Rappture::FlowvisViewer {
     private method EventuallyResize { w h }
     private method EventuallyGoto { nSteps }
     private method EventuallyResizeLegend { }
-    private method FlowCmd { dataobj comp nbytes extents }
     private method GetDatasetsWithComponent { cname }
     private method GetFlowInfo { widget }
     private method GetMovie { widget width height }
@@ -111,6 +110,7 @@ itcl::class Rappture::FlowvisViewer {
     private method Resize {}
     private method ResizeLegend {}
     private method Rotate {option x y}
+    private method SendFlowCmd { dataobj comp nbytes extents }
     private method SendTransferFuncs {}
     private method SetOrientation { side }
     private method Slice {option args}
@@ -1173,14 +1173,11 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             if { !$isvtk && $extents == 1 } {
                 SendCmd "volume data follows $nbytes $tag"
             } else {
-                set cmd [FlowCmd $dataobj $comp $nbytes $extents]
-                if { $cmd == "" } {
-                    puts stderr "no command"
-                    continue
+                if {[SendFlowCmd $dataobj $comp $nbytes $extents] < 0} {
+                     continue
                 }
-                append _outbuf $cmd
             }
-            append _outbuf $data
+            SendData $data
             NameTransferFunc $dataobj $comp
             set _recvObjs($tag) 1
         }
@@ -2613,34 +2610,36 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
     }
 }
 
-itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
+itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } {
     set tag "$dataobj-$comp"
     if { ![info exists _obj2flow($tag)] } {
-        append cmd "flow add $tag\n"
-        append cmd "$tag data follows $nbytes $extents\n"
-        return $cmd
+        SendCmd "flow add $tag"
+        SendCmd "$tag data follows $nbytes $extents"
+        return 0
     }
     set flowobj $_obj2flow($tag)
     if { $flowobj == "" } {
         puts stderr "no flowobj"
-        return ""
+        return -1
     }
-    set cmd {}
-    append cmd "if {\[flow exists $tag\]} {flow delete $tag}\n"
+    SendCmd "if {\[flow exists $tag\]} {flow delete $tag}"
     array set info  [$flowobj hints]
     set _settings($this-volume) $info(volume)
     set _settings($this-outline) $info(outline)
     set _settings($this-arrows) $info(arrows)
     set _settings($this-duration) $info(duration)
     $itk_component(speed) value $info(speed)
+    set cmd {}
     append cmd "flow add $tag"
     append cmd " -position $info(position)"
     append cmd " -axis $info(axis)"
     append cmd " -volume $info(volume)"
     append cmd " -outline $info(outline)"
     append cmd " -slice $info(streams)"
-    append cmd " -arrows $info(arrows)\n"
+    append cmd " -arrows $info(arrows)"
+    SendCmd $cmd
     foreach part [$flowobj particles] {
+        set cmd {}
         array unset info
         array set info $part
         set color [Color2RGB $info(color)]
@@ -2649,9 +2648,11 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
         append cmd " -hide $info(hide)"
         append cmd " -axis $info(axis)"
         append cmd " -color {$color}"
-        append cmd " -size $info(size)\n"
+        append cmd " -size $info(size)"
+        SendCmd $cmd
     }
     foreach box [$flowobj boxes] {
+        set cmd {}
         array unset info
         set info(corner1) ""
         set info(corner2) ""
@@ -2665,10 +2666,11 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
         append cmd " -hide $info(hide)"
         append cmd " -linewidth $info(linewidth) "
         append cmd " -corner1 {$info(corner1)} "
-        append cmd " -corner2 {$info(corner2)}\n"
+        append cmd " -corner2 {$info(corner2)}"
+        SendCmd $cmd
     }
-    append cmd "$tag data follows $nbytes $extents\n"
-    return $cmd
+    SendCmd "$tag data follows $nbytes $extents"
+    return 0
 }
 
 

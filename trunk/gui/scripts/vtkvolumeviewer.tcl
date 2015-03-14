@@ -883,7 +883,6 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     $_dispatcher cancel !zcutplane
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
-    set _outbuf ""
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
@@ -1064,7 +1063,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                     SendCmd "clientinfo [list $info]"
                 }
                 SendCmd "dataset add $tag data follows $length"
-                append _outbuf $bytes
+                SendData $bytes
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
             }

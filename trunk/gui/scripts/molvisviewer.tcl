@@ -965,7 +965,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
                 ServerCmd "loadpdb -defer follows $model $state $numBytes"
-                append _outbuf $data1
+                SendData $data1
                 set _dataobjs($model-$state)  1
             }
             # note that pdb files always overwrite xyz files
@@ -978,7 +978,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
                 ServerCmd "loadpdb -defer follows $model $state $numBytes"
-                append _outbuf $data2
+                SendData $data2
                 set _dataobjs($model-$state)  1
             }
             # lammps dump file overwrites pdb file (change this?)
@@ -1027,7 +1027,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                     # We know we're buffered here, so append the "loadpdb"
                     # command with the data payload immediately afterwards.
                     ServerCmd "loadpdb -defer follows $model $state $numBytes"
-                    append _outbuf $data3
+                    SendData $data3
                 }
                 set _dataobjs($model-$state) 1
             }
