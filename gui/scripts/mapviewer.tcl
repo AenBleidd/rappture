@@ -1222,8 +1222,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     }
 
     set _first ""
-    set count 0
-
     set haveTerrain 0
     foreach dataobj [get -objects] {
         set _obj2datasets($dataobj) ""
