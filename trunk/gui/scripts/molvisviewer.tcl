@@ -1119,13 +1119,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         # model and assume this works for everything else.
         set w  [winfo width $itk_component(3dview)]
         set h  [winfo height $itk_component(3dview)]
-        ServerCmd [subst {
-            reset
-            screen $w $h
-            rotate $_view(mx) $_view(my) $_view(mz)
-            pan $_view(x) $_view(y)
-            zoom $_view(zoom)
-        }]
+        ServerCmd "reset"
+        ServerCmd "screen $w $h"
+        ServerCmd "rotate $_view(mx) $_view(my) $_view(mz)"
+        ServerCmd "pan $_view(x) $_view(y)"
+        ServerCmd "zoom $_view(zoom)"
         debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
         ServerCmd "raw -defer {zoom complete=1}"
