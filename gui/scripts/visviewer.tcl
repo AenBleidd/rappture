@@ -49,7 +49,6 @@ itcl::class ::Rappture::VisViewer {
     protected variable _outbuf       ;    # buffer for outgoing commands
     protected variable _buffering 0
     protected variable _cmdSeq 0     ;    # Command sequence number
-
     protected variable _dispatcher "";  # dispatcher for !events
     protected variable _hosts ""    ;   # list of hosts for server
     protected variable _parser ""   ;   # interpreter for incoming commands
@@ -288,7 +287,7 @@ itcl::body Rappture::VisViewer::Connect { servers } {
         # Read back the server identification string.
         if { [gets $_sid data] <= 0 } {
             set _sid ""
-            puts stderr "reading from server data=($data)"
+            puts stderr "ERORR reading from server data=($data)"
             RemoveServerFromList $_serverType $server
             continue
         }
@@ -464,6 +463,11 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
         puts stderr "New cmd $_cmdSeq: [string range $bytes 0 70]..."
     }
     set _buffer(out) $bytes
+    # There's problem when the user is interacting with the GUI at the
+    # same time we're trying to write to the server.  Don't want to
+    # block because, the GUI will look like it's dead.  We can start
+    # by putting a busy window over plot so that inadvertent things like
+    # mouse movements aren't received.
     if {$_blockOnWrite} {
         # Let's try this approach: allow a write to block so we don't
         # re-enter SendBytes
