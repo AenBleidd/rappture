@@ -1007,7 +1007,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                     SendCmd "clientinfo [list $info]"
                 }
                 SendCmd "dataset add $tag data follows $length"
-                append _outbuf $bytes
+                SendData $bytes
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
             }
@@ -2164,7 +2164,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     if { $seeds != "" && ![info exists _seeds($dataobj)] } {
         set length [string length $seeds]
         SendCmd "streamlines seed fmesh 200 data follows $length $tag"
-        append _outbuf $seeds
+        SendData $seeds
         set _seeds($dataobj) 1
     }
     SendCmd "cutplane add $tag"
