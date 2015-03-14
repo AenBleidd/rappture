@@ -27,15 +27,15 @@ itcl::class ::Rappture::VisViewer {
     set _servers(vmdmds)  "localhost:2018"
     set _servers(vtkvis)  "localhost:2010"
 
-    protected variable _serverType "???";# Type of server.
-    protected variable _sid ""      ;   # socket connection to server
     private common _done            ;   # Used to indicate status of send.
     private variable _buffer        ;   # buffer for incoming/outgoing commands
+    private variable _blockOnWrite 0;   # Should writes to socket block?
     private variable _initialized
     private variable _isOpen 0
     private variable _afterId -1
     private variable _icon 0
-
+    private variable _trace 0        ;    # Protocol tracing for console
+    private variable _logging 0      ;    # Command logging to file
     # Number of milliseconds to wait before idle timeout.  If greater than 0,
     # automatically disconnect from the visualization server when idle timeout
     # is reached.
@@ -43,13 +43,12 @@ itcl::class ::Rappture::VisViewer {
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
 
+    protected variable _serverType "???";# Type of server.
+    protected variable _sid ""      ;   # socket connection to server
     protected variable _maxConnects 100
     protected variable _outbuf       ;    # buffer for outgoing commands
     protected variable _buffering 0
     protected variable _cmdSeq 0     ;    # Command sequence number
-
-    private variable _trace 0        ;    # Protocol tracing for console
-    private variable _logging 0      ;    # Command logging to file
 
     protected variable _dispatcher "";  # dispatcher for !events
     protected variable _hosts ""    ;   # list of hosts for server
@@ -70,24 +69,24 @@ itcl::class ::Rappture::VisViewer {
         # defined below
     }
     # Used internally only.
-    private method Shuffle { servers }
+    private method BuildConsole {}
+    private method DebugConsole {}
+    private method HideConsole {}
     private method ReceiveHelper {}
-    private method ServerDown {}
+    private method SendDebugCommand {}
     private method SendHelper {}
     private method SendHelper.old {}
-    private method WaitDialog { state }
-
-    protected method ToggleConsole {}
-    private method DebugConsole {}
-    private method BuildConsole {}
-    private method HideConsole {}
+    private method ServerDown {}
+    private method Shuffle { servers }
     private method TraceComm { channel {data {}} }
-    private method SendDebugCommand {}
+    private method WaitDialog { state }
+    private method Waiting { option widget }
 
     protected method CheckConnection {}
     protected method Color2RGB { color }
     protected method ColorsToColormap { colors }
     protected method Connect { servers }
+    protected method DisableWaitDialog {}
     protected method Disconnect {}
     protected method EnableWaitDialog { timeout }
     protected method Euler2XYZ { theta phi psi }
@@ -99,14 +98,14 @@ itcl::class ::Rappture::VisViewer {
     protected method ReceiveBytes { nbytes }
     protected method ReceiveEcho { channel {data ""} }
     protected method SendBytes { bytes }
-    protected method SendCmd {string}
+    protected method SendCmd { string }
+    protected method SendData { bytes }
     protected method SendEcho { channel {data ""} }
     protected method StartBufferingCommands {}
     protected method StartWaiting {}
     protected method StopBufferingCommands {}
     protected method StopWaiting {}
-
-    private method Waiting { option widget }
+    protected method ToggleConsole {}
 
     private proc CheckNameList { namelist }  {
         foreach host $namelist {
@@ -204,6 +203,9 @@ itcl::body Rappture::VisViewer::constructor { servers args } {
         if { [file exists /tmp/recording.log] } {
             file delete /tmp/recording.log
         }
+    }
+    if { [info exists env(VISTRACE)] } {
+        set _trace 1
     }
     eval itk_initialize $args
 }
@@ -462,7 +464,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
         puts stderr "New cmd $_cmdSeq: [string range $bytes 0 70]..."
     }
     set _buffer(out) $bytes
-    if {0} {
+    if {_blockOnWrite} {
         # Let's try this approach: allow a write to block so we don't
         # re-enter SendBytes
         SendHelper
@@ -509,6 +511,10 @@ itcl::body Rappture::VisViewer::StopWaiting {} {
 
 itcl::body Rappture::VisViewer::EnableWaitDialog { value } {
     set _waitTimeout $value
+}
+
+itcl::body Rappture::VisViewer::DisableWaitDialog {} {
+    set _waitTimeout 0
 }
 
 #
@@ -1193,9 +1199,8 @@ itcl::body Rappture::VisViewer::StopBufferingCommands { } {
 #
 # SendCmd
 #
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be
-#       sent later.
+#       Send command off to the rendering server.  If we're currently
+#       buffering, the command is queued to be sent later.
 #
 itcl::body Rappture::VisViewer::SendCmd {string} {
     incr _cmdSeq
@@ -1206,5 +1211,22 @@ itcl::body Rappture::VisViewer::SendCmd {string} {
         append _outbuf $string "\n"
     } else {
         SendBytes "$string\n"
+    }
+}
+
+#
+# SendData
+#
+#       Send data off to the rendering server.  If we're currently
+#       buffering, the data is queued to be sent later.
+#
+itcl::body Rappture::VisViewer::SendData {bytes} {
+    if {$_trace} {
+        puts stderr "$_cmdSeq>>data payload"
+    }
+    if { $_buffering } {
+        append _outbuf $bytes
+    } else {
+        SendBytes $bytes
     }
 }
