@@ -948,9 +948,10 @@ itcl::body Rappture::VisViewer::GetColormapList { args } {
 }
 
 itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
+    set cmap {}
     switch -- $colors {
         "grey-to-blue" {
-            return {
+            set cmap {
                 0.0                      0.200 0.200 0.200
                 0.14285714285714285      0.400 0.400 0.400
                 0.2857142857142857       0.600 0.600 0.600
@@ -962,7 +963,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "blue-to-grey" {
-            return {
+            set cmap {
                 0.0                     0.000 0.600 0.800
                 0.14285714285714285     0.400 0.900 1.000
                 0.2857142857142857      0.600 1.000 1.000
@@ -974,7 +975,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "white-to-blue" {
-            return {
+            set cmap {
                 0.0                     0.900 1.000 1.000
                 0.1111111111111111      0.800 0.983 1.000
                 0.2222222222222222      0.700 0.950 1.000
@@ -988,7 +989,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "brown-to-blue" {
-            return {
+            set cmap {
                 0.0                             0.200   0.100   0.000
                 0.09090909090909091             0.400   0.187   0.000
                 0.18181818181818182             0.600   0.379   0.210
@@ -1004,7 +1005,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "blue-to-brown" {
-            return {
+            set cmap {
                 0.0                             0.000   0.480   0.600
                 0.09090909090909091             0.000   0.667   0.800
                 0.18181818181818182             0.200   0.893   1.000
@@ -1020,7 +1021,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "blue-to-orange" {
-            return {
+            set cmap {
                 0.0                             0.000   0.167   1.000
                 0.09090909090909091             0.100   0.400   1.000
                 0.18181818181818182             0.200   0.600   1.000
@@ -1036,7 +1037,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "orange-to-blue" {
-            return {
+            set cmap {
                 0.0                             1.000   0.167   0.000
                 0.09090909090909091             1.000   0.400   0.100
                 0.18181818181818182             1.000   0.600   0.200
@@ -1099,7 +1100,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "spectral" {
-            return {
+            set cmap {
                 0.0 0.150 0.300 1.000
                 0.1 0.250 0.630 1.000
                 0.2 0.450 0.850 1.000
@@ -1114,7 +1115,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "green-to-magenta" {
-            return {
+            set cmap {
                 0.0 0.000 0.316 0.000
                 0.06666666666666667 0.000 0.526 0.000
                 0.13333333333333333 0.000 0.737 0.000
@@ -1134,7 +1135,7 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             }
         }
         "greyscale" {
-            return {
+            set cmap {
                 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0
             }
         }
@@ -1145,18 +1146,20 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
             set clist [split $colors ":"]
         }
     }
-    set cmap {}
-    if { [llength $clist] == 1 } {
-        set rgb [Color2RGB $clist]
-        append cmap "0.0 $rgb 1.0 $rgb"
-    } else {
-        for {set i 0} {$i < [llength $clist]} {incr i} {
-            set x [expr {double($i)/([llength $clist]-1)}]
-            set color [lindex $clist $i]
-            append cmap "$x [Color2RGB $color] "
+    if {$cmap == ""} {
+        if { [llength $clist] == 1 } {
+            set rgb [Color2RGB $clist]
+            append cmap "0.0 $rgb 1.0 $rgb"
+        } else {
+            for {set i 0} {$i < [llength $clist]} {incr i} {
+                set x [expr {double($i)/([llength $clist]-1)}]
+                set color [lindex $clist $i]
+                append cmap "$x [Color2RGB $color] "
+            }
         }
+    } else {
+        regsub -all "\[ \t\r\n\]+" [string trim $cmap] " " cmap
     }
-    #regsub -all "\n" $cmap " " cmap
     return $cmap
 }
 
