@@ -150,7 +150,13 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         if { $colorramp != "" } {
             $_tree set $child "colorramp.elevdriver" "gdal"
             $_tree set $child "colorramp.colormap" "0 0 0 0 1 1 1 1 1 1"
-            foreach key { url colormap elevdriver } {
+            set cmap [$layers get $layer.colorramp.colormap]
+            if {$cmap != ""} {
+                # Normalize whitespace
+                regsub -all "\[ \t\r\n\]+" [string trim $cmap] " " cmap
+                $_tree set $child "colorramp.colormap" $cmap
+            }
+            foreach key { url elevdriver } {
                 set value [$layers get $layer.colorramp.$key]
                 if {$value != ""} {
                     $_tree set $child "colorramp.$key" $value
