@@ -464,7 +464,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
         puts stderr "New cmd $_cmdSeq: [string range $bytes 0 70]..."
     }
     set _buffer(out) $bytes
-    if {_blockOnWrite} {
+    if {$_blockOnWrite} {
         # Let's try this approach: allow a write to block so we don't
         # re-enter SendBytes
         SendHelper
