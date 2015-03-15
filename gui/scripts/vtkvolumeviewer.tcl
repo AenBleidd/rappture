@@ -2939,7 +2939,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeComponents {} {
     if { [llength $_componentsList] <= 1 } {
         # Unpack the components label and dropdown if there's only one
         # component. 
-        blt::table forget $parent.volcomponents_l $parent.volcomponents
+        catch {blt::table forget $parent.volcomponents_l $parent.volcomponents}
     } else {
         # Pack the components label and dropdown into the table there's 
         # more than one component to select. 
