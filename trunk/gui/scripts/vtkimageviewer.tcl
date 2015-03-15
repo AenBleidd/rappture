@@ -1557,8 +1557,13 @@ itcl::body Rappture::VtkImageViewer::RequestLegend {} {
     }
     # Set the legend on the first image dataset.
     if { $_currentColormap != "" && $_currentColormap != "none" } {
-        #SendCmd "legend $_currentColormap scalar $_curFldName {} $w $h 0"
-        SendCmd "legend2 $_currentColormap $w $h"
+        set cmap $_currentColormap
+        if { ![info exists _colormaps($cmap)] } {
+            BuildColormap $cmap
+            set _colormaps($cmap) 1
+        }
+        #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        SendCmd "legend2 $cmap $w $h"
     }
 }
 
