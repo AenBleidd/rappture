@@ -138,10 +138,10 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _settings
     private variable _changed
     private variable _initialStyle "";  # First found style in dataobjects.
-    private variable _reset 1;          # Indicates if camera needs to be reset
-                                        # to starting position.
-    private variable _beforeConnect 1;  # Indicates if camera needs to be reset
-                                        # to starting position.
+    private variable _reset 1;          # Indicates if the connection to the 
+                                        # render server was reset
+    private variable _beforeConnect 1;  # Indicates if we are in the constructor
+                                        # before the server connection is made
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
@@ -1018,7 +1018,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             }
         }
     }
-    if { $_first != ""  } {
+    if { $_first != "" } {
         $itk_component(field) choices delete 0 end
         $itk_component(fieldmenu) delete 0 end
         array unset _fields
@@ -1054,10 +1054,13 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         #SendCmd "axis lformat all %g"
 
         foreach axis { x y z } {
-            if { $axis == "z" } {
-                set label [$_first hints label]
-            } else {
-                set label [$_first hints ${axis}label]
+            set label ""
+            if { $_first != "" } {
+                if { $axis == "z" } {
+                    set label [$_first hints label]
+                } else {
+                    set label [$_first hints ${axis}label]
+                }
             }
             if { $label == "" } {
                 if {$axis == "z"} {
@@ -1074,17 +1077,22 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             SendCmd [list axis name $axis $label]
 
             set units ""
-            if {$axis == "z" && [$_first hints ${axis}units] == ""} {
-                if {$_curFldName != ""} {
+            if { $_first != "" } {
+                if { $axis == "z" } {
+                    set units [$_first hints units]
+                } else {
+                    set units [$_first hints ${axis}units]
+                }
+            }
+            if { $units == "" && $axis == "z" } {
+                if { $_first != "" && [$_first hints zunits] != "" } {
+                    set units [$_first hints zunits]
+                } elseif { [info exists _fields($_curFldName)] } {
                     set units [lindex $_fields($_curFldName) 1]
                 }
-            } else {
-                set units [$_first hints ${axis}units]
             }
-            if { $units != "" } {
-                # May be a space in the axis units.
-                SendCmd [list axis units $axis $units]
-            }
+            # May be a space in the axis units.
+            SendCmd [list axis units $axis $units]
         }
         #
         # Reset the camera and other view parameters
@@ -1461,7 +1469,10 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            set label [$_first hints label]
+            set label ""
+            if { $_first != "" } {
+                set label [$_first hints label]
+            }
             if { $label == "" } {
                 if { [string match "component*" $_curFldName] } {
                     set label Z
@@ -1472,15 +1483,19 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             # May be a space in the axis label.
             SendCmd [list axis name z $label]
 
-            if { [$_first hints zunits] == "" } {
-                set units [lindex $_fields($_curFldName) 1]
-            } else {
-                set units [$_first hints zunits]
+            set units ""
+            if { $_first != "" } {
+                set units [$_first hints units]
             }
-            if { $units != "" } {
-                # May be a space in the axis units.
-                SendCmd [list axis units z $units]
+            if { $units == "" } {
+                if { $_first != "" && [$_first hints zunits] != "" } {
+                    set units [$_first hints zunits]
+                } elseif { [info exists _fields($_curFldName)] } {
+                    set units [lindex $_fields($_curFldName) 1]
+                }
             }
+            # May be a space in the axis units.
+            SendCmd [list axis units z $units]
             # Get the new limits because the field changed.
             ResetAxes
             SendCmd "dataset scalar $_curFldName"
@@ -1720,6 +1735,10 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
         set cmap $_currentColormap
+        if { ![info exists _colormaps($cmap)] } {
+           BuildColormap $cmap
+           set _colormaps($name) 1
+        }
         #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
         SendCmd "legend2 $cmap $w $h"
     }
