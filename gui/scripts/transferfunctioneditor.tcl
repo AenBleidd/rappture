@@ -145,7 +145,9 @@ itcl::body Rappture::TransferFunctionEditor::newMarker { x y state } {
 }
 
 itcl::body Rappture::TransferFunctionEditor::destructor {} {
-    $_canvas delete $_name
+    if { [winfo exists $_canvas] } {
+        $_canvas delete $_name
+    }
 }
 
 itcl::body Rappture::TransferFunctionEditor::name {} {
