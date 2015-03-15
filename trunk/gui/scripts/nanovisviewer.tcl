@@ -426,7 +426,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
-    foreach name [array names _transferFunctionEditors] {
+    foreach cname [array names _transferFunctionEditors] {
         itcl::delete object $_transferFunctionEditors($cname)
     }
     catch { blt::arcball destroy $_arcball }
