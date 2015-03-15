@@ -1786,7 +1786,8 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            SendCmd "legend $_dataset2style($dataset) vmag {} {} $w $h 0"
+            #SendCmd "legend $_dataset2style($dataset) vmag {} {} $w $h 0"
+            SendCmd "legend2 $_dataset2style($dataset) $w $h"
             break;
         }
     }

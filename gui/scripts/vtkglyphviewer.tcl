@@ -1563,7 +1563,12 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
         set cmap $_currentColormap
-        SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
+        if { ![info exists _colormaps($cmap)] } {
+            BuildColormap $cmap
+            set _colormaps($cmap) 1
+        }
+        #SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
+        SendCmd "legend2 $cmap $w $h"
     }
 }
 
