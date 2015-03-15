@@ -1737,7 +1737,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
            BuildColormap $cmap
-           set _colormaps($name) 1
+           set _colormaps($cmap) 1
         }
         #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
         SendCmd "legend2 $cmap $w $h"
