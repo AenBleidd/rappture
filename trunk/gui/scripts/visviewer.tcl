@@ -475,10 +475,14 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     } else {
         # This can cause us to re-enter SendBytes during the tkwait, which
         # is not safe because the _buffer will be clobbered
-        blt::busy hold $itk_component(main)
+        if { [info exists itk_component(main)] } {
+            blt::busy hold $itk_component(main) -cursor ""
+        }
         fileevent $_sid writable [itcl::code $this SendHelper]
         tkwait variable ::Rappture::VisViewer::_done($this)
-        blt::busy release $itk_component(main)
+        if { [info exists itk_component(main)] } {
+            blt::busy release $itk_component(main)
+        }
     }
     set _buffer(out) ""
     if { [IsConnected] } {
