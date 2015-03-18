@@ -188,6 +188,7 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
         incr _dim
     }
     set _isValid 1
+    puts stderr "WARNING: The <cloud> element is deprecated.  Please use an unstructured <mesh> instead."
 }
 
 # ----------------------------------------------------------------------
