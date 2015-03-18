@@ -1236,7 +1236,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     lappend cinfo "tool_title"    [$dataobj hints tooltitle]
                     lappend cinfo "tool_command"  [$dataobj hints toolcommand]
                     lappend cinfo "tool_revision" [$dataobj hints toolrevision]
-                    lappend cinfo "dataset_label" [$dataobj hints label]
+                    lappend cinfo "dataset_label" [encoding convertto utf-8 $info(label)]
                     lappend cinfo "dataset_tag"   $layer
                     SendCmd "clientinfo [list $cinfo]"
                 }
@@ -1622,7 +1622,7 @@ itcl::body Rappture::MapViewer::Pin {option x y} {
         "add" {
             incr _labelCount
             set label "Label $_labelCount"
-            SendCmd [list "map" "pin" "add" $x $y $label]
+            SendCmd [list "map" "pin" "add" $x $y [encoding convertto utf-8 $label]]
         }
         "delete" {
             SendCmd "map pin delete $x $y"
@@ -2542,7 +2542,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             lappend attrib $mapAttrib
         }
     }
-    SendCmd "[list map attrib [join $attrib ,]]"
+    SendCmd "[list map attrib [encoding convertto utf-8 [join $attrib ,]]]"
     label $f.map_attrib -text [join $attrib \n] -font "Arial 9"
     blt::table $f $row,0 $f.map_attrib -anchor sw -pady 2 -cspan 2
     #incr row
