@@ -215,10 +215,10 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
         -isolinesvisible            0
         -legendvisible              1
         -numcontours                10
+        -outline                    0
         -surfaceedges               0
         -surfacelighting            1
         -surfaceopacity             100
-        -outline                    0
         -surfacevisible             1
         -surfacewireframe           0
         -xgrid                      0
@@ -227,8 +227,15 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {hostlist args} {
     }
     array set _changed {
         -colormap                0
+        -isolinecolor            0
+        -isolinesvisible         0
         -numcontours             0
+        -outline                 0
+        -surfaceedges            0
+        -surfacelighting         0
         -surfaceopacity          0
+        -surfacevisible          0
+        -surfacewireframe        0
     }
 
     itk_component add view {
@@ -951,9 +958,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline
-                # and contour2d
-                SendCmd "dataset visible 1 $tag"
+                SendCmd "polydata visible 1 $tag"
             }
         }
     }
@@ -1355,14 +1360,21 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-isolinecolor" {
+            set _changed($what) 1
             set color [$itk_component(isolineColor) value]
             set _settings($what) $color
             SendCmd "contour2d linecolor [Color2RGB $color]"
             DrawLegend
         }
         "-isolinesvisible" {
+            set _changed($what) 1
             set bool $_settings($what)
-            SendCmd "contour2d visible $bool"
+            SendCmd "contour2d visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "contour2d visible $bool $tag"
+                }
+            }
             DrawLegend
         }
         "-legendvisible" {
@@ -1386,26 +1398,39 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-outline" {
+            set _changed($what) 1
             set bool $_settings($what)
-            SendCmd "outline visible $bool"
+            SendCmd "outline visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "outline visible $bool $tag"
+                }
+            }
         }
         "-surfaceedges" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "polydata edges $bool"
         }
         "-surfacelighting" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "polydata lighting $bool"
         }
         "-surfaceopacity" {
+            set _changed($what) 1
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "polydata opacity $sval"
         }
         "-surfacevisible" {
+            set _changed($what) 1
             set bool $_settings($what)
-            SendCmd "polydata visible $bool"
+            SendCmd "polydata visible 0"
             if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "polydata visible $bool $tag"
+                }
                 Rappture::Tooltip::for $itk_component(surface) \
                     "Hide the surface"
             } else {
@@ -1415,6 +1440,7 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-surfacewireframe" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "polydata wireframe $bool"
         }
@@ -1914,8 +1940,17 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     # controls are specified as style hints by each dataset.  It complicates
     # the code to handle aberrant cases.
 
+    if { $_changed(-surfaceedges) } {
+        set style(-edges) $_settings(-surfaceedges)
+    }
+    if { $_changed(-surfacelighting) } {
+        set style(-lighting) $_settings(-surfacelighting)
+    }
     if { $_changed(-surfaceopacity) } {
         set style(-opacity) [expr $_settings(-surfaceopacity) * 0.01]
+    }
+    if { $_changed(-surfacewireframe) } {
+        set style(-wireframe) $_settings(-surfacewireframe)
     }
     if { $_changed(-numcontours) } {
         set style(-levels) $_settings(-numcontours)
@@ -1934,13 +1969,19 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
         UpdateContourList
         DrawLegend
     }
-    set _settings(-isolinesvisible) $style(-isolinesvisible)
-    set _settings(-surfacevisible) $style(-surfacevisible)
+    foreach setting {-outline -isolinesvisible -surfacevisible -isolinecolor} {
+        if {$_changed($setting)} {
+            # User-modified UI setting overrides style
+            set style($setting) $_settings($setting)
+        } else {
+            # Set UI control to style setting (tool provided or default)
+            set _settings($setting) $style($setting)
+        }
+    }
 
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
-    set _settings(-outline) $style(-outline)
 
     SendCmd "polydata add $tag"
     SendCmd "polydata edges $style(-edges) $tag"

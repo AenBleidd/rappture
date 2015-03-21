@@ -1554,8 +1554,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 foreach tag [CurrentDatasets -visible] {
                     SendCmd "contour3d visible $bool $tag"
                 }
-            }
-            if { $bool } {
                 Rappture::Tooltip::for $itk_component(contour) \
                     "Hide the isosurface"
             } else {
