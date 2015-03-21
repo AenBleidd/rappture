@@ -138,10 +138,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _settings
     private variable _changed
     private variable _initialStyle "";  # First found style in dataobjects.
-    private variable _reset 1;          # Indicates if the connection to the 
-                                        # render server was reset
-    private variable _beforeConnect 1;  # Indicates if we are in the constructor
-                                        # before the server connection is made
+    private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
@@ -408,7 +405,6 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     set _image(download) [image create photo]
     eval itk_initialize $args
     Connect
-    set _beforeConnect 0
 }
 
 # ----------------------------------------------------------------------
@@ -746,11 +742,11 @@ itcl::body Rappture::VtkHeightmapViewer::download {option args} {
 itcl::body Rappture::VtkHeightmapViewer::Connect {} {
     global readyForNextFrame
     set readyForNextFrame 1
-    set _reset 1
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -1367,7 +1363,7 @@ itcl::body Rappture::VtkHeightmapViewer::InitSettings { args } {
 #       server.
 #
 itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
-    if { $_beforeConnect } {
+    if { ![isconnected] } {
         return
     }
     switch -- $what {

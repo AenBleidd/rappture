@@ -131,8 +131,7 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _style;            # Array of current component styles.
     private variable _changed
     private variable _initialStyle;     # Array of initial component styles.
-    private variable _reset 1;          # indicates if camera needs to be reset
-                                        # to starting position.
+    private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
@@ -768,6 +767,7 @@ itcl::body Rappture::VtkGlyphViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -1055,10 +1055,10 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
 
         Zoom reset
         foreach axis { x y z } {
-            # Another problem fixed by a <view>. We looking into a data
-            # object for the name of the axes. This should be global to
-            # the viewer itself.
-            set label [$_first hints ${axis}label]
+            set label ""
+            if { $_first != "" } {
+                set label [$_first hints ${axis}label]
+            }
             if { $label == "" } {
                 set label [string toupper $axis]
             }

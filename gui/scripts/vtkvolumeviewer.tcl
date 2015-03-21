@@ -154,8 +154,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _settings
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
-    private variable _reset 1;          # indicates if camera needs to be reset
-                                        # to starting position.
+    private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
@@ -816,6 +815,7 @@ itcl::body Rappture::VtkVolumeViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -897,7 +897,6 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     set _rotatePending 0
     set _cutplanePending 0
     set _legendPending 0
-    set _reset 1
 }
 
 # ----------------------------------------------------------------------
@@ -1371,10 +1370,6 @@ itcl::body Rappture::VtkVolumeViewer::InitSettings { args } {
 #
 itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
-        if { $_reset } {
-            # Just reconnect if we've been reset.
-            Connect
-        }
         return
     }
     switch -- $what {
