@@ -1658,6 +1658,7 @@ itcl::body Rappture::Field::AvsToVtk { cname contents } {
     vtkDataSetWriter $writer
     $writer SetInputConnection [$reader GetOutputPort]
     $writer SetFileName $tmpfile
+    $writer SetFileTypeToBinary
     $writer Write
     rename $reader ""
     rename $writer ""
