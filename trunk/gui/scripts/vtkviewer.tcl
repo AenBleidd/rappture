@@ -141,8 +141,7 @@ itcl::class Rappture::VtkViewer {
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
     private variable _axis
-    private variable _reset 1;          # Indicates that server was reset and
-                                        # needs to be reinitialized.
+    private variable _reset 1;          # Connection to server has been reset.
     private variable _haveGlyphs 0
     private variable _haveMolecules 0
     private variable _havePolydata 0
@@ -864,6 +863,7 @@ itcl::body Rappture::VtkViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {

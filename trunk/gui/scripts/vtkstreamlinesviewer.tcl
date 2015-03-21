@@ -129,8 +129,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _settings
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
-    private variable _reset 1;          # indicates if camera needs to be reset
-                                        # to starting position.
+    private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
@@ -781,6 +780,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {

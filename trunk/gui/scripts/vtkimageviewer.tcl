@@ -133,10 +133,7 @@ itcl::class Rappture::VtkImageViewer {
     private variable _settings
     private variable _changed
     private variable _initialStyle "";  # First found style in dataobjects.
-    private variable _reset 1;          # Indicates if camera needs to be reset
-                                        # to starting position.
-    private variable _beforeConnect 1;  # Indicates if camera needs to be reset
-                                        # to starting position.
+    private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
@@ -398,7 +395,6 @@ itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
 
     EnableWaitDialog 900
     Connect
-    set _beforeConnect 0
 }
 
 # ----------------------------------------------------------------------
@@ -736,11 +732,11 @@ itcl::body Rappture::VtkImageViewer::download {option args} {
 itcl::body Rappture::VtkImageViewer::Connect {} {
     global readyForNextFrame
     set readyForNextFrame 1
-    set _reset 1
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         if { $_reportClientInfo }  {
@@ -1027,19 +1023,25 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
         #SendCmd "axis lformat all %g"
 
         foreach axis { x y z } {
-            set label [$_first hints ${axis}label]
+            set label ""
+            if { $_first != "" } {
+                set label [$_first hints ${axis}label]
+            }
             if { $label == "" } {
                 set label [string toupper $axis]
             }
             # May be a space in the axis label.
             SendCmd [list axis name $axis $label]
 
-            if {$axis == "z" && [$_first hints ${axis}units] == ""} {
-                if {$_curFldName != ""} {
-                    set units [lindex $_fields($_curFldName) 1]
+            set units ""
+            if { $_first != "" } {
+                if {$axis == "z" && [$_first hints ${axis}units] == ""} {
+                    if {$_curFldName != ""} {
+                        set units [lindex $_fields($_curFldName) 1]
+                    }
+                } else {
+                    set units [$_first hints ${axis}units]
                 }
-            } else {
-                set units [$_first hints ${axis}units]
             }
             if { $units != "" } {
                 # May be a space in the axis units.
@@ -1308,7 +1310,7 @@ itcl::body Rappture::VtkImageViewer::InitSettings { args } {
 #       server.
 #
 itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
-    if { $_beforeConnect } {
+    if { ![isconnected] } {
         return
     }
     switch -- $what {
