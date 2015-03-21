@@ -98,6 +98,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method RequestLegend {}
     private method Rotate {option x y}
     private method SetCurrentColormap { color }
+    private method SetCurrentFieldName { dataobj }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
@@ -923,9 +924,11 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
     }
     set _first ""
     SendCmd "dataset visible 0"
+    eval scale $_dlist
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
+            SetCurrentFieldName $dataobj
         }
         set _obj2datasets($dataobj) ""
         foreach comp [$dataobj components] {
@@ -963,35 +966,6 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
         }
     }
 
-    if { $_first != "" } {
-        $itk_component(field) choices delete 0 end
-        $itk_component(fieldmenu) delete 0 end
-        array unset _fields
-        set _curFldName ""
-        foreach cname [$_first components] {
-            foreach fname [$_first fieldnames $cname] {
-                if { [info exists _fields($fname)] } {
-                    continue
-                }
-                foreach { label units components } \
-                    [$_first fieldinfo $fname] break
-                $itk_component(field) choices insert end "$fname" "$label"
-                $itk_component(fieldmenu) add radiobutton -label "$label" \
-                    -value $label -variable [itcl::scope _curFldLabel] \
-                    -selectcolor red \
-                    -activebackground $itk_option(-plotbackground) \
-                    -activeforeground $itk_option(-plotforeground) \
-                    -font "Arial 8" \
-                    -command [itcl::code $this Combo invoke]
-                set _fields($fname) [list $label $units $components]
-                if { $_curFldName == "" } {
-                    set _curFldName $fname
-                    set _curFldLabel $label
-                }
-            }
-        }
-        $itk_component(field) value $_curFldLabel
-    }
     InitSettings -isolinesvisible -surfacevisible -outline
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
@@ -1019,6 +993,9 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
         }
         set _reset 0
     }
+    # Redraw the legend even if we're using the same colormap. The position
+    # of the isolines may have changed because the range of data changed.
+    DrawLegend
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -1913,18 +1890,18 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
-        -color BCGYR
-        -edgecolor black
-        -edges 0
-        -isolinecolor white
+        -color           BCGYR
+        -edgecolor       black
+        -edges           0
+        -isolinecolor    white
         -isolinesvisible 0
-        -levels 10
-        -lighting 1
-        -linewidth 1.0
-        -opacity 1.0
-        -outline 0
-        -surfacevisible 1
-        -wireframe 0
+        -levels          10
+        -lighting        1
+        -linewidth       1.0
+        -opacity         1.0
+        -outline         0
+        -surfacevisible  1
+        -wireframe       0
     }
     array set style [$dataobj style $comp]
     if { $dataobj != $_first || $style(-levels) == 1 } {
@@ -1984,6 +1961,9 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "outline visible $style(-outline) $tag"
 
     SendCmd "polydata add $tag"
+    if { $_curFldName != "" } {
+        SendCmd "polydata colormode $_colorMode $_curFldName $tag"
+    }
     SendCmd "polydata edges $style(-edges) $tag"
     set _settings(-surfaceedges) $style(-edges)
     #SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
@@ -2341,4 +2321,35 @@ itcl::body Rappture::VtkSurfaceViewer::UpdateContourList {} {
     $v delete end 0
     set _contourList [$v range 0 end]
     blt::vector destroy $v
+}
+
+itcl::body Rappture::VtkSurfaceViewer::SetCurrentFieldName { dataobj } {
+    set _first $dataobj
+    $itk_component(field) choices delete 0 end
+    $itk_component(fieldmenu) delete 0 end
+    array unset _fields
+    set _curFldName ""
+    foreach cname [$_first components] {
+        foreach fname [$_first fieldnames $cname] {
+            if { [info exists _fields($fname)] } {
+                continue
+            }
+            foreach { label units components } \
+                [$_first fieldinfo $fname] break
+            $itk_component(field) choices insert end "$fname" "$label"
+            $itk_component(fieldmenu) add radiobutton -label "$label" \
+                -value $label -variable [itcl::scope _curFldLabel] \
+                -selectcolor red \
+                -activebackground $itk_option(-plotbackground) \
+                -activeforeground $itk_option(-plotforeground) \
+                -font "Arial 8" \
+                -command [itcl::code $this LegendTitleAction save]
+            set _fields($fname) [list $label $units $components]
+            if { $_curFldName == "" } {
+                set _curFldName $fname
+                set _curFldLabel $label
+            }
+        }
+    }
+    $itk_component(field) value $_curFldLabel
 }
