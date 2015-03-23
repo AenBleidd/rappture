@@ -2179,8 +2179,8 @@ itcl::body Rappture::MapViewer::GoToViewpoint { dataobj viewpoint } {
         heading 0
         pitch -90
         distance $_view(distance)
-        srs $_view(srs)
-        verticalDatum $_view(verticalDatum)
+        srs "$_view(srs)"
+        verticalDatum "$_view(verticalDatum)"
     }]
     array set view [$dataobj viewpoint $viewpoint]
     foreach key {x y z heading pitch distance srs verticalDatum} {
