@@ -850,10 +850,12 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
         foreach viewpoint [$dataobj viewpoints] {
             set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
-            array set vp $_viewpoints($viewpoint)
-            foreach key { label description x y z distance heading pitch srs verticalDatum } {
-                if { [info exists vp($key)] } {
-                    puts stderr "$viewpoint $key $vp($key)"
+            if 0 {
+                array set vp $_viewpoints($viewpoint)
+                foreach key { label description x y z distance heading pitch srs verticalDatum } {
+                    if { [info exists vp($key)] } {
+                        puts stderr "$viewpoint $key $vp($key)"
+                    }
                 }
             }
         }
@@ -1040,7 +1042,7 @@ itcl::body Rappture::MapViewer::ReceiveImage { args } {
 # specified <size> will follow.
 #
 itcl::body Rappture::MapViewer::ReceiveLegend { colormap min max size } {
-puts stderr "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
+    #puts stderr "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -1053,7 +1055,7 @@ puts stderr "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
             close $f
         }
         $_image(legend-$colormap) configure -data $bytes
-puts stderr "read $size bytes for [image width $_image(legend-$colormap)]x[image height $_image(legend-$colormap)] legend>"
+        #puts stderr "read $size bytes for [image width $_image(legend-$colormap)]x[image height $_image(legend-$colormap)] legend>"
         if { [catch {DrawLegend $colormap $min $max} errs] != 0 } {
             global errorInfo
             puts stderr "errs=$errs errorInfo=$errorInfo"
