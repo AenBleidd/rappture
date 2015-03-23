@@ -2172,23 +2172,25 @@ itcl::body Rappture::MapViewer::camera {option args} {
 }
 
 itcl::body Rappture::MapViewer::GoToViewpoint { dataobj viewpoint } {
-    if 0 {
-    array set view {
+    array set view [subst {
         x 0
         y 0
         z 0
         heading 0
-        pitch -89.999
-        distance 0
-        srs ""
-        verticalDatum ""
-    }
-    }
+        pitch -90
+        distance $_view(distance)
+        srs $_view(srs)
+        verticalDatum $_view(verticalDatum)
+    }]
     array set view [$dataobj viewpoint $viewpoint]
     foreach key {x y z heading pitch distance srs verticalDatum} {
         if { [info exists view($key)] } {
             set _view($key) $view($key)
         }
+    }
+    # If map is projected, ignore pitch
+    if {![MapIsGeocentric]} {
+        set _view(pitch) -90
     }
     set duration 2.0
     SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]

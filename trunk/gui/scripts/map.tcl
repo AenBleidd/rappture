@@ -247,9 +247,42 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             set name "viewpoint[incr _nextViewpoint]"
             set child [$_tree insert $parent -label $name]
             $_tree set $child "name" $viewpoint
+            set haveX 0
+            set haveZ 0
+            set haveSRS 0
+            set haveVertDatum 0
             foreach key { label description x y z distance heading pitch srs verticalDatum } {
                 set val [$viewpoints get $viewpoint.$key]
-                $_tree set $child $key $val
+                if {$val != ""} {
+                    if {$key == "x"} {
+                        set haveX 1
+                    } elseif {$key == "z"} {
+	                set haveZ 1
+                    } elseif {$key == "srs"} {
+                        set haveSRS 1
+                    } elseif {$key == "verticalDatum"} {
+                        set haveVertDatum 1
+                    }
+                    $_tree set $child $key $val
+                }
+            }
+            if {!$haveX} {
+                set lat [$viewpoints get $viewpoint.latitude]
+                set long [$viewpoints get $viewpoint.longitude]
+                $_tree set $child x $long
+                $_tree set $child y $lat
+                if {!$haveSRS} {
+                    $_tree set $child srs wgs84
+                }
+                if {!$haveVertDatum} {
+                    $_tree set $child verticalDatum ""
+                }
+            }
+            if {!$haveZ} {
+                set z [$viewpoints get $viewpoint.altitude]
+                if {$z != ""} {
+                    $_tree set $child z $z
+                }
             }
         }
     }
