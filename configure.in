@@ -187,12 +187,12 @@ TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 AC_ARG_WITH(
     [vtk],
     [AS_HELP_STRING([--with-vtk[=version]],
-        [VTK library version @<:@default=6.1@:>@])],
+        [VTK library version @<:@default=6.2@:>@])],
     [], 
     [with_vtk=yes])
 
 AC_MSG_CHECKING([for vtk])
-VTK_VERSION=6.1
+VTK_VERSION=6.2
 VTK_TCL_DIR=""
 
 ENABLE_VTK=

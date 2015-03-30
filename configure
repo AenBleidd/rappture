@@ -1484,7 +1484,7 @@ Optional Packages:
   --with-install=DIR      location of installation [default=yes]
   --with-ffmpeg=DIR       location of ffmpeg [default=yes]
   --with-tclsh=DIR        location of tclsh [default=yes]
-  --with-vtk=version      VTK library version [default=6.1]
+  --with-vtk=version      VTK library version [default=6.2]
   --with-matlab=DIR       location of matlab and mex compiler [default=yes]
   --with-octave=DIR       path of default octave compiler `mkoctfile'
                           [default=yes]
@@ -7473,7 +7473,7 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for vtk" >&5
 $as_echo_n "checking for vtk... " >&6; }
-VTK_VERSION=6.1
+VTK_VERSION=6.2
 VTK_TCL_DIR=""
 
 ENABLE_VTK=
