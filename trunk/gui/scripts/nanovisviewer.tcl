@@ -1423,9 +1423,9 @@ itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
         # Get the colormap right now, since it doesn't change with marker
         # changes.
         set cmap [ColorsToColormap $styles(-color)]
-        set wmap [list 0.0 0.0 1.0 1.0]
-        set _cname2transferFunction($cname) [list $cmap $wmap]
-        SendCmd [list transfunc define $cname $cmap $wmap]
+        set amap [list 0.0 0.0 1.0 1.0]
+        set _cname2transferFunction($cname) [list $cmap $amap]
+        SendCmd [list transfunc define $cname $cmap $amap]
     }
     SendCmd "volume shading transfunc $cname $tag"
     if { ![info exists _transferFunctionEditors($cname)] } {
@@ -1449,7 +1449,7 @@ itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
 #       the alpha map of the transfer function.
 #
 itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
-    foreach {cmap wmap} $_cname2transferFunction($cname) break
+    foreach {cmap amap} $_cname2transferFunction($cname) break
 
     # We have to parse the style attributes for a volume using this
     # transfer-function *once*.  This sets up the initial isomarkers for the
@@ -1478,9 +1478,9 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
         }
 
     }
-    set wmap [ComputeAlphamap $cname]
-    set _cname2transferFunction($cname) [list $cmap $wmap]
-    SendCmd [list transfunc define $cname $cmap $wmap]
+    set amap [ComputeAlphamap $cname]
+    set _cname2transferFunction($cname) [list $cmap $amap]
+    SendCmd [list transfunc define $cname $cmap $amap]
 }
 
 itcl::body Rappture::NanovisViewer::AddNewMarker { x y } {
@@ -2292,10 +2292,10 @@ itcl::body Rappture::NanovisViewer::ResetColormap { cname color } {
     if { ![info exists _cname2transferFunction($cname)] } {
         return
     }
-    foreach { cmap wmap } $_cname2transferFunction($cname) break
+    foreach { cmap amap } $_cname2transferFunction($cname) break
     set cmap [GetColormap $cname $color]
-    set _cname2transferFunction($cname) [list $cmap $wmap]
-    SendCmd [list transfunc define $cname $cmap $wmap]
+    set _cname2transferFunction($cname) [list $cmap $amap]
+    SendCmd [list transfunc define $cname $cmap $amap]
     EventuallyRedrawLegend
 }
 
@@ -2321,9 +2321,9 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
 
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
-    set wmap ""
+    set amap ""
     if { $first == "" || $first != 0.0 } {
-        lappend wmap 0.0 0.0
+        lappend amap 0.0 0.0
     }
     foreach x $isovalues {
         set x1 [expr {$x-$delta-0.00001}]
@@ -2351,47 +2351,47 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
             set x4 1.0
         }
         # add spikes in the middle
-        lappend wmap $x1 0.0
-        lappend wmap $x2 $max
-        lappend wmap $x3 $max
-        lappend wmap $x4 0.0
+        lappend amap $x1 0.0
+        lappend amap $x2 $max
+        lappend amap $x3 $max
+        lappend amap $x4 0.0
     }
     if { $last == "" || $last != 1.0 } {
-        lappend wmap 1.0 0.0
+        lappend amap 1.0 0.0
     }
-    return $wmap
+    return $amap
 }
 
 itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
     switch -- $name {
         "ramp-up" {
-            set wmap {
+            set amap {
                 0.0 0.0
                 1.0 1.0
             }
         }
         "ramp-down" {
-            set wmap {
+            set amap {
                 0.0 1.0
                 1.0 0.0
             }
         }
         "vee" {
-            set wmap {
+            set amap {
                 0.0 1.0
                 0.5 0.0
                 1.0 1.0
             }
         }
         "tent-1" {
-            set wmap {
+            set amap {
                 0.0 0.0
                 0.5 1.0
                 1.0 0.0
             }
         }
         "tent-2" {
-            set wmap {
+            set amap {
                 0.0 0.0
                 0.25 1.0
                 0.5 0.0
@@ -2400,7 +2400,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "tent-3" {
-            set wmap {
+            set amap {
                 0.0 0.0
                 0.16666 1.0
                 0.33333 0.0
@@ -2411,7 +2411,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "tent-4" {
-            set wmap {
+            set amap {
                 0.0     0.0
                 0.125   1.0
                 0.25    0.0
@@ -2424,7 +2424,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "sinusoid-1" {
-            set wmap {
+            set amap {
                 0.0                     0.000 0.600 0.800
                 0.14285714285714285     0.400 0.900 1.000
                 0.2857142857142857      0.600 1.000 1.000
@@ -2436,7 +2436,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "sinusoid-2" {
-            set wmap {
+            set amap {
                 0.0                     0.900 1.000 1.000
                 0.1111111111111111      0.800 0.983 1.000
                 0.2222222222222222      0.700 0.950 1.000
@@ -2450,7 +2450,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "sinusoid-6" {
-            set wmap {
+            set amap {
                 0.0                             0.200   0.100   0.000
                 0.09090909090909091             0.400   0.187   0.000
                 0.18181818181818182             0.600   0.379   0.210
@@ -2466,7 +2466,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "sinusoid-10" {
-            set wmap {
+            set amap {
                 0.0                             0.000   0.480   0.600
                 0.09090909090909091             0.000   0.667   0.800
                 0.18181818181818182             0.200   0.893   1.000
@@ -2482,7 +2482,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "step-2" {
-            set wmap {
+            set amap {
                 0.0                             0.000   0.167   1.000
                 0.09090909090909091             0.100   0.400   1.000
                 0.18181818181818182             0.200   0.600   1.000
@@ -2498,7 +2498,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "step-5" {
-            set wmap {
+            set amap {
                 0.0                             1.000   0.167   0.000
                 0.09090909090909091             1.000   0.400   0.100
                 0.18181818181818182             1.000   0.600   0.200
@@ -2514,7 +2514,7 @@ itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
             }
         }
         "step-12" {
-            set wmap {
+            set amap {
                 "#EE82EE"
                 "#4B0082"
                 "blue"

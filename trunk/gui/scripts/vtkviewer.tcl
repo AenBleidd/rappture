@@ -1877,8 +1877,8 @@ itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
     }
     set max $_settings(polydata-opacity)
 
-    set wmap "0.0 1.0 1.0 1.0"
-    SendCmd "colormap add $name { $cmap } { $wmap }"
+    set amap "0.0 1.0 1.0 1.0"
+    SendCmd "colormap add $name { $cmap } { $amap }"
 }
 
 # ----------------------------------------------------------------------

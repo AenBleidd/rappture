@@ -1832,9 +1832,9 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
 
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
-    set wmap ""
+    set amap ""
     if { $first == "" || $first != 0.0 } {
-        lappend wmap 0.0 0.0
+        lappend amap 0.0 0.0
     }
     foreach x $isovalues {
         set x1 [expr {$x-$delta-0.00001}]
@@ -1862,15 +1862,15 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
             set x4 1.0
         }
         # add spikes in the middle
-        lappend wmap $x1 0.0
-        lappend wmap $x2 $max
-        lappend wmap $x3 $max
-        lappend wmap $x4 0.0
+        lappend amap $x1 0.0
+        lappend amap $x2 $max
+        lappend amap $x3 $max
+        lappend amap $x4 0.0
     }
     if { $last == "" || $last != 1.0 } {
-        lappend wmap 1.0 0.0
+        lappend amap 1.0 0.0
     }
-    SendCmd "transfunc define $tf { $cmap } { $wmap }"
+    SendCmd "transfunc define $tf { $cmap } { $amap }"
     return [SendCmd "$dataobj-$comp configure -transferfunction $tf"]
 }
 

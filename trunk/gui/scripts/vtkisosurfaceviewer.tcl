@@ -3087,8 +3087,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildColormap { name } {
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    set wmap "0.0 1.0 1.0 1.0"
-    SendCmd "colormap add $name { $cmap } { $wmap }"
+    set amap "0.0 1.0 1.0 1.0"
+    SendCmd "colormap add $name { $cmap } { $amap }"
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::SetOrientation { side } {

@@ -1594,8 +1594,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name styles } {
     }
     set max $_settings(-volumeopacity)
 
-    set wmap "0.0 1.0 1.0 1.0"
-    SendCmd "colormap add $name { $cmap } { $wmap }"
+    set amap "0.0 1.0 1.0 1.0"
+    SendCmd "colormap add $name { $cmap } { $amap }"
 }
 
 # ----------------------------------------------------------------------
