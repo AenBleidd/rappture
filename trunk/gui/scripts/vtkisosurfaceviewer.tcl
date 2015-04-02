@@ -145,9 +145,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _limits       ;    # autoscale min/max for all axes
     private variable _view         ;    # view params for 3D view
     private variable _settings
-    private variable _style;            # Array of current component styles.
     private variable _changed
-    private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
