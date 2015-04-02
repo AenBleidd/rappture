@@ -132,7 +132,6 @@ itcl::class Rappture::VtkImageViewer {
     private variable _view         ;    # view params for 3D view
     private variable _settings
     private variable _changed
-    private variable _initialStyle "";  # First found style in dataobjects.
     private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.

@@ -152,8 +152,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _limits       ;    # autoscale min/max for all axes
     private variable _view         ;    # view params for 3D view
     private variable _settings
-    private variable _style;            # Array of current component styles.
-    private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
@@ -2235,33 +2233,33 @@ itcl::body Rappture::VtkVolumeViewer::BuildDownloadPopup { popup command } {
 itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     # Parse style string.
     set tag $dataobj-$cname
-    array set styles {
+    array set style {
         -color      BCGYR
         -lighting   1
         -opacity    0.5
         -outline    0
         -visible    1
     }
-    array set styles [$dataobj style $cname]
-    set _settings($cname-volumelighting)        $styles(-lighting)
-    set _settings($cname-volumeopacity)         [expr $styles(-opacity) * 100]
-    set _settings($cname-volumeoutline)         $styles(-outline)
-    set _settings($cname-volumevisible)         $styles(-visible)
+    array set style [$dataobj style $cname]
+    set _settings($cname-volumelighting)        $style(-lighting)
+    set _settings($cname-volumeopacity)         [expr $style(-opacity) * 100]
+    set _settings($cname-volumeoutline)         $style(-outline)
+    set _settings($cname-volumevisible)         $style(-visible)
 
     $itk_component(colormap) value $styles(-color)
 
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
-    SendCmd "outline visible $styles(-outline) $tag"
+    SendCmd "outline visible $style(-outline) $tag"
 
     SendCmd "$_cutplaneCmd add $tag"
     SendCmd "$_cutplaneCmd color [Color2RGB $itk_option(-plotforeground)] $tag"
     SendCmd "$_cutplaneCmd visible 0 $tag"
 
     SendCmd "volume add $tag"
-    SendCmd "volume lighting $styles(-lighting) $tag"
-    SendCmd "volume opacity $styles(-opacity) $tag"
-    SendCmd "volume visible $styles(-visible) $tag"
+    SendCmd "volume lighting $style(-lighting) $tag"
+    SendCmd "volume opacity $style(-opacity) $tag"
+    SendCmd "volume visible $style(-visible) $tag"
 
     SetInitialTransferFunction $dataobj $cname
     SendCmd "volume colormap $cname $tag"

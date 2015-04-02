@@ -146,8 +146,6 @@ itcl::class Rappture::MapViewer {
     private variable _settings
     private variable _opacity
     private variable _visibility
-    private variable _style;            # Array of current component styles.
-    private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Indicates that server was reset and
                                         # needs to be reinitialized.
     private variable _initCamera 1;
