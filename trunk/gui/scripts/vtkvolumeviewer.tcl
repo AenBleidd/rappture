@@ -2246,7 +2246,7 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     set _settings($cname-volumeoutline)         $style(-outline)
     set _settings($cname-volumevisible)         $style(-visible)
 
-    $itk_component(colormap) value $styles(-color)
+    $itk_component(colormap) value $style(-color)
 
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
@@ -2652,7 +2652,7 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     # reference.
 
     if { ![info exists _parsedFunction($cname)] || ![info exists _cname2transferFunction($cname)] } {
-        array set styles {
+        array set style {
             -color BCGYR
             -alphamap ""
             -levels 6
@@ -2662,22 +2662,22 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
         foreach tag [GetDatasetsWithComponent $cname] {
             foreach {dataobj cname} [split [lindex $tag 0] -] break
             set option [lindex [$dataobj components -style $cname] 0]
-            array set styles $option
+            array set style $option
         }
-        set _settings($cname-color) $styles(-color)
-        set cmap [ColorsToColormap $styles(-color)]
+        set _settings($cname-color) $style(-color)
+        set cmap [ColorsToColormap $style(-color)]
         set _cname2defaultcolormap($cname) $cmap
         if { [info exists _transferFunctionEditors($cname)] } {
             eval $_transferFunctionEditors($cname) limits $_limits($cname)
         }
-        if { [info exists styles(-markers)] &&
-             [llength $styles(-markers)] > 0 } {
-            ParseMarkersOption $cname $styles(-markers)
+        if { [info exists style(-markers)] &&
+             [llength $style(-markers)] > 0 } {
+            ParseMarkersOption $cname $style(-markers)
         } else {
-            ParseLevelsOption $cname $styles(-levels)
+            ParseLevelsOption $cname $style(-levels)
         }
-        if { $styles(-alphamap) != "" } {
-            set _alphamap($cname) $styles(-alphamap)
+        if { $style(-alphamap) != "" } {
+            set _alphamap($cname) $style(-alphamap)
         }
     } else {
         foreach {cmap amap} $_cname2transferFunction($cname) break
