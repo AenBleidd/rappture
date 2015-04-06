@@ -112,7 +112,6 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _arcball ""
 
     private variable _dlist ""     ;    # list of data objects
-    private variable _obj2datasets
     private variable _obj2ovride   ;    # maps dataobj => style override
     private variable _datasets     ;    # contains all the dataobj-component 
                                    ;    # datasets in the server
@@ -121,8 +120,6 @@ itcl::class Rappture::VtkGlyphViewer {
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
     private variable _currentColormap ""
-
-    private variable _dataset2style    ;# maps dataobj-component to transfunc
 
     private variable _click        ;    # info used for rotate operations
     private variable _limits       ;    # autoscale min/max for all axes
@@ -837,8 +834,6 @@ itcl::body Rappture::VtkGlyphViewer::Disconnect {} {
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
-    array unset _dataset2style 
-    array unset _obj2datasets 
 }
 
 # ----------------------------------------------------------------------
@@ -971,7 +966,6 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
-        set _obj2datasets($dataobj) ""
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
@@ -1000,7 +994,6 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
             }
-            lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 # Setting dataset visible enables outline 
                 # and glyphs

@@ -115,7 +115,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _arcball ""
 
     private variable _dlist ""     ;    # list of data objects
-    private variable _obj2datasets
     private variable _obj2ovride   ;    # maps dataobj => style override
     private variable _datasets     ;    # contains all the dataobj-component
                                    ;    # datasets in the server
@@ -851,11 +850,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
     array unset _datasets
-    array unset _data
     array unset _colormaps
     array unset _seeds
     array unset _dataset2style
-    array unset _obj2datasets
 }
 
 # ----------------------------------------------------------------------
@@ -982,7 +979,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
-        set _obj2datasets($dataobj) ""
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
@@ -1011,7 +1007,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
             }
-            lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "dataset visible 1 $tag"
             }

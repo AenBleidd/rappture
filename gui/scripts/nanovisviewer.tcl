@@ -140,7 +140,6 @@ itcl::class Rappture::NanovisViewer {
     private variable _serverDatasets   ;# contains all the dataobj-component
                                        ;# to volumes in the server
     private variable _recvdDatasets;    # list of data objs to send to server
-    private variable _dataset2style;    # maps dataobj-component to transfunc
     private variable _style2datasets;   # maps tf back to list of
                                         # dataobj-components using the tf.
 
@@ -155,7 +154,6 @@ itcl::class Rappture::NanovisViewer {
     private variable _current "";       # Currently selected component
     private variable _volcomponents    ;# Array of components found
     private variable _componentsList   ;# Array of components found
-    private variable _cname2style
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
     private variable _cname2defaultalphamap
@@ -539,7 +537,6 @@ itcl::body Rappture::NanovisViewer::delete {args} {
         if { $pos >= 0 } {
             set _dlist [lreplace $_dlist $pos $pos]
             array unset _obj2ovride $dataobj-*
-            array unset _dataset2style $dataobj-*
             set changed 1
         }
     }
@@ -1434,7 +1431,6 @@ itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
                  $cname \
                  -command [itcl::code $this updateTransferFunctions]]
     }
-    set _dataset2style($tag) $cname
     lappend _style2datasets($cname) $tag
     return $cname
 }

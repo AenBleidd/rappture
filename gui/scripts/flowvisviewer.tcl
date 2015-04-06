@@ -748,7 +748,6 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
                 lappend _componentsList $cname
                 array set style [lindex [$dataobj components -style $cname] 0]
                 set cmap [ColorsToColormap $style(-color)]
-                set _cname2defaultcolormap($cname) $cmap
                 set _settings($cname-colormap) $style(-color)
             }
             lappend _volcomponents($cname) $dataobj-$cname
