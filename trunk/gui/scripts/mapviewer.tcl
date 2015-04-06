@@ -132,7 +132,6 @@ itcl::class Rappture::MapViewer {
     private method Zoom {option {x 0} {y 0}}
 
     private variable _dlist "";         # list of data objects
-    private variable _obj2datasets
     private variable _obj2ovride;       # maps dataobj => style override
     private variable _layers;           # Contains the names of all the
                                         # layer in the server.
@@ -1224,7 +1223,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     set _first ""
     set haveTerrain 0
     foreach dataobj [get -objects] {
-        set _obj2datasets($dataobj) ""
         foreach layer [$dataobj layers] {
             array unset info
             array set info [$dataobj layer $layer]
@@ -1246,7 +1244,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             if {$info(type) == "elevation"} {
                 set haveTerrain 1
             }
-            lappend _obj2datasets($dataobj) $layer
             # FIXME: This is overriding all layers' initial visibility setting
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "map layer visible 1 $layer"

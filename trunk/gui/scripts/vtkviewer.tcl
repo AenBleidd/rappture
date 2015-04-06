@@ -125,15 +125,12 @@ itcl::class Rappture::VtkViewer {
 
     private variable _arcball ""
     private variable _dlist "";         # list of data objects
-    private variable _obj2datasets
     private variable _obj2ovride;       # maps dataobj => style override
     private variable _datasets;         # contains all the dataobj-component
                                         # datasets in the server
     private variable _colormaps;        # contains all the colormaps
                                         # in the server.
     private variable _dataset2style;    # maps dataobj-component to transfunc
-    private variable _style2datasets;   # maps tf back to list of
-                                        # dataobj-components using the tf.
     private variable _click;            # info used for rotate operations
     private variable _limits;           # autoscale min/max for all axes
     private variable _view;             # view params for 3D view
@@ -926,7 +923,6 @@ itcl::body Rappture::VtkViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     array unset _datasets
-    array unset _data
     array unset _colormaps
     global readyForNextFrame
     set readyForNextFrame 1
@@ -1054,7 +1050,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
-        set _obj2datasets($dataobj) ""
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
@@ -1086,7 +1081,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
             }
-            lappend _obj2datasets($dataobj) $tag
             set type [$dataobj type $comp]
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "$type visible 1 $tag"
