@@ -56,6 +56,9 @@ namespace eval Rappture::bugreport {
 # ----------------------------------------------------------------------
 proc Rappture::bugreport::install {} {
     ::proc ::bgerror {err} { ::Rappture::bugreport::activate $err }
+    # Load tls early to prevent error in tls::initlib and [pwd]
+    package require http
+    package require tls
 }
 
 # ----------------------------------------------------------------------
