@@ -65,7 +65,9 @@ itcl::body Rappture::IsoMarker::constructor {c obj tf args} {
 }
 
 itcl::body Rappture::IsoMarker::destructor {} {
-    $_canvas delete $this
+    if { [winfo exists $_canvas] } {
+        $_canvas delete $this
+    }
 }
 
 itcl::body Rappture::IsoMarker::transferfunc {} {
@@ -183,4 +185,3 @@ itcl::body Rappture::IsoMarker::ContinueDrag { x y } {
     $_canvas itemconfigure limits -state hidden
     $_canvas itemconfigure title -state hidden
 }
-
