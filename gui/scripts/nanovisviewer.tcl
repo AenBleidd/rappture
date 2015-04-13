@@ -2164,18 +2164,19 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
 #    time we try to switch to a given component in SwitchComponent below.
 #
 itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
-    # Expanding component name for key.
-    array set _settings [subst {
-        $cname-ambient           60
-        $cname-colormap          default
-        $cname-diffuse           40
-        $cname-light2side        1
-        $cname-opacity           50
-        $cname-specularexponent  90
-        $cname-specularlevel     30
-        $cname-thickness         350
-        $cname-volumevisible     1
-    }]
+    foreach {key value} {
+        -ambient           60
+        -colormap          "default"
+        -diffuse           40
+        -light2side        1
+        -opacity           50
+        -specularexponent  90
+        -specularlevel     30
+        -thickness         350
+        -volumevisible     1
+    } {
+        set _settings($cname${key}) $value
+    }
 }
 
 #
