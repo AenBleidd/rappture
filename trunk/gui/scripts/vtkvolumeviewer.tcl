@@ -84,7 +84,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _componentsList   ; # List of component names
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
-    private variable _cname2defaultalphamap
 
     private variable _parsedFunction
     private variable _transferFunctionEditors

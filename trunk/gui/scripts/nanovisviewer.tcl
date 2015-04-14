@@ -98,14 +98,12 @@ itcl::class Rappture::NanovisViewer {
     private method EventuallyRedrawLegend { }
     private method EventuallyResize { w h }
     private method FixLegend {}
-    private method GetAlphamap { cname color }
     private method GetColormap { cname color }
     private method GetDatasetsWithComponent { cname }
     private method GetVolumeInfo { w }
     private method HideAllMarkers {}
     private method InitComponentSettings { cname }
     private method InitSettings { args }
-    private method NameToAlphamap { name }
     private method NameTransferFunction { dataobj comp }
     private method Pan {option x y}
     private method PanCamera {}
@@ -153,7 +151,6 @@ itcl::class Rappture::NanovisViewer {
     private variable _componentsList   ;# Array of components found
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
-    private variable _cname2defaultalphamap
 
     common _downloadPopup          ;# download options from popup
     private common _hardcopy
@@ -2243,13 +2240,6 @@ itcl::body Rappture::NanovisViewer::GetColormap { cname color } {
     return [ColorsToColormap $color]
 }
 
-itcl::body Rappture::NanovisViewer::GetAlphamap { cname name } {
-    if { $name == "default" } {
-        return $_cname2defaultalphamap($cname)
-    }
-    return [NameToAlphamap $name]
-}
-
 itcl::body Rappture::NanovisViewer::ResetColormap { cname color } {
     # Get the current transfer function
     if { ![info exists _cname2transferFunction($cname)] } {
@@ -2323,172 +2313,4 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
         lappend amap 1.0 0.0
     }
     return $amap
-}
-
-itcl::body Rappture::NanovisViewer::NameToAlphamap { name } {
-    switch -- $name {
-        "ramp-up" {
-            set amap {
-                0.0 0.0
-                1.0 1.0
-            }
-        }
-        "ramp-down" {
-            set amap {
-                0.0 1.0
-                1.0 0.0
-            }
-        }
-        "vee" {
-            set amap {
-                0.0 1.0
-                0.5 0.0
-                1.0 1.0
-            }
-        }
-        "tent-1" {
-            set amap {
-                0.0 0.0
-                0.5 1.0
-                1.0 0.0
-            }
-        }
-        "tent-2" {
-            set amap {
-                0.0 0.0
-                0.25 1.0
-                0.5 0.0
-                0.75 1.0
-                1.0 0.0
-            }
-        }
-        "tent-3" {
-            set amap {
-                0.0 0.0
-                0.16666 1.0
-                0.33333 0.0
-                0.5     1.0
-                0.66666 0.0
-                0.83333 1.0
-                1.0 0.0
-            }
-        }
-        "tent-4" {
-            set amap {
-                0.0     0.0
-                0.125   1.0
-                0.25    0.0
-                0.375   1.0
-                0.5     0.0
-                0.625   1.0
-                0.75    0.0
-                0.875   1.0
-                1.0     0.0
-            }
-        }
-        "sinusoid-1" {
-            set amap {
-                0.0                     0.000 0.600 0.800
-                0.14285714285714285     0.400 0.900 1.000
-                0.2857142857142857      0.600 1.000 1.000
-                0.42857142857142855     0.800 1.000 1.000
-                0.5714285714285714      0.900 0.900 0.900
-                0.7142857142857143      0.600 0.600 0.600
-                0.8571428571428571      0.400 0.400 0.400
-                1.0                     0.200 0.200 0.200
-            }
-        }
-        "sinusoid-2" {
-            set amap {
-                0.0                     0.900 1.000 1.000
-                0.1111111111111111      0.800 0.983 1.000
-                0.2222222222222222      0.700 0.950 1.000
-                0.3333333333333333      0.600 0.900 1.000
-                0.4444444444444444      0.500 0.833 1.000
-                0.5555555555555556      0.400 0.750 1.000
-                0.6666666666666666      0.300 0.650 1.000
-                0.7777777777777778      0.200 0.533 1.000
-                0.8888888888888888      0.100 0.400 1.000
-                1.0                     0.000 0.250 1.000
-            }
-        }
-        "sinusoid-6" {
-            set amap {
-                0.0                             0.200   0.100   0.000
-                0.09090909090909091             0.400   0.187   0.000
-                0.18181818181818182             0.600   0.379   0.210
-                0.2727272727272727              0.800   0.608   0.480
-                0.36363636363636365             0.850   0.688   0.595
-                0.45454545454545453             0.950   0.855   0.808
-                0.5454545454545454              0.800   0.993   1.000
-                0.6363636363636364              0.600   0.973   1.000
-                0.7272727272727273              0.400   0.940   1.000
-                0.8181818181818182              0.200   0.893   1.000
-                0.9090909090909091              0.000   0.667   0.800
-                1.0                             0.000   0.480   0.600
-            }
-        }
-        "sinusoid-10" {
-            set amap {
-                0.0                             0.000   0.480   0.600
-                0.09090909090909091             0.000   0.667   0.800
-                0.18181818181818182             0.200   0.893   1.000
-                0.2727272727272727              0.400   0.940   1.000
-                0.36363636363636365             0.600   0.973   1.000
-                0.45454545454545453             0.800   0.993   1.000
-                0.5454545454545454              0.950   0.855   0.808
-                0.6363636363636364              0.850   0.688   0.595
-                0.7272727272727273              0.800   0.608   0.480
-                0.8181818181818182              0.600   0.379   0.210
-                0.9090909090909091              0.400   0.187   0.000
-                1.0                             0.200   0.100   0.000
-            }
-        }
-        "step-2" {
-            set amap {
-                0.0                             0.000   0.167   1.000
-                0.09090909090909091             0.100   0.400   1.000
-                0.18181818181818182             0.200   0.600   1.000
-                0.2727272727272727              0.400   0.800   1.000
-                0.36363636363636365             0.600   0.933   1.000
-                0.45454545454545453             0.800   1.000   1.000
-                0.5454545454545454              1.000   1.000   0.800
-                0.6363636363636364              1.000   0.933   0.600
-                0.7272727272727273              1.000   0.800   0.400
-                0.8181818181818182              1.000   0.600   0.200
-                0.9090909090909091              1.000   0.400   0.100
-                1.0                             1.000   0.167   0.000
-            }
-        }
-        "step-5" {
-            set amap {
-                0.0                             1.000   0.167   0.000
-                0.09090909090909091             1.000   0.400   0.100
-                0.18181818181818182             1.000   0.600   0.200
-                0.2727272727272727              1.000   0.800   0.400
-                0.36363636363636365             1.000   0.933   0.600
-                0.45454545454545453             1.000   1.000   0.800
-                0.5454545454545454              0.800   1.000   1.000
-                0.6363636363636364              0.600   0.933   1.000
-                0.7272727272727273              0.400   0.800   1.000
-                0.8181818181818182              0.200   0.600   1.000
-                0.9090909090909091              0.100   0.400   1.000
-                1.0                             0.000   0.167   1.000
-            }
-        }
-        "step-12" {
-            set amap {
-                "#EE82EE"
-                "#4B0082"
-                "blue"
-                "#008000"
-                "yellow"
-                "#FFA500"
-                "red"
-            }
-        }
-        default {
-        }
-    }
-    return ""
 }
