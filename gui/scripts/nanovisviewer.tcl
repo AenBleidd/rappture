@@ -973,9 +973,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         PanCamera
         SendCmd "camera zoom $_view(-zoom)"
 
-        #cutplane state 0 all
+        # Turn off cutplanes for all volumes
         foreach axis {x y z} {
-            # Turn off cutplanes for all volumes
             SendCmd "cutplane state 0 $axis"
         }
 
