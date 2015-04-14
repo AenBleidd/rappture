@@ -636,39 +636,40 @@ itcl::body Rappture::FlowvisViewer::get {args} {
 
     set op [lindex $args 0]
     switch -- $op {
-      -objects {
-        # put the dataobj list in order according to -raise options
-        set dlist $_dlist
-        foreach obj $dlist {
-            if {[info exists _obj2ovride($obj-raise)] && $_obj2ovride($obj-raise)} {
-                set i [lsearch -exact $dlist $obj]
-                if {$i >= 0} {
-                    set dlist [lreplace $dlist $i $i]
-                    lappend dlist $obj
+        -objects {
+            # put the dataobj list in order according to -raise options
+            set dlist $_dlist
+            foreach obj $dlist {
+                if {[info exists _obj2ovride($obj-raise)] &&
+                    $_obj2ovride($obj-raise)} {
+                    set i [lsearch -exact $dlist $obj]
+                    if {$i >= 0} {
+                        set dlist [lreplace $dlist $i $i]
+                        lappend dlist $obj
+                    }
+                }
+            }
+            return $dlist
+        }
+        -image {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"get -image 3dview|legend\""
+            }
+            switch -- [lindex $args end] {
+                3dview {
+                    return $_image(plot)
+                }
+                legend {
+                    return $_image(legend)
+                }
+                default {
+                    error "bad image name \"[lindex $args end]\": should be 3dview or legend"
                 }
             }
         }
-        return $dlist
-      }
-      -image {
-        if {[llength $args] != 2} {
-            error "wrong # args: should be \"get -image 3dview|legend\""
+        default {
+            error "bad option \"$op\": should be -objects or -image"
         }
-        switch -- [lindex $args end] {
-            3dview {
-                return $_image(plot)
-            }
-            legend {
-                return $_image(legend)
-            }
-            default {
-                error "bad image name \"[lindex $args end]\": should be 3dview or legend"
-            }
-        }
-      }
-      default {
-        error "bad option \"$op\": should be -objects or -image"
-      }
     }
 }
 
