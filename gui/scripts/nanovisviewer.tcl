@@ -73,7 +73,6 @@ itcl::class Rappture::NanovisViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { tf }
     public method parameters {title args} {
         # do nothing
     }
@@ -140,8 +139,6 @@ itcl::class Rappture::NanovisViewer {
     private variable _serverDatasets   ;# contains all the dataobj-component
                                        ;# to volumes in the server
     private variable _recvdDatasets;    # list of data objs to send to server
-    private variable _style2datasets;   # maps tf back to list of
-                                        # dataobj-components using the tf.
 
     private variable _reset 1;          # Connection to server has been reset.
     private variable _click;            # Info used for rotate operations.
@@ -1430,7 +1427,6 @@ itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
                  $cname \
                  -command [itcl::code $this updateTransferFunctions]]
     }
-    lappend _style2datasets($cname) $tag
     return $cname
 }
 
@@ -1601,35 +1597,6 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
 itcl::body Rappture::NanovisViewer::updateTransferFunctions {} {
     $_dispatcher event -idle !send_transfunc
 }
-
-itcl::body Rappture::NanovisViewer::limits { cname } {
-    set _limits(min) 0.0
-    set _limits(max) 1.0
-    if { ![info exists _style2datasets($cname)] } {
-        return [array get _limits]
-    }
-    set min ""; set max ""
-    foreach tag [GetDatasetsWithComponent $cname] {
-        if { ![info exists _limits($tag)] } {
-            continue
-        }
-        foreach {amin amax} $_limits($tag) break
-        if { $min == "" || $min > $amin } {
-            set min $amin
-        }
-        if { $max == "" || $max < $amax } {
-            set max $amax
-        }
-    }
-    if { $min != "" } {
-        set _limits(min) $min
-    }
-    if { $max != "" } {
-        set _limits(max) $max
-    }
-    return [list $_limits(min) $_limits(max)]
-}
-
 
 itcl::body Rappture::NanovisViewer::BuildViewTab {} {
     set fg [option get $itk_component(hull) font Font]
