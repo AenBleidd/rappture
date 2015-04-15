@@ -1980,7 +1980,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: UndateTransferFuncs
+# USAGE: UpdateTransferFuncs
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::updateTransferFunctions {} {
     $_dispatcher event -after 100 !send_transfunc
