@@ -1590,7 +1590,7 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: UndateTransferFuncs
+# USAGE: UpdateTransferFuncs
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::updateTransferFunctions {} {
     $_dispatcher event -idle !send_transfunc
