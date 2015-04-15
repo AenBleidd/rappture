@@ -1033,12 +1033,12 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
-		if 0 {
+                if 0 {
                     set f [open /tmp/vtkvolume.vtk "w"]
                     fconfigure $f -translation binary -encoding binary
                     puts -nonewline $f $bytes
                     close $f
-		}
+                }
                 set length [string length $bytes]
                 if { $_reportClientInfo }  {
                     set info {}
@@ -1079,9 +1079,9 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                 SendCmd [list axis units $axis $units]
             }
         }
-	$itk_component(field) choices delete 0 end
-	$itk_component(fieldmenu) delete 0 end
-	array unset _fields
+        $itk_component(field) choices delete 0 end
+        $itk_component(fieldmenu) delete 0 end
+        array unset _fields
         set _curFldName ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
@@ -1370,15 +1370,15 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         "-background" {
             set bgcolor [$itk_component(background) value]
             set _settings($what) $bgcolor
-	    array set fgcolors {
-		"black" "white"
-		"white" "black"
-		"grey"	"black"
-	    }
+            array set fgcolors {
+                "black" "white"
+                "white" "black"
+                "grey"  "black"
+            }
             configure -plotbackground $bgcolor \
-		-plotforeground $fgcolors($bgcolor)
-	    $itk_component(view) delete "legend"
-	    DrawLegend
+                -plotforeground $fgcolors($bgcolor)
+            $itk_component(view) delete "legend"
+            DrawLegend
         }
         "-volumeoutline" {
             set bool $_settings($what)
