@@ -1174,7 +1174,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
                 SendCmd "volume data follows $nbytes $tag"
             } else {
                 if {[SendFlowCmd $dataobj $comp $nbytes $extents] < 0} {
-                     continue
+                    continue
                 }
             }
             SendData $data
