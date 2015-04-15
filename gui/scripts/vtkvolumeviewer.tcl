@@ -96,14 +96,14 @@ itcl::class Rappture::VtkVolumeViewer {
     private method BuildDownloadPopup { widget command }
     private method BuildViewTab {}
     private method BuildVolumeTab {}
-    private method DrawLegend {}
-    private method DrawLegendOld {}
     private method Combo { option }
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
     private method DoResize {}
     private method DoRotate {}
+    private method DrawLegend {}
+    private method DrawLegendOld {}
     private method EnterLegend { x y }
     private method EventuallyResize { w h }
     private method EventuallyRequestLegend {}
@@ -111,7 +111,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method EventuallySetCutplane { axis args }
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
@@ -166,10 +166,9 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _colorMode "scalar"; #  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
     private variable _cutplaneCmd "imgcutplane"
     private variable _allowMultiComponent 0
-    private variable _activeVolumes;   # Array of volumes that are active.
 }
 
 itk::usual VtkVolumeViewer {
@@ -1015,16 +1014,14 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         StopBufferingCommands
         SendCmd "imgflush"
         StartBufferingCommands
-     }
+    }
     set _first ""
-
-    SendCmd "dataset visible 0"
 
     # No volumes are active (i.e. in the working set of displayed volumes).
     # A volume is always invisible if it's not in the working set.  A
     # volume in the working set may be visible/invisible depending upon the
     # global visibility value.
-    array unset _activeVolumes
+    SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -2642,7 +2639,8 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
 
-    if { ![info exists _parsedFunction($cname)] || ![info exists _cname2transferFunction($cname)] } {
+    if { ![info exists _parsedFunction($cname)] ||
+         ![info exists _cname2transferFunction($cname)] } {
         array set style {
             -color BCGYR
             -alphamap ""
