@@ -5,7 +5,6 @@
 # This widget performs volume and flow rendering on 3D scalar/vector datasets.
 # It connects to the Flowvis server running on a rendering farm, transmits
 # data, and displays the results.
-#
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2012  HUBzero Foundation, LLC
@@ -69,11 +68,6 @@ itcl::class Rappture::FlowvisViewer {
     public method removeDuplicateMarker { m x }
     public method scale {args}
     public method updateTransferFunctions {}
-
-    # soon to be removed.
-    private method Flow {option args}
-    private method Play {}
-    private method Pause {}
 
     # The following methods are only used by this class.
     private method AddIsoMarker { x y }
@@ -458,7 +452,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     bind $itk_component(duration) <Tab> [itcl::code $this flow duration]
     Rappture::Tooltip::for $itk_component(duration) \
         "Set duration of flow (format is min:sec)"
-
 
     itk_component add durationlabel {
         label $itk_component(flowcontrols).durationl \
@@ -1246,7 +1239,6 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         set _activeTf [lindex $_dataset2style($_first-$comp) 0]
     }
 
-
     # sync the state of slicers
     set vols [CurrentVolumeIds -cutplanes]
     foreach axis {x y z} {
@@ -1445,106 +1437,6 @@ itcl::body Rappture::FlowvisViewer::Pan {option x y} {
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
     }
-}
-
-
-# ----------------------------------------------------------------------
-# USAGE: Flow movie record|stop|play ?on|off|toggle?
-#
-# Called when the user clicks on the record, stop or play buttons
-# for flow visualization.
-# ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::Flow {option args} {
-    switch -- $option {
-        movie {
-            if {[llength $args] < 1 || [llength $args] > 2} {
-                error "wrong # args: should be \"Flow movie record|stop|play ?on|off|toggle?\""
-            }
-            set action [lindex $args 0]
-            set op [lindex $args 1]
-            if {$op == ""} { set op "on" }
-
-            set current [State $action]
-            if {$op == "toggle"} {
-                if {$current == "on"} {
-                    set op "off"
-                } else {
-                    set op "on"
-                }
-            }
-            set cmds ""
-            switch -- $action {
-                record {
-                    if { [$itk_component(rewind) cget -relief] != "sunken" } {
-                        $itk_component(rewind) configure -relief sunken
-                        $itk_component(stop) configure -relief raised
-                        $itk_component(play) configure -relief raised
-                        set inner $itk_component(settingsFrame)
-                        set frames [$inner.framecnt value]
-                        set _settings(nsteps) $frames
-                        set cmds "flow capture $frames"
-                        SendCmd $cmds
-                    }
-                }
-                stop {
-                    if { [$itk_component(stop) cget -relief] != "sunken" } {
-                        $itk_component(rewind) configure -relief raised
-                        $itk_component(stop) configure -relief sunken
-                        $itk_component(play) configure -relief raised
-                        _pause
-                        set cmds "flow reset"
-                        SendCmd $cmds
-                    }
-                }
-                play {
-                    if { [$itk_component(play) cget -relief] != "sunken" } {
-                        $itk_component(rewind) configure -relief raised
-                        $itk_component(stop) configure -relief raised
-                        $itk_component(play) configure \
-                            -image [Rappture::icon flow-pause] \
-                            -relief sunken
-                        bind $itk_component(play) <ButtonPress> \
-                            [itcl::code $this _pause]
-                        flow next
-                    }
-                }
-                default {
-                    error "bad option \"$option\": should be one of record|stop|play"
-                }
-
-            }
-        }
-        default {
-            error "bad option \"$option\": should be movie"
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: Play
-#
-# ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::Play {} {
-    SendCmd "flow next"
-    set delay [expr {int(ceil(pow($_settings(speed)/10.0+2,2.0)*15))}]
-    $_dispatcher event -after $delay !play
-}
-
-# ----------------------------------------------------------------------
-# USAGE: Pause
-#
-# Invoked when the user hits the "pause" button to stop playing the
-# current sequence of frames as a movie.
-# ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::Pause {} {
-    $_dispatcher cancel !play
-
-    # Toggle the button to "play" mode
-    $itk_component(play) configure \
-        -image [Rappture::icon flow-start] \
-        -relief raised
-    bind $itk_component(play) <ButtonPress> \
-        [itcl::code $this Flow movie play toggle]
 }
 
 # ----------------------------------------------------------------------
@@ -2676,7 +2568,6 @@ itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } 
     return 0
 }
 
-
 #
 # flow --
 #
@@ -2820,7 +2711,7 @@ itcl::body Rappture::FlowvisViewer::WaitIcon  { option widget } {
     }
 }
 
-itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
+itcl::body Rappture::FlowvisViewer::GetPngImage { widget width height } {
     set token "print[incr _nextToken]"
     set var ::Rappture::FlowvisViewer::_hardcopy($this-$token)
     set $var ""
