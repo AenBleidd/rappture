@@ -2126,15 +2126,15 @@ itcl::body Rappture::VtkVolumeViewer::camera {option args} {
             puts [array get _view]
         }
         "set" {
-            set who [lindex $args 0]
-            set x $_view($who)
+            set what [lindex $args 0]
+            set x $_view($what)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
                 return
             }
-            switch -- $who {
+            switch -- $what {
                 "-ortho" {
-                    if {$_view(-ortho)} {
+                    if {$_view($what)} {
                         SendCmd "camera mode ortho"
                     } else {
                         SendCmd "camera mode persp"
@@ -2149,7 +2149,7 @@ itcl::body Rappture::VtkVolumeViewer::camera {option args} {
                     EventuallyRotate $q
                 }
                 "-zoom" {
-                    SendCmd "camera zoom $_view(-zoom)"
+                    SendCmd "camera zoom $_view($what)"
                 }
             }
         }
