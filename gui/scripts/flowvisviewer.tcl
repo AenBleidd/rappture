@@ -76,8 +76,8 @@ itcl::class Rappture::FlowvisViewer {
     private method Pause {}
 
     # The following methods are only used by this class.
-    private method AdjustSetting {what {value ""}}
     private method AddIsoMarker { x y }
+    private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
@@ -1314,9 +1314,9 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
                 -qx      -0.353553
                 -qy      0.353553
                 -qz      0.146447
-                -zoom    1.0
                 -xpan    0
                 -ypan    0
+                -zoom    1.0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
