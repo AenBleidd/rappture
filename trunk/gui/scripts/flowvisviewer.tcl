@@ -83,10 +83,11 @@ itcl::class Rappture::FlowvisViewer {
     private method BuildViewTab {}
     private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
-    private method ComputeTransferFunc { tf }
+    private method ComputeTransferFunction { tf }
     private method Connect {}
     private method CurrentVolumeIds {{what -all}}
     private method Disconnect {}
+    private method DrawLegend { tf }
     private method EventuallyResize { w h }
     private method EventuallyGoto { nSteps }
     private method EventuallyResizeLegend { }
@@ -95,7 +96,7 @@ itcl::class Rappture::FlowvisViewer {
     private method GetMovie { widget width height }
     private method GetPngImage { widget width height }
     private method InitSettings { args }
-    private method NameTransferFunc { dataobj comp }
+    private method NameTransferFunction { dataobj comp }
     private method Pan {option x y}
     private method PanCamera {}
     private method ParseLevelsOption { tf levels }
@@ -111,7 +112,7 @@ itcl::class Rappture::FlowvisViewer {
     private method ResizeLegend {}
     private method Rotate {option x y}
     private method SendFlowCmd { dataobj comp nbytes extents }
-    private method SendTransferFuncs {}
+    private method SendTransferFunctions {}
     private method SetOrientation { side }
     private method Slice {option args}
     private method SlicerTip {axis}
@@ -128,32 +129,31 @@ itcl::class Rappture::FlowvisViewer {
     private method streams { tag name }
 
     private variable _arcball ""
-    private variable _dlist ""     ;# list of data objects
-    private variable _allDataObjs
-    private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _serverObjs   ;# maps dataobj-component to volume ID
-                                    # in the server
-    private variable _recvObjs     ;# list of data objs to send to server
-    private variable _obj2style    ;# maps dataobj-component to transfunc
-    private variable _style2objs   ;# maps tf back to list of
-                                    # dataobj-components using the tf.
-    private variable _obj2flow;     # Maps dataobj-component to a flow.
+    private variable _dlist ""         ;# list of data objects
+    private variable _obj2ovride       ;# maps dataobj => style override
+    private variable _serverDatasets   ;# maps dataobj-component to volume ID
+                                        # in the server
+    private variable _recvdDatasets    ;# list of data objs to send to server
+    private variable _dataset2style    ;# maps dataobj-component to transfunc
+    private variable _style2datasets   ;# maps tf back to list of
+                                        # dataobj-components using the tf.
+    private variable _dataset2flow     ;# Maps dataobj-component to a flow.
 
-    private variable _reset 1      ;# Connection to server has been reset
-    private variable _click        ;# info used for rotate operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
-    private variable _isomarkers   ;# array of isosurface level values 0..1
+    private variable _reset 1          ;# Connection to server has been reset
+    private variable _click            ;# info used for rotate operations
+    private variable _limits           ;# Autoscale min/max for all axes
+    private variable _view             ;# View params for 3D view
+    private variable _isomarkers       ;# array of isosurface level values 0..1
     private common   _settings
-    private variable _activeTf ""  ;# The currently active transfer function.
-    private variable _first ""     ;# This is the topmost volume.
-    private variable _volcomponents   ;# Array of components found
-    private variable _componentsList  ;# Array of components found
+    private variable _activeTf ""      ;# The currently active transfer function.
+    private variable _first ""         ;# This is the topmost volume.
+    private variable _volcomponents    ;# Array of components found
+    private variable _componentsList   ;# Array of components found
     private variable _nextToken 0
     private variable _icon 0
     private variable _flow
-    private common _downloadPopup          ;# download options from popup
 
+    private common _downloadPopup      ;# download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0
@@ -180,7 +180,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Send transferfunctions event
     $_dispatcher register !send_transfunc
     $_dispatcher dispatch $this !send_transfunc \
-        "[itcl::code $this SendTransferFuncs]; list"
+        "[itcl::code $this SendTransferFunctions]; list"
 
     # Rebuild event.
     $_dispatcher register !rebuild
@@ -229,13 +229,13 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     set _reset 1
 
     array set _settings [subst {
-        $this-qw                $_view(-qw)
-        $this-qx                $_view(-qx)
-        $this-qy                $_view(-qy)
-        $this-qz                $_view(-qz)
-        $this-zoom              $_view(-zoom)
-        $this-xpan              $_view(-xpan)
-        $this-ypan              $_view(-ypan)
+        -qw                     $_view(-qw)
+        -qx                     $_view(-qx)
+        -qy                     $_view(-qy)
+        -qz                     $_view(-qz)
+        -zoom                   $_view(-zoom)
+        -xpan                   $_view(-xpan)
+        -ypan                   $_view(-ypan)
         $this-arrows            0
         $this-currenttime       0
         $this-duration          1:00
@@ -608,12 +608,11 @@ itcl::body Rappture::FlowvisViewer::add {dataobj {settings ""}} {
             puts stderr "no flowhints $dataobj-$comp"
             continue
         }
-        set _obj2flow($dataobj-$comp) $flowobj
+        set _dataset2flow($dataobj-$comp) $flowobj
     }
     set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         lappend _dlist $dataobj
-        set _allDataObjs($dataobj) 1
         set _obj2ovride($dataobj-color) $params(-color)
         set _obj2ovride($dataobj-width) $params(-width)
         set _obj2ovride($dataobj-raise) $params(-raise)
@@ -697,25 +696,25 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
             }
             set _dlist [lreplace $_dlist $pos $pos]
             array unset _obj2ovride $dataobj-*
-            array unset _obj2flow $dataobj-*
-            array unset _serverObjs $dataobj-*
-            array unset _obj2style $dataobj-*
+            array unset _dataset2flow $dataobj-*
+            array unset _serverDatasets $dataobj-*
+            array unset _dataset2style $dataobj-*
             set changed 1
         }
     }
     # If anything changed, then rebuild the plot
     if {$changed} {
         # Repair the reverse lookup
-        foreach tf [array names _style2objs] {
+        foreach tf [array names _style2datasets] {
             set list {}
-            foreach {dataobj comp} $_style2objs($tf) break
-            if { [info exists _serverObjs($dataobj-$comp)] } {
+            foreach {dataobj comp} $_style2datasets($tf) break
+            if { [info exists _serverDatasets($dataobj-$comp)] } {
                 lappend list $dataobj $comp
             }
             if { $list == "" } {
-                array unset _style2objs $tf
+                array unset _style2datasets $tf
             } else {
-                set _style2objs($tf) $list
+                set _style2datasets($tf) $list
             }
         }
         $_dispatcher event -idle !rebuild
@@ -943,13 +942,13 @@ itcl::body Rappture::FlowvisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    array unset _serverObjs
+    array unset _serverDatasets
 }
 
 # ----------------------------------------------------------------------
-# USAGE: SendTransferFuncs
+# USAGE: SendTransferFunctions
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
+itcl::body Rappture::FlowvisViewer::SendTransferFunctions {} {
     if { $_activeTf == "" } {
         puts stderr "no active tf"
         return
@@ -969,10 +968,10 @@ itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
     set thickness [expr {double($value) * 0.0001}]
     set _settings($this-$tf-thickness) $thickness
 
-    foreach key [array names _obj2style $_first-*] {
-        if { [info exists _obj2style($key)] } {
-            foreach tf $_obj2style($key) {
-                ComputeTransferFunc $tf
+    foreach key [array names _dataset2style $_first-*] {
+        if { [info exists _dataset2style($key)] } {
+            foreach tf $_dataset2style($key) {
+                ComputeTransferFunction $tf
             }
         }
     }
@@ -1015,27 +1014,9 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
 }
 
 #
-# ReceiveLegend --
+# DrawLegend --
 #
-#       The procedure is the response from the render server to each "legend"
-#       command.  The server sends back a "legend" command invoked our
-#       the slave interpreter.  The purpose is to collect data of the image
-#       representing the legend in the canvas.  In addition, the isomarkers
-#       of the active transfer function are displayed.
-#
-#       I don't know is this is the right place to display the isomarkers.
-#       I don't know all the different paths used to draw the plot. There's
-#       "Rebuild", "add", etc.
-#
-itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
-    if { ![isconnected] } {
-        return
-    }
-    #puts stderr "receive legend $tag $vmin $vmax $size"
-    set bytes [ReceiveBytes $size]
-    $_image(legend) configure -data $bytes
-    ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-
+itcl::body Rappture::FlowvisViewer::DrawLegend { tag } {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
@@ -1051,8 +1032,9 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
         $c lower colorbar
         $c bind colorbar <ButtonRelease-1> [itcl::code $this AddIsoMarker %x %y]
     }
-    # Display the markers used by the active transfer function.
-    set tf $_obj2style($tag)
+
+    # Display the markers used by the current transfer function.
+    set tf $_dataset2style($tag)
     foreach {vmin vmax} [limits $tf] break
     $c itemconfigure vmin -text [format %g $vmin]
     $c coords vmin $lx $ly
@@ -1068,6 +1050,27 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
 }
 
 #
+# ReceiveLegend --
+#
+#       The procedure is the response from the render server to each "legend"
+#       command.  The server sends back a "legend" command invoked our
+#       the slave interpreter.  The purpose is to collect data of the image
+#       representing the legend in the canvas.  In addition, the
+#       active transfer function is displayed.
+#
+itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
+    if { ![isconnected] } {
+        return
+    }
+    #puts stderr "receive legend $tag $vmin $vmax $size"
+    set bytes [ReceiveBytes $size]
+    $_image(legend) configure -data $bytes
+    ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
+
+    DrawLegend $tag
+}
+
+#
 # ReceiveData --
 #
 #       The procedure is the response from the render server to each "data
@@ -1076,7 +1079,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
 #       volume sent to the render server.  Since the client (flowvisviewer)
 #       doesn't parse 3D data formats, we rely on the server (flowvis) to
 #       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by _recvObjs) we can then determine
+#       the data we've sent (tracked by _recvdDatasets) we can then determine
 #       what the transfer functions are for these # volumes.
 #
 #       Note: There is a considerable tradeoff in having the server report
@@ -1096,10 +1099,10 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     set tag $values(tag)
     set parts [split $tag -]
     set dataobj [lindex $parts 0]
-    set _serverObjs($tag) 0
+    set _serverDatasets($tag) 0
     set _limits($tag) [list $values(min) $values(max)]
-    unset _recvObjs($tag)
-    if { [array size _recvObjs] == 0 } {
+    unset _recvdDatasets($tag)
+    if { [array size _recvdDatasets] == 0 } {
         updateTransferFunctions
     }
 }
@@ -1178,8 +1181,8 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
                 }
             }
             SendData $data
-            NameTransferFunc $dataobj $comp
-            set _recvObjs($tag) 1
+            NameTransferFunction $dataobj $comp
+            set _recvdDatasets($tag) 1
         }
     }
 
@@ -1207,13 +1210,13 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         }
 
     }
-    set _settings($this-qw)    $_view(-qw)
-    set _settings($this-qx)    $_view(-qx)
-    set _settings($this-qy)    $_view(-qy)
-    set _settings($this-qz)    $_view(-qz)
-    set _settings($this-xpan)  $_view(-xpan)
-    set _settings($this-ypan)  $_view(-ypan)
-    set _settings($this-zoom)  $_view(-zoom)
+    set _settings(-qw)    $_view(-qw)
+    set _settings(-qx)    $_view(-qx)
+    set _settings(-qy)    $_view(-qy)
+    set _settings(-qz)    $_view(-qz)
+    set _settings(-xpan)  $_view(-xpan)
+    set _settings(-ypan)  $_view(-ypan)
+    set _settings(-zoom)  $_view(-zoom)
 
     set q [ViewToQuaternion]
     $_arcball quaternion $q
@@ -1224,7 +1227,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
-            NameTransferFunc $dataobj $comp
+            NameTransferFunction $dataobj $comp
         }
     }
 
@@ -1240,7 +1243,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             array set _view $location
         }
         set comp [lindex [$_first components] 0]
-        set _activeTf [lindex $_obj2style($_first-$comp) 0]
+        set _activeTf [lindex $_dataset2style($_first-$comp) 0]
     }
 
 
@@ -1273,7 +1276,7 @@ itcl::body Rappture::FlowvisViewer::CurrentVolumeIds {{what -all}} {
     if { $_first == "" } {
         return
     }
-    foreach key [array names _serverObjs *-*] {
+    foreach key [array names _serverDatasets *-*] {
         if {[string match $_first-* $key]} {
             array set style {
                 -cutplanes 1
@@ -1281,7 +1284,7 @@ itcl::body Rappture::FlowvisViewer::CurrentVolumeIds {{what -all}} {
             foreach {dataobj comp} [split $key -] break
             array set style [lindex [$dataobj components -style $comp] 0]
             if {$what != "-cutplanes" || $style(-cutplanes)} {
-                lappend rlist $_serverObjs($key)
+                lappend rlist $_serverDatasets($key)
             }
         }
     }
@@ -1300,12 +1303,12 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(-zoom) [expr {$_view(-zoom)*1.25}]
-            set _settings($this-zoom) $_view(-zoom)
+            set _settings(-zoom) $_view(-zoom)
             SendCmd "camera zoom $_view(-zoom)"
         }
         "out" {
             set _view(-zoom) [expr {$_view(-zoom)*0.8}]
-            set _settings($this-zoom) $_view(-zoom)
+            set _settings(-zoom) $_view(-zoom)
             SendCmd "camera zoom $_view(-zoom)"
         }
         "reset" {
@@ -1328,13 +1331,13 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
             $_arcball quaternion $q
             SendCmd "camera orient $q"
             SendCmd "camera reset"
-            set _settings($this-qw)    $_view(-qw)
-            set _settings($this-qx)    $_view(-qx)
-            set _settings($this-qy)    $_view(-qy)
-            set _settings($this-qz)    $_view(-qz)
-            set _settings($this-xpan)  $_view(-xpan)
-            set _settings($this-ypan)  $_view(-ypan)
-            set _settings($this-zoom)  $_view(-zoom)
+            set _settings(-qw)    $_view(-qw)
+            set _settings(-qx)    $_view(-qx)
+            set _settings(-qy)    $_view(-qy)
+            set _settings(-qz)    $_view(-qz)
+            set _settings(-xpan)  $_view(-xpan)
+            set _settings(-ypan)  $_view(-ypan)
+            set _settings(-zoom)  $_view(-zoom)
         }
     }
 }
@@ -1380,10 +1383,10 @@ itcl::body Rappture::FlowvisViewer::Rotate {option x y} {
 
                 set q [$_arcball rotate $x $y $_click(x) $_click(y)]
                 QuaternionToView $q
-                set _settings($this-qw) $_view(-qw)
-                set _settings($this-qx) $_view(-qx)
-                set _settings($this-qy) $_view(-qy)
-                set _settings($this-qz) $_view(-qz)
+                set _settings(-qw) $_view(-qw)
+                set _settings(-qx) $_view(-qx)
+                set _settings(-qy) $_view(-qy)
+                set _settings(-qz) $_view(-qz)
                 SendCmd "camera orient $q"
 
                 set _click(x) $x
@@ -1419,8 +1422,8 @@ itcl::body Rappture::FlowvisViewer::Pan {option x y} {
         set _view(-xpan) [expr $_view(-xpan) + $x]
         set _view(-ypan) [expr $_view(-ypan) + $y]
         PanCamera
-        set _settings($this-xpan) $_view(-xpan)
-        set _settings($this-ypan) $_view(-ypan)
+        set _settings(-xpan) $_view(-xpan)
+        set _settings(-ypan) $_view(-ypan)
         return
     }
     if { $option == "click" } {
@@ -1436,8 +1439,8 @@ itcl::body Rappture::FlowvisViewer::Pan {option x y} {
         set _view(-xpan) [expr $_view(-xpan) - $dx]
         set _view(-ypan) [expr $_view(-ypan) - $dy]
         PanCamera
-        set _settings($this-xpan) $_view(-xpan)
-        set _settings($this-ypan) $_view(-ypan)
+        set _settings(-xpan) $_view(-xpan)
+        set _settings(-ypan) $_view(-ypan)
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -1716,7 +1719,7 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
     }
     set comp [lindex [$_first components] 0]
     set tag $_first-$comp
-    #set _activeTf [lindex $_obj2style($tag) 0]
+    #set _activeTf [lindex $_dataset2style($tag) 0]
     if {$w > 0 && $h > 0 && "" != $_activeTf} {
         #SendCmd "legend $_activeTf $w $h"
         SendCmd "$tag legend $w $h"
@@ -1729,7 +1732,7 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
 }
 
 #
-# NameTransferFunc --
+# NameTransferFunction --
 #
 #       Creates a transfer function name based on the <style> settings in the
 #       library run.xml file. This placeholder will be used later to create
@@ -1743,7 +1746,7 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
 #              color, levels, marker, opacity.  I think we're stuck doing it
 #              now.
 #
-itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
+itcl::body Rappture::FlowvisViewer::NameTransferFunction { dataobj cname } {
     array set style {
         -color BCGYR
         -levels 6
@@ -1751,13 +1754,13 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
     }
     array set style [lindex [$dataobj components -style $cname] 0]
     set _settings($this-opacity) [expr $style(-opacity) * 100]
-    set _obj2style($dataobj-$cname) $cname
-    lappend _style2objs($cname) $dataobj $cname
+    set _dataset2style($dataobj-$cname) $cname
+    lappend _style2datasets($cname) $dataobj $cname
     return $cname
 }
 
 #
-# ComputeTransferFunc --
+# ComputeTransferFunction --
 #
 #   Computes and sends the transfer function to the render server.  It's
 #   assumed that the volume data limits are known and that the global
@@ -1765,14 +1768,14 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj cname } {
 #   needed to compute the relative value (location) of the marker, and
 #   the alpha map of the transfer function.
 #
-itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
+itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
     array set style {
         -color BCGYR
         -levels 6
         -opacity 0.5
     }
     set dataobj ""; set comp ""
-    foreach {dataobj comp} $_style2objs($tf) break
+    foreach {dataobj comp} $_style2datasets($tf) break
     if { $dataobj == "" } {
         return 0
     }
@@ -1980,7 +1983,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: UpdateTransferFuncs
+# USAGE: UpdateTransferFunctions
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::updateTransferFunctions {} {
     $_dispatcher event -after 100 !send_transfunc
@@ -2043,13 +2046,13 @@ itcl::body Rappture::FlowvisViewer::overMarker { marker x } {
 
 itcl::body Rappture::FlowvisViewer::limits { cname } {
     set _limits(v) [list 0.0 1.0]
-    if { ![info exists _style2objs($cname)] } {
-        puts stderr "no style2objs for $cname cname=($cname)"
+    if { ![info exists _style2datasets($cname)] } {
+        puts stderr "no _style2datasets for $cname cname=($cname)"
         return [array get _limits]
     }
     set min ""; set max ""
     foreach tag [GetDatasetsWithComponent $cname] {
-        if { ![info exists _serverObjs($tag)] } {
+        if { ![info exists _serverDatasets($tag)] } {
             puts stderr "$tag not in serverObjs?"
             continue
         }
@@ -2377,7 +2380,7 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _settings($this-$tag)]
+            -textvariable [itcl::scope _settings(-$tag)]
         bind $inner.${tag} <Return> \
             [itcl::code $this camera set -${tag}]
         bind $inner.${tag} <KP_Enter> \
@@ -2396,8 +2399,8 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
 
 itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
     set flowobj ""
-    foreach key [array names _obj2flow] {
-        set flowobj $_obj2flow($key)
+    foreach key [array names _dataset2flow] {
+        set flowobj $_dataset2flow($key)
         break
     }
     if { $flowobj == "" } {
@@ -2612,12 +2615,12 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
 
 itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } {
     set tag "$dataobj-$comp"
-    if { ![info exists _obj2flow($tag)] } {
+    if { ![info exists _dataset2flow($tag)] } {
         SendCmd "flow add $tag"
         SendCmd "$tag data follows $nbytes $extents"
         return 0
     }
-    set flowobj $_obj2flow($tag)
+    set flowobj $_dataset2flow($tag)
     if { $flowobj == "" } {
         puts stderr "no flowobj"
         return -1
@@ -2996,9 +2999,9 @@ itcl::body Rappture::FlowvisViewer::SetOrientation { side } {
     set _view(-xpan) 0.0
     set _view(-ypan) 0.0
     set _view(-zoom) 1.0
-    set _settings($this-xpan) $_view(-xpan)
-    set _settings($this-ypan) $_view(-ypan)
-    set _settings($this-zoom) $_view(-zoom)
+    set _settings(-xpan) $_view(-xpan)
+    set _settings(-ypan) $_view(-ypan)
+    set _settings(-zoom) $_view(-zoom)
 }
 
 # Reset global settings from dataset's settings.
@@ -3018,7 +3021,7 @@ itcl::body Rappture::FlowvisViewer::GetDatasetsWithComponent { cname } {
     }
     set list ""
     foreach tag $_volcomponents($cname) {
-        if { ![info exists _serverObjs($tag)] } {
+        if { ![info exists _serverDatasets($tag)] } {
             continue
         }
         lappend list $tag
