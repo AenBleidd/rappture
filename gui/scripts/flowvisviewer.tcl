@@ -145,7 +145,7 @@ itcl::class Rappture::FlowvisViewer {
     private variable _view             ;# View params for 3D view
     private variable _isomarkers       ;# array of isosurface level values 0..1
     private common   _settings
-    private variable _activeTf ""      ;# The currently active transfer function.
+    private variable _activeTf ""      ;# The currently active transfer function
     private variable _first ""         ;# This is the topmost volume.
     private variable _volcomponents    ;# Array of components found
     private variable _componentsList   ;# Array of components found
@@ -2047,13 +2047,13 @@ itcl::body Rappture::FlowvisViewer::overMarker { marker x } {
 itcl::body Rappture::FlowvisViewer::limits { cname } {
     set _limits(v) [list 0.0 1.0]
     if { ![info exists _style2datasets($cname)] } {
-        puts stderr "no _style2datasets for $cname cname=($cname)"
+        puts stderr "no _style2datasets for cname=($cname)"
         return [array get _limits]
     }
     set min ""; set max ""
     foreach tag [GetDatasetsWithComponent $cname] {
         if { ![info exists _serverDatasets($tag)] } {
-            puts stderr "$tag not in serverObjs?"
+            puts stderr "$tag not in _serverDatasets?"
             continue
         }
         if { ![info exists _limits($tag)] } {
