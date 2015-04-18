@@ -42,7 +42,7 @@ itcl::class Rappture::IsoMarker {
     public method visible { bool }
     public method screenpos {}
     public method absval { {x "-get"} }
-    public method relval  { {x "-get"} }
+    public method relval { {x "-get"} }
 }
 
 itcl::body Rappture::IsoMarker::constructor {c obj tf args} {
@@ -122,7 +122,7 @@ itcl::body Rappture::IsoMarker::absval { {x "-get"} } {
     return $_value
 }
 
-itcl::body Rappture::IsoMarker::relval  { {x "-get"} } {
+itcl::body Rappture::IsoMarker::relval { {x "-get"} } {
     foreach {min max} [$_nvobj limits $_tf] break
     if { $x == "-get" } {
         if { $max == $min } {
