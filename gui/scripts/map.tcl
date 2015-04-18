@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*-
-
 # ----------------------------------------------------------------------
 #  COMPONENT: map - extracts data from an XML description of a field
 #
