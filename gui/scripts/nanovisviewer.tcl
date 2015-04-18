@@ -80,7 +80,6 @@ itcl::class Rappture::NanovisViewer {
     public method updateTransferFunctions {}
 
     # The following methods are only used by this class.
-
     private method AddNewMarker { x y }
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
@@ -136,23 +135,23 @@ itcl::class Rappture::NanovisViewer {
     private variable _obj2ovride       ;# maps dataobj => style override
     private variable _serverDatasets   ;# contains all the dataobj-component
                                        ;# to volumes in the server
-    private variable _recvdDatasets;    # list of data objs to send to server
+    private variable _recvdDatasets    ;# list of data objs to send to server
 
-    private variable _reset 1;          # Connection to server has been reset.
-    private variable _click;            # Info used for rotate operations.
-    private variable _limits;           # Autoscale min/max for all axes
-    private variable _view;             # View params for 3D view
+    private variable _reset 1          ;# Connection to server has been reset.
+    private variable _click            ;# Info used for rotate operations.
+    private variable _limits           ;# Autoscale min/max for all axes
+    private variable _view             ;# View params for 3D view
     private variable _parsedFunction
     private variable _transferFunctionEditors
     private variable _settings
-    private variable _first "" ;        # This is the topmost volume.
-    private variable _current "";       # Currently selected component
+    private variable _first ""         ;# This is the topmost volume.
+    private variable _current ""       ;# Currently selected component
     private variable _volcomponents    ;# Array of components found
     private variable _componentsList   ;# Array of components found
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
 
-    common _downloadPopup          ;# download options from popup
+    common _downloadPopup              ;# download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0
