@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*-
-
 # ----------------------------------------------------------------------
 #  COMPONENT: nanovisviewer::isomarker - Marker for 3D volume rendering
 #
