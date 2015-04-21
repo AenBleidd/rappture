@@ -1181,8 +1181,8 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     set _first [lindex [get] 0]
 
+    # Turn off cutplanes for all volumes
     foreach axis {x y z} {
-        # Turn off cutplanes for all volumes
         SendCmd "cutplane state 0 $axis"
     }
 
