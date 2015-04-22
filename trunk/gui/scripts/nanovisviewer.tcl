@@ -1277,7 +1277,10 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             SendCmd "grid visible $_settings($what)"
         }
         "-isosurfaceshading" {
-            SendCmd "volume shading isosurface $_settings($what)"
+            set val $_settings($what)
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading isosurface $val $tag"
+            }
         }
         "-legendvisible" {
             if { $_settings($what) } {
