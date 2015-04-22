@@ -1733,7 +1733,6 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -variable [itcl::scope _settings(-thickness)] \
         -showvalue off -command [itcl::code $this AdjustSetting -thickness] \
         -troughcolor grey92
-
     label $inner.thick -text "Thick" -font $fg
 
     # Colormap
