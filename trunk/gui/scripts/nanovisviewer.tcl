@@ -99,7 +99,6 @@ itcl::class Rappture::NanovisViewer {
     private method FixLegend {}
     private method GetColormap { cname color }
     private method GetDatasetsWithComponent { cname }
-    private method GetVolumeInfo { w }
     private method HideAllMarkers {}
     private method InitComponentSettings { cname }
     private method InitSettings { args }
@@ -124,14 +123,12 @@ itcl::class Rappture::NanovisViewer {
     private method Slice {option args}
     private method SlicerTip {axis}
     private method SwitchComponent { cname }
-    private method ToggleVolume { tag name }
     private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
 
     private variable _arcball ""
-
     private variable _dlist ""         ;# list of data objects
     private variable _obj2ovride       ;# maps dataobj => style override
     private variable _serverDatasets   ;# contains all the dataobj-component
@@ -147,17 +144,18 @@ itcl::class Rappture::NanovisViewer {
     private variable _settings
     private variable _first ""         ;# This is the topmost volume.
     private variable _current ""       ;# Currently selected component
-    private variable _volcomponents    ;# Array of components found
-    private variable _componentsList   ;# Array of components found
+    private variable _volcomponents    ;# Maps component name to list of
+                                       ;# dataobj-component tags
+    private variable _componentsList   ;# List of components found
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
-
-    common _downloadPopup              ;# download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
     private variable _resizeLegendPending 0
+
+    common _downloadPopup              ;# download options from popup
+    private common _hardcopy
 }
 
 itk::usual NanovisViewer {
@@ -479,13 +477,13 @@ itcl::body Rappture::NanovisViewer::get {args} {
         -objects {
             # put the dataobj list in order according to -raise options
             set dlist $_dlist
-            foreach obj $dlist {
-                if {[info exists _obj2ovride($obj-raise)] &&
-                    $_obj2ovride($obj-raise)} {
-                    set i [lsearch -exact $dlist $obj]
+            foreach dataobj $dlist {
+                if {[info exists _obj2ovride($dataobj-raise)] &&
+                    $_obj2ovride($dataobj-raise)} {
+                    set i [lsearch -exact $dlist $dataobj]
                     if {$i >= 0} {
                         set dlist [lreplace $dlist $i $i]
-                        lappend dlist $obj
+                        lappend dlist $dataobj
                     }
                 }
             }
@@ -810,7 +808,6 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
 }
 
 #
-#
 # ReceiveLegend --
 #
 #       The procedure is the response from the render server to each "legend"
@@ -818,7 +815,6 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
 #       the slave interpreter.  The purpose is to collect data of the image
 #       representing the legend in the canvas.  In addition, the
 #       active transfer function is displayed.
-#
 #
 itcl::body Rappture::NanovisViewer::ReceiveLegend { cname vmin vmax size } {
     if { ![isconnected] } {
@@ -1096,7 +1092,6 @@ itcl::body Rappture::NanovisViewer::PanCamera {} {
     set y $_view(-ypan)
     SendCmd "camera pan $x $y"
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: Rotate click <x> <y>
@@ -1659,17 +1654,14 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         [itcl::code $this AdjustSetting -background]
 
     blt::table $inner \
-        0,0 $inner.axes  -cspan 2 -anchor w \
-        1,0 $inner.grid  -cspan 2 -anchor w \
-        2,0 $inner.outline  -cspan 2 -anchor w \
-        3,0 $inner.volume  -cspan 2 -anchor w \
-        4,0 $inner.legend  -cspan 2 -anchor w \
-        5,0 $inner.background_l       -anchor e -pady 2 \
-        5,1 $inner.background                   -fill x \
+        0,0 $inner.axes -cspan 2 -anchor w \
+        1,0 $inner.grid -cspan 2 -anchor w \
+        2,0 $inner.outline -cspan 2 -anchor w \
+        3,0 $inner.volume -cspan 2 -anchor w \
+        4,0 $inner.legend -cspan 2 -anchor w \
+        5,0 $inner.background_l -anchor e -pady 2 \
+        5,1 $inner.background -fill x
 
-    if 0 {
-    bind $inner <Map> [itcl::code $this GetVolumeInfo $inner]
-    }
     blt::table configure $inner r* -resize none
     blt::table configure $inner r6 -resize expand
 }
@@ -1979,7 +1971,6 @@ itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
 }
 
-
 itcl::body Rappture::NanovisViewer::DoResize {} {
     $_arcball resize $_width $_height
     SendCmd "screen size $_width $_height"
@@ -2038,65 +2029,6 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
     }
 }
 
-itcl::body Rappture::NanovisViewer::GetVolumeInfo { w } {
-    set flowobj ""
-    foreach key [array names _obj2flow] {
-        set flowobj $_obj2flow($key)
-        break
-    }
-    if { $flowobj == "" } {
-        return
-    }
-    if { [winfo exists $w.frame] } {
-        destroy $w.frame
-    }
-    set inner [frame $w.frame]
-    blt::table $w \
-        5,0 $inner -fill both -cspan 2 -anchor nw
-    array set hints [$dataobj hints]
-
-    label $inner.volumes -text "Volumes" -font "Arial 9 bold"
-    blt::table $inner \
-        1,0 $inner.volumes  -anchor w \
-    blt::table configure $inner c0 c1 -resize none
-    blt::table configure $inner c2 -resize expand
-
-    set row 3
-    set volumes [get]
-    if { [llength $volumes] > 0 } {
-        blt::table $inner $row,0 $inner.volumes  -anchor w
-        incr row
-    }
-    foreach vol $volumes {
-        array unset info
-        array set info $vol
-        set name $info(name)
-        if { ![info exists _settings(-volumevisible-$name)] } {
-            set _settings(-volumevisible-$name) $info(hide)
-        }
-        checkbutton $inner.vol$row -text $info(label) \
-            -variable [itcl::scope _settings(-volumevisible-$name)] \
-            -onvalue 0 -offvalue 1 \
-            -command [itcl::code $this ToggleVolume $key $name] \
-            -font "Arial 9"
-        Rappture::Tooltip::for $inner.vol$row $info(description)
-        blt::table $inner $row,0 $inner.vol$row -anchor w
-        if { !$_settings(-volume-$name) } {
-            $inner.vol$row select
-        }
-        incr row
-    }
-    blt::table configure $inner r* -resize none
-    blt::table configure $inner r$row -resize expand
-    blt::table configure $inner c3 -resize expand
-    event generate [winfo parent [winfo parent $w]] <Configure>
-}
-
-itcl::body Rappture::NanovisViewer::ToggleVolume { tag name } {
-    set bool $_settings(-volumevisible-$name)
-    SendCmd "volume state $bool $name"
-}
-
 itcl::body Rappture::NanovisViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
@@ -2120,7 +2052,6 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
     set _settings(-ypan) $_view(-ypan)
     set _settings(-zoom) $_view(-zoom)
 }
-
 
 #
 # InitComponentSettings --
