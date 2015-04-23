@@ -1201,7 +1201,6 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         if { $location != "" } {
             array set _view $location
         }
-
     }
     set _settings(-qw)    $_view(-qw)
     set _settings(-qx)    $_view(-qx)
