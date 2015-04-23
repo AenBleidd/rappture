@@ -1753,25 +1753,25 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     blt::table $inner \
         0,0 $inner.volcomponents_l -anchor e -cspan 2 \
-        0,2 $inner.volcomponents             -cspan 3 -fill x \
+        0,2 $inner.volcomponents -cspan 3 -fill x \
         1,1 $inner.lighting_l -anchor w -cspan 4 \
-        2,1 $inner.ambient_l       -anchor e -pady 2 \
-        2,2 $inner.ambient                   -cspan 3 -fill x \
-        3,1 $inner.diffuse_l       -anchor e -pady 2 \
-        3,2 $inner.diffuse                   -cspan 3 -fill x \
-        4,1 $inner.specularLevel_l -anchor e -pady 2 \
-        4,2 $inner.specularLevel             -cspan 3 -fill x \
-        5,1 $inner.specularExponent_l -anchor e -pady 2 \
-        5,2 $inner.specularExponent          -cspan 3 -fill x \
+        2,1 $inner.ambient_l -anchor e \
+        2,2 $inner.ambient -cspan 3 -fill x \
+        3,1 $inner.diffuse_l -anchor e \
+        3,2 $inner.diffuse -cspan 3 -fill x \
+        4,1 $inner.specularLevel_l -anchor e \
+        4,2 $inner.specularLevel -cspan 3 -fill x \
+        5,1 $inner.specularExponent_l -anchor e \
+        5,2 $inner.specularExponent -cspan 3 -fill x \
         6,1 $inner.light2side -cspan 3 -anchor w \
         7,1 $inner.visibility -cspan 3 -anchor w \
-        8,1 $inner.transferfunction_l -anchor w              -cspan 4 \
-        9,1 $inner.opacity_l -anchor e -pady 2 \
-        9,2 $inner.opacity                    -cspan 3 -fill x \
-        10,1 $inner.colormap_l       -anchor e \
-        10,2 $inner.colormap                  -padx 2 -cspan 3 -fill x \
-        11,1 $inner.thin             -anchor e \
-        11,2 $inner.thickness                 -cspan 2 -fill x \
+        8,1 $inner.transferfunction_l -anchor w -cspan 4 \
+        9,1 $inner.opacity_l -anchor e \
+        9,2 $inner.opacity -cspan 3 -fill x \
+        10,1 $inner.colormap_l -anchor e \
+        10,2 $inner.colormap -padx 2 -cspan 3 -fill x \
+        11,1 $inner.thin -anchor e \
+        11,2 $inner.thickness -cspan 2 -fill x \
         11,4 $inner.thick -anchor w
 
     blt::table configure $inner c* r* -resize none
@@ -1876,7 +1876,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         "@[itcl::code $this SlicerTip z]"
 
     blt::table $inner \
-        0,1 $inner.visible              -anchor w -pady 2 -cspan 4 \
+        0,1 $inner.visible -anchor w -pady 2 -cspan 4 \
         1,1 $itk_component(xCutScale) \
         1,2 $itk_component(yCutScale) \
         1,3 $itk_component(zCutScale) \
