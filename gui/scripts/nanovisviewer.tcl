@@ -119,6 +119,7 @@ itcl::class Rappture::NanovisViewer {
     private method ResetColormap { cname color }
     private method Rotate {option x y}
     private method SendTransferFunctions {}
+    private method SetObjectStyle { dataobj cname }
     private method SetOrientation { side }
     private method Slice {option args}
     private method SlicerTip {axis}
@@ -944,7 +945,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                 set _recvdDatasets($tag) 1
                 set _serverDatasets($tag) 0
             }
-            NameTransferFunction $dataobj $cname
+            SetObjectStyle $dataobj $cname
         }
     }
     set _first [lindex [get] 0]
@@ -2315,4 +2316,18 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
         lappend amap 1.0 0.0
     }
     return $amap
+}
+
+itcl::body Rappture::NanovisViewer::SetObjectStyle { dataobj cname } {
+    array set style {
+        -opacity  0.5
+    }
+    array set style [lindex [$dataobj components -style $cname] 0]
+    # Some tools erroneously set -opacity to 1 in style, so
+    # override the requested opacity for now
+    set style(-opacity) 0.5
+    set _settings($cname-opacity) $style(-opacity)
+    set tag $dataobj-$cname
+    SendCmd "volume shading opacity $_settings($cname-opacity) $tag"
+    NameTransferFunction $dataobj $cname
 }
