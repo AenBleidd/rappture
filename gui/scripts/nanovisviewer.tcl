@@ -2251,14 +2251,14 @@ itcl::body Rappture::NanovisViewer::ComputeAlphamap { cname } {
 
 itcl::body Rappture::NanovisViewer::SetObjectStyle { dataobj cname } {
     array set style {
-        -opacity  0.5
+        -opacity 0.5
     }
     array set style [lindex [$dataobj components -style $cname] 0]
     # Some tools erroneously set -opacity to 1 in style, so
     # override the requested opacity for now
     set style(-opacity) 0.5
-    set _settings($cname-opacity) $style(-opacity)
+    set _settings($cname-opacity) [expr $style(-opacity) * 100.0]
     set tag $dataobj-$cname
-    SendCmd "volume shading opacity $_settings($cname-opacity) $tag"
+    SendCmd "volume shading opacity $style(-opacity) $tag"
     NameTransferFunction $dataobj $cname
 }
