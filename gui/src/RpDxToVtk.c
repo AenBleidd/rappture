@@ -385,12 +385,12 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     name = "component";
     points = NULL;
     nAxes = nPoints = nXYPoints = nCells = 0;
-    dx = dy = dz = 0.0; /* Suppress compiler warning. */
+    dx = dy = dz = 0.0;
     origin[0] = origin[1] = origin[2] = 0.0; /* May not have an origin line. */
     dv0[0] = dv0[1] = dv0[2] = 0.0;
     dv1[0] = dv1[1] = dv1[2] = 0.0;
     dv2[0] = dv2[1] = dv2[2] = 0.0;
-    count[0] = count[1] = count[2] = 0; /* Suppress compiler warning. */
+    count[0] = count[1] = count[2] = 0;
     isUniform = 0;
     isStructuredGrid = 0;
     hasVectors = 0;
@@ -595,6 +595,14 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     if (isUniform) {
+        if (nPoints > 1 && nAxes == 0) {
+            fprintf(stderr, "Invalid DX file: uniform grid with no deltas found\n");
+            return TCL_ERROR;
+        }
+        if (nPoints > 1 && (dx == dy == dz == 0.0)) {
+            fprintf(stderr, "Invalid deltas in DX file: %g %g %g\n", dx, dy, dz);
+            return TCL_ERROR;
+        }
         objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
         Tcl_AppendToObj(objPtr, "Converted from DX file\n", -1);
         Tcl_AppendToObj(objPtr, "ASCII\n", -1);
