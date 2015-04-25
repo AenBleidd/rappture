@@ -68,11 +68,6 @@ itcl::class Rappture::Mesh {
 
     private common _xp2obj       ;        # used for fetch/release ref counting
     private common _obj2ref      ;        # used for fetch/release ref counting
-    private variable _xv        ""
-    private variable _yv        ""
-    private variable _zv        ""
-    private variable _xCoords        "";  # For the blt contour only
-    private variable _yCoords        "";  # For the blt contour only
 
     private method ReadNodesElements {path}
     private method GetDimension { path }
@@ -228,13 +223,6 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 itcl::body Rappture::Mesh::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
     itcl::delete object $_mesh
-
-    if { $_xCoords != "" } {
-        blt::vector destroy $_xCoords
-    }
-    if { $_yCoords != "" } {
-        blt::vector destroy $_yCoords
-    }
 }
 
 #
