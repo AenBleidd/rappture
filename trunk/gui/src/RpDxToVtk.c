@@ -599,7 +599,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             fprintf(stderr, "Invalid DX file: uniform grid with no deltas found\n");
             return TCL_ERROR;
         }
-        if (nPoints > 1 && (dx == dy == dz == 0.0)) {
+        if (nPoints > 1 && ((dx == dy) && (dx == dz) && (dx == 0.0))) {
             fprintf(stderr, "Invalid deltas in DX file: %g %g %g\n", dx, dy, dz);
             return TCL_ERROR;
         }
