@@ -375,12 +375,6 @@ itcl::body Rappture::Field::blob {cname} {
     if {$cname == "component0"} {
         set cname "component"
     }
-    if {[info exists _comp2xy($cname)]} {
-        return ""
-    }
-    if { [info exists _comp2vtk($cname)] } {
-        error "blob not implemented for VTK file data"
-    }
     if {[info exists _comp2dx($cname)]} {
         return $_comp2dx($cname)  ;# return gzipped, base64-encoded DX data
     }
@@ -391,6 +385,12 @@ itcl::body Rappture::Field::blob {cname} {
     }
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) blob]
+    }
+    if { [info exists _comp2vtk($cname)] } {
+        error "blob not implemented for VTK file data"
+    }
+    if {[info exists _comp2xy($cname)]} {
+        error "blob not implemented for XY data"
     }
     error "can't get field blob: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
