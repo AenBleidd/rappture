@@ -157,9 +157,9 @@ itcl::class Rappture::Field {
     protected method GetTypeAndSize { cname }
     protected method ReadVtkDataSet { cname contents }
     private method InitHints {}
-
     private method VerifyVtkDataSet { contents }
     private method VectorLimits { vector vectorsize {comp -1} }
+    private method VtkDataSetToXy { dataset }
 }
 
 # ----------------------------------------------------------------------
@@ -885,10 +885,8 @@ itcl::body Rappture::Field::Build {} {
             incr _counter
         } elseif {$type == "dx" || $type == "opendx" } {
             #
-            # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
-            # data.  Assume that it's 3D.  Pass it straight
-            # off to the NanoVis visualizer.
-            #
+            # Extract gzipped, base64-encoded OpenDX data
+            # 
             set viewer [$_field get "about.view"]
             if { $viewer != "" } {
                 set _viewer $viewer
@@ -900,8 +898,6 @@ itcl::body Rappture::Field::Build {} {
                     set _viewer "nanovis"
                 }
             }
-            set _dim 3
-            set _comp2dims($cname) "3D"
             set data [$_field get -decode no $cname.$type]
             set contents [Rappture::encoding::decode -as zb64 $data]
             if { $contents == "" } {
@@ -913,8 +909,12 @@ itcl::body Rappture::Field::Build {} {
                 puts -nonewline $f $contents
                 close $f
             }
+            # Convert to VTK
             if { [catch { Rappture::DxToVtk $contents } vtkdata] == 0 } {
                 unset contents
+                # Read back VTK: this will set the field limits and the mesh
+                # dimensions based on the bounds (sets _dim).  We rely on this
+                # conversion for limits even if we send DX data to nanovis.
                 ReadVtkDataSet $cname $vtkdata
                 if 0 {
                     set f [open /tmp/$_path.$cname.vtk "w"]
@@ -923,7 +923,8 @@ itcl::body Rappture::Field::Build {} {
                 }
             } else {
                 unset contents
-                puts stderr "Can't parse dx data"
+                puts stderr "Can't parse DX data"
+                continue;               # Ignore this component
             }
             if { $_alwaysConvertDX ||
                  ($_viewer != "nanovis" && $_viewer != "flowvis") } {
@@ -1234,33 +1235,6 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
         }
     }
     set _comp2dims($cname) ${_dim}D
-    if { $_dim < 2 } {
-        set numPoints [$dataset GetNumberOfPoints]
-        set xv [blt::vector create \#auto]
-        for { set i 0 } { $i < $numPoints } { incr i } {
-            set point [$dataset GetPoint $i]
-            $xv append [lindex $point 0]
-        }
-        set yv [blt::vector create \#auto]
-        set dataAttrs [$dataset GetPointData]
-        if { $dataAttrs == ""} {
-            puts stderr "WARNING: No point data found in \"$_path\""
-            rename $reader ""
-            return 0
-        }
-        set array [$dataAttrs GetScalars]
-        if { $array == ""} {
-            puts stderr "WARNING: No scalar point data found in \"$_path\""
-            rename $reader ""
-            return 0
-        }
-        set numTuples [$array GetNumberOfTuples]
-        for { set i 0 } { $i < $numTuples } { incr i } {
-            $yv append [$array GetComponent $i 0]
-        }
-        $xv sort $yv
-        set _comp2xy($cname) [list $xv $yv]
-    }
     lappend limits x [list $xmin $xmax]
     lappend limits y [list $ymin $ymax]
     lappend limits z [list $zmin $zmax]
@@ -1295,6 +1269,51 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set _comp2limits($cname) $limits
 
     rename $reader ""
+}
+
+#
+# VtkDataSetToXy --
+#
+#        Attempt to convert 0 or 1 dimensional VTK DataSet to XY data (curve).
+#
+itcl::body Rappture::Field::VtkDataSetToXy { dataset } {
+    foreach {xmin xmax ymin ymax zmin zmax} [$dataset GetBounds] break
+    # Only X can have non-zero range.  X can have zero range if there is
+    # only one point
+    if { $ymax > $ymin } {
+        return 0
+    }
+    if { $zmax > $zmin } {
+        return 0
+    }
+    set numPoints [$dataset GetNumberOfPoints]
+    set xv [blt::vector create \#auto]
+    for { set i 0 } { $i < $numPoints } { incr i } {
+        set point [$dataset GetPoint $i]
+        $xv append [lindex $point 0]
+    }
+    set yv [blt::vector create \#auto]
+    set dataAttrs [$dataset GetPointData]
+    if { $dataAttrs == ""} {
+        puts stderr "WARNING: No point data found"
+        return 0
+    }
+    set array [$dataAttrs GetScalars]
+    if { $array == ""} {
+        puts stderr "WARNING: No scalar point data found"
+        return 0
+    }
+    # Multi-component scalars (e.g. color scalars) are not supported
+    if { [$array GetNumberOfComponents] != 1 } {
+        return 0
+    }
+    set numTuples [$array GetNumberOfTuples]
+    for { set i 0 } { $i < $numTuples } { incr i } {
+        $yv append [$array GetComponent $i 0]
+    }
+    $xv sort $yv
+    set _comp2xy($cname) [list $xv $yv]
+    return 1
 }
 
 #
@@ -1710,11 +1729,7 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
         }
     }
 
-    # Save viewer choice
-    set viewer $_viewer
     ReadVtkDataSet $cname $data(vtkdata)
-    # Restore viewer choice (ReadVtkDataSet wants to set it to contour/isosurface)
-    set _viewer $viewer
     return $data(vtkdata)
 }
 
