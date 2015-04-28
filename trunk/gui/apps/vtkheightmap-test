@@ -25,7 +25,6 @@ exec $bindir/wish "$0" "$@"
 package require Itcl
 package require Rappture
 package require RapptureGUI
-package require vtk
 
 option add *comm.font -*-courier-medium-r-normal-*-*-120-*
 option add *Menu.tearOff off
