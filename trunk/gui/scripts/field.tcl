@@ -886,7 +886,7 @@ itcl::body Rappture::Field::Build {} {
         } elseif {$type == "dx" || $type == "opendx" } {
             #
             # Extract gzipped, base64-encoded OpenDX data
-            # 
+            #
             set viewer [$_field get "about.view"]
             if { $viewer != "" } {
                 set _viewer $viewer
