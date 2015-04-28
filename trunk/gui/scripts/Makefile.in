@@ -80,7 +80,6 @@ FILES		= \
 		$(srcdir)/mapviewer.tcl \
 		$(srcdir)/mesh.tcl \
 		$(srcdir)/meshresult.tcl \
-		$(srcdir)/moleculeViewer.tcl \
 		$(srcdir)/molvisviewer.tcl \
 		$(srcdir)/nanovisviewer.tcl \
 		$(srcdir)/note.tcl \
