@@ -182,11 +182,7 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
                     destroy $itk_component(hull).dev
                 }
                 set servers [Rappture::VisViewer::GetServerList "pymol"]
-                if { "" != $servers } {
-                    Rappture::MolvisViewer $itk_component(hull).mol $servers
-                } else {
-                    Rappture::MoleculeViewer $itk_component(hull).mol $this
-                } 
+                Rappture::MolvisViewer $itk_component(hull).mol $servers
                 pack $itk_component(hull).mol -expand yes -fill both
             }
             set _current $itk_component(hull).mol
