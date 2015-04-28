@@ -163,7 +163,6 @@ itk::usual VtkStreamlinesViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
-    package require vtk
     set _serverType "vtkvis"
 
     EnableWaitDialog 2000

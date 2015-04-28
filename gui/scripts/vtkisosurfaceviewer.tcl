@@ -181,7 +181,6 @@ itk::usual VtkIsosurfaceViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
-    package require vtk
     set _serverType "vtkvis"
 
     # Rebuild event
