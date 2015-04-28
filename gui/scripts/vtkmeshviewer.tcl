@@ -56,7 +56,6 @@ itcl::class Rappture::VtkMeshViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { dataobj }
     public method parameters {title args} {
         # do nothing
     }
@@ -172,9 +171,6 @@ itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
-
-    set _limits(zmin) 0.0
-    set _limits(zmax) 1.0
 
     array set _settings {
         -axesvisible            1
@@ -550,26 +546,24 @@ itcl::body Rappture::VtkMeshViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkMeshViewer::scale {args} {
     foreach dataobj $args {
-        array set bounds [limits $dataobj]
-        if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
-            set _limits(xmin) $bounds(xmin)
+        if { ![$dataobj isvalid] } {
+            continue;                   # Object doesn't contain valid data.
         }
-        if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
-            set _limits(xmax) $bounds(xmax)
-        }
-
-        if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
-            set _limits(ymin) $bounds(ymin)
-        }
-        if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
-            set _limits(ymax) $bounds(ymax)
-        }
-
-        if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
-            set _limits(zmin) $bounds(zmin)
-        }
-        if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
-            set _limits(zmax) $bounds(zmax)
+        foreach axis { x y z } {
+            set lim [$dataobj limits $axis]
+            if { ![info exists _limits($axis)] } {
+                set _limits($axis) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {amin amax} $_limits($axis) break
+            if { $amin > $min } {
+                set amin $min
+            }
+            if { $amax < $max } {
+                set amax $max
+            }
+            set _limits($axis) [list $amin $amax]            
         }
     }
 }
@@ -823,8 +817,6 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         StartBufferingCommands
     }
 
-    set _limits(zmin) ""
-    set _limits(zmax) ""
     set _first ""
     SendCmd "dataset visible 0"
     set count 0
@@ -1225,50 +1217,6 @@ itcl::configbody Rappture::VtkMeshViewer::plotforeground {
         SendCmd "axis color all $rgb"
         SendCmd "outline color $rgb"
     }
-}
-
-itcl::body Rappture::VtkMeshViewer::limits { dataobj } {
-    set tag $dataobj
-    if { ![info exists _limits($tag)] } {
-        set data [$dataobj vtkdata -full]
-        if { $data == "" } {
-            continue
-        }
-        set tmpfile file[pid].vtk
-        set f [open "$tmpfile" "w"]
-        fconfigure $f -translation binary -encoding binary
-        puts $f $data
-        close $f
-        set reader [vtkDataSetReader $tag-xvtkDataSetReader]
-        $reader SetFileName $tmpfile
-        $reader Update
-        file delete $tmpfile
-        set output [$reader GetOutput]
-        set _limits($tag) [$output GetBounds]
-        rename $output ""
-        rename $reader ""
-    }
-    foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
-    if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
-        set limits(xmin) $xMin
-    }
-    if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
-        set limits(xmax) $xMax
-    }
-    if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
-        set limits(ymin) $xMin
-    }
-    if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
-        set limits(ymax) $yMax
-    }
-    if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
-        set limits(zmin) $zMin
-    }
-    if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
-        set limits(zmax) $zMax
-    }
-
-    return [array get limits]
 }
 
 itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
