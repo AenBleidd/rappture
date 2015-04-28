@@ -121,12 +121,6 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
             set _hints($key) $str
         }
     }
-    foreach {key} { axisorder } {
-        set str [$_drawing get $key]
-        if {"" != $str} {
-            set _hints($key) $str
-        }
-    }
     foreach {key path} {
         toolid          tool.id
         toolname        tool.name
