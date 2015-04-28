@@ -157,7 +157,6 @@ itk::usual VtkGlyphViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
-    package require vtk
     set _serverType "vtkvis"
 
     # Rebuild event

@@ -133,7 +133,6 @@ itk::usual VtkMeshViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
-    package require vtk
     set _serverType "vtkvis"
 
     # Rebuild event

@@ -180,7 +180,6 @@ itk::usual VtkVolumeViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
-    package require vtk
     set _serverType "vtkvis"
 
     EnableWaitDialog 900
