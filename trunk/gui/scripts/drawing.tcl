@@ -47,7 +47,6 @@ itcl::class Rappture::Drawing {
 # Constructor
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing::constructor {xmlobj path} {
-    package require vtk
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
