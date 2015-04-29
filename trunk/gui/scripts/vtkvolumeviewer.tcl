@@ -1654,7 +1654,6 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
 
 itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
     set font [option get $itk_component(hull) font Font]
-    #set bfont [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
         -title "View Settings" \
@@ -1712,7 +1711,8 @@ itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
 
 itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     set font [option get $itk_component(hull) font Font]
-    set bfont [option get $itk_component(hull) boldFont Font]
+    #set bfont [option get $itk_component(hull) boldFont Font]
+    set bfont "Arial 9 bold"
 
     set inner [$itk_component(main) insert end \
         -title "Volume Settings" \
@@ -1867,7 +1867,6 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
     set font [option get $itk_component(hull) font Font]
-    #set bfont [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
