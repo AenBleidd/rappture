@@ -1826,7 +1826,6 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
 # Note: Only sets the specified radius for active models.  If the model
 #       is inactive, then it overridden with the value "0.1".
 # ----------------------------------------------------------------------
-
 itcl::body Rappture::MolvisViewer::SphereScale { option {models "all"} } {
     if { $option == "update" } {
         set radius $_settings($this-spherescale)
