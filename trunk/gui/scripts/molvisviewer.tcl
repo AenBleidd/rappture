@@ -212,15 +212,12 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
         vx      0
         vy      0
         vz      0
-        zoom    0
         mx      0
         my      0
         mz      0
-        x       0
-        y       0
-        z       0
-        width   0
-        height  0
+        xpan    0
+        ypan    0
+        zoom    0
     }
 
     # Setup default settings for widget.
@@ -1121,7 +1118,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         SendCmd "reset"
         SendCmd "screen $w $h"
         SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
-        SendCmd "pan $_view(x) $_view(y)"
+        SendCmd "pan $_view(xpan) $_view(ypan)"
         SendCmd "zoom $_view(zoom)"
         debug "rotate $_view(mx) $_view(my) $_view(mz)"
 
@@ -1240,8 +1237,8 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
     if { $option == "set" } {
         set dx $x
         set dy $y
-        set _view(x) [expr $_view(x) + $dx]
-        set _view(y) [expr $_view(y) + $dy]
+        set _view(xpan) [expr $_view(xpan) + $dx]
+        set _view(ypan) [expr $_view(ypan) + $dy]
         array unset _imagecache
         SendCmd "pan $dx $dy"
         return
@@ -1255,8 +1252,8 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
     if { $option == "drag" || $option == "release" } {
         set dx [expr $x - $_mevent(x)]
         set dy [expr $y - $_mevent(y)]
-        set _view(x) [expr $_view(x) + $dx]
-        set _view(y) [expr $_view(y) + $dy]
+        set _view(xpan) [expr $_view(xpan) + $dx]
+        set _view(ypan) [expr $_view(ypan) + $dy]
         array unset _imagecache
         SendCmd "pan $dx $dy"
     }
@@ -1679,7 +1676,6 @@ itcl::body Rappture::MolvisViewer::Cell {option} {
     }
 }
 
-
 #
 # ResetView
 #
@@ -1691,21 +1687,17 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
         mx      0
         my      0
         mz      0
-        x       0
-        y       0
-        z       0
+        xpan    0
+        ypan    0
         zoom    0
-        width   0
-        height  0
     }
     SendCmd "reset"
     DoResize
     SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
     debug "rotate $_view(mx) $_view(my) $_view(mz)"
-    SendCmd "pan $_view(x) $_view(y)"
+    SendCmd "pan $_view(xpan) $_view(ypan)"
     SendCmd "zoom $_view(zoom)"
 }
-
 
 itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
     switch -- $option {
