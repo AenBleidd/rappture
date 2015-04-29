@@ -20,6 +20,8 @@
 #
 # Possible field dataset types:
 #
+# 1D Datasets
+#	1D		A field contained in a structure
 # 2D Datasets
 #	vtk		(range of z-axis is zero).
 #	unirect2d	(deprecated)
@@ -31,10 +33,11 @@
 #	cloud		(x,y,z coordinates) (deprecated)
 #	mesh
 #	dx		(FIXME: make dx-to-vtk converter work)
-#	ucd avs
+#	ucd		(AVS ucd format)
 #
 # Viewers:
 #	Format	   Dim  Description			Viewer		Server
+#	1D          1   structure field                 DeviceViewer1D  N/A
 #	vtk         2	vtk file data.			contour		vtkvis
 #	vtk	    3	vtk file data.			isosurface	vtkvis
 #	mesh	    2	points-on-mesh			heightmap	vtkvis
@@ -63,24 +66,6 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Field {
-    protected variable _dim 0;          # Dimension of the mesh
-    private variable _xmlobj "";        # ref to XML obj with field data
-    private variable _limits;           # maps axis name => {z0 z1} limits
-    private variable _field ""
-    private variable _comp2fldName ;    # cname => field names.
-    private variable _comp2type ;       # cname => type (e.g. "vectors")
-    private variable _comp2size ;       # cname => # of components in element
-    private variable _comp2assoc;       # cname => association (e.g. pointdata)
-    private variable _fld2Components;   # field name => number of components
-    private variable _fld2Label;        # field name => label
-    private variable _fld2Units;        # field name => units
-    private variable _hints
-    private variable _viewer "";        # Hints which viewer to use
-    private variable _isValid 0;        # Indicates if the field contains
-                                        # valid data.
-    private variable _isValidComponent; #  Array of valid components found
-    private variable _alwaysConvertDX 0;
-
     constructor {xmlobj path} {
         # defined below
     }
@@ -91,75 +76,97 @@ itcl::class Rappture::Field {
     public method components {args}
     public method controls {option args}
     public method extents {{cname -overall}}
-    public method numComponents {cname}
-    public method fieldlimits {}
-    public method valueLimits { cname }
-    public method flowhints { cname }
-    public method hints {{key ""}}
-    public method isunirect2d {}
-    public method isunirect3d {}
-    public method limits {axis}
-    public method mesh {{cname -overall}}
-    public method style { cname }
-    public method type {}
-    public method values { cname }
-    public method vtkdata {cname}
-    public method xErrorValues { cname } {
-    }
-    public method yErrorValues { cname } {
-    }
-
-    public method fieldnames { cname } {
-        if { ![info exists _comp2fldName($cname)] } {
-            return ""
-        }
-        return $_comp2fldName($cname)
-    }
     public method fieldinfo { fname } {
         lappend out $_fld2Label($fname)
         lappend out $_fld2Units($fname)
         lappend out $_fld2Components($fname)
         return $out
     }
+    public method fieldlimits {}
+    public method fieldnames { cname } {
+        if { ![info exists _comp2fldName($cname)] } {
+            return ""
+        }
+        return $_comp2fldName($cname)
+    }
+    public method flowhints { cname }
+    public method hints {{key ""}}
+    public method isunirect2d {}
+    public method isunirect3d {}
     public method isvalid {} {
         return $_isValid
     }
+    public method limits {axis}
+    public method mesh {{cname -overall}}
+    public method numComponents {cname}
+    public method style { cname }
+    public method type {}
+    public method valueLimits { cname }
+    public method values { cname }
     public method viewer {} {
         return $_viewer
     }
+    public method vtkdata {cname}
+    public method xErrorValues { cname } {
+    }
+    public method yErrorValues { cname } {
+    }
+
     protected method Build {}
     protected method _getValue {expr}
-
-    private variable _path "";          # Path of this object in the XML
-    private variable _units ""   ;      # system of units for this field
-    private variable _zmax 0     ;# length of the device
-
-    private variable _comp2dims  ;# maps component name => dimensionality
-    private variable _comp2xy    ;# maps component name => x,y vectors
-    private variable _comp2vtk   ;# maps component name => vtk file data
-    private variable _comp2dx    ;# maps component name => OpenDX data
-    private variable _comp2unirect2d ;# maps component name => unirect2d obj
-    private variable _comp2unirect3d ;# maps component name => unirect3d obj
-    private variable _comp2style ;# maps component name => style settings
-    private variable _comp2cntls ;# maps component name => x,y control points
-    private variable _comp2extents
-    private variable _comp2limits;        #  Array of limits per component
-    private variable _type ""
-    private variable _comp2flowhints
-    private variable _comp2mesh  ;# list of: mesh object, BLT vector of values
-    private variable _values ""  ;# Only used for unirect2d - list of values
-    private common _counter 0    ;# counter for unique vector names
+    protected method GetAssociation { cname }
+    protected method GetTypeAndSize { cname }
+    protected method ReadVtkDataSet { cname contents }
 
     private method AvsToVtk { cname contents }
     private method DicomToVtk { cname contents }
     private method BuildPointsOnMesh { cname }
-    protected method GetAssociation { cname }
-    protected method GetTypeAndSize { cname }
-    protected method ReadVtkDataSet { cname contents }
     private method InitHints {}
     private method VerifyVtkDataSet { contents }
     private method VectorLimits { vector vectorsize {comp -1} }
     private method VtkDataSetToXy { dataset }
+
+    protected variable _dim 0;          # Dimension of the mesh
+
+    private variable _xmlobj "";        # ref to XML obj with field data
+    private variable _path "";          # Path of this object in the XML
+    private variable _field "";         # This field element as XML obj
+
+    private variable _type "";          # Field type: e.g. file type
+    private variable _hints;            # Hints array
+    private variable _limits;           # maps axis name => {z0 z1} limits
+    private variable _units "";         # system of units for this field
+    private variable _viewer "";        # Hints which viewer to use
+    private variable _isValid 0;        # Indicates if the field contains
+                                        # valid data.
+    private variable _isValidComponent; # Array of valid components found
+    private variable _zmax 0;           # length of the device (1D only)
+
+    private variable _fld2Components;   # field name => number of components
+    private variable _fld2Label;        # field name => label
+    private variable _fld2Units;        # field name => units
+
+    private variable _comp2fldName;     # cname => field names.
+    private variable _comp2type;        # cname => type (e.g. "vectors")
+    private variable _comp2size;        # cname => # of components in element
+    private variable _comp2assoc;       # cname => association (e.g. pointdata)
+    private variable _comp2dims;        # cname => dimensionality
+    private variable _comp2xy;          # cname => x,y vectors
+    private variable _comp2vtk;         # cname => vtk file data
+    private variable _comp2dx;          # cname => OpenDX data
+    private variable _comp2unirect2d;   # cname => unirect2d obj
+    private variable _comp2unirect3d;   # cname => unirect3d obj
+    private variable _comp2style;       # cname => style settings
+    private variable _comp2cntls;       # cname => x,y control points
+    private variable _comp2extents
+    private variable _comp2limits;      #  Array of limits per component
+    private variable _comp2flowhints
+    private variable _comp2mesh;        # list: mesh obj, BLT vector of values
+
+    private variable _values "";        # Only for unirect2d - list of values
+
+    private common _alwaysConvertDX 0;
+    private common _counter 0;          # counter for unique vector names
 }
 
 # ----------------------------------------------------------------------
