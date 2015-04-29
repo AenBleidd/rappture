@@ -103,7 +103,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private method DoResize {}
     private method DoRotate {}
     private method DrawLegend {}
-    private method DrawLegendOld {}
     private method EnterLegend { x y }
     private method EventuallyResize { w h }
     private method EventuallyRequestLegend {}
@@ -1654,8 +1653,8 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
-    set fg [option get $itk_component(hull) font Font]
-    #set bfg [option get $itk_component(hull) boldFont Font]
+    set font [option get $itk_component(hull) font Font]
+    #set bfont [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
         -title "View Settings" \
@@ -1666,46 +1665,46 @@ itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
         -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
         -command [itcl::code $this AdjustSetting -axesvisible] \
-        -font "Arial 9"
+        -font $font
 
     checkbutton $inner.outline \
         -text "Outline" \
         -variable [itcl::scope _settings(-volumeoutline)] \
         -command [itcl::code $this AdjustSetting -volumeoutline] \
-        -font "Arial 9"
+        -font $font
 
     checkbutton $inner.legend \
         -text "Legend" \
         -variable [itcl::scope _settings(-legendvisible)] \
         -command [itcl::code $this AdjustSetting -legendvisible] \
-        -font "Arial 9"
+        -font $font
 
     checkbutton $inner.volume \
         -text "Volume" \
         -variable [itcl::scope _settings(-volumevisible)] \
         -command [itcl::code $this AdjustSetting -volumevisible] \
-        -font "Arial 9"
+        -font $font
 
-    label $inner.background_l -text "Background" -font "Arial 9"
+    label $inner.background_l -text "Background" -font $font
     itk_component add background {
         Rappture::Combobox $inner.background -width 10 -editable no
     }
     $inner.background choices insert end \
-        "black"              "black"            \
-        "white"              "white"            \
-        "grey"               "grey"
+        "black" "black" \
+        "white" "white" \
+        "grey"  "grey"
 
     $itk_component(background) value $_settings(-background)
     bind $inner.background <<Value>> \
         [itcl::code $this AdjustSetting -background]
 
     blt::table $inner \
-        0,0 $inner.axes  -cspan 2 -anchor w \
-        1,0 $inner.outline  -cspan 2 -anchor w \
-        2,0 $inner.volume  -cspan 2 -anchor w \
-        3,0 $inner.legend  -cspan 2 -anchor w \
-        4,0 $inner.background_l       -anchor e -pady 2 \
-        4,1 $inner.background                   -fill x \
+        0,0 $inner.axes -cspan 2 -anchor w \
+        1,0 $inner.outline -cspan 2 -anchor w \
+        2,0 $inner.volume -cspan 2 -anchor w \
+        3,0 $inner.legend -cspan 2 -anchor w \
+        4,0 $inner.background_l -anchor e -pady 2 \
+        4,1 $inner.background -fill x
 
     blt::table configure $inner r* -resize none
     blt::table configure $inner r5 -resize expand
@@ -1713,7 +1712,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
 
 itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     set font [option get $itk_component(hull) font Font]
-    #set bfont [option get $itk_component(hull) boldFont Font]
+    set bfont [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
         -title "Volume Settings" \
@@ -1735,7 +1734,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.lighting_l \
         -text "Lighting / Material Properties" \
-        -font "Arial 9 bold"
+        -font $bfont
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
@@ -1795,7 +1794,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         [itcl::code $this AdjustSetting -field]
 
     label $inner.transferfunction_l \
-        -text "Transfer Function" -font "Arial 9 bold"
+        -text "Transfer Function" -font $bfont
 
     label $inner.thin -text "Thin" -font $font
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
@@ -1822,9 +1821,9 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         Rappture::Combobox $inner.blendmode -editable no
     }
     $inner.blendmode choices insert end \
-        "composite"          "Composite"         \
-        "max_intensity"      "Maximum Intensity" \
-        "additive"           "Additive"
+        "composite"     "Composite"         \
+        "max_intensity" "Maximum Intensity" \
+        "additive"      "Additive"
 
     $itk_component(blendmode) value \
         "[$itk_component(blendmode) label $_settings(-volumeblendmode)]"
@@ -1833,31 +1832,31 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     blt::table $inner \
         0,0 $inner.volcomponents_l -anchor e -cspan 2 \
-        0,2 $inner.volcomponents             -cspan 3 -fill x \
-        1,0 $inner.field_l   -anchor e -cspan 2  \
-        1,2 $inner.field               -cspan 3 -fill x \
+        0,2 $inner.volcomponents -cspan 3 -fill x \
+        1,0 $inner.field_l -anchor e -cspan 2  \
+        1,2 $inner.field -cspan 3 -fill x \
         2,0 $inner.lighting_l -anchor w -cspan 4 \
-        3,1 $inner.lighting   -anchor w -cspan 3 \
-        4,1 $inner.ambient_l       -anchor e -pady 2 \
-        4,2 $inner.ambient                   -cspan 3 -fill x \
-        5,1 $inner.diffuse_l       -anchor e -pady 2 \
-        5,2 $inner.diffuse                   -cspan 3 -fill x \
-        6,1 $inner.specularLevel_l -anchor e -pady 2 \
-        6,2 $inner.specularLevel             -cspan 3 -fill x \
-        7,1 $inner.specularExponent_l -anchor e -pady 2 \
-        7,2 $inner.specularExponent          -cspan 3 -fill x \
-        8,1 $inner.visibility    -anchor w -cspan 3 \
-        9,1 $inner.quality_l -anchor e -pady 2 \
-        9,2 $inner.quality                     -cspan 3 -fill x \
-        10,0 $inner.transferfunction_l -anchor w              -cspan 4 \
-        11,1 $inner.opacity_l -anchor e -pady 2 \
-        11,2 $inner.opacity                    -cspan 3 -fill x \
-        12,1 $inner.colormap_l -anchor e  \
-        12,2 $inner.colormap                 -padx 2 -cspan 3 -fill x \
-        13,1 $inner.blendmode_l -anchor e  \
-        13,2 $inner.blendmode               -padx 2 -cspan 3 -fill x \
-        14,1 $inner.thin             -anchor e \
-        14,2 $inner.thickness                 -cspan 2 -fill x \
+        3,1 $inner.lighting -anchor w -cspan 3 \
+        4,1 $inner.ambient_l -anchor e \
+        4,2 $inner.ambient -cspan 3 -fill x \
+        5,1 $inner.diffuse_l -anchor e \
+        5,2 $inner.diffuse -cspan 3 -fill x \
+        6,1 $inner.specularLevel_l -anchor e \
+        6,2 $inner.specularLevel -cspan 3 -fill x \
+        7,1 $inner.specularExponent_l -anchor e \
+        7,2 $inner.specularExponent -cspan 3 -fill x \
+        8,1 $inner.visibility -anchor w -cspan 3 \
+        9,1 $inner.quality_l -anchor e \
+        9,2 $inner.quality -cspan 3 -fill x \
+        10,0 $inner.transferfunction_l -anchor w -cspan 4 \
+        11,1 $inner.opacity_l -anchor e \
+        11,2 $inner.opacity -cspan 3 -fill x \
+        12,1 $inner.colormap_l -anchor e \
+        12,2 $inner.colormap -padx 2 -cspan 3 -fill x \
+        13,1 $inner.blendmode_l -anchor e \
+        13,2 $inner.blendmode -padx 2 -cspan 3 -fill x \
+        14,1 $inner.thin -anchor e \
+        14,2 $inner.thickness -cspan 2 -fill x \
         14,4 $inner.thick -anchor w
 
     blt::table configure $inner r* c* -resize none
@@ -1867,8 +1866,8 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
-    set fg [option get $itk_component(hull) font Font]
-    #set bfg [option get $itk_component(hull) boldFont Font]
+    set font [option get $itk_component(hull) font Font]
+    #set bfont [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
@@ -1879,36 +1878,36 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
         -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
         -command [itcl::code $this AdjustSetting -axesvisible] \
-        -font "Arial 9"
+        -font $font
 
     checkbutton $inner.labels \
         -text "Axis Labels" \
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
-        -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9"
+        -font $font
+    label $inner.grid_l -text "Grid" -font $font
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
         -command [itcl::code $this AdjustSetting -xgrid] \
-        -font "Arial 9"
+        -font $font
     checkbutton $inner.ygrid \
         -text "Y" \
         -variable [itcl::scope _settings(-ygrid)] \
         -command [itcl::code $this AdjustSetting -ygrid] \
-        -font "Arial 9"
+        -font $font
     checkbutton $inner.zgrid \
         -text "Z" \
         -variable [itcl::scope _settings(-zgrid)] \
         -command [itcl::code $this AdjustSetting -zgrid] \
-        -font "Arial 9"
+        -font $font
     checkbutton $inner.minorticks \
         -text "Minor Ticks" \
         -variable [itcl::scope _settings(-axisminorticks)] \
         -command [itcl::code $this AdjustSetting -axisminorticks] \
-        -font "Arial 9"
+        -font $font
 
-    label $inner.mode_l -text "Mode" -font "Arial 9"
+    label $inner.mode_l -text "Mode" -font $font
 
     itk_component add axismode {
         Rappture::Combobox $inner.mode -width 10 -editable no
@@ -1923,14 +1922,14 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 4 \
-        1,0 $inner.labels  -anchor w -cspan 4 \
-        2,0 $inner.minorticks  -anchor w -cspan 4 \
-        4,0 $inner.grid_l  -anchor w \
-        4,1 $inner.xgrid   -anchor w \
-        4,2 $inner.ygrid   -anchor w \
-        4,3 $inner.zgrid   -anchor w \
-        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
-        5,1 $inner.mode    -fill x   -cspan 3
+        1,0 $inner.labels -anchor w -cspan 4 \
+        2,0 $inner.minorticks -anchor w -cspan 4 \
+        4,0 $inner.grid_l -anchor w \
+        4,1 $inner.xgrid -anchor w \
+        4,2 $inner.ygrid -anchor w \
+        4,3 $inner.zgrid -anchor w \
+        5,0 $inner.mode_l -anchor w -padx { 2 0 } \
+        5,1 $inner.mode -fill x -cspan 3
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c6 -resize expand
@@ -1938,12 +1937,13 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
+    set font [option get $itk_component(hull) font Font]
     set inner [$itk_component(main) insert end \
         -title "Camera Settings" \
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    label $inner.view_l -text "view" -font "Arial 9"
+    label $inner.view_l -text "view" -font $font
     set f [frame $inner.view]
     foreach side { front back left right top bottom } {
         button $f.$side  -image [Rappture::icon view$side] \
@@ -1959,8 +1959,8 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     set row 1
     set labels { qx qy qz qw xpan ypan zoom }
     foreach tag $labels {
-        label $inner.${tag}label -text $tag -font "Arial 9"
-        entry $inner.${tag} -font "Arial 9"  -bg white \
+        label $inner.${tag}label -text $tag -font $font
+        entry $inner.${tag} -font $font  -bg white \
             -textvariable [itcl::scope _view(-$tag)]
         bind $inner.${tag} <Return> \
             [itcl::code $this camera set -${tag}]
@@ -1976,7 +1976,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
         -text "Orthographic Projection" \
         -variable [itcl::scope _view(-ortho)] \
         -command [itcl::code $this camera set -ortho] \
-        -font "Arial 9"
+        -font $font
     blt::table $inner \
             $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
     blt::table configure $inner r$row -resize none
@@ -1988,8 +1988,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
-
-    set fg [option get $itk_component(hull) font Font]
+    set font [option get $itk_component(hull) font Font]
 
     set inner [$itk_component(main) insert end \
         -title "Cutplane Settings" \
@@ -2001,15 +2000,15 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         -text "Show Cutplanes" \
         -variable [itcl::scope _settings(-cutplanesvisible)] \
         -command [itcl::code $this AdjustSetting -cutplanesvisible] \
-        -font "Arial 9"
+        -font $font
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _settings(-cutplanelighting)] \
         -command [itcl::code $this AdjustSetting -cutplanelighting] \
-        -font "Arial 9"
+        -font $font
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9"
+    label $inner.opacity_l -text "Opacity" -font $font
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(-cutplaneopacity)] \
         -width 10 \
@@ -2331,73 +2330,6 @@ itcl::body Rappture::VtkVolumeViewer::DrawLegend {} {
     }
     $c itemconfigure title -text $title
     $c coords title [expr {$w/2}] $ly
-}
-
-#
-# DrawLegendOld --
-#
-#       Draws the legend in it's own canvas which resides to the right
-#       of the contour plot area.
-#
-itcl::body Rappture::VtkVolumeViewer::DrawLegendOld { } {
-    set fname $_curFldName
-    set c $itk_component(view)
-    set w [winfo width $c]
-    set h [winfo height $c]
-    set font "Arial 8"
-    set lineht [font metrics $font -linespace]
-
-    if { [info exists _fields($fname)] } {
-        foreach { title units } $_fields($fname) break
-        if { $units != "" } {
-            set title [format "%s (%s)" $title $units]
-        }
-    } else {
-        set title $fname
-    }
-    if { $_settings(-legendvisible) } {
-        set x [expr $w - 2]
-        if { [$c find withtag "legend"] == "" } {
-            set y 2
-            $c create text $x $y \
-                -anchor ne \
-                -fill $itk_option(-plotforeground) -tags "title legend" \
-                -font $font
-            incr y $lineht
-            $c create text $x $y \
-                -anchor ne \
-                -fill $itk_option(-plotforeground) -tags "vmax legend" \
-                -font $font
-            incr y $lineht
-            $c create image $x $y \
-                -anchor ne \
-                -image $_image(legend) -tags "colormap legend"
-            $c create text $x [expr {$h-2}] \
-                -anchor se \
-                -fill $itk_option(-plotforeground) -tags "vmin legend" \
-                -font $font
-            #$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
-            $c bind colormap <Leave> [itcl::code $this LeaveLegend]
-            $c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
-        }
-        $c bind title <ButtonPress> [itcl::code $this Combo post]
-        $c bind title <Enter> [itcl::code $this Combo activate]
-        $c bind title <Leave> [itcl::code $this Combo deactivate]
-        # Reset the item coordinates according the current size of the plot.
-        $c itemconfigure title -text $title
-        if { [info exists _limits($_curFldName)] } {
-            foreach { vmin vmax } $_limits($_curFldName) break
-            $c itemconfigure vmin -text [format %g $vmin]
-            $c itemconfigure vmax -text [format %g $vmax]
-        }
-        set y 2
-        $c coords title $x $y
-        incr y $lineht
-        $c coords vmax $x $y
-        incr y $lineht
-        $c coords colormap $x $y
-        $c coords vmin $x [expr {$h - 2}]
-    }
 }
 
 #
