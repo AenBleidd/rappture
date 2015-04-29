@@ -157,15 +157,16 @@ itcl::class Rappture::Field {
     private variable _comp2unirect2d;   # cname => unirect2d obj
     private variable _comp2unirect3d;   # cname => unirect3d obj
     private variable _comp2style;       # cname => style settings
-    private variable _comp2cntls;       # cname => x,y control points
-    private variable _comp2extents
-    private variable _comp2limits;      #  Array of limits per component
+    private variable _comp2cntls;       # cname => x,y control points (1D only)
+    private variable _comp2extents;     # cname => extents (Only for unirect)
+    private variable _comp2limits;      # Array of limits per component
     private variable _comp2flowhints
     private variable _comp2mesh;        # list: mesh obj, BLT vector of values
 
     private variable _values "";        # Only for unirect2d - list of values
 
-    private common _alwaysConvertDX 0;
+    private common _alwaysConvertDX 0;  # If set, convert DX and store as VTK,
+                                        # even if viewer is nanovis/flowvis
     private common _counter 0;          # counter for unique vector names
 }
 
