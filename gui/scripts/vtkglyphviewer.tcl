@@ -2238,7 +2238,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set _settings(-glyphnormscale) $style(-normscale)
     set _settings(-glyphscale) $style(-gscale)
 
-    if {$style(-colorMode) == "constant" || $style(-colormap) == "none"} {
+    if {$style(-colormode) == "constant" || $style(-colormap) == "none"} {
         SendCmd "glyphs colormode constant {} $tag"
         set _settings(-colormapvisible) 0
         set _settings(-colormap) "none"
