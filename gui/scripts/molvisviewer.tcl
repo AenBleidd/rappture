@@ -40,6 +40,70 @@ itcl::class Rappture::MolvisViewer {
 
     itk_option define -device device Device ""
 
+    constructor { servers args } {
+        Rappture::VisViewer::constructor $servers
+    } {
+        # defined below
+    }
+    destructor {
+        # defined below
+    }
+    public proc SetServerList { namelist } {
+        Rappture::VisViewer::SetServerList "pymol" $namelist
+    }
+    public method Connect {}
+    public method Disconnect {}
+    public method ResetView {}
+    public method add {dataobj {options ""}}
+    public method delete {args}
+    public method download {option args}
+    public method get {}
+    public method isconnected {}
+    public method labels {option {model "all"}}
+    public method parameters {title args} {
+        # do nothing
+    }
+    public method snap { w h }
+
+    protected method Map {}
+    protected method Pan {option x y}
+    protected method Rebuild {}
+    protected method Rotate {option x y}
+    protected method SendCmd { string }
+    protected method Unmap {}
+    protected method Vmouse  {option b m x y}
+    protected method Vmouse2 {option b m x y}
+    protected method Zoom {option {factor 10}}
+
+    private method AddImageControls { frame widget }
+    private method BuildSettingsTab {}
+    private method CartoonTrace {option {model "all"}}
+    private method Cell {option}
+    private method ComputeParallelepipedVertices { dataobj }
+    private method DoResize {}
+    private method DoRotate {}
+    private method DoUpdate {}
+    private method EventuallyChangeSettings { args }
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { a b c }
+    private method GetImage { widget }
+    private method Opacity {option}
+    private method OrthoProjection {option}
+    private method ReceiveImage { size cacheid frame rock }
+    private method Representation { {option ""} }
+    private method Rock {option}
+    private method SetWaitVariable { value } {
+        set _getimage $value
+    }
+    private method SphereScale {option {models "all"} }
+    private method StickRadius {option {models "all"} }
+    private method UpdateState { args }
+    private method WaitForResponse {} {
+        tkwait variable [itcl::scope _getimage]
+        return $_getimage
+    }
+    private method WaitIcon { option widget }
+
     private variable _icon 0
     private variable _getimage 0
     private variable _mevent;           # info used for mouse event operations
@@ -66,13 +130,9 @@ itcl::class Rappture::MolvisViewer {
     private variable _cacheimage ""
     private variable _first ""
 
-    private common _settings  ;         # Array of settings for all known
-                                        # widgets
     private variable _initialized
 
-    private common _downloadPopup;      # Download options from popup
     private variable _pdbdata;          # PDB data from run file sent to pymol
-    private common _hardcopy
     private variable _nextToken 0
     private variable _resizePending 0;
     private variable _updatePending 0;
@@ -82,70 +142,10 @@ itcl::class Rappture::MolvisViewer {
     private variable _reset 1;          # Restore camera settings
     private variable _cell 0;           # Restore camera settings
 
-    constructor { servers args } {
-        Rappture::VisViewer::constructor $servers
-    } {
-        # defined below
-    }
-    destructor {
-        # defined below
-    }
-    public proc SetServerList { namelist } {
-        Rappture::VisViewer::SetServerList "pymol" $namelist
-    }
-    private method BuildSettingsTab {}
-    private method DoResize {}
-    private method DoRotate {}
-    private method DoUpdate {}
-    private method EventuallyResize { w h }
-    private method EventuallyRotate { a b c }
-    private method EventuallyChangeSettings { args }
-    private method GetImage { widget }
-    private method ReceiveImage { size cacheid frame rock }
-    private method WaitIcon { option widget }
-    private method AddImageControls { frame widget }
-    private method SetWaitVariable { value } {
-        set _getimage $value
-    }
-    private method WaitForResponse {} {
-        tkwait variable [itcl::scope _getimage]
-        return $_getimage
-    }
-    protected method Map {}
-    protected method Pan {option x y}
-    protected method Rebuild { }
-    protected method Rotate {option x y}
-    protected method SendCmd { string }
-    protected method Unmap {}
-    protected method Vmouse  {option b m x y}
-    protected method Vmouse2 {option b m x y}
-    protected method Zoom {option {factor 10}}
-
-    public method Connect {}
-    public method Disconnect {}
-    public method ResetView {}
-    public method add {dataobj {options ""}}
-    public method delete {args}
-    public method download {option args}
-    public method get {}
-    public method isconnected {}
-    public method labels {option {model "all"}}
-    public method parameters {title args} {
-        # do nothing
-    }
-
-    private method UpdateState { args }
-
-    public method snap { w h }
-    private method Opacity {option}
-    private method SphereScale {option {models "all"} }
-    private method StickRadius {option {models "all"} }
-    private method OrthoProjection {option}
-    private method Representation { {option ""} }
-    private method CartoonTrace {option {model "all"}}
-    private method ComputeParallelepipedVertices { dataobj }
-    private method Cell {option}
-    private method Rock {option}
+    private common _settings;           # Array of settings for all known
+                                        # widgets
+    private common _downloadPopup;      # Download options from popup
+    private common _hardcopy
 }
 
 itk::usual MolvisViewer {
@@ -180,9 +180,11 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
     # Rocker
     $_dispatcher register !rocker
     $_dispatcher dispatch $this !rocker "[itcl::code $this Rock step]; list"
+
     # Mouse Event
     $_dispatcher register !mevent
     $_dispatcher dispatch $this !mevent "[itcl::code $this _mevent]; list"
+
     $_dispatcher register !pngtimeout
     $_dispatcher register !waiticon
 
