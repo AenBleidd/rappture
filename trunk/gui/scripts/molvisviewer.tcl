@@ -69,10 +69,10 @@ itcl::class Rappture::MolvisViewer {
     protected method Pan {option x y}
     protected method Rebuild {}
     protected method Rotate {option x y}
+    protected method Rotate.old {option x y}
     protected method SendCmd { string }
     protected method Unmap {}
-    protected method Vmouse  {option b m x y}
-    protected method Vmouse2 {option b m x y}
+    protected method Vmouse {option b m x y}
     protected method Zoom {option {factor 10}}
 
     private method AddImageControls { frame widget }
@@ -343,30 +343,45 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
 
     set _image(id) ""
 
-    # set up bindings for rotation
     if 0 {
+        # set up bindings to bridge mouse events to server
+        bind $itk_component(3dview) <ButtonPress> \
+            [itcl::code $this Vmouse click %b %s %x %y]
+        bind $itk_component(3dview) <ButtonRelease> \
+            [itcl::code $this Vmouse release %b %s %x %y]
+        bind $itk_component(3dview) <B1-Motion> \
+            [itcl::code $this Vmouse drag 1 %s %x %y]
+        bind $itk_component(3dview) <B2-Motion> \
+            [itcl::code $this Vmouse drag 2 %s %x %y]
+        bind $itk_component(3dview) <B3-Motion> \
+            [itcl::code $this Vmouse drag 3 %s %x %y]
+        bind $itk_component(3dview) <Motion> \
+            [itcl::code $this Vmouse move 0 %s %x %y]
+    } else {
+        # set up bindings for rotation with mouse
         bind $itk_component(3dview) <ButtonPress-1> \
             [itcl::code $this Rotate click %x %y]
         bind $itk_component(3dview) <B1-Motion> \
             [itcl::code $this Rotate drag %x %y]
         bind $itk_component(3dview) <ButtonRelease-1> \
             [itcl::code $this Rotate release %x %y]
-    } else {
-        bind $itk_component(3dview) <ButtonPress-1> \
-            [itcl::code $this Vmouse click %b %s %x %y]
-        bind $itk_component(3dview) <B1-Motion> \
-            [itcl::code $this Vmouse drag 1 %s %x %y]
-        bind $itk_component(3dview) <ButtonRelease-1> \
-            [itcl::code $this Vmouse release %b %s %x %y]
+
+        # set up bindings for panning with mouse
+        bind $itk_component(3dview) <ButtonPress-2> \
+            [itcl::code $this Pan click %x %y]
+        bind $itk_component(3dview) <B2-Motion> \
+            [itcl::code $this Pan drag %x %y]
+        bind $itk_component(3dview) <ButtonRelease-2> \
+            [itcl::code $this Pan release %x %y]
+
+        # scroll wheel zoom
+        if {[string equal "x11" [tk windowingsystem]]} {
+            bind $itk_component(3dview) <4> [itcl::code $this Zoom out 2]
+            bind $itk_component(3dview) <5> [itcl::code $this Zoom in 2]
+        }
     }
 
-    bind $itk_component(3dview) <ButtonPress-2> \
-        [itcl::code $this Pan click %x %y]
-    bind $itk_component(3dview) <B2-Motion> \
-        [itcl::code $this Pan drag %x %y]
-    bind $itk_component(3dview) <ButtonRelease-2> \
-        [itcl::code $this Pan release %x %y]
-
+    # Set up bindings for panning with keyboard
     bind $itk_component(3dview) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
     bind $itk_component(3dview) <KeyPress-Right> \
@@ -383,32 +398,14 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
         [itcl::code $this Pan set 0 -50]
     bind $itk_component(3dview) <Shift-KeyPress-Down> \
         [itcl::code $this Pan set 0 50]
+
+    # Set up bindings for zoom with keyboard
     bind $itk_component(3dview) <KeyPress-Prior> \
         [itcl::code $this Zoom out 2]
     bind $itk_component(3dview) <KeyPress-Next> \
         [itcl::code $this Zoom in 2]
 
     bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
-
-
-    if {[string equal "x11" [tk windowingsystem]]} {
-        bind $itk_component(3dview) <4> [itcl::code $this Zoom out 2]
-        bind $itk_component(3dview) <5> [itcl::code $this Zoom in 2]
-    }
-
-    # set up bindings to bridge mouse events to server
-    #bind $itk_component(3dview) <ButtonPress> \
-    #   [itcl::code $this Vmouse2 click %b %s %x %y]
-    #bind $itk_component(3dview) <ButtonRelease> \
-    #    [itcl::code $this Vmouse2 release %b %s %x %y]
-    #bind $itk_component(3dview) <B1-Motion> \
-    #    [itcl::code $this Vmouse2 drag 1 %s %x %y]
-    #bind $itk_component(3dview) <B2-Motion> \
-    #    [itcl::code $this Vmouse2 drag 2 %s %x %y]
-    #bind $itk_component(3dview) <B3-Motion> \
-    #    [itcl::code $this Vmouse2 drag 3 %s %x %y]
-    #bind $itk_component(3dview) <Motion> \
-    #    [itcl::code $this Vmouse2 move 0 %s %x %y]
 
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
@@ -1341,8 +1338,10 @@ itcl::body Rappture::MolvisViewer::Rock { option } {
     }
 }
 
-
-itcl::body Rappture::MolvisViewer::Vmouse2 {option b m x y} {
+#
+# Send virtual mouse events using the vmouse command
+#
+itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
     set now [clock clicks -milliseconds]
     set vButton [expr $b - 1]
     set vModifier 0
@@ -1369,7 +1368,15 @@ itcl::body Rappture::MolvisViewer::Vmouse2 {option b m x y} {
     set _mevent(time) $now
 }
 
-itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
+# ----------------------------------------------------------------------
+# USAGE: Rotate click <x> <y>
+# USAGE: Rotate drag <x> <y>
+# USAGE: Rotate release <x> <y>
+#
+# Called automatically when the user clicks/drags/releases in the
+# plot area.  Moves the plot according to the user's actions.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::Rotate {option x y} {
     set now  [clock clicks -milliseconds]
     # cancel any pending delayed dragging events
     if { [info exists _mevent(afterid)] } {
@@ -1385,11 +1392,11 @@ itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
     }
     if { $option == "drag" || $option == "release" } {
         set diff 0
-         catch { set diff [expr $now - $_mevent(time) ] }
-         if {$diff < 25 && $option == "drag" } { # 75ms between motion updates
-             set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this Vmouse drag $b $m $x $y]]
-             return
-         }
+        catch { set diff [expr $now - $_mevent(time) ] }
+        if {$diff < 25 && $option == "drag" } { # 75ms between motion updates
+            set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this Rotate drag $x $y]]
+            return
+        }
         set w [winfo width $itk_component(3dview)]
         set h [winfo height $itk_component(3dview)]
         if {$w <= 0 || $h <= 0} {
@@ -1437,14 +1444,14 @@ itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Rotate click <x> <y>
-# USAGE: Rotate drag <x> <y>
-# USAGE: Rotate release <x> <y>
+# USAGE: Rotate.old click <x> <y>
+# USAGE: Rotate.old drag <x> <y>
+# USAGE: Rotate.old release <x> <y>
 #
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::Rotate {option x y} {
+itcl::body Rappture::MolvisViewer::Rotate.old {option x y} {
     set now  [clock clicks -milliseconds]
     #update idletasks
     # cancel any pending delayed dragging events
@@ -1462,19 +1469,19 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
         }
         drag {
             if {[array size _click] == 0} {
-                Rotate click $x $y
+                Rotate.old click $x $y
             } else {
                 set w [winfo width $itk_component(3dview)]
                 set h [winfo height $itk_component(3dview)]
                 if {$w <= 0 || $h <= 0} {
                     return
                 }
-#         set diff 0
-#          catch { set diff [expr $now - $_mevent(time) ] }
-#          if {$diff < 175 && $option == "drag" } { # 75ms between motion updates
-#              set _mevent(afterid) [after [expr 175 - $diff] [itcl::code $this Rotate drag $x $y]]
-#              return
-#          }
+                #set diff 0
+                #catch { set diff [expr $now - $_mevent(time) ] }
+                #if {$diff < 75 && $option == "drag" } { # 75ms between motion updates
+                #    set _mevent(afterid) [after [expr 75 - $diff] [itcl::code $this Rotate.old drag $x $y]]
+                #    return
+                #}
 
                 if {[catch {
                     # this fails sometimes for no apparent reason
@@ -1529,7 +1536,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
             }
         }
         release {
-            Rotate drag $x $y
+            Rotate.old drag $x $y
             $itk_component(3dview) configure -cursor ""
             catch {unset _click}
         }
