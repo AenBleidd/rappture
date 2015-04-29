@@ -135,7 +135,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _title ""
     private variable _seeds
 
-    common _downloadPopup;              # download options from popup
+    private common _downloadPopup;      # download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0

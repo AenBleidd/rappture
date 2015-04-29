@@ -143,11 +143,11 @@ itcl::class Rappture::VtkViewer {
     private variable _haveMolecules 0
     private variable _havePolydata 0
 
-    private variable _first ""     ;# This is the topmost dataset.
+    private variable _first "";         # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
 
-    common _downloadPopup          ;# download options from popup
+    private common _downloadPopup;      # download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0
