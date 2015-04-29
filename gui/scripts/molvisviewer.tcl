@@ -426,7 +426,6 @@ itcl::body Rappture::MolvisViewer::destructor {} {
     array unset _settings $this-*
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: add <dataobj> ?<settings>?
 #
@@ -652,7 +651,6 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 itcl::body Rappture::MolvisViewer::isconnected {} {
     return [VisViewer::IsConnected]
 }
-
 
 #
 # Connect --
@@ -1591,7 +1589,6 @@ itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
     }
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: OrthoProjection on|off|toggle
 # USAGE: OrthoProjection update
@@ -1699,7 +1696,7 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
     SendCmd "zoom $_view(zoom)"
 }
 
-itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
+itcl::body Rappture::MolvisViewer::WaitIcon { option widget } {
     switch -- $option {
         "start" {
             $_dispatcher dispatch $this !waiticon \
@@ -1865,7 +1862,6 @@ itcl::body Rappture::MolvisViewer::SphereScale { option {models "all"} } {
 # Note: Only sets the specified radius for active models.  If the model
 #       is inactive, then it overridden with the value "0.25".
 # ----------------------------------------------------------------------
-
 itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
     if { $option == "update" } {
         set radius $_settings($this-stickradius)
@@ -1901,7 +1897,6 @@ itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
 # Note: Only sets the specified transparency for active models.  If the model
 #       is inactive, then it overridden with the value "0.75".
 # ----------------------------------------------------------------------
-
 itcl::body Rappture::MolvisViewer::Opacity { option } {
     array unset _imagecache
     if { $option == "update" } {
@@ -2138,7 +2133,6 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     return $vertices
 }
 
-
 # ----------------------------------------------------------------------
 # OPTION: -device
 # ----------------------------------------------------------------------
@@ -2157,4 +2151,3 @@ itcl::configbody Rappture::MolvisViewer::device {
         $_dispatcher event -idle !rebuild
     }
 }
-
