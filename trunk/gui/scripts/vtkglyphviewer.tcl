@@ -2151,7 +2151,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     array set style {
         -color white
         -colormap BCGYR
-        -colorMode vmag
+        -colormode vmag
         -edgecolor black
         -edges 0
         -gscale 1
@@ -2159,11 +2159,11 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -linewidth 1.0
         -normscale 1
         -opacity 1.0
-        -orientGlyphs 1
+        -orientglyphs 1
         -outline 0
         -ptsize 1.0
         -quality 1
-        -scaleMode vmag
+        -scalemode vmag
         -shape arrow
         -wireframe 0
     }
@@ -2171,16 +2171,26 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set numComponents [$dataobj numComponents $comp]
     if {$numComponents == 3} {
         set style(-shape) "arrow"
-        set style(-orientGlyphs) 1
-        set style(-scaleMode) "vmag"
-        set style(-colorMode) "vmag"
+        set style(-orientglyphs) 1
+        set style(-scalemode) "vmag"
+        set style(-colormode) "vmag"
     } else {
         set style(-shape) "sphere"
-        set style(-orientGlyphs) 0
-        set style(-scaleMode) "scalar"
-        set style(-colorMode) "scalar"
+        set style(-orientglyphs) 0
+        set style(-scalemode) "scalar"
+        set style(-colormode) "scalar"
     }
     array set style [$dataobj style $comp]
+    # Backwards compat with camel case style option
+    if { [info exists style(-orientGlyphs)] } {
+        set style(-orientglyphs) $style(-orientGlyphs)
+        array unset style -orientGlyphs
+    }
+    # Backwards compat with camel case style option
+    if { [info exists style(-scaleMode)] } {
+        set style(-scalemode) $style(-scaleMode)
+        array unset style -scaleMode
+    }
     if { $dataobj != $_first } {
         set style(-opacity) 1
     }
@@ -2233,22 +2243,22 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set _settings(-colormapvisible) 0
         set _settings(-colormap) "none"
     } else {
-        SendCmd "glyphs colormode $style(-colorMode) $_curFldName $tag"
+        SendCmd "glyphs colormode $style(-colormode) $_curFldName $tag"
         set _settings(-colormapvisible) 1
         set _settings(-colormap) $style(-colormap)
         SetCurrentColormap $style(-colormap)
     }
     $itk_component(colormap) value $_settings(-colormap)
-    set _colorMode $style(-colorMode)
+    set _colorMode $style(-colormode)
     # constant color only used if colormode set to constant
     SendCmd "glyphs color [Color2RGB $style(-color)] $tag"
     # Omitting field name for gorient and smode commands
     # defaults to active scalars or vectors depending on mode
-    SendCmd "glyphs gorient $style(-orientGlyphs) {} $tag"
-    set _settings(-glyphorient) $style(-orientGlyphs)
-    SendCmd "glyphs smode $style(-scaleMode) {} $tag"
-    set _settings(-glyphscalemode) $style(-scaleMode)
-    $itk_component(scaleMode) value "[$itk_component(scaleMode) label $style(-scaleMode)]"
+    SendCmd "glyphs gorient $style(-orientglyphs) {} $tag"
+    set _settings(-glyphorient) $style(-orientglyphs)
+    SendCmd "glyphs smode $style(-scalemode) {} $tag"
+    set _settings(-glyphscalemode) $style(-scalemode)
+    $itk_component(scaleMode) value "[$itk_component(scaleMode) label $style(-scalemode)]"
     SendCmd "glyphs quality $style(-quality) $tag"
     SendCmd "glyphs lighting $style(-lighting) $tag"
     set _settings(-glyphlighting) $style(-lighting)
