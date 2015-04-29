@@ -140,7 +140,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _width
     private variable _height
     private variable _reset 1;          # Restore camera settings
-    private variable _cell 0;           # Restore camera settings
+    private variable _cell 0;           # Is there a parallelepiped unit cell?
 
     private common _settings;           # Array of settings for all known
                                         # widgets
