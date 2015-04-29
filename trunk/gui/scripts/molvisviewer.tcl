@@ -473,7 +473,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
             set _dobj2transparency($dataobj) "normal"
         }
         set _dobj2raise($dataobj) $params(-raise)
-        debug "setting parameters for $dataobj\n"
+        debug "setting parameters for $dataobj"
 
         if { [isconnected] } {
             $_dispatcher event -idle !rebuild
@@ -732,7 +732,7 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
 }
 
 itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
-    debug "in SendCmd ($cmd)\n"
+    debug "cmd: ($cmd)"
 
     if { $_state(server) != $_state(client) } {
         VisViewer::SendCmd "frame -defer $_state(client)"
@@ -764,7 +764,7 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
         set _cacheid $cacheid
     }
     set data [ReceiveBytes $size]
-    #debug "success: reading $size bytes from proxy\n"
+    #debug "success: reading $size bytes from proxy"
     if { [string match "print*" $cacheid] } {
         # $frame is the token that we sent to the proxy.
         set _hardcopy($this-$cacheid) $data
@@ -878,7 +878,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::Rebuild {} {
-    debug "in rebuild"
+    debug "Enter"
     set changed 0
 
     # Turn on buffering of commands to the server.  We don't want to
@@ -1125,7 +1125,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
         SendCmd "pan $_view(x) $_view(y)"
         SendCmd "zoom $_view(zoom)"
-        debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
+        debug "rotate $_view(mx) $_view(my) $_view(mz)"
 
         SendCmd "raw -defer {zoom complete=1}"
         set _reset 0
@@ -1157,7 +1157,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     StopBufferingCommands
     blt::busy release $itk_component(hull)
 
-    debug "exiting rebuild"
+    debug "Exit"
 }
 
 itcl::body Rappture::MolvisViewer::Unmap { } {
@@ -1426,7 +1426,7 @@ itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
         set _view(mz) [expr {$_view(mz) + $mz}]
         #SendCmd "rotate $mx $my $mz"
         EventuallyRotate $mx $my $mz
-        debug "_vmmouse: rotate $_view(mx) $_view(my) $_view(mz)"
+        debug "rotate $_view(mx) $_view(my) $_view(mz)"
     }
     set _mevent(x) $x
     set _mevent(y) $y
@@ -1523,7 +1523,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
                 }]
                 EventuallyRotate $a $b $c
                 #SendCmd "rotate $a $b $c"
-                debug "Rotate $x $y: rotate $_view(vx) $_view(vy) $_view(vz)"
+                debug "x,y: $x $y: rotate $_view(vx) $_view(vy) $_view(vz)"
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1693,7 +1693,7 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
     SendCmd "reset"
     DoResize
     SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
-    debug "ResetView: rotate $_view(mx) $_view(my) $_view(mz)"
+    debug "rotate $_view(mx) $_view(my) $_view(mz)"
     SendCmd "pan $_view(x) $_view(y)"
     SendCmd "zoom $_view(zoom)"
 }
