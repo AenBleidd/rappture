@@ -1287,12 +1287,6 @@ itcl::body Rappture::Field::VtkDataSetToXy { dataset } {
         return 0
     }
     set numPoints [$dataset GetNumberOfPoints]
-    set xv [blt::vector create \#auto]
-    for { set i 0 } { $i < $numPoints } { incr i } {
-        set point [$dataset GetPoint $i]
-        $xv append [lindex $point 0]
-    }
-    set yv [blt::vector create \#auto]
     set dataAttrs [$dataset GetPointData]
     if { $dataAttrs == ""} {
         puts stderr "WARNING: No point data found"
@@ -1308,6 +1302,12 @@ itcl::body Rappture::Field::VtkDataSetToXy { dataset } {
         return 0
     }
     set numTuples [$array GetNumberOfTuples]
+    set xv [blt::vector create \#auto]
+    for { set i 0 } { $i < $numPoints } { incr i } {
+        set point [$dataset GetPoint $i]
+        $xv append [lindex $point 0]
+    }
+    set yv [blt::vector create \#auto]
     for { set i 0 } { $i < $numTuples } { incr i } {
         $yv append [$array GetComponent $i 0]
     }
