@@ -154,7 +154,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _resizePending 0
     private variable _resizeLegendPending 0
 
-    common _downloadPopup              ;# download options from popup
+    private common _downloadPopup      ;# download options from popup
     private common _hardcopy
 }
 

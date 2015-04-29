@@ -153,7 +153,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _currentLimits ""
     private variable _widget
 
-    common _downloadPopup;              # download options from popup
+    private common _downloadPopup;      # download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0

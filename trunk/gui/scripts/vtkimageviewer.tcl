@@ -138,7 +138,7 @@ itcl::class Rappture::VtkImageViewer {
     private variable _isolines
     private variable _contourList ""
 
-    common _downloadPopup;              # download options from popup
+    private common _downloadPopup;      # download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0
