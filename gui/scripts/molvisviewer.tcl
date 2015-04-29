@@ -146,6 +146,7 @@ itcl::class Rappture::MolvisViewer {
                                         # widgets
     private common _downloadPopup;      # Download options from popup
     private common _hardcopy
+    private common _useVmouseEvents 0;  # Flag to enable virtual mouse events
 }
 
 itk::usual MolvisViewer {
@@ -343,7 +344,7 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
 
     set _image(id) ""
 
-    if 0 {
+    if { $_useVmouseEvents } {
         # set up bindings to bridge mouse events to server
         bind $itk_component(3dview) <ButtonPress> \
             [itcl::code $this Vmouse click %b %s %x %y]
