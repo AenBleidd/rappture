@@ -1337,6 +1337,14 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume data state $_settings($what) $tag"
             }
         }
+        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set axis [string range $what 1 1]
+            set pos [expr $_settings($what) * 0.01]
+            # We only set cutplanes on the first dataset.
+            set datasets [CurrentDatasets -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane position $pos $axis $tag"
+        }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
             set axis [string range $what 1 1]
             set bool $_settings($what)
@@ -1573,9 +1581,6 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
     $itk_component(legend) itemconfigure labels -fill $itk_option(-plotforeground)
 }
 
-# ----------------------------------------------------------------------
-# USAGE: UpdateTransferFuncs
-# ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::updateTransferFunctions {} {
     $_dispatcher event -idle !send_transfunc
 }
@@ -1631,9 +1636,9 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         Rappture::Combobox $inner.background -width 10 -editable no
     }
     $inner.background choices insert end \
-        "black"              "black"            \
-        "white"              "white"            \
-        "grey"               "grey"
+        "black" "black" \
+        "white" "white" \
+        "grey"  "grey"
 
     $itk_component(background) value $_settings(-background)
     bind $inner.background <<Value>> \
