@@ -225,6 +225,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         -ambient                60
         -arrows                 0
         -axes                   0
+        -colormap               BCGYR
         -currenttime            0
         -cutplanesVisible       0
         -diffuse                40
