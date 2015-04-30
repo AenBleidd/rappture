@@ -16,20 +16,6 @@ package require Itk
 package require BLT
 package require Img
 
-#
-# FIXME:
-#       Need to Add DX readers this client to examine the data before
-#       it's sent to the server.  This will eliminate 90% of the insanity in
-#       computing the limits of all the volumes.  I can rip out all the
-#       "receive data" "send transfer function" event crap.
-#
-#       This means we can compute the transfer function (relative values) and
-#       draw the legend min/max values without waiting for the information to
-#       come from the server.  This will also prevent the flashing that occurs
-#       when a new volume is drawn (using the default transfer function) and
-#       then when the correct transfer function has been sent and linked to
-#       the volume.
-#
 option add *NanovisViewer.width 4i widgetDefault
 option add *NanovisViewer*cursor crosshair widgetDefault
 option add *NanovisViewer.height 4i widgetDefault
