@@ -2,15 +2,15 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: flowvisviewer - 3D flow rendering
 #
-# This widget performs volume and flow rendering on 3D scalar/vector datasets.
-# It connects to the Flowvis server running on a rendering farm, transmits
-# data, and displays the results.
+#  This widget performs volume and flow rendering on 3D scalar/vector datasets.
+#  It connects to the Flowvis server running on a rendering farm, transmits
+#  data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 #
-# See the file "license.terms" for information on usage and redistribution of
-# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#  See the file "license.terms" for information on usage and redistribution of
+#  this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
 package require BLT
@@ -133,8 +133,8 @@ itcl::class Rappture::FlowvisViewer {
                                         # dataobj-components using the tf.
     private variable _dataset2flow     ;# Maps dataobj-component to a flow.
 
-    private variable _reset 1          ;# Connection to server has been reset
-    private variable _click            ;# info used for rotate operations
+    private variable _reset 1          ;# Connection to server has been reset.
+    private variable _click            ;# Info used for rotate operations.
     private variable _limits           ;# Autoscale min/max for all axes
     private variable _view             ;# View params for 3D view
     private variable _isomarkers       ;# array of isosurface level values 0..1
@@ -282,7 +282,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -959,9 +960,9 @@ itcl::body Rappture::FlowvisViewer::SendTransferFunctions {} {
         return
     }
 
-    # Ensure that the global thickness setting (in the slider settings widget)
-    # is used for the active transfer-function. Update the values in the
-    # _settings varible.
+    # Ensure that the global thickness setting (in the slider
+    # settings widget) is used for the active transfer-function. Update
+    # the values in the _settings varible.
 
     set value $_settings(-thickness)
     # Scale values between 0.00001 and 0.01000
@@ -1077,10 +1078,11 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
 #       follows" command.  The server sends back a "data" command invoked our
 #       the slave interpreter.  The purpose is to collect the min/max of the
 #       volume sent to the render server.  Since the client (flowvisviewer)
-#       doesn't parse 3D data formats, we rely on the server (flowvis) to
+#       doesn't parse 3D data formats, we rely on the server (nanovis) to
 #       tell us what the limits are.  Once we've received the limits to all
 #       the data we've sent (tracked by _recvdDatasets) we can then determine
-#       what the transfer functions are for these # volumes.
+#       what the transfer functions are for these volumes.
+#
 #
 #       Note: There is a considerable tradeoff in having the server report
 #             back what the data limits are.  It means that much of the code
@@ -1639,12 +1641,6 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
 #       to us by the render server. [We won't know the volume limits until the
 #       server parses the 3D data and sends back the limits via ReceiveData.]
 #
-#       FIXME: The current way we generate transfer-function names completely
-#              ignores the -markers option.  The problem is that we are forced
-#              to compute the name from an increasing complex set of values:
-#              color, levels, marker, opacity.  I think we're stuck doing it
-#              now.
-#
 itcl::body Rappture::FlowvisViewer::NameTransferFunction { dataobj cname } {
     array set style {
         -color BCGYR
@@ -1686,12 +1682,6 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
     # maintain a list of markers for each transfer-function.  We use the one
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
-    #
-    # FIXME: The current way we generate transfer-function names completely
-    #        ignores the -markers option.  The problem is that we are forced
-    #        to compute the name from an increasing complex set of values:
-    #        color, levels, marker, opacity.  I think the cow's out of the
-    #        barn on this one.
 
     if { ![info exists _isomarkers($tf)] } {
         # Have to defer creation of isomarkers until we have data limits
@@ -1881,9 +1871,6 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: UpdateTransferFunctions
-# ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::updateTransferFunctions {} {
     $_dispatcher event -after 100 !send_transfunc
 }
