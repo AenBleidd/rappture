@@ -2513,10 +2513,10 @@ itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } 
     }
     SendCmd "if {\[flow exists $tag\]} {flow delete $tag}"
     array set info  [$flowobj hints]
-    set _settings($this-volume) $info(volume)
-    set _settings($this-outline) $info(outline)
-    set _settings($this-arrows) $info(arrows)
-    set _settings($this-duration) $info(duration)
+    set _settings(-volume) $info(volume)
+    set _settings(-outline) $info(outline)
+    set _settings(-arrows) $info(arrows)
+    set _settings(-duration) $info(duration)
     $itk_component(speed) value $info(speed)
     set cmd {}
     append cmd "flow add $tag"
