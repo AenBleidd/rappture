@@ -1594,13 +1594,6 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    set ::Rappture::NanovisViewer::_settings(-isosurfaceshading) 0
-    checkbutton $inner.isosurface \
-        -text "Isosurface shading" \
-        -variable [itcl::scope _settings(-isosurfaceshading)] \
-        -command [itcl::code $this AdjustSetting -isosurfaceshading] \
-        -font "Arial 9"
-
     checkbutton $inner.axes \
         -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
@@ -1669,6 +1662,10 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     label $inner.lighting_l \
         -text "Lighting / Material Properties" \
         -font "Arial 9 bold"
+
+    checkbutton $inner.isosurface -text "Isosurface shading" -font $fg \
+        -variable [itcl::scope _settings(-isosurfaceshading)] \
+        -command [itcl::code $this AdjustSetting -isosurfaceshading]
 
     checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
         -variable [itcl::scope _settings(-light2side)] \
