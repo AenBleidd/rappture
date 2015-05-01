@@ -225,41 +225,41 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     array set _settings [subst {
         -ambient                60
         -arrows                 0
-        -axes                   0
+        -axesvisible            0
         -colormap               BCGYR
         -currenttime            0
-        -cutplanesVisible       0
+        -cutplanesvisible       0
         -diffuse                40
         -duration               1:00
-        -grid                   0
-        -isosurface             0
-        -legend                 1
+        -gridvisible            0
+        -isosurfaceshading      0
+        -legendvisible          1
         -lic                    1
         -light2side             1
         -loop                   0
         -opacity                50
-        -outline                1
+        -outlinevisible         1
         -particles              1
         -play                   0
         -qw                     $_view(-qw)
         -qx                     $_view(-qx)
         -qy                     $_view(-qy)
         -qz                     $_view(-qz)
-        -specularLevel          30
-        -specularExponent       90
+        -specularexponent       90
+        -specularlevel          30
         -speed                  500
         -step                   0
         -streams                0
         -thickness              350
         -volume                 1
-        -xcutplane              1
-        -xcutposition           0
+        -xcutplaneposition      50
+        -xcutplanevisible       1
         -xpan                   $_view(-xpan)
-        -ycutplane              1
-        -ycutposition           0
+        -ycutplaneposition      50
+        -ycutplanevisible       1
         -ypan                   $_view(-ypan)
-        -zcutplane              1
-        -zcutposition           0
+        -zcutplaneposition      50
+        -zcutplanevisible       1
         -zoom                   $_view(-zoom)
     }]
 
@@ -326,8 +326,8 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings(-cutplanesVisible)] \
-            -command [itcl::code $this AdjustSetting -cutplanesVisible]
+            -variable [itcl::scope _settings(-cutplanesvisible)] \
+            -command [itcl::code $this AdjustSetting -cutplanesvisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -364,8 +364,8 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         0,0 $itk_component(3dview) -fill both -reqwidth $w \
         1,0 $itk_component(legend) -fill x
     blt::table configure $itk_component(plotarea) r1 -resize none
-    # Create flow controls...
 
+    # Create flow controls...
     itk_component add flowcontrols {
         frame $itk_interior.flowcontrols
     } {
@@ -1091,6 +1091,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     if { ![isconnected] } {
         return
     }
+
     # Arguments from server are name value pairs. Stuff them in an array.
     array set info $args
 
@@ -1197,10 +1198,12 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     }
 
     # Reset the camera and other view parameters
-    InitSettings -light2side \
-        -ambient -diffuse -specularLevel -specularExponent \
-        -opacity -isosurface -grid -axes -volume -outline \
-        -cutplanesVisible -xcutplane -ycutplane -zcutplane
+    InitSettings -axesvisible -gridvisible \
+        -opacity -light2side -isosurfaceshading \
+        -ambient -diffuse -specularlevel -specularexponent \
+        -volume -outlinevisible -cutplanesvisible \
+        -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+        -xcutplaneposition -ycutplaneposition -zcutplaneposition
 
     # nothing to send -- activate the proper volume
     if {"" != $_first} {
@@ -1483,13 +1486,19 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "$tag configure -ambient $val"
             }
         }
-        "-axes" {
+        "-axesvisible" {
             SendCmd "axis visible $_settings($what)"
         }
         "-colormap" {
             set color [$itk_component(colormap) value]
             set _settings($what) $color
             #ResetColormap $color
+        }
+        "-cutplanesvisible" {
+            set bool $_settings($what)
+            set datasets [CurrentDatasets -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane visible $bool $tag"
         }
         "-diffuse" {
             if { $_first != "" } {
@@ -1500,21 +1509,26 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "$tag configure -diffuse $val"
             }
         }
-        "-specularLevel" {
+        "-gridvisible" {
+            SendCmd "grid visible $_settings($what)"
+        }
+        "-isosurfaceshading" {
             if { $_first != "" } {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
                 set val $_settings($what)
-                set val [expr {0.01*$val}]
-                SendCmd "$tag configure -specularLevel $val"
+                SendCmd "volume shading isosurface $val $tag"
+                #SendCmd "$tag configure -isosurface $val"
             }
         }
-        "-specularExponent" {
-            if { $_first != "" } {
-                set comp [lindex [$_first components] 0]
-                set tag $_first-$comp
-                set val $_settings($what)
-                SendCmd "$tag configure -specularExp $val"
+        "-legendvisible" {
+            if { $_settings($what) } {
+                blt::table $itk_component(plotarea) \
+                    0,0 $itk_component(3dview) -fill both \
+                    1,0 $itk_component(legend) -fill x
+                blt::table configure $itk_component(plotarea) r1 -resize none
+            } else {
+                blt::table forget $itk_component(legend)
             }
         }
         "-light2side" {
@@ -1533,6 +1547,30 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "$tag configure -opacity $opacity"
             }
         }
+        "-outlinevisible" {
+            if { $_first != "" } {
+                set comp [lindex [$_first components] 0]
+                set tag $_first-$comp
+                SendCmd "$tag configure -outline $_settings($what)"
+            }
+        }
+        "-specularlevel" {
+            if { $_first != "" } {
+                set comp [lindex [$_first components] 0]
+                set tag $_first-$comp
+                set val $_settings($what)
+                set val [expr {0.01*$val}]
+                SendCmd "$tag configure -specularLevel $val"
+            }
+        }
+        "-specularexponent" {
+            if { $_first != "" } {
+                set comp [lindex [$_first components] 0]
+                set tag $_first-$comp
+                set val $_settings($what)
+                SendCmd "$tag configure -specularExp $val"
+            }
+        }
         "-thickness" {
             if { $_first != "" && $_activeTf != "" } {
                 set val $_settings($what)
@@ -1543,29 +1581,6 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 updateTransferFunctions
             }
         }
-        "-outline" {
-            if { $_first != "" } {
-                set comp [lindex [$_first components] 0]
-                set tag $_first-$comp
-                SendCmd "$tag configure -outline $_settings($what)"
-            }
-        }
-        "-isosurface" {
-            SendCmd "volume shading isosurface $_settings($what)"
-        }
-        "-grid" {
-            SendCmd "grid visible $_settings($what)"
-        }
-        "-legend" {
-            if { $_settings($what) } {
-                blt::table $itk_component(plotarea) \
-                    0,0 $itk_component(3dview) -fill both \
-                    1,0 $itk_component(legend) -fill x
-                blt::table configure $itk_component(plotarea) r1 -resize none
-            } else {
-                blt::table forget $itk_component(legend)
-            }
-        }
         "-volume" {
             if { $_first != "" } {
                 set comp [lindex [$_first components] 0]
@@ -1573,19 +1588,21 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "$tag configure -volume $_settings($what)"
             }
         }
-        "-cutplanesVisible" {
-            set bool $_settings($what)
+        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set axis [string range $what 1 1]
+            set pos [expr $_settings($what) * 0.01]
+            # We only set cutplanes on the first dataset.
             set datasets [CurrentDatasets -cutplanes]
             set tag [lindex $datasets 0]
-            SendCmd "cutplane visible $bool $tag"
+            SendCmd "cutplane position $pos $axis $tag"
         }
-        "-xcutplane" - "-ycutplane" - "-zcutplane" {
+        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
             set axis [string range $what 1 1]
             set bool $_settings($what)
-            if { [isconnected] } {
-                set vols [CurrentDatasets -cutplanes]
-                SendCmd "cutplane state $bool $axis $vols"
-            }
+            # We only set cutplanes on the first dataset.
+            set datasets [CurrentDatasets -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane state $bool $axis $tag"
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
                     -troughcolor white
@@ -1965,26 +1982,26 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
 
     checkbutton $inner.axes \
         -text "Axes" \
-        -variable [itcl::scope _settings(-axes)] \
-        -command [itcl::code $this AdjustSetting -axes] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.grid \
         -text "Grid" \
-        -variable [itcl::scope _settings(-grid)] \
-        -command [itcl::code $this AdjustSetting -grid] \
+        -variable [itcl::scope _settings(-gridvisible)] \
+        -command [itcl::code $this AdjustSetting -gridvisible] \
         -font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings(-outline)] \
-        -command [itcl::code $this AdjustSetting -outline] \
+        -variable [itcl::scope _settings(-outlinevisible)] \
+        -command [itcl::code $this AdjustSetting -outlinevisible] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
         -text "Legend" \
-        -variable [itcl::scope _settings(-legend)] \
-        -command [itcl::code $this AdjustSetting -legend] \
+        -variable [itcl::scope _settings(-legendvisible)] \
+        -command [itcl::code $this AdjustSetting -legendvisible] \
         -font "Arial 9"
 
     checkbutton $inner.volume \
@@ -2040,8 +2057,8 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         -font "Arial 9 bold"
 
     checkbutton $inner.isosurface -text "Isosurface shading" -font $fg \
-        -variable [itcl::scope _settings(-isosurface)] \
-        -command [itcl::code $this AdjustSetting -isosurface]
+        -variable [itcl::scope _settings(-isosurfaceshading)] \
+        -command [itcl::code $this AdjustSetting -isosurfaceshading]
 
     checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
         -variable [itcl::scope _settings(-light2side)] \
@@ -2061,15 +2078,15 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
 
     label $inner.specularLevel_l -text "Specular" -font $fg
     ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-specularLevel)] \
+        -variable [itcl::scope _settings(-specularlevel)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting -specularLevel]
+        -showvalue off -command [itcl::code $this AdjustSetting -specularlevel]
 
     label $inner.specularExponent_l -text "Shininess" -font $fg
     ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
-        -variable [itcl::scope _settings(-specularExponent)] \
+        -variable [itcl::scope _settings(-specularexponent)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting -specularExponent]
+        -showvalue off -command [itcl::code $this AdjustSetting -specularexponent]
 
     # Opacity
     label $inner.opacity_l -text "Opacity" -font $fg
@@ -2130,8 +2147,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
 
     checkbutton $inner.visible \
         -text "Show Cutplanes" \
-        -variable [itcl::scope _settings(-cutplanesVisible)] \
-        -command [itcl::code $this AdjustSetting -cutplanesVisible] \
+        -variable [itcl::scope _settings(-cutplanesvisible)] \
+        -command [itcl::code $this AdjustSetting -cutplanesvisible] \
         -font "Arial 9"
 
     # X-value slicer...
@@ -2139,8 +2156,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane] \
             -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this AdjustSetting -xcutplane] \
-            -variable [itcl::scope _settings(-xcutplane)]
+            -command [itcl::code $this AdjustSetting -xcutplanevisible] \
+            -variable [itcl::scope _settings(-xcutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X cut plane on/off"
@@ -2151,7 +2168,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move x] \
-            -variable [itcl::scope _settings(-xcutposition)]
+            -variable [itcl::scope _settings(-xcutplaneposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -2167,8 +2184,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane] \
             -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this AdjustSetting -ycutplane] \
-            -variable [itcl::scope _settings(-ycutplane)]
+            -command [itcl::code $this AdjustSetting -ycutplanevisible] \
+            -variable [itcl::scope _settings(-ycutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y cut plane on/off"
@@ -2179,7 +2196,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move y] \
-            -variable [itcl::scope _settings(-ycutposition)]
+            -variable [itcl::scope _settings(-ycutplaneposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -2195,8 +2212,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane] \
             -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this AdjustSetting -zcutplane] \
-            -variable [itcl::scope _settings(-zcutplane)]
+            -command [itcl::code $this AdjustSetting -zcutplanevisible] \
+            -variable [itcl::scope _settings(-zcutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z cut plane on/off"
@@ -2207,7 +2224,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move z] \
-            -variable [itcl::scope _settings(-zcutposition)]
+            -variable [itcl::scope _settings(-zcutplaneposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -2505,7 +2522,7 @@ itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } 
     SendCmd "if {\[flow exists $tag\]} {flow delete $tag}"
     array set info [$flowobj hints]
     set _settings(-volume) $info(volume)
-    set _settings(-outline) $info(outline)
+    set _settings(-outlinevisible) $info(outline)
     set _settings(-arrows) $info(arrows)
     set _settings(-duration) $info(duration)
     $itk_component(speed) value $info(speed)
