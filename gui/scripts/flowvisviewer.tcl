@@ -1533,7 +1533,7 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
                 set val $_settings($what)
-                SendCmd "volume shading isosurface $val $tag"
+                # This flag isn't implemented in the server
                 #SendCmd "$tag configure -isosurface $val"
             }
         }
