@@ -1674,6 +1674,9 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunction { dataobj cname } {
         -opacity 0.5
     }
     array set style [lindex [$dataobj components -style $cname] 0]
+    # Some tools erroneously set -opacity to 1 in style, so
+    # override the requested opacity for now
+    set style(-opacity) 0.5
     set _settings(-opacity) [expr $style(-opacity) * 100]
     set _dataset2style($dataobj-$cname) $cname
     lappend _style2datasets($cname) $dataobj $cname
@@ -1701,6 +1704,9 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
         return 0
     }
     array set style [lindex [$dataobj components -style $cname] 0]
+    # Some tools erroneously set -opacity to 1 in style, so
+    # override the requested opacity for now
+    set style(-opacity) 0.5
 
     # We have to parse the style attributes for a volume using this
     # transfer-function *once*.  This sets up the initial isomarkers for the
