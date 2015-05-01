@@ -1255,7 +1255,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     # sync the state of slicers
     set vols [CurrentDatasets -cutplanes]
     foreach axis {x y z} {
-        set pos [expr {0.01*$_settings(-${axis}cutposition)}]
+        set pos [expr {0.01*$_settings(-${axis}cutplaneposition)}]
         SendCmd "cutplane position $pos $axis $vols"
     }
     SendCmd "volume data state $_settings(-volume)"
