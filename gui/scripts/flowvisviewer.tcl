@@ -226,6 +226,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         -ambient                60
         -arrows                 0
         -axesvisible            0
+        -background             black
         -colormap               BCGYR
         -currenttime            0
         -cutplanesvisible       0
@@ -1489,6 +1490,21 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
         "-axesvisible" {
             SendCmd "axis visible $_settings($what)"
         }
+        "-background" {
+            set bgcolor [$itk_component(background) value]
+            array set fgcolors {
+                "black" "white"
+                "white" "black"
+                "grey"  "black"
+            }
+            configure -plotbackground $bgcolor \
+                -plotforeground $fgcolors($bgcolor)
+            if { $_first != "" } {
+                set comp [lindex [$_first components] 0]
+                set tag $_first-$comp
+                DrawLegend $tag
+            }
+        }
         "-colormap" {
             set color [$itk_component(colormap) value]
             set _settings($what) $color
@@ -1980,6 +1996,7 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
+    # General options
     checkbutton $inner.axes \
         -text "Axes" \
         -variable [itcl::scope _settings(-axesvisible)] \
@@ -1992,16 +2009,32 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
         -command [itcl::code $this AdjustSetting -gridvisible] \
         -font "Arial 9"
 
-    checkbutton $inner.outline \
-        -text "Outline" \
-        -variable [itcl::scope _settings(-outlinevisible)] \
-        -command [itcl::code $this AdjustSetting -outlinevisible] \
-        -font "Arial 9"
-
     checkbutton $inner.legend \
         -text "Legend" \
         -variable [itcl::scope _settings(-legendvisible)] \
         -command [itcl::code $this AdjustSetting -legendvisible] \
+        -font "Arial 9"
+
+    label $inner.background_l -text "Background" -font "Arial 9"
+    itk_component add background {
+        Rappture::Combobox $inner.background -width 10 -editable no
+    }
+    $inner.background choices insert end \
+        "black" "black" \
+        "white" "white" \
+        "grey"  "grey"
+
+    $itk_component(background) value $_settings(-background)
+    bind $inner.background <<Value>> \
+        [itcl::code $this AdjustSetting -background]
+
+    # Dataset options
+    label $inner.flow_l -text "Flow" -font "Arial 9 bold"
+
+    checkbutton $inner.outline \
+        -text "Outline" \
+        -variable [itcl::scope _settings(-outlinevisible)] \
+        -command [itcl::code $this AdjustSetting -outlinevisible] \
         -font "Arial 9"
 
     checkbutton $inner.volume \
@@ -2010,31 +2043,22 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
         -command [itcl::code $this AdjustSetting -volume] \
         -font "Arial 9"
 
-    checkbutton $inner.particles \
-        -text "Particles" \
-        -variable [itcl::scope _settings(-particles)] \
-        -command [itcl::code $this AdjustSetting -particles] \
-        -font "Arial 9"
-
-    checkbutton $inner.lic \
-        -text "Lic" \
-        -variable [itcl::scope _settings(-lic)] \
-        -command [itcl::code $this AdjustSetting -lic] \
-        -font "Arial 9"
-
     frame $inner.frame
 
     blt::table $inner \
         0,0 $inner.axes -cspan 2 -anchor w \
         1,0 $inner.grid -cspan 2 -anchor w \
-        2,0 $inner.outline -cspan 2 -anchor w \
-        3,0 $inner.volume -cspan 2 -anchor w \
-        4,0 $inner.legend -cspan 2 -anchor w
+        2,0 $inner.legend -cspan 2 -anchor w \
+        3,0 $inner.background_l -anchor e -pady 2 \
+        3,1 $inner.background -fill x \
+        4,0 $inner.flow_l -anchor w \
+        5,0 $inner.outline -cspan 2 -anchor w \
+        6,0 $inner.volume -cspan 2 -anchor w \
 
     bind $inner <Map> [itcl::code $this GetFlowInfo $inner]
 
-    blt::table configure $inner r* -resize none
-    blt::table configure $inner r5 -resize expand
+    blt::table configure $inner c* r* -resize none
+    blt::table configure $inner c2 r7 -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
@@ -2305,7 +2329,7 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
     }
     set inner [frame $w.frame]
     blt::table $w \
-        5,0 $inner -fill both -cspan 2 -anchor nw
+        7,0 $inner -fill both -cspan 2 -anchor nw
     array set hints [$flowobj hints]
     checkbutton $inner.showstreams -text "Streams Plane" \
         -variable [itcl::scope _settings(-streams)] \
