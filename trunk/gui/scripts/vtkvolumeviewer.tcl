@@ -1108,9 +1108,10 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     }
 
     InitSettings -color \
+        -volumevisible \
         -volumeambient -volumediffuse -volumespecularlevel \
         -volumespecularexponent -volumeblendmode -volumethickness \
-        -volumelighting -volumeopacity -volumequality -volumeoutline -volumevisible \
+        -volumelighting -volumeopacity -volumequality -volumeoutline \
         -cutplanesvisible \
         -xcutplaneposition -ycutplaneposition -zcutplaneposition \
         -xcutplanevisible -ycutplanevisible -zcutplanevisible
