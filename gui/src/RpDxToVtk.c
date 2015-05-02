@@ -1,4 +1,4 @@
-
+ /* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /* 
  * ----------------------------------------------------------------------
  *  RpDxToVtk - 
@@ -601,6 +601,10 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         if (nPoints > 1 && ((dx == dy) && (dx == dz) && (dx == 0.0))) {
             fprintf(stderr, "Invalid deltas in DX file: %g %g %g\n", dx, dy, dz);
+            return TCL_ERROR;
+        }
+        if (dx < 0.0 || dy < 0.0 || dz < 0.0) {
+            fprintf(stderr, "Negative deltas not supported in DX file: %g %g %g\n", dx, dy, dz);
             return TCL_ERROR;
         }
         objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
