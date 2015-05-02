@@ -1057,7 +1057,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 
     if { $_reset } {
         InitSettings -streamlinesseedsvisible -streamlinesopacity \
-            -streamlinesvisible -streamlinescolormap \
+            -streamlinesvisible \
             -streamlineslighting \
             -streamlinescolormap -field \
             -volumevisible -volumeedges -volumelighting -volumeopacity \

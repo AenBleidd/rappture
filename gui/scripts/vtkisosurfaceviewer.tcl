@@ -1114,13 +1114,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
         InitSettings \
-            -isosurfacelighting \
-            -field \
-            -range \
-            -isosurfacevisible \
+            -field -range \
             -isosurfaceedges -isosurfacelighting -isosurfaceopacity \
             -isosurfacewireframe \
-            -cutplanesvisible \
             -xcutplaneposition -ycutplaneposition -zcutplaneposition \
             -xcutplanevisible -ycutplanevisible -zcutplanevisible \
             -cutplanepreinterp -numcontours
