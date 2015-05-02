@@ -931,6 +931,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         }
     }
     set _first [lindex [get] 0]
+    # Outline seems to need to be reset every update.
+    InitSettings -outlinevisible -cutplanesvisible
     if { $_reset } {
         #
         # Reset the camera and other view parameters
@@ -955,9 +957,10 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             SendCmd "cutplane state 0 $axis"
         }
 
-        InitSettings -light2side -ambient -diffuse -specularlevel \
-            -specularexponent -opacity -isosurfaceshading -gridvisible \
-            -axesvisible -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+        InitSettings -axesvisible -gridvisible \
+            -light2side -isosurfaceshading -opacity \
+            -ambient -diffuse -specularlevel -specularexponent \
+            -xcutplanevisible -ycutplanevisible -zcutplanevisible \
             -current
 
         if {"" != $_first} {
@@ -971,8 +974,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             }
         }
     }
-    # Outline seems to need to be reset every update.
-    InitSettings -outlinevisible -cutplanesvisible
+
     # nothing to send -- activate the proper ivol
     SendCmd "volume state 0"
     if {"" != $_first} {
@@ -1289,12 +1291,19 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume shading opacity $sval $tag"
             }
         }
-        "-outlinevisible" {
-            SendCmd "volume outline state $_settings($what)"
-        }
         "-outlinecolor" {
             set rgb [Color2RGB $_settings($what)]
             SendCmd "volume outline color $rgb"
+        }
+        "-outlinevisible" {
+            SendCmd "volume outline state $_settings($what)"
+        }
+        "-specularexponent" {
+            set _settings($_current${what}) $_settings($what)
+            set val $_settings($what)
+            foreach tag [GetDatasetsWithComponent $_current] {
+                SendCmd "volume shading specularExp $val $tag"
+            }
         }
         "-specularlevel" {
             set _settings($_current${what}) $_settings($what)
@@ -1302,13 +1311,6 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             set val [expr {0.01*$val}]
             foreach tag [GetDatasetsWithComponent $_current] {
                 SendCmd "volume shading specularLevel $val $tag"
-            }
-        }
-        "-specularexponent" {
-            set _settings($_current${what}) $_settings($what)
-            set val $_settings($what)
-            foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume shading specularExp $val $tag"
             }
         }
         "-thickness" {
