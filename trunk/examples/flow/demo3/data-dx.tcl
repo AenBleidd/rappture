@@ -5,7 +5,7 @@ delta 0.247933884 0 0
 delta 0 0.18 0
 delta 0 0 0.195652174
 object 2 class gridconnections counts 121 25 23
-object 3 class array type double shape 3 rank 1 items 69575 data follows
+object 3 class array type double rank 1 shape 3 items 69575 data follows
 0 0 0
 0 0 0
 0 0 0
