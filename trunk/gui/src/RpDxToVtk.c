@@ -500,30 +500,9 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             isUniform = 0;
         } else if (sscanf(line, "object %*d class array type %*s shape 3 rank 1"
                           " items %d data follows", &nPoints) == 1) {
-#ifdef notdef
-                fprintf(stderr, "found class array type shape 3 nPoints=%d\n",
-                        nPoints);
-#endif
-            if (isUniform) {
-                hasVectors = 1;
-                if (GetUniformFieldVectors(interp, nPoints, count, &p, pend, fieldObjPtr)
-                    != TCL_OK) {
-                    return TCL_ERROR;
-                }
-            } else {
-                // This is a 2D point cloud in xy with a uniform zgrid
-                isUniform = 0;
-                nXYPoints = nPoints;
-                if (nXYPoints < 0) {
-                    sprintf(mesg, "bad # points %d", nXYPoints);
-                    Tcl_AppendResult(interp, mesg, (char *)NULL);
-                    return TCL_ERROR;
-                }
-                points = malloc(sizeof(double) * nXYPoints * 2);
-                if (GetPoints(interp, points, nXYPoints, &p, pend) != TCL_OK) {
-                    return TCL_ERROR;
-                }
-            }
+            // XXX: Deprecated, invalid ordering of keywords
+            fprintf(stderr, "Invalid DX: 'rank' keyword should precede 'shape'.");
+            return TCL_ERROR;
         } else if (sscanf(line, "object %*d class array type %*s rank 1 shape 3"
                           " items %d data follows", &nPoints) == 1) {
 #ifdef notdef
@@ -551,7 +530,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 }
             }
         } else if (sscanf(line, "object %*d class array type %*s rank 0"
-                          " %*s %d data follows", &nPoints) == 1) {
+                          " items %d data follows", &nPoints) == 1) {
 #ifdef notdef
             fprintf(stderr, "found class array type rank 0 nPoints=%d\n", 
                 nPoints);
