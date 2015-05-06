@@ -931,7 +931,8 @@ itcl::body Rappture::Field::Build {} {
                 }
             } else {
                 unset contents
-                puts stderr "Can't parse DX data"
+                # vtkdata variable holds error message
+                puts stderr "Can't parse DX data\n$vtkdata"
                 continue;               # Ignore this component
             }
             if { $_alwaysConvertDX ||
