@@ -426,7 +426,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                    count, count + 1, count + 2) == 3) {
             isUniform = 1;
             if ((count[0] < 0) || (count[1] < 0) || (count[2] < 0)) {
-                sprintf(mesg, "invalid grid size: x=%d, y=%d, z=%d", 
+                sprintf(mesg, "Invalid grid size: x=%d, y=%d, z=%d", 
                         count[0], count[1], count[2]);
                 Tcl_AppendResult(interp, mesg, (char *)NULL);
                 return TCL_ERROR;
@@ -445,7 +445,7 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         } else if (sscanf(line, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
             if (nAxes == 3) {
                 Tcl_AppendResult(interp, "too many delta statements", 
-                        (char *)NULL);
+                                 (char *)NULL);
                 return TCL_ERROR;
             }
             switch (nAxes) {
@@ -501,7 +501,8 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         } else if (sscanf(line, "object %*d class array type %*s shape 3 rank 1"
                           " items %d data follows", &nPoints) == 1) {
             // XXX: Deprecated, invalid ordering of keywords
-            fprintf(stderr, "Invalid DX: 'rank' keyword should precede 'shape'.");
+            Tcl_AppendResult(interp, "Invalid DX: 'rank' keyword should precede 'shape'.", 
+                             (char *)NULL);
             return TCL_ERROR;
         } else if (sscanf(line, "object %*d class array type %*s rank 1 shape 3"
                           " items %d data follows", &nPoints) == 1) {
@@ -566,6 +567,12 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                     return TCL_ERROR;
                 }
             }
+        } else if (sscanf(line, "object %*d class array type %*s rank 0"
+                          " times %d data follows", &nPoints) == 1) {
+            /* Handle incorrect keyword: Do any tools make this mistake? */
+            Tcl_AppendResult(interp, "Invalid DX: found 'times' where 'items' keyword was expected.", 
+                             (char *)NULL);
+            return TCL_ERROR; 
 #ifdef notdef
         } else {
             fprintf(stderr, "unknown line (%.80s)\n", line);
@@ -575,15 +582,19 @@ DxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (isUniform) {
         if (nPoints > 1 && nAxes == 0) {
-            fprintf(stderr, "Invalid DX file: uniform grid with no deltas found\n");
+            Tcl_AppendResult(interp, "Invalid DX file: uniform grid with no deltas found",
+                             (char *)NULL);
             return TCL_ERROR;
         }
         if (nPoints > 1 && ((dx == dy) && (dx == dz) && (dx == 0.0))) {
-            fprintf(stderr, "Invalid deltas in DX file: %g %g %g\n", dx, dy, dz);
+            sprintf(mesg, "Invalid deltas in DX file: %g %g %g", dx, dy, dz);
+            Tcl_AppendResult(interp, mesg, (char *)NULL);
             return TCL_ERROR;
         }
         if (dx < 0.0 || dy < 0.0 || dz < 0.0) {
-            fprintf(stderr, "Negative deltas not supported in DX file: %g %g %g\n", dx, dy, dz);
+            sprintf(mesg, "Negative deltas not supported in DX file: %g %g %g",
+                    dx, dy, dz);
+            Tcl_AppendResult(interp, mesg, (char *)NULL);
             return TCL_ERROR;
         }
         objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
