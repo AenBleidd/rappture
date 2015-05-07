@@ -1147,8 +1147,7 @@ itcl::body Rappture::Field::extents {{cname -overall}} {
     if {$cname == "-overall" } {
         set max 0
         foreach cname [$_field children -type component] {
-            if { ![info exists _comp2unirect3d($cname)] &&
-                 ![info exists _comp2extents($cname)] } {
+            if { ![info exists _comp2extents($cname)] } {
                 continue
             }
             set value $_comp2extents($cname)
