@@ -1141,7 +1141,7 @@ itcl::body Rappture::Field::numComponents {cname} {
 #
 # extents --
 #
-# Returns if the field is a unirect2d object.
+# Returns the extents of the named component
 #
 itcl::body Rappture::Field::extents {{cname -overall}} {
     if {$cname == "-overall" } {
