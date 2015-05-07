@@ -1386,7 +1386,6 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         }
         "-legendvisible" {
             set bool $_settings($what)
-            set _settings($_current${what}) $bool
             if { $bool } {
                 blt::table $itk_component(plotarea) \
                     1,0 $itk_component(legend) -fill x
@@ -2229,10 +2228,10 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
         -visible    1
     }
     array set style [$dataobj style $cname]
-    set _settings($cname-volumelighting)        $style(-lighting)
-    set _settings($cname-volumeopacity)         [expr $style(-opacity) * 100]
-    set _settings($cname-volumeoutline)         $style(-outline)
-    set _settings($cname-volumevisible)         $style(-visible)
+    set _settings($cname-volumelighting) $style(-lighting)
+    set _settings($cname-volumeopacity) [expr $style(-opacity) * 100]
+    set _settings($cname-volumeoutline) $style(-outline)
+    set _settings($cname-volumevisible) $style(-visible)
 
     $itk_component(colormap) value $style(-color)
 
@@ -2818,7 +2817,7 @@ itcl::body Rappture::VtkVolumeViewer::HideAllMarkers {} {
 }
 
 #
-# GetDatasetsWithComponents --
+# GetDatasetsWithComponent --
 #
 #       Returns a list of all the datasets (known by the combination of
 #       their data object and component name) that match the given
