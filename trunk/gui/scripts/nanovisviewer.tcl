@@ -195,7 +195,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _limits(v) [list 0.0 1.0]
     set _reset 1
 
-    array set _settings {
+    array set _settings [subst {
         -ambient                60
         -axesvisible            1
         -background             black
@@ -208,10 +208,10 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -light2side             1
         -opacity                50
         -outlinevisible         0
-        -qw                     0.853553
-        -qx                     -0.353553
-        -qy                     0.353553
-        -qz                     0.146447
+        -qw                     $_view(-qw)
+        -qx                     $_view(-qx)
+        -qy                     $_view(-qy)
+        -qz                     $_view(-qz)
         -specularexponent       90
         -specularlevel          30
         -thickness              350
@@ -219,14 +219,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -volumevisible          1
         -xcutplaneposition      50
         -xcutplanevisible       1
-        -xpan                   0
+        -xpan                   $_view(-xpan)
         -ycutplaneposition      50
         -ycutplanevisible       1
-        -ypan                   0
+        -ypan                   $_view(-ypan)
         -zcutplaneposition      50
         -zcutplanevisible       1
-        -zoom                   1.0
-    }
+        -zoom                   $_view(-zoom)
+    }]
 
     itk_component add 3dview {
         label $itk_component(plotarea).view -image $_image(plot) \
