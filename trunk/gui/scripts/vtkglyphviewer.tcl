@@ -212,26 +212,26 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings [subst {
-        -axesvisible		1
+        -axesvisible            1
         -axislabels             1
         -axisminorticks         1
         -axismode               "static"
         -background             black
-        -colormap		BCGYR
-        -colormapvisible	1
+        -colormap               BCGYR
+        -colormapvisible        1
         -cutplaneedges          0
         -cutplanelighting       1
         -cutplanepreinterp      1
-        -cutplaneopacity	100
-        -cutplanevisible	0
-        -cutplanewireframe	0
-        -cutplanexposition	50
-        -cutplanexvisible	1
-        -cutplaneyposition	50
-        -cutplaneyvisible	1
-        -cutplanezposition	50
-        -cutplanezvisible	1
-        -field			"Default"
+        -cutplaneopacity        100
+        -cutplanevisible        0
+        -cutplanewireframe      0
+        -cutplanexposition      50
+        -cutplanexvisible       1
+        -cutplaneyposition      50
+        -cutplaneyvisible       1
+        -cutplanezposition      50
+        -cutplanezvisible       1
+        -field                  "Default"
         -glyphedges             0
         -glyphlighting          1
         -glyphnormscale         1
@@ -243,8 +243,8 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
         -glyphshape             "arrow"
         -glyphvisible           1
         -glyphwireframe         0
-        -legendvisible		1
-        -saveglyphopacity	100
+        -legendvisible          1
+        -saveglyphopacity       100
         -xgrid                  0
         -ygrid                  0
         -zgrid                  0
@@ -1738,18 +1738,18 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         [itcl::code $this AdjustSetting -colormap]
 
     blt::table $inner \
-        0,0 $inner.field_l      -anchor w -pady 2  \
-        0,1 $inner.field        -anchor w -pady 2  -fill x \
-        1,0 $inner.colormap_l   -anchor w -pady 2  \
-        1,1 $inner.colormap     -anchor w -pady 2  -fill x \
-        2,0 $inner.gshape_l     -anchor w -pady 2  \
-        2,1 $inner.gshape       -anchor w -pady 2  -fill x \
+        0,0 $inner.field_l      -anchor w -pady 2 \
+        0,1 $inner.field        -anchor w -pady 2 -fill x \
+        1,0 $inner.colormap_l   -anchor w -pady 2 \
+        1,1 $inner.colormap     -anchor w -pady 2 -fill x \
+        2,0 $inner.gshape_l     -anchor w -pady 2 \
+        2,1 $inner.gshape       -anchor w -pady 2 -fill x \
         3,0 $inner.background_l -anchor w -pady 2 \
-        3,1 $inner.background   -anchor w -pady 2  -fill x \
-        4,0 $inner.scaleMode_l  -anchor w -pady 2  \
-        4,1 $inner.scaleMode    -anchor w -pady 2  -fill x \
+        3,1 $inner.background   -anchor w -pady 2 -fill x \
+        4,0 $inner.scaleMode_l  -anchor w -pady 2 \
+        4,1 $inner.scaleMode    -anchor w -pady 2 -fill x \
         5,0 $inner.gscale_l     -anchor w -pady 2 \
-        5,1 $inner.gscale       -anchor w -pady 2  -fill x \
+        5,1 $inner.gscale       -anchor w -pady 2 -fill x \
         6,0 $inner.normscale    -anchor w -pady 2 -cspan 2 \
         7,0 $inner.gorient      -anchor w -pady 2 -cspan 2 \
         8,0 $inner.wireframe    -anchor w -pady 2 -cspan 2 \
@@ -1758,7 +1758,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         11,0 $inner.outline     -anchor w -pady 2 -cspan 2 \
         12,0 $inner.legend      -anchor w -pady 2 \
         13,0 $inner.opacity_l   -anchor w -pady 2 \
-        13,1 $inner.opacity     -fill x   -pady 2 -fill x \
+        13,1 $inner.opacity     -anchor w -pady 2 -fill x
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r14 c1 -resize expand
