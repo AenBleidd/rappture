@@ -140,6 +140,11 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
             continue
         }
 
+        if {[llength $line] > 3} {
+            puts stderr "ERROR: Too many coordinates in cloud points list"
+            return
+        }
+
         # make sure we have x,y,z
         while {[llength $line] < 3} {
             lappend line "0"
