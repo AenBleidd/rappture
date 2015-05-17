@@ -70,6 +70,7 @@ itcl::class Rappture::NanovisViewer {
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildCutplanesTab {}
+    private method BuildDownloadPopup { widget command }
     private method BuildViewTab {}
     private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
@@ -85,6 +86,8 @@ itcl::class Rappture::NanovisViewer {
     private method FixLegend {}
     private method GetColormap { cname color }
     private method GetDatasetsWithComponent { cname }
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method HideAllMarkers {}
     private method InitComponentSettings { cname }
     private method InitSettings { args }
@@ -601,19 +604,33 @@ itcl::body Rappture::NanovisViewer::download {option args} {
             }
         }
         controls {
-            # no controls for this download yet
-            return ""
+            set popup .nanovisdownload
+            if { ![winfo exists $popup] } {
+                set inner [BuildDownloadPopup $popup [lindex $args 0]]
+            } else {
+                set inner [$popup component inner]
+            }
+            # FIXME: we only support download of current active component
+            #set num [llength [get]]
+            #set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            set num "current field component"
+            set word [Rappture::filexfer::label downloadWord]
+            $inner.summary configure -text "$word $num in the following format:"
+            update idletasks            ;# Fix initial sizes
+            return $popup
         }
         now {
-            # Get the image data (as base64) and decode it back to binary.
-            # This is better than writing to temporary files.  When we switch
-            # to the BLT picture image it won't be necessary to decode the
-            # image data.
-            if { [image width $_image(plot)] > 0 &&
-                 [image height $_image(plot)] > 0 } {
-                set bytes [$_image(plot) data -format "jpeg -quality 100"]
-                set bytes [Rappture::encoding::decode -as b64 $bytes]
-                return [list .jpg $bytes]
+            set popup .nanovisdownload
+            if { [winfo exists $popup] } {
+                $popup deactivate
+            }
+            switch -- $_downloadPopup(format) {
+                "image" {
+                    return [$this GetImage [lindex $args 0]]
+                }
+                "vtk" {
+                    return [$this GetVtkData [lindex $args 0]]
+                }
             }
             return ""
         }
@@ -2017,6 +2034,72 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
             }
         }
     }
+}
+
+itcl::body Rappture::NanovisViewer::GetVtkData { args } {
+    # FIXME: We can only put one component of one dataset in a single
+    # VTK file.  To download all components/results, we would need
+    # to put them in an archive (e.g. zip or tar file)
+    if { $_first != "" && $_current != "" } {
+        set bytes [$_first vtkdata $_current]
+        return [list .vtk $bytes]
+    }
+    puts stderr "Failed to get vtkdata for $_first-$_current"
+    return ""
+}
+
+itcl::body Rappture::NanovisViewer::GetImage { args } {
+    if { [image width $_image(download)] > 0 &&
+         [image height $_image(download)] > 0 } {
+        set bytes [$_image(download) data -format "jpeg -quality 100"]
+        set bytes [Rappture::encoding::decode -as b64 $bytes]
+        return [list .jpg $bytes]
+    }
+    return ""
+}
+
+itcl::body Rappture::NanovisViewer::BuildDownloadPopup { popup command } {
+    Rappture::Balloon $popup \
+        -title "[Rappture::filexfer::label downloadWord] as..."
+    set inner [$popup component inner]
+    label $inner.summary -text "" -anchor w
+
+    radiobutton $inner.vtk_button -text "VTK data file" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -font "Arial 9" \
+        -value vtk
+    Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
+
+    radiobutton $inner.image_button -text "Image File" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -font "Arial 9 " \
+        -value image
+    Rappture::Tooltip::for $inner.image_button \
+        "Save as digital image."
+
+    button $inner.ok -text "Save" \
+        -highlightthickness 0 -pady 2 -padx 3 \
+        -command $command \
+        -compound left \
+        -image [Rappture::icon download]
+
+    button $inner.cancel -text "Cancel" \
+        -highlightthickness 0 -pady 2 -padx 3 \
+        -command [list $popup deactivate] \
+        -compound left \
+        -image [Rappture::icon cancel]
+
+    blt::table $inner \
+        0,0 $inner.summary -cspan 2  \
+        1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
+        2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
+        4,1 $inner.cancel -width .9i -fill y \
+        4,0 $inner.ok -padx 2 -width .9i -fill y
+    blt::table configure $inner r3 -height 4
+    blt::table configure $inner r4 -pady 4
+    raise $inner.image_button
+    $inner.vtk_button invoke
+    return $inner
 }
 
 itcl::body Rappture::NanovisViewer::SetOrientation { side } {

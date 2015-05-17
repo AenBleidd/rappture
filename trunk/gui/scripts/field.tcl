@@ -1334,15 +1334,15 @@ itcl::body Rappture::Field::vtkdata {cname} {
     if {$cname == "component0"} {
         set cname "component"
     }
-    # DX: Convert DX to VTK
-    if {[info exists _comp2dx($cname)]} {
-        set data $_comp2dx($cname)
-        set data [Rappture::encoding::decode $data]
-        return [Rappture::DxToVtk $data]
-    }
     # VTK file data:
     if { [info exists _comp2vtk($cname)] } {
         return $_comp2vtk($cname)
+    }
+    # DX: Convert DX to VTK
+    if {[info exists _comp2dx($cname)]} {
+        set data $_comp2dx($cname)
+        set data [Rappture::encoding::decode -as zb64 $data]
+        return [Rappture::DxToVtk $data]
     }
     # Points on mesh:  Construct VTK file output.
     if { [info exists _comp2mesh($cname)] } {

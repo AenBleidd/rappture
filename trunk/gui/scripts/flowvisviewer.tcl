@@ -74,6 +74,7 @@ itcl::class Rappture::FlowvisViewer {
     private method AdjustSetting {what {value ""}}
     private method BuildCameraTab {}
     private method BuildCutplanesTab {}
+    private method BuildDownloadPopup { widget command }
     private method BuildViewTab {}
     private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
@@ -89,8 +90,10 @@ itcl::class Rappture::FlowvisViewer {
     private method FixLegend {}
     private method GetDatasetsWithComponent { cname }
     private method GetFlowInfo { widget }
+    private method GetImage { args }
     private method GetMovie { widget width height }
     private method GetPngImage { widget width height }
+    private method GetVtkData { args }
     private method InitSettings { args }
     private method NameTransferFunction { dataobj comp }
     private method Pan {option x y}
@@ -786,7 +789,6 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::download {option args} {
-    set popup .flowvisviewerdownload
     switch $option {
         coming {
             if {[catch {
@@ -797,65 +799,38 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
             }
         }
         controls {
-            if {![winfo exists $popup]} {
-                # if we haven't created the popup yet, do it now
-                Rappture::Balloon $popup \
-                    -title "[Rappture::filexfer::label downloadWord] as..."
-                set inner [$popup component inner]
-                label $inner.summary -text "" -anchor w
-                pack $inner.summary -side top
-                set img $_image(plot)
-                set res "[image width $img]x[image height $img]"
-                radiobutton $inner.draft -text "Image (draft $res)" \
-                    -variable Rappture::FlowvisViewer::_downloadPopup(format) \
-                    -value draft
-                pack $inner.draft -anchor w
-
-                set res "640x480"
-                radiobutton $inner.medium -text "Movie (standard $res)" \
-                    -variable Rappture::FlowvisViewer::_downloadPopup(format) \
-                    -value $res
-                pack $inner.medium -anchor w
-
-                set res "1024x768"
-                radiobutton $inner.high -text "Movie (high quality $res)" \
-                    -variable Rappture::FlowvisViewer::_downloadPopup(format) \
-                    -value $res
-                pack $inner.high -anchor w
-                button $inner.go -text [Rappture::filexfer::label download] \
-                    -command [lindex $args 0]
-                pack $inner.go -pady 4
-                $inner.draft select
+            set popup .flowvisviewerdownload
+            if { ![winfo exists $popup] } {
+                set inner [BuildDownloadPopup $popup [lindex $args 0]]
             } else {
                 set inner [$popup component inner]
             }
-            set num [llength [get]]
-            set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            # FIXME: we only support download of current active component
+            #set num [llength [get]]
+            #set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            set num "current flow"
             set word [Rappture::filexfer::label downloadWord]
             $inner.summary configure -text "$word $num in the following format:"
-            update idletasks ;# fix initial sizes
-            update
+            update idletasks            ;# Fix initial sizes
             return $popup
         }
         now {
+            set popup .flowvisviewerdownload
             if { [winfo exists $popup] } {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
-                draft {
-                    # Get the image data (as base64) and decode it back to
-                    # binary.  This is better than writing to temporary
-                    # files.  When we switch to the BLT picture image it
-                    # won't be necessary to decode the image data.
-                    set bytes [$_image(plot) data -format "jpeg -quality 100"]
-                    set bytes [Rappture::encoding::decode -as b64 $bytes]
-                    return [list .jpg $bytes]
-                }
                 "640x480" {
                     return [$this GetMovie [lindex $args 0] 640 480]
                 }
                 "1024x768" {
                     return [$this GetMovie [lindex $args 0] 1024 768]
+                }
+                "image" {
+                    return [$this GetImage [lindex $args 0]]
+                }
+                "vtk" {
+                    return [$this GetVtkData [lindex $args 0]]
                 }
                 default {
                     error "bad download format $_downloadPopup(format)"
@@ -2743,6 +2718,29 @@ itcl::body Rappture::FlowvisViewer::WaitIcon { option widget } {
     }
 }
 
+itcl::body Rappture::FlowvisViewer::GetVtkData { args } {
+    # FIXME: We can only put one component of one dataset in a single
+    # VTK file.  To download all components/results, we would need
+    # to put them in an archive (e.g. zip or tar file)
+    if { $_first != "" } {
+        set cname [lindex [$_first components] 0]
+        set bytes [$_first vtkdata $cname]
+        return [list .vtk $bytes]
+    }
+    puts stderr "Failed to get vtkdata for $_first-$_current"
+    return ""
+}
+
+itcl::body Rappture::FlowvisViewer::GetImage { args } {
+    if { [image width $_image(download)] > 0 &&
+         [image height $_image(download)] > 0 } {
+        set bytes [$_image(download) data -format "jpeg -quality 100"]
+        set bytes [Rappture::encoding::decode -as b64 $bytes]
+        return [list .jpg $bytes]
+    }
+    return ""
+}
+
 itcl::body Rappture::FlowvisViewer::GetPngImage { widget width height } {
     set token "print[incr _nextToken]"
     set var ::Rappture::FlowvisViewer::_hardcopy($this-$token)
@@ -2875,6 +2873,65 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
         return [list .mpg $_hardcopy($this-$token)]
     }
     return ""
+}
+
+itcl::body Rappture::FlowvisViewer::BuildDownloadPopup { popup command } {
+    Rappture::Balloon $popup \
+        -title "[Rappture::filexfer::label downloadWord] as..."
+    set inner [$popup component inner]
+    label $inner.summary -text "" -anchor w
+    radiobutton $inner.vtk_button -text "VTK data file" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -font "Arial 9" \
+        -value vtk
+    Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
+
+    radiobutton $inner.image_button -text "Image File" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -font "Arial 9 " \
+        -value image
+    Rappture::Tooltip::for $inner.image_button \
+        "Save as digital image."
+
+    set res "640x480"
+    radiobutton $inner.movie_std -text "Movie (standard $res)" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -value $res
+    Rappture::Tooltip::for $inner.movie_std \
+        "Save as movie file."
+
+    set res "1024x768"
+    radiobutton $inner.movie_high -text "Movie (high quality $res)" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -value $res
+    Rappture::Tooltip::for $inner.movie_high \
+        "Save as movie file."
+
+    button $inner.ok -text "Save" \
+        -highlightthickness 0 -pady 2 -padx 3 \
+        -command $command \
+        -compound left \
+        -image [Rappture::icon download]
+
+    button $inner.cancel -text "Cancel" \
+        -highlightthickness 0 -pady 2 -padx 3 \
+        -command [list $popup deactivate] \
+        -compound left \
+        -image [Rappture::icon cancel]
+
+    blt::table $inner \
+        0,0 $inner.summary -cspan 2  \
+        1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
+        2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
+        3,0 $inner.movie_std -anchor w -cspan 2 -padx { 4 0 } \
+        4,0 $inner.movie_high -anchor w -cspan 2 -padx { 4 0 } \
+        6,1 $inner.cancel -width .9i -fill y \
+        6,0 $inner.ok -padx 2 -width .9i -fill y
+    blt::table configure $inner r5 -height 4
+    blt::table configure $inner r6 -pady 4
+    raise $inner.image_button
+    $inner.vtk_button invoke
+    return $inner
 }
 
 itcl::body Rappture::FlowvisViewer::str2millisecs { value } {
