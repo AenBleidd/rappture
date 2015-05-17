@@ -2044,7 +2044,7 @@ itcl::body Rappture::NanovisViewer::GetVtkData { args } {
         set bytes [$_first vtkdata $_current]
         return [list .vtk $bytes]
     }
-    puts stderr "Failed to get vtkdata for $_first-$_current"
+    puts stderr "Failed to get vtkdata"
     return ""
 }
 

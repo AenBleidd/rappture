@@ -2727,7 +2727,7 @@ itcl::body Rappture::FlowvisViewer::GetVtkData { args } {
         set bytes [$_first vtkdata $cname]
         return [list .vtk $bytes]
     }
-    puts stderr "Failed to get vtkdata for $_first-$_current"
+    puts stderr "Failed to get vtkdata"
     return ""
 }
 
