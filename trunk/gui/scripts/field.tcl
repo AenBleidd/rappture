@@ -886,13 +886,13 @@ itcl::body Rappture::Field::Build {} {
             # Extract gzipped, base64-encoded OpenDX data
             #
             if { $_viewer == "" } {
-                global env
-                if { [info exists env(VTKVOLUME)] } {
-                    set _viewer "vtkvolume"
-                }
-                if {[$_field element $cname.flow] != ""} {
+                if {$haveFlow} {
                     set _viewer "flowvis"
                 } else {
+                    global env
+                    if { [info exists env(VTKVOLUME)] } {
+                        set _viewer "vtkvolume"
+                    }
                     set _viewer "nanovis"
                 }
             }
@@ -936,7 +936,7 @@ itcl::body Rappture::Field::Build {} {
             unset data
             unset vtkdata
             set _comp2style($cname) [$_field get $cname.style]
-            if {$hasFlow} {
+            if {$haveFlow} {
                 set _comp2flowhints($cname) \
                     [Rappture::FlowHints ::\#auto $_field $cname $_units]
             }
