@@ -164,6 +164,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     append out "ORIGIN 0 0 0\n"
     set _vtkdata $out
     set _isValid 1
+    puts stderr "WARNING: The <unirect2d> element is deprecated.  Please use a <mesh> instead."
 }
 
 # ----------------------------------------------------------------------
