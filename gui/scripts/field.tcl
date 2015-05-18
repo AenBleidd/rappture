@@ -1438,9 +1438,9 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     set _fld2Components($name) $_comp2size($cname)
     lappend _comp2fldName($cname) $name
 
-    # Handle bizarre cases that hopefully will be deprecated.
+    # Handle bizarre cases that are due to be removed.
     if { $element == "unirect3d" } {
-        # Special case: unirect3d (should be deprecated) + flow.
+        # Special case: unirect3d (deprecated) + flow.
         if { [$_field element $cname.extents] != "" } {
             set vectorsize [$_field get $cname.extents]
         } else {
@@ -1473,7 +1473,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         return 1
     }
     if { $element == "unirect2d" && [$_field element $cname.flow] != "" } {
-        # Special case: unirect2d (normally deprecated) + flow.
+        # Special case: unirect2d (deprecated) + flow.
         if { [$_field element $cname.extents] != "" } {
             set vectorsize [$_field get $cname.extents]
         } else {

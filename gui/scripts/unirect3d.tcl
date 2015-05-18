@@ -109,6 +109,7 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     if { [$_values length] != $n } {
         error "wrong \# of values in \"$cname.values\": expected $n values, got [$_values length]"
     }
+    puts stderr "WARNING: The <unirect3d> element is deprecated."
 }
 
 # ----------------------------------------------------------------------
