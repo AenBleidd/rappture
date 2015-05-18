@@ -1153,7 +1153,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             }
             set numComponents [$dataobj numComponents $cname]
             # I have a field. Is a vector field or a volume field?
-            if { !$isvtk && $numComponents == 1 } {
+            if { $numComponents == 1 } {
                 SendCmd "volume data follows $nbytes $tag"
             } else {
                 if {[SendFlowCmd $dataobj $cname $nbytes $numComponents] < 0} {
