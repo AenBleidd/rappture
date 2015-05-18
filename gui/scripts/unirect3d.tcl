@@ -19,7 +19,7 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect3d {
-    constructor {xmlobj field cname {extents 1}} { # defined below }
+    constructor {xmlobj field cname {numComponents 1}} { # defined below }
     destructor { # defined below }
 
     public method limits {axis}
@@ -54,7 +54,7 @@ itcl::class Rappture::Unirect3d {
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
+itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1}} {
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
@@ -69,7 +69,7 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     GetSize $m "zaxis.numpoints" _zNum
-    set _compNum $extents
+    set _compNum $numComponents
     foreach {key path} {
         group   about.group
         label   about.label
@@ -144,9 +144,9 @@ itcl::body Rappture::Unirect3d::blob {} {
 #       grid.  Each point has x,y and z values in the list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::mesh {} {
-    set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
-    set dy [expr {($_yMax - $_yMin) / double($_yNum)}]
-    set dz [expr {($_zMax - $_zMin) / double($_zNum)}]
+    set dx [expr {($_xMax - $_xMin) / double($_xNum - 1)}]
+    set dy [expr {($_yMax - $_yMin) / double($_yNum - 1)}]
+    set dz [expr {($_zMax - $_zMin) / double($_zNum - 1)}]
     foreach {a b c} $_axisOrder break
     for { set i 0 } { $i < [set _${a}Num] } { incr i } {
         set v1 [expr {[set _${a}Min] + (double($i) * [set d${a}])}]
