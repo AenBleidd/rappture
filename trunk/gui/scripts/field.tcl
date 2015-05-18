@@ -75,7 +75,6 @@ itcl::class Rappture::Field {
     public method blob { cname }
     public method components {args}
     public method controls {option args}
-    public method extents {{cname -overall}}
     public method fieldinfo { fname } {
         lappend out $_fld2Label($fname)
         lappend out $_fld2Units($fname)
@@ -158,7 +157,6 @@ itcl::class Rappture::Field {
     private variable _comp2unirect3d;   # cname => unirect3d obj
     private variable _comp2style;       # cname => style settings
     private variable _comp2cntls;       # cname => x,y control points (1D only)
-    private variable _comp2extents;     # cname => extents (Only for unirect)
     private variable _comp2limits;      # Array of limits per component
     private variable _comp2flowhints
     private variable _comp2mesh;        # list: mesh obj, BLT vector of values
@@ -767,7 +765,6 @@ itcl::body Rappture::Field::Build {} {
     catch {unset _comp2style}
     array unset _comp2unirect2d
     array unset _comp2unirect3d
-    array unset _comp2extents
     array unset _dataobj2type
     #
     # Scan through the components of the field and create
@@ -785,21 +782,9 @@ itcl::body Rappture::Field::Build {} {
             set type "points-on-mesh"
         } elseif { [$_field element $cname.vtk] != ""} {
             set type "vtk"
-            set viewer [$_field get "about.view"]
-            if { $viewer != "" } {
-                set _viewer $viewer
-            }
         } elseif {[$_field element $cname.opendx] != ""} {
-            global env
-            if { [info exists env(VTKVOLUME)] } {
-                set _viewer "vtkvolume"
-            }
             set type "opendx"
         } elseif {[$_field element $cname.dx] != ""} {
-            global env
-            if { [info exists env(VTKVOLUME)] } {
-                set _viewer "vtkvolume"
-            }
             set type "dx"
         } elseif {[$_field element $cname.ucd] != ""} {
             set type "ucd"
@@ -811,23 +796,28 @@ itcl::body Rappture::Field::Build {} {
             puts stderr "WARNING: Ignoring field component \"$_path.$cname\": no data found."
             continue
         }
-        # Save the extents of the component
-        if { [$_field element $cname.extents] != "" } {
-            set extents [$_field get $cname.extents]
-        } else {
-            set extents 1
-        }
-        set _comp2extents($cname) $extents
         set _type $type
 
         GetTypeAndSize $cname
         GetAssociation $cname
-        if { $_comp2size($cname) > 1 } {
-            set viewer [$_field get "about.view"]
-            if { $viewer == "" } {
+
+        if { [$_field element $cname.flow] != "" } {
+            set haveFlow 1
+        } else {
+            set haveFlow 0
+        }
+        set viewer [$_field get "about.view"]
+        if { $viewer != "" } {
+            set _viewer $viewer
+        }
+        if { $_viewer == "" } { 
+            if { $_comp2size($cname) > 1 && ! $haveFlow } {
                 set _viewer "glyphs"
+            } elseif { $_comp2size($cname) > 1 && $haveFlow } {
+                set _viewer "flowvis"
             }
         }
+
         if {$type == "1D"} {
             #
             # 1D data can be represented as 2 BLT vectors,
@@ -895,11 +885,11 @@ itcl::body Rappture::Field::Build {} {
             #
             # Extract gzipped, base64-encoded OpenDX data
             #
-            set viewer [$_field get "about.view"]
-            if { $viewer != "" } {
-                set _viewer $viewer
-            }
             if { $_viewer == "" } {
+                global env
+                if { [info exists env(VTKVOLUME)] } {
+                    set _viewer "vtkvolume"
+                }
                 if {[$_field element $cname.flow] != ""} {
                     set _viewer "flowvis"
                 } else {
@@ -946,7 +936,7 @@ itcl::body Rappture::Field::Build {} {
             unset data
             unset vtkdata
             set _comp2style($cname) [$_field get $cname.style]
-            if {[$_field element $cname.flow] != ""} {
+            if {$hasFlow} {
                 set _comp2flowhints($cname) \
                     [Rappture::FlowHints ::\#auto $_field $cname $_units]
             }
@@ -955,10 +945,6 @@ itcl::body Rappture::Field::Build {} {
             set contents [$_field get $cname.dicom]
             if { $contents == "" } {
                 continue;               # Ignore this component
-            }
-            set viewer [$_field get "about.view"]
-            if { $viewer != "" } {
-                set _viewer $viewer
             }
             set vtkdata [DicomToVtk $cname $contents]
             if { $_viewer == "" } {
@@ -1136,31 +1122,6 @@ itcl::body Rappture::Field::numComponents {cname} {
         return $_fld2Components($name)
     }
     return 1;                           # Default to scalar.
-}
-
-#
-# extents --
-#
-# Returns the extents of the named component
-#
-itcl::body Rappture::Field::extents {{cname -overall}} {
-    if {$cname == "-overall" } {
-        set max 0
-        foreach cname [$_field children -type component] {
-            if { ![info exists _comp2extents($cname)] } {
-                continue
-            }
-            set value $_comp2extents($cname)
-            if { $max < $value } {
-                set max $value
-            }
-        }
-        return $max
-    }
-    if { $cname == "component0"} {
-        set cname [lindex [components -name] 0]
-    }
-    return $_comp2extents($cname)
 }
 
 itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
@@ -1422,10 +1383,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         puts stderr "ERROR: Unknown mesh \"$path\""
         return 0
     }
-    set viewer [$_field get "about.view"]
-    if { $viewer != "" } {
-        set _viewer $viewer
-    }
     set element [$_xmlobj element -as type $path]
     set name $cname
     regsub -all { } $name {_} name
@@ -1441,11 +1398,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     # Handle bizarre cases that are due to be removed.
     if { $element == "unirect3d" } {
         # Special case: unirect3d (deprecated) + flow.
-        if { [$_field element $cname.extents] != "" } {
-            set vectorsize [$_field get $cname.extents]
-        } else {
-            set vectorsize 1
-        }
+        set vectorsize [numComponents $cname]
         set _type unirect3d
         set _dim 3
         if { $_viewer == "" } {
@@ -1474,11 +1427,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     }
     if { $element == "unirect2d" && [$_field element $cname.flow] != "" } {
         # Special case: unirect2d (deprecated) + flow.
-        if { [$_field element $cname.extents] != "" } {
-            set vectorsize [$_field get $cname.extents]
-        } else {
-            set vectorsize 1
-        }
+        set vectorsize [numComponents $cname]
         set _type unirect2d
         set _dim 2
         if { $_viewer == "" } {
@@ -1751,15 +1700,25 @@ itcl::body Rappture::Field::GetTypeAndSize { cname } {
         "vectors"              3
     }
     set type [$_field get $cname.elemtype]
+    # <extents> is a deprecated synonym for <elemsize>
+    set extents  [$_field get $cname.extents]
     if { $type == "" } {
-        set type "scalars"
+        if { $extents != "" && $extents > 1 } {
+            set type "vectors"
+        } else {
+            set type "scalars"
+        }
     }
     if { ![info exists type2components($type)] } {
         error "unknown <elemtype> \"$type\" in field"
     }
     set size [$_field get $cname.elemsize]
     if { $size == "" } {
-        set size $type2components($type)
+        if { $extents != "" } {
+            set size $extents
+        } else {
+            set size $type2components($type)
+        }
     }
     set _comp2type($cname) $type
     set _comp2size($cname) $size
