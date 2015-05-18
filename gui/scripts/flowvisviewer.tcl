@@ -108,7 +108,7 @@ itcl::class Rappture::FlowvisViewer {
     private method ReceiveImage { args }
     private method ReceiveLegend { tf vmin vmax size }
     private method Rotate {option x y}
-    private method SendFlowCmd { dataobj comp nbytes extents }
+    private method SendFlowCmd { dataobj comp nbytes numComponents }
     private method SendTransferFunctions {}
     private method SetOrientation { side }
     private method Slice {option args}
@@ -1151,12 +1151,12 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
                 lappend info "dataset_tag"   $tag
                 SendCmd "clientinfo [list $info]"
             }
-            set extents [$dataobj extents $cname]
+            set numComponents [$dataobj numComponents $cname]
             # I have a field. Is a vector field or a volume field?
-            if { !$isvtk && $extents == 1 } {
+            if { !$isvtk && $numComponents == 1 } {
                 SendCmd "volume data follows $nbytes $tag"
             } else {
-                if {[SendFlowCmd $dataobj $cname $nbytes $extents] < 0} {
+                if {[SendFlowCmd $dataobj $cname $nbytes $numComponents] < 0} {
                     continue
                 }
             }
@@ -2512,11 +2512,11 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
     }
 }
 
-itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } {
+itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes numComponents } {
     set tag "$dataobj-$comp"
     if { ![info exists _dataset2flow($tag)] } {
         SendCmd "flow add $tag"
-        SendCmd "$tag data follows $nbytes $extents"
+        SendCmd "$tag data follows $nbytes $numComponents"
         return 0
     }
     set flowobj $_dataset2flow($tag)
@@ -2571,7 +2571,7 @@ itcl::body Rappture::FlowvisViewer::SendFlowCmd { dataobj comp nbytes extents } 
         append cmd " -corner2 {$info(corner2)}"
         SendCmd $cmd
     }
-    SendCmd "$tag data follows $nbytes $extents"
+    SendCmd "$tag data follows $nbytes $numComponents"
     return 0
 }
 
