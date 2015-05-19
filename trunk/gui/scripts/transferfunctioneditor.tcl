@@ -126,7 +126,7 @@ itcl::body Rappture::TransferFunctionEditor::newMarker { x y state } {
                            -tags "tick $_name $this" -state $state]
     set _labels($name) [$_canvas create text 0 $h \
                             -anchor n -fill white -font "Helvetica 8" \
-                            -tags "labels $this $_name" -state $state]
+                            -tags "labels text $this $_name" -state $state]
     set _id2name($_ticks($name)) $name
     $_canvas bind $_ticks($name) <Enter> [itcl::code $this EnterTick $name]
     $_canvas bind $_ticks($name) <Leave> [itcl::code $this LeaveTick $name]
