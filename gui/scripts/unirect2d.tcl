@@ -61,9 +61,7 @@ itcl::class Rappture::Unirect2d {
     public method numpoints {} {
 	return $_numPoints
     }
-    public method vtkdata {} {
-	return $_vtkdata
-    }
+    public method vtkdata {{what -partial}} {}
 }
 
 #
@@ -161,7 +159,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     set xSpace [expr ($_xMax - $_xMin) / double($_xNum - 1)]
     set ySpace [expr ($_yMax - $_yMin) / double($_yNum - 1)]
     append out "SPACING $xSpace $ySpace 0\n"
-    append out "ORIGIN 0 0 0\n"
+    append out "ORIGIN $_xMin $_yMin 0\n"
     set _vtkdata $out
     set _isValid 1
     puts stderr "WARNING: The <unirect2d> element is deprecated.  Please use a <mesh> instead."
@@ -274,6 +272,18 @@ itcl::body Rappture::Unirect2d::hints { {keyword ""} } {
         return ""
     }
     return [array get _hints]
+}
+
+itcl::body Rappture::Unirect2d::vtkdata {{what -partial}} {
+    if {$what == "-full"} {
+        append out "# vtk DataFile Version 3.0\n"
+        append out "[hints label]\n"
+        append out "ASCII\n"
+        append out $_vtkdata
+        return $out
+    } else {
+        return $_vtkdata
+    }
 }
 
 itcl::body Rappture::Unirect2d::GetSize { obj path varName } {
