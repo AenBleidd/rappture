@@ -19,6 +19,36 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect2d {
+    constructor {xmlobj path} { 
+	# defined below 
+    }
+    destructor { 
+        # defined below 
+    }
+    public proc fetch {xmlobj path}
+    public proc release {obj}
+
+    public method blob {}
+    public method dimensions {} {
+	return 2
+    }
+    public method hints {{keyword ""}}
+    public method isvalid {} {
+        return $_isValid
+    }
+    public method label { axis }
+    public method limits {axis}
+    public method mesh {}
+    public method numpoints {} {
+	return $_numPoints
+    }
+    public method units { axis }
+    public method vtkdata {{what -partial}} {}
+
+    private method GetString { obj path varName }
+    private method GetValue  { obj path varName }
+    private method GetSize   { obj path varName }
+
     private variable _axisOrder "x y"
     private variable _xMax      0
     private variable _xMin      0
@@ -29,39 +59,10 @@ itcl::class Rappture::Unirect2d {
     private variable _hints
     private variable _vtkdata ""
     private variable _numPoints 0
+    private variable _isValid 0;        # Indicates if the data is valid.
 
     private common _xp2obj       ;	# used for fetch/release ref counting
     private common _obj2ref      ;	# used for fetch/release ref counting
-    private variable _isValid 0;        # Indicates if the data is valid.
-
-    private method GetString { obj path varName }
-    private method GetValue  { obj path varName }
-    private method GetSize   { obj path varName }
-
-    constructor {xmlobj path} { 
-	# defined below 
-    }
-    destructor { 
-        # defined below 
-    }
-    public proc fetch {xmlobj path}
-    public proc release {obj}
-    public method limits {axis}
-    public method units { axis }
-    public method label { axis }
-    public method blob {}
-    public method hints {{keyword ""}} 
-    public method mesh {}
-    public method dimensions {} {
-	return 2
-    }
-    public method isvalid {} {
-        return $_isValid
-    }
-    public method numpoints {} {
-	return $_numPoints
-    }
-    public method vtkdata {{what -partial}} {}
 }
 
 #
@@ -155,7 +156,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
 	return
     }
     append out "DATASET STRUCTURED_POINTS\n"
-    append out "DIMENSIONS $_xNum $_yNum 1"
+    append out "DIMENSIONS $_xNum $_yNum 1\n"
     set xSpace [expr ($_xMax - $_xMin) / double($_xNum - 1)]
     set ySpace [expr ($_yMax - $_yMin) / double($_yNum - 1)]
     append out "SPACING $xSpace $ySpace 0\n"
