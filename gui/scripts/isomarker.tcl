@@ -55,7 +55,7 @@ itcl::body Rappture::IsoMarker::constructor {c obj tf args} {
                    -tags "tick $this $obj" -state hidden]
     set _label [$c create text 0 $h \
                     -anchor n -fill white -font "Helvetica 8" \
-                    -tags "labels $this $obj" -state hidden]
+                    -tags "labels text $this $obj" -state hidden]
     $c bind $_tick <Enter>           [itcl::code $this EnterTick]
     $c bind $_tick <Leave>           [itcl::code $this LeaveTick]
     $c bind $_tick <ButtonPress-1>   [itcl::code $this StartDrag %x %y]

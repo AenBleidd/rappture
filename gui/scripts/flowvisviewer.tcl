@@ -999,9 +999,11 @@ itcl::body Rappture::FlowvisViewer::DrawLegend { tag } {
         $c create image 10 10 -anchor nw \
             -image $_image(legend) -tags colorbar
         $c create text $lx $ly -anchor sw \
-            -fill $itk_option(-plotforeground) -tags "limits labels vmin"
+            -fill $itk_option(-plotforeground) -tags "limits text vmin"
         $c create text [expr {$w-$lx}] $ly -anchor se \
-            -fill $itk_option(-plotforeground) -tags "limits labels vmax"
+            -fill $itk_option(-plotforeground) -tags "limits text vmax"
+        $c create text [expr {$w/2}] $ly -anchor s \
+            -fill $itk_option(-plotforeground) -tags "title text"
         $c lower colorbar
         $c bind colorbar <ButtonRelease-1> [itcl::code $this AddIsoMarker %x %y]
     }
@@ -1014,6 +1016,14 @@ itcl::body Rappture::FlowvisViewer::DrawLegend { tag } {
 
     $c itemconfigure vmax -text [format %g $max]
     $c coords vmax [expr {$w-$lx}] $ly
+
+    set title [$_first hints label]
+    set units [$_first hints units]
+    if { $units != "" } {
+        set title "$title ($units)"
+    }
+    $c itemconfigure title -text $title
+    $c coords title [expr {$w/2}] $ly
 
     if { [info exists _isomarkers($tf)] } {
         foreach m $_isomarkers($tf) {
@@ -1795,8 +1805,7 @@ itcl::configbody Rappture::FlowvisViewer::plotforeground {
         SendCmd "volume outline color $rgb"
         SendCmd "grid axiscolor $rgb"
         SendCmd "grid linecolor $rgb"
-        $itk_component(legend) itemconfigure labels -fill $color
-        $itk_component(legend) itemconfigure limits -fill $color
+        $itk_component(legend) itemconfigure text -fill $color
     }
 }
 

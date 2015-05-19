@@ -768,7 +768,7 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
         $c create text [expr {$w-$lx}] $ly -anchor se \
             -fill $itk_option(-plotforeground) -tags "limits text vmax"
         $c create text [expr {$w/2}] $ly -anchor s \
-            -fill $itk_option(-plotforeground) -tags "limits text title"
+            -fill $itk_option(-plotforeground) -tags "title text"
         $c lower colorbar
         $c bind colorbar <ButtonRelease-1> [itcl::code $this AddNewMarker %x %y]
     }
@@ -1522,8 +1522,7 @@ itcl::configbody Rappture::NanovisViewer::plotforeground {
         SendCmd "volume outline color $rgb"
         SendCmd "grid axiscolor $rgb"
         SendCmd "grid linecolor $rgb"
-        $itk_component(legend) itemconfigure labels -fill $color
-        $itk_component(legend) itemconfigure limits -fill $color
+        $itk_component(legend) itemconfigure text -fill $color
     }
 }
 
