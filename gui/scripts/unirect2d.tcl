@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
 #  COMPONENT: unirect2d - represents a uniform rectangular 2-D mesh.
@@ -19,18 +19,18 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect2d {
-    constructor {xmlobj path} { 
-	# defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public proc fetch {xmlobj path}
     public proc release {obj}
 
     public method blob {}
     public method dimensions {} {
-	return 2
+        return 2
     }
     public method hints {{keyword ""}}
     public method isvalid {} {
@@ -40,29 +40,29 @@ itcl::class Rappture::Unirect2d {
     public method limits {axis}
     public method mesh {}
     public method numpoints {} {
-	return $_numPoints
+        return $_numPoints
     }
     public method units { axis }
     public method vtkdata {{what -partial}} {}
 
     private method GetString { obj path varName }
-    private method GetValue  { obj path varName }
-    private method GetSize   { obj path varName }
+    private method GetValue { obj path varName }
+    private method GetSize { obj path varName }
 
-    private variable _axisOrder "x y"
-    private variable _xMax      0
-    private variable _xMin      0
-    private variable _xNum      0
-    private variable _yMax      0
-    private variable _yMin      0
-    private variable _yNum      0
+    private variable _axisOrder  "x y"
+    private variable _xMax       0
+    private variable _xMin       0
+    private variable _xNum       0;     # Number of points along x-axis
+    private variable _yMax       0
+    private variable _yMin       0
+    private variable _yNum       0;     # Number of points along y-axis
     private variable _hints
-    private variable _vtkdata ""
-    private variable _numPoints 0
-    private variable _isValid 0;        # Indicates if the data is valid.
+    private variable _vtkdata    ""
+    private variable _numPoints  0
+    private variable _isValid    0;     # Indicates if the data is valid.
 
-    private common _xp2obj       ;	# used for fetch/release ref counting
-    private common _obj2ref      ;	# used for fetch/release ref counting
+    private common _xp2obj       ;      # used for fetch/release ref counting
+    private common _obj2ref      ;      # used for fetch/release ref counting
 }
 
 #
@@ -100,13 +100,13 @@ itcl::body Rappture::Unirect2d::release { obj } {
     }
     incr _obj2ref($obj) -1
     if {$_obj2ref($obj) <= 0} {
-	unset _obj2ref($obj)
-	foreach handle [array names _xp2obj] {
-	    if {$_xp2obj($handle) == $obj} {
-		unset _xp2obj($handle)
-	    }
-	}
-	itcl::delete object $obj
+        unset _obj2ref($obj)
+        foreach handle [array names _xp2obj] {
+            if {$_xp2obj($handle) == $obj} {
+                unset _xp2obj($handle)
+            }
+        }
+        itcl::delete object $obj
     }
 }
 
@@ -120,9 +120,9 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     set m [$xmlobj element -as object $path]
     GetValue $m "xaxis.min" _xMin
     GetValue $m "xaxis.max" _xMax
-    GetSize $m "xaxis.numpoints" _xNum
     GetValue $m "yaxis.min" _yMin
     GetValue $m "yaxis.max" _yMax
+    GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     foreach {key path} {
         group   about.group
@@ -152,19 +152,19 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     itcl::delete object $m
     set _numPoints [expr $_xNum * $_yNum]
     if { $_numPoints == 0 } {
-	set _vtkdata ""
-	return
+        set _vtkdata ""
+        return
     }
     append out "DATASET STRUCTURED_POINTS\n"
     append out "DIMENSIONS $_xNum $_yNum 1\n"
     append out "ORIGIN $_xMin $_yMin 0\n"
     if { $_xNum > 1 } {
-        set xSpace [expr (double($_xMax) - double($_xMin)) / double($_xNum - 1)]
+        set xSpace [expr (double($_xMax) - double($_xMin))/double($_xNum - 1)]
     } else {
         set xSpace 0.0
     }
     if { $_yNum > 1 } {
-        set ySpace [expr (double($_yMax) - double($_yMin)) / double($_yNum - 1)]
+        set ySpace [expr (double($_yMax) - double($_yMin))/double($_yNum - 1)]
     } else {
         set ySpace 0.0
     }
@@ -182,7 +182,7 @@ itcl::body Rappture::Unirect2d::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# method blob 
+# method blob
 #       Returns a Tcl list that represents the Tcl command and data to
 #       recreate the uniform rectangular grid on the nanovis server.
 # ----------------------------------------------------------------------
@@ -204,12 +204,13 @@ itcl::body Rappture::Unirect2d::mesh {} {
 
 # ----------------------------------------------------------------------
 # method limits <axis>
-#       Returns a list {min max} representing the limits for the 
+#       Returns a list {min max} representing the limits for the
 #       specified axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::limits {which} {
     set min ""
     set max ""
+
     switch -- $which {
         x - xlin - xlog {
             set min $_xMin
@@ -308,6 +309,7 @@ itcl::body Rappture::Unirect2d::GetSize { obj path varName } {
 itcl::body Rappture::Unirect2d::GetValue { obj path varName } {
     set string [$obj get $path]
     if { [scan $string "%g" value] != 1 } {
+        puts stderr "can't get value \"$string\" of \"$path\""
         return
     }
     upvar $varName number
@@ -323,5 +325,3 @@ itcl::body Rappture::Unirect2d::GetString { obj path varName } {
     upvar $varName str
     set str $string
 }
-
-
