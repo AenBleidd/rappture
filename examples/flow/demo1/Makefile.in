@@ -16,7 +16,7 @@ RM		= rm -f
 
 FILES		= \
 		$(srcdir)/demo1.tcl \
-		$(srcdir)/data-unirect3d.tcl \
+		$(srcdir)/data-demo1.tcl \
 		$(srcdir)/tool.xml 
 
 destdir		= $(prefix)/examples/flow/demo1
