@@ -1,6 +1,6 @@
 
 # Example of using a unirect3d mesh in a vector field
-source data-unirect3d.tcl
+source data-demo1.tcl
 
 package require Rappture
 

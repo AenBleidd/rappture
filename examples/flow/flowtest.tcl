@@ -1,17 +1,21 @@
 
-# Example of using unirect2d meshes in a field object in Rappture.
+# Example of using the flow object in Rappture.
 
 package require Rappture
-
 
 # Open an XML run file to write into
 set driver [Rappture::library [lindex $argv 0]]
 
-# Create 3 "field" objects to display the different flows.
+# Create 3 <mesh> and <field> objects to display the different flows.
 
+set m1 output.mesh(jwire)
 set f1 output.field(jwire)
+
+set m2 output.mesh(half)
 set f2 output.field(half)
-set f3 output.field(si02)
+
+set m3 output.mesh(sio2)
+set f3 output.field(sio2)
 
 set elements [subst {
     $f1.about.label "Jwire example"
@@ -51,17 +55,22 @@ set elements [subst {
     $f1.component.flow.box(three).color magenta 
     $f1.component.flow.box(three).corner(1) "1000 -150 -100" 
     $f1.component.flow.box(three).corner(2) "2000 450 450"
-    $f1.component.extents 3
-    $f1.component.mesh unirect3d(jwire)
-    unirect3d(jwire).xaxis.min	0
-    unirect3d(jwire).xaxis.max	6300
-    unirect3d(jwire).xaxis.numpoints  126
-    unirect3d(jwire).yaxis.min	0
-    unirect3d(jwire).yaxis.max	1500
-    unirect3d(jwire).yaxis.numpoints  30
-    unirect3d(jwire).zaxis.min	0
-    unirect3d(jwire).zaxis.max	1519.05
-    unirect3d(jwire).zaxis.numpoints  22
+    $f1.component.elemtype vectors
+    $f1.component.elemsize 3
+    $f1.component.mesh $m1
+    $m1.about.label "JWire mesh"
+    $m1.dim 3
+    $m1.units "um"
+    $m1.hide yes
+    $m1.grid.xaxis.min 0
+    $m1.grid.xaxis.max 6300
+    $m1.grid.xaxis.numpoints 126
+    $m1.grid.yaxis.min 0
+    $m1.grid.yaxis.max 1500
+    $m1.grid.yaxis.numpoints 30
+    $m1.grid.zaxis.min 0
+    $m1.grid.zaxis.max 1519.05
+    $m1.grid.zaxis.numpoints 22
     $f2.about.label "Flow 2d half"
     $f2.component.flow.axis z
     $f2.component.flow.position 0%
@@ -78,14 +87,19 @@ set elements [subst {
     $f2.camera.position {
 	qw 1 qx 0 qy 0 qz 0 pan-x 0 pan-y 0 zoom 1.0
     }
-    $f2.component.extents 2
-    $f2.component.mesh unirect2d(half)
-    unirect2d(half).xaxis.min	-0.5
-    unirect2d(half).xaxis.max	152
-    unirect2d(half).xaxis.numpoints  305
-    unirect2d(half).yaxis.min	-22
-    unirect2d(half).yaxis.max	21.6
-    unirect2d(half).yaxis.numpoints  109
+    $f2.component.elemtype vectors
+    $f2.component.elemsize 3
+    $f2.component.mesh $m2
+    $m2.about.label "2D mesh"
+    $m2.dim 2
+    $m2.units "um"
+    $m2.hide yes
+    $m2.grid.xaxis.min -0.5
+    $m2.grid.xaxis.max 152
+    $m2.grid.xaxis.numpoints 305
+    $m2.grid.yaxis.min -22
+    $m2.grid.yaxis.max 21.6
+    $m2.grid.yaxis.numpoints 109
     $f3.about.label "SiO2"
     $f3.about.view "flowvis"
     $f3.component.flow.axis z
@@ -99,23 +113,23 @@ set elements [subst {
     $f3.component.flow.particles(right).axis x 
     $f3.component.flow.particles(right).color khaki
     $f3.component.flow.particles(right).position 90%
-    $f3.component.style  "-color blue:red -levels 6"
+    $f3.component.style "-color blue:red -levels 6"
     $f3.component.elemtype vectors
     $f3.component.elemsize 3
-    $f3.component.mesh output.mesh(sio2)
-    output.mesh(sio2).about.label "SiO2"
-    output.mesh(sio2).dim 3
-    output.mesh(sio2).units "um"
-    output.mesh(sio2).hide yes
-    output.mesh(sio2).grid.xaxis.min 0
-    output.mesh(sio2).grid.xaxis.max 29.75206608
-    output.mesh(sio2).grid.xaxis.numpoints 121
-    output.mesh(sio2).grid.yaxis.min -1.5
-    output.mesh(sio2).grid.yaxis.max 2.82
-    output.mesh(sio2).grid.yaxis.numpoints 25
-    output.mesh(sio2).grid.zaxis.min -1
-    output.mesh(sio2).grid.zaxis.max 4.304347828
-    output.mesh(sio2).grid.zaxis.numpoints 23
+    $f3.component.mesh $m3
+    $m3.about.label "SiO2 Mesh"
+    $m3.dim 3
+    $m3.units "um"
+    $m3.hide yes
+    $m3.grid.xaxis.min 0
+    $m3.grid.xaxis.max 29.75206608
+    $m3.grid.xaxis.numpoints 121
+    $m3.grid.yaxis.min -1.5
+    $m3.grid.yaxis.max 2.82
+    $m3.grid.yaxis.numpoints 25
+    $m3.grid.zaxis.min -1
+    $m3.grid.zaxis.max 4.304347828
+    $m3.grid.zaxis.numpoints 23
 }]
 
 puts stdout "Setting attributes..."
@@ -124,15 +138,11 @@ foreach {key value} $elements {
     $driver put $key $value
 }
 
-source demo1/data-unirect3d.tcl
+source demo1/data-demo1.tcl
 $driver put $f1.component.values $values
 
-source demo2/data-unirect2d.tcl
+source demo2/data-2dflow.tcl
 $driver put $f2.component.values $values
-
-#source demo3/data-dx.tcl
-#set data [Rappture::encoding::encode -as zb64 "<DX>$dx"]
-#$driver put $f3.component.dx $data
 
 source demo3/data-values.tcl
 $driver put $f3.component.values $values
@@ -142,4 +152,3 @@ Rappture::result $driver
 puts stdout "done"
 flush stdout
 exit 0
-
