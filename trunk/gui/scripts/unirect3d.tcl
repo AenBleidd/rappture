@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
 #  COMPONENT: unirect3d - represents a uniform rectangular 2-D mesh.
@@ -19,19 +19,34 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect3d {
-    constructor {xmlobj field cname {numComponents 1}} { # defined below }
-    destructor { # defined below }
+    constructor {xmlobj field cname {numComponents 1}} {
+        # defined below
+    }
+    destructor {
+        # defined below
+    }
 
-    public method limits {axis}
     public method blob {}
-    public method mesh {}
-    public method values {}
-    public method units { axis }
+    public method dimensions {} {
+        return 3
+    }
+    public method hints {{keyword ""}}
+    public method isvalid {} {
+        return $_isValid
+    }
     public method label { axis }
-    public method hints {{keyword ""}} 
+    public method limits {axis}
+    public method mesh {}
+    public method numpoints {} {
+        return $_numPoints
+    }
     public method order {} {
         return _axisOrder;
     }
+    public method units { axis }
+    public method values {}
+    public method vtkdata {{what -partial}} {}
+
     private method GetString { obj path varName }
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
@@ -47,8 +62,11 @@ itcl::class Rappture::Unirect3d {
     private variable _zMin       0
     private variable _zNum       0;     # Number of points along z-axis
     private variable _compNum    1;     # Number of components in values
-    private variable _values     "";    # BLT vector containing the values 
+    private variable _values     "";    # BLT vector containing the values
     private variable _hints
+    private variable _vtkdata    ""
+    private variable _numPoints  0
+    private variable _isValid    0;     # Indicates if the data is valid.
 }
 
 # ----------------------------------------------------------------------
@@ -60,12 +78,12 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
     }
     set path [$field get $cname.mesh]
     set m [$xmlobj element -as object $path]
-    GetValue $m "xaxis.max" _xMax
     GetValue $m "xaxis.min" _xMin
-    GetValue $m "yaxis.max" _yMax
+    GetValue $m "xaxis.max" _xMax
     GetValue $m "yaxis.min" _yMin
-    GetValue $m "zaxis.max" _zMax
+    GetValue $m "yaxis.max" _yMax
     GetValue $m "zaxis.min" _zMin
+    GetValue $m "zaxis.max" _zMax
     GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     GetSize $m "zaxis.numpoints" _zNum
@@ -80,15 +98,21 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
         xdesc   xaxis.description
         xunits  xaxis.units
         xscale  xaxis.scale
+        xmin    xaxis.min
+        xmax    xaxis.max
         ylabel  yaxis.label
         ydesc   yaxis.description
         yunits  yaxis.units
         yscale  yaxis.scale
+        ymin    yaxis.min
+        ymax    yaxis.max
         zlabel  zaxis.label
         zdesc   zaxis.description
         zunits  zaxis.units
         zscale  zaxis.scale
-        order   about.axisorder 
+        zmin    zaxis.min
+        zmax    zaxis.max
+        order   about.axisorder
     } {
         set str [$m get $path]
         if {"" != $str} {
@@ -102,13 +126,38 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
         }
     }
     itcl::delete object $m
-
+    set _numPoints [expr $_xNum * $_yNum * $_zNum]
+    if { $_numPoints == 0 } {
+        set _vtkdata ""
+        return
+    }
     set _values [blt::vector create #auto]
     $_values set [$field get "$cname.values"]
-    set n [expr $_xNum * $_yNum * $_zNum * $_compNum]
+    set n [expr $_numPoints * $_compNum]
     if { [$_values length] != $n } {
         error "wrong \# of values in \"$cname.values\": expected $n values, got [$_values length]"
     }
+    append out "DATASET STRUCTURED_POINTS\n"
+    append out "DIMENSIONS $_xNum $_yNum $_zNum\n"
+    append out "ORIGIN $_xMin $_yMin $_zMin\n"
+    if { $_xNum > 1 } {
+        set xSpace [expr (double($_xMax) - double($_xMin))/double($_xNum - 1)]
+    } else {
+        set xSpace 0.0
+    }
+    if { $_yNum > 1 } {
+        set ySpace [expr (double($_yMax) - double($_yMin))/double($_yNum - 1)]
+    } else {
+        set ySpace 0.0
+    }
+    if { $_zNum > 1 } {
+        set zSpace [expr (double($_zMax) - double($_zMin))/double($_zNum - 1)]
+    } else {
+        set zSpace 0.0
+    }
+    append out "SPACING $xSpace $ySpace $zSpace\n"
+    set _vtkdata $out
+    set _isValid 1
     puts stderr "WARNING: The <unirect3d> element is deprecated.  Please use a <mesh> instead."
 }
 
@@ -122,12 +171,12 @@ itcl::body Rappture::Unirect3d::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# method blob 
+# method blob
 #       Returns a Tcl list that represents the Tcl command and data to
 #       recreate the uniform rectangular grid on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::blob {} {
-    lappend data "unirect3d"
+    set data "unirect3d"
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
     lappend data "zmin" $_zMin "zmax" $_zMax "znum" $_zNum
@@ -139,7 +188,7 @@ itcl::body Rappture::Unirect3d::blob {} {
 }
 
 # ----------------------------------------------------------------------
-# method mesh 
+# method mesh
 #       Returns a Tcl list that represents the points of the uniform
 #       grid.  Each point has x,y and z values in the list.
 # ----------------------------------------------------------------------
@@ -171,7 +220,7 @@ itcl::body Rappture::Unirect3d::values {} {
 
 # ----------------------------------------------------------------------
 # method limits <axis>
-#       Returns a list {min max} representing the limits for the 
+#       Returns a list {min max} representing the limits for the
 #       specified axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::limits {which} {
@@ -213,7 +262,7 @@ itcl::body Rappture::Unirect3d::limits {which} {
 #       Returns the units of the given axis.
 #
 itcl::body Rappture::Unirect3d::units { axis } {
-    if { [info exists _hints({$axis}units)] } {
+    if { [info exists _hints(${axis}units)] } {
         return $_hints(${axis}units)
     }
     return ""
@@ -225,7 +274,7 @@ itcl::body Rappture::Unirect3d::units { axis } {
 #       Returns the label of the given axis.
 #
 itcl::body Rappture::Unirect3d::label { axis } {
-    if { [info exists _hints({$axis}label)] } {
+    if { [info exists _hints(${axis}label)] } {
         return $_hints(${axis}label)
     }
     return ""
@@ -238,7 +287,7 @@ itcl::body Rappture::Unirect3d::label { axis } {
 # this curve.  If a particular <keyword> is specified, then it returns
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::hints {{keyword ""}} {
+itcl::body Rappture::Unirect3d::hints { {keyword ""} } {
     if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
         && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
         set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
@@ -263,6 +312,18 @@ itcl::body Rappture::Unirect3d::hints {{keyword ""}} {
         return ""
     }
     return [array get _hints]
+}
+
+itcl::body Rappture::Unirect3d::vtkdata {{what -partial}} {
+    if {$what == "-full"} {
+        append out "# vtk DataFile Version 3.0\n"
+        append out "[hints label]\n"
+        append out "ASCII\n"
+        append out $_vtkdata
+        return $out
+    } else {
+        return $_vtkdata
+    }
 }
 
 itcl::body Rappture::Unirect3d::GetSize { obj path varName } {
