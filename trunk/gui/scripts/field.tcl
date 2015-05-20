@@ -157,10 +157,10 @@ itcl::class Rappture::Field {
     private variable _comp2unirect3d;   # cname => unirect3d obj
     private variable _comp2style;       # cname => style settings
     private variable _comp2cntls;       # cname => x,y control points (1D only)
-    private variable _comp2limits;      # Array of limits per component
-    private variable _comp2flowhints
+    private variable _comp2limits;      # cname => List of axis, min/max list
+    private variable _comp2flowhints;   # cname => Rappture::FlowHints obj
     private variable _comp2mesh;        # list: mesh obj, BLT vector of values
-
+                                        # valid for cloud,mesh,unirect2d
     private variable _values "";        # Only for unirect2d - list of values
 
     private common _alwaysConvertDX 0;  # If set, convert DX and store as VTK,
@@ -801,6 +801,43 @@ itcl::body Rappture::Field::Build {} {
         GetTypeAndSize $cname
         GetAssociation $cname
 
+        if { $_comp2size($cname) < 1 ||
+             $_comp2size($cname) > 9 } {
+            puts stderr "ERROR: Invalid <elemsize>: $_comp2size($cname)"
+            continue
+        }
+        # Some types have restrictions on number of components
+        if { $_comp2type($cname) == "vectors" &&
+             $_comp2size($cname) != 3 } {
+            puts stderr "ERROR: vectors <elemtype> must have <elemsize> of 3"
+            continue
+        }
+        if { $_comp2type($cname) == "normals" &&
+             $_comp2size($cname) != 3 } {
+            puts stderr "ERROR: normals <elemtype> must have <elemsize> of 3"
+            continue
+        }
+        if { $_comp2type($cname) == "tcoords" &&
+             $_comp2size($cname) > 3 } {
+            puts stderr "ERROR: tcoords <elemtype> must have <elemsize> <= 3"
+            continue
+        }
+        if { $_comp2type($cname) == "scalars" &&
+             $_comp2size($cname) > 4 } {
+            puts stderr "ERROR: scalars <elemtype> must have <elemsize> <= 4"
+            continue
+        }
+        if { $_comp2type($cname) == "colorscalars" &&
+             $_comp2size($cname) > 4 } {
+            puts stderr "ERROR: colorscalars <elemtype> must have <elemsize> <= 4"
+            continue
+        }
+        if { $_comp2type($cname) == "tensors" &&
+             $_comp2size($cname) != 9 } {
+            puts stderr "ERROR: tensors <elemtype> must have <elemsize> of 9"
+            continue
+        }
+
         if { [$_field element $cname.flow] != "" } {
             set haveFlow 1
         } else {
@@ -1304,6 +1341,30 @@ itcl::body Rappture::Field::vtkdata {cname} {
         set data $_comp2dx($cname)
         set data [Rappture::encoding::decode -as zb64 $data]
         return [Rappture::DxToVtk $data]
+    }
+    # unirect2d (deprecated)
+    # This can be removed when the nanovis server with support for loading VTK
+    # vector data is released
+    if {[info exists _comp2unirect2d($cname)]} {
+        set label $cname
+        regsub -all { } $label {_} label
+        set elemSize [numComponents $cname]
+        set numValues [$_comp2unirect2d($cname) numpoints]
+        append out "# vtk DataFile Version 3.0\n"
+        append out "[hints label]\n"
+        append out "ASCII\n"
+        append out [$_comp2unirect2d($cname) vtkdata]
+        append out "POINT_DATA $numValues\n"
+        if {$elemSize == 3} {
+            append out "VECTORS $label double\n"
+        } else {
+            append out "SCALARS $label double $elemSize\n"
+            append out "LOOKUP_TABLE default\n"
+        }
+        # values for VTK are x-fastest
+        append out $_values
+        append out "\n"
+        return $out
     }
     # unirect3d (deprecated)
     if {[info exists _comp2unirect3d($cname)]} {
