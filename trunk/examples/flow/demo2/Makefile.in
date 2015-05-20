@@ -16,6 +16,7 @@ RM		= rm -f
 
 FILES		= \
 		$(srcdir)/demo2.tcl \
+		$(srcdir)/data-2dflow.tcl \
 		$(srcdir)/data-unirect2d.tcl \
 		$(srcdir)/tool.xml 
 
