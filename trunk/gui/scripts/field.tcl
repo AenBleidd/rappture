@@ -1305,6 +1305,29 @@ itcl::body Rappture::Field::vtkdata {cname} {
         set data [Rappture::encoding::decode -as zb64 $data]
         return [Rappture::DxToVtk $data]
     }
+    # unirect3d (deprecated)
+    if {[info exists _comp2unirect3d($cname)]} {
+        set vector [$_comp2unirect3d($cname) values]
+        set label $cname
+        regsub -all { } $label {_} label
+        set elemSize [numComponents $cname]
+        set numValues [expr [$vector length] / $elemSize]
+        append out "# vtk DataFile Version 3.0\n"
+        append out "[hints label]\n"
+        append out "ASCII\n"
+        append out [$_comp2unirect3d($cname) vtkdata]
+        append out "POINT_DATA $numValues\n"
+        if {$elemSize == 3} {
+            append out "VECTORS $label double\n"
+        } else {
+            append out "SCALARS $label double $elemSize\n"
+            append out "LOOKUP_TABLE default\n"
+        }
+        # values for VTK are x-fastest
+        append out [$vector range 0 end]
+        append out "\n"
+        return $out
+    }
     # Points on mesh:  Construct VTK file output.
     if { [info exists _comp2mesh($cname)] } {
         # Data is in the form mesh and vector
