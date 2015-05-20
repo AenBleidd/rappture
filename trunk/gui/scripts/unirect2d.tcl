@@ -157,10 +157,18 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     }
     append out "DATASET STRUCTURED_POINTS\n"
     append out "DIMENSIONS $_xNum $_yNum 1\n"
-    set xSpace [expr ($_xMax - $_xMin) / double($_xNum - 1)]
-    set ySpace [expr ($_yMax - $_yMin) / double($_yNum - 1)]
-    append out "SPACING $xSpace $ySpace 0\n"
     append out "ORIGIN $_xMin $_yMin 0\n"
+    if { $_xNum > 1 } {
+        set xSpace [expr (double($_xMax) - double($_xMin)) / double($_xNum - 1)]
+    } else {
+        set xSpace 0.0
+    }
+    if { $_yNum > 1 } {
+        set ySpace [expr (double($_yMax) - double($_yMin)) / double($_yNum - 1)]
+    } else {
+        set ySpace 0.0
+    }
+    append out "SPACING $xSpace $ySpace 0\n"
     set _vtkdata $out
     set _isValid 1
     puts stderr "WARNING: The <unirect2d> element is deprecated.  Please use a <mesh> instead."
