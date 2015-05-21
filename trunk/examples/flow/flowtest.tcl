@@ -85,7 +85,7 @@ set elements [subst {
     $f2.component.flow.particles(right).position 90%
     $f2.component.style  "-color rainbow -levels 6"
     $f2.camera.position {
-	qw 1 qx 0 qy 0 qz 0 pan-x 0 pan-y 0 zoom 1.0
+	-qw 1 -qx 0 -qy 0 -qz 0 -xpan 0 -ypan 0 -zoom 1.0
     }
     $f2.component.elemtype vectors
     $f2.component.elemsize 3

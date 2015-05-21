@@ -1,5 +1,6 @@
 
 # Example of using a unirect3d mesh in a vector field
+# This is inlucded for testing purposes, since unirect3d outputs are deprecated
 source data-demo1.tcl
 
 package require Rappture
