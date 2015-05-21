@@ -200,7 +200,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     set _flow(state) 0
 
     array set _downloadPopup {
-        format draft
+        format vtk
     }
     #
     # Populate parser with commands handle incoming requests
