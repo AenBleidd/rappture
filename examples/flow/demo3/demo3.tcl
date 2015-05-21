@@ -1,5 +1,6 @@
 
 # Example of using dx file in a vector field.
+# This is included for testing purposes, since DX file data is deprecated
 source data-dx.tcl
 
 package require Rappture
