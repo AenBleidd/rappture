@@ -150,7 +150,7 @@ RQEAOw==</current>
 #''')
 
     def testToPathId(self):
-        e = self.lib.element("input.string",as="object")
+        e = self.lib.element("input.string", type="object")
         self.lib.copy("estring(qqq)","",e)
         self.assertEqual(self.lib.xml(),'''<?xml version="1.0"?>
 <run>
@@ -182,7 +182,7 @@ RQEAOw==</current>
 ''')
 
     def testToPathNoIdFromPathId(self):
-        e = self.lib.element("input.string",as="object")
+        e = self.lib.element("input.string",type="object")
         self.lib.copy("estring","",e)
         self.assertEqual(self.lib.xml(),'''<?xml version="1.0"?>
 <run>
@@ -240,15 +240,15 @@ class ElementTests(unittest.TestCase):
         self.assertEqual(ele,"string(test)")
 
     def testArguments_TwoKeywordArgs(self):
-        ele = self.lib.element(path="input.string",as="path")
+        ele = self.lib.element(path="input.string",type="path")
         self.assertEqual(ele,"input.string(test)")
 
     def testArguments_AsKeywordArgs(self):
-        ele = self.lib.element("input.string",as="type")
+        ele = self.lib.element("input.string",type="type")
         self.assertEqual(ele,"string")
 
     def testArguments_AsId(self):
-        ele = self.lib.element(path="input.string",as="id")
+        ele = self.lib.element(path="input.string",type="id")
         self.assertEqual(ele,"test")
 
     def testArguments_UnrecognizedAs(self):
@@ -476,7 +476,7 @@ Z7fWlD2X25cimGm2xQKn464c/HQYj/8p0cl+ldO+RvVm9R/4DWcyEdUgAwAA
         self.assertRaises(ValueError,self.lib.put,"output.file","vl","","","type","")
 
     def testPutObject(self):
-        e = self.lib.element("input.string",as="object")
+        e = self.lib.element("input.string",type="object")
         self.lib.put("output.estring(qqq)",e)
         self.assertEqual(self.lib.get("output.estring(qqq).current"),'<sdfsfs>sdfs')
 

@@ -1,5 +1,5 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
+
 # ----------------------------------------------------------------------
 #  COMPONENT: histogram - extracts data from an XML description of a field
 #
@@ -36,14 +36,14 @@ itcl::class Rappture::Histogram {
 
     protected method Build {}
     private method Clear { {comp ""} }
-    private method ParseData { comp } 
+    private method ParseData { comp }
 
     private variable _xmlobj ""  ;# ref to lib obj with histogram data
     private variable _hist ""    ;# lib obj representing this histogram
-    private variable _widths     ;# array of vectors of bin widths 
-    private variable _yvalues    ;# array of vectors of bin heights along 
+    private variable _widths     ;# array of vectors of bin widths
+    private variable _yvalues    ;# array of vectors of bin heights along
                                  ;# y-axis.
-    private variable _xvalues    ;# array of vectors of bin locations along 
+    private variable _xvalues    ;# array of vectors of bin locations along
                                  ;# x-axis.
     private variable _xlabels    ;# array of labels
     private variable _hints      ;# cache of hints stored in XML
@@ -73,11 +73,11 @@ itcl::body Rappture::Histogram::constructor {xmlobj path} {
 itcl::body Rappture::Histogram::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
     itcl::delete object $_hist
-    Clear 
+    Clear
 }
 
 # ----------------------------------------------------------------------
-# USAGE: mesh 
+# USAGE: mesh
 #
 # Returns the vector for the histogram bin locations along the
 # x-axis.
@@ -90,7 +90,7 @@ itcl::body Rappture::Histogram::mesh { comp } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: heights 
+# USAGE: heights
 #
 # Returns the vector for the histogram bin heights along the y-axis.
 # ----------------------------------------------------------------------
@@ -102,7 +102,7 @@ itcl::body Rappture::Histogram::values { comp } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: widths 
+# USAGE: widths
 #
 # Returns the vector for the specified histogram component <name>.
 # If the name is not specified, then it returns the vectors for the
@@ -116,7 +116,7 @@ itcl::body Rappture::Histogram::widths { comp } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: xlabels 
+# USAGE: xlabels
 #
 # Returns the vector for the specified histogram component <name>.
 # If the name is not specified, then it returns the vectors for the
@@ -187,7 +187,7 @@ itcl::body Rappture::Histogram::limits {which} {
         }
     }
 
-    blt::vector create tmp 
+    blt::vector create tmp
     blt::vector create zero
     foreach comp [array names _comphist] {
         set vname [lindex $_comp2hist($comp) $pos]
@@ -256,7 +256,7 @@ itcl::body Rappture::Histogram::hints {{keyword ""}} {
             xlabel  xaxis.label
             xdesc   xaxis.description
             xunits  xaxis.units
-	    xorient xaxis.orientation 
+	    xorient xaxis.orientation
             xscale  xaxis.scale
             xmin    xaxis.min
             xmax    xaxis.max
@@ -341,7 +341,7 @@ itcl::body Rappture::Histogram::Build {} {
 #
 #       Parse the components data representations.  The following
 #       elements may be used <xy>, <xhw>, <namevalue>, <xvector>,
-#       <yvector>.  Only one element is used for data.  
+#       <yvector>.  Only one element is used for data.
 #
 itcl::body Rappture::Histogram::ParseData { comp } {
     # Create new vectors or discard any existing data
@@ -353,52 +353,34 @@ itcl::body Rappture::Histogram::ParseData { comp } {
     set xydata [$_hist get ${comp}.xy]
     if { $xydata != "" } {
         set count 0
-        foreach line [split $xydata \n] {
-            if {[llength $line] == 2} {
-                foreach {name value} $line break
-                $_yvalues($comp) append $value
-                $_xvalues($comp) append $count
-                lappend _xlabels($comp) $name
-                incr count
-            }
-        }           
+        foreach {name value} [regsub -all "\[ \t\n]+" $xydata { }] {
+            $_yvalues($comp) append $value
+            $_xvalues($comp) append $count
+            lappend _xlabels($comp) $name
+            incr count
+        }
         set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
         return
     }
     set xhwdata [$_hist get ${comp}.xhw]
     if { $xhwdata != "" } {
         set count 0
-        foreach line [split $xhwdata \n] {
-            set n [scan $line {%s %s %s} name h w]
-            if {$n >= 2} {
-                lappend _xlabels($comp) $name
-                $_xvalues($comp) append $count
-                $_yvalues($comp) append $h
-                if { $n == 3 } {
-                    $_widths($comp) append $w
-                }
-                incr count
-            }
-        }           
-        set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
-        return
-
-        # FIXME:  There must be a width specified for each bin location.
-        #         If this isn't true, we default to uniform widths
-        #         (zero-length _widths vector == uniform).
-        if { [$_xvalues($comp) length] != [$_widths($comp) length] } {
-            $_widths($comp) set {}
+        foreach {name h w} [regsub -all "\[ \t\n]+" $xhwdata { }] {
+            lappend _xlabels($comp) $name
+            $_xvalues($comp) append $count
+            $_yvalues($comp) append $h
+            $_widths($comp) append $w
+            incr count
         }
         set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
         return
     }
-    set xv [$_hist get $comp.xvector]
-    set yv [$_hist get $comp.yvector]
-    if { $xv != "" && $yv != "" } {
-        $_yvalues($comp) set $yv
-        $_xvalues($comp) seq 0 [$yv length]
-        set _xlabels($comp)
-    }
+
+    # If we reached here, must be <yvector>
+    $_yvalues($comp) set [$_hist get ${comp}.yvector]
+    $_xvalues($comp) length [$_yvalues($comp) length]
+    $_xvalues($comp) seq 1 [$_yvalues($comp) length]
+    set _xlabels($comp) [$_hist get ${comp}.xvector]
     set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
 }
 
@@ -421,13 +403,13 @@ itcl::body Rappture::Histogram::Clear { {comp ""} } {
         return
     }
     if { [info exists _widths($comp)] } {
-        blt::vector destroy $_widths($comp) 
+        blt::vector destroy $_widths($comp)
     }
     if { [info exists _yvalues($comp)] } {
-        blt::vector destroy $_yvalues($comp) 
+        blt::vector destroy $_yvalues($comp)
     }
     if { [info exists _xvalues($comp)] } {
-        blt::vector destroy $_xvalues($comp) 
+        blt::vector destroy $_xvalues($comp)
     }
     array unset _xvalues $comp
     array unset _yvalues $comp

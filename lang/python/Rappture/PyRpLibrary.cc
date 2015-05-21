@@ -47,7 +47,7 @@ typedef struct {
 } RpLibraryObject;
 
 
-static int 
+static int
 getArgCount(PyObject *args, PyObject *keywds, int *argc)
 {
     int args_cnt = 0;
@@ -128,7 +128,7 @@ StringToBoolean(const char *string, int *resultPtr)
 }
 
 static int
-PyObjectToBoolean(PyObject *objPtr, const char *defValue, const char *argName, 
+PyObjectToBoolean(PyObject *objPtr, const char *defValue, const char *argName,
 		  int *resultPtr)
 {
     int value;
@@ -146,7 +146,7 @@ PyObjectToBoolean(PyObject *objPtr, const char *defValue, const char *argName,
     if (PyBool_Check(objPtr)) {
 	value = PyObject_IsTrue(objPtr);
 	if (value < 0) {
-             PyErr_Format(PyExc_ValueError, 
+             PyErr_Format(PyExc_ValueError,
 		"PyObjectToBoolean: bad boolean object");
 	    return RP_ERROR;
 	}
@@ -167,7 +167,7 @@ PyObjectToBoolean(PyObject *objPtr, const char *defValue, const char *argName,
 	value = (d == 0.0) ? FALSE : TRUE;
     } else if (PyString_Check(objPtr)) {
 	const char *string;
-	
+
         string = PyString_AsString(objPtr);
         if (string == NULL) {
             PyErr_Format(PyExc_TypeError,
@@ -369,7 +369,7 @@ CopyProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 }
 
 PyDoc_STRVAR(ElementProcDoc,
-"element ([path=\'\'][, as=\'object\']) -> returns string or Rappture Library Object\n\
+"element ([path=\'\'][, type=\'object\']) -> returns string or Rappture Library Object\n\
 \n\
 Clients use this to query a particular element within the \n\
 entire data structure.  The path is a string of the form \n\
@@ -380,7 +380,7 @@ within this document. \n\
 \n\
 By default, this method returns an object representing the \n\
 DOM node referenced by the path.  This is changed by setting \n\
-the \"as\" argument to \"id\" (for name of the tail element), \n\
+the \"type\" argument to \"id\" (for name of the tail element), \n\
 to \"type\" (for the type of the tail element), to \"component\" \n\
 (for the component name \"type(id)\"), or to \"object\" \n\
 for the default (an object representing the tail element).\n\
@@ -390,14 +390,14 @@ static PyObject *
 ElementProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char* path = (char *)"";
-    char* as = (char *)"object";
+    char* type = (char *)"object";
     RpLibrary* retlib = NULL;
     PyObject* retVal = NULL;
     int argc = 0;
 
     static char *kwlist[] = {
         (char *)"path",
-        (char *)"as",
+        (char *)"type",
         NULL
     };
 
@@ -421,35 +421,35 @@ ElementProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     }
 
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|ss",
-                kwlist, &path, &as)) {
+                kwlist, &path, &type)) {
         /* incorrect input values */
         // tested with ElementTests.testArguments_ArgsWrongType2()
-        PyErr_Format(PyExc_TypeError,"element ([path=\'\'][, as=\'object\'])");
+        PyErr_Format(PyExc_TypeError,"element ([path=\'\'][, type=\'object\'])");
         return retVal;
     }
 
     retlib = self->lib->element(std::string(path));
 
     if (retlib != NULL) {
-        if ((as == NULL) || ((*as == 'o') && (strcmp("object",as) == 0)) ) {
+        if ((type == NULL) || ((*type == 'o') && (strcmp("object",type) == 0)) ) {
             // tested with ElementTests.testArguments_PathArg()
             retVal = RpLibraryObject_FromLibrary(retlib);
-        } else if ((*as == 'c') && (strcmp("component",as) == 0)) {
+        } else if ((*type == 'c') && (strcmp("component",type) == 0)) {
             // tested with ElementTests.testArguments_TwoArgs()
             retVal = PyString_FromString(retlib->nodeComp().c_str());
-        } else if ((*as == 'i') && (strcmp("id",as) == 0)) {
-            // tested with ElementTests.testArguments_AsId()
+        } else if ((*type == 'i') && (strcmp("id",type) == 0)) {
+            // tested with ElementTests.testArguments_typeId()
             retVal = PyString_FromString(retlib->nodeId().c_str());
-        } else if ((*as == 't') && (strcmp("type",as) == 0)) {
-            // tested with ElementTests.testArguments_AsKeywordArgs()
+        } else if ((*type == 't') && (strcmp("type",type) == 0)) {
+            // tested with ElementTests.testArguments_typeKeywordArgs()
             retVal = PyString_FromString(retlib->nodeType().c_str());
-        } else if ((*as == 'p') && (strcmp("path",as) == 0)) {
+        } else if ((*type == 'p') && (strcmp("path",type) == 0)) {
             // tested with ElementTests.testArguments_TwoKeywordArgs()
             retVal = PyString_FromString(retlib->nodePath().c_str());
         } else {
-            // tested with ElementTests.testArguments_UnrecognizedAs()
+            // tested with ElementTests.testArguments_Unrecognizedtype()
             PyErr_Format(PyExc_ValueError,
-                "element() \'as\' arg must be \'object\' or \'component\' or \'id\' or \'type\' or \'path\'");
+                "element() \'type\' arg must be \'object\' or \'component\' or \'id\' or \'type\' or \'path\'");
         }
     }
 
@@ -648,6 +648,7 @@ PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
         (char *)"compress",
         NULL
     };
+
     appendFlag = compressFlag = FALSE;
     strObjPtr = appendObjPtr = valueObjPtr = compressObjPtr = NULL;
     if (self->lib == NULL) {
@@ -669,7 +670,7 @@ PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
             "put() takes at least 2 arguments (%i given)",argc);
         return NULL;
     }
-    if (!PyArg_ParseTupleAndKeywords(args, keywds, "sO|sOsO", kwlist, &path, 
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "sO|sOsO", kwlist, &path,
 	&valueObjPtr, &id, &appendObjPtr, &type, &compressObjPtr)) {
         return NULL;
     }
@@ -689,7 +690,7 @@ PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 
     strObjPtr = PyObject_Str(valueObjPtr);
     if (RpLibraryObject_IsValid(valueObjPtr)) {
-        self->lib->put( std::string(path), 
+        self->lib->put( std::string(path),
 		RpLibraryObject_AsLibrary(valueObjPtr), "", appendFlag);
     } else if (strObjPtr != NULL) {
 	char *string;
@@ -703,7 +704,7 @@ PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
                 self->lib->put( std::string(path),
                                 std::string(string), "", appendFlag);
             } else {
-                self->lib->putData( std::string(path), string, length, 
+                self->lib->putData( std::string(path), string, length,
 			appendFlag);
             }
         } else if ((*type == 'f') && (strcmp("file",type) == 0)) {
@@ -754,7 +755,7 @@ ResultProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int status = 0;
 
     static char *kwlist[] = {
-	(char *)"status", 
+	(char *)"status",
 	NULL
     };
 

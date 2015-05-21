@@ -42,7 +42,7 @@ class library:
             self.node = self.doc.documentElement
 
     # ------------------------------------------------------------------
-    def element(self, path="", as="object"):
+    def element(self, path="", type="object"):
         """
         Clients use this to query a particular element within the
         entire data structure.  The path is a string of the form
@@ -53,7 +53,7 @@ class library:
 
         By default, this method returns an object representing the
         DOM node referenced by the path.  This is changed by setting
-        the "as" argument to "id" (for name of the tail element),
+        the "type" argument to "id" (for name of the tail element),
         to "type" (for the type of the tail element), to "component"
         (for the component name "type(id)"), or to "object"
         for the default (an object representing the tail element).
@@ -63,29 +63,29 @@ class library:
         if not node:
             return None
 
-        if as == 'object':
+        if type == 'object':
             return library(node)
-        elif as == 'component':
+        elif type == 'component':
             return self._node2comp(node)
-        elif as == 'id':
+        elif type == 'id':
             return self._node2name(node)
-        elif as == 'type':
+        elif type == 'type':
             return node.tagName
 
-        raise ValueError, "bad as value '%s': should be component, id, object, type" % as
+        raise ValueError, "bad type value '%s': should be component, id, object, type" % type
 
     # ------------------------------------------------------------------
-    def children(self, path="", as="object", type=None):
+    def children(self, path="", type="object", rtype=None):
         """
         Clients use this to query the children of a particular element
         within the entire data structure.  This is just like the
         element() method, but it returns the children of the element
-        instead of the element itself.  If the optional type argument
+        instead of the element itself.  If the optional rtype argument
         is specified, then the return list is restricted to children
         of the specified type.
 
         By default, this method returns a list of objects representing
-        the children.  This is changed by setting the "as" argument
+        the children.  This is changed by setting the "type" argument
         to "id" (for tail names of all children), to "type" (for the
         types of all children), to "component" (for the path component
         names of all children), or to "object" for the default (a list
@@ -98,19 +98,19 @@ class library:
 
         nlist = [n for n in node.childNodes if not n.nodeName.startswith('#')]
 
-        if type:
-            nlist = [n for n in nlist if n.nodeName == type]
+        if rtype:
+            nlist = [n for n in nlist if n.nodeName == rtype]
 
-        if as == 'object':
+        if type == 'object':
             return [library(n) for n in nlist]
-        elif as == 'component':
+        elif type == 'component':
             return [self._node2comp(n) for n in nlist]
-        elif as == 'id':
+        elif type == 'id':
             return [self._node2name(n) for n in nlist]
-        elif as == 'type':
+        elif type == 'type':
             return [n.tagName for n in nlist]
 
-        raise ValueError, "bad as value '%s': should be component, id, object, type" % as
+        raise ValueError, "bad type value '%s': should be component, id, object, type" % type
 
     # ------------------------------------------------------------------
     def get(self, path=""):
@@ -275,7 +275,7 @@ class library:
         This is useful for "put" operations.
 
         If you include "#" instead of a specific number, a node
-        will be created automatically with a new number.  For example, 
+        will be created automatically with a new number.  For example,
         the path "foo.bar#" called the first time will create "foo.bar",
         the second time "foo.bar1", the third time "foo.bar2" and
         so forth.

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: Balloon - toplevel popup window, like a cartoon balloon
 #
@@ -46,6 +46,7 @@ itcl::class Rappture::Balloon {
     public method deactivate {}
 
     protected method _createStems {}
+    protected method _place {where placement w h sw sh}
 
     protected variable _stems   ;# windows for cartoon balloon stems
     protected variable _masks   ;# masks for cartoon balloon stems
@@ -122,97 +123,200 @@ itcl::body Rappture::Balloon::constructor {args} {
     _createStems
 }
 
+
+# ----------------------------------------------------------------------
+# USAGE: _place <where> <place> <pw> <ph> <screenw> <screenh>
+#
+# Called by activate. Returns the exact location information given
+# the parameters.  If the window will not fit on the screen with the
+# requested placement, will loop through all possible placements to
+# find the best alternative.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Balloon::_place {where place pw ph screenw screenh} {
+    # pw and ph are requested balloon window size
+
+    # set placement preference order
+    switch $place {
+        left {set plist {left above below right}}
+        right {set plist {right above below left}}
+        above {set plist {above below right left}}
+        below {set plist {below above right left}}
+    }
+
+    set ph_orig $ph
+    set pw_orig $pw
+
+    foreach placement $plist {
+        set pw $pw_orig
+        set ph $ph_orig
+        if {[winfo exists $where]} {
+            # location of top-left corner of root window
+            set rx [winfo rootx $where]
+            set ry [winfo rooty $where]
+
+            # size of widget we want to popup over
+            set width  [winfo width $where]
+            set height [winfo height $where]
+
+            # x and y will be location for popup
+            set x [expr {$rx + $width/2}]
+            set y [expr {$ry + $height/2}]
+
+            switch -- $placement {
+                left { set x [expr {$rx + 5}] }
+                right { set x [expr {$rx + $width - 5}] }
+                above { set y [expr {$ry + 5}] }
+                below { set y [expr {$ry + $height - 5}] }
+            }
+        } elseif {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
+            # got x and y
+        } else {
+            error "bad location \"$where\": should be widget or @x,y"
+        }
+
+        # compute stem image size
+        set s $_stems($placement)
+        set sw [image width $_fills($placement)]
+        set sh [image height $_fills($placement)]
+        set offscreen 0
+
+        switch -- $placement {
+            left {
+                set sx [expr {$x-$sw+3}]
+                set sy [expr {$y-$sh/2}]
+                set px [expr {$sx-$pw+3}]
+                set py [expr {$y-$ph/2}]
+
+                # make sure that the panel doesn't go off-screen
+                if {$py < 0} {
+                    incr offscreen [expr -$py]
+                    set py 0
+                }
+                if {$py+$ph > $screenh} {
+                    incr offscreen [expr {$py + $ph - $screenh}]
+                    set py [expr {$screenh - $ph}]
+                }
+                if {$px < 0} {
+                    incr offscreen [expr -$px]
+                    set pw [expr {$pw + $px}]
+                    set px 0
+                }
+            }
+            right {
+                set sx $x
+                set sy [expr {$y-$sh/2}]
+                set px [expr {$x+$sw-3}]
+                set py [expr {$y-$ph/2}]
+
+                # make sure that the panel doesn't go off-screen
+                if {$py < 0} {
+                    incr offscreen [expr -$py]
+                    set py 0
+                }
+                if {$py+$ph > $screenh} {
+                    incr offscreen [expr {$py + $ph - $screenh}]
+                    set py [expr {$screenh-$ph}]
+                }
+                if {$px+$pw > $screenw} {
+                    incr offscreen [expr {$px + $pw - $screenw}]
+                    set pw [expr {$screenw-$px}]
+                }
+            }
+            above {
+                set sx [expr {$x-$sw/2}]
+                set sy [expr {$y-$sh+3}]
+                set px [expr {$x-$pw/2}]
+                set py [expr {$sy-$ph+3}]
+
+                # make sure that the panel doesn't go off-screen
+                if {$px < 0} {
+                    incr offscreen [expr -$px]
+                    set px 0
+                }
+                if {$px+$pw > $screenw} {
+                    incr offscreen [expr {$px + $pw - $screenw}]
+                    set px [expr {$screenw-$pw}]
+                }
+                if {$py < 0} {
+                    incr offscreen [expr -$py]
+                    set ph [expr {$ph+$py}]
+                    set py 0
+                }
+            }
+            below {
+                set sx [expr {$x-$sw/2}]
+                set sy $y
+                set px [expr {$x-$pw/2}]
+                set py [expr {$y+$sh-3}]
+
+                # make sure that the panel doesn't go off-screen
+                if {$px < 0} {
+                    incr offscreen [expr -$px]
+                    set px 0
+                }
+                if {$px+$pw > $screenw} {
+                    incr offscreen [expr {$px + $pw - $screenw}]
+                    set px [expr {$screenw-$pw}]
+                }
+                if {$py+$ph > $screenh} {
+                    incr offscreen [expr {$py + $py - $screenh}]
+                    set ph [expr {$screenh-$py}]
+                }
+            }
+        }
+        set res($placement) [list $placement $offscreen $pw $ph $px $py $sx $sy]
+        if {$offscreen == 0} {
+            return "$placement $pw $ph $px $py $sx $sy"
+        }
+    }
+
+    # In the unlikely event that we arrived here, it is because no
+    # placement allowed the entire balloon window to be displayed.
+    # Loop through the results and return the best-case placement.
+    set _min 10000
+    foreach pl $plist {
+        set offscreen [lindex $res($pl) 1]
+        if {$offscreen < $_min} {
+            set _min $offscreen
+            set _min_pl $pl
+        }
+    }
+    return "$_min_pl [lrange $res($_min_pl) 2 end]"
+}
+
 # ----------------------------------------------------------------------
 # USAGE: activate <where> <placement>
 #
 # Clients use this to pop up this balloon panel pointing to the
 # <where> location, which should be a widget name or @X,Y.  The
 # <placement> indicates whether the panel should be left, right,
-# above, or below the <where> coordinate.
+# above, or below the <where> coordinate. Plecement is considered
+# a suggestion and may be changed to fit the popup in the screen.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Balloon::activate {where placement} {
     if {![info exists _stems($placement)]} {
         error "bad placement \"$placement\": should be [join [lsort [array names _stems]] {, }]"
     }
-    set s $_stems($placement)
-    set sw [image width $_fills($placement)]
-    set sh [image height $_fills($placement)]
-    set p $itk_component(hull)
-    set screenw [winfo screenwidth $p]
-    set screenh [winfo screenheight $p]
-
-    if {[winfo exists $where]} {
-        set x [expr {[winfo rootx $where]+[winfo width $where]/2}]
-        set y [expr {[winfo rooty $where]+[winfo height $where]/2}]
-        switch -- $placement {
-            left { set x [expr {[winfo rootx $where]+5}] }
-            right { set x [expr {[winfo rootx $where]+[winfo width $where]-5}] }
-            above { set y [expr {[winfo rooty $where]+5}] }
-            below { set y [expr {[winfo rooty $where]+[winfo height $where]-5}] }
-        }
-    } elseif {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
-        # got x and y
-    } else {
-        error "bad location \"$where\": should be widget or @x,y"
-    }
 
     # if the panel is already up, take it down
     deactivate
+
+    set p $itk_component(hull)
+    set screenw [winfo screenwidth $p]
+    set screenh [winfo screenheight $p]
 
     set pw [winfo reqwidth $p]
     if {$pw > $screenw} { set pw [expr {$screenw-10}] }
     set ph [winfo reqheight $p]
     if {$ph > $screenh} { set ph [expr {$screenh-10}] }
 
-    switch -- $placement {
-        left {
-            set sx [expr {$x-$sw+3}]
-            set sy [expr {$y-$sh/2}]
-            set px [expr {$sx-$pw+3}]
-            set py [expr {$y-$ph/2}]
+    foreach {place pw ph px py sx sy} [_place $where $placement $pw $ph $screenw $screenh] break
 
-            # make sure that the panel doesn't go off-screen
-            if {$py < 0} { set py 0 }
-            if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
-            if {$px < 0} { set pw [expr {$pw+$px}]; set px 0 }
-        }
-        right {
-            set sx $x
-            set sy [expr {$y-$sh/2}]
-            set px [expr {$x+$sw-3}]
-            set py [expr {$y-$ph/2}]
-
-            # make sure that the panel doesn't go off-screen
-            if {$py < 0} { set py 0 }
-            if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
-            if {$px+$pw > $screenw} { set pw [expr {$screenw-$px}] }
-        }
-        above {
-            set sx [expr {$x-$sw/2}]
-            set sy [expr {$y-$sh+3}]
-            set px [expr {$x-$pw/2}]
-            set py [expr {$sy-$ph+3}]
-
-            # make sure that the panel doesn't go off-screen
-            if {$px < 0} { set px 0 }
-            if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
-            if {$py < 0} { set ph [expr {$ph+$py}]; set py 0 }
-        }
-        below {
-            set sx [expr {$x-$sw/2}]
-            set sy $y
-            set px [expr {$x-$pw/2}]
-            set py [expr {$y+$sh-3}]
-
-            # make sure that the panel doesn't go off-screen
-            if {$px < 0} { set px 0 }
-            if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
-            if {$py+$ph > $screenh} { set ph [expr {$screenh-$py}] }
-        }
+    set s $_stems($place)
+    if {[info exists _masks($place)]} {
+        shape set $s -bound photo $_masks($place)
     }
-    if {[info exists _masks($placement)]} {
-        shape set $s -bound photo $_masks($placement)
-    }
+
     if { $pw < 1 || $ph < 1 }  {
         # I really don't know why this is happenning.  I believe this occurs
         # when in a work space (i.e the main window is smaller than the root
@@ -307,7 +411,7 @@ itcl::body Rappture::Balloon::_createStems {} {
             # and light/dark highlights:
             #
             #     --------  ---       LEFT STEM
-            #    |..##    |  ^  
+            #    |..##    |  ^
             #    |  ..##  |  |        . = light color
             #    |    ..##|  | s      @ = dark color
             #    |    @@##|  |        # = black
