@@ -2,7 +2,7 @@
 #  LANGUAGE:  Python API
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2015  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,10 +16,15 @@ language "Python" {
 # ----------------------------------------------------------------------
 import Rappture
 import sys
-from math import *
+import numpy as np
+
+# uncomment these to redirect stdout and stderr
+# to files for debugging.
+#sys.stderr = open('debug.err', 'w')
+#sys.stdout = open('debug.out', 'w')
 
 # open the XML file containing the run parameters
-io = Rappture.library(sys.argv[1])
+io = Rappture.PyXml(sys.argv[1])
 
 #########################################################
 # Get input values from Rappture
@@ -41,60 +46,58 @@ Rappture.Utils.progress(100, "Done")
 #########################################################
 @@OUTPUTS@@
 
-Rappture.result(io)
+io.close()
 sys.exit()
 }
 
   input boolean {
     code "\n# get input value for $path"
     code "# returns value as string \"yes\" or \"no\""
-    code "$id = io.get('$path.current') == 'yes'"
+    code "$id = io\['$path.current'\].value == 'yes'"
   }
   input image {
     code "\n# get input value for $path"
     code "# returns base64-encoded image data"
-    code "$id = io.get('$path.current')"
+    code "$id = io\['$path.current'\].value"
   }
   input integer {
     code "\n# get input value for $path"
-    code "$id = int(io.get('$path.current'))"
+    code "$id = int(io\['$path.current'\].value)"
   }
   input number {
     set units [attr get units]
     if {$units ne ""} {
       code "\n# get input value for $path and convert to $units"
-      code "str = io.get('$path.current')"
+      code "str = io\['$path.current'\].value"
       code "$id = Rappture.Units.convert(str, to=\"$units\", units=\"off\")"
     } else {
       code "\n# get input value for $path"
-      code "$id = float(io.get('$path.current'))"
+      code "$id = float(io\['$path.current'\].value)"
     }
   }
   input * {
     code "\n# get input value for $path"
-    code "$id = io.get('$path.current')"
+    code "$id = io\['$path.current'\].value"
   }
 
   output curve {
     code "\n# save output value for $path"
-    code "# this shows just one (x,y) point -- modify as needed"
-    code "line = \"%g %g\n\" % (x, y)"
-    code "io.put('$path.component.xy', line, append=1)"
+    code "# x and y should be lists or arrays -- modify as needed"
+    code "io\['$path.component.xy'\] = (x, y)"
   }
   output histogram {
     code "\n# save output value for $path"
-    code "# this shows just one point -- modify as needed"
-    code "# (x,h,w) = x-coord, height of bar, and width of bar (optional)"
-    code "line = \"%g %g %g\n\" % (x, h, w)"
-    code "io.put('$path.component.xhw', line, append=1)"
+    code "# x and y should be lists or arrays -- modify as needed"
+    code "# (x,h,w) = x-coord, height of bar, and width of bar"
+    code "io\['$path.component.xhw'\] = (x, h, w)"
   }
   output image {
     code "\n# save output value for $path"
     code "# data should be base64-encoded image data"
-    code "io.put('$path.current', imdata)"
+    code "io\['$path.current'\] = imdata"
   }
   output * {
     code "\n# save output value for $path"
-    code "io.put('$path.current',$id)"
+    code "io\['$path.current'\] = $id"
   }
 }
