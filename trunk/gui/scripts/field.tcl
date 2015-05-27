@@ -1081,7 +1081,8 @@ itcl::body Rappture::Field::style { cname } {
 #
 # Returns the data storage type of the field.
 #
-# FIXME: What are the valid types?
+# Types:
+#   1D,cloud,dicom,dx,mesh,ucd,unirect2d,unirect3d,vtk
 #
 itcl::body Rappture::Field::type {} {
     return $_type

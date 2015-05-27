@@ -1138,15 +1138,10 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     foreach dataobj [get] {
         foreach cname [$dataobj components] {
             set tag $dataobj-$cname
-            set isvtk 0
-            # FIXME: Would like to use the type method of the dataobj
-            # but the returned value isn't well defined now
-            if {[catch {
-                # Send the data as one huge base64-encoded mess -- yuck!
+            if {[$dataobj type] == "dx"} {
                 set data [$dataobj blob $cname]
-            }]} {
+            } else {
                 set data [$dataobj vtkdata $cname]
-                set isvtk 1
             }
             set nbytes [string length $data]
             if { $_reportClientInfo }  {
