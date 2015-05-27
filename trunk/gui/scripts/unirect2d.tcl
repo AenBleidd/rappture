@@ -28,7 +28,6 @@ itcl::class Rappture::Unirect2d {
     public proc fetch {xmlobj path}
     public proc release {obj}
 
-    public method blob {}
     public method dimensions {} {
         return 2
     }
@@ -48,7 +47,6 @@ itcl::class Rappture::Unirect2d {
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
 
-    private variable _axisOrder  "x y"
     private variable _xMax       0
     private variable _xMin       0
     private variable _xNum       0;     # Number of points along x-axis
@@ -124,11 +122,9 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     foreach {key path} {
-        group   about.group
         label   about.label
         color   about.color
         style   about.style
-        type    about.type
         xlabel  xaxis.label
         xdesc   xaxis.description
         xunits  xaxis.units
@@ -178,18 +174,6 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::destructor {} {
     # empty
-}
-
-# ----------------------------------------------------------------------
-# method blob
-#       Returns a Tcl list that represents the Tcl command and data to
-#       recreate the uniform rectangular grid on the nanovis server.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::blob {} {
-    set data "unirect2d"
-    lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
-    lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
-    return $data
 }
 
 # ----------------------------------------------------------------------

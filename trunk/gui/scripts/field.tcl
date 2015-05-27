@@ -151,16 +151,12 @@ itcl::class Rappture::Field {
     private variable _comp2xy;          # cname => x,y vectors
     private variable _comp2vtk;         # cname => vtk file data
     private variable _comp2dx;          # cname => OpenDX data
-    private variable _comp2unirect2d;   # cname => unirect2d obj
-    private variable _comp2unirect3d;   # cname => unirect3d obj
     private variable _comp2style;       # cname => style settings
     private variable _comp2cntls;       # cname => x,y control points (1D only)
     private variable _comp2limits;      # cname => List of axis, min/max list
     private variable _comp2flowhints;   # cname => Rappture::FlowHints obj
     private variable _comp2mesh;        # list: mesh obj, BLT vector of values
                                         # valid for cloud,mesh,unirect2d
-    private variable _values "";        # Only for unirect2d - list of values
-
     private common _alwaysConvertDX 0;  # If set, convert DX and store as VTK,
                                         # even if viewer is nanovis/flowvis
     private common _counter 0;          # counter for unique vector names
@@ -220,12 +216,6 @@ itcl::body Rappture::Field::destructor {} {
 
     foreach name [array names _comp2xy] {
         eval blt::vector destroy $_comp2xy($name)
-    }
-    foreach name [array names _comp2unirect2d] {
-        itcl::delete object $_comp2unirect2d($name)
-    }
-    foreach name [array names _comp2unirect3d] {
-        itcl::delete object $_comp2unirect3d($name)
     }
     foreach name [array names _comp2flowhints] {
         itcl::delete object $_comp2flowhints($name)
@@ -323,12 +313,6 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
     if {[info exists _comp2mesh($cname)]} {
         error "method \"mesh\" is not implemented for Rappture::Mesh"
     }
-    if {[info exists _comp2unirect2d($cname)]} {
-        error "method \"mesh\" is not implemented for unirect2d"
-    }
-    if {[info exists _comp2unirect3d($cname)]} {
-        error "method \"mesh\" is not implemented for unirect3d"
-    }
     error "can't get field mesh: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
 
@@ -356,12 +340,6 @@ itcl::body Rappture::Field::values {cname} {
     if {[info exists _comp2mesh($cname)]} {
         return [lindex $_comp2mesh($cname) 1] ;# return vector
     }
-    if {[info exists _comp2unirect2d($cname)]} {
-        error "method \"values\" is not implemented for unirect2d"
-    }
-    if {[info exists _comp2unirect3d($cname)]} {
-        error "method \"values\" is not implemented for unirect3d"
-    }
     error "can't get field values. Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
 
@@ -377,18 +355,10 @@ itcl::body Rappture::Field::blob {cname} {
     if {[info exists _comp2dx($cname)]} {
         return $_comp2dx($cname)  ;# return gzipped, base64-encoded DX data
     }
-    if {[info exists _comp2unirect2d($cname)]} {
-        set blob [$_comp2unirect2d($cname) blob]
-        lappend blob "values" $_values
-        return $blob
-    }
-    if {[info exists _comp2unirect3d($cname)]} {
-        return [$_comp2unirect3d($cname) blob]
-    }
     if {[info exists _comp2mesh($cname)]} {
         error "method \"blob\" not implemented for Rappture::Mesh"
     }
-    if { [info exists _comp2vtk($cname)] } {
+    if {[info exists _comp2vtk($cname)]} {
         error "method \"blob\" not implemented for VTK file data"
     }
     if {[info exists _comp2xy($cname)]} {
@@ -749,18 +719,10 @@ itcl::body Rappture::Field::Build {} {
         eval blt::vector destroy $_comp2xy($name)
     }
     array unset _comp2vtk
-    foreach name [array names _comp2unirect2d] {
-        eval itcl::delete object $_comp2unirect2d($name)
-    }
-    foreach name [array names _comp2unirect3d] {
-        eval itcl::delete object $_comp2unirect3d($name)
-    }
     catch {unset _comp2xy}
     catch {unset _comp2dx}
     catch {unset _comp2dims}
     catch {unset _comp2style}
-    array unset _comp2unirect2d
-    array unset _comp2unirect3d
     array unset _dataobj2type
     #
     # Scan through the components of the field and create
@@ -1320,53 +1282,6 @@ itcl::body Rappture::Field::vtkdata {cname} {
         set data [Rappture::encoding::decode -as zb64 $data]
         return [Rappture::DxToVtk $data]
     }
-    # unirect2d (deprecated)
-    # This can be removed when the nanovis server with support for loading VTK
-    # vector data is released
-    if {[info exists _comp2unirect2d($cname)]} {
-        set label $cname
-        regsub -all { } $label {_} label
-        set elemSize [numComponents $cname]
-        set numValues [$_comp2unirect2d($cname) numpoints]
-        append out "# vtk DataFile Version 3.0\n"
-        append out "[hints label]\n"
-        append out "ASCII\n"
-        append out [$_comp2unirect2d($cname) vtkdata]
-        append out "POINT_DATA $numValues\n"
-        if {$elemSize == 3} {
-            append out "VECTORS $label double\n"
-        } else {
-            append out "SCALARS $label double $elemSize\n"
-            append out "LOOKUP_TABLE default\n"
-        }
-        # values for VTK are x-fastest
-        append out $_values
-        append out "\n"
-        return $out
-    }
-    # unirect3d (deprecated)
-    if {[info exists _comp2unirect3d($cname)]} {
-        set vector [$_comp2unirect3d($cname) values]
-        set label $cname
-        regsub -all { } $label {_} label
-        set elemSize [numComponents $cname]
-        set numValues [expr [$vector length] / $elemSize]
-        append out "# vtk DataFile Version 3.0\n"
-        append out "[hints label]\n"
-        append out "ASCII\n"
-        append out [$_comp2unirect3d($cname) vtkdata]
-        append out "POINT_DATA $numValues\n"
-        if {$elemSize == 3} {
-            append out "VECTORS $label double\n"
-        } else {
-            append out "SCALARS $label double $elemSize\n"
-            append out "LOOKUP_TABLE default\n"
-        }
-        # values for VTK are x-fastest
-        append out [$vector range 0 end]
-        append out "\n"
-        return $out
-    }
     # Points on mesh:  Construct VTK file output.
     if { [info exists _comp2mesh($cname)] } {
         # Data is in the form mesh and vector
@@ -1457,65 +1372,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     set _fld2Components($name) $_comp2size($cname)
     lappend _comp2fldName($cname) $name
 
-    # Handle bizarre cases that are due to be removed.
-    if { $element == "unirect3d" } {
-        # Special case: unirect3d (deprecated) + flow.
-        set vectorsize [numComponents $cname]
-        set _type unirect3d
-        set _dim 3
-        if { $_viewer == "" } {
-            set _viewer flowvis
-        }
-        set _comp2dims($cname) "3D"
-        set _comp2unirect3d($cname) \
-            [Rappture::Unirect3d \#auto $_xmlobj $_field $cname $vectorsize]
-        set _comp2style($cname) [$_field get $cname.style]
-        set limits {}
-        foreach axis { x y z } {
-            lappend limits $axis [$_comp2unirect3d($cname) limits $axis]
-        }
-        # Get the data limits
-        set vector [$_comp2unirect3d($cname) values]
-        set minmax [VectorLimits $vector $vectorsize]
-        lappend limits $cname $minmax
-        lappend limits v      $minmax
-        set _comp2limits($cname) $limits
-        if {[$_field element $cname.flow] != ""} {
-            set _comp2flowhints($cname) \
-                [Rappture::FlowHints ::\#auto $_field $cname $_units]
-        }
-        incr _counter
-        return 1
-    }
-    if { $element == "unirect2d" && [$_field element $cname.flow] != "" } {
-        # Special case: unirect2d (deprecated) + flow.
-        set vectorsize [numComponents $cname]
-        set _type unirect2d
-        set _dim 2
-        if { $_viewer == "" } {
-            set _viewer "flowvis"
-        }
-        set _comp2dims($cname) "2D"
-        set _comp2unirect2d($cname) \
-            [Rappture::Unirect2d \#auto $_xmlobj $path]
-        set _comp2style($cname) [$_field get $cname.style]
-        set _comp2flowhints($cname) \
-            [Rappture::FlowHints ::\#auto $_field $cname $_units]
-        set _values [$_field get $cname.values]
-        set limits {}
-        foreach axis { x y z } {
-            lappend limits $axis [$_comp2unirect2d($cname) limits $axis]
-        }
-        set xv [blt::vector create \#auto]
-        $xv set $_values
-        set minmax [VectorLimits $xv $vectorsize]
-        lappend limits $cname $minmax
-        lappend limits v $minmax
-        blt::vector destroy $xv
-        set _comp2limits($cname) $limits
-        incr _counter
-        return 1
-    }
     switch -- $element {
         "cloud" {
             set mesh [Rappture::Cloud::fetch $_xmlobj $path]
@@ -1531,6 +1387,10 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
             }
             set mesh [Rappture::Unirect2d::fetch $_xmlobj $path]
             set _type unirect2d
+        }
+        "unirect3d" {
+            set mesh [Rappture::Unirect3d::fetch $_xmlobj $path]
+            set _type unirect3d
         }
     }
     if { ![$mesh isvalid] } {
