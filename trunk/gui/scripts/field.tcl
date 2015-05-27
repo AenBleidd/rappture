@@ -90,8 +90,6 @@ itcl::class Rappture::Field {
     }
     public method flowhints { cname }
     public method hints {{key ""}}
-    public method isunirect2d {}
-    public method isunirect3d {}
     public method isvalid {} {
         return $_isValid
     }
@@ -1092,24 +1090,6 @@ itcl::body Rappture::Field::_getValue {expr} {
     }
 
     return [list $expr $pcomp]
-}
-
-#
-# isunirect2d  --
-#
-# Returns if the field is a unirect2d object.
-#
-itcl::body Rappture::Field::isunirect2d { } {
-    return [expr [array size _comp2unirect2d] > 0]
-}
-
-#
-# isunirect3d  --
-#
-# Returns if the field is a unirect3d object.
-#
-itcl::body Rappture::Field::isunirect3d { } {
-    return [expr [array size _comp2unirect3d] > 0]
 }
 
 #
