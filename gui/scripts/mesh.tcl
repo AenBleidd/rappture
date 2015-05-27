@@ -44,7 +44,6 @@ itcl::class Rappture::Mesh {
     public method points {}
     public method elements {}
     public method mesh {{-type "vtk"}}
-    public method size {{what -points}}
     public method dimensions {}
     public method limits {which}
     public method units { axis }
@@ -332,25 +331,6 @@ itcl::body Rappture::Mesh::mesh { {type "vtk"} } {
         }
         default {
             error "Requested mesh type \"$type\" is unknown."
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: size ?-points|-elements?
-#
-# Returns the number of points in this mesh.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Mesh::size {{what -points}} {
-    switch -- $what {
-        -points {
-            return $_numPoints
-        }
-        -elements {
-            return $_numCells
-        }
-        default {
-            error "bad option \"$what\": should be -points or -elements"
         }
     }
 }
