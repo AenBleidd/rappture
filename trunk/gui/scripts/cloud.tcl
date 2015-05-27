@@ -17,20 +17,6 @@ package require Itcl
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Cloud {
-    private variable _xmlobj "";        # ref to XML obj with device data
-    private variable _cloud "";         # lib obj representing this cloud
-    private variable _units "" ;        # system of units for x, y, z
-    private variable _axis2label;       #
-    private variable _axis2units;       #
-    private variable _limits;           # limits x, y, z
-    private common _xp2obj ;            # Used for fetch/release ref counting
-    private common _obj2ref ;           # Used for fetch/release ref counting
-    private variable _numPoints 0
-    private variable _vtkdata ""
-    private variable _points ""
-    private variable _dim 0
-    private variable _isValid 0;        # Indicates if the data is valid.
-
     constructor {xmlobj path} {
         # defined below
     }
@@ -42,7 +28,6 @@ itcl::class Rappture::Cloud {
     public method units { axis }
     public method label { axis }
     public method vtkdata {}
-    public method size {}
     public method dimensions {}
     public method limits {which}
     public method hints {{key ""}}
@@ -52,8 +37,24 @@ itcl::class Rappture::Cloud {
     public method isvalid {} {
         return $_isValid
     }
+
     public proc fetch {xmlobj path}
     public proc release {obj}
+
+    private variable _xmlobj "";        # ref to XML obj with device data
+    private variable _cloud "";         # lib obj representing this cloud
+    private variable _units "" ;        # system of units for x, y, z
+    private variable _axis2label;       #
+    private variable _axis2units;       #
+    private variable _limits;           # limits x, y, z
+    private variable _numPoints 0
+    private variable _vtkdata ""
+    private variable _points ""
+    private variable _dim 0
+    private variable _isValid 0;        # Indicates if the data is valid.
+
+    private common _xp2obj ;            # Used for fetch/release ref counting
+    private common _obj2ref ;           # Used for fetch/release ref counting
 }
 
 # ----------------------------------------------------------------------
@@ -220,15 +221,6 @@ itcl::body Rappture::Cloud::points {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::mesh {} {
     return $_points
-}
-
-# ----------------------------------------------------------------------
-# USAGE: size
-#
-# Returns the number of points in this cloud.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Cloud::size {} {
-    return $_numPoints
 }
 
 # ----------------------------------------------------------------------
