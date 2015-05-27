@@ -1,7 +1,7 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*-
 
 # ----------------------------------------------------------------------
-#  COMPONENT: unirect3d - represents a uniform rectangular 2-D mesh.
+#  COMPONENT: unirect3d - represents a uniform rectangular 3-D mesh.
 #
 #  This object represents one field in an XML description of a device.
 #  It simplifies the process of extracting data vectors that represent
@@ -19,14 +19,15 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect3d {
-    constructor {xmlobj field cname {numComponents 1}} {
+    constructor {xmlobj path} {
         # defined below
     }
     destructor {
         # defined below
     }
+    public proc fetch {xmlobj path}
+    public proc release {obj}
 
-    public method blob {}
     public method dimensions {} {
         return 3
     }
@@ -39,18 +40,13 @@ itcl::class Rappture::Unirect3d {
     public method numpoints {} {
         return $_numPoints
     }
-    public method order {} {
-        return _axisOrder;
-    }
     public method units { axis }
-    public method values {}
     public method vtkdata {{what -partial}} {}
 
     private method GetString { obj path varName }
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
 
-    private variable _axisOrder  "x y z"
     private variable _xMax       0
     private variable _xMin       0
     private variable _xNum       0;     # Number of points along x-axis
@@ -60,22 +56,67 @@ itcl::class Rappture::Unirect3d {
     private variable _zMax       0
     private variable _zMin       0
     private variable _zNum       0;     # Number of points along z-axis
-    private variable _compNum    1;     # Number of components in values
-    private variable _values     "";    # BLT vector containing the values
     private variable _hints
     private variable _vtkdata    ""
     private variable _numPoints  0
     private variable _isValid    0;     # Indicates if the data is valid.
+
+    private common _xp2obj       ;      # used for fetch/release ref counting
+    private common _obj2ref      ;      # used for fetch/release ref counting
+}
+
+#
+# fetch <xmlobj> <path>
+#
+#    Clients use this instead of a constructor to fetch the Mesh for a
+#    particular <path> in the <xmlobj>.  When the client is done with the mesh,
+#    he calls "release" to decrement the reference count.  When the mesh is no
+#    longer needed, it is cleaned up automatically.
+#
+itcl::body Rappture::Unirect3d::fetch {xmlobj path} {
+    set handle "$xmlobj|$path"
+    if {[info exists _xp2obj($handle)]} {
+        set obj $_xp2obj($handle)
+        incr _obj2ref($obj)
+        return $obj
+    }
+    set obj [Rappture::Unirect3d ::#auto $xmlobj $path]
+    set _xp2obj($handle) $obj
+    set _obj2ref($obj) 1
+    return $obj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::Unirect3d::release <obj>
+#
+# Clients call this when they're no longer using a Mesh fetched
+# previously by the "fetch" proc.  This decrements the reference
+# count for the mesh and destroys the object when it is no longer
+# in use.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Unirect3d::release { obj } {
+    if { ![info exists _obj2ref($obj)] } {
+        error "can't find reference count for $obj"
+    }
+    incr _obj2ref($obj) -1
+    if {$_obj2ref($obj) <= 0} {
+        unset _obj2ref($obj)
+        foreach handle [array names _xp2obj] {
+            if {$_xp2obj($handle) == $obj} {
+                unset _xp2obj($handle)
+            }
+        }
+        itcl::delete object $obj
+    }
 }
 
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1}} {
+itcl::body Rappture::Unirect3d::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
-    set path [$field get $cname.mesh]
     set m [$xmlobj element -as object $path]
     GetValue $m "xaxis.min" _xMin
     GetValue $m "xaxis.max" _xMax
@@ -86,13 +127,10 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
     GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     GetSize $m "zaxis.numpoints" _zNum
-    set _compNum $numComponents
     foreach {key path} {
-        group   about.group
         label   about.label
         color   about.color
         style   about.style
-        type    about.type
         xlabel  xaxis.label
         xdesc   xaxis.description
         xunits  xaxis.units
@@ -111,15 +149,8 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
         zscale  zaxis.scale
         zmin    zaxis.min
         zmax    zaxis.max
-        order   about.axisorder
     } {
         set str [$m get $path]
-        if {"" != $str} {
-            set _hints($key) $str
-        }
-    }
-    foreach {key} { axisorder } {
-        set str [$field get $cname.$key]
         if {"" != $str} {
             set _hints($key) $str
         }
@@ -129,12 +160,6 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
     if { $_numPoints == 0 } {
         set _vtkdata ""
         return
-    }
-    set _values [blt::vector create #auto]
-    $_values set [$field get "$cname.values"]
-    set n [expr $_numPoints * $_compNum]
-    if { [$_values length] != $n } {
-        error "wrong \# of values in \"$cname.values\": expected $n values, got [$_values length]"
     }
     append out "DATASET STRUCTURED_POINTS\n"
     append out "DIMENSIONS $_xNum $_yNum $_zNum\n"
@@ -164,34 +189,7 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {numComponents 1
 # Destructor
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::destructor {} {
-    if { $_values != "" } {
-        blt::vector destroy $_values
-    }
-}
-
-# ----------------------------------------------------------------------
-# method blob
-#       Returns a Tcl list that represents the Tcl command and data to
-#       recreate the uniform rectangular grid on the nanovis server.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::blob {} {
-    set data "unirect3d"
-    lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
-    lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
-    lappend data "zmin" $_zMin "zmax" $_zMax "znum" $_zNum
-    lappend data "axisorder" $_axisOrder
-    if { [$_values length] > 0 } {
-        lappend data "values" [$_values range 0 end]
-    }
-    return $data
-}
-
-# ----------------------------------------------------------------------
-# method values
-#       Returns a BLT vector that represents the field values
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::values {} {
-    return $_values
+    # empty
 }
 
 # ----------------------------------------------------------------------
@@ -215,15 +213,6 @@ itcl::body Rappture::Unirect3d::limits {which} {
         z - zlin - zlog {
             set min $_zMin
             set max $_zMax
-        }
-        v - vlin - vlog {
-            if { [$_values length] > 0 } {
-               set min [blt::vector expr min($_values)]
-               set max [blt::vector expr max($_values)]
-            } else {
-                set min 0.0
-                set max 1.0
-            }
         }
         default {
             error "unknown axis description \"$which\""
@@ -276,7 +265,6 @@ itcl::body Rappture::Unirect3d::hints { {keyword ""} } {
         && [info exists _hints(zunits)] && "" != $_hints(zunits)} {
         set _hints(ylabel) "$_hints(zlabel) ($_hints(zunits))"
     }
-
     if {[info exists _hints(group)] && [info exists _hints(label)]} {
         # pop-up help for each curve
         set _hints(tooltip) $_hints(label)
