@@ -305,7 +305,7 @@ itcl::body Rappture::Field::components {args} {
 # USAGE: mesh ?<name>?
 #
 # For 1D data (curve), returns a BLT vector of x values for the field
-# component <name>.  Otherwise, this method is unused
+# component <name>.  Otherwise, this method is unused.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::mesh {{cname -overall}} {
     if {$cname == "-overall" || $cname == "component0"} {
@@ -315,24 +315,19 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
         return [lindex $_comp2xy($cname) 0]  ;# return xv
     }
     if {[info exists _comp2vtk($cname)]} {
-        # FIXME: extract mesh from VTK file data.
         error "method \"mesh\" is not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
         error "method \"mesh\" is not implemented for DX file data"
     }
     if {[info exists _comp2mesh($cname)]} {
-        # FIXME: This only works for cloud
-        set mesh [lindex $_comp2mesh($cname) 0]
-        return [$mesh points]
+        error "method \"mesh\" is not implemented for Rappture::Mesh"
     }
     if {[info exists _comp2unirect2d($cname)]} {
-        # FIXME: unirect2d mesh is a list: xMin xMax xNum yMin yMax yNum
-        return [$_comp2unirect2d($cname) mesh]
+        error "method \"mesh\" is not implemented for unirect2d"
     }
     if {[info exists _comp2unirect3d($cname)]} {
-        # This returns a list of x,y,z points
-        return [$_comp2unirect3d($cname) mesh]
+        error "method \"mesh\" is not implemented for unirect3d"
     }
     error "can't get field mesh: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -341,7 +336,9 @@ itcl::body Rappture::Field::mesh {{cname -overall}} {
 # USAGE: values ?<name>?
 #
 # For 1D data (curve), returns a BLT vector of field values (y coords)
-# for the field component <name>.  Otherwise, this method is unused
+# for the field component <name>.  Otherwise, this method is unused.
+# The number of elements in the vector should be a multiple of the
+# return value of [numComponents]
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::values {cname} {
     if {$cname == "component0"} {
@@ -350,22 +347,20 @@ itcl::body Rappture::Field::values {cname} {
     if {[info exists _comp2xy($cname)]} {
         return [lindex $_comp2xy($cname) 1]  ;# return yv
     }
-    if { [info exists _comp2vtk($cname)] } {
-        # FIXME: extract the values from the VTK file data
+    if {[info exists _comp2vtk($cname)]} {
         error "method \"values\" is not implemented for VTK file data"
     }
     if {[info exists _comp2dx($cname)]} {
         error "method \"values\" is not implemented for DX file data"
     }
-    if { [info exists _comp2mesh($cname)] } {
-        set vector [lindex $_comp2mesh($cname) 1]
-        return [$vector range 0 end]
+    if {[info exists _comp2mesh($cname)]} {
+        return [lindex $_comp2mesh($cname) 1] ;# return vector
     }
     if {[info exists _comp2unirect2d($cname)]} {
-        return $_values
+        error "method \"values\" is not implemented for unirect2d"
     }
     if {[info exists _comp2unirect3d($cname)]} {
-        return [$_comp2unirect3d($cname) values]
+        error "method \"values\" is not implemented for unirect3d"
     }
     error "can't get field values. Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -390,11 +385,14 @@ itcl::body Rappture::Field::blob {cname} {
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) blob]
     }
+    if {[info exists _comp2mesh($cname)]} {
+        error "method \"blob\" not implemented for Rappture::Mesh"
+    }
     if { [info exists _comp2vtk($cname)] } {
-        error "blob not implemented for VTK file data"
+        error "method \"blob\" not implemented for VTK file data"
     }
     if {[info exists _comp2xy($cname)]} {
-        error "blob not implemented for XY data"
+        error "method \"blob\" not implemented for XY data"
     }
     error "can't get field blob: Unknown component \"$cname\": should be one of [join [lsort [array names _comp2dims]] {, }]"
 }
