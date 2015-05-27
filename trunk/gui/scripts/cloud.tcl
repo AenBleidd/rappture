@@ -24,7 +24,6 @@ itcl::class Rappture::Cloud {
         # defined below
     }
     public method points {}
-    public method mesh {}
     public method units { axis }
     public method label { axis }
     public method vtkdata {}
@@ -211,15 +210,6 @@ itcl::body Rappture::Cloud::destructor {} {
 # Returns a string containing the points for this mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::points {} {
-    return $_points
-}
-
-# ----------------------------------------------------------------------
-# USAGE: mesh
-#
-# Returns the vtk object representing the mesh.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Cloud::mesh {} {
     return $_points
 }
 

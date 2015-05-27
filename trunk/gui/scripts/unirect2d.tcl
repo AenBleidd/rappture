@@ -38,7 +38,6 @@ itcl::class Rappture::Unirect2d {
     }
     public method label { axis }
     public method limits {axis}
-    public method mesh {}
     public method numpoints {} {
         return $_numPoints
     }
@@ -191,15 +190,6 @@ itcl::body Rappture::Unirect2d::blob {} {
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
     return $data
-}
-
-# ----------------------------------------------------------------------
-# method mesh
-#       Returns a Tcl list that represents the mesh limits and dims.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::mesh {} {
-    lappend out $_xMin $_xMax $_xNum $_yMin $_yMax $_yNum
-    return $out
 }
 
 # ----------------------------------------------------------------------

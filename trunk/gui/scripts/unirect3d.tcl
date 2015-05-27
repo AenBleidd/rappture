@@ -36,7 +36,6 @@ itcl::class Rappture::Unirect3d {
     }
     public method label { axis }
     public method limits {axis}
-    public method mesh {}
     public method numpoints {} {
         return $_numPoints
     }
@@ -183,29 +182,6 @@ itcl::body Rappture::Unirect3d::blob {} {
     lappend data "axisorder" $_axisOrder
     if { [$_values length] > 0 } {
         lappend data "values" [$_values range 0 end]
-    }
-    return $data
-}
-
-# ----------------------------------------------------------------------
-# method mesh
-#       Returns a Tcl list that represents the points of the uniform
-#       grid.  Each point has x,y and z values in the list.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::mesh {} {
-    set dx [expr {($_xMax - $_xMin) / double($_xNum - 1)}]
-    set dy [expr {($_yMax - $_yMin) / double($_yNum - 1)}]
-    set dz [expr {($_zMax - $_zMin) / double($_zNum - 1)}]
-    foreach {a b c} $_axisOrder break
-    for { set i 0 } { $i < [set _${a}Num] } { incr i } {
-        set v1 [expr {[set _${a}Min] + (double($i) * [set d${a}])}]
-        for { set j 0 } { $j < [set _${b}Num] } { incr j } {
-            set v2 [expr {[set _${b}Min] + (double($i) * [set d${b}])}]
-            for { set k 0 } { $k < [set _${c}Num] } { incr k } {
-                set v3 [expr {[set _${c}Min] + (double($i) * [set d${c}])}]
-                lappend data $v1 $v2 $v3
-            }
-        }
     }
     return $data
 }
