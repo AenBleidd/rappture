@@ -207,7 +207,7 @@ itcl::body Rappture::Cloud::destructor {} {
 # ----------------------------------------------------------------------
 # USAGE: points
 #
-# Returns the vtk object containing the points for this mesh.
+# Returns a string containing the points for this mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::points {} {
     return $_points
