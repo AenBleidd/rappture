@@ -1135,14 +1135,14 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
     set data {}
     set count 0
     set _numCells 0
-    set celltypes {}
+    set celltypesout {}
     foreach line $lines {
         set length [llength $line]
         if { $length == 0 } {
             continue
         }
         if { $numCellTypes > 1 } {
-            set cellType [GetCellType [lindex $cellTypes $_numCells]]
+            set celltype [GetCellType [lindex $celltypes $_numCells]]
         }
         set numIndices [GetNumIndices $celltype]
         if { $numIndices > 0 && $numIndices != $length } {
@@ -1152,7 +1152,7 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
             set numIndices $length
         }
         append data " $numIndices $line\n"
-        lappend celltypes $celltype
+        lappend celltypesout $celltype
         incr count $length;         # Include the indices
         incr count;                 # and the number of indices
         incr _numCells
@@ -1166,7 +1166,7 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
     append out "CELLS $_numCells $count\n"
     append out $data
     append out "CELL_TYPES $_numCells\n"
-    append out $celltypes
+    append out $celltypesout
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
     if { $_dim < 3 } {
