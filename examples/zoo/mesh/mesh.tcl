@@ -153,7 +153,7 @@ switch -- $meshtype {
 	    append celltypes "triangle\n"
 	}
 	$driver put -type file -compress no $mesh.unstructured.points points.txt
-	$driver put $mesh.unstructured.celltypes "triangle"
+	$driver put $mesh.unstructured.celltypes $celltypes
 	$driver put $mesh.unstructured.cells $cells
     }
     "vtkmesh" {
