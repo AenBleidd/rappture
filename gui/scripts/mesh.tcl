@@ -814,14 +814,14 @@ itcl::body Rappture::Mesh::WriteTriangles { path xv yv zv triangles } {
     set data {}
     set celltypes {}
     foreach { a b c } $triangles {
-        append data " 3 $a $b $c\n"
+        append data "3 $a $b $c\n"
         append celltypes "5\n"
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     set count [expr $_numCells * 4]
     append out "CELLS $_numCells $count\n"
@@ -846,14 +846,14 @@ itcl::body Rappture::Mesh::WriteQuads { path xv yv zv quads } {
     set data {}
     set celltypes {}
     foreach { a b c d } $quads {
-        append data " 4 $a $b $c $d\n"
+        append data "4 $a $b $c $d\n"
         append celltypes "9\n"
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     set count [expr $_numCells * 5]
     append out "CELLS $_numCells $count\n"
@@ -883,14 +883,14 @@ itcl::body Rappture::Mesh::WriteVertices { path xv yv zv vertices } {
         if { $numIndices == 0 } {
             continue
         }
-        append data " $numIndices $line\n"
+        append data "$numIndices $line\n"
         incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     append out "VERTICES $_numCells $count\n"
     append out $data
@@ -917,14 +917,14 @@ itcl::body Rappture::Mesh::WriteLines { path xv yv zv polylines } {
         if { $numIndices == 0 } {
             continue
         }
-        append data " $numIndices $line\n"
+        append data "$numIndices $line\n"
         incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     append out "LINES $_numCells $count\n"
     append out $data
@@ -951,14 +951,14 @@ itcl::body Rappture::Mesh::WritePolygons { path xv yv zv polygons } {
         if { $numIndices == 0 } {
             continue
         }
-        append data " $numIndices $line\n"
+        append data "$numIndices $line\n"
         incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     append out "POLYGONS $_numCells $count\n"
     append out $data
@@ -985,14 +985,14 @@ itcl::body Rappture::Mesh::WriteTriangleStrips { path xv yv zv trianglestrips } 
         if { $numIndices == 0 } {
             continue
         }
-        append data " $numIndices $line\n"
+        append data "$numIndices $line\n"
         incr _numCells
         set count [expr $count + $numIndices + 1]
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     append out "TRIANGLE_STRIPS $_numCells $count\n"
     append out $data
@@ -1014,14 +1014,14 @@ itcl::body Rappture::Mesh::WriteTetrahedrons { path xv yv zv tetras } {
     set data {}
     set celltypes {}
     foreach { a b c d } $tetras {
-        append data " 4 $a $b $c $d\n"
+        append data "4 $a $b $c $d\n"
         append celltypes "10\n"
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     set count [expr $_numCells * 5]
     append out "CELLS $_numCells $count\n"
@@ -1043,14 +1043,14 @@ itcl::body Rappture::Mesh::WriteHexahedrons { path xv yv zv hexas } {
     set data {}
     set celltypes {}
     foreach { a b c d e f g h } $hexas {
-        append data " 8 $a $b $c $d $e $f $g $h\n"
+        append data "8 $a $b $c $d $e $f $g $h\n"
         append celltypes "12\n"
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     set count [expr $_numCells * 9]
     append out "CELLS $_numCells $count\n"
@@ -1072,14 +1072,14 @@ itcl::body Rappture::Mesh::WriteWedges { path xv yv zv wedges } {
     set data {}
     set celltypes {}
     foreach { a b c d e f } $wedges {
-        append data " 6 $a $b $c $d $e $f\n"
+        append data "6 $a $b $c $d $e $f\n"
         append celltypes "13\n"
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     set count [expr $_numCells * 7]
     append out "CELLS $_numCells $count\n"
@@ -1101,14 +1101,14 @@ itcl::body Rappture::Mesh::WritePyramids { path xv yv zv pyramids } {
     set data {}
     set celltypes {}
     foreach { a b c d e } $pyramids {
-        append data " 5 $a $b $c $d $e\n"
+        append data "5 $a $b $c $d $e\n"
         append celltypes "14\n"
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-        append out " $x $y $z\n"
+        append out "$x $y $z\n"
     }
     set count [expr $_numCells * 6]
     append out "CELLS $_numCells $count\n"
@@ -1151,18 +1151,17 @@ itcl::body Rappture::Mesh::WriteHybridCells { path xv yv zv cells celltypes } {
         } else {
             set numIndices $length
         }
-        append data " $numIndices $line\n"
-        lappend celltypesout $celltype
+        append data "$numIndices $line\n"
+        append celltypesout "$celltype\n"
         incr count $length;         # Include the indices
         incr count;                 # and the number of indices
         incr _numCells
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
-    set all [blt::vector create \#auto]
-    $all merge $xv $yv $zv
-    append out [$all range 0 end]
-    blt::vector destroy $all
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+        append out "$x $y $z\n"
+    }
     append out "CELLS $_numCells $count\n"
     append out $data
     append out "CELL_TYPES $_numCells\n"
@@ -1436,7 +1435,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
             return 0
         }
         set celltype $node2celltype($numNodes)
-        append celltypes "  $celltype\n"
+        append celltypes "$celltype\n"
         if { $celltype == 12 } {
             # Formerly used voxels instead of hexahedrons. We're converting
             # it here to be backward compatible and still fault-tolerant of
@@ -1447,7 +1446,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
             }
             set nodeList $newList
         }
-        append data "  $numNodes $nodeList\n"
+        append data "$numNodes $nodeList\n"
         incr _numCells
         incr count $numNodes
         incr count;                        # One extra for the VTK celltype id.
@@ -1461,7 +1460,6 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     append out $data
     append out "CELL_TYPES $_numCells\n"
     append out $celltypes
-    append out "\n"
     set _vtkdata $out
     set _isValid 1
 }
