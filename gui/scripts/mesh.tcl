@@ -22,19 +22,6 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Mesh {
-    private variable _xmlobj ""  ;      # Ref to XML obj with device data
-    private variable _mesh ""    ;      # Lib obj representing this mesh
-    private variable _dim        0;     # Dimension of mesh (1, 2, or 3)
-    private variable _type "";          # Indicates the type of mesh.
-    private variable _axis2units;       # System of units for x, y, z
-    private variable _axis2labels;      #
-    private variable _hints
-    private variable _limits        ;   # Array of mesh limits. Keys are
-                                        # xmin, xmax, ymin, ymax, ...
-    private variable _numPoints 0   ;   # # of points in mesh
-    private variable _numCells 0   ;    # # of cells in mesh
-    private variable _vtkdata "";       # Mesh in vtk file format.
-    private variable _isValid 0;        # Indicates if the mesh is valid.
     constructor {xmlobj path} {
         # defined below
     }
@@ -65,9 +52,6 @@ itcl::class Rappture::Mesh {
         return $_numCells
     }
 
-    private common _xp2obj       ;        # used for fetch/release ref counting
-    private common _obj2ref      ;        # used for fetch/release ref counting
-
     private method ReadNodesElements {path}
     private method GetDimension { path }
     private method GetDouble { path }
@@ -90,6 +74,23 @@ itcl::class Rappture::Mesh {
     private method WritePointCloud { path xv yv zv }
     private method GetCellType { name }
     private method GetNumIndices { type }
+
+    private variable _xmlobj "";        # Ref to XML obj with device data
+    private variable _mesh "";          # Lib obj representing this mesh
+    private variable _dim 0;            # Dimension of mesh (1, 2, or 3)
+    private variable _type "";          # Indicates the type of mesh.
+    private variable _axis2units;       # System of units for x, y, z
+    private variable _axis2labels;      #
+    private variable _hints
+    private variable _limits;           # Array of mesh limits. Keys are
+                                        # xmin, xmax, ymin, ymax, ...
+    private variable _numPoints 0;      # Number of points in mesh
+    private variable _numCells 0;       # Number of cells in mesh
+    private variable _vtkdata "";       # Mesh in vtk file format.
+    private variable _isValid 0;        # Indicates if the mesh is valid.
+
+    private common _xp2obj;             # used for fetch/release ref counting
+    private common _obj2ref;            # used for fetch/release ref counting
 }
 
 # ----------------------------------------------------------------------
