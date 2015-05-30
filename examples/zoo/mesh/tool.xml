@@ -50,6 +50,13 @@
     </option>
     <option>
      <about>
+      <label>mesh as a structured (curvilinear) grid</label>
+      <description>Structured 2D grid.</description>
+     </about>
+     <value>structured</value>
+    </option>
+    <option>
+     <about>
       <label>mesh as unstructured grid</label>
       <description>Unstructured 2D grid.</description>
      </about>
