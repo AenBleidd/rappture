@@ -26,7 +26,8 @@ switch -- $meshtype {
     "cloud" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "cloud in unstructured mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "cloud in unstructured mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -43,7 +44,8 @@ switch -- $meshtype {
     "regular" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "uniform grid mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "uniform grid mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -58,7 +60,8 @@ switch -- $meshtype {
     "irregular" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "irregular rectilinear grid mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "irregular rectilinear grid mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -69,7 +72,8 @@ switch -- $meshtype {
     "hybrid" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "hybrid regular and irregular rectilinear grid mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "hybrid regular and irregular rectilinear grid mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -82,7 +86,8 @@ switch -- $meshtype {
     "structured" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "Structured (Curvilinear) Grid"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "Structured (Curvilinear) Grid"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -100,7 +105,8 @@ switch -- $meshtype {
     "triangular" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "triangles in unstructured mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "triangles in unstructured mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -113,7 +119,8 @@ switch -- $meshtype {
     "generic" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "nodes and elements mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "nodes and elements mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -138,7 +145,8 @@ switch -- $meshtype {
     "unstructured" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "Unstructured Grid"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "Unstructured Grid"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
@@ -157,7 +165,8 @@ switch -- $meshtype {
     "cells" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label \
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description \
             "Unstructured Grid with Heterogeneous Cells"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
@@ -178,7 +187,8 @@ switch -- $meshtype {
     "vtkmesh" {
         set mesh output.mesh
 
-        $driver put $mesh.about.label "vtk mesh"
+        $driver put $mesh.about.label "Mesh"
+        $driver put $mesh.about.description "vtk mesh"
         $driver put $mesh.dim  2
         $driver put $mesh.units "m"
         $driver put $mesh.hide $hide
