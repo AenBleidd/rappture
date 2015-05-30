@@ -539,15 +539,22 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
         $all set $points
         set numCoords [$all length]
         if { [info exists zNum] } {
+            if { ![info exists yNum] || ![info exists xNum] } {
+                puts stderr "WARNING: bad grid \"$path\": missing grid dimension"
+                blt::vector destroy $all $xv $yv $zv
+                return 0
+            }
             set _dim 3
             set _numPoints [expr $xNum * $yNum * $zNum]
             set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1) * ($zNum > 1 ? ($zNum - 1) : 1)]
             if { ($_numPoints*3) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": invalid grid: \# of points does not match dimensions <xdim> * <ydim> * <zdim>"
+                blt::vector destroy $all $xv $yv $zv
                 return 0
             }
             if { ($numCoords % 3) != 0 } {
                 puts stderr "WARNING: bad grid \"$path\": wrong \# of coordinates for 3D grid"
+                blt::vector destroy $all $xv $yv $zv
                 return 0
             }
             $all split $xv $yv $zv
@@ -558,21 +565,30 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             append out "DATASET STRUCTURED_GRID\n"
             append out "DIMENSIONS $xNum $yNum $zNum\n"
             append out "POINTS $_numPoints double\n"
-            append out [$all range 0 end]
-            append out "\n"
+            foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+                append out "$x $y $z\n"
+            }
             set _vtkdata $out
         } elseif { [info exists yNum] } {
+            if { ![info exists xNum] } {
+                puts stderr "WARNING: bad grid \"$path\": missing grid dimension"
+                blt::vector destroy $all $xv $yv $zv
+                return 0
+            }
             set _dim 2
             set _numPoints [expr $xNum * $yNum]
             set _numCells [expr ($xNum > 1 ? ($xNum - 1) : 1) * ($yNum > 1 ? ($yNum - 1) : 1)]
             if { ($_numPoints*2) != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": \# of points does not match dimensions <xdim> * <ydim>"
+                blt::vector destroy $all $xv $yv $zv
                 return 0
             }
             if { ($numCoords % 2) != 0 } {
                 puts stderr "WARNING: bad grid \"$path\": wrong \# of coordinates for 2D grid"
+                blt::vector destroy $all $xv $yv $zv
                 return 0
             }
+            $all split $xv $yv
             foreach axis {x y} {
                 set vector [set ${axis}v]
                 set _limits($axis) [$vector limits]
@@ -583,8 +599,9 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             append out "DATASET STRUCTURED_GRID\n"
             append out "DIMENSIONS $xNum $yNum 1\n"
             append out "POINTS $_numPoints double\n"
-            append out [$all range 0 end]
-            append out "\n"
+            foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+                append out "$x $y $z\n"
+            }
             set _vtkdata $out
         } else {
             set _dim 1
@@ -592,8 +609,10 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             set _numCells [expr $xNum - 1]
             if { $_numPoints != $numCoords } {
                 puts stderr "WARNING: bad grid \"$path\": \# of points does not match <xdim>"
+                blt::vector destroy $all $xv $yv $zv
                 return 0
             }
+            $all dup $xv
             set _limits(x) [$xv limits]
             set _limits(y) [list 0 0]
             set _limits(z) [list 0 0]
@@ -603,8 +622,9 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
             append out "DATASET STRUCTURED_GRID\n"
             append out "DIMENSIONS $xNum 1 1\n"
             append out "POINTS $_numPoints double\n"
-            append out [$all range 0 end]
-            append out "\n"
+            foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+                append out "$x $y $z\n"
+            }
             set _vtkdata $out
         }
         blt::vector destroy $all $xv $yv $zv
