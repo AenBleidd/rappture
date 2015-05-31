@@ -17,6 +17,21 @@ package require BLT
 package require Img
 
 itcl::class Rappture::IsoMarker {
+    constructor {c obj tf args} {}
+    destructor {}
+    public method transferfunc {}
+    public method activate { bool }
+    public method visible { bool }
+    public method screenpos {}
+    public method absval { {x "-get"} }
+    public method relval { {x "-get"} }
+
+    private method EnterTick {}
+    private method LeaveTick {}
+    private method StartDrag { x y }
+    private method ContinueDrag { x y }
+    private method StopDrag { x y }
+
     private variable _value     0.0;    # Absolute value of marker.
     private variable _label     ""
     private variable _tick      ""
@@ -26,22 +41,9 @@ itcl::class Rappture::IsoMarker {
                                         # associated with.
     private variable _activeMotion   0
     private variable _activePress    0
+
     private common   _normalIcon [Rappture::icon nvlegendmark]
     private common   _activeIcon [Rappture::icon nvlegendmark2]
-    private method EnterTick {}
-    private method LeaveTick {}
-    private method StartDrag { x y }
-    private method ContinueDrag { x y }
-    private method StopDrag { x y }
-
-    constructor {c obj tf args} {}
-    destructor {}
-    public method transferfunc {}
-    public method activate { bool }
-    public method visible { bool }
-    public method screenpos {}
-    public method absval { {x "-get"} }
-    public method relval { {x "-get"} }
 }
 
 itcl::body Rappture::IsoMarker::constructor {c obj tf args} {
