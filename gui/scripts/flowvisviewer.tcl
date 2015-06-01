@@ -128,9 +128,8 @@ itcl::class Rappture::FlowvisViewer {
     private variable _arcball ""
     private variable _dlist ""         ;# list of data objects
     private variable _obj2ovride       ;# maps dataobj => style override
-    private variable _serverDatasets   ;# contains all the dataobj-component
+    private variable _datasets         ;# contains all the dataobj-component
                                        ;# to volumes in the server
-    private variable _recvdDatasets    ;# list of data objs to send to server
     private variable _dataset2style    ;# maps dataobj-component to transfunc
     private variable _style2datasets   ;# maps tf back to list of
                                        ;# dataobj-components using the tf.
@@ -222,7 +221,6 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
-    set _limits(v) [list 0.0 1.0]
     set _reset 1
 
     array set _settings [subst {
@@ -592,6 +590,9 @@ itcl::body Rappture::FlowvisViewer::destructor {} {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::add {dataobj {settings ""}} {
+    if { ![$dataobj isvalid] } {
+        return;                         # Object doesn't contain valid data.
+    }
     array set params {
         -color auto
         -width 1
@@ -697,29 +698,12 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if { $pos >= 0 } {
             set _dlist [lreplace $_dlist $pos $pos]
-            array unset _limits $dataobj-*
             array unset _obj2ovride $dataobj-*
-            array unset _dataset2flow $dataobj-*
-            array unset _serverDatasets $dataobj-*
-            array unset _dataset2style $dataobj-*
             set changed 1
         }
     }
     # If anything changed, then rebuild the plot
     if {$changed} {
-        # Repair the reverse lookup
-        foreach tf [array names _style2datasets] {
-            set list {}
-            foreach {dataobj cname} $_style2datasets($tf) break
-            if { [info exists _serverDatasets($dataobj-$cname)] } {
-                lappend list $dataobj $cname
-            }
-            if { $list == "" } {
-                array unset _style2datasets $tf
-            } else {
-                set _style2datasets($tf) $list
-            }
-        }
         $_dispatcher event -idle !rebuild
     }
 }
@@ -757,7 +741,7 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
             array set limits [$dataobj valueLimits $cname]
             set _limits($cname) $limits(v)
         }
-        foreach axis {x y z v} {
+        foreach axis {x y z} {
             foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
                 if { ![info exists _limits($axis)] } {
@@ -833,7 +817,7 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
                     return [$this GetVtkData [lindex $args 0]]
                 }
                 default {
-                    error "bad download format $_downloadPopup(format)"
+                    error "bad download format \"$_downloadPopup(format)\""
                 }
             }
         }
@@ -916,7 +900,7 @@ itcl::body Rappture::FlowvisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    array unset _serverDatasets
+    array unset _datasets
 }
 
 # ----------------------------------------------------------------------
@@ -966,11 +950,10 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    ReceiveEcho <<line "<read $info(-bytes) bytes"
-    switch -- $info(-type)  {
+    switch -- $info(-type) {
         "image" {
+            #puts stderr "received image [image width $_image(plot)]x[image height $_image(plot)]"
             $_image(plot) configure -data $bytes
-            #puts stderr "image received [image width $_image(plot)] by [image height $_image(plot)]"
         }
         "print" {
             set tag $this-$info(-token)
@@ -981,7 +964,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
             set _hardcopy($tag) $bytes
         }
         default {
-            puts stderr "unknown download type $info(-type)"
+            puts stderr "unknown image type $info(-type)"
         }
     }
 }
@@ -1057,21 +1040,9 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
 #
 #       The procedure is the response from the render server to each "data
 #       follows" command.  The server sends back a "data" command invoked our
-#       the slave interpreter.  The purpose is to collect the min/max of the
-#       volume sent to the render server.  Since the client (flowvisviewer)
-#       doesn't parse 3D data formats, we rely on the server (nanovis) to
-#       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by _recvdDatasets) we can then determine
-#       what the transfer functions are for these volumes.
-#
-#
-#       Note: There is a considerable tradeoff in having the server report
-#             back what the data limits are.  It means that much of the code
-#             having to do with transfer-functions has to wait for the data
-#             to come back, since the isomarkers are calculated based upon
-#             the data limits.  The client code is much messier because of
-#             this.  The alternative is to parse any of the 3D formats on the
-#             client side.
+#       the slave interpreter.  The purpose was to collect the min/max of the
+#       volume sent to the render server.  This is no longer needed since we
+#       already know the limits.
 #
 itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     if { ![isconnected] } {
@@ -1082,19 +1053,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     array set info $args
 
     set tag $info(tag)
-    set parts [split $tag -]
-
-    #
-    # Volumes don't exist until we're told about them.
-    #
-    set dataobj [lindex $parts 0]
-    set _serverDatasets($tag) 0
     set _limits($tag) [list $info(min) $info(max)]
-
-    unset _recvdDatasets($tag)
-    if { [array size _recvdDatasets] == 0 } {
-        updateTransferFunctions
-    }
 }
 
 # ----------------------------------------------------------------------
@@ -1135,112 +1094,96 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     }
 
     set _first ""
-    foreach dataobj [get] {
+    foreach dataobj [get -objects] {
+        if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
+            set _first $dataobj
+        }
         foreach cname [$dataobj components] {
             set tag $dataobj-$cname
-            if {[$dataobj type] == "dx"} {
-                set data [$dataobj blob $cname]
-            } else {
-                set data [$dataobj vtkdata $cname]
-            }
-            set nbytes [string length $data]
-            if { $_reportClientInfo }  {
-                set info {}
-                lappend info "tool_id"       [$dataobj hints toolid]
-                lappend info "tool_name"     [$dataobj hints toolname]
-                lappend info "tool_title"    [$dataobj hints tooltitle]
-                lappend info "tool_command"  [$dataobj hints toolcommand]
-                lappend info "tool_revision" [$dataobj hints toolrevision]
-                lappend info "dataset_label" [$dataobj hints label]
-                lappend info "dataset_size"  $nbytes
-                lappend info "dataset_tag"   $tag
-                SendCmd "clientinfo [list $info]"
-            }
-            set numComponents [$dataobj numComponents $cname]
-            # I have a field. Is a vector field or a volume field?
-            if { $numComponents == 1 } {
-                SendCmd "volume data follows $nbytes $tag"
-            } else {
-                if {[SendFlowCmd $dataobj $cname $nbytes $numComponents] < 0} {
-                    continue
+            if { ![info exists _datasets($tag)] } {
+                if { [$dataobj type] == "dx" } {
+                    set data [$dataobj blob $cname]
+                } else {
+                    set data [$dataobj vtkdata $cname]
                 }
+                set nbytes [string length $data]
+                if { $_reportClientInfo }  {
+                    set info {}
+                    lappend info "tool_id"       [$dataobj hints toolid]
+                    lappend info "tool_name"     [$dataobj hints toolname]
+                    lappend info "tool_title"    [$dataobj hints tooltitle]
+                    lappend info "tool_command"  [$dataobj hints toolcommand]
+                    lappend info "tool_revision" [$dataobj hints toolrevision]
+                    lappend info "dataset_label" [$dataobj hints label]
+                    lappend info "dataset_size"  $nbytes
+                    lappend info "dataset_tag"   $tag
+                    SendCmd "clientinfo [list $info]"
+                }
+                set numComponents [$dataobj numComponents $cname]
+                # I have a field. Is a vector field or a volume field?
+                if { $numComponents == 1 } {
+                    SendCmd "volume data follows $nbytes $tag"
+                } else {
+                    if {[SendFlowCmd $dataobj $cname $nbytes $numComponents] < 0} {
+                        continue
+                    }
+                }
+                SendData $data
+                set _datasets($tag) 1
+                NameTransferFunction $dataobj $cname
             }
-            SendData $data
-            NameTransferFunction $dataobj $cname
-            set _recvdDatasets($tag) 1
         }
     }
-
-    set _first [lindex [get] 0]
 
     # Turn off cutplanes for all volumes
     foreach axis {x y z} {
         SendCmd "cutplane state 0 $axis"
     }
 
-    # Reset the camera and other view parameters
-    InitSettings -axesvisible -gridvisible \
-        -opacity -light2side -isosurfaceshading \
-        -ambient -diffuse -specularlevel -specularexponent \
-        -volume -outlinevisible -cutplanesvisible \
+    InitSettings -volume -outlinevisible -cutplanesvisible \
         -xcutplanevisible -ycutplanevisible -zcutplanevisible \
         -xcutplaneposition -ycutplaneposition -zcutplaneposition
 
-    # nothing to send -- activate the proper volume
-    if {"" != $_first} {
-        set axis [$_first hints updir]
-        if {"" != $axis} {
-            SendCmd "up $axis"
+    if { $_reset } {
+        InitSettings -axesvisible -gridvisible \
+            -opacity -light2side -isosurfaceshading \
+            -ambient -diffuse -specularlevel -specularexponent
+
+        #
+        # Reset the camera and other view parameters
+        #
+        if {"" != $_first} {
+            set axis [$_first hints updir]
+            if { "" != $axis } {
+                SendCmd "up $axis"
+            }
+            set location [$_first hints camera]
+            if { $location != "" } {
+                array set _view $location
+            }
         }
-        set location [$_first hints camera]
-        if { $location != "" } {
-            array set _view $location
-        }
+        set _settings(-qw)    $_view(-qw)
+        set _settings(-qx)    $_view(-qx)
+        set _settings(-qy)    $_view(-qy)
+        set _settings(-qz)    $_view(-qz)
+        set _settings(-xpan)  $_view(-xpan)
+        set _settings(-ypan)  $_view(-ypan)
+        set _settings(-zoom)  $_view(-zoom)
+
+        set q [ViewToQuaternion]
+        $_arcball quaternion $q
+        SendCmd "camera orient $q"
+        SendCmd "camera reset"
+        PanCamera
+        SendCmd "camera zoom $_view(-zoom)"
     }
-    set _settings(-qw)    $_view(-qw)
-    set _settings(-qx)    $_view(-qx)
-    set _settings(-qy)    $_view(-qy)
-    set _settings(-qz)    $_view(-qz)
-    set _settings(-xpan)  $_view(-xpan)
-    set _settings(-ypan)  $_view(-ypan)
-    set _settings(-zoom)  $_view(-zoom)
 
-    set q [ViewToQuaternion]
-    $_arcball quaternion $q
-    SendCmd "camera orient $q"
-    SendCmd "camera reset"
-    PanCamera
-    SendCmd "camera zoom $_view(-zoom)"
-
-    foreach dataobj [get] {
-        foreach cname [$dataobj components] {
-            NameTransferFunction $dataobj $cname
-        }
-    }
-
-    # nothing to send -- activate the proper ivol
-    set _first [lindex [get] 0]
     if {"" != $_first} {
-        set axis [$_first hints updir]
-        if {"" != $axis} {
-            SendCmd "up $axis"
-        }
-        set location [$_first hints camera]
-        if { $location != "" } {
-            array set _view $location
-        }
         set cname [lindex [$_first components] 0]
         set _activeTf [lindex $_dataset2style($_first-$cname) 0]
+        # Make sure we display the proper transfer function in the legend.
+        updateTransferFunctions
     }
-
-    # sync the state of slicers
-    set vols [CurrentDatasets -cutplanes]
-    foreach axis {x y z} {
-        set pos [expr {0.01*$_settings(-${axis}cutplaneposition)}]
-        SendCmd "cutplane position $pos $axis $vols"
-    }
-    SendCmd "volume data state $_settings(-volume)"
-    EventuallyRedrawLegend
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -1258,19 +1201,19 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::CurrentDatasets {{what -all}} {
-    return ""
+    set rlist ""
     if { $_first == "" } {
         return
     }
-    foreach tag [array names _serverDatasets *-*] {
-        if {[string match $_first-* $tag]} {
+    foreach cname [$_first components] {
+        set tag $_first-$cname
+        if { [info exists _datasets($tag)] && $_datasets($tag) } {
             array set style {
                 -cutplanes 1
             }
-            foreach {dataobj cname} [split $tag -] break
-            array set style [lindex [$dataobj components -style $cname] 0]
-            if {$what != "-cutplanes" || $style(-cutplanes)} {
-                lappend rlist $_serverDatasets($tag)
+            array set style [lindex [$_first components -style $cname] 0]
+            if { $what != "-cutplanes" || $style(-cutplanes) } {
+                lappend rlist $tag
             }
         }
     }
@@ -1942,32 +1885,9 @@ itcl::body Rappture::FlowvisViewer::overMarker { marker x } {
 }
 
 itcl::body Rappture::FlowvisViewer::limits { cname } {
-    set _limits(v) [list 0.0 1.0]
-    if { ![info exists _style2datasets($cname)] } {
-        puts stderr "no _style2datasets for cname=($cname)"
-        return [array get _limits]
-    }
-    set min ""; set max ""
-    foreach tag [GetDatasetsWithComponent $cname] {
-        if { ![info exists _serverDatasets($tag)] } {
-            puts stderr "$tag not in _serverDatasets?"
-            continue
-        }
-        if { ![info exists _limits($tag)] } {
-            puts stderr "$tag no min?"
-            continue
-        }
-        foreach {vmin vmax} $_limits($tag) break
-        if { $min == "" || $min > $vmin } {
-            set min $vmin
-        }
-        if { $max == "" || $max < $vmax } {
-            set max $vmax
-        }
-    }
-    if { $min != "" && $max != "" } {
-        set _limits(v) [list $min $max]
-        set _limits($cname) [list $min $max]
+    if { ![info exists _limits($cname)] } {
+        puts stderr "no limits for cname=($cname)"
+        return [list 0.0 1.0]
     }
     return $_limits($cname)
 }
@@ -3021,7 +2941,7 @@ itcl::body Rappture::FlowvisViewer::GetDatasetsWithComponent { cname } {
     }
     set list ""
     foreach tag $_volcomponents($cname) {
-        if { ![info exists _serverDatasets($tag)] } {
+        if { ![info exists _datasets($tag)] } {
             continue
         }
         lappend list $tag
