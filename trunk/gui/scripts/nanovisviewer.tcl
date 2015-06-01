@@ -797,23 +797,6 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
     }
     $c itemconfigure title -text $title
     $c coords title [expr {$w/2}] $ly
-
-    # The colormap may have changed. Resync the slicers with the colormap.
-    set datasets [CurrentDatasets -cutplanes]
-
-    # Adjust the cutplane for only the first component in the topmost volume
-    # (i.e. the first volume designated in the field).
-    set tag [lindex $datasets 0]
-    foreach axis {x y z} {
-        # Turn off cutplanes for all volumes
-        SendCmd "cutplane state 0 $axis"
-        if { $_settings(-${axis}cutplanevisible) } {
-            # Turn on cutplane for this particular volume and set the position
-            SendCmd "cutplane state 1 $axis $tag"
-            set pos [expr {0.01*$_settings(-${axis}cutplaneposition)}]
-            SendCmd "cutplane position $pos $axis $tag"
-        }
-    }
 }
 
 #
