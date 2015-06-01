@@ -38,10 +38,6 @@ itcl::class Rappture::MapViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    private variable _layersFrame "";     # Name of layers frame widget
-    private variable _viewpointsFrame ""; # Name of viewpoints frame widget
-    private variable _mapsettings;        # Global map settings
-
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
     } {
@@ -131,6 +127,10 @@ itcl::class Rappture::MapViewer {
     private method UpdateViewpointControls {}
     private method Zoom {option {x 0} {y 0}}
 
+    private variable _layersFrame "";     # Name of layers frame widget
+    private variable _viewpointsFrame ""; # Name of viewpoints frame widget
+    private variable _mapsettings;        # Global map settings
+
     private variable _dlist "";         # list of data objects
     private variable _obj2ovride;       # maps dataobj => style override
     private variable _layers;           # Contains the names of all the
@@ -154,8 +154,6 @@ itcl::class Rappture::MapViewer {
     private variable _start 0
     private variable _title ""
 
-    private common _downloadPopup;      # download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
@@ -163,6 +161,9 @@ itcl::class Rappture::MapViewer {
     private variable _useServerManip 0
     private variable _labelCount 0
     private variable _b1mode "pan"
+
+    private common _downloadPopup;      # download options from popup
+    private common _hardcopy
 }
 
 itk::usual MapViewer {
