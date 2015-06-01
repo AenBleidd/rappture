@@ -22,6 +22,27 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Map {
+    constructor {xmlobj path} {
+        # defined below
+    }
+    destructor {
+        # defined below
+    }
+
+    public method earthfile {}
+    public method hints { args }
+    public method isGeocentric {}
+    public method isvalid {} {
+        return $_isValid;
+    }
+    public method layer { layerName }
+    public method layers {}
+    public method type { layerName }
+    public method viewpoint { viewpointName }
+    public method viewpoints {}
+
+    protected method Parse { xmlobj path }
+
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
     private common _nextLayer 0;       # Counter used to generate unique
@@ -43,26 +64,6 @@ itcl::class Rappture::Map {
         "geocentric"    0
         "projected"     1
     }
-    protected method Parse { xmlobj path }
-
-    constructor {xmlobj path} {
-        # defined below
-    }
-    destructor {
-        # defined below
-    }
-
-    public method earthfile {}
-    public method hints { args }
-    public method isGeocentric {}
-    public method isvalid {} {
-        return $_isValid;
-    }
-    public method layer { layerName }
-    public method layers {}
-    public method type { layerName }
-    public method viewpoint { viewpointName }
-    public method viewpoints {}
 }
 
 # ----------------------------------------------------------------------
