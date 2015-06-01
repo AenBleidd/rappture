@@ -781,6 +781,9 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
 
     # Display the markers used by the current transfer function.
     HideAllMarkers
+    if {$cname == "" || ![info exists _transferFunctionEditors($cname)]} {
+        return
+    }
     $_transferFunctionEditors($cname) showMarkers $_limits($cname)
 
     foreach {min max} $_limits($cname) break
@@ -790,6 +793,9 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
     $c itemconfigure vmax -text [format %g $max]
     $c coords vmax [expr {$w-$lx}] $ly
 
+    if { $_first == "" } {
+        return
+    }
     set title [$_first hints label]
     set units [$_first hints units]
     if { $units != "" } {
@@ -904,25 +910,27 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                 SendCmd "volume data follows $nbytes $tag"
                 SendData $data
                 set _datasets($tag) 1
+                SetObjectStyle $dataobj $cname
             }
-            SetObjectStyle $dataobj $cname
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "volume state 1 $tag"
             }
         }
     }
-    # Outline seems to need to be reset every update.
-    InitSettings -outlinevisible -cutplanesvisible
-    if { $_reset } {
-        # Turn off cutplanes for all volumes
-        foreach axis {x y z} {
-            SendCmd "cutplane state 0 $axis"
-        }
 
+    # Turn off cutplanes for all volumes
+    foreach axis {x y z} {
+        SendCmd "cutplane state 0 $axis"
+    }
+
+    InitSettings -outlinevisible -cutplanesvisible \
+        -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+        -xcutplaneposition -ycutplaneposition -zcutplaneposition
+
+    if { $_reset } {
         InitSettings -axesvisible -gridvisible \
-            -light2side -isosurfaceshading -opacity \
+            -opacity -light2side -isosurfaceshading \
             -ambient -diffuse -specularlevel -specularexponent \
-            -xcutplanevisible -ycutplanevisible -zcutplanevisible \
             -current
 
         #
@@ -958,6 +966,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         # Make sure we display the proper transfer function in the legend.
         updateTransferFunctions
     }
+
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
