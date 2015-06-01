@@ -991,6 +991,9 @@ itcl::body Rappture::FlowvisViewer::DrawLegend { tag } {
         $c bind colorbar <ButtonRelease-1> [itcl::code $this AddIsoMarker %x %y]
     }
 
+    if {$tag == "" || ![info exists _dataset2style($tag)]} {
+        return
+    }
     # Display the markers used by the current transfer function.
     set tf $_dataset2style($tag)
     foreach {min max} [limits $tf] break
@@ -1000,6 +1003,9 @@ itcl::body Rappture::FlowvisViewer::DrawLegend { tag } {
     $c itemconfigure vmax -text [format %g $max]
     $c coords vmax [expr {$w-$lx}] $ly
 
+    if { $_first == "" } {
+        return
+    }
     set title [$_first hints label]
     set units [$_first hints units]
     if { $units != "" } {
