@@ -384,7 +384,7 @@ itcl::body Rappture::Field::valueLimits { cname } {
 # USAGE: limits <axis>
 #
 # Returns a list {min max} representing the limits for the specified
-# axis.
+# axis over all components.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::limits {which} {
     set min ""
@@ -502,8 +502,13 @@ itcl::body Rappture::Field::limits {which} {
 # ----------------------------------------------------------------------
 # USAGE: fieldlimits
 #
-# Returns a list {min max} representing the limits for the specified
-# axis.
+# This method is for use with VTK components that have multiple fields.
+# It really makes no sense to have multiple fields in a field, but this
+# is here until we add a proper dataset object to hold multiple fields.
+#
+# Returns an array mapping fieldname => list {min max} representing the
+# limits over all components for the given fieldname.  This assumes that
+# all components have the same set of fields.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::fieldlimits {} {
     foreach cname [array names _comp2limits] {
