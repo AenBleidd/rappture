@@ -120,9 +120,8 @@ itcl::class Rappture::NanovisViewer {
     private variable _arcball ""
     private variable _dlist ""         ;# list of data objects
     private variable _obj2ovride       ;# maps dataobj => style override
-    private variable _serverDatasets   ;# contains all the dataobj-component
+    private variable _datasets         ;# contains all the dataobj-component
                                        ;# to volumes in the server
-    private variable _recvdDatasets    ;# list of data objs to send to server
 
     private variable _reset 1          ;# Connection to server has been reset.
     private variable _click            ;# Info used for rotate operations.
@@ -195,7 +194,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
-    set _limits(v) [list 0.0 1.0]
     set _reset 1
 
     array set _settings [subst {
@@ -344,6 +342,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         [itcl::code $this Rotate drag %x %y]
     bind $itk_component(3dview) <ButtonRelease-1> \
         [itcl::code $this Rotate release %x %y]
+
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
@@ -562,7 +561,7 @@ itcl::body Rappture::NanovisViewer::scale {args} {
             array set limits [$dataobj valueLimits $cname]
             set _limits($cname) $limits(v)
         }
-        foreach axis {x y z v} {
+        foreach axis {x y z} {
             foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
                 if { ![info exists _limits($axis)] } {
@@ -631,8 +630,10 @@ itcl::body Rappture::NanovisViewer::download {option args} {
                 "vtk" {
                     return [$this GetVtkData [lindex $args 0]]
                 }
+                default {
+                    error "bad download format \"$_downloadPopup(format)\""
+                }
             }
-            return ""
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
@@ -713,7 +714,7 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    array unset _serverDatasets
+    array unset _datasets
 }
 
 # ----------------------------------------------------------------------
@@ -741,13 +742,18 @@ itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    ReceiveEcho <<line "<read $info(-bytes) bytes"
-    if { $info(-type) == "image" } {
-        ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"
-        $_image(plot) configure -data $bytes
-    } elseif { $info(-type) == "print" } {
-        set tag $this-print-$info(-token)
-        set _hardcopy($tag) $bytes
+    switch -- $info(-type) {
+        "image" {
+            #puts stderr "received image [image width $_image(plot)]x[image height $_image(plot)]"
+            $_image(plot) configure -data $bytes
+        }
+        "print" {
+            set tag $this-print-$info(-token)
+            set _hardcopy($tag) $bytes
+        }
+        default {
+            puts stderr "unknown image type $info(-type)"
+        }
     }
 }
 
@@ -835,21 +841,9 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { cname vmin vmax size } {
 #
 #       The procedure is the response from the render server to each "data
 #       follows" command.  The server sends back a "data" command invoked our
-#       the slave interpreter.  The purpose is to collect the min/max of the
-#       volume sent to the render server.  Since the client (nanovisviewer)
-#       doesn't parse 3D data formats, we rely on the server (nanovis) to
-#       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by _recvdDatasets) we can then determine
-#       what the transfer functions are for these volumes.
-#
-#
-#       Note: There is a considerable tradeoff in having the server report
-#             back what the data limits are.  It means that much of the code
-#             having to do with transfer-functions has to wait for the data
-#             to come back, since the isomarkers are calculated based upon
-#             the data limits.  The client code is much messier because of
-#             this.  The alternative is to parse any of the 3D formats on the
-#             client side.
+#       the slave interpreter.  The purpose was to collect the min/max of the
+#       volume sent to the render server.  This is no longer needed since we
+#       already know the limits.
 #
 itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     if { ![isconnected] } {
@@ -860,23 +854,7 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     array set info $args
 
     set tag $info(tag)
-    set parts [split $tag -]
-
-    #
-    # Volumes don't exist until we're told about them.
-    #
-    set dataobj [lindex $parts 0]
-    set _serverDatasets($tag) 1
-    if { $_settings(-volumevisible) && $dataobj == $_first } {
-        SendCmd "volume state 1 $tag"
-    }
-    set _limits($tag) [list $info(min)  $info(max)]
-    set _limits(v)    [list $info(vmin) $info(vmax)]
-
-    unset _recvdDatasets($tag)
-    if { [array size _recvdDatasets] == 0 } {
-        updateTransferFunctions
-    }
+    set _limits($tag) [list $info(min) $info(max)]
 }
 
 # ----------------------------------------------------------------------
@@ -907,15 +885,16 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         DoResize
     }
 
-    foreach dataobj [get] {
+    set _first ""
+    SendCmd "volume state 0"
+    foreach dataobj [get -objects] {
+        if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
+            set _first $dataobj
+        }
         foreach cname [$dataobj components] {
             set tag $dataobj-$cname
-            if { ![info exists _serverDatasets($tag)] } {
-                # Send the data as one huge base64-encoded mess -- yuck!
+            if { ![info exists _datasets($tag)] } {
                 if { [$dataobj type] == "dx" } {
-                    if { ![$dataobj isvalid] } {
-                        puts stderr "??? $dataobj is invalid"
-                    }
                     set data [$dataobj blob $cname]
                 } else {
                     set data [$dataobj vtkdata $cname]
@@ -941,19 +920,41 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                 }
                 SendCmd "volume data follows $nbytes $tag"
                 SendData $data
-                set _recvdDatasets($tag) 1
-                set _serverDatasets($tag) 0
+                set _datasets($tag) 1
             }
             SetObjectStyle $dataobj $cname
+            if { [info exists _obj2ovride($dataobj-raise)] } {
+                SendCmd "volume state 1 $tag"
+            }
         }
     }
-    set _first [lindex [get] 0]
     # Outline seems to need to be reset every update.
     InitSettings -outlinevisible -cutplanesvisible
     if { $_reset } {
+        # Turn off cutplanes for all volumes
+        foreach axis {x y z} {
+            SendCmd "cutplane state 0 $axis"
+        }
+
+        InitSettings -axesvisible -gridvisible \
+            -light2side -isosurfaceshading -opacity \
+            -ambient -diffuse -specularlevel -specularexponent \
+            -xcutplanevisible -ycutplanevisible -zcutplanevisible \
+            -current
+
         #
         # Reset the camera and other view parameters
         #
+        if {"" != $_first} {
+            set axis [$_first hints updir]
+            if { "" != $axis } {
+                SendCmd "up $axis"
+            }
+            set location [$_first hints camera]
+            if { $location != "" } {
+                array set _view $location
+            }
+        }
         set _settings(-qw)    $_view(-qw)
         set _settings(-qx)    $_view(-qx)
         set _settings(-qy)    $_view(-qy)
@@ -968,43 +969,11 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         SendCmd "camera reset"
         PanCamera
         SendCmd "camera zoom $_view(-zoom)"
-
-        # Turn off cutplanes for all volumes
-        foreach axis {x y z} {
-            SendCmd "cutplane state 0 $axis"
-        }
-
-        InitSettings -axesvisible -gridvisible \
-            -light2side -isosurfaceshading -opacity \
-            -ambient -diffuse -specularlevel -specularexponent \
-            -xcutplanevisible -ycutplanevisible -zcutplanevisible \
-            -current
-
-        if {"" != $_first} {
-            set axis [$_first hints updir]
-            if { "" != $axis } {
-                SendCmd "up $axis"
-            }
-            set location [$_first hints camera]
-            if { $location != "" } {
-                array set _view $location
-            }
-        }
     }
 
-    # nothing to send -- activate the proper ivol
-    SendCmd "volume state 0"
     if {"" != $_first} {
-        set datasets [array names _serverDatasets $_first-*]
-        if { $datasets != "" } {
-            SendCmd "volume state 1 $datasets"
-        }
-        # If the first volume already exists on the server, then make sure
-        # we display the proper transfer function in the legend.
-        set cname [lindex [$_first components] 0]
-        if { [info exists _serverDatasets($_first-$cname)] } {
-            updateTransferFunctions
-        }
+        # Make sure we display the proper transfer function in the legend.
+        updateTransferFunctions
     }
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -1028,7 +997,7 @@ itcl::body Rappture::NanovisViewer::CurrentDatasets {{what -all}} {
     }
     foreach cname [$_first components] {
         set tag $_first-$cname
-        if { [info exists _serverDatasets($tag)] && $_serverDatasets($tag) } {
+        if { [info exists _datasets($tag)] && $_datasets($tag) } {
             array set style {
                 -cutplanes 1
             }
@@ -1337,9 +1306,8 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         }
         "-volume" {
             # This is the global volume visibility control.  It controls the
-            # visibility of all the all volumes.  Whenever it's changed, you
-            # have to synchronize each of the local controls (see below) with
-            # this.
+            # visibility of all the volumes.  Whenever it's changed, you have
+            # to synchronize each of the local controls (see below) with this.
             set datasets [CurrentDatasets]
             set bool $_settings($what)
             SendCmd "volume data state $bool $datasets"
@@ -2218,7 +2186,7 @@ itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } {
     }
     set list ""
     foreach tag $_volcomponents($cname) {
-        if { ![info exists _serverDatasets($tag)] } {
+        if { ![info exists _datasets($tag)] } {
             continue
         }
         lappend list $tag
