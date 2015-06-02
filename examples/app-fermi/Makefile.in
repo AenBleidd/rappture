@@ -35,7 +35,7 @@ ENABLE_LANG     = @ENABLE_LANG@
 
 LANGS = cee
 ifneq ($(ENABLE_LANG),)
-  LANGS = tcl wrapper 2.0
+  LANGS += tcl wrapper 2.0
   ifneq ($(F77),)
       LANGS += fortran
   endif
