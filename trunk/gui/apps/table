@@ -1,397 +1,347 @@
 # -*- mode: Tcl -*-
+
 package require Rappture
 package require RapptureGUI
 
-
-#####TK code #####
+# TK code
 package require fileutil
 proc is_xml {name} {return [string match *.xml $name]}
 
-######Starting main tk code ######
+# Starting main tk code
 
-##################
 package require BLT
 if { $tcl_version >= 8.0 } {
-	namespace import blt::*
-	namespace import -force blt::tile::*
+    namespace import blt::*
+    namespace import -force blt::tile::*
 }
+
 proc SortColumn { column } {
-	set old [.t sort cget -column]
-	set decreasing 0
-	if { "$old" == "$column" } {
-		set decreasing [.t sort cget -decreasing]
-		set decreasing [expr !$decreasing]
-	}
-	.t sort configure -decreasing $decreasing -column $column -mode integer
-	if { ![.t cget -flat] } {
-		.t configure -flat yes
-	}
-	.t sort auto yes
-	blt::busy hold .t
-	update
-	blt::busy release .t
+    set old [.t sort cget -column]
+    set decreasing 0
+    if { "$old" == "$column" } {
+        set decreasing [.t sort cget -decreasing]
+        set decreasing [expr !$decreasing]
+    }
+    .t sort configure -decreasing $decreasing -column $column -mode integer
+    if { ![.t cget -flat] } {
+        .t configure -flat yes
+    }
+    .t sort auto yes
+    blt::busy hold .t
+    update
+    blt::busy release .t
 }
+
 proc resulttable {cmpfiles} {
-#/////////////creating xml tables for each xml run files go here/////////////////
-set tree2 [tree create]
-treeview .k \
-	-width 0 \
-	-yscrollcommand { .vvvs set } \
-	-xscrollcommand { .hhhs set } \
-	-selectmode single \
-	-tree $tree2
-.k column configure treeView -text ""
-.k column configure treeView -hide no -edit no -icon blt::tv::normalOpenFolder
-focus .k
-scrollbar .vvvs -orient vertical -command { .k yview }
-scrollbar .hhhs -orient vertical -command { .k xview }
+    # creating xml tables for each xml run files go here
+    set tree2 [tree create]
+    treeview .k \
+        -width 0 \
+        -yscrollcommand { .vvvs set } \
+        -xscrollcommand { .hhhs set } \
+        -selectmode single \
+        -tree $tree2
+    .k column configure treeView -text ""
+    .k column configure treeView -hide no -edit no \
+        -icon blt::tv::normalOpenFolder
+    focus .k
+    scrollbar .vvvs -orient vertical -command { .k yview }
+    scrollbar .hhhs -orient horizontal -command { .k xview }
 
-table . \
-    0,0 .k -fill both \
-    0,1 .vvvs -fill y \
-    1,0 .hhhs -fill x
-table configure . c1 r1 -resize none 
+    table . \
+        0,0 .k -fill both \
+        0,1 .vvvs -fill y \
+        1,0 .hhhs -fill x
+    table configure . c1 r1 -resize none
 
-###################################################################################
-set flags [list]  
-#$cmpfiles
-set filelen [llength $cmpfiles]
-set biglist [list]
+    puts "resulttable: $cmpfiles"
 
-set memberlist [list]
-set contentlist [list]
-#set inputmemberlist [list]
-#set outputmemberlist [list]
-set counter 0
-foreach filename $cmpfiles {
-set temp [list]
-set tempfile [list]
-set filetail [file tail $filename]
-lappend temp $filetail
-#lappend biglist $filetail
-lappend tempfile $filetail
-unset filetail
-set lib [Rappture::library $filename]
-set input1 [$lib children -as component "input"]
-set temp1 ".current"
-set ttemp "input."
-	foreach eachinputline $input1 {
-		set temp2 $eachinputline$temp1
-		set ttemp2 $ttemp$temp2
-		if {$counter==0} {	
-			lappend memberlist $ttemp2
-		}
-		set temp3 [$lib get $ttemp2]
-		#puts hello
-		#puts $temp2
-		puts value
-		puts $temp3
-		lappend contentlist $temp3
-		#lappend biglist $temp3
-		#lappend temp $temp3
-		#unset temp3
-		#unset temp2
-	   }
-unset ttemp
-set ttemp "output."
-	set output1 [$lib children -as component "output"]
-	foreach eachoutputline $output1 {
-		set temp2 $eachoutputline$temp1
-		set ttemp2 $ttemp$temp2
-		set temp3 [$lib get $ttemp2]
-		if {"" != $temp3} {
-			puts output
-		#	puts $temp2
-			puts value
-			
-		#	puts $temp3
-		#	lappend temp $temp3
-			#lappend biglist $temp3
-			lappend contentlist $temp3
-			unset temp3
-			unset temp2
-			if {$counter ==0} {
-				lappend memberlist $ttemp2
-				}
-		}
-	}
-	lappend tempfile $contentlist
-	unset contentlist
-	lappend biglist $tempfile
-	incr counter;
+    set flags [list]
+    set numfiles [llength $cmpfiles]
+    set biglist [list]
+
+    set memberlist [list]
+    set contentlist [list]
+    set counter 0
+    foreach filepath $cmpfiles {
+        set filename [file tail $filepath]
+        set lib [Rappture::library $filepath]
+        set inputs [$lib children -as component "input"]
+        foreach input $inputs {
+            set path "input.${input}.current"
+            if {$counter == 0} {
+                lappend memberlist $path
+            }
+            set value [$lib get $path]
+            puts "$path: $value"
+            lappend contentlist $value
+            unset value
+        }
+        set outputs [$lib children -as component "output"]
+        foreach output $outputs {
+            set path "output.${output}"
+            set value [$lib get $path]
+            if {"" != $value} {
+                if {$counter == 0} {
+                    lappend memberlist $path
+                }
+                puts "$path: $value"
+                lappend contentlist $value
+                unset value
+            }
+        }
+        set temp [list]
+        lappend temp $filename $contentlist
+        unset contentlist
+        lappend biglist $temp
+        unset temp
+        incr counter;
     }
-    puts memberlist
-    puts $memberlist
-    puts bigliststarthere
+    #puts memberlist
+    #puts $memberlist
+    puts "START_BIG_LIST [llength $biglist]"
     puts $biglist
-    ################Adding columns to table###########################################
-    set memberlen [llength $memberlist]
-#    .k column insert end "filename" -text "File Name"
-    for { set j 0} {$j < $memberlen} {incr j} {
-    	set temp [lindex $memberlist $j]
-	puts memberlist
-	puts $memberlist
-	puts temp
-	puts $temp
-	puts len
-	puts $memberlen
-	if { "" == $temp } {
-	#.k column insert end $temp -text $temp
-	continue
-	}
-	.k column insert end $temp -text $temp
+    puts END_BIG_LIST
+    # Adding columns to table
+    #.k column insert end "filename" -text "File Name"
+    foreach path $memberlist {
+        puts "add column: $path"
+        if { "" == $path } {
+            continue
+        }
+        .k column insert end $path -text $path
     }
-    #######Comparing XML Tree comes here#######
-	set count 0	
-	set element1 [lindex $biglist 0]
-	set name1 [lindex $element1 0]
-	set content1 [lindex $element1 1]
-	foreach element2 $biglist {
-		if {$count !=0} {
-		foreach {name2 content2} $element2 {
-			set contentlen [llength $content2]
-			for {set i 0} {$i < $contentlen} {incr i} {
-				puts insideforloop
-				set similarexisted 0  
-				if {[lindex $content1 $i] eq [lindex $content2 $i]} {
-				puts insidesame
-				} else {
-					puts insidediff
-					lappend flags 1
-					continue
-				}
-				if { $similarexisted == 0 } {
-					lappend flags 0
-				}
-			}
-		}
-	    }
-	    incr count
-	}
-	################################
-  	foreach element1 $biglist {
-  		set list_content [list]
-		set name [lindex $element1 0]
-  		set id [.k insert end $name]
-  		set content [lindex $element1 1]
-  		foreach ele1 $memberlist ele2 $content flag $flags {
-  			lappend list_content $ele1
-			
-			if { $flag == 0} {
-  			lappend list_content "Same"
-  			} else {
-			lappend list_content $ele2
-			}
-  		}
-		puts [llength $list_content]
-		puts $list_content
-		.k entry configure $id -data $list_content
-  	}
-#	set templist [list]
-#	lappend templist "input.number(n1).current"
-#	lappend templist "h"
-#	lappend templist "input.number(n2).current"
-#	lappend templist "i"
-#	lappend templist "output.number(sum).current"
-#	lappend templist "k"
-#	.k entry configure $id -data $templist
-	#.k entry configure $id -data [list input.number(n1).current "h" input.number(n2).current "i" output.number(sum).current "k"]
-	
+    # Comparing XML Tree
+    set count 0
+    set element1 [lindex $biglist 0]
+    set name1 [lindex $element1 0]
+    set content1 [lindex $element1 1]
+    foreach element2 $biglist {
+        if {$count != 0} {
+            foreach {name2 content2} $element2 {
+                set contentlen [llength $content2]
+                for {set i 0} {$i < $contentlen} {incr i} {
+                    #puts insideforloop
+                    set similarexisted 0
+                    if {[lindex $content1 $i] eq [lindex $content2 $i]} {
+                        #puts insidesame
+                    } else {
+                        #puts insidediff
+                        lappend flags 1
+                        continue
+                    }
+                    if { $similarexisted == 0 } {
+                        lappend flags 0
+                    }
+                }
+            }
+        }
+        incr count
+    }
+
+    foreach element $biglist {
+        set name [lindex $element 0]
+        set content [lindex $element 1]
+        set id [.k insert end $name]
+        set list_content [list]
+        foreach path $memberlist value $content flag $flags {
+            lappend list_content $path
+
+            if { $flag == 0} {
+                lappend list_content "Same"
+            } else {
+                lappend list_content $value
+            }
+        }
+        puts [llength $list_content]
+        puts $list_content
+        .k entry configure $id -data $list_content
+    }
+
+    #set templist [list]
+    #lappend templist "input.number(n1).current"
+    #lappend templist "h"
+    #lappend templist "input.number(n2).current"
+    #lappend templist "i"
+    #lappend templist "output.number(sum).current"
+    #lappend templist "k"
+    #.k entry configure $id -data $templist
+    #.k entry configure $id \
+    #    -data [list input.number(n1).current "h" input.number(n2).current "i" output.number(sum).current "k"]
 }
 
 proc newtable {appname} {
-global twofiles tree1
-set twofiles [list]
-#set length [llength $twofiles]
-#puts $length
-puts $twofiles
-set tree1 [tree create]
-treeview .h \
-	-width 0 \
-	-yscrollcommand { .vvs set } \
-	-xscrollcommand { .hhs set } \
-	-selectmode single \
-	-tree $tree1
-.h column configure treeView -text ""
-.h column configure treeView -hide yes -edit no -icon blt::tv::normalOpenFolder
-focus .h
-scrollbar .vvs -orient vertical -command { .h yview }
-scrollbar .hhs -orient horizontal -command { .h xview }
+    global tree1
 
-.h style checkbox mycheck -onvalue "yes" -offvalue "no" -showvalue yes
-.h column insert end select -text "Select" -edit yes -style mycheck
+    set tree1 [tree create]
+    treeview .h \
+        -width 0 \
+        -yscrollcommand { .vvs set } \
+        -xscrollcommand { .hhs set } \
+        -selectmode single \
+        -tree $tree1
+    .h column configure treeView -text ""
+    .h column configure treeView -hide yes -edit no \
+        -icon blt::tv::normalOpenFolder
+    focus .h
+    scrollbar .vvs -orient vertical -command { .h yview }
+    scrollbar .hhs -orient horizontal -command { .h xview }
 
+    .h style checkbox mycheck -onvalue "yes" -offvalue "no" -showvalue yes
+    .h column insert end select -text "Select" -edit yes -style mycheck
 
-table . \
-    0,0 .h  -fill both \
-    0,1 .vvs -fill y \
-    1,0 .hhs -fill x
-table configure . c1 r1 -resize none
+    table . \
+        0,0 .h  -fill both \
+        0,1 .vvs -fill y \
+        1,0 .hhs -fill x
+    table configure . c1 r1 -resize none
 
-###Starting tk code
-.h column insert end "tname" -text "Tool Name"
-.h column insert end "date"  -text "Date"
-set files [fileutil::find /home/nanohub/wwinthan/data/results is_xml]
-if {$files == ""} {
-} else {
-	foreach line $files {
-	#########
-		set fileone [open $line]
-		set content [read $fileone]
-		close $fileone
-		regexp {<title>(.*)</title>} $content junk answer
-		regexp {<time>(.*)</time>} $content junk1 answer1
-		#########
-#		if {($params(-title) == "") || ($params(-title) == $answer)} {
-#			set id [.t insert end $line]
-#			.t entry configure $id -data [list tname $answer date $answer1]
-#		}
-#		
-#		set id [.h insert end $line]
-		if { $appname == $answer } {
-		set id [.h insert end $line]
-			.h entry configure $id -data [list tname $answer date $answer1 select yes]
-		}
-		unset fileone
-		unset content
-	#	unset answer
-	#	unset answer1
-		unset junk
-		unset junk1
-		unset line
-	 
-		if {"" == $answer} {
-			set answer "no title"
-		}
-		if {"" == $answer1} {
-			set answer1 "no found"
-		}
-	}
-	unset answer
-	unset answer1
+    # Starting tk code
+    .h column insert end "tname" -text "Tool Name"
+    .h column insert end "date"  -text "Date"
+    global env
+    set files [fileutil::find $env(HOME)/data/results is_xml]
+    if {$files == ""} {
+    } else {
+        foreach line $files {
+            set fileone [open $line]
+            set content [read $fileone]
+            close $fileone
+            regexp {<title>(.*)</title>} $content junk title
+            if {![info exists title]} {
+                continue
+            }
+            set title [string trim $title]
+            set time ""
+            regexp {<time>(.*)</time>} $content junk time
+            set time [string trim $time]
+            #if {($params(-title) == "") || ($params(-title) == $title)} {
+            #    set id [.t insert end $line]
+            #    .t entry configure $id -data [list tname $title date $time]
+            #}
+            #
+            #set id [.h insert end $line]
+            if { $appname == $title } {
+                set id [.h insert end $line]
+                .h entry configure $id \
+                    -data [list tname $title date $time select yes]
+            }
+            unset fileone
+            unset content
+            unset title
+            unset time
+            if {[info exists junk]} { unset junk }
+            unset line
+        }
+    }
+    .h bind all <ButtonRelease-1> {
+    }
+
+    button .compare -text "Compare" -command compare
+    blt::table .  \
+        2,0 .compare -anchor e -columnspan 2
+
+    proc compare {} {
+        global tree1
+        # declaring lists
+        set filename [list]
+
+        foreach node [$tree1 children root] {
+            set label [$tree1 label $node]
+            set select [$tree1 get $node "select"]
+            set tname [$tree1 get $node "tname"]
+            puts stderr "found at node $node: select=$select tname=$tname"
+            if { $select == "yes" } {
+                puts $label
+                lappend filename $label
+            }
+        }
+        set cmpfileslen [llength $filename]
+        resulttable $filename
+    }
+    #foreach column [.h column names] {
+    #    .h column configure $column -command [list SortColumn $column]
+    #}
 }
-.h bind all <ButtonRelease-1> {
-}
 
-
-
-
-button .compare -text "Compare" -command compare 
-blt::table .  \
-   2,0 .compare -anchor e -columnspan 2 
-
-proc compare {} {
-   global tree1
-   #declaring lists
-   set filename [list]
-   
-   foreach node [$tree1 children root] {
-      set label [$tree1 label $node]
-      set select [$tree1 get $node "select"]
-      set tname [$tree1 get $node "tname"]
-      #set filetail [file tail $label]
-      #puts FileTail
-      #puts $filetail
-      puts stderr "found at node $node: select=$select tname=$tname"
-      if { $select == "yes" } {
-      	puts $label
-      	lappend filename $label
-       }
-   }
-   set cmpfileslen [llength $filename]
-   resulttable $filename
-
-}
-########l###########
-#foreach column [.h column names] {
-#	.h column configure $column -command [list SortColumn $column]
-#}
-}
-###########################
-package require fileutil
-proc is_xml {name} { return [string match *.xml $name]}
-
-
-
-############################
-#proc passtitle {title} {
 proc startupcode {} {
-set tree [tree create]
-treeview .t \
-	-width 0 \
-	-yscrollcommand { .vs set } \
-	-xscrollcommand { .hs set } \
-	-selectmode single \
-	-tree $tree
-.t column configure treeView -text ""
-.t column configure treeView -hide yes -edit no -icon blt::tv::normalOpenFolder
-focus .t
-scrollbar .vs -orient vertical -command { .t yview }
-scrollbar .hs -orient horizontal -command { .t xview }
-table . \
-	0,0 .t -fill both \
-	0,1 .vs -fill y \
-	1,0 .hs -fill x
-table configure . c1 r1 -resize none
-.t column insert end "appname" -text "Application Name"
-.t column insert end "xmlfilename" -text "File Name"
-set files [fileutil::find  /home/nanohub/wwinthan/data/results is_xml]
-set appnamelist [list]
-if {$files == ""} {
-} else {
-	foreach line $files {
-		set existed "false"
-		set fileone [open $line]
-		set content [read $fileone]
-		close $fileone
-		regexp {<title>(.*)</title>} $content junk answer
-		puts rreturnrrr:
-		puts $answer
-		
-		foreach listcontent $appnamelist {
-			puts Appname:
-			puts $listcontent
-			if {$answer == $listcontent} { set existed "true"}
-			
-		#	puts $listcontent
-		#	puts answeris
-		#	puts $answer
-	}
-	puts $existed
-	if { $existed == "false" } {
-		set temp [file tail $line]
-		set id [.t insert end $line]
-		.t entry configure $id -data [list appname $answer xmlfilename $temp]
-		lappend appnamelist $answer
-		#puts listlistare
-		#puts $appnamelist
-	}
-	unset existed 
-	unset fileone
-	unset content
-	unset answer
-	unset line
-	}
-	puts $appnamelist
+    set tree [tree create]
+    treeview .t \
+        -width 0 \
+        -yscrollcommand { .vs set } \
+        -xscrollcommand { .hs set } \
+        -selectmode single \
+        -tree $tree
+    .t column configure treeView -text ""
+    .t column configure treeView -hide yes -edit no \
+        -icon blt::tv::normalOpenFolder
+    focus .t
+    scrollbar .vs -orient vertical -command { .t yview }
+    scrollbar .hs -orient horizontal -command { .t xview }
+    table . \
+        0,0 .t -fill both \
+        0,1 .vs -fill y \
+        1,0 .hs -fill x
+    table configure . c1 r1 -resize none
+    .t column insert end "appname" -text "Application Name"
+    .t column insert end "xmlfilename" -text "File Name"
+    global env
+    set files [fileutil::find $env(HOME)/data/results is_xml]
+    set appnamelist [list]
+    if {$files == ""} {
+    } else {
+        foreach line $files {
+            set existed false
+            set fileone [open $line]
+            set content [read $fileone]
+            close $fileone
+            regexp {<title>(.*)</title>} $content junk title
+            if {![info exists title]} {
+                puts stderr "ERROR: No title found in $line"
+                continue
+            }
+            set title [string trim $title]
+            #puts "found title: $title"
+
+            foreach app $appnamelist {
+                if {$title == $app} {
+                    set existed true
+                    break
+                }
+            }
+            if { ! $existed } {
+                set temp [file tail $line]
+                set id [.t insert end $line]
+                .t entry configure $id \
+                    -data [list appname $title xmlfilename $temp]
+                lappend appnamelist $title
+            }
+            unset existed
+            unset fileone
+            unset content
+            unset title
+            unset line
+        }
+        #puts $appnamelist
+    }
+
+    .t bind all <ButtonRelease-1> {
+        set ids [.t curselection]
+        set name [eval .t get -full $ids]
+        set fileone [open $name]
+        set content [read $fileone]
+        close $fileone
+        regexp {<title>(.*)</title>} $content junk title
+        set title [string trim $title]
+        # pass title and display the result in new page
+        newtable $title
+    }
 }
 
-.t bind all <ButtonRelease-1> {
-	set ids [.t curselection]
-	set name [eval .t get -full $ids]
-	set fileone [open $name]
-	set content [read $fileone]
-	close $fileone
-	regexp {<title>(.*)</title>} $content junk answer
-	#pass title and display the result in new page
-	newtable $answer
-	}
-}
 startupcode
 
-############################
 #blt::treeview .t
 #set node [.t insert end root "one"]
 #treeview .h -bg white
 #.h configure -background "green"
 #set id [.h insert end "myEntry"]
-
