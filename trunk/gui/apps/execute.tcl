@@ -119,7 +119,7 @@ proc log_stats {args} {
     log_append usage $line
 }
 
-# Parse command line options to see 
+# Parse command line options to see
 # ----------------------------------------------------------------------
 Rappture::getopts argv params {
     value -status ""

@@ -120,7 +120,7 @@ itcl::class visData {
         return "glyphs"
     }
     public method shape {args} {
-	return "arrow"
+        return "arrow"
     }
 
     private variable _cname "one"

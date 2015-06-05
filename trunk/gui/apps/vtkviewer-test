@@ -97,7 +97,7 @@ itcl::class visData {
         return $_type
     }
     public method shape {args} {
-	return "sphere"
+        return "sphere"
     }
 
     private variable _data ""
