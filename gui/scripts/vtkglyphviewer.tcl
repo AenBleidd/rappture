@@ -2149,8 +2149,8 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
-        -color white
-        -colormap BCGYR
+        -color BCGYR
+        -constcolor white
         -colormode vmag
         -edgecolor black
         -edges 0
@@ -2167,7 +2167,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -shape arrow
         -wireframe 0
     }
-    set $style(-color) $itk_option(-plotforeground)
+    set $style(-constcolor) $itk_option(-plotforeground)
     set numComponents [$dataobj numComponents $comp]
     if {$numComponents == 3} {
         set style(-shape) "arrow"
@@ -2211,14 +2211,14 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set style(-opacity) [expr $_settings(-glyphopacity) * 0.01]
     }
     if { $_changed(-colormap) } {
-        set style(-colormap) $_settings(-colormap)
+        set style(-color) $_settings(-colormap)
     }
     if { $_currentColormap == "" } {
-        $itk_component(colormap) value $style(-colormap)
+        $itk_component(colormap) value $style(-color)
     }
 
     SendCmd "outline add $tag"
-    SendCmd "outline color [Color2RGB $style(-color)] $tag"
+    SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
     set _settings(-glyphoutline) $style(-outline)
 
@@ -2238,20 +2238,20 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
     set _settings(-glyphnormscale) $style(-normscale)
     set _settings(-glyphscale) $style(-gscale)
 
-    if {$style(-colormode) == "constant" || $style(-colormap) == "none"} {
+    if {$style(-colormode) == "constant" || $style(-color) == "none"} {
         SendCmd "glyphs colormode constant {} $tag"
         set _settings(-colormapvisible) 0
         set _settings(-colormap) "none"
     } else {
         SendCmd "glyphs colormode $style(-colormode) $_curFldName $tag"
         set _settings(-colormapvisible) 1
-        set _settings(-colormap) $style(-colormap)
-        SetCurrentColormap $style(-colormap)
+        set _settings(-colormap) $style(-color)
+        SetCurrentColormap $style(-color)
     }
     $itk_component(colormap) value $_settings(-colormap)
     set _colorMode $style(-colormode)
     # constant color only used if colormode set to constant
-    SendCmd "glyphs color [Color2RGB $style(-color)] $tag"
+    SendCmd "glyphs color [Color2RGB $style(-constcolor)] $tag"
     # Omitting field name for gorient and smode commands
     # defaults to active scalars or vectors depending on mode
     SendCmd "glyphs gorient $style(-orientglyphs) {} $tag"
