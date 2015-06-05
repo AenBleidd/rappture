@@ -16,16 +16,6 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Drawing {
-    private variable _drawing
-    private variable _xmlobj
-    private variable _styles
-    private variable _shapes
-    private variable _labels
-    private variable _types
-    private variable _data
-    private variable _hints
-    private variable _units
-
     constructor {xmlobj path} {
         # defined below
     }
@@ -41,6 +31,16 @@ itcl::class Rappture::Drawing {
     public method data { elem }
     public method hints {{keyword ""}}
     public method components { args }
+
+    private variable _drawing
+    private variable _xmlobj
+    private variable _styles
+    private variable _shapes
+    private variable _labels
+    private variable _types
+    private variable _data
+    private variable _hints
+    private variable _units
 }
 
 # ----------------------------------------------------------------------
