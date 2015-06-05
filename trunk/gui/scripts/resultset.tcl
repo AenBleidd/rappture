@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: ResultSet - set of XML objects for simulated results
 #
@@ -39,7 +39,7 @@ itcl::class Rappture::ResultSet {
     private variable _resultnum 0    ;# counter for result #1, #2, etc.
     private variable _notify         ;# info used for notify command
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------

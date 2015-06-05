@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: combochecks - like a combobox, but items with checkboxes
 #
@@ -51,7 +51,7 @@ itcl::class Rappture::Combochecks {
     private variable _value2label
     private variable _label2value
 }
-                                                                                
+
 itk::usual Combochecks {
     keep -cursor -font
     keep -foreground -background

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: imageresult - picture image in a ResultSet
 #
@@ -47,7 +47,7 @@ itcl::class Rappture::ImageResult {
     private variable _scale         ;# info related to zoom
     private variable _image         ;# image buffers used for scaling
 }
-                                                                                
+
 itk::usual ImageResult {
     keep -background -foreground -cursor -font
 }
@@ -130,7 +130,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     set _image(final) [image create photo]
 
     itk_component add image {
-        label $main.image -image $_image(final) -anchor c 
+        label $main.image -image $_image(final) -anchor c
     } {
         keep -background -foreground -cursor -font
     }

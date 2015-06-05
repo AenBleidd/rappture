@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: service - represents a tool embedded within another tool
 #
@@ -99,7 +99,7 @@ puts "show: $spath"
                       puts " => $obj"
                       lappend _show($dir) $obj
                       set _obj2path($obj) $spath
-                      
+
                       if {$dir == "input"} {
                           puts "link: $tpath => $spath"
                           $_owner notify add $this $tpath \

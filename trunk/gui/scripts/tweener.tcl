@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: tweener - used for animating smooth movements
 #
@@ -36,7 +36,7 @@ itcl::class Rappture::Tweener {
     private variable _nstep 0      ;# current step number
     private variable _afterid ""   ;# pending after event
 }
-										
+
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
@@ -73,7 +73,7 @@ itcl::body Rappture::Tweener::go {{how -resume}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tweener::stop {} {
     if {"" != $_afterid} {
-	after cancel $_afterid
+        after cancel $_afterid
         set _afterid ""
     }
 }

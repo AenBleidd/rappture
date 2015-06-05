@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: loader - widget for loading examples and old runs
 #
@@ -36,7 +36,7 @@ itcl::class Rappture::Loader {
     protected method _tooltip {}
     protected method _log {}
 
-    private method SetDefaultValue { value } 
+    private method SetDefaultValue { value }
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this loader
@@ -244,7 +244,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [string trim [$_owner xml get $path.default]]
-    if { $str != "" } { 
+    if { $str != "" } {
         bind $itk_component(hull) <Map> [itcl::code $this SetDefaultValue $str]
     }
 }
@@ -328,7 +328,7 @@ itcl::body Rappture::Loader::tooltip {} {
 #       Sets the designated default value for the loader.  This must be done
 #       after the entire application is assembled, otherwise the default
 #       values set up by the loader will be overwritten by the various widgets
-#       themselves when they try to set their default values.  
+#       themselves when they try to set their default values.
 #
 #       This is called from a  <Map> event to the loader (combobox).  This
 #       will get trigger the first time the loader is displayed.  The binding

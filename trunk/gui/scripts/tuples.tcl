@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: tuples - represents a series of tuples for arbitrary data
 #
@@ -34,7 +34,7 @@ itcl::class Rappture::Tuples {
 
     private common _counter 0      ;# for auto-generated column names
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
@@ -176,7 +176,7 @@ itcl::body Rappture::Tuples::insert {pos args} {
 
     # make some room to insert these tuples
     set need [llength $args]
-    for {set i [expr {$max-1}]} {$i >= $pos} {incr i -1} { 
+    for {set i [expr {$max-1}]} {$i >= $pos} {incr i -1} {
         set _tuples([expr {$i+$need}]) $_tuples($i)
     }
 

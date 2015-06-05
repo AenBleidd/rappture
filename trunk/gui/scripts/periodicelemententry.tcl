@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: PeriodicElementEntry - widget for entering a choice of strings
 #
@@ -69,7 +69,7 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     }
     if { [llength $active] > 0 } {
         $itk_component(element) element active $active
-    }           
+    }
     if { $defval != "" } {
         $itk_component(element) value $defval
     }
@@ -115,7 +115,7 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
     # Query the value and return.
     #
     set how [string trim [$_owner xml get $_path.returnvalue]]
-    switch -- $how { 
+    switch -- $how {
         weight - number - name - symbol - all {
             set how "-$how"
         }

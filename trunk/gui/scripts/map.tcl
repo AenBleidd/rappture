@@ -257,7 +257,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                     if {$key == "x"} {
                         set haveX 1
                     } elseif {$key == "z"} {
-	                set haveZ 1
+                        set haveZ 1
                     } elseif {$key == "srs"} {
                         set haveSRS 1
                     } elseif {$key == "verticalDatum"} {

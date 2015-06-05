@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: barchartresult - X/Y plot in a ResultSet
 #
@@ -81,18 +80,18 @@ itcl::class Rappture::BarchartResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method download {option args}
 
@@ -102,11 +101,11 @@ itcl::class Rappture::BarchartResult {
     protected method _hilite {state x y}
     protected method _axis {option args}
     protected method _getAxes {dataobj}
-    protected method _getLineMarkerOptions { style } 
-    protected method _getTextMarkerOptions { style } 
+    protected method _getLineMarkerOptions { style }
+    protected method _getTextMarkerOptions { style }
     protected method _enterMarker { g name x y text }
     protected method _leaveMarker { g name }
-    private method _formatTickLabel { w value } 
+    private method _formatTickLabel { w value }
     private method ResetLegend {}
 
     private variable _dispatcher "" ;# dispatcher for !events
@@ -128,7 +127,7 @@ itcl::class Rappture::BarchartResult {
     private variable _markers
     private variable _tickLabels
 }
-                                                                                
+
 itk::usual BarchartResult {
     keep -background -foreground -cursor -font
 }
@@ -557,9 +556,9 @@ itcl::body Rappture::BarchartResult::download {option args} {
                         set inner [$popup component inner]
                         # Create the print dialog widget and add it to the
                         # the balloon popup.
-                        Rappture::XyPrint $inner.print 
+                        Rappture::XyPrint $inner.print
                         $popup configure \
-                            -deactivatecommand [list $inner.print reset] 
+                            -deactivatecommand [list $inner.print reset]
                         blt::table $inner 0,0 $inner.print -fill both
                     }
                     update
@@ -569,7 +568,7 @@ itcl::body Rappture::BarchartResult::download {option args} {
                     set inner [$popup component inner]
                     set output [$inner.print print $itk_component(plot) \
                                     $toolName $plotName]
-                    $popup deactivate 
+                    $popup deactivate
                     return $output
                 }
             }
@@ -594,7 +593,7 @@ itcl::body Rappture::BarchartResult::_rebuild {} {
     eval $g element delete [$g element names]
     eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
-        $g axis configure $axis -hide yes -checklimits no 
+        $g axis configure $axis -hide yes -checklimits no
     }
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
@@ -717,7 +716,7 @@ itcl::body Rappture::BarchartResult::_rebuild {} {
             if { $labels != "" } {
                 $g axis configure $mapx \
                     -command [itcl::code $this _formatTickLabel] \
-                    -minorticks 0 
+                    -minorticks 0
                 set _tickLabels $labels
             }
             $g element create $elem -x $xv -y $yv \
@@ -738,16 +737,16 @@ itcl::body Rappture::BarchartResult::_rebuild {} {
             set elabel [format "%s \#%d" $label $suffix]
             $g element configure $elem -label $elabel
         }
-    }        
+    }
 
     foreach dataobj $_dlist {
         set xmin -Inf
         set ymin -Inf
         set xmax Inf
         set ymax Inf
-        # 
-        # Create text/line markers for each *axis.marker specified. 
-        # 
+        #
+        # Create text/line markers for each *axis.marker specified.
+        #
         foreach m [$dataobj xmarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $at $ymin $at $ymax]]
@@ -896,7 +895,7 @@ itcl::body Rappture::BarchartResult::_zoom {option args} {
 itcl::body Rappture::BarchartResult::_hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
-    
+
     # Peek inside of Blt_ZoomStack package to see if we're currently in the
     # middle of a zoom selection.
     if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
@@ -904,11 +903,11 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
     }
     set tip ""
     if {$state == "at"} {
-	set state 0
+        set state 0
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
             set elem $info(name)
-	    
+
             # Some elements are generated dynamically and therefore will
             # not have a dataobj associated with them.
             set mapx [$g element cget $elem -mapx]
@@ -916,16 +915,16 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
             if {[info exists _elem2dataobj($elem)]} {
                 foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
-	    
+
             # search again for an exact point -- this time don't interpolate
             set tip ""
             array unset info
             if {[$g element closest $x $y info -interpolate no]
-		&& $info(name) == $elem} {
-		
+                && $info(name) == $elem} {
+
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
-                
+
                 if {[info exists _elem2dataobj($elem)]} {
                     set dataobj $_elem2dataobj($elem)
                     set yunits [$dataobj hints yunits]
@@ -945,7 +944,7 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
         } elseif {[$g element closest $x $y info -interpolate no]} {
             # for dealing with xy scatter plot
             set elem $info(name)
-	    
+
             # Some elements are generated dynamically and therefore will
             # not have a dataobj associated with them.
             set mapx [$g element cget $elem -mapx]
@@ -953,29 +952,29 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
             if {[info exists _elem2dataobj($elem)]} {
                 foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
-	    
+
             set tip ""
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
-	    
-	    if {[info exists _elem2dataobj($elem)]} {
-		set dataobj $_elem2dataobj($elem)
-		set yunits [$dataobj hints yunits]
-		set xunits [$dataobj hints xunits]
-	    } else {
-		set xunits ""
-		set yunits ""
-	    }
-	    set tip [$g element cget $elem -label]
-	    set yval [_axis format y dummy $info(y)]
-	    append tip "\n$yval$yunits"
-	    set xval [_axis format x dummy $info(x)]
-	    append tip " @ $xval$xunits"
-	    set tip [string trim $tip]
-	    set state 1
-	}
+
+            if {[info exists _elem2dataobj($elem)]} {
+                set dataobj $_elem2dataobj($elem)
+                set yunits [$dataobj hints yunits]
+                set xunits [$dataobj hints xunits]
+            } else {
+                set xunits ""
+                set yunits ""
+            }
+            set tip [$g element cget $elem -label]
+            set yval [_axis format y dummy $info(y)]
+            append tip "\n$yval$yunits"
+            set xval [_axis format x dummy $info(x)]
+            append tip " @ $xval$xunits"
+            set tip [string trim $tip]
+            set state 1
+        }
     } else {
-	set state 0
+        set state 0
     }
 
     if { $state } {
@@ -1083,7 +1082,7 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
                     -titlecolor $itk_option(-foreground)
             }
         }
-        
+
         set ally [$g y2axis use]
         if {[llength $ally] > 0} {
             lappend ally y  ;# fix main y-axis too
@@ -1598,7 +1597,7 @@ itcl::body Rappture::BarchartResult::_enterMarker { g name x y text } {
 }
 
 itcl::body Rappture::BarchartResult::_leaveMarker { g name } {
-    if { [info exists _markers($name)] } { 
+    if { [info exists _markers($name)] } {
         set id $_markers($name)
         $g marker delete $id
         unset _markers($name)
@@ -1610,7 +1609,7 @@ itcl::body Rappture::BarchartResult::_formatTickLabel { w value } {
 
     set index [expr round($value)]
     if { $index != $value } {
-        return $value 
+        return $value
     }
     return [lindex  $_tickLabels [expr $index - 1]]
     if { $label == "" } {

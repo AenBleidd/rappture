@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: IntegerEntry - widget for entering integer values
 #
@@ -93,8 +93,8 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [string trim [$_owner xml get $path.default]]
-    if {"" != $str != ""} { 
-        $itk_component(spinner) value $str 
+    if {"" != $str != ""} {
+        $itk_component(spinner) value $str
     }
 }
 

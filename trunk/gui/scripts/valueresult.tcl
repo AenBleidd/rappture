@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: ValueResult - Log output for ResultSet
 #
@@ -38,7 +38,7 @@ itcl::class Rappture::ValueResult {
     private variable _dobj2raise  ;# maps data object => raise flag 0/1
     private variable _dobj2desc   ;# maps data object => description
 }
-                                                                                
+
 itk::usual ValueResult {
     keep -background -foreground -cursor -font
 }

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: deviceLayout1D - visualizer for 1D device geometries
 #
@@ -65,7 +65,7 @@ itcl::class Rappture::DeviceLayout1D {
 
     private variable _icons         ;# maps icon data => image handle
 }
-                                                                                
+
 itk::usual DeviceLayout1D {
     keep -background -cursor
     keep -device -deviceoutline -devicesize
@@ -208,7 +208,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     # see if any of the slabs has a material
     foreach m $_maters {
         if {"" != $m} {
-            set extra [expr {1.5*[font metrics $fnt -linespace]}] 
+            set extra [expr {1.5*[font metrics $fnt -linespace]}]
             set hmax [expr {$hmax+$extra}]
             break
         }
@@ -218,7 +218,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     if {$_device != ""} {
         foreach nn [$_device children components] {
             if {"" != [$_device get components.$nn.about.label]} {
-                set extra [expr {1.2*[font metrics $fnt -linespace]}] 
+                set extra [expr {1.2*[font metrics $fnt -linespace]}]
                 set hmax [expr {$hmax+$extra}]
                 break
             }

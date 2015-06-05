@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: datatableresult - X/Y plot in a ResultSet
 #
@@ -28,7 +27,7 @@ option add *DataTableResult.font \
 option add *DataTableResult*Balloon*Entry.background white widgetDefault
 
 itk::usual TreeView {
-    keep -foreground -cursor 
+    keep -foreground -cursor
 }
 
 itcl::class Rappture::DataTableResult {
@@ -40,11 +39,11 @@ itcl::class Rappture::DataTableResult {
 
     private variable _tree ""
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
@@ -54,8 +53,8 @@ itcl::class Rappture::DataTableResult {
     }
     public method snap { w h }
     public method tooltip { desc x y }
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method download {option args}
 
@@ -70,7 +69,7 @@ itcl::class Rappture::DataTableResult {
     private variable _raised    "";
     common _downloadPopup          ;# download options from popup
 }
-                                                                                
+
 itk::usual DataTableResult {
     keep -background -foreground -cursor -font
 }
@@ -101,7 +100,7 @@ itcl::body Rappture::DataTableResult::constructor {args} {
         usual
         ignore -borderwidth -highlightthickness
     }
-    $itk_component(treeview) style textbox lowered -background grey95 
+    $itk_component(treeview) style textbox lowered -background grey95
     $itk_component(treeview) style textbox raised -background white
     $itk_interior.scroller contents $itk_component(treeview)
     pack $itk_interior.scroller -fill both -expand yes
@@ -289,7 +288,7 @@ itcl::body Rappture::DataTableResult::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DataTableResult::Rebuild {} {
     eval $_tree delete [$_tree children 0]
-    
+
     foreach dataobj $_dlist {
         scan $dataobj "::dataTable%d" suffix
         incr suffix
@@ -316,7 +315,7 @@ itcl::body Rappture::DataTableResult::Rebuild {} {
         $itk_component(treeview) column delete $col
     }
     $itk_component(treeview) column configure treeView -hide yes
-    set dataobj [lindex $_dlist 0] 
+    set dataobj [lindex $_dlist 0]
     if { $dataobj != "" } {
         foreach { label description style } [$dataobj columns] {
             foreach c [lsort -dictionary [array names labels $label*]] {
@@ -326,14 +325,14 @@ itcl::body Rappture::DataTableResult::Rebuild {} {
                 $itk_component(treeview) column bind $c <Leave> \
                     { Rappture::Tooltip::tooltip cancel }
             }
-        }    
+        }
     }
     if { [llength $_dlist] == 1 } {
         foreach { label description style } [$dataobj columns] {
             foreach c [lsort -dictionary [array names labels $label*]] {
                 $itk_component(treeview) column configure $c -text $label
             }
-        }    
+        }
     }
     if { $_raised != "" } {
         foreach c [$itk_component(treeview) column names] {
@@ -353,7 +352,7 @@ itcl::body Rappture::DataTableResult::snap { w h } {
     if { $w <= 0 || $h <= 0 } {
         set w [winfo width $g]
         set h [winfo height $g]
-    } 
+    }
     set img [image create picture -width $w -height $h]
     $g snap $img -width $w -height $h
     return $img

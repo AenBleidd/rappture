@@ -1,4 +1,4 @@
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: FileListEntry - widget for entering a choice of strings
 #
@@ -14,7 +14,7 @@
 package require Itk
 
 itk::usual BltTreeView {
-    keep -foreground -cursor 
+    keep -foreground -cursor
 }
 itk::usual BltScrollset {
     #empty
@@ -24,24 +24,24 @@ itcl::class Rappture::FileListEntry {
     inherit itk::Widget
 
     itk_option define -state state State "normal"
-    
+
     private variable _rebuildPending 0
     private variable _tree ""
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
     private variable _icon ""
 
-    constructor {owner path args} { 
-        # defined below 
+    constructor {owner path args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method value {args}
 
     public method label {}
     public method tooltip {}
-    
+
     protected method Rebuild {}
     protected method NewValue { args }
     protected method Tooltip {}
@@ -97,16 +97,16 @@ itcl::body Rappture::FileListEntry::constructor {owner path args} {
     pack $itk_component(scrollset) -fill both -expand yes
 
     blt::table $itk_interior \
-        0,0 $itk_component(scrollset) -fill both  
+        0,0 $itk_component(scrollset) -fill both
     bind $itk_component(tree) <<Value>> [itcl::code $this NewValue]
 
     # Standard ButtonPress-1
-    $itk_component(tree) bind Entry <ButtonPress-1> {   
+    $itk_component(tree) bind Entry <ButtonPress-1> {
         Rappture::FileListEntry::SetSelectionAnchor %W current yes set
         set blt::TreeView::_private(scroll) 1
     }
     # Standard B1-Motion
-    $itk_component(tree) bind Entry <B1-Motion> { 
+    $itk_component(tree) bind Entry <B1-Motion> {
         set blt::TreeView::_private(x) %x
         set blt::TreeView::_private(y) %y
         set index [%W nearest %x %y]
@@ -115,19 +115,19 @@ itcl::body Rappture::FileListEntry::constructor {owner path args} {
     # Standard ButtonRelease-1
     $itk_component(tree) button bind all <ButtonRelease-1> {
         set index [%W nearest %x %y blt::TreeView::_private(who)]
-        if { [%W index current] == $index && 
+        if { [%W index current] == $index &&
              $blt::TreeView::_private(who) == "button" } {
             %W see -anchor nw current
             %W toggle current
         }
     }
     # Shift-ButtonPress-1
-    $itk_component(tree) bind Entry <Shift-ButtonPress-1> {     
+    $itk_component(tree) bind Entry <Shift-ButtonPress-1> {
         Rappture::FileListEntry::SetSelectionAnchor %W current yes set
         set blt::TreeView::_private(scroll) 1
     }
     # Shift-B1-Motion
-    $itk_component(tree) bind Entry <Shift-B1-Motion> { 
+    $itk_component(tree) bind Entry <Shift-B1-Motion> {
         set blt::TreeView::_private(x) %x
         set blt::TreeView::_private(y) %y
         set index [%W nearest %x %y]
@@ -138,7 +138,7 @@ itcl::body Rappture::FileListEntry::constructor {owner path args} {
         }
     }
     # Shift-ButtonRelease-1
-    $itk_component(tree) bind Entry <Shift-ButtonRelease-1> { 
+    $itk_component(tree) bind Entry <Shift-ButtonRelease-1> {
         if { [%W cget -selectmode] == "multiple" } {
             %W selection anchor current
         }
@@ -146,11 +146,11 @@ itcl::body Rappture::FileListEntry::constructor {owner path args} {
         set blt::TreeView::_private(afterId) -1
         set blt::TreeView::_private(scroll) 0
     }
-    $itk_component(tree) bind Entry <Control-ButtonPress-1> {   
+    $itk_component(tree) bind Entry <Control-ButtonPress-1> {
         Rappture::FileListEntry::SetSelectionAnchor %W current no toggle
         set blt::TreeView::_private(scroll) 1
     }
-    $itk_component(tree) bind Entry <Control-B1-Motion> { 
+    $itk_component(tree) bind Entry <Control-B1-Motion> {
         set blt::TreeView::_private(x) %x
         set blt::TreeView::_private(y) %y
         set index [%W nearest %x %y]
@@ -160,7 +160,7 @@ itcl::body Rappture::FileListEntry::constructor {owner path args} {
             Rappture::FileListEntry::SetSelectionAnchor %W $index no toggle
         }
     }
-    $itk_component(tree) bind Entry <Control-ButtonRelease-1> { 
+    $itk_component(tree) bind Entry <Control-ButtonRelease-1> {
         if { [%W cget -selectmode] == "multiple" } {
             %W selection anchor current
         }
@@ -169,7 +169,7 @@ itcl::body Rappture::FileListEntry::constructor {owner path args} {
         set blt::TreeView::_private(scroll) 0
     }
     # First time, parse the <pattern> elements to generate notify callbacks
-    # for each template found. 
+    # for each template found.
     foreach cname [$_owner xml children -type pattern $_path] {
         set glob [string trim [$_owner xml get $_path.$cname]]
         # Successively replace each template with its value.
@@ -223,8 +223,8 @@ itcl::body Rappture::FileListEntry::value {args} {
             # someday we may add validation...
             return
         }
-        foreach id [$itk_component(tree) curselection] { 
-            set path [$_tree get $id "path" ""] 
+        foreach id [$itk_component(tree) curselection] {
+            set path [$_tree get $id "path" ""]
             set path2id($path) $id
         }
         set paths [split $newval ,]
@@ -236,8 +236,8 @@ itcl::body Rappture::FileListEntry::value {args} {
     # Query the value and return.
     #
     set list {}
-    foreach id [$itk_component(tree) curselection] { 
-        set path [$_tree get $id "path" ""] 
+    foreach id [$itk_component(tree) curselection] {
+        set path [$_tree get $id "path" ""]
         if { $path != "" } {
             lappend list $path
         }
@@ -329,11 +329,11 @@ itcl::body Rappture::FileListEntry::Rebuild {} {
     $itk_component(tree) entry configure all -icons ""
     eval $_tree delete [$_tree tag nodes unused]
     $itk_component(tree) configure -width $max
-    catch { 
+    catch {
         if { ![$itk_component(tree) selection present] } {
             $itk_component(tree) selection set [$_tree firstchild root]
         }
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -422,10 +422,10 @@ itcl::body Rappture::FileListEntry::DoGlob { cwd patterns } {
     return $files
 }
 
-# 
+#
 # Glob --
 #
-#       Matches a single pattern for files. This differs from the 
+#       Matches a single pattern for files. This differs from the
 #       Tcl glob by
 #
 #       1. Only matches files, not directories.

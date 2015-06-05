@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*-
-
 # ----------------------------------------------------------------------
 #  COMPONENT: unirect2d - represents a uniform rectangular 2-D mesh.
 #

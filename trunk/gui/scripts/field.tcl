@@ -21,30 +21,30 @@
 # Possible field dataset types:
 #
 # 1D Datasets
-#	1D		A field contained in a structure
+#       1D              A field contained in a structure
 # 2D Datasets
-#	vtk		(range of z-axis is zero).
-#	unirect2d	(deprecated)
-#	cloud		(x,y point coordinates) (deprecated)
-#	mesh
+#       vtk             (range of z-axis is zero).
+#       unirect2d       (deprecated)
+#       cloud           (x,y point coordinates) (deprecated)
+#       mesh
 # 3D Datasets
-#	vtk
-#	unirect3d       (deprecated)
-#	cloud		(x,y,z coordinates) (deprecated)
-#	mesh
-#	dx		(FIXME: make dx-to-vtk converter work)
-#	ucd		(AVS ucd format)
+#       vtk
+#       unirect3d       (deprecated)
+#       cloud           (x,y,z coordinates) (deprecated)
+#       mesh
+#       dx              (FIXME: make dx-to-vtk converter work)
+#       ucd             (AVS ucd format)
 #
 # Viewers:
-#	Format	   Dim  Description			Viewer		Server
-#	1D          1   structure field                 DeviceViewer1D  N/A
-#	vtk         2	vtk file data.			contour		vtkvis
-#	vtk	    3	vtk file data.			isosurface	vtkvis
-#	mesh	    2	points-on-mesh			heightmap	vtkvis
-#	mesh	    3	points-on-mesh			isosurface	vtkvis
-#	dx	    3	DX				volume		nanovis
-#	unirect2d   2	unirect2d + extents > 1	flow	flow		nanovis
-#	unirect3d   3	unirect3d + extents > 1	flow	flow		nanovis
+#       Format     Dim  Description                   Viewer          Server
+#       1D          1   structure field               DeviceViewer1D  N/A
+#       vtk         2   vtk file data.                contour         vtkvis
+#       vtk         3   vtk file data.                isosurface      vtkvis
+#       mesh        2   points-on-mesh                heightmap       vtkvis
+#       mesh        3   points-on-mesh                isosurface      vtkvis
+#       dx          3   DX                            volume          nanovis
+#       unirect2d   2   unirect2d + extents > 1 flow  flow            nanovis
+#       unirect3d   3   unirect3d + extents > 1 flow  flow            nanovis
 #
 # With <views>, can specify which viewer for specific datasets.  So it's OK
 # for the same dataset to be viewed in more than one way.
@@ -810,7 +810,7 @@ itcl::body Rappture::Field::Build {} {
         if { $viewer != "" } {
             set _viewer $viewer
         }
-        if { $_viewer == "" } { 
+        if { $_viewer == "" } {
             if { $_comp2size($cname) > 1 && ! $haveFlow } {
                 set _viewer "glyphs"
             } elseif { $_comp2size($cname) > 1 && $haveFlow } {

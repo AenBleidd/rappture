@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: deviceEditor - general-purpose device editor
 #
@@ -24,15 +24,15 @@ itcl::class Rappture::DeviceEditor {
 
     constructor {owner args} {
         Rappture::ControlOwner::constructor $owner
-    } { 
-        # defined below 
+    } {
+        # defined below
     }
     public method value {args}
     public method download {option args}
-    public method add {dataobj {settings ""}} 
+    public method add {dataobj {settings ""}}
     public method delete {args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method snap {w h}
 
@@ -51,7 +51,7 @@ itcl::class Rappture::DeviceEditor {
         }
     }
 }
-                                                                                
+
 itk::usual DeviceEditor {
 }
 

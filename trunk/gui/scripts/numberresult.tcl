@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: numberresult - plot of numbers in a ResultSet
 #
@@ -73,11 +72,11 @@ itcl::class Rappture::NumberResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
@@ -577,10 +576,10 @@ itcl::body Rappture::NumberResult::download {option args} {
                     set csvdata ""
                     set xtitle [$itk_component(plot) xaxis cget -title]
                     set ytitle [$itk_component(plot) yaxis cget -title]
-                    
+
                     set desc ""
                     set dataobj [lindex [get] end]
-                    
+
                     # the "Simulation" axis shows all values
                     # -- no need for assumptions
                     if {$xtitle != "Simulation"
@@ -601,7 +600,7 @@ itcl::body Rappture::NumberResult::download {option args} {
                         append csvdata $desc
                         append csvdata "[string repeat - 60]\n"
                     }
-                    
+
                     append csvdata "$xtitle, $ytitle\n"
                     foreach xval [lsort -real [array names _xval2label]] {
                         set dataobj ""
@@ -628,9 +627,9 @@ itcl::body Rappture::NumberResult::download {option args} {
                         set inner [$popup component inner]
                         # Create the print dialog widget and add it to the
                         # the balloon popup.
-                        Rappture::XyPrint $inner.print 
+                        Rappture::XyPrint $inner.print
                         $popup configure \
-                            -deactivatecommand [list $inner.print reset] 
+                            -deactivatecommand [list $inner.print reset]
                         blt::table $inner 0,0 $inner.print -fill both
                     }
                     update
@@ -640,7 +639,7 @@ itcl::body Rappture::NumberResult::download {option args} {
                     set inner [$popup component inner]
                     set output [$inner.print print $itk_component(plot) \
                                     $toolName $plotName]
-                    $popup deactivate 
+                    $popup deactivate
                     return $output
                 }
             }

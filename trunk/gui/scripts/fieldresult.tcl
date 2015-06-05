@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: fieldresult - plot a field in a ResultSet
 #
@@ -87,7 +87,7 @@ itcl::body Rappture::FieldResult::constructor {args} {
             "contour" - "heightmap" {
                 itk_component add renderer {
                     Rappture::VtkHeightmapViewer $itk_interior.ren $servers \
-			-mode $flags(-mode)
+                        -mode $flags(-mode)
                 }
             }
             "isosurface" {
@@ -107,7 +107,7 @@ itcl::body Rappture::FieldResult::constructor {args} {
             }
             "vtkimage" {
                 itk_component add renderer {
-                    Rappture::VtkImageViewer $itk_interior.ren $servers 
+                    Rappture::VtkImageViewer $itk_interior.ren $servers
                 }
             }
             "vtkviewer" {
@@ -123,7 +123,7 @@ itcl::body Rappture::FieldResult::constructor {args} {
             default {
                 puts stderr "unknown render mode \"$flags(-mode)\""
             }
-        }               
+        }
         pack $itk_component(renderer) -expand yes -fill both
 
         # can't connect to rendering farm?
@@ -155,7 +155,7 @@ itcl::body Rappture::FieldResult::destructor {} {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::add {dataobj {settings ""}} {
-    if { ![info exists itk_component(renderer)] } { 
+    if { ![info exists itk_component(renderer)] } {
         puts stderr "add: no renderer created."
         return
     }
@@ -169,7 +169,7 @@ itcl::body Rappture::FieldResult::add {dataobj {settings ""}} {
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::get {} {
-    if { ![info exists itk_component(renderer)] } { 
+    if { ![info exists itk_component(renderer)] } {
         puts stderr "get: no renderer created."
         return
     }
@@ -198,7 +198,7 @@ itcl::body Rappture::FieldResult::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::scale {args} {
-    if { ![info exists itk_component(renderer)] } { 
+    if { ![info exists itk_component(renderer)] } {
         puts stderr "scale: no renderer created."
         return
     }
@@ -216,7 +216,7 @@ itcl::body Rappture::FieldResult::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FieldResult::download {option args} {
-    if { ![info exists itk_component(renderer)] } { 
+    if { ![info exists itk_component(renderer)] } {
         puts stderr "download: no renderer created."
         return
     }
@@ -224,7 +224,7 @@ itcl::body Rappture::FieldResult::download {option args} {
 }
 
 itcl::body Rappture::FieldResult::snap { w h } {
-    if { ![info exists itk_component(renderer)] } { 
+    if { ![info exists itk_component(renderer)] } {
         puts stderr "snap: no renderer created."
         return
     }

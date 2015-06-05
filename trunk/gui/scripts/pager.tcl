@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: pager - notebook for displaying pages of widgets
 #
@@ -55,7 +55,7 @@ itcl::class Rappture::Pager {
     public method page {args}
     public method current {args}
 
-    public method busy { bool } 
+    public method busy { bool }
 
     protected method _layout {}
     protected method _fixSize {}
@@ -67,7 +67,7 @@ itcl::class Rappture::Pager {
     private variable _page2info      ;# maps page name => -frame,-title,-command
     private variable _current ""     ;# page currently shown
 }
-                                                                                
+
 itk::usual Pager {
 }
 
@@ -641,16 +641,16 @@ itcl::body Rappture::Pager::_drawCrumbs {how} {
 # busy --
 #
 #       If true (this indicates a simulation is occurring), the widget
-#       should prevent the user from 
-#               1) clicking an item previous in the breadcrumbs, and 
+#       should prevent the user from
+#               1) clicking an item previous in the breadcrumbs, and
 #               2) using the "back" button.
 #
 itcl::body Rappture::Pager::busy { bool } {
     if { $bool } {
-        blt::busy hold $itk_component(breadcrumbs) 
+        blt::busy hold $itk_component(breadcrumbs)
         $itk_component(back) configure -state disabled
-    } else { 
-        blt::busy release $itk_component(breadcrumbs) 
+    } else {
+        blt::busy release $itk_component(breadcrumbs)
         $itk_component(back) configure -state normal
     }
 }

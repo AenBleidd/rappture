@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: owner - manages Rappture controls
 #
@@ -295,11 +295,11 @@ itcl::body Rappture::ControlOwner::load {newobj} {
 
         set type [[tool] xml element -as type $path]
         if {[info exists _type2curpath($type)]} {
-	    if { $_type2curpath($type) == "all" } {
-		set currentpath $path
-	    } else {
-		set currentpath $path.$_type2curpath($type)
-	    }
+            if { $_type2curpath($type) == "all" } {
+                set currentpath $path
+            } else {
+                set currentpath $path.$_type2curpath($type)
+            }
         } else {
             # default incase i forgot an input type in _type2curpath
             set currentpath $path.current

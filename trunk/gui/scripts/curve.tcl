@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: curve - extracts data from an XML description of a field
 #
@@ -18,16 +17,16 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { 
-    # forward declaration 
+namespace eval Rappture {
+    # forward declaration
 }
 
 itcl::class Rappture::Curve {
-    constructor {xmlobj path} { 
-        # defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method components {{pattern *}}
@@ -313,15 +312,15 @@ itcl::body Rappture::Curve::_build {} {
             $xv set [$_curve get $cname.xvector]
             $yv set [$_curve get $cname.yvector]
         }
-        if { (([$xv length] == 0) && ([$yv length] == 0)) || 
+        if { (([$xv length] == 0) && ([$yv length] == 0)) ||
              ([$xv length] != [$yv length]) } {
             # FIXME: need to show an error about improper data.
             blt::vector destroy $xv $yv
             set xv ""; set yv ""
             continue;
         }
-        $xev set [$_curve get "$cname.xerrorbars"] 
-        $yev set [$_curve get "$cname.yerrorbars"] 
+        $xev set [$_curve get "$cname.xerrorbars"]
+        $yev set [$_curve get "$cname.yerrorbars"]
         set _comp2xy($cname) [list $xv $yv $xev $yev]
         incr _counter
     }

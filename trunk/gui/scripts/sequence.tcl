@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: sequence - represents a sequence of output results
 #
@@ -187,9 +186,9 @@ itcl::body Rappture::Sequence::value {pos} {
 
     # FIXME:  This is a bandaid on what appears to be a timing problem.
     # This "dataobjs" method is now called before any sequence frames
-    # have been added. 
+    # have been added.
     if { ![info exists _dataobjs($i)] } {
-	return ""
+        return ""
     }
 
     return $_dataobjs($i)
@@ -206,9 +205,9 @@ itcl::body Rappture::Sequence::label {pos} {
 
     # FIXME:  This is a bandaid on what appears to be a timing problem.
     # This "label" method is now called before any sequence frames
-    # have been added. 
+    # have been added.
     if { ![info exists _labels($i)] } {
-	return ""
+        return ""
     }
 
     return $_labels($i)

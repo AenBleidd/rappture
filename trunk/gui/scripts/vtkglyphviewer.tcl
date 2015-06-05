@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkglyphviewer - Vtk 3D glyphs object viewer
 #
@@ -56,8 +56,8 @@ itcl::class Rappture::VtkGlyphViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method scale {args}
 
@@ -67,7 +67,7 @@ itcl::class Rappture::VtkGlyphViewer {
     private method BuildCameraTab {}
     private method BuildColormap { name }
     private method BuildCutplaneTab {}
-    private method BuildDownloadPopup { widget command } 
+    private method BuildDownloadPopup { widget command }
     private method BuildGlyphTab {}
     private method DrawLegend {}
     private method Combo { option }
@@ -76,21 +76,21 @@ itcl::class Rappture::VtkGlyphViewer {
     private method Disconnect {}
     private method DoResize {}
     private method DoRotate {}
-    private method EnterLegend { x y } 
-    private method EventuallyResize { w h } 
-    private method EventuallyRotate { q } 
-    private method EventuallyRequestLegend {} 
-    private method EventuallySetCutplane { axis args } 
-    private method GetImage { args } 
-    private method GetVtkData { args } 
+    private method EnterLegend { x y }
+    private method EventuallyResize { w h }
+    private method EventuallyRotate { q }
+    private method EventuallyRequestLegend {}
+    private method EventuallySetCutplane { axis args }
+    private method GetImage { args }
+    private method GetVtkData { args }
     private method InitSettings { args  }
-    private method IsValidObject { dataobj } 
+    private method IsValidObject { dataobj }
     private method LeaveLegend {}
-    private method MotionLegend { x y } 
+    private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
     private method Pick {x y}
-    private method QuaternionToView { q } { 
+    private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
     }
     private method Rebuild {}
@@ -100,11 +100,11 @@ itcl::class Rappture::VtkGlyphViewer {
     private method RequestLegend {}
     private method Rotate {option x y}
     private method SetLegendTip { x y }
-    private method SetObjectStyle { dataobj comp } 
-    private method Slice {option args} 
+    private method SetObjectStyle { dataobj comp }
+    private method Slice {option args}
     private method SetCurrentColormap { color }
     private method SetOrientation { side }
-    private method ViewToQuaternion {} { 
+    private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
@@ -113,7 +113,7 @@ itcl::class Rappture::VtkGlyphViewer {
 
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2ovride   ;    # maps dataobj => style override
-    private variable _datasets     ;    # contains all the dataobj-component 
+    private variable _datasets     ;    # contains all the dataobj-component
                                    ;    # datasets in the server
     private variable _colormaps    ;    # contains all the colormaps
                                    ;    # in the server.
@@ -142,8 +142,8 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _legendPending 0
     private variable _field      ""
     private variable _colorMode "vmag"; #  Mode of colormap (vmag or scalar)
-    private variable _fieldNames {} 
-    private variable _fields 
+    private variable _fieldNames {}
+    private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
 }
@@ -264,7 +264,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no 
+            -tearoff no
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -284,8 +284,8 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
     $c configure -scrollregion [$c bbox all]
 
     set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
-    set _map(cwidth) -1 
-    set _map(cheight) -1 
+    set _map(cwidth) -1
+    set _map(cheight) -1
     set _map(zoom) 1.0
     set _map(original) ""
 
@@ -332,7 +332,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
             -variable [itcl::scope _settings(-glyphvisible)] \
-            -command [itcl::code $this AdjustSetting -glyphvisible] 
+            -command [itcl::code $this AdjustSetting -glyphvisible]
     }
     $itk_component(glyphs) select
     Rappture::Tooltip::for $itk_component(glyphs) \
@@ -345,7 +345,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
             -variable [itcl::scope _settings(-cutplanevisible)] \
-            -command [itcl::code $this AdjustSetting -cutplanevisible] 
+            -command [itcl::code $this AdjustSetting -cutplanevisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide cutplanes"
@@ -364,20 +364,20 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
 
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0 
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
+    # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w 
+        0,0 $itk_component(view) -fill both -reqwidth $w
     blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for rotation via mouse
@@ -435,7 +435,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
 
-    EnableWaitDialog 900 
+    EnableWaitDialog 900
     Connect
 }
 
@@ -464,7 +464,7 @@ itcl::body Rappture::VtkGlyphViewer::DoResize {} {
 }
 
 itcl::body Rappture::VtkGlyphViewer::DoRotate {} {
-    SendCmd "camera orient [ViewToQuaternion]" 
+    SendCmd "camera orient [ViewToQuaternion]"
     set _rotatePending 0
 }
 
@@ -491,7 +491,7 @@ itcl::body Rappture::VtkGlyphViewer::EventuallyRotate { q } {
     QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay 
+        global rotate_delay
         $_dispatcher event -after $rotate_delay !rotate
     }
 }
@@ -597,7 +597,7 @@ itcl::body Rappture::VtkGlyphViewer::get {args} {
                 if { ![IsValidObject $dataobj] } {
                     continue
                 }
-                if {[info exists _obj2ovride($dataobj-raise)] && 
+                if {[info exists _obj2ovride($dataobj-raise)] &&
                     $_obj2ovride($dataobj-raise)} {
                     set dlist [linsert $dlist 0 $dataobj]
                 } else {
@@ -625,7 +625,7 @@ itcl::body Rappture::VtkGlyphViewer::get {args} {
                 }
             }
             return $dlist
-        }           
+        }
         -image {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
@@ -830,9 +830,9 @@ itcl::body Rappture::VtkGlyphViewer::Disconnect {} {
     $_dispatcher cancel !zcutplane
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
-    array unset _datasets 
-    array unset _data 
-    array unset _colormaps 
+    array unset _datasets
+    array unset _data
+    array unset _colormaps
 }
 
 # ----------------------------------------------------------------------
@@ -860,7 +860,7 @@ itcl::body Rappture::VtkGlyphViewer::ReceiveImage { args } {
         $_image(plot) configure -data $bytes
         set time [clock seconds]
         set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -932,7 +932,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
     StartBufferingCommands
 
     if { $_reset } {
@@ -969,7 +969,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
-                if 0 { 
+                if 0 {
                     set f [open "/tmp/glyph.vtk" "w"]
                     fconfigure $f -translation binary -encoding binary
                     puts -nonewline $f $bytes
@@ -994,7 +994,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
                 SetObjectStyle $dataobj $comp
             }
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline 
+                # Setting dataset visible enables outline
                 # and glyphs
                 SendCmd "dataset visible 1 $tag"
             }
@@ -1041,7 +1041,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
 
         #-cutplanexposition -cutplaneyposition -cutplanezposition \
             -cutplanexvisible -cutplaneyvisible -cutplanezvisible \
-            -cutplanepreinterp 
+            -cutplanepreinterp
 
         Zoom reset
         foreach axis { x y z } {
@@ -1077,7 +1077,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkGlyphViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
-    switch -- $flag { 
+    switch -- $flag {
         "-all" {
             if { [llength $args] > 1 } {
                 error "CurrentDatasets: can't specify dataobj after \"-all\""
@@ -1096,7 +1096,7 @@ itcl::body Rappture::VtkGlyphViewer::CurrentDatasets {args} {
             } else {
                 set dlist [get -visible]
             }
-        }           
+        }
         default {
             set dlist $args
         }
@@ -1215,7 +1215,7 @@ itcl::body Rappture::VtkGlyphViewer::Rotate {option x y} {
 itcl::body Rappture::VtkGlyphViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
         SendCmd "dataset getscalar pixel $x $y $tag"
-    } 
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1513,7 +1513,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 # RequestLegend --
 #
 #    Request a new legend from the server.  The size of the legend
-#    is determined from the height of the canvas.  
+#    is determined from the height of the canvas.
 #
 # This should be called when
 #    1.  A new current colormap is set.
@@ -1527,7 +1527,7 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     set font "Arial 8"
     set w 12
     set lineht [font metrics $font -linespace]
-    # color ramp height = (canvas height) - (min and max value lines) - 2 
+    # color ramp height = (canvas height) - (min and max value lines) - 2
     set h [expr {$_height - 2 * ($lineht + 2)}]
 
     set fname $_curFldName
@@ -1545,7 +1545,7 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     }
     # If there's a title too, substract one more line
     if { $title != "" } {
-        incr h -$lineht 
+        incr h -$lineht
     }
     if { $h < 1 } {
         return
@@ -1600,7 +1600,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         -command [itcl::code $this AdjustSetting -glyphvisible] \
         -font "Arial 9"
 
-    label $inner.gshape_l -text "Glyph shape" -font "Arial 9" 
+    label $inner.gshape_l -text "Glyph shape" -font "Arial 9"
     itk_component add gshape {
         Rappture::Combobox $inner.gshape -width 10 -editable no
     }
@@ -1620,7 +1620,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
     $itk_component(gshape) value $_settings(-glyphshape)
     bind $inner.gshape <<Value>> [itcl::code $this AdjustSetting -glyphshape]
 
-    label $inner.scaleMode_l -text "Scale by" -font "Arial 9" 
+    label $inner.scaleMode_l -text "Scale by" -font "Arial 9"
     itk_component add scaleMode {
         Rappture::Combobox $inner.scaleMode -width 10 -editable no
     }
@@ -1677,14 +1677,14 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         -command [itcl::code $this AdjustSetting -legendvisible] \
         -font "Arial 9"
 
-    label $inner.background_l -text "Background" -font "Arial 9" 
+    label $inner.background_l -text "Background" -font "Arial 9"
     itk_component add background {
         Rappture::Combobox $inner.background -width 10 -editable no
     }
     $inner.background choices insert end \
         "black"              "black"            \
         "white"              "white"            \
-        "grey"               "grey"             
+        "grey"               "grey"
 
     $itk_component(background) value $_settings(-background)
     bind $inner.background <<Value>> [itcl::code $this AdjustSetting -background]
@@ -1718,7 +1718,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
     Rappture::Tooltip::for $inner.gscale "Set scaling multiplier (or constant size)"
 
     itk_component add field_l {
-        label $inner.field_l -text "Color By" -font "Arial 9" 
+        label $inner.field_l -text "Color By" -font "Arial 9"
     } {
         ignore -font
     }
@@ -1728,7 +1728,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
-    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
@@ -1785,7 +1785,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildAxisTab {} {
         -variable [itcl::scope _settings(-axislabels)] \
         -command [itcl::code $this AdjustSetting -axislabels] \
         -font "Arial 9"
-    label $inner.grid_l -text "Grid" -font "Arial 9" 
+    label $inner.grid_l -text "Grid" -font "Arial 9"
     checkbutton $inner.xgrid \
         -text "X" \
         -variable [itcl::scope _settings(-xgrid)] \
@@ -1807,7 +1807,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting -axisminorticks] \
         -font "Arial 9"
 
-    label $inner.mode_l -text "Mode" -font "Arial 9" 
+    label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axisMode {
         Rappture::Combobox $inner.mode -width 10 -editable no
@@ -1816,7 +1816,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildAxisTab {} {
         "static_triad"    "static" \
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
-        "outer_edges"     "outer"         
+        "outer_edges"     "outer"
     $itk_component(axisMode) value $_settings(-axismode)
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
@@ -1890,10 +1890,10 @@ itcl::body Rappture::VtkGlyphViewer::BuildCameraTab {} {
 itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
 
     set fg [option get $itk_component(hull) font Font]
-    
+
     set inner [$itk_component(main) insert end \
         -title "Cutplane Settings" \
-        -icon [Rappture::icon cutbutton]] 
+        -icon [Rappture::icon cutbutton]]
 
     $inner configure -borderwidth 4
 
@@ -2043,10 +2043,10 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
 }
 
 #
-#  camera -- 
+#  camera --
 #
 itcl::body Rappture::VtkGlyphViewer::camera {option args} {
-    switch -- $option { 
+    switch -- $option {
         "show" {
             puts [array get _view]
         }
@@ -2094,7 +2094,7 @@ itcl::body Rappture::VtkGlyphViewer::GetVtkData { args } {
 }
 
 itcl::body Rappture::VtkGlyphViewer::GetImage { args } {
-    if { [image width $_image(download)] > 0 && 
+    if { [image width $_image(download)] > 0 &&
          [image height $_image(download)] > 0 } {
         set bytes [$_image(download) data -format "jpeg -quality 100"]
         set bytes [Rappture::encoding::decode -as b64 $bytes]
@@ -2107,16 +2107,16 @@ itcl::body Rappture::VtkGlyphViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w 
+    label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Arial 9 " \
-        -value vtk  
+        -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
         -font "Arial 9 " \
-        -value image 
+        -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
 
@@ -2137,7 +2137,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildDownloadPopup { popup command } {
         1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
         2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
         4,1 $inner.cancel -width .9i -fill y \
-        4,0 $inner.ok -padx 2 -width .9i -fill y 
+        4,0 $inner.ok -padx 2 -width .9i -fill y
     blt::table configure $inner r3 -height 4
     blt::table configure $inner r4 -pady 4
     raise $inner.image_button
@@ -2317,7 +2317,7 @@ itcl::body Rappture::VtkGlyphViewer::SetLegendTip { x y } {
 
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     set ih [image height $_image(legend)]
     set iy [expr $y - ($lineht + 2)]
 
@@ -2345,8 +2345,8 @@ itcl::body Rappture::VtkGlyphViewer::SetLegendTip { x y } {
         set _image(swatch) [image create photo -width 24 -height 24]
     }
     set color [eval format "\#%02x%02x%02x" $pixel]
-    $_image(swatch) put black  -to 0 0 23 23 
-    $_image(swatch) put $color -to 1 1 22 22 
+    $_image(swatch) put black  -to 0 0 23 23
+    $_image(swatch) put $color -to 1 1 22 22
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
@@ -2357,10 +2357,10 @@ itcl::body Rappture::VtkGlyphViewer::SetLegendTip { x y } {
     } else {
         set value 0.0
     }
-    set tx [expr $x + 15] 
+    set tx [expr $x + 15]
     set ty [expr $y - 5]
     Rappture::Tooltip::text $c [format "$title %g" $value]
-    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
+    Rappture::Tooltip::tooltip show $c +$tx,+$ty
 }
 
 # ----------------------------------------------------------------------
@@ -2394,7 +2394,7 @@ itcl::body Rappture::VtkGlyphViewer::Slice {option args} {
 }
 
 #
-# ReceiveLegend -- 
+# ReceiveLegend --
 #
 #    Invoked automatically whenever the "legend" command comes in from
 #    the rendering server.  Indicates that binary image data with the
@@ -2403,7 +2403,7 @@ itcl::body Rappture::VtkGlyphViewer::Slice {option args} {
 itcl::body Rappture::VtkGlyphViewer::ReceiveLegend { colormap title min max size } {
     #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
     set _title $title
-    regsub {\(mag\)} $title "" _title 
+    regsub {\(mag\)} $title "" _title
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2430,7 +2430,7 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
-    
+
     if { [string match "component*" $fname] } {
         set title ""
     } else {
@@ -2447,14 +2447,14 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
     if { !$_settings(-legendvisible) } {
         $c delete legend
         return
-    } 
+    }
     if { [$c find withtag "legend"] == "" } {
-        set y 2 
+        set y 2
         # If there's a legend title, create a text item for the title.
         $c create text $x $y \
             -anchor ne \
             -fill $itk_option(-plotforeground) -tags "title legend" \
-            -font $font 
+            -font $font
         if { $title != "" } {
             incr y $lineht
         }
@@ -2519,7 +2519,7 @@ itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
 # the value back to the gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkGlyphViewer::Combo {option} {
-    set c $itk_component(view) 
+    set c $itk_component(view)
     switch -- $option {
         post {
             foreach { x1 y1 x2 y2 } [$c bbox title] break
@@ -2534,7 +2534,7 @@ itcl::body Rappture::VtkGlyphViewer::Combo {option} {
             $c itemconfigure title -fill red
         }
         deactivate {
-            $c itemconfigure title -fill $itk_option(-plotforeground) 
+            $c itemconfigure title -fill $itk_option(-plotforeground)
         }
         invoke {
             $itk_component(field) value $_curFldLabel
@@ -2552,7 +2552,7 @@ itcl::body Rappture::VtkGlyphViewer::Combo {option} {
 itcl::body Rappture::VtkGlyphViewer::SetCurrentColormap { name } {
     # Keep track of the colormaps that we build.
     if { ![info exists _colormaps($name)] } {
-        BuildColormap $name 
+        BuildColormap $name
         set _colormaps($name) 1
     }
     set _currentColormap $name
@@ -2573,7 +2573,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildColormap { name } {
     SendCmd "colormap add $name { $cmap } { $amap }"
 }
 
-itcl::body Rappture::VtkGlyphViewer::SetOrientation { side } { 
+itcl::body Rappture::VtkGlyphViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
         back  "0 0 1 0"

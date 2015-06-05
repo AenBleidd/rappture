@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: deviceViewer1D - visualizer for 1D device geometries
 #
@@ -40,7 +40,7 @@ itcl::class Rappture::DeviceViewer1D {
 
     public method controls {option args}
     public method download {option args}
-                                                                                
+
     protected method _loadDevice {}
     protected method _loadParameters {frame path}
     protected method _changeTabs {{why -program}}
@@ -62,7 +62,7 @@ itcl::class Rappture::DeviceViewer1D {
     private variable _units ""      ;# units for field being edited
     private variable _marker        ;# marker currently being edited
 }
-                                                                                
+
 itk::usual DeviceViewer1D {
 }
 
@@ -167,7 +167,7 @@ itcl::body Rappture::DeviceViewer1D::add {dataobj {settings ""}} {
         -param ""
     }
     array set params $settings
- 
+
     set pos [lsearch -exact $_dlist $dataobj]
 
     if {$pos < 0} {

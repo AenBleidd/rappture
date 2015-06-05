@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 #!/bin/sh
 # ----------------------------------------------------------------------
 #  USER INTERFACE DRIVER
@@ -342,13 +342,13 @@ if {[llength [$win.pager page]] > 2} {
     }
     set arrangement [$win.pager cget -arrangement]
     if { $type == "" } {
-        if { $arrangement != "side-by-side" } { 
+        if { $arrangement != "side-by-side" } {
            set type auto
         }
     }
-    if { $arrangement != "side-by-side" && 
+    if { $arrangement != "side-by-side" &&
             ($type == "manual" || $type == "manual-resim" ||
-	     $type == "auto" || $style == "wizard") } {
+             $type == "auto" || $style == "wizard") } {
         # in "auto" mode, we don't need a simulate button
         $f.analyze configure -simcontrol off
     } else {

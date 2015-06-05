@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  UTILITY: color
 #
@@ -78,10 +78,10 @@ proc Rappture::color::brightness_max {color max} {
 # ----------------------------------------------------------------------
 proc Rappture::color::RGBtoHSV {color} {
     #
-    # If the colors are exhausted sometimes winfo can fail with a 
+    # If the colors are exhausted sometimes winfo can fail with a
     # division by zero.  Catch it to avoid problems.
     #
-    if { [catch {winfo rgb . $color} status] != 0 } { 
+    if { [catch {winfo rgb . $color} status] != 0 } {
         set s 0
         set v 0
         set h 0
@@ -104,7 +104,7 @@ proc Rappture::color::RGBtoHSV {color} {
         set h 0
         return [list $h $s $v]
     }
-  
+ 
     if {$max > 0} {
         set s [expr {$delta/double($max)}]
     } else {
@@ -215,10 +215,10 @@ proc Rappture::color::wave2RGB {wl} {
     return [format "#%.2X%.2X%.2X" $r $g $b]
 }
 
-# Returns a list containing three decimal values in the range 0 to 65535, 
-# which are the red, green, and blue intensities that correspond to color 
-# in the window given by window. Color may be specified in any of the forms 
-# acceptable for a color option. 
+# Returns a list containing three decimal values in the range 0 to 65535,
+# which are the red, green, and blue intensities that correspond to color
+# in the window given by window. Color may be specified in any of the forms
+# acceptable for a color option.
 proc Rappture::color::RGB {color} {
     if {[string match "*nm" $color]} {
         set color [Rappture::color::wave2RGB [string trimright $color "nm"]]

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: periodictable - drop-down list of items
 #
@@ -46,72 +46,72 @@ itcl::class Rappture::PeriodicTable {
     protected method Deactivate { widget id }
     private common _colors
     array set _colors {
-        actinoid-activebackground                       \#cd679a 
-        actinoid-activeforeground                       white 
-        actinoid-disabledbackground                     \#ff99cc  
+        actinoid-activebackground                       \#cd679a
+        actinoid-activeforeground                       white
+        actinoid-disabledbackground                     \#ff99cc
         actinoid-disabledforeground                     \#D97DAB
-        actinoid-background                             \#ff99cc 
-        actinoid-foreground                             black 
-        alkali-metal-activebackground                   \#cd3434 
-        alkali-metal-activeforeground                   white 
-        alkali-metal-disabledbackground                 \#ff6666 
+        actinoid-background                             \#ff99cc
+        actinoid-foreground                             black
+        alkali-metal-activebackground                   \#cd3434
+        alkali-metal-activeforeground                   white
+        alkali-metal-disabledbackground                 \#ff6666
         alkali-metal-disabledforeground                 \#D04747
-        alkali-metal-background                         \#ff6666 
-        alkali-metal-foreground                         black 
-        alkaline-earth-metal-activebackground           \#cdac7b 
-        alkaline-earth-metal-activeforeground           white 
-        alkaline-earth-metal-disabledbackground         \#ffdead 
+        alkali-metal-background                         \#ff6666
+        alkali-metal-foreground                         black
+        alkaline-earth-metal-activebackground           \#cdac7b
+        alkaline-earth-metal-activeforeground           white
+        alkaline-earth-metal-disabledbackground         \#ffdead
         alkaline-earth-metal-disabledforeground         \#C19A64
-        alkaline-earth-metal-background                 \#ffdead 
-        alkaline-earth-metal-foreground                 black 
-        halogen-activebackground                        \#cdcd67 
-        halogen-activeforeground                        white 
-        halogen-disabledbackground                      \#ffff99 
+        alkaline-earth-metal-background                 \#ffdead
+        alkaline-earth-metal-foreground                 black
+        halogen-activebackground                        \#cdcd67
+        halogen-activeforeground                        white
+        halogen-disabledbackground                      \#ffff99
         halogen-disabledforeground                      \#D5D562
-        halogen-background                              \#ffff99 
-        halogen-foreground                              black 
+        halogen-background                              \#ffff99
+        halogen-foreground                              black
         lanthanoid-activebackground                     \#cd8dcd
         lanthanoid-activeforeground                     white
         lanthanoid-disabledbackground                   \#ffbfff
         lanthanoid-disabledforeground                   \#D884D8
-        lanthanoid-background                           \#ffbfff 
+        lanthanoid-background                           \#ffbfff
         lanthanoid-foreground                           black
-        metalloid-activebackground                      \#9a9a67 
-        metalloid-activeforeground                      white 
-        metalloid-disabledbackground                    \#cccc99 
+        metalloid-activebackground                      \#9a9a67
+        metalloid-activeforeground                      white
+        metalloid-disabledbackground                    \#cccc99
         metalloid-disabledforeground                    \#92922C
         metalloid-background                            \#cccc99
-        metalloid-foreground                            black 
-        noble-gas-activebackground                      \#8ecdcd 
-        noble-gas-activeforeground                      white 
-        noble-gas-disabledbackground                    \#c0ffff 
+        metalloid-foreground                            black
+        noble-gas-activebackground                      \#8ecdcd
+        noble-gas-activeforeground                      white
+        noble-gas-disabledbackground                    \#c0ffff
         noble-gas-disabledforeground                    \#7FC1C1
-        noble-gas-background                            \#c0ffff 
-        noble-gas-foreground                            black 
-        other-non-metal-activebackground                \#6ecd6e 
-        other-non-metal-activeforeground                white 
-        other-non-metal-disabledbackground              \#a0ffa0 
+        noble-gas-background                            \#c0ffff
+        noble-gas-foreground                            black
+        other-non-metal-activebackground                \#6ecd6e
+        other-non-metal-activeforeground                white
+        other-non-metal-disabledbackground              \#a0ffa0
         other-non-metal-disabledforeground              \#6ACD6A
-        other-non-metal-background                      \#a0ffa0 
-        other-non-metal-foreground                      black 
-        post-transition-metal-activebackground          \#9a9a9a        
-        post-transition-metal-activeforeground          white 
-        post-transition-metal-disabledbackground        \#cccccc 
+        other-non-metal-background                      \#a0ffa0
+        other-non-metal-foreground                      black
+        post-transition-metal-activebackground          \#9a9a9a
+        post-transition-metal-activeforeground          white
+        post-transition-metal-disabledbackground        \#cccccc
         post-transition-metal-disabledforeground        \#999999
-        post-transition-metal-background                \#cccccc 
-        post-transition-metal-foreground                black 
-        transition-metal-activebackground               \#cd8e8e 
-        transition-metal-activeforeground               white 
-        transition-metal-disabledbackground             \#ffc0c0 
+        post-transition-metal-background                \#cccccc
+        post-transition-metal-foreground                black
+        transition-metal-activebackground               \#cd8e8e
+        transition-metal-activeforeground               white
+        transition-metal-disabledbackground             \#ffc0c0
         transition-metal-disabledforeground             \#C77E7E
-        transition-metal-background                     \#ffc0c0 
-        transition-metal-foreground                     black 
-        unknown-activebackground                        \#cdcdcd 
-        unknown-activeforeground                        white 
-        unknown-disabledbackground                      \#ffffff 
+        transition-metal-background                     \#ffc0c0
+        transition-metal-foreground                     black
+        unknown-activebackground                        \#cdcdcd
+        unknown-activeforeground                        white
+        unknown-disabledbackground                      \#ffffff
         unknown-disabledforeground                      \#B9B9B9
-        unknown-background                              \#ffffff 
-        unknown-foreground                              black 
+        unknown-background                              \#ffffff
+        unknown-foreground                              black
     }
     private common _tableData {
         Hydrogen        1  H  1.0079    1 1     other-non-metal
@@ -121,19 +121,19 @@ itcl::class Rappture::PeriodicTable {
         Boron           5  B  10.811(7) 2 13    metalloid
         Carbon          6  C  12.011    2 14    other-non-metal
         Nitrogen        7  N  14.007    2 15    other-non-metal
-        Oxygen          8  O  15.999    2 16    other-non-metal 
+        Oxygen          8  O  15.999    2 16    other-non-metal
         Fluorine        9  F  18.998    2 17    halogen
         Neon            10 Ne 20.180    2 18    noble-gas
-        
+
         Sodium          11 Na 22.990    3 1     alkali-metal
         Magnesium       12 Mg 24.305    3 2     alkaline-earth-metal
         Aluminium       13 Al 26.982    3 13    post-transition-metal
         Silicon         14 Si 28.086    3 14    metalloid
-        Phosphorus      15 P  30.974    3 15    other-non-metal 
+        Phosphorus      15 P  30.974    3 15    other-non-metal
         Sulfur          16 S  32.066(6) 3 16    other-non-metal
         Chlorine        17 Cl 35.453    3 17    halogen
         Argon           18 Ar 39.948(1) 3 18    noble-gas
-        
+
         Potassium       19 K  39.098    4 1     alkali-metal
         Calcium         20 Ca 40.078(4) 4 2     alkaline-earth-metal
         Scandium        21 Sc 44.956    4 3     transition-metal
@@ -149,10 +149,10 @@ itcl::class Rappture::PeriodicTable {
         Gallium         31 Ga 69.723(1) 4 13    post-transition-metal
         Germanium       32 Ge 72.61(2)  4 14    metalloid
         Arsenic         33 As 74.922    4 15    metalloid
-        Selenium        34 Se 78.96(3)  4 16    other-non-metal 
+        Selenium        34 Se 78.96(3)  4 16    other-non-metal
         Bromine         35 Br 79.904(1) 4 17    halogen
         Krypton         36 Kr 83.80(1)  4 18    noble-gas
-        
+
         Rubidium        37 Rb 85.468    5 1     alkali-metal
         Strontium       38 Sr 87.62(1)  5 2     alkaline-earth-metal
         Yttrium         39 Y  88.906    5 3     transition-metal
@@ -171,7 +171,7 @@ itcl::class Rappture::PeriodicTable {
         Tellurium       52 Te 127.60(3) 5 16    metalloid
         Iodine          53 I  126.904   5 17    halogen
         Xenon           54 Xe 131.29(2) 5 18    noble-gas
-        
+
         Cesium          55 Cs 132.905   6 1     alkali-metal
         Barium          56 Ba 137.327(7) 6 2    alkaline-earth-metal
         Lanthanides     57-71 * *       6 3     lanthanoid
@@ -190,7 +190,7 @@ itcl::class Rappture::PeriodicTable {
         Polonium        84 Po [208.982] 6 16    metalloid
         Astatine        85 At [209.987] 6 17    halogen
         Radon           86 Rn [222.018] 6 18    noble-gas
-        
+
         Francium        87 Fr [223.020] 7 1     alkali-metal
         Radium          88 Ra [226.0254] 7 2    alkaline-earth-metal
         Actinides       89-103 * * 7 3          actinoid
@@ -209,7 +209,7 @@ itcl::class Rappture::PeriodicTable {
         Ununhexium      116 Uuh [292]  7 16     post-transition-metal
         Ununseptium     117 Uus ? 7 17          unknown
         Ununoctium      118 Uuo [294] 7 18      unknown
-        
+
         Lanthanum       57 La 138.905 8 3       lanthanoid
         Cerium          58 Ce 140.116(1) 8 4    lanthanoid
         Praseodymium    59 Pr 140.908 8 5       lanthanoid
@@ -225,7 +225,7 @@ itcl::class Rappture::PeriodicTable {
         Thulium         69 Tm 168.934   8 15    lanthanoid
         Ytterbium       70 Yb 173.04(3) 8 16    lanthanoid
         Lutetium        71 Lu 174.967(1) 8 17   lanthanoid
-        
+
         Actinium        89 Ac [227.027] 9 3     actinoid
         Thorium         90 Th 232.038   9 4     actinoid
         Protactinium    91 Pa 231.036 9 5       actinoid
@@ -252,54 +252,54 @@ itcl::class Rappture::PeriodicTable {
     private common _types
     array set _types {
         actinoid {
-            Actinides Actinium Americium Berkelium Californium Curium 
-            Einsteinium Fermium Mendelevium Neptunium Plutonium Protactinium 
-            Thorium Uranium Lawrencium Nobelium 
+            Actinides Actinium Americium Berkelium Californium Curium
+            Einsteinium Fermium Mendelevium Neptunium Plutonium Protactinium
+            Thorium Uranium Lawrencium Nobelium
         }
         alkali-metal {
-            Cesium Francium Lithium Potassium Rubidium Sodium           
+            Cesium Francium Lithium Potassium Rubidium Sodium
         }
         alkaline-earth-metal {
-            Barium Beryllium Calcium Magnesium Radium Strontium 
+            Barium Beryllium Calcium Magnesium Radium Strontium
         }
         halogen {
-            Astatine Bromine Chlorine Fluorine Iodine           
+            Astatine Bromine Chlorine Fluorine Iodine
         }
         lanthanoid {
-            Cerium Erbium Europium Gadolinium Holmium Lanthanides Lanthanum     
-            Lutetium Neodymium Praseodymium Promethium Samarium Terbium 
-            Thulium Ytterbium Dysprosium        
+            Cerium Erbium Europium Gadolinium Holmium Lanthanides Lanthanum
+            Lutetium Neodymium Praseodymium Promethium Samarium Terbium
+            Thulium Ytterbium Dysprosium
         }
         metalloid {
-            Arsenic Boron Germanium Polonium Silicon Tellurium Antimony 
+            Arsenic Boron Germanium Polonium Silicon Tellurium Antimony
         }
         noble-gas {
-            Argon Helium Krypton Neon Radon Xenon 
+            Argon Helium Krypton Neon Radon Xenon
         }
         other-non-metal {
-            Carbon Hydrogen Nitrogen Sulfur Oxygen Phosphorus Selenium  
+            Carbon Hydrogen Nitrogen Sulfur Oxygen Phosphorus Selenium
         }
         post-transition-metal {
-            Aluminium Bismuth Gallium Indium Lead Thallium Tin Ununhexium 
-            Ununpentium Ununquadium Ununtrium   
+            Aluminium Bismuth Gallium Indium Lead Thallium Tin Ununhexium
+            Ununpentium Ununquadium Ununtrium
         }
         transition-metal {
-            Chromium Cobalt Copper Dubnium Gold Hafnium Hassium Iridium         
-            Iron Manganese Meitnerium Mercury Molybdenum Nickel Niobium         
-            Osmium Palladium Rhenium Rhodium Roentgenium Ruthenium 
-            Rutherfordium Scandium Seaborgium Silver Tantalum Technetium 
-            Titanium Tungsten Ununbium Vanadium Yttrium Zinc Zirconium 
-            Bohrium Cadmium Darmstadtium Platinum       
+            Chromium Cobalt Copper Dubnium Gold Hafnium Hassium Iridium
+            Iron Manganese Meitnerium Mercury Molybdenum Nickel Niobium
+            Osmium Palladium Rhenium Rhodium Roentgenium Ruthenium
+            Rutherfordium Scandium Seaborgium Silver Tantalum Technetium
+            Titanium Tungsten Ununbium Vanadium Yttrium Zinc Zirconium
+            Bohrium Cadmium Darmstadtium Platinum
         }
         unknown {
-            Ununoctium  
-            Ununseptium 
+            Ununoctium
+            Ununseptium
         }
     }
 }
-    
+
 itk::usual PeriodicTable {
-    keep -background -outline -cursor 
+    keep -background -outline -cursor
 }
 
 # ----------------------------------------------------------------------
@@ -345,26 +345,26 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
     }
     set btags [linsert $btags [expr {$i+1}] RappturePeriodicTable-$this]
     bindtags $itk_component(table) $btags
-    
+
     eval itk_initialize $args
     Redraw
 }
 
 #
-# active <list of elements> 
+# active <list of elements>
 #
-#       Enables zero or more elements in the periodic table so that 
+#       Enables zero or more elements in the periodic table so that
 #       they can be selected.  All elements are first disabled.  Each
 #       argument can one of the following forms:
 #       1. element name.
-#       2. element symbol. 
+#       2. element symbol.
 #       3. element number.
-#       4. type of element.  The argument is expanded into all 
+#       4. type of element.  The argument is expanded into all
 #          elements of that type.
 #
 itcl::body Rappture::PeriodicTable::active { list } {
     set c $itk_component(table)
-    foreach elem [array names _table] { 
+    foreach elem [array names _table] {
         set _state($elem) "disabled"
         $c bind $elem <Enter> {}
         $c bind $elem <Leave> {}
@@ -395,20 +395,20 @@ itcl::body Rappture::PeriodicTable::active { list } {
 }
 
 #
-# inactive <list of elements> 
+# inactive <list of elements>
 #
-#       Disables zero or more elements in the periodic table so that 
+#       Disables zero or more elements in the periodic table so that
 #       they can't be selected.  All elements are first enabled.  Each
 #       argument can one of the following forms:
 #       1. element name.
-#       2. element symbol. 
+#       2. element symbol.
 #       3. element number.
-#       4. type of element.  The argument is expanded into all 
+#       4. type of element.  The argument is expanded into all
 #          elements of that type.
 #
 itcl::body Rappture::PeriodicTable::inactive { list } {
     set c $itk_component(table)
-    foreach elem [array names _table] { 
+    foreach elem [array names _table] {
         set _state($elem) "normal"
         $c bind $elem <Enter> \
             [itcl::code $this Activate %W $elem %X %Y]
@@ -468,9 +468,9 @@ itcl::body Rappture::PeriodicTable::get { args } {
     }
     set elem [FindElement $name]
     if { $elem == "" || $_state($elem) == "disabled" } {
-	if { $elem != "" } {
-	    puts stderr "element $elem is disabled"
-	}
+        if { $elem != "" } {
+            puts stderr "element $elem is disabled"
+        }
         return ""
     }
     array set info $_table($elem)
@@ -480,9 +480,9 @@ itcl::body Rappture::PeriodicTable::get { args } {
         -symbol { set value $info(symbol) }
         -weight { set value $info(weight) }
         -number { set value $info(number) }
-        -all { 
-            foreach key { symbol name number weight } { 
-                lappend value $key $info($key) 
+        -all {
+            foreach key { symbol name number weight } {
+                lappend value $key $info($key)
             }
         }
     }
@@ -490,7 +490,7 @@ itcl::body Rappture::PeriodicTable::get { args } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: select <name> 
+# USAGE: select <name>
 #
 # Used to manipulate the selection in the table.
 #
@@ -512,12 +512,12 @@ itcl::body Rappture::PeriodicTable::select { what } {
 # or "" if the element is not recognized.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicTable::FindElement { what } {
-    foreach name [array names _table] { 
+    foreach name [array names _table] {
         array unset info
         array set info $_table($name)
-        if { $what eq $info(name) || $what eq $info(number) || 
+        if { $what eq $info(name) || $what eq $info(number) ||
              $what eq $info(symbol) } {
-	    return $info(name)
+            return $info(name)
         }
     }
     return ""
@@ -623,7 +623,7 @@ set last ""
         if { $_state($name) == "disabled" } {
             set fg $_colors($type-disabledforeground)
             set bg $_colors($type-disabledbackground)
-        } else { 
+        } else {
             set fg $_colors($type-foreground)
             set bg $_colors($type-background)
         }
@@ -639,7 +639,7 @@ set last ""
                 -font "math1 6" -tags $info(name)-number
         }
         $c create rectangle $x1 $y1 $x2 $y2 -outline "" -fill "" \
-            -tags $info(name) 
+            -tags $info(name)
         if { $_state($name) == "normal" } {
         $c bind $info(name) <Enter> \
             [itcl::code $this Activate %W $info(name) %X %Y]

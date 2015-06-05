@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: ResultViewer - plots a collection of related results
 #
@@ -24,11 +24,11 @@ itcl::class Rappture::ResultViewer {
     itk_option define -clearcommand clearCommand ClearCommand ""
     itk_option define -simulatecommand simulateCommand SimulateCommand ""
 
-    constructor {args} { 
-	# defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-	# defined below 
+    destructor {
+        # defined below
     }
     public method add {index xmlobj path}
     public method clear {{index ""}}
@@ -319,7 +319,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     }
                 }
                 default {
-		    set mode [$dataobj viewer]
+                    set mode [$dataobj viewer]
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.$mode
                         if { ![winfo exists $w] } {

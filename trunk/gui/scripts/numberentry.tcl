@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: NumberEntry - widget for entering numeric values
 #
@@ -47,7 +47,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     }
     set _owner $owner
     set _path $path
-    
+
     #
     # Figure out what sort of control to create
     #
@@ -57,7 +57,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
         set label [string trim [$_owner xml get $path.$pre.label]]
         lappend presets $value $label
     }
-    
+
     set class Rappture::Gauge
     set units [string trim [$_owner xml get $path.units]]
     if {$units != ""} {
@@ -66,7 +66,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
             set class Rappture::TemperatureGauge
         }
     }
-    
+
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
@@ -76,15 +76,15 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     }
     pack $itk_component(gauge) -expand yes -fill both
     bind $itk_component(gauge) <<Value>> [itcl::code $this _newValue]
-    
+
     set min [string trim [$_owner xml get $path.min]]
-    if {$min ne ""} { 
-        $itk_component(gauge) configure -minvalue $min 
+    if {$min ne ""} {
+        $itk_component(gauge) configure -minvalue $min
     }
-    
+
     set max [string trim [$_owner xml get $path.max]]
-    if {$max ne ""} { 
-        $itk_component(gauge) configure -maxvalue $max 
+    if {$max ne ""} {
+        $itk_component(gauge) configure -maxvalue $max
     }
 
     if {$class == "Rappture::Gauge" && $min ne "" && $max ne ""} {
@@ -118,8 +118,8 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [string trim [$_owner xml get $path.default]]
-    if {$str ne ""} { 
-        $itk_component(gauge) value $str 
+    if {$str ne ""} {
+        $itk_component(gauge) value $str
     }
 }
 

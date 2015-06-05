@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: dispatcher - central notification mechanism
 #
@@ -45,14 +45,14 @@ itcl::class Rappture::DispatchObj {
     private variable _dispatch       ;# maps !event/client => callback
     private variable _extraargs      ;# extra args for dispatch calls
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::constructor {} {
     # nothing to do
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
