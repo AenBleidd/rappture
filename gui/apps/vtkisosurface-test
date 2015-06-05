@@ -119,7 +119,7 @@ itcl::class visData {
     public method viewer {args} {
         return "isosurface"
     }
- 
+
     private variable _cname "one"
     private variable _data ""
     private variable _type ""

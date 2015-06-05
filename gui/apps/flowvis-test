@@ -88,10 +88,10 @@ itcl::class visData {
         return ""
     }
     public method flowhints {args} {
-	return ""
+        return ""
     }
     public method extents {args} {
-	return "3"
+        return "3"
     }
     private variable _data ""
 }
@@ -114,7 +114,7 @@ proc send_file {} {
           }] == 0} {
         set obj [visData #auto $info]
         $widgets(flowvis) add $obj
-	puts stderr "name of flow is $obj-component"
+        puts stderr "name of flow is $obj-component"
     }
 }
 

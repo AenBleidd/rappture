@@ -569,7 +569,7 @@ if { $argc > 2 } {
    if { $arg == "-path" && $argc == 4 } {
       set path [lindex $argv 3]
    }
-} 
+}
 
 # compute the differences
 set diffs [diff $path $lib1 $lib2]

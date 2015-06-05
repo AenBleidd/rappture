@@ -13,7 +13,7 @@
 #  RUN AS FOLLOWS:
 #    rerun <runFile>,...
 #
-#      <runFile>      - the run.xml file containing an output 
+#      <runFile>      - the run.xml file containing an output
 #                       section you would like to re-generate.
 #      ...            - optional comma separated list of runFiles
 #
