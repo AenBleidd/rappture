@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: DeviceResult - output for <structure>
 #
@@ -33,7 +33,7 @@ itcl::class Rappture::DeviceResult {
 
     private variable _dataobj ""  ;# data object currently being displayed
 }
-                                                                                
+
 itk::usual DeviceResult {
     keep -background -foreground -cursor -font
 }

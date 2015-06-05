@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: SidebarFrame - pop-out controls for visualization widgets
 #
@@ -198,9 +198,9 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
     pack $itk_component(controls) -side top -pady {8 20}
 
     #
-    # Tabs used to select sidebar panels.  
+    # Tabs used to select sidebar panels.
     #
-    # Note:  Bugs in BLT 2.4 tabset/VNC server crashes the server 
+    # Note:  Bugs in BLT 2.4 tabset/VNC server crashes the server
     #        when -outerpad is set to 0.
     #
     itk_component add tabs {
@@ -592,14 +592,14 @@ itcl::body Rappture::SidebarFrame::_fixLayout {args} {
     set x1 [expr {$w - $sbarw - $sashw}]
     set x2 [expr {$w - $sbarw}]
     if { $resizeframe } {
-	set framew $x1
+        set framew $x1
     } else {
-	set framew [expr $w - $ctrlw - $sashw]
+        set framew [expr $w - $ctrlw - $sashw]
     }
     place $itk_component(frame) -x 0 -y 0 -anchor nw -width $framew -height $h
     place $itk_component(sashbg) -x $x1 -y 0 -anchor nw -width $sashw -height $h
     place $itk_component(sidebar) -x $x2 -y 0 -anchor nw \
-	-width $sbarw -height $h
+        -width $sbarw -height $h
 }
 
 # ----------------------------------------------------------------------

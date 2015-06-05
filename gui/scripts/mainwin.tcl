@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: mainwin - main application window for Rappture
 #
@@ -88,7 +88,7 @@ itcl::class Rappture::MainWin {
     private variable _bgscript ""  ;# script of background drawing cmds
     private variable _bgparser ""  ;# parser for bgscript
 }
-                                                                                
+
 itk::usual MainWin {
     keep -background -cursor foreground -font
 }

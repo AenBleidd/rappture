@@ -1,7 +1,6 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
-#  COMPONENT: PeriodicElement - entry widget with a drop-down periodic 
+#  COMPONENT: PeriodicElement - entry widget with a drop-down periodic
 #             table.
 #
 #  This widget is a typical periodicelement, an entry widget with a drop-down
@@ -57,7 +56,7 @@ itcl::class Rappture::PeriodicElement {
 
     private variable _lastValue ""
 }
-                                                                                
+
 itk::usual PeriodicElement {
     keep -cursor -font
     keep -foreground -background
@@ -159,7 +158,7 @@ itcl::body Rappture::PeriodicElement::value {args} {
     if { [llength $args] == 1 } {
         after 10 \
             [list catch [list event generate $itk_component(hull) <<Value>>]]
-    } 
+    }
     return $name
 }
 

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: spectrum - maps a range of real values onto a color
 #
@@ -40,7 +40,7 @@ itcl::class Rappture::Spectrum {
     private variable _specv0 0      ;# minimum value
     private variable _specw0 0      ;# wavelength for minimum
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
@@ -79,7 +79,7 @@ itcl::body Rappture::Spectrum::insert {args} {
             set color0 [string trimright [lindex $args 1] "nm"]
             set val1 [lindex $args 2]
             set color1 [string trimright [lindex $args 3] "nm"]
-            
+
             if {"" != $units} {
                 set val0 [Rappture::Units::convert $val0 \
                               -context $units -to $units -units off]

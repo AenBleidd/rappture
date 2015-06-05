@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: dropdownchecks - drop-down list of checkbox items
 #
@@ -25,8 +25,8 @@ option add *Dropdownchecks.font \
 itcl::class Rappture::Dropdownchecks {
     inherit Rappture::Dropdown
 
-    itk_option define -font font Font "" 
-    itk_option define -foreground foreground Foreground "" 
+    itk_option define -font font Font ""
+    itk_option define -foreground foreground Foreground ""
 
     constructor {args} { # defined below }
 

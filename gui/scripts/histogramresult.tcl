@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: HistogramResult - X/Y plot in a ResultSet
 #
@@ -79,18 +78,18 @@ itcl::class Rappture::HistogramResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method download {option args}
 
@@ -100,8 +99,8 @@ itcl::class Rappture::HistogramResult {
     protected method Hilite {state x y}
     protected method Axis {option args}
     protected method GetAxes {dataobj}
-    protected method GetLineMarkerOptions { style } 
-    protected method GetTextMarkerOptions { style } 
+    protected method GetLineMarkerOptions { style }
+    protected method GetTextMarkerOptions { style }
     protected method EnterMarker { g name x y text }
     protected method LeaveMarker { g name }
     protected method FormatLabels { g value }
@@ -126,7 +125,7 @@ itcl::class Rappture::HistogramResult {
     private variable _markers
     private variable _xlabels
 }
-                                                                                
+
 itk::usual HistogramResult {
     keep -background -foreground -cursor -font
 }
@@ -168,7 +167,7 @@ itcl::body Rappture::HistogramResult::constructor {args} {
     set f [$itk_component(main) component frame]
     itk_component add plot {
         blt::barchart $f.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 4 
+            -highlightthickness 0 -plotpadx 0 -plotpady 4
     } {
         keep -foreground -cursor -font
     }
@@ -353,7 +352,7 @@ itcl::body Rappture::HistogramResult::get {} {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
             lappend top $obj
         } else {
-            lappend bottom $obj 
+            lappend bottom $obj
         }
     }
     set _dlist [concat $bottom $top]
@@ -538,12 +537,12 @@ itcl::body Rappture::HistogramResult::download {option args} {
                             }
                             set xv [$dataobj mesh $comp]
                             set yv [$dataobj values $comp]
-			    if { [$xv length] > 0 && [$yv length] > 0 } {
-				foreach x [$xv range 0 end] y [$yv range 0 end] {
-				    append csvdata \
-					[format "%20.15g, %20.15g\n" $x $y]
-				}
-			    }
+                            if { [$xv length] > 0 && [$yv length] > 0 } {
+                                foreach x [$xv range 0 end] y [$yv range 0 end] {
+                                    append csvdata \
+                                        [format "%20.15g, %20.15g\n" $x $y]
+                                }
+                            }
                             set first 0
                         }
                         append csvdata "\n"
@@ -558,9 +557,9 @@ itcl::body Rappture::HistogramResult::download {option args} {
                         set inner [$popup component inner]
                         # Create the print dialog widget and add it to the
                         # the balloon popup.
-                        Rappture::XyPrint $inner.print 
+                        Rappture::XyPrint $inner.print
                         $popup configure \
-                            -deactivatecommand [list $inner.print reset] 
+                            -deactivatecommand [list $inner.print reset]
                         blt::table $inner 0,0 $inner.print -fill both
                     }
                     update
@@ -570,7 +569,7 @@ itcl::body Rappture::HistogramResult::download {option args} {
                     set inner [$popup component inner]
                     set output [$inner.print print $itk_component(plot) \
                                     $toolName $plotName]
-                    $popup deactivate 
+                    $popup deactivate
                     return $output
                 }
             }
@@ -595,13 +594,13 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
     eval $g element delete [$g element names]
     eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
-        $g axis configure $axis -hide yes 
+        $g axis configure $axis -hide yes
     }
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
     $g yaxis configure -hide no
     array unset _label2axis
-    
+
     #
     # Scan through all objects and create a list of all axes.
     # The first x-axis gets mapped to "x".  The second, to "x2".
@@ -626,7 +625,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
                     $g axis configure $axis -title $label -hide no \
                         -checklimits no
                     set _label2axis($ax-$label) $axis
-                    
+
                     # if this axis has a description, add it as a tooltip
                     set desc [string trim [$dataobj hints ${ax}desc]]
                     Rappture::Tooltip::text $g-$axis $desc
@@ -634,7 +633,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
             }
         }
     }
-    
+
     #
     # All of the extra axes get mapped to the x2/y2 (top/right)
     # position.
@@ -642,7 +641,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
     set all ""
     foreach ax {x y} {
         lappend all $ax
-        
+
         set extra ""
         for {set i 2} {$i <= $anum($ax)} {incr i} {
             lappend extra ${ax}$i
@@ -712,32 +711,32 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
             }
             # Compute default bar width for histogram elements.
             if { [$zv length] == [$xv length] } {
-		if { [$xv length] > 0 && [$yv length] > 0 } {
-		    set xvalues [$xv range 0 end]
-		    set yvalues [$yv range 0 end]
-		    set zvalues [$zv range 0 end] 
-		    foreach x $xvalues y $yvalues z $zvalues {
-			set elem "elem[incr count]"
-			set _elem2dataobj($elem) $dataobj
-			$g element create $elem -x $x -y $y -barwidth $z \
-			    -label $label -foreground $color \
-			    -mapx $mapx -mapy $mapy
-		    }
-		}
+                if { [$xv length] > 0 && [$yv length] > 0 } {
+                    set xvalues [$xv range 0 end]
+                    set yvalues [$yv range 0 end]
+                    set zvalues [$zv range 0 end]
+                    foreach x $xvalues y $yvalues z $zvalues {
+                        set elem "elem[incr count]"
+                        set _elem2dataobj($elem) $dataobj
+                        $g element create $elem -x $x -y $y -barwidth $z \
+                            -label $label -foreground $color \
+                            -mapx $mapx -mapy $mapy
+                    }
+                }
             } else {
                 set r [blt::vector expr {max($xv) - min($xv)}]
-		set length [$xv length]
-		if { $length > 1 } {
-		    set z [expr {$r / ([$xv length]-1) * 0.8}]
-		} else {
-		    set z 1
-		}
+                set length [$xv length]
+                if { $length > 1 } {
+                    set z [expr {$r / ([$xv length]-1) * 0.8}]
+                } else {
+                    set z 1
+                }
                 set elem "elem[incr count]"
                 set _elem2dataobj($elem) $dataobj
                 $g element create $elem -x $xv -y $yv -barwidth $z \
                     -label $label -foreground $color \
                     -mapx $mapx -mapy $mapy
-            } 
+            }
             set index 0
             foreach label [$dataobj xlabels $comp] {
                 if  { [string length $label] > 6 } {
@@ -753,9 +752,9 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
         set ymin -Inf
         set xmax Inf
         set ymax Inf
-        # 
-        # Create text/line markers for each *axis.marker specified. 
-        # 
+        #
+        # Create text/line markers for each *axis.marker specified.
+        #
         foreach m [$dataobj xmarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $at $ymin $at $ymax]]
@@ -806,12 +805,12 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
     } else {
         set command ""
     }
-    $g axis configure x -command $command -stepsize $stepsize 
+    $g axis configure x -command $command -stepsize $stepsize
     set xorient [$dataobj hints xorient]
     if { $xorient == "horizontal" } {
-	set invert 0
+        set invert 0
     } elseif { $xorient == "vertical" } {
-	set invert 1
+        set invert 1
     }
     $g configure -invertxy $invert
     ResetLegend
@@ -855,7 +854,7 @@ itcl::body Rappture::HistogramResult::Zoom {option args} {
 itcl::body Rappture::HistogramResult::Hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
-  
+
     # Peek inside of Blt_ZoomStack package to see if we're currently in the
     # middle of a zoom selection.
     if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
@@ -1048,7 +1047,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
                     -titlecolor $itk_option(-foreground)
             }
         }
-        
+
         set ally [$g y2axis use]
         if {[llength $ally] > 0} {
             lappend ally y  ;# fix main y-axis too
@@ -1582,7 +1581,7 @@ itcl::body Rappture::HistogramResult::EnterMarker { g name x y text } {
 }
 
 itcl::body Rappture::HistogramResult::LeaveMarker { g name } {
-    if { [info exists _markers($name)] } { 
+    if { [info exists _markers($name)] } {
         set id $_markers($name)
         $g marker delete $id
         unset _markers($name)
@@ -1596,9 +1595,9 @@ itcl::body Rappture::HistogramResult::FormatLabels { w value } {
     set d [expr abs($value - $index)]
     # Ignore values that aren't close to the integer value
     if { $d < 0.00000001 } {
-	if { [info exists _xlabels($index)] } {
-	    return $_xlabels($index)
-	} 
+        if { [info exists _xlabels($index)] } {
+            return $_xlabels($index)
+        }
     }
     return " "
 }

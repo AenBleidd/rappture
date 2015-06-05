@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: analyzer - output area for Rappture
 #
@@ -49,11 +49,11 @@ itcl::class Rappture::Analyzer {
     itk_option define -holdwindow holdWindow HoldWindow ""
     itk_option define -notebookpage notebookPage NotebookPage ""
 
-    constructor {tool args} { 
-        # defined below 
+    constructor {tool args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method simulate {args}
@@ -404,7 +404,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
             return
         }
         set args ""
-    } 
+    }
 
     # simulation is needed -- go to simulation page
     $itk_component(notebook) current simulate
@@ -446,7 +446,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
 
     if {$status != 0} {
         $itk_component(runinfo) configure -state normal
-        # Don't erase program error messages. 
+        # Don't erase program error messages.
         # $itk_component(runinfo) delete 1.0 end
         $itk_component(runinfo) insert end "\n\nProblem launching job:\n\n" text
         _simOutput $result
@@ -588,7 +588,7 @@ itcl::body Rappture::Analyzer::download {option args} {
                 if {"" != $popup} {
                     $popup activate $widget below
                 } else {
-                    download now $widget 
+                    download now $widget
                 }
             } else {
                 # this shouldn't happen
@@ -1285,7 +1285,7 @@ itcl::body Rappture::Analyzer::_pdbToSequence {xmlobj path id child data} {
             }
             set frame ${sequence}.element($frameNum)
             $xmlobj put ${frame}.index $frameNum
-            
+
             set molecule ${frame}.structure.components.molecule
             $xmlobj put ${molecule}.pdb $contents
             $xmlobj put ${molecule}.formula $formula
@@ -1328,11 +1328,11 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
             if { $inModel && $frameContents != "" } {
                 set frame ${sequence}.element($frameNum)
                 $xmlobj put ${frame}.index $frameNum
-                
+
                 set molecule ${frame}.structure.components.molecule
                 $xmlobj put ${molecule}.lammps $frameContents
                 $xmlobj put ${molecule}.lammpstypemap $typemap
-                
+
                 incr frameNum
                 set frameContents ""
             }
@@ -1348,7 +1348,7 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
     if { $frameContents != "" } {
         set frame ${sequence}.element($frameNum)
         $xmlobj put ${frame}.index $frameNum
-        
+
         set molecule ${frame}.structure.components.molecule
         $xmlobj put ${molecule}.lammps $frameContents
         $xmlobj put ${molecule}.lammpstypemap $typemap
@@ -1358,12 +1358,12 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
 # ----------------------------------------------------------------------
 # USAGE: _trajToSequence <xmlobj> ?<path>?
 #
-#       Check for PDB and LAMMPS trajectories in molecule data and rewrite 
-#       the individual models as a sequence of molecules.  Used internally 
+#       Check for PDB and LAMMPS trajectories in molecule data and rewrite
+#       the individual models as a sequence of molecules.  Used internally
 #       to detect any molecule output elements that contain trajectory data.
 #       Trajectories will be converted into sequences of individual molecules.
 #       All other elements will be unaffected. Scans the entire xml tree if a
-#       starting path is not specified.  
+#       starting path is not specified.
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {

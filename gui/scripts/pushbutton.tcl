@@ -1,8 +1,5 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
-
-
 #  COMPONENT: PushButton - widget for entering a choice of strings
 #
 #  This widget represents a <choice> entry on a control panel.
@@ -31,11 +28,11 @@ itcl::class Rappture::PushButton {
     itk_option define -onbackground onBackground OnBackground "white"
     itk_option define -offbackground offBackground OffBackground "grey85"
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method invoke {}
@@ -62,7 +59,7 @@ itcl::class Rappture::PushButton {
 
 itk::usual PushButton {
     keep -cursor -font
-    keep -foreground -background 
+    keep -foreground -background
 }
 
 # ----------------------------------------------------------------------
@@ -70,7 +67,7 @@ itk::usual PushButton {
 # ----------------------------------------------------------------------
 itcl::body Rappture::PushButton::constructor {args} {
     itk_component add button {
-        label $itk_interior.button -borderwidth 1 -relief sunken 
+        label $itk_interior.button -borderwidth 1 -relief sunken
     } {
         usual
         ignore -padx -pady -relief -borderwidth -background

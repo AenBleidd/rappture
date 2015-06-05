@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: filexfer - support for file transfer with user's desktop
 #
@@ -323,10 +323,10 @@ proc Rappture::filexfer::download {string {filename "output.txt"}} {
 
         set job(output) ""
         set job(error) ""
-       
+
         # Make sure we normalize the file name here.  Don't count
-	# on filexfer command understanding tildes.
-	set file [file normalize $file]
+        # on filexfer command understanding tildes.
+        set file [file normalize $file]
 
         set status [catch {blt::bgexec ::Rappture::filexfer::job(control) \
             -output ::Rappture::filexfer::job(output) \

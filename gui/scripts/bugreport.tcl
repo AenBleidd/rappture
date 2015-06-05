@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  UTILITY: bugreport
 #
@@ -95,11 +95,11 @@ proc Rappture::bugreport::activate {err} {
         set mw [winfo width .main]
         if { $mw == 1 } {
             set mw [winfo reqwidth .main]
-        }            
+        }
         set mh [winfo height .main]
         if { $mh == 1 } {
             set mh [winfo reqwidth .main]
-        }            
+        }
         if { $mw > $w } {
             set x [expr { $x + (($mw-$w)/2) }]
         }
@@ -166,11 +166,11 @@ proc Rappture::bugreport::activate {err} {
     set mw [winfo width .main]
     if { $mw == 1 } {
         set mw [winfo reqwidth .main]
-    }            
+    }
     set mh [winfo height .main]
     if { $mh == 1 } {
         set mh [winfo reqwidth .main]
-    }            
+    }
 
     if { $mw > $w } {
         set x [expr { $x + (($mw-$w)/2) }]

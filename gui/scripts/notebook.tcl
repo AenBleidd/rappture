@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: notebook - series of pages, but only one packed at a time
 #
@@ -41,7 +41,7 @@ itcl::class Rappture::Notebook {
     private variable _name2page     ;# maps name => frame for page
     private variable _current ""    ;# page currently shown
 }
-                                                                                
+
 itk::usual Notebook {
     keep -background -cursor
 }

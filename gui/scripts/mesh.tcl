@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*-
-
 # ----------------------------------------------------------------------
 #  COMPONENT: mesh - represents a structured mesh for a device
 #
@@ -177,7 +176,7 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     #
     # <vtk> described mesh
     # <element> +  <node> definitions
-    # <grid>		rectangular mesh
+    # <grid>            rectangular mesh
     # <unstructured>    homogeneous cell type mesh.
 
     # Check that only one mesh type was defined.

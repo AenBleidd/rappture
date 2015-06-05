@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: Note - widget for displaying HTML notes
 #
@@ -71,12 +70,12 @@ itcl::body Rappture::Note::constructor {owner path args} {
     _setContents [string trim [$_owner xml get $_path.contents]]
     set w [string trim [$_owner xml get $_path.width]]
     if { $w != "" } {
-	$itk_component(html) configure -width $w
+        $itk_component(html) configure -width $w
     }
     set h [string trim [$_owner xml get $_path.height]]
     if { $h != "" } {
-	$itk_component(html) configure -height $h
-    }	
+        $itk_component(html) configure -height $h
+    }
 }
 
 

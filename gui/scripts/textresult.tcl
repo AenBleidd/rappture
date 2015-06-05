@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: TextResult - Log output for ResultSet
 #
@@ -25,26 +25,26 @@ option add *TextResult.textFont \
 itcl::class Rappture::TextResult {
     inherit itk::Widget
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method download {option args}
 
     public method select {option args}
     public method find {option}
-    public method popup {option args} 
+    public method popup {option args}
 
     private variable _dataobj ""  ;# data object currently being displayed
     private variable _raised      ;# maps all data objects => -raise param
 }
-                                                                                
+
 itk::usual TextResult {
     keep -background -foreground -cursor -font
 }
@@ -359,7 +359,7 @@ itcl::body Rappture::TextResult::select {option args} {
         }
         none {
             if { [$itk_component(text) tag ranges "sel"] != "" } {
-                selection clear 
+                selection clear
             }
         }
         default {

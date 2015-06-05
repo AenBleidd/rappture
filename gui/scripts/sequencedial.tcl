@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: Sequencedial - selector, like the dial on a car radio
 #
@@ -64,7 +64,7 @@ itcl::class Rappture::SequenceDial {
     public method get {args}
     public method current {args}
     public method color {value}
-                                                                                
+
     protected method _setCurrent {val}
     protected method _redraw {}
     protected method _click {x y}
@@ -75,7 +75,7 @@ itcl::class Rappture::SequenceDial {
     protected method _fixValue {args}
     protected method _doInteract {}
 
-    private method EventuallyRedraw {} 
+    private method EventuallyRedraw {}
     private variable _redrawPending 0
     private variable _afterId -1
     private variable _values ""       ;# list of all values on the dial
@@ -88,7 +88,7 @@ itcl::class Rappture::SequenceDial {
     private variable _activecolor ""  ;# width allocated for values
     private variable _vwidth 0        ;# width allocated for values
 }
-                                                                                
+
 itk::usual SequenceDial {
     keep -background -foreground -cursor -font
 }
@@ -154,8 +154,8 @@ itcl::body Rappture::SequenceDial::add {label {value ""}} {
 
 itcl::body Rappture::SequenceDial::EventuallyRedraw {} {
     if { !$_redrawPending } {
-	set _afterId [after 150 [itcl::code $this _redraw]]
-	event generate $itk_component(hull) <<Value>>
+        set _afterId [after 150 [itcl::code $this _redraw]]
+        event generate $itk_component(hull) <<Value>>
         set _resizePending 1
     }
 }
@@ -257,7 +257,7 @@ itcl::body Rappture::SequenceDial::current {args} {
         set n [_findLabel $newval]
 
         # Don't use expr (?:) because it evaluates the resulting string.
-        # For example, it changes -0.020 to -0.02. 
+        # For example, it changes -0.020 to -0.02.
         if { $n >= 0 } {
             set rawval [lindex $_values $n]
         } else {
@@ -265,7 +265,7 @@ itcl::body Rappture::SequenceDial::current {args} {
         }
         _setCurrent $rawval
 
-	EventuallyRedraw
+        EventuallyRedraw
         event generate $itk_component(hull) <<Value>>
 
         return $_current

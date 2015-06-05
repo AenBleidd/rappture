@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: gauge - compact readout for real values
 #
@@ -66,7 +66,7 @@ itcl::class Rappture::Gauge {
            0x7f, 0x00, 0x3e, 0x00, 0x1c, 0x00, 0x08, 0x00};
     }
 }
-                                                                                
+
 itk::usual Gauge {
     keep -cursor -font -foreground -background
     keep -selectbackground -selectforeground -selectborderwidth
@@ -211,7 +211,7 @@ itcl::body Rappture::Gauge::value {args} {
         # value to that system of units.  Also, make sure that
         # the value is bound by any min/max value constraints.
         #
-        # Keep track of the inputted units so we can give a 
+        # Keep track of the inputted units so we can give a
         # response about min and max values in familiar units.
         #
         set newval [set nv [string trim [lindex $args 0]]]

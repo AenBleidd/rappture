@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: flowhints - represents a uniform rectangular 2-D mesh.
 #
@@ -17,16 +16,16 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { 
+namespace eval Rappture {
     # empty
 }
 
 itcl::class Rappture::FlowHints {
-    constructor {field cname units} { 
-        # defined below 
+    constructor {field cname units} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method hints {}     { return [array get _hints] }
@@ -52,7 +51,7 @@ itcl::class Rappture::FlowHints {
 itcl::body Rappture::FlowHints::constructor {field cname units} {
     if {[$field element $cname.flow] == ""} {
         puts stderr "no flow entry in $cname"
-        return 
+        return
     }
     array set _hints {
         "axis"          "x"
@@ -134,7 +133,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
                         "hide"        { GetBoolean $b hide data(hide) }
                         "linewidth"   { GetSize $b linewidth data(linewidth) }
                         "label"       { set data(label) $value }
-                        "corner*" { 
+                        "corner*" {
                             incr count
                             GetCorner $b $child data(corner$count)
                         }
@@ -153,7 +152,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 
 itcl::body Rappture::FlowHints::ConvertUnits { value } {
     set cmd Rappture::Units::convert
-    set n  [scan $value "%g%s" number suffix] 
+    set n  [scan $value "%g%s" number suffix]
     if { $n == 2 } {
         if { $suffix == "%" } {
             return $value

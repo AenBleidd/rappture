@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: DrawingEntry - widget for entering numeric values
 #
@@ -52,21 +51,21 @@ itcl::class Rappture::DrawingEntry {
     private variable _yScale 1.0
     private variable _cursor ""
 
-    constructor {owner path args} { 
-	# defined below 
+    constructor {owner path args} {
+        # defined below
     }
     destructor {
-	# defined below
+        # defined below
     }
     public method value { args }
     public method label {}
     public method tooltip {}
 
-    private method Activate { tag } 
-    private method AdjustDrawingArea { xAspect yAspect } 
-    private method Deactivate { tag } 
-    private method Highlight { tag } 
-    private method Invoke { name x y } 
+    private method Activate { tag }
+    private method AdjustDrawingArea { xAspect yAspect }
+    private method Deactivate { tag }
+    private method Highlight { tag }
+    private method Invoke { name x y }
     private method ParseBackground {}
     private method ParseDescription {}
     private method ParseGrid { cpath cname }
@@ -79,13 +78,13 @@ itcl::class Rappture::DrawingEntry {
     private method ParseScreenCoordinates { values }
     private method ParseText { cpath cname }
     private method Redraw {}
-    private method ScreenCoords { coords } 
-    private method ScreenX { x } 
-    private method ScreenY { y } 
+    private method ScreenCoords { coords }
+    private method ScreenX { x }
+    private method ScreenY { y }
     private method UpdateSubstitutions {}
-    private method XmlGet { path } 
-    private method XmlGetSubst { path } 
-    private method Hotspot { option cname item args } 
+    private method XmlGet { path }
+    private method XmlGetSubst { path }
+    private method Hotspot { option cname item args }
 }
 
 itk::usual DrawingEntry {
@@ -114,10 +113,10 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     # Display the current drawing.
     #
     itk_component add drawing {
-	canvas $itk_interior.canvas -background white -relief sunken -bd 1 \
-	    -width 400 -height 300
+        canvas $itk_interior.canvas -background white -relief sunken -bd 1 \
+            -width 400 -height 300
     } {
-	ignore -background
+        ignore -background
     }
     pack $itk_component(drawing) -expand yes -fill both
     bind $itk_component(drawing) <Configure> \
@@ -126,38 +125,38 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     # scan through all variables and attach notifications for changes
     set subs [$_xmlobj children -as path -type variable $_path.substitutions]
     foreach cpath $subs {
-	set map ""
-	set name ""
-	set path ""
-	foreach elem [$_xmlobj children $cpath] {
-	    switch -glob -- $elem {
-		"name*" {
-		    set name [XmlGet $cpath.$elem]
-		}
-		"path*" {
-		    set path [XmlGet $cpath.$elem]
-		}
-		"map*" {
-		    set from [XmlGet $cpath.$elem.from]
-		    set to [XmlGet $cpath.$elem.to]
-		    lappend map $from $to
-		}
-	    }
-	}
-	if {$name eq ""} {
-	    puts stderr "no name defined for substitution variable \"$cpath\""
-	    continue
-	}
-	if {[info exists _name2path($name)]} {
-	    puts stderr "substitution variable \"$name\" already defined"
-	    continue
-	}
-	set _name2path($name) $path
-	if {$path eq ""} {
-	    puts stderr "no path defined for substitution variable \"$cpath\""
-	    continue
-	}
-	set _name2map($name) $map
+        set map ""
+        set name ""
+        set path ""
+        foreach elem [$_xmlobj children $cpath] {
+            switch -glob -- $elem {
+                "name*" {
+                    set name [XmlGet $cpath.$elem]
+                }
+                "path*" {
+                    set path [XmlGet $cpath.$elem]
+                }
+                "map*" {
+                    set from [XmlGet $cpath.$elem.from]
+                    set to [XmlGet $cpath.$elem.to]
+                    lappend map $from $to
+                }
+            }
+        }
+        if {$name eq ""} {
+            puts stderr "no name defined for substitution variable \"$cpath\""
+            continue
+        }
+        if {[info exists _name2path($name)]} {
+            puts stderr "substitution variable \"$name\" already defined"
+            continue
+        }
+        set _name2path($name) $path
+        if {$path eq ""} {
+            puts stderr "no path defined for substitution variable \"$cpath\""
+            continue
+        }
+        set _name2map($name) $map
 
         # keep track of controls built for each variable (see below)
         set controls($path) unused
@@ -192,7 +191,7 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
         }
     }
     set c $itk_component(drawing)
-    set texts [$_xmlobj children -type text -as path $_path.components] 
+    set texts [$_xmlobj children -type text -as path $_path.components]
     foreach cpath $texts {
         set popup ""
         set mode [XmlGetSubst $cpath.hotspot]
@@ -204,8 +203,8 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
         # easiest way to parse embedded variables is to create a hotspot item
         set id [$c create hotspot 0 0 -text [XmlGet $cpath.text]]
         foreach varName [Rappture::hotspot variables $c $id] {
-	    if {[info exists _name2path($varName)]} {
-		set cntlpath $_name2path($varName)
+            if {[info exists _name2path($varName)]} {
+                set cntlpath $_name2path($varName)
 
                 if {$controls($cntlpath) ne "unused"} {
                     puts stderr "WARNING: drawing variable \"$varName\" is used in two hotspots, but will appear in only one of them."
@@ -228,8 +227,8 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
                 set inner [$popup component inner]
                 $inner.controls insert end $cntlpath
                 set _cpath2popup($cntlpath) $popup
-	    } else {
-		puts stderr "unknown variable \"$varName\" in drawing item at $cpath"
+            } else {
+                puts stderr "unknown variable \"$varName\" in drawing item at $cpath"
             }
         }
         $c delete $id
@@ -252,7 +251,7 @@ itcl::body Rappture::DrawingEntry::destructor {} {
 
     # tear down the value subsitution parser
     if {$_parser != ""} {
-	$_parser delete 
+        $_parser delete
     }
 }
 # ----------------------------------------------------------------------
@@ -304,19 +303,19 @@ itcl::body Rappture::DrawingEntry::Redraw {} {
 
     # Delete any images that we created.
     foreach name [array names _cname2image] {
-	image delete $_cname2image($name)
+        image delete $_cname2image($name)
     }
     array unset _cname2id
     array unset _cname2image
-    
+
     # Recompute the size of the canvas/drawing area
-    set _canvasWidth [winfo width $itk_component(drawing)] 
+    set _canvasWidth [winfo width $itk_component(drawing)]
     if { $_canvasWidth < 2 } {
-	set _canvasWidth [winfo reqwidth $itk_component(drawing)]
+        set _canvasWidth [winfo reqwidth $itk_component(drawing)]
     }
     set _canvasHeight [winfo height $itk_component(drawing)]
     if { $_canvasHeight < 2 } {
-	set _canvasHeight [winfo reqheight $itk_component(drawing)]
+        set _canvasHeight [winfo reqheight $itk_component(drawing)]
     }
     set _drawingWidth $_canvasWidth
     set _drawingHeight $_canvasHeight
@@ -328,149 +327,149 @@ itcl::body Rappture::DrawingEntry::Redraw {} {
 }
 
 #
-# ParseDescription -- 
+# ParseDescription --
 #
 itcl::body Rappture::DrawingEntry::ParseDescription {} {
     ParseBackground
     UpdateSubstitutions
     foreach cname [$_xmlobj children $_path.components] {
-	switch -glob -- $cname {
-	    "line*" {
-		ParseLine $_path.components.$cname $cname 
-	    }
-	    "grid*" {
-		ParseGrid $_path.components.$cname $cname 
-	    }
-	    "text*" {
-		ParseText $_path.components.$cname $cname 
-	    }
-	    "picture*" {
-		ParsePicture $_path.components.$cname $cname 
-	    }
-	    "rectangle*" {
-		ParseRectangle $_path.components.$cname $cname 
-	    }
-	    "oval*" {
-		ParseOval $_path.components.$cname $cname
-	    }
-	    "polygon*" {
-		ParsePolygon $_path.components.$cname $cname
-	    }
-	    "hotspot*" {
-		ParseHotspot $_path.components.$cname $cname
-	    }
-	}
+        switch -glob -- $cname {
+            "line*" {
+                ParseLine $_path.components.$cname $cname
+            }
+            "grid*" {
+                ParseGrid $_path.components.$cname $cname
+            }
+            "text*" {
+                ParseText $_path.components.$cname $cname
+            }
+            "picture*" {
+                ParsePicture $_path.components.$cname $cname
+            }
+            "rectangle*" {
+                ParseRectangle $_path.components.$cname $cname
+            }
+            "oval*" {
+                ParseOval $_path.components.$cname $cname
+            }
+            "polygon*" {
+                ParsePolygon $_path.components.$cname $cname
+            }
+            "hotspot*" {
+                ParseHotspot $_path.components.$cname $cname
+            }
+        }
     }
 }
 
 #
-# ParseGrid -- 
+# ParseGrid --
 #
 itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
     array set attr2option {
-	"linewidth"	"-width"
-	"arrow"		"-arrow"
-	"dash"		"-dash"
-	"color"		"-fill"
+        "linewidth"     "-width"
+        "arrow"         "-arrow"
+        "dash"          "-dash"
+        "color"         "-fill"
     }
     # Set default options first and then let tool.xml override them.
     array set options {
-	-arrow		none
-	-width		0
-	-fill		black
-	-dash		""
+        -arrow          none
+        -width          0
+        -fill           black
+        -dash           ""
     }
     # Coords
     set xcoords [XmlGetSubst $cpath.xcoords]
     set ycoords [XmlGetSubst $cpath.ycoords]
     if { $ycoords == "" } {
-	set ycoords "0 1"
-	set ymax 1 
-	set ymin 0
+        set ycoords "0 1"
+        set ymax 1
+        set ymin 0
     } else {
-	set list {}
-	set ymax -10000 
-	set ymin 10000
-	foreach c $ycoords {
-	    set y [ScreenY $c]
-	    if { $y > $ymax } {
-		set ymax $y
-	    } 
-	    if { $y < $ymin } {
-		set ymin $y
-	    }
-	    lappend list $y
-	}
-	set ycoords $list
+        set list {}
+        set ymax -10000
+        set ymin 10000
+        foreach c $ycoords {
+            set y [ScreenY $c]
+            if { $y > $ymax } {
+                set ymax $y
+            }
+            if { $y < $ymin } {
+                set ymin $y
+            }
+            lappend list $y
+        }
+        set ycoords $list
     }
     if { $xcoords == "" } {
-	set xcoords "0 1"
-	set xmax 1 
-	set xmin 0
+        set xcoords "0 1"
+        set xmax 1
+        set xmin 0
     } else {
-	set list {}
-	set xmax -10000 
-	set xmin 10000
-	foreach c $xcoords {
-	    set x [ScreenX $c]
-	    if { $x > $xmax } {
-		set xmax $x
-	    } 
-	    if { $x < $xmin } {
-		set xmin $x
-	    }
-	    lappend list $x
-	}
-	set xcoords $list
+        set list {}
+        set xmax -10000
+        set xmin 10000
+        foreach c $xcoords {
+            set x [ScreenX $c]
+            if { $x > $xmax } {
+                set xmax $x
+            }
+            if { $x < $xmin } {
+                set xmin $x
+            }
+            lappend list $x
+        }
+        set xcoords $list
     }
 
     set list {}
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     set options(-tags) $cname
     foreach y $ycoords {
-	lappend ids \
-	    [eval $itk_component(drawing) create line $xmin $y $xmax $y \
-		 [array get options]]
+        lappend ids \
+            [eval $itk_component(drawing) create line $xmin $y $xmax $y \
+                 [array get options]]
     }
     foreach x $xcoords {
-	lappend ids \
-	    [eval $itk_component(drawing) create line $x $ymin $x $ymax \
-		 [array get options]]
+        lappend ids \
+            [eval $itk_component(drawing) create line $x $ymin $x $ymax \
+                 [array get options]]
     }
     set _cname2id($cname) $ids
 }
 
 #
-# ParseHotspot -- 
+# ParseHotspot --
 #
 itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
     array set attr2option {
-	"color"	"-fill"
-	"anchor" "-anchor"
+        "color"  "-fill"
+        "anchor" "-anchor"
     }
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-fill red
-	-anchor c
+        -fill red
+        -anchor c
     }
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
     if {$coords eq ""} {
-	set coords "0 0 1 1"
+        set coords "0 0 1 1"
     }
     set c $itk_component(drawing)
     foreach {x1 y1} [ScreenCoords $coords] break
@@ -488,36 +487,36 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
 }
 
 #
-# ParseLine -- 
+# ParseLine --
 #
 itcl::body Rappture::DrawingEntry::ParseLine { cpath cname } {
     array set attr2option {
-	"linewidth"	"-width"
-	"arrow"		"-arrow"
-	"dash"		"-dash"
-	"color"		"-fill"
+        "linewidth"     "-width"
+        "arrow"         "-arrow"
+        "dash"          "-dash"
+        "color"         "-fill"
     }
     # Set default options first and then let tool.xml override them.
     array set options {
-	-arrow		none
-	-width		0
-	-fill		black
-	-dash		""
+        -arrow          none
+        -width          0
+        -fill           black
+        -dash           ""
     }
     # Coords
     set coords [XmlGetSubst $cpath.coords]
     if {$coords eq ""} {
-	set coords "0 0"
+        set coords "0 0"
     }
     set coords [ScreenCoords $coords]
 
     set list {}
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     set options(-tags) $cname
     set id [eval $itk_component(drawing) create line $coords]
@@ -526,32 +525,32 @@ itcl::body Rappture::DrawingEntry::ParseLine { cpath cname } {
 }
 
 #
-# ParseOval -- 
+# ParseOval --
 #
 itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
     array set attr2option {
-	"outline"	"-outline"
-	"fill"		"-fill"
-	"linewidth"	"-width"
+        "outline"       "-outline"
+        "fill"          "-fill"
+        "linewidth"     "-width"
     }
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-fill blue
-	-width 1 
-	-outline black
+        -fill blue
+        -width 1
+        -outline black
     }
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
     if {$coords eq ""} {
-	set coords "0 0 1 1"
+        set coords "0 0 1 1"
     }
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
     set id [$itk_component(drawing) create oval $x1 $y1 $x2 $y2]
@@ -560,28 +559,28 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
 }
 
 #
-# ParsePicture -- 
+# ParsePicture --
 #
 itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     array set attr2option {
-	"anchor"	"-anchor"
+        "anchor"        "-anchor"
     }
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-anchor nw
+        -anchor nw
     }
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     set contents [XmlGetSubst $cpath.contents]
     set img ""
     if { [string compare -length 7 $contents "file://"] == 0 } {
-	set fileName [string range $contents 7 end]
+        set fileName [string range $contents 7 end]
         set path $fileName
         # find the file on a search path
         if { [file pathtype $path] != "absolute" } {
@@ -594,71 +593,71 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
                 }
             }
         }
-	if { [file exists $path] } {
-	    set img [image create photo -file $path]
-	} else {
+        if { [file exists $path] } {
+            set img [image create photo -file $path]
+        } else {
             puts stderr "WARNING: can't find picture contents \"$path\""
         }
     } elseif { [string compare -length 7 $contents "http://"] == 0 } {
-	puts stderr  "don't know how to handle http"
-	return
+        puts stderr  "don't know how to handle http"
+        return
     } else {
-	set img [image create photo -data $contents]
+        set img [image create photo -data $contents]
     }
     if {$img eq ""} {
-	return
+        return
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
     if { [llength $coords] == 2 } {
-	foreach { x1 y1 } [ScreenCoords $coords] break
-	set w [XmlGetSubst $cpath.width]
-	if { $w == "" || ![string is double $w] || $w <= 0.0 } {
-	    set width [expr [image width $img] / 4]
-	} else {
-	    set width [expr int([ScreenX $w] - [ScreenX 0])]
-	}
-	set h [XmlGetSubst $cpath.height]
-	if { $h == "" || ![string is double $h] || $h <= 0.0 } {
-	    set height [expr [image height $img] / 4]
-	} else {
-	    set height [expr int([ScreenY $h] - [ScreenY 0])]
-	}
-	if { $width != [image width $img] || $height != [image height $img] } {
-	    set dst [image create photo -width $width -height $height]
-	    blt::winop resample $img $dst box
-	    image delete $img
-	    set img $dst
-	}
+        foreach { x1 y1 } [ScreenCoords $coords] break
+        set w [XmlGetSubst $cpath.width]
+        if { $w == "" || ![string is double $w] || $w <= 0.0 } {
+            set width [expr [image width $img] / 4]
+        } else {
+            set width [expr int([ScreenX $w] - [ScreenX 0])]
+        }
+        set h [XmlGetSubst $cpath.height]
+        if { $h == "" || ![string is double $h] || $h <= 0.0 } {
+            set height [expr [image height $img] / 4]
+        } else {
+            set height [expr int([ScreenY $h] - [ScreenY 0])]
+        }
+        if { $width != [image width $img] || $height != [image height $img] } {
+            set dst [image create photo -width $width -height $height]
+            blt::winop resample $img $dst box
+            image delete $img
+            set img $dst
+        }
     } elseif { [llength $coords] == 4 } {
-	foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
-	if { $x1 > $x2 } {
-	    set tmp $x1 
-	    set x1 $x2
-	    set x2 $tmp
-	}
-	if { $y1 > $y2 } {
-	    set tmp $x1 
-	    set x1 $x2
-	    set x2 $tmp
-	}
-	set width [expr {int($x2 - $x1 + 1)}]
-	set height [expr {int($y2 - $y1 + 1)}]
-	if { $width != [image width $img] || $height != [image height $img] } {
-	    set dst [image create photo -width $width -height $height]
-	    blt::winop resample $img $dst box
-	    image delete $img
-	    set img $dst
-	}
+        foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
+        if { $x1 > $x2 } {
+            set tmp $x1
+            set x1 $x2
+            set x2 $tmp
+        }
+        if { $y1 > $y2 } {
+            set tmp $x1
+            set x1 $x2
+            set x2 $tmp
+        }
+        set width [expr {int($x2 - $x1 + 1)}]
+        set height [expr {int($y2 - $y1 + 1)}]
+        if { $width != [image width $img] || $height != [image height $img] } {
+            set dst [image create photo -width $width -height $height]
+            blt::winop resample $img $dst box
+            image delete $img
+            set img $dst
+        }
     } else {
-	set width [expr [image width $img] / 4]
-	set height [expr [image height $img] / 4]
- 	set dst [image create photo -width $width -height $height]
-	blt::winop resample $img $dst box
-	image delete $img
-	set img $dst
-	set x1 0 
-	set y1 0
+        set width [expr [image width $img] / 4]
+        set height [expr [image height $img] / 4]
+         set dst [image create photo -width $width -height $height]
+        blt::winop resample $img $dst box
+        image delete $img
+        set img $dst
+        set x1 0
+        set y1 0
     }
     set options(-tags) $cname
     set options(-image) $img
@@ -671,32 +670,32 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 
 itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
     array set attr2option {
-	"outline"	"-outline"
-	"color"		"-fill"
-	"fill"		"-fill"
-	"linewidth"	"-width"
+        "outline"       "-outline"
+        "color"         "-fill"
+        "fill"          "-fill"
+        "linewidth"     "-width"
     }
     # Set default options first and then let tool.xml override them.
     array set options {
-	-width		1
-	-fill		blue
-	-outline	black
+        -width          1
+        -fill           blue
+        -outline        black
     }
 
     # Coords
     set coords [XmlGetSubst $cpath.coords]
     if {$coords eq ""} {
-	set coords "0 0"
+        set coords "0 0"
     }
     set coords [ScreenCoords $coords]
 
     set list {}
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     set options(-tags) $cname
     set id [eval $itk_component(drawing) create polygon $coords]
@@ -705,71 +704,71 @@ itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
 }
 
 #
-# ParseRectangle -- 
+# ParseRectangle --
 #
 itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
     array set attr2option {
-	"outline"	"-outline"
-	"fill"		"-fill"
-	"linewidth"	"-width"
+        "outline"       "-outline"
+        "fill"          "-fill"
+        "linewidth"     "-width"
     }
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-fill blue
-	-width 1 
-	-outline black
+        -fill blue
+        -width 1
+        -outline black
     }
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    set value [XmlGetSubst $cpath.$attr]
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            set value [XmlGetSubst $cpath.$attr]
+            set options($option) $value
+        }
     }
     # Coordinates
     set coords [XmlGetSubst $cpath.coords]
     if {$coords eq ""} {
-	set coords "0 0 1 1"
+        set coords "0 0 1 1"
     }
-    foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break 
+    foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
     set id [$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2]
     set _cname2id($cname) $id
     eval $itk_component(drawing) itemconfigure $id [array get options]
 }
 
 #
-# ParseText -- 
+# ParseText --
 #
 itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     array set attr2option {
-	"font"		"-font"
-	"color"		"-foreground"
-	"valuecolor"	"-valueforeground"
-	"fill"		"-background"
-	"text"		"-text"
-	"anchor"	"-anchor"
+        "font"          "-font"
+        "color"         "-foreground"
+        "valuecolor"    "-valueforeground"
+        "fill"          "-background"
+        "text"          "-text"
+        "anchor"        "-anchor"
     }
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-font {Arial -14}
-	-valuefont {Arial -14}
-	-valueforeground blue3
-	-text {}
-	-fill {}
-	-anchor c
+        -font {Arial -14}
+        -valuefont {Arial -14}
+        -valueforeground blue3
+        -text {}
+        -fill {}
+        -anchor c
     }
     foreach attr [$_xmlobj children $cpath] {
-	if { [info exists attr2option($attr)] } {
-	    set option $attr2option($attr)
-	    if { $attr == "text" } {
-		set value [XmlGet $cpath.$attr]
-	    } else {
-		set value [XmlGetSubst $cpath.$attr]
-	    }
-	    set options($option) $value
-	}
+        if { [info exists attr2option($attr)] } {
+            set option $attr2option($attr)
+            if { $attr == "text" } {
+                set value [XmlGet $cpath.$attr]
+            } else {
+                set value [XmlGetSubst $cpath.$attr]
+            }
+            set options($option) $value
+        }
     }
     # Coords
     set coords [XmlGetSubst $cpath.coords]
@@ -787,7 +786,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     }
 
     if {$hotspot eq "inline"} {
-	set options(-showicons) 1 
+        set options(-showicons) 1
     }
     set c $itk_component(drawing)
     set options(-tags) $cname
@@ -799,14 +798,14 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     eval $c itemconfigure $id [array get options]
 
     if {$hotspot eq "inline"} {
-	$c bind $id <Enter> \
-	    [itcl::code $this Hotspot activate $cname $id %x %y]
-	$c bind $id <Motion> \
-	    [itcl::code $this Hotspot activate $cname $id %x %y]
-	$c bind $id <Leave> \
-	    [itcl::code $this Hotspot deactivate $cname $id]
-	$c bind $id <ButtonRelease-1> \
-	    [itcl::code $this Hotspot invoke $cname $id %x %y]
+        $c bind $id <Enter> \
+            [itcl::code $this Hotspot activate $cname $id %x %y]
+        $c bind $id <Motion> \
+            [itcl::code $this Hotspot activate $cname $id %x %y]
+        $c bind $id <Leave> \
+            [itcl::code $this Hotspot deactivate $cname $id]
+        $c bind $id <ButtonRelease-1> \
+            [itcl::code $this Hotspot invoke $cname $id %x %y]
     }
 }
 
@@ -822,13 +821,13 @@ itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
     }
 
     switch -- $option {
-	activate {
+        activate {
             if {$varName ne ""} {
-	        set active [$c itemcget $item -activevalue]
-	        if {$varName ne $active} {
-	            $c itemconfigure $item -activevalue $varName
+                set active [$c itemcget $item -activevalue]
+                if {$varName ne $active} {
+                    $c itemconfigure $item -activevalue $varName
                 }
-                $itk_component(drawing) configure -cursor center_ptr 
+                $itk_component(drawing) configure -cursor center_ptr
 
                 # put up a tooltip for this item
                 set cpath $_name2path($varName)
@@ -841,22 +840,22 @@ itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
                     Rappture::Tooltip::tooltip pending $tag @$x,$y
                 }
             } else {
-	        $c itemconfigure $item -activevalue ""
+                $c itemconfigure $item -activevalue ""
                 $itk_component(drawing) configure -cursor ""
                 Rappture::Tooltip::tooltip cancel
             }
-	}
-	deactivate {
-	    $c itemconfigure $item -activevalue ""
+        }
+        deactivate {
+            $c itemconfigure $item -activevalue ""
             $itk_component(drawing) configure -cursor ""
             Rappture::Tooltip::tooltip cancel
-	}
-	invoke {
-	    if {$varName ne ""} {
-		set x [expr {($x0+$x1)/2}]
-		Invoke $_name2path($varName) $x $y0
-	    }
-	}
+        }
+        invoke {
+            if {$varName ne ""} {
+                set x [expr {($x0+$x1)/2}]
+                Invoke $_name2path($varName) $x $y0
+            }
+        }
         default {
             error "bad option \"$option\": should be activate, deactivate, invoke"
         }
@@ -875,33 +874,33 @@ itcl::body Rappture::DrawingEntry::ScreenY { y } {
 itcl::body Rappture::DrawingEntry::ScreenCoords { coords } {
     set list {}
     foreach {x y} $coords {
-	lappend list [ScreenX $x] [ScreenY $y]
+        lappend list [ScreenX $x] [ScreenY $y]
     }
     return $list
 }
 
 itcl::body Rappture::DrawingEntry::AdjustDrawingArea { xAspect yAspect } {
-    set _drawingWidth $_canvasWidth 
+    set _drawingWidth $_canvasWidth
     set _drawingHeight $_canvasHeight
     if { $xAspect <= 0 || $yAspect <= 0 } {
-	return
+        return
     }
     set current [expr double($_canvasWidth) / double($_canvasHeight)]
     set wanted [expr double($xAspect) / double($yAspect)]
     if { $current > $wanted } {
-	set sw [ expr int($_canvasWidth * $wanted)]
-	if { $sw < 1 } {
-	    set sw 1
-	}
-	set _xOffset [expr $_canvasWidth - $sw]
-	set _drawingWidth $sw
+        set sw [ expr int($_canvasWidth * $wanted)]
+        if { $sw < 1 } {
+            set sw 1
+        }
+        set _xOffset [expr $_canvasWidth - $sw]
+        set _drawingWidth $sw
     } else {
-	set sh [expr int($_canvasHeight / $wanted)]
-	if { $sh < 1 }  {
-	    set sh 1
-	}
-	set _xOffset [expr $_canvasHeight - $sh]
-	set _drawingHeight $sh
+        set sh [expr int($_canvasHeight / $wanted)]
+        if { $sh < 1 }  {
+            set sh 1
+        }
+        set _xOffset [expr $_canvasHeight - $sh]
+        set _drawingHeight $sh
     }
 }
 
@@ -909,31 +908,31 @@ itcl::body Rappture::DrawingEntry::AdjustDrawingArea { xAspect yAspect } {
 #      <background>
 #       <!-- background color of the drawing canvas (default white) -->
 #       <color>black</color>
-#       <!-- coordinate system:  x0 y0 ?at screenx screeny? x1 y1 
-#				?at screenx screeny?
+#       <!-- coordinate system:  x0 y0 ?at screenx screeny? x1 y1
+#                                ?at screenx screeny?
 #            The screenx/screeny values are optional, so you can also say
-# 	   something like "-.1 0 1.1 1" as you had in your example.
-# 	   This lets you put the origin at a specific point on screen,
-# 	   and also define the directions of the axes.  We still compute
-# 	   the overall bounding box.  In the example below, the bounding
-# 	   box goes from -1,1 in the upper-left corner to 1,-1 in the
-# 	   lower right.
+#            something like "-.1 0 1.1 1" as you had in your example.
+#            This lets you put the origin at a specific point on screen,
+#            and also define the directions of the axes.  We still compute
+#            the overall bounding box.  In the example below, the bounding
+#            box goes from -1,1 in the upper-left corner to 1,-1 in the
+#            lower right.
 #       -->
 #       <coordinates>0 0 at 50% 50% 1 1 at 100% 100%</coordinates>
 
 #       <!-- aspect ratio:  scales coordinate system so that pixels may not
 #            be square.  A coordinate system like the one above implies a
-# 	   square drawing area, since x and y both go from -1 to 1.  But
-# 	   if you set the aspect to 2:1, you'll get something twice as
-# 	   wide as it is tall.  This effectively says that x goes from
-# 	   -1 to 1 in a certain distance, but y goes from -1 to 1 in half
-# 	   that screen distance.  Default is whatever aspect is defined
-# 	   by the coordinates.  If x goes 0-3 and y goes 0-1, then the
-# 	   drawing (without any other aspect ratio) would be 3x wide and
-# 	   1x tall.  The aspect ratio could be used to force it to be
-# 	   square instead by setting "1 1" instead.  In that case, x goes
-# 	   0-3 over the width, and y goes 0-1 over the same screen distance
-# 	   along the height.
+#            square drawing area, since x and y both go from -1 to 1.  But
+#            if you set the aspect to 2:1, you'll get something twice as
+#            wide as it is tall.  This effectively says that x goes from
+#            -1 to 1 in a certain distance, but y goes from -1 to 1 in half
+#            that screen distance.  Default is whatever aspect is defined
+#            by the coordinates.  If x goes 0-3 and y goes 0-1, then the
+#            drawing (without any other aspect ratio) would be 3x wide and
+#            1x tall.  The aspect ratio could be used to force it to be
+#            square instead by setting "1 1" instead.  In that case, x goes
+#            0-3 over the width, and y goes 0-1 over the same screen distance
+#            along the height.
 #       -->
 #       <aspect>2 1</aspect>
 #     </background>
@@ -1024,38 +1023,38 @@ itcl::body Rappture::DrawingEntry::ParseScreenCoordinates { values } {
 
 itcl::body Rappture::DrawingEntry::ParseBackground {} {
     foreach elem [$_xmlobj children $_path.background] {
-	switch -- $elem {
-	    "color" {
-		#  Background color of the drawing canvas (default white)
-		set value [XmlGet $_path.background.$elem]
-		$itk_component(drawing) configure -background $value
-	    }
-	    "aspect" {
-		set value [XmlGet $_path.background.$elem]
-		foreach { xAspect yAspect } $value break
-		AdjustDrawingArea $xAspect $yAspect
-	    }
-	    "coords" - "coordinates" {
-		set value [XmlGet $_path.background.$elem]
-		ParseScreenCoordinates $value
-	    }
-	    "width" {
-		set width [XmlGet $_path.background.$elem]
-		$itk_component(drawing) configure -width $width
-	    }
-	    "height" {
-		set height [XmlGet $_path.background.$elem]
-		$itk_component(drawing) configure -height $height
-	    }
+        switch -- $elem {
+            "color" {
+                #  Background color of the drawing canvas (default white)
+                set value [XmlGet $_path.background.$elem]
+                $itk_component(drawing) configure -background $value
+            }
+            "aspect" {
+                set value [XmlGet $_path.background.$elem]
+                foreach { xAspect yAspect } $value break
+                AdjustDrawingArea $xAspect $yAspect
+            }
+            "coords" - "coordinates" {
+                set value [XmlGet $_path.background.$elem]
+                ParseScreenCoordinates $value
+            }
+            "width" {
+                set width [XmlGet $_path.background.$elem]
+                $itk_component(drawing) configure -width $width
+            }
+            "height" {
+                set height [XmlGet $_path.background.$elem]
+                $itk_component(drawing) configure -height $height
+            }
             default {
                 puts stderr "WARNING: don't understand \"$elem\" in $_path"
             }
-	}
+        }
     }
 }
 
 #
-# Invoke -- 
+# Invoke --
 #
 itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
     if {![info exists _cpath2popup($cpath)]} {
@@ -1075,7 +1074,7 @@ itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
     }
 
     # Activate the popup and call for the output.
-    set rootx [winfo rootx $itk_component(drawing)] 
+    set rootx [winfo rootx $itk_component(drawing)]
     set rooty [winfo rooty $itk_component(drawing)]
 
     set x [expr {round($x + $rootx)}]
@@ -1084,21 +1083,21 @@ itcl::body Rappture::DrawingEntry::Invoke {cpath x y} {
 }
 
 #
-# Activate -- 
+# Activate --
 #
 itcl::body Rappture::DrawingEntry::Activate { cname } {
-    $itk_component(drawing) configure -cursor center_ptr 
+    $itk_component(drawing) configure -cursor center_ptr
     $itk_component(drawing) itemconfigure $_cname2id($cname) \
-	-image [Rappture::icon hotspot_active]
+        -image [Rappture::icon hotspot_active]
 }
 
 #
-# Deactivate -- 
+# Deactivate --
 #
 itcl::body Rappture::DrawingEntry::Deactivate { cname } {
     $itk_component(drawing) configure -cursor ""
     $itk_component(drawing) itemconfigure $_cname2id($cname) \
-	-image [Rappture::icon hotspot_normal]
+        -image [Rappture::icon hotspot_normal]
 }
 
 # ----------------------------------------------------------------------
@@ -1113,10 +1112,10 @@ itcl::body Rappture::DrawingEntry::Deactivate { cname } {
 itcl::body Rappture::DrawingEntry::value {args} {
     # Redraw if there's a new library object.
     if { [llength $args] > 0 } {
-	set libobj [lindex $args 0]
-	if { $libobj != "" } { 
+        set libobj [lindex $args 0]
+        if { $libobj != "" } {
             $_dispatcher event -idle !redraw
-	}
+        }
     }
     return ""
 }
@@ -1124,17 +1123,17 @@ itcl::body Rappture::DrawingEntry::value {args} {
 itcl::body Rappture::DrawingEntry::UpdateSubstitutions {} {
     # Load parser with the variables representing the substitution
     foreach name [array names _name2path] {
-	set path $_name2path($name)
-	set w [$_owner widgetfor $path]
-	if {$w ne ""} {
-	    set value [$w value]
-	} else {
-	    set value ""
-	}
+        set path $_name2path($name)
+        set w [$_owner widgetfor $path]
+        if {$w ne ""} {
+            set value [$w value]
+        } else {
+            set value ""
+        }
         if {$_name2map($name) ne ""} {
             set value [string map $_name2map($name) $value]
         }
-	$_parser eval [list set $name $value]
+        $_parser eval [list set $name $value]
     }
 }
 
@@ -1146,7 +1145,7 @@ itcl::body Rappture::DrawingEntry::XmlGet { path } {
 itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
     set value [$_xmlobj get $path]
     if {$_parser == ""} {
-	return [string trim $value]
+        return [string trim $value]
     }
     return [string trim [$_parser eval [list subst -nocommands $value]]]
 }

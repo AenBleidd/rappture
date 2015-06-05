@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: animover - animated move
 #
@@ -31,7 +31,7 @@ itcl::class Rappture::Animover {
     itk_option define -running running Running "disabled"
 
     constructor {args} { # defined below }
-                                                                                
+
     protected method _redraw {}
     protected variable _x0 0   ;# min value for middle image
     protected variable _x1 0   ;# max value for middle image
@@ -50,7 +50,7 @@ itcl::class Rappture::Animover {
     set images(bgr) [image create photo -file \
         [file join $dir images bgr.gif]]
 }
-                                                                                
+
 itk::usual Animover {
 }
 

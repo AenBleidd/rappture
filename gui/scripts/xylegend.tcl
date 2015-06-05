@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: xylegend - X/Y plot legend.
 #
@@ -71,34 +70,34 @@ itcl::class ::Rappture::XyLegend {
     constructor {graph args} {}
     destructor {}
 
-    public method reset { list } 
+    public method reset { list }
 
-    private method Add { elem label {flags ""}} 
-    private method Average {} 
-    private method BuildPopup { popup } 
+    private method Add { elem label {flags ""}}
+    private method Average {}
+    private method BuildPopup { popup }
     private method Check {}
-    private method Delete { args } 
-    private method Difference {} 
+    private method Delete { args }
+    private method Difference {}
     private method Editor { option args }
-    private method GetData { elem what } 
-    private method Hide { args } 
-    private method Lower { args } 
-    private method Raise { args } 
-    private method Recolor {} 
+    private method GetData { elem what }
+    private method Hide { args }
+    private method Lower { args }
+    private method Raise { args }
+    private method Recolor {}
     private method PopupMenu { x y }
-    private method Rename {} 
+    private method Rename {}
     private method SelectAll {}
-    private method Show { args } 
-    private method Toggle { args } 
-    private method UnmapHidden {} 
+    private method Show { args }
+    private method Toggle { args }
+    private method UnmapHidden {}
 }
-                                                                                
+
 itk::usual XyLegend {
-    keep -background -foreground -cursor 
+    keep -background -foreground -cursor
 }
 
 itk::usual TreeView {
-    keep -background -foreground -cursor 
+    keep -background -foreground -cursor
 }
 
 blt::bitmap define dot1 {
@@ -126,7 +125,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
             -highlightthickness 0 \
             -tree $_tree \
             -font "Arial 9" \
-            -flat yes -separator / 
+            -flat yes -separator /
     }
     $itk_component(scrollbars) contents $itk_component(legend)
     $itk_component(legend) column insert 0 "show" \
@@ -167,7 +166,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
             -command [itcl::code $this $title]  -overrelief flat \
             -activebackground grey90
     }
-    grid $controls.hide       -column 0 -row 0 -sticky w 
+    grid $controls.hide       -column 0 -row 0 -sticky w
     grid $controls.show       -column 0 -row 1 -sticky w
     grid $controls.toggle     -column 0 -row 2 -sticky w
     grid $controls.raise      -column 0 -row 3 -sticky w
@@ -386,7 +385,7 @@ itcl::body Rappture::XyLegend::Delete { args } {
         }
     }
     if { [llength $delnodes] > 0 } {
-        eval $_tree delete $delnodes 
+        eval $_tree delete $delnodes
     }
     $itk_component(legend) selection clearall
     eval $_graph element delete $elements
@@ -394,7 +393,7 @@ itcl::body Rappture::XyLegend::Delete { args } {
 
 itcl::body Rappture::XyLegend::Check {} {
     set nodes [$itk_component(legend) curselection]
-    foreach n { hide show toggle raise lower 
+    foreach n { hide show toggle raise lower
         rename average difference delete recolor } {
         $itk_component(controls).$n configure -state disabled
     }
@@ -466,7 +465,7 @@ itcl::body Rappture::XyLegend::Average {} {
     $xcoords sort -uniq
 
     # Step 2. Now for each curve, generate a cubic spline of that curve
-    #         and interpolate to get the corresponding y-values for each 
+    #         and interpolate to get the corresponding y-values for each
     #         abscissa.  Normally the abscissa are the same, so we're
     #         interpolation the knots.
 
@@ -481,7 +480,7 @@ itcl::body Rappture::XyLegend::Average {} {
         blt::spline natural $x $y $xcoords $ycoords
 
         # Sum the interpolated y-coordinate values.
-        $sum expr "$sum + $ycoords" 
+        $sum expr "$sum + $ycoords"
     }
     blt::vector destroy $x $y
 
@@ -496,7 +495,7 @@ itcl::body Rappture::XyLegend::Average {} {
         incr count
     }
     set labels [lsort -dictionary $labels]
-    set name "avg$count" 
+    set name "avg$count"
     set label "Avg. [join $labels ,]"
 
     # Don't use the vector because we don't know when it will be cleaned up.
@@ -523,10 +522,10 @@ itcl::body Rappture::XyLegend::Difference {} {
     set nodes [$itk_component(legend) curselection]
     set elem1 [$_tree label [lindex $nodes 0]]
     set elem2 [$_tree label [lindex $nodes 1]]
-    if { [info exists _diffelements($elem1)] && 
+    if { [info exists _diffelements($elem1)] &&
          [info exists _diffelements($elem2)] } {
         array unset _diffelements;      # Toggle the difference.
-        return;                         
+        return;
     }
     array unset _diffelements
     set x [blt::vector create \#auto -command ""]
@@ -535,7 +534,7 @@ itcl::body Rappture::XyLegend::Difference {} {
 
     $x append [GetData $elem1 -x]
     $y append [GetData $elem1 -y]
-    $x sort -reverse $y 
+    $x sort -reverse $y
     $x append [GetData $elem2 -x]
     $y append [GetData $elem2 -y]
     $m merge $x $y
@@ -557,7 +556,7 @@ itcl::body Rappture::XyLegend::UnmapHidden {} {
 itcl::body Rappture::XyLegend::SelectAll { } {
     foreach node [$_tree children 0] {
         $itk_component(legend) selection set $node
-    }  
+    }
 }
 
 itcl::body Rappture::XyLegend::Rename {} {
@@ -588,7 +587,7 @@ itcl::body Rappture::XyLegend::Editor {option args} {
             foreach { l r w h } [$itk_component(legend) bbox $_rename] break
             set info(text) $label
             set info(x) [expr $l + [winfo rootx $itk_component(legend)]]
-            set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
+            set info(y) [expr $r + [winfo rooty $itk_component(legend)]]
             set info(w) $w
             set info(h) $h
             return [array get info]

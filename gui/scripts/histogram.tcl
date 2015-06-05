@@ -1,5 +1,4 @@
 # -*- mode: tcl; indent-tabs-mode: nil -*-
-
 # ----------------------------------------------------------------------
 #  COMPONENT: histogram - extracts data from an XML description of a field
 #
@@ -256,7 +255,7 @@ itcl::body Rappture::Histogram::hints {{keyword ""}} {
             xlabel  xaxis.label
             xdesc   xaxis.description
             xunits  xaxis.units
-	    xorient xaxis.orientation
+            xorient xaxis.orientation
             xscale  xaxis.scale
             xmin    xaxis.min
             xmax    xaxis.max

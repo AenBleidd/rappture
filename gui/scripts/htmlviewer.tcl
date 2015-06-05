@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: htmlviewer - easy way to display HTML text
 #
@@ -304,9 +304,9 @@ itcl::body Rappture::HTMLviewer::_fixHeight {args} {
         set node [$itk_component(html) node]
         if {"" != $node} {
             set bbox [$itk_component(html) bbox $node]
-	    if { [llength $bbox] == 4 } {
-		set realht [expr {[lindex $bbox 3]-[lindex $bbox 1]}]
-	    }
+            if { [llength $bbox] == 4 } {
+                set realht [expr {[lindex $bbox 3]-[lindex $bbox 1]}]
+            }
         }
         if {$itk_option(-maxlines) > 0} {
             set ht [expr {$itk_option(-maxlines)*$_linesize}]

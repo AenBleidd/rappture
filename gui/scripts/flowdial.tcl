@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: Flowdial - selector, like the dial on a flow
 #
@@ -131,7 +131,7 @@ itcl::body Rappture::Flowdial::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Flowdial::current {value} {
     if {"" == $value} {
-        return 
+        return
     }
     _current [ms2rel $value]
     event generate $itk_component(hull) <<Value>>
@@ -148,10 +148,10 @@ itcl::body Rappture::Flowdial::current {value} {
 itcl::body Rappture::Flowdial::_current {relval} {
     if { $relval < 0.0 } {
         set relval 0.0
-    } 
+    }
     if { $relval > 1.0 } {
         set relval 1.0
-    }                                        
+    }
     set _current $relval
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: xyresult - X/Y plot in a ResultSet
 #
@@ -88,18 +88,18 @@ itcl::class Rappture::XyResult {
     private variable _markers
     private variable _nextElement 0
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method download {option args}
 
@@ -110,8 +110,8 @@ itcl::class Rappture::XyResult {
     protected method Hilite {state x y}
     protected method Axis {option args}
     protected method GetAxes {dataobj}
-    protected method GetLineMarkerOptions { style } 
-    protected method GetTextMarkerOptions { style } 
+    protected method GetLineMarkerOptions { style }
+    protected method GetTextMarkerOptions { style }
     protected method EnterMarker { g name x y text }
     protected method LeaveMarker { g name }
 
@@ -126,7 +126,7 @@ itcl::class Rappture::XyResult {
     private method SetElements { dataobj {settings ""} }
     private method SetAxisRangeState { axis }
 }
-                                                                                
+
 itk::usual XyResult {
     keep -background -foreground -cursor -font
 }
@@ -172,7 +172,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     set f [$itk_component(main) component frame]
     itk_component add plot {
         blt::graph $f.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 4 
+            -highlightthickness 0 -plotpadx 0 -plotpady 4
     } {
         keep -background -foreground -cursor -font
     }
@@ -251,9 +251,9 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
 #        if { $color == "autoreset" } {
 #            set _nextColorIndex 0
 #        }
-	set color [lindex $itk_option(-autocolors) $_nextColorIndex]
-        if { "" == $color} { 
-            set color black 
+        set color [lindex $itk_option(-autocolors) $_nextColorIndex]
+        if { "" == $color} {
+            set color black
         }
         # Set up for next auto color
         incr _nextColorIndex
@@ -274,22 +274,22 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         }
     }
     set type [$dataobj hints type]
-    
+
     set elem ""
     foreach cname [$dataobj components] {
         set tag $dataobj-$cname
-        set elem $_comp2elem($tag) 
+        set elem $_comp2elem($tag)
         switch -- $type {
             "bar" {
                 $g bar configure $elem -foreground $color -background $color \
-                    -hide no 
-            } 
+                    -hide no
+            }
             "scatter" {
-                $g line configure $elem -color $color -hide no 
+                $g line configure $elem -color $color -hide no
             }
             default {
                 $g line configure $elem -color $color -hide no \
-                    -linewidth $linewidth 
+                    -linewidth $linewidth
             }
         }
         if { [lsearch $_viewable $elem] < 0 } {
@@ -316,7 +316,7 @@ itcl::body Rappture::XyResult::get {} {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
             lappend top $obj
         } else {
-            lappend bottom $obj 
+            lappend bottom $obj
         }
     }
     set _dlist [concat $bottom $top]
@@ -348,8 +348,8 @@ itcl::body Rappture::XyResult::delete {args} {
     }
     # Hide all elements specified by their dataobjs
     foreach elem $elemlist {
-        $g element configure $elem -hide yes 
-        set i [lsearch $_viewable $elem] 
+        $g element configure $elem -hide yes
+        set i [lsearch $_viewable $elem]
         if { $i >= 0 } {
             set _viewable [lreplace $_viewable $i $i]
         }
@@ -367,7 +367,7 @@ itcl::body Rappture::XyResult::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
     set _dlist $args
-    BuildGraph $args 
+    BuildGraph $args
 }
 
 # ----------------------------------------------------------------------
@@ -468,9 +468,9 @@ itcl::body Rappture::XyResult::download {option args} {
                         set inner [$popup component inner]
                         # Create the print dialog widget and add it to the
                         # balloon popup.
-                        Rappture::XyPrint $inner.print 
+                        Rappture::XyPrint $inner.print
                         $popup configure \
-                            -deactivatecommand [list $inner.print reset] 
+                            -deactivatecommand [list $inner.print reset]
                         blt::table $inner 0,0 $inner.print -fill both
                     }
                     update
@@ -480,7 +480,7 @@ itcl::body Rappture::XyResult::download {option args} {
                     set inner [$popup component inner]
                     set output [$inner.print print $itk_component(plot) \
                                     $toolName $plotName]
-                    $popup deactivate 
+                    $popup deactivate
                     return $output
                 }
             }
@@ -604,7 +604,7 @@ itcl::body Rappture::XyResult::ResetLegend {} {
             set elabel [format "%s \#%d" $label $sim]
             $g element configure $elem -label $elabel
         }
-    }        
+    }
     $itk_component(legend) reset $_viewable
 }
 
@@ -634,7 +634,7 @@ itcl::body Rappture::XyResult::Zoom {option args} {
 itcl::body Rappture::XyResult::Hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
-  
+
     # Peek inside of Blt_ZoomStack package to see if we're currently in the
     # middle of a zoom selection.
     if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
@@ -683,7 +683,7 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
             set tip ""
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
-                
+
             if {[info exists _elem2comp($elem)]} {
                 foreach {dataobj cname} [split $_elem2comp($elem) -] break
                 set yunits [$dataobj hints yunits]
@@ -802,7 +802,7 @@ itcl::body Rappture::XyResult::Hilite {state x y} {
                     -titlecolor $itk_option(-foreground)
             }
         }
-        
+
         set ally [$g y2axis use]
         if {[llength $ally] > 0} {
             lappend ally y  ;# fix main y-axis too
@@ -1083,7 +1083,7 @@ itcl::body Rappture::XyResult::EnterMarker { g name x y text } {
 }
 
 itcl::body Rappture::XyResult::LeaveMarker { g name } {
-    if { [info exists _markers($name)] } { 
+    if { [info exists _markers($name)] } {
         set id $_markers($name)
         $g marker delete $id
         unset _markers($name)
@@ -1094,7 +1094,7 @@ itcl::body Rappture::XyResult::LeaveMarker { g name } {
 # SetAxis --
 #
 #       Configures the graph axis with the designated setting using
-#       the currently stored value.  User-configurable axis settings 
+#       the currently stored value.  User-configurable axis settings
 #       are stored in the _axisPopup variable or in the widgets. This
 #       routine syncs the graph with that setting.
 #
@@ -1167,7 +1167,7 @@ itcl::body Rappture::XyResult::SetAxis { setting } {
 # SetAxisRangeState --
 #
 #       Sets the state of widgets controlling the axis range based
-#       upon whether the automatic or manual setting.  If the 
+#       upon whether the automatic or manual setting.  If the
 #       axis is configure to be automatic, the manual setting widgets
 #       are disabled.  And vesa-versa the automatic setting widgets
 #       are dsiabled if the axis is manual.
@@ -1178,19 +1178,19 @@ itcl::body Rappture::XyResult::SetAxisRangeState { axis } {
 
     if { $_axisPopup(auto) } {
         foreach {min max} [$g axis limits $axis] break
-        $inner.minl configure -state disabled 
-        $inner.min configure -state disabled 
-        $inner.maxl configure -state disabled 
-        $inner.max configure -state disabled 
+        $inner.minl configure -state disabled
+        $inner.min configure -state disabled
+        $inner.maxl configure -state disabled
+        $inner.max configure -state disabled
         $inner.loose configure -state normal
         $inner.tight configure -state normal
     } else {
         foreach {min max} [$g axis limits $axis] break
-        $inner.minl configure -state normal 
-        $inner.min configure -state normal 
+        $inner.minl configure -state normal
+        $inner.min configure -state normal
         set _axisPopup(min) [$g axis cget $axis -min]
-        $inner.maxl configure -state normal 
-        $inner.max configure -state normal 
+        $inner.maxl configure -state normal
+        $inner.max configure -state normal
         set _axisPopup(max) [$g axis cget $axis -max]
         $inner.loose configure -state disabled
         $inner.tight configure -state disabled
@@ -1200,9 +1200,9 @@ itcl::body Rappture::XyResult::SetAxisRangeState { axis } {
 #
 # BuildAxisPopup --
 #
-#       Creates the popup balloon dialog for axes. This routine is 
-#       called only once the first time the user clicks to bring up 
-#       an axis dialog.  It is reused for all other axes.  
+#       Creates the popup balloon dialog for axes. This routine is
+#       called only once the first time the user clicks to bring up
+#       an axis dialog.  It is reused for all other axes.
 #
 itcl::body Rappture::XyResult::BuildAxisPopup { popup } {
     Rappture::Balloon $popup -title "Axis Options"
@@ -1290,7 +1290,7 @@ itcl::body Rappture::XyResult::BuildAxisPopup { popup } {
         6,0 $inner.auto -anchor w -padx 4 \
         6,2 $inner.tight -anchor w \
         6,3 $inner.loose -anchor w \
-        
+
 
     blt::table configure $inner r2 -pady 4
     blt::table configure $inner c1 -width 20
@@ -1300,12 +1300,12 @@ itcl::body Rappture::XyResult::BuildAxisPopup { popup } {
 #
 # ShowAxisPopup --
 #
-#       Displays the axis dialog for an axis.  It initializes the 
+#       Displays the axis dialog for an axis.  It initializes the
 #       _axisInfo variables for that axis if necessary.
 #
 itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
     set g $itk_component(plot)
-    set popup $itk_component(hull).axes 
+    set popup $itk_component(hull).axes
 
     if { ![winfo exists $popup] } {
         BuildAxisPopup $popup
@@ -1337,7 +1337,7 @@ itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
     if { [info exists _limits(${label}-max)] } {
         set amax $_limits(${label}-max)
     }
-    set auto 1 
+    set auto 1
     if { $amin != "" || $amax != "" } {
         set auto 0
     }
@@ -1412,11 +1412,11 @@ itcl::body Rappture::XyResult::ShowAxisPopup { axis } {
 # GetFormattedValue --
 #
 #       Callback routine for the axis format procedure.  It formats the
-#       axis tick label according to the selected format.  This routine 
+#       axis tick label according to the selected format.  This routine
 #       is also used to format tooltip values.
 #
 itcl::body Rappture::XyResult::GetFormattedValue { axis g value } {
-    if { [$g axis cget $axis -logscale] || 
+    if { [$g axis cget $axis -logscale] ||
          ![info exists _axisPopup($axis-format)] } {
         set fmt "%.6g"
     } else {
@@ -1434,10 +1434,10 @@ itcl::body Rappture::XyResult::GetFormattedValue { axis g value } {
 #       method which gets called first).   The graph elements that
 #       are created, are hidden.  This allows the graph to account
 #       for all datasets, even those not currently being displayed.
-#       
+#
 itcl::body Rappture::XyResult::BuildGraph { dlist } {
     set g $itk_component(plot)
-    
+
     foreach label [array names _label2axis] {
         set axis $_label2axis($label)
         switch -- $axis {
@@ -1456,7 +1456,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
     # The first x-axis gets mapped to "x".  The second, to "x2".
     # Beyond that, we must create new axes "x3", "x4", etc.
     # We do the same for y.
-    
+
     set anum(x) 0
     set anum(y) 0
     foreach dataobj $dlist {
@@ -1469,12 +1469,12 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
             set min [$dataobj hints ${axis}min]
             set max [$dataobj hints ${axis}max]
             set tag ${label}-min
-            if { $min != "" && ( ![info exists _limits($tag)] || 
+            if { $min != "" && ( ![info exists _limits($tag)] ||
                                    $_limits($tag) > $min ) } {
                 set _limits($tag) $min
             }
             set tag ${label}-max
-            if { $max != "" && (![info exists _limits($tag)] || 
+            if { $max != "" && (![info exists _limits($tag)] ||
                                   $_limits($tag) < $max) } {
                 set _limits($tag) $max
             }
@@ -1494,16 +1494,16 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
                 $g axis configure $axisName -title $label -hide no \
                     -checklimits no -showticks yes
                 set _label2axis($label) $axisName
-                
+
                 # If this axis has a description, add it as a tooltip
                 set desc [string trim [$dataobj hints ${axis}desc]]
                 Rappture::Tooltip::text $g-$axisName $desc
             }
         }
-    } 
+    }
     # Next, set the axes based on what we've found.
     foreach label [array names _label2axis] {
-        set logscale [info exists _limits(${label}-log)] 
+        set logscale [info exists _limits(${label}-log)]
         set amin ""
         if { [info exists _limits(${label}-min)] } {
             set amin $_limits(${label}-min)
@@ -1530,7 +1530,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
-    
+
     foreach dataobj $dlist {
         SetElements $dataobj
     }
@@ -1545,7 +1545,7 @@ itcl::body Rappture::XyResult::BuildGraph { dlist } {
 #       method which gets called first).   The graph elements that
 #       are created, are hidden.  This allows the graph to account
 #       for all datasets, even those not currently being displayed.
-#       
+#
 itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
     set g $itk_component(plot)
 
@@ -1621,8 +1621,8 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -mapy $mapy \
                         -hide yes \
                         -xerror $xev -yerror $yev
-                } 
-                "scatter" {                
+                }
+                "scatter" {
                     $g line create $elem \
                         -x $xv -y $yv \
                         -symbol square \
@@ -1634,7 +1634,7 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
                         -mapy $mapy \
                         -hide yes \
                         -xerror $xev -yerror $yev
-                } 
+                }
                 "bar" {
                     $g bar create $elem \
                         -x $xv -y $yv \
@@ -1649,5 +1649,5 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
         } else {
             $g element configure $_comp2elem($tag) -mapx $mapx -mapy $mapy
         }
-    } 
+    }
 }

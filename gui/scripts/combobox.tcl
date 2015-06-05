@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: combobox - entry widget with a drop-down list of values
 #
@@ -59,7 +58,7 @@ itcl::class Rappture::Combobox {
     private variable _value2label
     private variable _label2value
 }
-                                                                                
+
 itk::usual Combobox {
     keep -cursor -font
     keep -foreground -background

@@ -562,7 +562,7 @@ itcl::body Rappture::VtkMeshViewer::scale {args} {
             if { $amax < $max } {
                 set amax $max
             }
-            set _limits($axis) [list $amin $amax]            
+            set _limits($axis) [list $amin $amax]
         }
     }
 }

@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: textentry - general-purpose text entry widget
 #
@@ -37,8 +37,8 @@ itcl::class Rappture::TextEntry {
     itk_option define -width width Width 0
     itk_option define -height height Height 0
 
-    constructor {owner path args} { 
-	# defined below 
+    constructor {owner path args} {
+        # defined below
     }
 
     public method value {args}
@@ -87,8 +87,8 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     set hints [string trim [$_owner xml get $path.about.hints]]
     set icon  [string trim [$_owner xml get $path.about.icon]]
     if {[string length $icon] > 0} {
-        set _icon [image create photo -data $icon] 
-    } 
+        set _icon [image create photo -data $icon]
+    }
     if {[string length $hints] > 0} {
         itk_component add hints {
             ::label $itk_interior.hints -anchor w -text $hints
@@ -103,7 +103,7 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     eval itk_initialize $args
 
     # Trimming for now.  May need a <verbatim> flag to indicate to leave
-    # the string alone. 
+    # the string alone.
     set str [string trim [$_owner xml get $path.default]]
     if {"" != $str} {
         value $str

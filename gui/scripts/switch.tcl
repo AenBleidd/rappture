@@ -1,8 +1,8 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: switch - on/off switch
 #
-#  This widget is used to control a (boolean) on/off value.  
+#  This widget is used to control a (boolean) on/off value.
 # It is just a wrapper around a button.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
@@ -47,7 +47,7 @@ itcl::body Rappture::Switch::constructor {args} {
         #rename -background -textbackground textBackground Background
     }
     pack $itk_component(button) -side left -expand yes -fill both
-    eval itk_initialize $args 
+    eval itk_initialize $args
 }
 
 # ----------------------------------------------------------------------
@@ -89,7 +89,7 @@ itcl::body Rappture::Switch::value {args} {
 # _toggle
 #
 #        Use internally to convert the toggled button into the
-#        proper boolean format.  Yes, right now it's hardcoded to 
+#        proper boolean format.  Yes, right now it's hardcoded to
 #        yes/no.  But in the future it could be some other text.
 #
 #        Can't use old "value" method because _value is already set

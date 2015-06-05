@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: datatable - extracts data from an XML description of a field
 #
@@ -18,16 +17,16 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { 
-    # forward declaration 
+namespace eval Rappture {
+    # forward declaration
 }
 
 itcl::class Rappture::DataTable {
-    constructor {xmlobj path} { 
-        # defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method components {{pattern *}}
@@ -52,7 +51,7 @@ itcl::body Rappture::DataTable::constructor {xmlobj path} {
     }
     set _xmlobj $xmlobj
     set _datatable [$xmlobj element -as object $path]
-    
+
     # build up vectors for various components of the datatable
     Build
 }
@@ -66,7 +65,7 @@ itcl::body Rappture::DataTable::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: values 
+# USAGE: values
 #
 # Returns the values for the datatable as a BLT tree.
 # ----------------------------------------------------------------------
@@ -75,7 +74,7 @@ itcl::body Rappture::DataTable::values {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: columns 
+# USAGE: columns
 #
 # Returns the columns of the datatable in order.
 # ----------------------------------------------------------------------
@@ -143,13 +142,13 @@ itcl::body Rappture::DataTable::Build {} {
         set csvlist [blt::csv -data $csvdata]
         foreach row $csvlist {
             set child [$_tree insert 0]
-            set c 0 
+            set c 0
             foreach value $row {label description style} $_columns {
                 if { $label == "" } {
                     set label "$c"
                 }
                 $_tree set $child $label $value
-                incr c 
+                incr c
             }
         }
     }

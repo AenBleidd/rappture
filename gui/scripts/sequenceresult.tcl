@@ -1,5 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: sequenceresult - series of results forming an animation
 #
@@ -28,18 +27,18 @@ option add *SequenceResult.boldFont \
 itcl::class Rappture::SequenceResult {
     inherit itk::Widget
 
-    constructor {args} { 
-        # defined below 
+    constructor {args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     public method download {option args}
 
@@ -364,7 +363,7 @@ itcl::body Rappture::SequenceResult::play {{why -program}} {
         -bitmap [Rappture::icon pause] \
         -command [itcl::code $this pause -user]
 
-    global readyForNextFrame 
+    global readyForNextFrame
     set readyForNextFrame 1;            # By default, always ready
     # Schedule the first frame
     set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
@@ -386,9 +385,9 @@ itcl::body Rappture::SequenceResult::pause {{why -program}} {
         catch {after cancel $_afterId}
         set _afterId ""
     }
-    global readyForNextFrame 
+    global readyForNextFrame
     set readyForNextFrame 1;            # By default, always ready
-                                        
+
     # Check if the play button still exists. We may be in the process
     # of destroying the widget.
     if { [info exists itk_component(play)] } {
@@ -491,7 +490,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                         set dimensions $dim
                     }
                 }
-		set mode [$dataobj viewer]
+                set mode [$dataobj viewer]
                 Rappture::FieldResult $w -mode $mode
                 pack $w -expand yes -fill both
             }
@@ -517,7 +516,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     # Load the current sequence info the viewer.
     #
     $itk_component(indexLabel) configure -text [$_topmost hints indexlabel]
-    
+
     $w delete
     $itk_component(dial) clear
 
@@ -545,11 +544,11 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
 # we either loop back or stop.
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::_playFrame {} {
-    global readyForNextFrame 
+    global readyForNextFrame
     if { $readyForNextFrame } {
         set _pos [expr {$_pos+1}]
         set last [expr {[llength $_indices]-1}]
-        
+
         if {$_pos > $last} {
             if {$_play(loop)} {
                 set _pos 0

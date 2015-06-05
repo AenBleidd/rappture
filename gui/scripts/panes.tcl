@@ -120,7 +120,7 @@ itcl::body Rappture::Panes::insert {pos args} {
         ignore -borderwidth
     }
     if {$itk_option(-orientation) eq "vertical"} {
-        pack $itk_component(${sash}ridge) -fill x 
+        pack $itk_component(${sash}ridge) -fill x
         $itk_component($sash) configure -cursor sb_v_double_arrow
         $itk_component(${sash}ridge) configure -cursor sb_v_double_arrow
     } else {
@@ -415,7 +415,7 @@ itcl::body Rappture::Panes::_fixLayout {args} {
                     -relwidth 1.0 -height $sh
                 set y [expr {$y + $sh}]
             }
-            
+
             set ph [expr {$h*$f}]
             place $itk_component($p) -y $y -relx 0.5 -anchor n \
                 -relwidth 1.0 -height $ph
@@ -454,13 +454,13 @@ itcl::body Rappture::Panes::_fixLayout {args} {
                     -relheight 1.0 -width $sw
                 set x [expr {$x + $sw}]
             }
-            
+
             set pw [expr {$w*$f}]
             place $itk_component($p) -x $x -rely 0.5 -anchor w \
                 -relheight 1.0 -width $pw
             set x [expr {$x + $pw}]
         }
-    }   
+    }
 }
 
 # ----------------------------------------------------------------------

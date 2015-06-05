@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: icons - utility for loading icons from a library
 #
@@ -288,7 +288,7 @@ proc Rappture::icon::gif_parse {gifImageData arrayVar} {
                 set ctsize [expr {3*(1 << ($data(im-$n-packed) & 0x07)+1)}]
                 set data(im-$n-colors) [gif_get_block $gifImageData pos $ctsize]
             }
-   
+
             set data(im-$n-data) ""
             gif_put_byte data(im-$n-data) \
                 [gif_get_byte $gifImageData pos] ;# lwz min code size

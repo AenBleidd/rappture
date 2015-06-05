@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: meshresult - mesh plot in a ResultSet
 #
@@ -55,7 +55,7 @@ itcl::class Rappture::MeshResult {
     private variable _ymin ""      ;# autoscale min for y-axis
     private variable _ymax ""      ;# autoscale max for y-axis
 }
-                                                                                
+
 itk::usual MeshResult {
     keep -background -foreground -cursor -font
 }
@@ -314,7 +314,7 @@ itcl::body Rappture::MeshResult::_rebuild {} {
     # first clear out the widget
     eval $g marker delete [$g marker names]
     $g axis configure x -min "" -max "" -loose yes -checklimits no \
-        -descending yes 
+        -descending yes
     $g axis configure y -min "" -max "" -loose yes -checklimits no
 
     # extract axis information from the first dataobj

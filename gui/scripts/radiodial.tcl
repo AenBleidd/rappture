@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: Radiodial - selector, like the dial on a car radio
 #
@@ -64,7 +64,7 @@ itcl::class Rappture::Radiodial {
     public method get {args}
     public method current {args}
     public method color {value}
-                                                                                
+
     protected method _setCurrent {val}
     protected method _redraw {}
     protected method _click {x y}
@@ -85,7 +85,7 @@ itcl::class Rappture::Radiodial {
     private variable _activecolor ""  ;# width allocated for values
     private variable _vwidth 0        ;# width allocated for values
 }
-                                                                                
+
 itk::usual Radiodial {
     keep -background -foreground -cursor -font
 }
@@ -249,7 +249,7 @@ itcl::body Rappture::Radiodial::current {args} {
         set n [_findLabel $newval]
 
         # Don't use expr (?:) because it evaluates the resulting string.
-        # For example, it changes -0.020 to -0.02. 
+        # For example, it changes -0.020 to -0.02.
         if { $n >= 0 } {
             set rawval [lindex $_values $n]
         } else {

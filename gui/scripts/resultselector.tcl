@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: ResultSelector - controls for a ResultSet
 #
@@ -73,7 +73,7 @@ itcl::class Rappture::ResultSelector {
 
     private common _cntlInfo         ;# maps column name => control info
 }
-                                                                                
+
 itk::usual ResultSelector {
     keep -background -foreground -cursor -font
 }
@@ -897,40 +897,40 @@ itcl::body Rappture::ResultSelector::_fixSettings {args} {
         }
         set xmlobj [lindex [$_resultset find $format $tuple] 0]
 
-	if {$xmlobj eq "" && $changed ne ""} {
-	    #
-	    # No data for these settings.  Try leaving the next
-	    # column open, then the next, and so forth, until
-	    # we find some data.
-	    #
-	    # allcols:  foo bar baz qux
-	    #               ^^^changed
-	    #
-	    # search:   baz qux foo
-	    #
-	    set val $_cntlInfo($this-$changed-value)
-	    set allcols [lrange [$_resultset diff names] 2 end]
-	    set i [lsearch -exact $allcols $changed]
-	    set search [concat \
-		[lrange $allcols [expr {$i+1}] end] \
-		[lrange $allcols 0 [expr {$i-1}]] \
-	    ]
-	    set nsearch [llength $search]
+        if {$xmlobj eq "" && $changed ne ""} {
+            #
+            # No data for these settings.  Try leaving the next
+            # column open, then the next, and so forth, until
+            # we find some data.
+            #
+            # allcols:  foo bar baz qux
+            #               ^^^changed
+            #
+            # search:   baz qux foo
+            #
+            set val $_cntlInfo($this-$changed-value)
+            set allcols [lrange [$_resultset diff names] 2 end]
+            set i [lsearch -exact $allcols $changed]
+            set search [concat \
+                [lrange $allcols [expr {$i+1}] end] \
+                [lrange $allcols 0 [expr {$i-1}]] \
+            ]
+            set nsearch [llength $search]
 
-	    for {set i 0} {$i < $nsearch} {incr i} {
-		set format $changed
-		set tuple [list $val]
-		for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
-		    set col [lindex $search $j]
-		    lappend format $col
-		    lappend tuple $_cntlInfo($this-$col-value)
-		}
-		set xmlobj [lindex [$_resultset find $format $tuple] 0]
-		if {$xmlobj ne ""} {
-		    break
-		}
-	    }
-	}
+            for {set i 0} {$i < $nsearch} {incr i} {
+                set format $changed
+                set tuple [list $val]
+                for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
+                    set col [lindex $search $j]
+                    lappend format $col
+                    lappend tuple $_cntlInfo($this-$col-value)
+                }
+                set xmlobj [lindex [$_resultset find $format $tuple] 0]
+                if {$xmlobj ne ""} {
+                    break
+                }
+            }
+        }
     }
 
     #

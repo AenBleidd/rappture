@@ -1,4 +1,4 @@
-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: FileChoiceEntry - widget for entering a choice of strings
 #
@@ -17,14 +17,14 @@ itcl::class Rappture::FileChoiceEntry {
     inherit itk::Widget
 
     itk_option define -state state State "normal"
-    
+
     private variable _rebuildPending 0
 
-    constructor {owner path args} { 
-        # defined below 
+    constructor {owner path args} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public method value {args}
 
@@ -71,7 +71,7 @@ itcl::body Rappture::FileChoiceEntry::constructor {owner path args} {
     bind $itk_component(choice) <<Value>> [itcl::code $this NewValue]
 
     # First time, parse the <pattern> elements to generate notify callbacks
-    # for each template found. 
+    # for each template found.
     foreach cname [$_owner xml children -type pattern $_path] {
         set glob [string trim [$_owner xml get $_path.$cname]]
         # Successively replace each template with its value.
@@ -306,10 +306,10 @@ itcl::body Rappture::FileChoiceEntry::DoGlob { cwd patterns } {
     return [lsort -dictionary $files]
 }
 
-# 
+#
 # Glob --
 #
-#       Matches a single pattern for files. This differs from the 
+#       Matches a single pattern for files. This differs from the
 #       Tcl glob by
 #
 #       1. Only matches files, not directories.

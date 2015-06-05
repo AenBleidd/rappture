@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: BooleanEntry - widget for entering boolean values
 #
@@ -70,7 +70,7 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
             -anchor center -image $icon
         pack $itk_component(icon) -fill x -side left
     }
-    
+
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.

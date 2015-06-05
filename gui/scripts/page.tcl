@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: page - single page of widgets
 #
@@ -26,7 +26,7 @@ itcl::class Rappture::Page {
 
     private variable _owner ""       ;# thing managing this page
 }
-                                                                                
+
 itk::usual Page {
 }
 
