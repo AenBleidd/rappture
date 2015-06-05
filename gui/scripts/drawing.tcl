@@ -1,4 +1,4 @@
-# -*- mode: tcl; indent-tabs-mode: nil -*- 
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  COMPONENT: drawing - 3D drawing of data
 # ======================================================================
@@ -11,26 +11,26 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { 
-    # forward declaration 
+namespace eval Rappture {
+    # forward declaration
 }
 
 itcl::class Rappture::Drawing {
     private variable _drawing
-    private variable _xmlobj 
-    private variable _styles 
-    private variable _shapes 
-    private variable _labels 
-    private variable _types 
-    private variable _data 
+    private variable _xmlobj
+    private variable _styles
+    private variable _shapes
+    private variable _labels
+    private variable _types
+    private variable _data
     private variable _hints
     private variable _units
 
-    constructor {xmlobj path} { 
-        # defined below 
+    constructor {xmlobj path} {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public method label { elem }
@@ -39,8 +39,8 @@ itcl::class Rappture::Drawing {
     public method shape { elem }
     public method values { elem }
     public method data { elem }
-    public method hints {{keyword ""}} 
-    public method components { args } 
+    public method hints {{keyword ""}}
+    public method components { args }
 }
 
 # ----------------------------------------------------------------------
@@ -71,7 +71,7 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
             }
             glyphs* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
-		set _data($elem) [string trim $_data($elem)]
+                set _data($elem) [string trim $_data($elem)]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
                 set _shapes($elem) [$_xmlobj get $path.$elem.about.shape]
@@ -84,7 +84,7 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
                 } else {
                     set contents [$_xmlobj get $path.$elem.vtk]
                 }
-		set _data($elem) [string trim $contents]
+                set _data($elem) [string trim $contents]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
                 set _types($elem) molecule
@@ -142,91 +142,91 @@ itcl::body Rappture::Drawing::destructor {} {
     # empty
 }
 
-# 
-# label -- 
-# 
+#
+# label --
+#
 #       Returns the label of the named drawing element.
 #
 itcl::body Rappture::Drawing::label { elem } {
     if { [info exists _labels($elem)] } {
         return $_labels($elem)
-    } 
+    }
     return ""
 }
 
-# 
-# type -- 
-# 
+#
+# type --
+#
 #       Returns the type of the named drawing element.
 #
 itcl::body Rappture::Drawing::type { elem } {
     if { [info exists _types($elem)] } {
         return $_types($elem)
-    } 
+    }
     return ""
 }
 
-# 
-# style -- 
-# 
+#
+# style --
+#
 #       Returns the style string of the named drawing element.
 #
 itcl::body Rappture::Drawing::style { elem } {
     if { [info exists _styles($elem)] } {
         return $_styles($elem)
-    } 
+    }
     return ""
 }
 
-# 
-# shape -- 
-# 
+#
+# shape --
+#
 #       Returns the shape of the glyphs in the drawing element.
 #
 itcl::body Rappture::Drawing::shape { elem } {
     set shape ""
     if { [info exists _shapes($elem)] } {
         return $_shapes($elem)
-    } 
-    switch -- $shape { 
-	arrow - cone - cube - cylinder - dodecahedron - 
-	icosahedron - line - octahedron - sphere - tetrahedron  {
-	    return $shape
-	}
-	default {
-	    puts stderr "unknown glyph shape \"$shape\""
-	}
+    }
+    switch -- $shape {
+        arrow - cone - cube - cylinder - dodecahedron -
+        icosahedron - line - octahedron - sphere - tetrahedron  {
+            return $shape
+        }
+        default {
+            puts stderr "unknown glyph shape \"$shape\""
+        }
     }
     return ""
 }
 
-# 
-# data -- 
-# 
+#
+# data --
+#
 #       Returns the data of the named drawing element.
 #
 itcl::body Rappture::Drawing::data { elem } {
     if { [info exists _data($elem)] } {
         return $_data($elem)
-    } 
+    }
     return ""
 }
 
 # ----------------------------------------------------------------------
-# method values 
+# method values
 #       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
+#       Tcl command and data to recreate the uniform rectangular grid
 #       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing::values { elem } {
     if { [info exists _data($elem)] } {
         return $_data($elem)
-    } 
+    }
     return ""
 }
 
 itcl::body Rappture::Drawing::components { args } {
-    return [array names _data] 
+    return [array names _data]
 }
 
 # ----------------------------------------------------------------------
