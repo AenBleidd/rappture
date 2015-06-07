@@ -186,44 +186,52 @@ output xml file, or you can call the xml() method.
     print h1['component.xy'].value
 
     # If we want to see all the generated xml...
-    print io.xml()
+    print h1.xml()
 
 ::
 
-    Tigers 5 Bears 7 Lions 3 Monkeys 15 Hawks 8 Elephants 6 Foxes 18
-    Geckos 4 Zebras 9 Giraffes 2
+    "Tigers" 5
+    "Bears" 7
+    "Lions" 3
+    "Monkeys" 15
+    "Hawks" 8
+    "Elephants" 6
+    "Foxes" 18
+    "Geckos" 4
+    "Zebras" 9
+    "Giraffes" 2
+
 
 And the xml part looks like this:
 
 .. code-block:: xml
 
-    <?xml version="1.0"?>
-    <run>
-        <input>
-            <number id="Ef">
-                <units>eV</units>
-                <min>-10eV</min>
-                <max>10eV</max>
-                <default>0eV</default>
-                <current>3eV</current>
-            </number>
-        </input>
-        <output>
-            <histogram id="example1">
-                <about>
-                    <label>Name Value Histogram</label>
-                </about>
-                <component>
-                    <xy>Tigers 5 Bears 7 Lions 3 Monkeys 15 Hawks 8 Elephants 6 Foxes 18
-                    Geckos 4 Zebras 9 Giraffes 2</xy>
-                </component>
-            </histogram>
-        </output>
-    </run>
+   <histogram id="example1">
+        <about>
+            <label>Name Value Histogram</label>
+        </about>
+        <component>
+            <xy>&quot;Tigers&quot; 5
+    &quot;Bears&quot; 7
+    &quot;Lions&quot; 3
+    &quot;Monkeys&quot; 15
+    &quot;Hawks&quot; 8
+    &quot;Elephants&quot; 6
+    &quot;Foxes&quot; 18
+    &quot;Geckos&quot; 4
+    &quot;Zebras&quot; 9
+    &quot;Giraffes&quot; 2</xy>
+        </component>
+    </histogram>
+
 
 In general, ints and floats are converted to strings, and lists, tuples, and arrays are converted into interleaved
-strings.  So, if x and y are lists or arrays, then (x, y) or [x, y] would be inserted into the xml as strings
+strings.  If x and y are lists or arrays, then (x, y) or [x, y] would be inserted into the xml as strings
 representing x[0], y[0], x[1], y[1], ...
+
+If the argument is a multidimensional array, it is flattened (serialized)
+in the Fortran order, where the first ('x') index changes fastest.  This is
+what Rappture normally requires for fields and meshes.
 
 See the rappture examples for more information.
 

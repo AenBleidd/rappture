@@ -89,21 +89,21 @@ def test_output_5():
     global rx
     curve = rx['output.curve(temp).component']
     curve['xy'] = [[1, 2, 3], [4, 5, 6]]
-    assert curve['xy'].value == "1 4 2 5 3 6"
+    assert curve['xy'].value == "1 4\n2 5\n3 6"
 
 
 def test_output_6():
     global rx
     curve = rx['output.curve(temp).component']
     curve['xy'] = ([1, 2, 3], [4, 5, 6])
-    assert curve['xy'].value == "1 4 2 5 3 6"
+    assert curve['xy'].value == "1 4\n2 5\n3 6"
 
 
 def test_output_7():
     global rx
     curve = rx['output.curve(temp).component']
     curve['xy'] = ((1, 2, 3), (4, 5, 6))
-    assert curve['xy'].value == "1 4 2 5 3 6"
+    assert curve['xy'].value == "1 4\n2 5\n3 6"
 
 
 def test_output_8():
