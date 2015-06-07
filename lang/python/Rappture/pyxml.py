@@ -11,7 +11,6 @@
 from library import library
 from result import result
 import numpy as np
-import itertools
 
 """
 This library provides a simpler way to read and write Rappture
@@ -50,10 +49,11 @@ class Node:
     def put(self, path, val, **kwargs):
         if self.path != '':
             path = self.path + '.' + path
+
         if type(val) == np.ndarray:
             val = ' '.join(map(str, val.ravel('F').tolist()))
         elif type(val) == list or type(val) == tuple:
-            val = ' '.join(map(repr, (itertools.chain(*zip(*val)))))
+            val = '\n'.join([' '.join(map(repr, x)) for x in zip(*val)])
             # we need the strings double quoted for tcl
             val = val.replace("'", '"')
         self.lib.put(path, val, **kwargs)
@@ -75,7 +75,8 @@ class Node:
         return self.lib.copy(dest, src)
 
     def xml(self):
-        return self.lib.xml()
+        elem = self.lib.element(self.path)
+        return elem.xml()
 
     def close(self):
         result(self.lib)
