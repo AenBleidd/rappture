@@ -2664,11 +2664,11 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -linewidth 1.0
                 -normscale 0
                 -opacity 1.0
-                -orientGlyphs 0
+                -orientglyphs 0
                 -outline 0
                 -ptsize 1.0
                 -quality 1
-                -scaleMode "vcomp"
+                -scalemode "vcomp"
                 -shape "sphere"
                 -visible 1
                 -wireframe 0
@@ -2677,6 +2677,16 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             set shape [$dataobj shape $comp]
             if {$shape != ""} {
                 set settings(-shape) $shape
+            }
+            # Backwards compat with camel case style option
+            if { [info exists settings(-orientGlyphs)] } {
+                set settings(-orientglyphs) $settings(-orientGlyphs)
+                array unset settings -orientGlyphs
+            }
+            # Backwards compat with camel case style option
+            if { [info exists settings(-scaleMode)] } {
+                set settings(-scalemode) $settings(-scaleMode)
+                array unset settings -scaleMode
             }
             SendCmd "outline add $tag"
             SendCmd "outline color [Color2RGB $settings(-color)] $tag"
@@ -2691,8 +2701,8 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             #SendCmd "glyphs colormode constant {} $tag"
             # Omitting field name for gorient and smode commands
             # defaults to active scalars or vectors depending on mode
-            SendCmd "glyphs gorient $settings(-orientGlyphs) {} $tag"
-            SendCmd "glyphs smode $settings(-scaleMode) {} $tag"
+            SendCmd "glyphs gorient $settings(-orientglyphs) {} $tag"
+            SendCmd "glyphs smode $settings(-scalemode) {} $tag"
             SendCmd "glyphs edges $settings(-edges) $tag"
             SendCmd "glyphs linecolor [Color2RGB $settings(-edgecolor)] $tag"
             SendCmd "glyphs linewidth $settings(-linewidth) $tag"
