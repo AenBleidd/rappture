@@ -15,14 +15,15 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/number.py \
 		$(srcdir)/number.tcl \
-		$(srcdir)/tool.xml 
+		$(srcdir)/tool.xml
 
 destdir		= $(prefix)/examples/zoo/number2
 
 .PHONY: all install clean distclean
 
-all: 
+all:
 
 install: all
 	$(MKDIR_P) -m 0755 $(destdir)

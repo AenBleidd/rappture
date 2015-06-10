@@ -9,7 +9,7 @@ Curves are a list of (x,y) data points, representing discrete samples of a funct
 When you click the Simulate button, the inputs will be used to generate output curves.
   </about>
   <command>
-    tclsh @tool/curve.tcl @driver
+    python @tool/curve.py @driver
   </command>
 </tool>
 <input>

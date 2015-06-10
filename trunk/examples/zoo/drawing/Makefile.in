@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/drawing.py \
 		$(srcdir)/drawing.tcl \
 		$(srcdir)/tool.xml 
 

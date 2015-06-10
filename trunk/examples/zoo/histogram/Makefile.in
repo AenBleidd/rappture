@@ -15,9 +15,10 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
-		$(srcdir)/histogram.tcl \
 		$(srcdir)/curve1.gif \
 		$(srcdir)/curve2.gif \
+		$(srcdir)/histogram.py \
+		$(srcdir)/histogram.tcl \
 		$(srcdir)/tool.xml
 
 destdir		= $(prefix)/examples/zoo/histogram

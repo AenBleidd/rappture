@@ -17,14 +17,15 @@ RM		= rm -f
 FILES		= \
 		$(srcdir)/2DField.jpg \
 		$(srcdir)/3DField.jpg \
+		$(srcdir)/field.py \
 		$(srcdir)/field.tcl \
-		$(srcdir)/tool.xml 
+		$(srcdir)/tool.xml
 
 destdir		= $(prefix)/examples/zoo/field
 
-.PHONY: all install clean distclean 
+.PHONY: all install clean distclean
 
-all: 
+all:
 
 install: all
 	$(MKDIR_P) -m 0755 $(destdir)

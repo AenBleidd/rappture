@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/number.py \
 		$(srcdir)/number.tcl \
 		$(srcdir)/number1.gif \
 		$(srcdir)/number2.gif \

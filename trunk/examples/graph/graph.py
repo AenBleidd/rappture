@@ -6,32 +6,46 @@
 #  evaluates an x/y graph
 #
 # ======================================================================
-#  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  AUTHOR:  Martin Hunt, Purdue University
+#  Copyright (c) 2015  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
+# Note: You will not see stdout and stderr when this
+# tool is run by Rappture.  You can either run this tool from the command
+# line by passing in a driver xml file like this:
+# ~/rap/rappture/examples/graph> python graph.py driver1234.xml
+#
+# or you can redirect stdout and stderr to files by uncommenting the
+# two lines after the import sys
+
 import Rappture
+import numpy as np
 import sys
-from math import *
 
-io = Rappture.library(sys.argv[1])
+# uncomment these for debugging
+# sys.stderr = open('graph.err', 'w')
+# sys.stdout = open('graph.out', 'w')
 
-xmin = float(io.get('input.number(min).current'))
-xmax = float(io.get('input.number(max).current'))
-formula = io.get('input.string(formula).current')
+io = Rappture.PyXml(sys.argv[1])
+
+# When reading from xml, all values are strings
+xmin = float(io['input.number(min).current'].value)
+xmax = float(io['input.number(max).current'].value)
+formula = io['input.string(formula).current'].value
 print 'formula = %s' % formula
-npts = 100
 
-io.put('output.curve(result).about.label','Formula: Y vs X',append=0)
-io.put('output.curve(result).yaxis.label','Y')
-io.put('output.curve(result).xaxis.label','X')
+curve = io['output.curve(result)']
+curve['about.label'] = 'Formula: Y vs X'
+curve['yaxis.label'] = 'Y'
+curve['xaxis.label'] = 'X'
 
-for i in range(npts):
-    x = (xmax-xmin)/npts * i + xmin;
-    y = eval(formula)
-    io.put('output.curve(result).component.xy', '%g %g\n' % (x,y), append=1)
+num_points = 100
+x = np.linspace(xmin, xmax, num_points)
+y = eval(formula)
+curve['component.xy'] = (x, y)
 
-Rappture.result(io)
+# Done. Write out the xml file for Rappture.
+io.close()

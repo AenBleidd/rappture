@@ -6,7 +6,7 @@
 Each number object has a different color range.
   </about>
   <command>
-    tclsh @tool/number.tcl @driver
+    python @tool/number.py @driver
   </command>
 </tool>
 <input>

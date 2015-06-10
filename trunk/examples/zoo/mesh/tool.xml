@@ -2,7 +2,7 @@
 <run>
  <tool>
   <about>Press Simulate to view results.</about>
-  <command>tclsh @tool/mesh.tcl @driver</command>
+  <command>python @tool/mesh.py @driver</command>
  </tool>
  <input>
    <choice id="mesh">
