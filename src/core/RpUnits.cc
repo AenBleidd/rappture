@@ -69,7 +69,7 @@ RpUnits::define(    const std::string units,
     //default exponent
     exponent = 1;
 
-    // check to see if there is an exponent at the end 
+    // check to see if there is an exponent at the end
     // of the search string
     idx = RpUnits::grabExponent(searchStr, &exponent);
     searchStr.erase(idx);
@@ -352,7 +352,7 @@ RpUnits::getCompatible(double expMultiplier) const {
                 basis = myConversions->conv->fromPtr->basis;
             }
 
-            // check to see if they are the same basis, 
+            // check to see if they are the same basis,
             // no need to list all of the metric conversions.
             if (basis) {
                 if (basis->getUnitsName() == myName.str()) {
@@ -492,8 +492,8 @@ RpUnits::define(  const RpUnits* from,
                   double (*convBackFxnPtr)(double,double)) {
 
     // this is kinda the wrong way to get the job done...
-    // how do we only create 1 conversion object and share it between 
-    // atleast two RpUnits objs so that when the RpUnits objs are 
+    // how do we only create 1 conversion object and share it between
+    // atleast two RpUnits objs so that when the RpUnits objs are
     // deleted, we are not trying to delete already deleted memory.
     // so for the sake of safety we get the following few lines of code.
 
@@ -527,7 +527,7 @@ RpUnits::define(  const RpUnits* from,
 
     // this is kinda the wrong way to get the job done...
     // how do we only create 1 conversion object and share it between at
-    // least two RpUnits objs so that when the RpUnits objs are deleted, 
+    // least two RpUnits objs so that when the RpUnits objs are deleted,
     // we are not trying to delete already deleted memory.
     // so for the sake of safety we get the following few lines of code.
 
@@ -639,7 +639,7 @@ RpUnits::getExponent() const {
 // METHOD: getBasis()
 /// Retrieve the RpUnits object representing the basis of this object.
 /**
- * Returns a pointer to a RpUnits object which, on success, points to the 
+ * Returns a pointer to a RpUnits object which, on success, points to the
  * RpUnits object that is the basis of the calling object.
  */
 
@@ -807,9 +807,9 @@ RpUnits::find(std::string key,
  * string until it reaches the end of the string. If the function comes
  * across a unit that is unrecognized or can not be interpreted, then it
  * returns error (a non-zero value).
- * 
+ *
  * if &compatList == NULL, no compatible list of units will be generated.
- * this function does not do a good job of placing the available units 
+ * this function does not do a good job of placing the available units
  * back into the original formula. i still need to work on this.
  */
 
@@ -919,7 +919,7 @@ RpUnitsListEntry::name(int flags) const {
     name << unit->getUnits();
 
     if ((RPUNITS_ORIG_EXP & flags) == RPUNITS_STRICT_NAME) {
-        // if the user asks for strict naming, 
+        // if the user asks for strict naming,
         // always place the exponent on the name
         name << myExp;
     }
@@ -1113,7 +1113,7 @@ RpUnits::units2list ( const std::string& inUnits,
         }
 
         /*
-        // if the exponent != 1,-1 then do a second search 
+        // if the exponent != 1,-1 then do a second search
         // for the unit+exponent string that might be defined.
         // this is to cover the case were we have defined conversions
         // m3<->gal, m3<->L but m is defined
@@ -1396,7 +1396,7 @@ RpUnits::convert (  std::string val,
     // if the fromUnitsName == toUnitsName
     // these are conditions where no conversion is needed
     if ( (fromUnitsName.empty()) || (toUnitsName == fromUnitsName) )  {
-        // there were no units in the input 
+        // there were no units in the input
         // string or no conversion needed
         // assume fromUnitsName = toUnitsName
         // return the correct value
@@ -1507,7 +1507,7 @@ RpUnits::convert (  std::string val,
 
                     toIter = toUnitsList.begin();
 
-                    // raise error that there was an 
+                    // raise error that there was an
                     // unrecognized conversion request
 
                     convErr++;
@@ -1650,7 +1650,7 @@ RpUnits::convert ( const  RpUnits* toUnits,
         unitText << retVal;
     }
 
-    return (std::string(unitText.str())); 
+    return (std::string(unitText.str()));
 
 }
 
@@ -1700,7 +1700,7 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
     // makeBasis(&value);
     // trying to avoid the recursive way of converting to the basis.
     // need to rethink this.
-    // 
+    //
     if ( (basis) && (basis->getUnitsName() != toUnit->getUnitsName()) ) {
         value = convert(basis,value,&my_result);
         if (my_result == 0) {
@@ -1710,7 +1710,7 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
 
     // find the toUnit in our dictionary.
     // if the toUnits has a basis, we need to search for the basis
-    // and convert between basis' and then convert again back to the 
+    // and convert between basis' and then convert again back to the
     // original unit.
     if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
         hint = RpUnitsTypes::getTypeHint(toBasis->getType());
@@ -1754,22 +1754,22 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
             // one arg conv function pointer and convForwFxnPtrDD has the
             // conversion for a two arg conv function pointer
             // need to make this simpler, more logical maybe only allow 2 arg
-            if (       (p->conv->convForwFxnPtr) 
+            if (       (p->conv->convForwFxnPtr)
                     && (! p->conv->convForwFxnPtrDD) ) {
 
                 value = p->conv->convForwFxnPtr(value);
             }
-            else if (  (p->conv->convForwFxnPtrDD) 
+            else if (  (p->conv->convForwFxnPtrDD)
                     && (! p->conv->convForwFxnPtr) ) {
 
-                value = 
+                value =
                     p->conv->convForwFxnPtrDD(value, fromUnit->getExponent());
             }
 
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
-            // do one last conversion from the requested unit's basis back 
+            // do one last conversion from the requested unit's basis back
             // to the requested unit.
             if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
@@ -1782,8 +1782,8 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
             }
 
             // change the result code to zero, a conversion was performed
-            // (we think)... its ture that it is possible to get to this 
-            // point and have skipped the conversion because the 
+            // (we think)... its ture that it is possible to get to this
+            // point and have skipped the conversion because the
             // conversion object was not properly created...
             // ie. both fxn ptrs were null or neither fxn ptr was null
             //
@@ -1802,22 +1802,22 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
             // one arg conv function pointer and convForwFxnPtrDD has the
             // conversion for a two arg conv function pointer
             // need to make this simpler, more logical maybe only allow 2 arg
-            if (       (p->conv->convBackFxnPtr) 
+            if (       (p->conv->convBackFxnPtr)
                     && (! p->conv->convBackFxnPtrDD) ) {
 
                 value = p->conv->convBackFxnPtr(value);
             }
-            else if (  (p->conv->convBackFxnPtrDD) 
+            else if (  (p->conv->convBackFxnPtrDD)
                     && (! p->conv->convBackFxnPtr) ) {
 
-                value = 
+                value =
                     p->conv->convBackFxnPtrDD(value, fromUnit->getExponent());
             }
 
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
-            // do one last conversion from the requested unit's basis back 
+            // do one last conversion from the requested unit's basis back
             // to the requested unit.
             if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
@@ -1830,8 +1830,8 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
             }
 
             // change the result code to zero, a conversion was performed
-            // (we think)... its ture that it is possible to get to this 
-            // point and have skipped the conversion because the 
+            // (we think)... its ture that it is possible to get to this
+            // point and have skipped the conversion because the
             // conversion object was not properly created...
             // ie. both fxn ptrs were null or neither fxn ptr was null
             //
@@ -1910,7 +1910,7 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 
     // find the toUnit in our dictionary.
     // if the toUnits has a basis, we need to search for the basis
-    // and convert between basis' and then convert again back to the 
+    // and convert between basis' and then convert again back to the
     // original unit.
     if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
         hint = RpUnitsTypes::getTypeHint(toBasis->getType());
@@ -1954,7 +1954,7 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
-            // do one last conversion from the requested unit's basis back 
+            // do one last conversion from the requested unit's basis back
             // to the requested unit.
             if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
@@ -1967,8 +1967,8 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
             }
 
             // change the result code to zero, a conversion was performed
-            // (we think)... its ture that it is possible to get to this 
-            // point and have skipped the conversion because the 
+            // (we think)... its ture that it is possible to get to this
+            // point and have skipped the conversion because the
             // conversion object was not properly created...
             // ie. both fxn ptrs were null or neither fxn ptr was null
             //
@@ -1987,7 +1987,7 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
-            // do one last conversion from the requested unit's basis back 
+            // do one last conversion from the requested unit's basis back
             // to the requested unit.
             if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
@@ -2000,8 +2000,8 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
             }
 
             // change the result code to zero, a conversion was performed
-            // (we think)... its ture that it is possible to get to this 
-            // point and have skipped the conversion because the 
+            // (we think)... its ture that it is possible to get to this
+            // point and have skipped the conversion because the
             // conversion object was not properly created...
             // ie. both fxn ptrs were null or neither fxn ptr was null
             //
@@ -2083,7 +2083,7 @@ RpUnits::getConvertFxnList(const RpUnits* toUnit, convertList& cList) const {
 
     // find the toUnit in our dictionary.
     // if the toUnits has a basis, we need to search for the basis
-    // and convert between basis' and then convert again back to the 
+    // and convert between basis' and then convert again back to the
     // original unit.
     if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
         dictToUnit = find(  toBasis->getUnitsName(),
@@ -2147,7 +2147,7 @@ RpUnits::getConvertFxnList(const RpUnits* toUnit, convertList& cList) const {
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
-            // do one last conversion from the requested unit's basis back 
+            // do one last conversion from the requested unit's basis back
             // to the requested unit.
             if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 result += toBasis->getConvertFxnList(toUnit,cList);
@@ -2165,7 +2165,7 @@ RpUnits::getConvertFxnList(const RpUnits* toUnit, convertList& cList) const {
             // one arg conv function pointer and convForwFxnPtrDD has the
             // conversion for a two arg conv function pointer
             // need to make this simpler, more logical maybe only allow 2 arg
-            if (       (p->conv->convBackFxnPtr) 
+            if (       (p->conv->convBackFxnPtr)
                     && (! p->conv->convBackFxnPtrDD) ) {
 
                 // value = p->conv->convBackFxnPtr(value);
@@ -2183,7 +2183,7 @@ RpUnits::getConvertFxnList(const RpUnits* toUnit, convertList& cList) const {
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
-            // do one last conversion from the requested unit's basis back 
+            // do one last conversion from the requested unit's basis back
             // to the requested unit.
             if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 result += toBasis->getConvertFxnList(toUnit,cList);
@@ -2279,7 +2279,7 @@ RpUnits::printList(convertList& l1) {
 // METHOD: insert()
 /// Place an RpUnits Object into the Rappture Units Dictionary.
 /**
- * Return whether the inserted key was new with a non-zero 
+ * Return whether the inserted key was new with a non-zero
  * value, or if the key already existed with a value of zero.
  */
 
@@ -2441,7 +2441,7 @@ RpUnitsPreset::addPresetAll () {
 
 /**********************************************************************/
 // METHOD: addPresetPrefix()
-/// 
+///
 /**
  * Defines the following unit prefixes:
  *   deci        (d)
@@ -2542,10 +2542,10 @@ RpUnitsPreset::addPresetPrefix () {
  *   hours    (h)
  *   days     (d)
  *
- *   month and year are not included because simple 
+ *   month and year are not included because simple
  *   day->month conversions may be misleading
  *   month->year conversions may be included in the future
- * 
+ *
  * Return codes: 0 success, anything else is error
  */
 
@@ -3228,7 +3228,7 @@ RpUnitsTypes::hintTypePower   (   RpUnits* unitObj    ) {
 // FUNCTION: list2str()
 /// Convert a std::list<std::string> into a comma delimited std::string
 /**
- * Iterates through a std::list<std::string> and returns a comma 
+ * Iterates through a std::list<std::string> and returns a comma
  * delimited std::string containing the elements of the inputted std::list.
  *
  * Returns 0 on success, anything else is error

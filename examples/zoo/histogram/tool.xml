@@ -9,7 +9,7 @@ histograms are a list of (x,y) data points, representing discrete samples of a f
 When you click the Simulate button, the inputs will be used to generate output histograms.
   </about>
   <command>
-    tclsh @tool/histogram.tcl @driver
+    python @tool/histogram.py @driver
   </command>
 </tool>
 <input>
@@ -48,7 +48,7 @@ When you click the Simulate button, the inputs will be used to generate output h
       <xy>
        1 0.99
        2 0.34
-       4 0.57 
+       4 0.57
        6 0.22
        7 0.11
        </xy>

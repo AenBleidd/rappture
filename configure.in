@@ -42,10 +42,10 @@ AC_PROG_LN_S
 AC_PROG_MKDIR_P
 AC_PROG_MAKE_SET
 
-# Check for C, C++, and FORTRAN 
+# Check for C, C++, and FORTRAN
 AC_PROG_CC
 AC_PROG_CXX
-# Avoid g95 
+# Avoid g95
 AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 
 AC_LANG([C])
@@ -146,7 +146,7 @@ fi
 TCL_VERSION="8.4"
 for dir in \
  ${exec_prefix} \
- ${exec_prefix}/lib ; do 
+ ${exec_prefix}/lib ; do
   tclconfig="${dir}/tclConfig.sh"
   if test -f "$tclconfig" ; then
     . $tclconfig
@@ -171,9 +171,9 @@ AC_ARG_WITH(
 TCLSH=""
 if test "${with_tclsh}" != "no" ; then
   tclsh="tclsh${TCL_VERSION}"
-  if test "${with_tclsh}" = "yes" ; then 
+  if test "${with_tclsh}" = "yes" ; then
     AC_PATH_PROG(TCLSH, ${tclsh}, [], [${exec_prefix}/bin:${PATH}])
-  else 
+  else
     AC_PATH_PROG(TCLSH, ${tclsh}, [], [${with_tclsh}/bin:${with_tclsh}])
   fi
   if test "x${TCLSH}" = "x" ; then
@@ -188,7 +188,7 @@ AC_ARG_WITH(
     [vtk],
     [AS_HELP_STRING([--with-vtk[=version]],
         [VTK library version @<:@default=6.2@:>@])],
-    [], 
+    [],
     [with_vtk=yes])
 
 AC_MSG_CHECKING([for vtk])
@@ -230,7 +230,7 @@ AC_ARG_ENABLE(
     [vtkdicom],
     [AS_HELP_STRING([--enable-vtkdicom],
         [Use vtkDICOM package @<:@default=no@:>@])],
-    [], 
+    [],
     [enable_vtkdicom=no])
 
 AC_MSG_CHECKING([for vtkDICOM])
@@ -296,11 +296,11 @@ SC_ENABLE_SYMBOLS
 # search for ffmpeg libraries libavcodec, libavformat, libswscale
 #--------------------------------------------------------------------
 if test "${with_ffmpeg}" != "no" ; then
-  if test "${with_ffmpeg}" = "yes" ; then 
+  if test "${with_ffmpeg}" = "yes" ; then
     AC_PATH_PROG(FFMPEG, ffmpeg, [], $PATH)
-  else 
+  else
     AC_PATH_PROG(FFMPEG, ffmpeg, [], [${with_ffmpeg}/bin:${with_ffmpeg}])
-  fi 
+  fi
   if test "${FFMPEG}x" != "x" ; then
     AC_DEFINE(HAVE_FFMPEG, 1, [Render servers can use ffmpeg])
   fi

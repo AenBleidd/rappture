@@ -17,6 +17,7 @@ RM		= rm -f
 FILES		= \
 		$(srcdir)/file.vtk \
 		$(srcdir)/mesh.m \
+		$(srcdir)/mesh.py \
 		$(srcdir)/mesh.tcl \
 		$(srcdir)/mesh.vtk \
 		$(srcdir)/particle_data.txt \

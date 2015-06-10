@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 #  EXAMPLE: Rappture <number> elements
 # ======================================================================
-#  AUTHOR:  Martim Hunt, Purdue University
+#  AUTHOR:  Martin Hunt, Purdue University
 #  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and

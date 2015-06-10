@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/curve.py \
 		$(srcdir)/curve.tcl \
 		$(srcdir)/curve1.gif \
 		$(srcdir)/curve2.gif \
@@ -24,7 +25,7 @@ destdir		= $(prefix)/examples/zoo/curve
 
 .PHONY: all install clean distclean
 
-all: 
+all:
 
 install: all
 	$(MKDIR_P) -m 0755 $(destdir)
