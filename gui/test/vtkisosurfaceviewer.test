@@ -1,0 +1,68 @@
+# Commands covered:
+# Rappture::Gauge
+# Rappture::Gauge::value
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require RapptureGUI
+    namespace import -force ::tcltest::*
+}
+
+set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+
+Rappture::VtkIsosurfaceViewer .#auto $servers
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# constructor
+#
+# Rappture::VtkIsosurfaceViewer <name> <servers>
+#----------------------------------------------------------
+test vtkisosurfaceviewer.constructor.1 {
+    value command, 0 args, missing server list error
+} -setup {
+} -body  {
+    list [catch {Rappture::VtkIsosurfaceViewer .#auto} msg] $msg
+} -cleanup {
+} -result {1 {wrong # args: should be "::Rappture::VtkIsosurfaceViewer .vtkIsosurfaceViewer1 hostlist ?arg arg ...?"}}
+
+test vtkisosurfaceviewer.constructor.2 {
+    value command, 1 args empty hostlist, empty hostlist uses visviewer defaults
+} -setup {
+} -body  {
+    catch {Rappture::VtkIsosurfaceViewer .#auto {}} msg
+} -cleanup {
+} -result {0}
+
+test vtkisosurfaceviewer.constructor.3 {
+    value command, 1 args valid hostlist
+} -setup {
+} -body  {
+    catch {Rappture::VtkIsosurfaceViewer .#auto $servers} msg
+} -cleanup {
+} -result {0}
+
+#test vtkisosurfaceviewer.constructor.5 {
+#    value command, 1 args valid hostlist
+#} -setup {
+#} -body  {
+#    set w [Rappture::VtkIsosurfaceViewer .#auto $servers]
+#} -cleanup {
+#    destroy $w
+#    catch {unset w}
+#} -result {}
+
+::tcltest::cleanupTests
+return
