@@ -45,13 +45,6 @@ When you click the Simulate button, the inputs will be used to generate output f
       </about>
       <value>unstructured</value>
     </option>
-    <option>
-      <about>
-        <label>Volume (OpenDX)</label>
-        <description>Renders a 3D volume using the deprecated OpenDX mesh/field format.</description>
-      </about>
-      <value>dx</value>
-    </option>
     <default>grid</default>
   </choice>
 </input>
