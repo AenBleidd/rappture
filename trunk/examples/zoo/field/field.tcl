@@ -114,40 +114,6 @@ if {$vizmethod == "unstructured"} {
     $driver put -append yes output.mesh(m3d).unstructured.hexahedrons "18 19 24 23 43 44 49 48\n"
 }
 
-if {$vizmethod == "dx"} {
-    #
-    # Generate a uniform 3D mesh in OpenDX format...
-    #
-    $driver put output.field(f3d).about.label "3D Field"
-    $driver put output.field(f3d).component.style "-color blue:yellow:red -levels 6"
-
-    set dx "object 1 class gridpositions counts 5 5 2
-origin 0 0 0
-delta 1 0 0
-delta 0 1 0
-delta 0 0 1
-object 2 class gridconnections counts 5 5 2
-object 3 class array type double rank 0 items 50 data follows
-"
-    # Axis ordering for OpenDX is reversed (z fastest)
-    for {set x 0} {$x < 5} {incr x} {
-        for {set y 0} {$y < 5} {incr y} {
-            for {set z 0} {$z < 2} {incr z} {
-                set fval [expr $formula]
-                append dx "$fval\n"
-            }
-        }
-    }
-    append dx {attribute "dep" string "positions"
-    object "regular positions regular connections" class field
-    component "positions" value 1
-    component "connections" value 2
-    component "data" value 3}
-
-    set data [Rappture::encoding::encode -as zb64 $dx]
-    $driver put output.field(f3d).component.dx $data
-}
-
 #
 # Save the updated XML describing the run...
 #

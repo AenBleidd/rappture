@@ -140,36 +140,4 @@ if vizmethod == "unstructured":
     18 19 24 23 43 44 49 48
     """
 
-if vizmethod == "dx":
-    #
-    # Generate a uniform 3D mesh in OpenDX format...
-    #
-    f3d = rx['output.field(f3d)']
-    f3d['about.label'] = "3D Field"
-    f3d['component.style'] = "-color blue:yellow:red -levels 6"
-
-    dx = """object 1 class gridpositions counts 5 5 2
-        origin 0 0 0
-        delta 1 0 0
-        delta 0 1 0
-        delta 0 0 1
-        object 2 class gridconnections counts 5 5 2
-        object 3 class array type double rank 0 items 50 data follows
-    """
-
-    xx, yy, zz = np.mgrid[xmin:xmax:5j, ymin:ymax:5j, 0:1:2j]
-    pts = formula(xx, yy, zz)
-    # Axis ordering for OpenDX is reversed (z fastest)
-    dx += '\n'.join(map(str, (pts.ravel())))
-
-    dx += """attribute "dep" string "positions"
-    object "regular positions regular connections" class field
-    component "positions" value 1
-    component "connections" value 2
-    component "data" value 3"""
-
-    data = Rappture.encoding.encode(dx, Rappture.RPENC_ZB64)
-    f3d['component.dx'] = data
-
-
 rx.close()
