@@ -116,32 +116,6 @@ switch -- $meshtype {
         $driver put -type file -compress no $mesh.unstructured.triangles \
             triangles.txt
     }
-    "generic" {
-        set mesh output.mesh
-
-        $driver put $mesh.about.label "Mesh"
-        $driver put $mesh.about.description "nodes and elements mesh"
-        $driver put $mesh.dim  2
-        $driver put $mesh.units "m"
-        $driver put $mesh.hide $hide
-
-        set count 0
-        set f [open "points.txt" "r"]
-        set points [read $f]
-        close $f
-        foreach { x y } $points {
-            $driver put $mesh.node($count) "$x $y"
-            incr count
-        }
-        set count 0
-        set f [open "triangles.txt" "r"]
-        set triangles [read $f]
-        close $f
-        foreach { a b c } $triangles {
-            $driver put $mesh.element($count).nodes "$a $b $c"
-            incr count
-        }
-    }
     "unstructured" {
         set mesh output.mesh
 

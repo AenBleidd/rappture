@@ -83,23 +83,6 @@ if meshtype == 'triangular':
     mesh.put('unstructured.points', 'points.txt', type='file')
     mesh.put('unstructured.triangles', 'triangles.txt', type='file')
 
-if meshtype == 'generic':
-    mesh['about.label'] = "nodes and elements mesh"
-    with open('points.txt') as f:
-        data = f.read()
-    for i, line in enumerate(data.split('\n')):
-        if line == '':
-            break
-        x, y = line.split()
-        mesh['node(%s)' % i] = "%s %s" % (x, y)
-    with open('triangles.txt') as f:
-        data = f.read()
-    for i, line in enumerate(data.split('\n')):
-        if line == '':
-            break
-        x, y, z = line.split()
-        mesh['element(%s).nodes' % i] = "%s %s %s" % (x, y, z)
-
 if meshtype == 'unstructured':
     mesh['about.label'] = "Unstructured Grid"
     mesh['unstructured.celltypes'] = 'triangle'
