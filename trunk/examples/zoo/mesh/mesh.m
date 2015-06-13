@@ -92,20 +92,6 @@ switch meshtype
     rpLibPutFile(lib, 'output.mesh.unstructured.triangles', 'triangles.txt', \
 		 0, 0);
 
-  case 'generic'
-    mesh = 'output.mesh';
-    rpLibPutString(lib, 'output.mesh.about.label', \
-		   'nodes and elements mesh', 0);
-    rpLibPutString(lib, 'output.mesh.dim', '2', 0);
-    rpLibPutString(lib, 'output.mesh.units', 'm', 0);
-    rpLibPutString(lib, 'output.mesh.hide', 'yes', 0);
-
-    f = fopen('triangles.txt');
-    triangles = fscanf(f, '%d');
-    fclose(f);
-
-    % TO BE COMPLETED
-
   case 'unstructured' 
     mesh = 'output.mesh';
     rpLibPutString(lib, 'output.mesh.about.label', 'Unstructured Grid', 0);
