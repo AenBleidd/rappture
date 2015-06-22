@@ -35,8 +35,8 @@ DX_INC_SPEC	= @DX_INC_SPEC@
 DEFINES		= -DSVN_VERSION=\"$(SVN_VERSION)\" \
 		  -DRAPPTURE_VERSION=\"$(RAPPTURE_VERSION)\"
 
-CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES) 
-CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES) 
+CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES        = \
 		-I. \
@@ -103,7 +103,7 @@ SCEW_HEADERS 	= \
 		writer.h \
 		xerror.h
 
-# Build the scew and b64 libraries directly into Rappture for now.  
+# Build the scew and b64 libraries directly into Rappture for now.
 # Note: This works because of viewpath-ing. See the VPATH variable.
 B64_OBJS	= \
 		cdecode.o \
@@ -152,10 +152,10 @@ ifneq ($(DX_INC_SPEC),)
 HEADERS +=	\
 		RpDXWriter.h \
 		RpDXWriterFInterface.h \
-		RpDXWriterFStubs.h 
+		RpDXWriterFStubs.h
 OBJS +=		\
 		RpDXWriter.o \
-		RpDXWriterFInterface.o 
+		RpDXWriterFInterface.o
 endif
 
 name        = rappture
@@ -191,7 +191,7 @@ install_headers:
 
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?
-.c.o: 
+.c.o:
 	$(CCC) $(CC_SWITCHES) -c $?
 
 clean:

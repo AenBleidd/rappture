@@ -118,11 +118,10 @@ scew_element_copy (scew_element* element)
     return new_elem;
 }
 
-
 XML_Char const*
-scew_element_set_contents_binary(   scew_element* element,
-                                    XML_Char const* bytes,
-                                    unsigned int* nbytes    )
+scew_element_set_contents_binary(scew_element* element,
+                                 XML_Char const* bytes,
+                                 unsigned int* nbytes)
 {
     XML_Char* out = NULL;
 

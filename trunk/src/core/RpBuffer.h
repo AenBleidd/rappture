@@ -24,9 +24,8 @@ enum RapptureEncodingFlags {
     RPENC_RAW=(1<<3)
 };
 
-
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif // ifdef __cplusplus
 
 enum RP_COMPRESS_CONSTS {
@@ -43,7 +42,7 @@ namespace Rappture {
  * and base64 encoding based on libb64.
  */
 
-class Buffer : public SimpleCharBuffer{
+class Buffer : public SimpleCharBuffer {
 public:
     Buffer();
     Buffer(int nbytes);
@@ -73,19 +72,19 @@ protected:
     enum { CHUNK = 4096 };
 
     bool do_compress(Outcome& status, SimpleCharBuffer& bin,
-                     SimpleCharBuffer& bout  );
-    bool do_decompress( Outcome& status, SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout  );
+                     SimpleCharBuffer& bout);
+    bool do_decompress(Outcome& status, SimpleCharBuffer& bin,
+                       SimpleCharBuffer& bout);
     bool do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
-                       SimpleCharBuffer& bout  );
+                       SimpleCharBuffer& bout);
     bool do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
-                       SimpleCharBuffer& bout  );
+                       SimpleCharBuffer& bout);
 };
 
 } // namespace Rappture
 
 #ifdef __cplusplus
-    }
+}
 #endif // ifdef __cplusplus
 
 #endif // RAPPTURE_BUFFER_H

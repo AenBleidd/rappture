@@ -14,7 +14,7 @@ For details, see http://sourceforge.net/projects/libb64
 namespace base64
 {
 	
-	extern "C" 
+	extern "C"
 	{
 		#include "cencode.h"
 	}
