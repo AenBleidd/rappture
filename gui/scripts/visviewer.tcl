@@ -43,6 +43,7 @@ itcl::class ::Rappture::VisViewer {
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
 
+    protected variable _debug 0
     protected variable _serverType "???";# Type of server.
     protected variable _sid ""      ;   # socket connection to server
     protected variable _maxConnects 100
@@ -84,6 +85,17 @@ itcl::class ::Rappture::VisViewer {
     protected method Color2RGB { color }
     protected method ColorsToColormap { colors }
     protected method Connect { servers }
+    protected method DebugOff {} {
+        set _debug 0
+    }
+    protected method DebugOn {} {
+        set _debug 1
+    }
+    protected method DebugTrace { args } {
+        if { $_debug } {
+            puts stderr "[info level -1]: $args"
+        }
+    }
     protected method DisableWaitDialog {}
     protected method Disconnect {}
     protected method EnableWaitDialog { timeout }
