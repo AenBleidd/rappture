@@ -567,10 +567,9 @@ itcl::body Rappture::VtkVolumeViewer::add {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-#       Clients use this to delete a dataobj from the plot.  If no dataobjs
-#       are specified, then all dataobjs are deleted.  No data objects are
-#       deleted.  They are only removed from the display list.
-#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.  No data objects are
+# deleted.  They are only removed from the display list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::delete {args} {
     DebugTrace "Enter"
@@ -852,7 +851,7 @@ itcl::body Rappture::VtkVolumeViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkVolumeViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -869,8 +868,7 @@ itcl::body Rappture::VtkVolumeViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1358,9 +1356,9 @@ itcl::body Rappture::VtkVolumeViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1610,8 +1608,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.
 #
 itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     set _legendPending 0
@@ -2536,11 +2534,11 @@ itcl::body Rappture::VtkVolumeViewer::ParseMarkersOption { cname markers } {
 #
 # SetInitialTransferFunction --
 #
-#       Creates a transfer function name based on the <style> settings in the
-#       library run.xml file. This placeholder will be used later to create
-#       and send the actual transfer function once the data info has been sent
-#       to us by the render server. [We won't know the volume limits until the
-#       server parses the 3D data and sends back the limits via ReceiveData.]
+# Creates a transfer function name based on the <style> settings in the
+# library run.xml file. This placeholder will be used later to create
+# and send the actual transfer function once the data info has been sent
+# to us by the render server. [We won't know the volume limits until the
+# server parses the 3D data and sends back the limits via ReceiveData.]
 #
 itcl::body Rappture::VtkVolumeViewer::SetInitialTransferFunction { dataobj cname } {
     set tag $dataobj-$cname
@@ -2555,11 +2553,11 @@ itcl::body Rappture::VtkVolumeViewer::SetInitialTransferFunction { dataobj cname
 #
 # ComputeTransferFunction --
 #
-#       Computes and sends the transfer function to the render server.  It's
-#       assumed that the volume data limits are known and that the global
-#       transfer-functions slider values have been set up.  Both parts are
-#       needed to compute the relative value (location) of the marker, and
-#       the alpha map of the transfer function.
+# Computes and sends the transfer function to the render server.  It's
+# assumed that the volume data limits are known and that the global
+# transfer-functions slider values have been set up.  Both parts are
+# needed to compute the relative value (location) of the marker, and
+# the alpha map of the transfer function.
 #
 itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
 
@@ -2627,7 +2625,7 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
 #
 # ResetColormap --
 #
-#       Changes only the colormap portion of the transfer function.
+# Changes only the colormap portion of the transfer function.
 #
 itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
     # Get the current transfer function
@@ -2646,9 +2644,8 @@ itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
 # ----------------------------------------------------------------------
 # USAGE: updateTransferFunctions
 #
-#       This is called by the transfer function editor whenever the
-#       transfer function definition changes.
-#
+# This is called by the transfer function editor whenever the
+# transfer function definition changes.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::updateTransferFunctions {} {
     foreach cname [array names _volcomponents] {
@@ -2697,10 +2694,10 @@ itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } {
 #
 # InitComponentSettings --
 #
-#       Initializes the volume settings for a specific component. This
-#       should match what's used as global settings above. This
-#       is called the first time we try to switch to a given component
-#       in SwitchComponent below.
+# Initializes the volume settings for a specific component. This
+# should match what's used as global settings above. This
+# is called the first time we try to switch to a given component
+# in SwitchComponent below.
 #
 itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } {
     array set _settings [subst {
@@ -2723,9 +2720,9 @@ itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } {
 #
 # SwitchComponent --
 #
-#       This is called when the current component is changed by the
-#       dropdown menu in the volume tab.  It synchronizes the global
-#       volume settings with the settings of the new current component.
+# This is called when the current component is changed by the
+# dropdown menu in the volume tab.  It synchronizes the global
+# volume settings with the settings of the new current component.
 #
 itcl::body Rappture::VtkVolumeViewer::SwitchComponent { cname } {
     if { ![info exists _settings(${cname}-volumeambient)] } {
@@ -2820,9 +2817,9 @@ itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
 #
 # HideAllMarkers --
 #
-#       Hide all the markers in all the transfer functions.  Can't simply
-#       delete and recreate markers from the <style> since the user may
-#       have create, deleted, or moved markers.
+# Hide all the markers in all the transfer functions.  Can't simply
+# delete and recreate markers from the <style> since the user may
+# have create, deleted, or moved markers.
 #
 itcl::body Rappture::VtkVolumeViewer::HideAllMarkers {} {
     foreach cname [array names _transferFunctionEditors] {
@@ -2833,10 +2830,10 @@ itcl::body Rappture::VtkVolumeViewer::HideAllMarkers {} {
 #
 # GetDatasetsWithComponent --
 #
-#       Returns a list of all the datasets (known by the combination of
-#       their data object and component name) that match the given
-#       component name.  For example, this is used where we want to change
-#       the settings of volumes that have the current component.
+# Returns a list of all the datasets (known by the combination of
+# their data object and component name) that match the given
+# component name.  For example, this is used where we want to change
+# the settings of volumes that have the current component.
 #
 itcl::body Rappture::VtkVolumeViewer::GetDatasetsWithComponent { cname } {
     if { ![info exists _volcomponents($cname)] } {
@@ -2848,12 +2845,12 @@ itcl::body Rappture::VtkVolumeViewer::GetDatasetsWithComponent { cname } {
 #
 # BuildVolumeComponents --
 #
-#       This is called from the "scale" method which is called when a
-#       new dataset is added or deleted.  It repopulates the dropdown
-#       menu of volume component names.  It sets the current component
-#       to the first component in the list (of components found).
-#       Finally, if there is only one component, don't display the
-#       label or the combobox in the volume settings tab.
+# This is called from the "scale" method which is called when a
+# new dataset is added or deleted.  It repopulates the dropdown
+# menu of volume component names.  It sets the current component
+# to the first component in the list (of components found).
+# Finally, if there is only one component, don't display the
+# label or the combobox in the volume settings tab.
 #
 itcl::body Rappture::VtkVolumeViewer::BuildVolumeComponents {} {
     $itk_component(volcomponents) choices delete 0 end

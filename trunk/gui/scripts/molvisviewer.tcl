@@ -7,7 +7,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2015  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -229,14 +229,14 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
         $this-showlabels-initialized no
     }]
 
-    itk_component add 3dview {
+    itk_component add view {
         label $itk_component(plotarea).view -image $_image(plot) \
             -highlightthickness 0 -borderwidth 0
     } {
         usual
         ignore -highlightthickness -borderwidth  -background
     }
-    bind $itk_component(3dview) <Control-F1> [itcl::code $this ToggleConsole]
+    bind $itk_component(view) <Control-F1> [itcl::code $this ToggleConsole]
 
     set f [$itk_component(main) component controls]
     itk_component add reset {
@@ -311,9 +311,9 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
 
     BuildSettingsTab
 
-    # HACK ALERT. Initially force a requested width of the 3dview label.
+    # HACK ALERT. Initially force a requested width of the view label.
 
-    # It's a chicken-and-the-egg problem.  The size of the 3dview label is set
+    # It's a chicken-and-the-egg problem.  The size of the view label is set
     # from the size of the image retrieved from the server.  But the size of
     # the image is specified by the viewport which is the size of the label.
     # The fly-in-the-ointment is that it takes a non-trival amount of time to
@@ -323,12 +323,12 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
     # So the idea is to force a ridiculously big requested width on the label
     # (that's why we're using the blt::table to manage the geometry).  It has
     # to be big, because we don't know how big the user may want to stretch
-    # the window.  This at least forces the sidebarframe to give the 3dview
+    # the window.  This at least forces the sidebarframe to give the view
     # the maximum size available, which is perfect for an initially closed
     # sidebar.
 
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(3dview) -fill both -reqwidth 10000
+        0,0 $itk_component(view) -fill both -reqwidth 10000
     #
     # RENDERING AREA
     #
@@ -337,73 +337,73 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
 
     if { $_useVmouseEvents } {
         # set up bindings to bridge mouse events to server
-        bind $itk_component(3dview) <ButtonPress> \
+        bind $itk_component(view) <ButtonPress> \
             [itcl::code $this Vmouse click %b %s %x %y]
-        bind $itk_component(3dview) <ButtonRelease> \
+        bind $itk_component(view) <ButtonRelease> \
             [itcl::code $this Vmouse release %b %s %x %y]
-        bind $itk_component(3dview) <B1-Motion> \
+        bind $itk_component(view) <B1-Motion> \
             [itcl::code $this Vmouse drag 1 %s %x %y]
-        bind $itk_component(3dview) <B2-Motion> \
+        bind $itk_component(view) <B2-Motion> \
             [itcl::code $this Vmouse drag 2 %s %x %y]
-        bind $itk_component(3dview) <B3-Motion> \
+        bind $itk_component(view) <B3-Motion> \
             [itcl::code $this Vmouse drag 3 %s %x %y]
-        bind $itk_component(3dview) <Motion> \
+        bind $itk_component(view) <Motion> \
             [itcl::code $this Vmouse move 0 %s %x %y]
     } else {
         # set up bindings for rotation with mouse
-        bind $itk_component(3dview) <ButtonPress-1> \
+        bind $itk_component(view) <ButtonPress-1> \
             [itcl::code $this Rotate click %x %y]
-        bind $itk_component(3dview) <B1-Motion> \
+        bind $itk_component(view) <B1-Motion> \
             [itcl::code $this Rotate drag %x %y]
-        bind $itk_component(3dview) <ButtonRelease-1> \
+        bind $itk_component(view) <ButtonRelease-1> \
             [itcl::code $this Rotate release %x %y]
 
         # set up bindings for panning with mouse
-        bind $itk_component(3dview) <ButtonPress-2> \
+        bind $itk_component(view) <ButtonPress-2> \
             [itcl::code $this Pan click %x %y]
-        bind $itk_component(3dview) <B2-Motion> \
+        bind $itk_component(view) <B2-Motion> \
             [itcl::code $this Pan drag %x %y]
-        bind $itk_component(3dview) <ButtonRelease-2> \
+        bind $itk_component(view) <ButtonRelease-2> \
             [itcl::code $this Pan release %x %y]
 
         # scroll wheel zoom
         if {[string equal "x11" [tk windowingsystem]]} {
-            bind $itk_component(3dview) <4> [itcl::code $this Zoom out 2]
-            bind $itk_component(3dview) <5> [itcl::code $this Zoom in 2]
+            bind $itk_component(view) <4> [itcl::code $this Zoom out 2]
+            bind $itk_component(view) <5> [itcl::code $this Zoom in 2]
         }
     }
 
     # Set up bindings for panning with keyboard
-    bind $itk_component(3dview) <KeyPress-Left> \
+    bind $itk_component(view) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
-    bind $itk_component(3dview) <KeyPress-Right> \
+    bind $itk_component(view) <KeyPress-Right> \
         [itcl::code $this Pan set 10 0]
-    bind $itk_component(3dview) <KeyPress-Up> \
+    bind $itk_component(view) <KeyPress-Up> \
         [itcl::code $this Pan set 0 -10]
-    bind $itk_component(3dview) <KeyPress-Down> \
+    bind $itk_component(view) <KeyPress-Down> \
         [itcl::code $this Pan set 0 10]
-    bind $itk_component(3dview) <Shift-KeyPress-Left> \
+    bind $itk_component(view) <Shift-KeyPress-Left> \
         [itcl::code $this Pan set -50 0]
-    bind $itk_component(3dview) <Shift-KeyPress-Right> \
+    bind $itk_component(view) <Shift-KeyPress-Right> \
         [itcl::code $this Pan set 50 0]
-    bind $itk_component(3dview) <Shift-KeyPress-Up> \
+    bind $itk_component(view) <Shift-KeyPress-Up> \
         [itcl::code $this Pan set 0 -50]
-    bind $itk_component(3dview) <Shift-KeyPress-Down> \
+    bind $itk_component(view) <Shift-KeyPress-Down> \
         [itcl::code $this Pan set 0 50]
 
     # Set up bindings for zoom with keyboard
-    bind $itk_component(3dview) <KeyPress-Prior> \
+    bind $itk_component(view) <KeyPress-Prior> \
         [itcl::code $this Zoom out 2]
-    bind $itk_component(3dview) <KeyPress-Next> \
+    bind $itk_component(view) <KeyPress-Next> \
         [itcl::code $this Zoom in 2]
 
-    bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
+    bind $itk_component(view) <Enter> "focus $itk_component(view)"
 
-    bind $itk_component(3dview) <Configure> \
+    bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
-    bind $itk_component(3dview) <Unmap> \
+    bind $itk_component(view) <Unmap> \
         [itcl::code $this Unmap]
-    bind $itk_component(3dview) <Map> \
+    bind $itk_component(view) <Map> \
         [itcl::code $this Map]
 
     eval itk_initialize $args
@@ -1105,8 +1105,8 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     if { $_reset } {
         # Set or restore viewing parameters.  We do this for the first
         # model and assume this works for everything else.
-        set w  [winfo width $itk_component(3dview)]
-        set h  [winfo height $itk_component(3dview)]
+        set w  [winfo width $itk_component(view)]
+        set h  [winfo height $itk_component(view)]
         SendCmd "reset"
         SendCmd "screen $w $h"
         SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
@@ -1239,7 +1239,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set option "click"
     }
     if { $option == "click" } {
-        $itk_component(3dview) configure -cursor hand1
+        $itk_component(view) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
         set dx [expr $x - $_mevent(x)]
@@ -1252,7 +1252,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
     set _mevent(x) $x
     set _mevent(y) $y
     if { $option == "release" } {
-        $itk_component(3dview) configure -cursor ""
+        $itk_component(view) configure -cursor ""
     }
 }
 
@@ -1306,7 +1306,7 @@ itcl::body Rappture::MolvisViewer::Rock { option } {
         after cancel $_rocker(afterid)
         unset _rocker(afterid)
     }
-    if { ![winfo viewable $itk_component(3dview)] } {
+    if { ![winfo viewable $itk_component(view)] } {
         return
     }
     set _rocker(on) $_settings($this-rock)
@@ -1378,7 +1378,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
         set option "click"
     }
     if { $option == "click" } {
-        $itk_component(3dview) configure -cursor fleur
+        $itk_component(view) configure -cursor fleur
     }
     if { $option == "drag" || $option == "release" } {
         set diff 0
@@ -1387,8 +1387,8 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
             set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this Rotate drag $x $y]]
             return
         }
-        set w [winfo width $itk_component(3dview)]
-        set h [winfo height $itk_component(3dview)]
+        set w [winfo width $itk_component(view)]
+        set h [winfo height $itk_component(view)]
         if {$w <= 0 || $h <= 0} {
             return
         }
@@ -1429,7 +1429,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
     set _mevent(y) $y
     set _mevent(time) $now
     if { $option == "release" } {
-        $itk_component(3dview) configure -cursor ""
+        $itk_component(view) configure -cursor ""
     }
 }
 
@@ -1451,7 +1451,7 @@ itcl::body Rappture::MolvisViewer::Rotate.old {option x y} {
     }
     switch -- $option {
         click {
-            $itk_component(3dview) configure -cursor fleur
+            $itk_component(view) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
             set _click(theta) $_view(theta)
@@ -1461,8 +1461,8 @@ itcl::body Rappture::MolvisViewer::Rotate.old {option x y} {
             if {[array size _click] == 0} {
                 Rotate.old click $x $y
             } else {
-                set w [winfo width $itk_component(3dview)]
-                set h [winfo height $itk_component(3dview)]
+                set w [winfo width $itk_component(view)]
+                set h [winfo height $itk_component(view)]
                 if {$w <= 0 || $h <= 0} {
                     return
                 }
@@ -1527,7 +1527,7 @@ itcl::body Rappture::MolvisViewer::Rotate.old {option x y} {
         }
         release {
             Rotate.old drag $x $y
-            $itk_component(3dview) configure -cursor ""
+            $itk_component(view) configure -cursor ""
             catch {unset _click}
         }
         default {
