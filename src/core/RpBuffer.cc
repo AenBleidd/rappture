@@ -36,7 +36,6 @@ Buffer::Buffer()
     _windowBits(15)
 {}
 
-
 /**
  * Construct an empty Buffer of specified size.
  */
@@ -46,7 +45,6 @@ Buffer::Buffer(int nbytes)
     _compressionType(RPCOMPRESS_GZIP),
     _windowBits(15)
 {}
-
 
 /**
  * Construct a Buffer loaded with initial data.
@@ -88,7 +86,6 @@ Buffer::operator=(const Buffer& b)
     return *this;
 }
 
-
 Buffer
 Buffer::operator+(const Buffer& b) const
 {
@@ -97,7 +94,6 @@ Buffer::operator+(const Buffer& b) const
     return newBuffer;
 }
 
-
 Buffer&
 Buffer::operator+=(const Buffer& b)
 {
@@ -105,10 +101,8 @@ Buffer::operator+=(const Buffer& b)
     return *this;
 }
 
-
 Buffer::~Buffer()
 {}
-
 
 bool
 Buffer::load (Outcome &status, const char *path)
@@ -141,11 +135,11 @@ Buffer::load (Outcome &status, const char *path)
         return false;
     }	
     // Read the file contents directly onto the end of the old buffer.
-    numBytesRead = fread((char *)bytes() + oldSize, sizeof(char), 
+    numBytesRead = fread((char *)bytes() + oldSize, sizeof(char),
 	stat.st_size, f);
     fclose(f);
     if (numBytesRead != (size_t)stat.st_size) {
-	status.addError("can't read %ld bytes from \"%s\": %s", stat.st_size, 
+	status.addError("can't read %ld bytes from \"%s\": %s", stat.st_size,
 			path, strerror(errno));
 	return false;
     }
@@ -154,9 +148,8 @@ Buffer::load (Outcome &status, const char *path)
     return true;
 }
 
-
 bool
-Buffer::dump (Outcome &status, const char* path)
+Buffer::dump(Outcome &status, const char* path)
 {
     status.addContext("Rappture::Buffer::dump()");
 
@@ -177,7 +170,6 @@ Buffer::dump (Outcome &status, const char* path)
     }
     return true;
 }
-
 
 bool
 Buffer::encode(Outcome &status, unsigned int flags)
@@ -217,7 +209,6 @@ Buffer::encode(Outcome &status, unsigned int flags)
     }
     return true;
 }
-
 
 bool
 Buffer::decode(Outcome &status, unsigned int flags)
@@ -272,9 +263,8 @@ Buffer::decode(Outcome &status, unsigned int flags)
     return true;
 }
 
-
 bool
-Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin, 
+Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin,
                     SimpleCharBuffer& bout)
 {
     int ret=0, flush=0;
@@ -418,7 +408,6 @@ Buffer::do_decompress(Outcome& status, SimpleCharBuffer& bin,
     return true;
 }
 
-
 bool
 Buffer::do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
                       SimpleCharBuffer& bout )
@@ -438,7 +427,6 @@ Buffer::do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
     return true;
 }
 
-
 bool
 Buffer::do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
                       SimpleCharBuffer& bout )
@@ -457,8 +445,4 @@ Buffer::do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
     return true;
 }
 
-
 }
-
-
-

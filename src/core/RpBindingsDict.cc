@@ -25,7 +25,7 @@ RpDict DICT_TEMPLATE_V ObjDict_Void;
  * for languages that can not accept pointers to provide back to the
  * function's caller.
  *
- * Returns the key of the object in the dictionary 
+ * Returns the key of the object in the dictionary
  * On Error, returns 0 (which also means nothing can be stored at 0)
  */
 
@@ -119,7 +119,7 @@ cleanLibDict () {
 /**
  * This function stores the RpUnits names specified by 'objectName'
  * into the UnitsStr dictionary. This is helpful for writing bindings
- * for languages that can not accept pointers to provide back to the 
+ * for languages that can not accept pointers to provide back to the
  * function's caller.
  *
  * Returns the key of the object in the dictionary
@@ -151,7 +151,7 @@ storeObject_UnitsStr(std::string objectName) {
 /**
  * This function retrieves the RpUnits name referenced to by 'objKey'
  * from the UnitsStr dictionary. This is helpful for writing bindings
- * for languages that can not accept pointers to provide back to the 
+ * for languages that can not accept pointers to provide back to the
  * function's caller.
  *
  * Returns the key of the object in the dictionary

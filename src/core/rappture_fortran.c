@@ -99,7 +99,7 @@
 #   define rp_lib_element_comp     RP_LIB_ELEMENT_COMP
 #   define rp_lib_element_id       RP_LIB_ELEMENT_ID
 #   define rp_lib_element_type     RP_LIB_ELEMENT_TYPE
-#   define rp_lib_element_str      RP_LIB_ELEMENT_STR 
+#   define rp_lib_element_str      RP_LIB_ELEMENT_STR
 #   define rp_lib_element_obj      RP_LIB_ELEMENT_OBJ
 #   define rp_lib_child_num        RP_LIB_CHILD_NUM
 #   define rp_lib_child_comp       RP_LIB_CHILD_COMP
@@ -129,162 +129,162 @@ extern "C"
 int rp_lib(const char* filePath, int filePath_len);
 
 extern "C"
-void rp_lib_element_comp( int* handle, 
-                            char* path,
-                            char* retText,
-                            int path_len,
-                            int retText_len );
+void rp_lib_element_comp(int* handle,
+                         char* path,
+                         char* retText,
+                         int path_len,
+                         int retText_len);
 
 extern "C"
-void rp_lib_element_id(   int* handle, 
-                            char* path,
-                            char* retText,
-                            int path_len,
-                            int retText_len );
+void rp_lib_element_id(int* handle,
+                       char* path,
+                       char* retText,
+                       int path_len,
+                       int retText_len);
 
 extern "C"
-void rp_lib_element_type( int* handle,
-                            char* path,
-                            char* retText,
-                            int path_len,
-                            int retText_len );
+void rp_lib_element_type(int* handle,
+                         char* path,
+                         char* retText,
+                         int path_len,
+                         int retText_len);
 
 extern "C"
-void rp_lib_element_str(  int* handle, 
-                            char* path, 
-                            char* flavor,
-                            char* retText,
-                            int path_len,
-                            int flavor_len,
-                            int retText_len );
+void rp_lib_element_str(int* handle,
+                        char* path,
+                        char* flavor,
+                        char* retText,
+                        int path_len,
+                        int flavor_len,
+                        int retText_len);
 
 extern "C"
-int rp_lib_element_obj(   int* handle, 
-                            char* path,
-                            int path_len );
+int rp_lib_element_obj(int* handle,
+                       char* path,
+                       int path_len);
 
 extern "C"
-int rp_lib_child_num(    int* handle, 
-                            char* path, 
-                            int path_len);
+int rp_lib_child_num(int* handle,
+                     char* path,
+                     int path_len);
 
 extern "C"
-int rp_lib_child_comp(   int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
+int rp_lib_child_comp(int* handle,    /* integer handle of library */
+                      char* path,     /* DOM path of requested object */
+                      char* type,     /* specific name of element */
+                      int* childNum,  /* child number for iteration */
+                      char* retText,  /* buffer to store return text */
+                      int path_len,   /* length of path */
+                      int type_len,   /* length of type */
+                      int retText_len /* length of return text buffer */
+                      );
 
 extern "C"
-int rp_lib_child_id(     int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
+int rp_lib_child_id(int* handle,    /* integer handle of library */
+                    char* path,     /* DOM path of requested object */
+                    char* type,     /* specific name of element */
+                    int* childNum,  /* child number for iteration */
+                    char* retText,  /* buffer to store return text */
+                    int path_len,   /* length of path */
+                    int type_len,   /* length of type */
+                    int retText_len /* length of return text buffer */
+                    );
 
 extern "C"
-int rp_lib_child_type(   int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
+int rp_lib_child_type(int* handle,    /* integer handle of library */
+                      char* path,     /* DOM path of requested object */
+                      char* type,     /* specific name of element */
+                      int* childNum,  /* child number for iteration */
+                      char* retText,  /* buffer to store return text */
+                      int path_len,   /* length of path */
+                      int type_len,   /* length of type */
+                      int retText_len /* length of return text buffer */
+                      );
 
 extern "C"
-int rp_lib_child_str(    int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* flavor,   /* information you want returned*/
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int flavor_len, /* length of flavor */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
+int rp_lib_child_str(int* handle,    /* integer handle of library */
+                     char* path,     /* DOM path of requested object */
+                     char* flavor,   /* information you want returned*/
+                     char* type,     /* specific name of element */
+                     int* childNum,  /* child number for iteration */
+                     char* retText,  /* buffer to store return text */
+                     int path_len,   /* length of path */
+                     int flavor_len, /* length of flavor */
+                     int type_len,   /* length of type */
+                     int retText_len /* length of return text buffer */
+                     );
 
 extern "C"
-int rp_lib_child_obj(    int* handle, 
-                            char* path, 
-                            char* type, 
-                            int path_len,
-                            int type_len
-                          );
+int rp_lib_child_obj(int* handle,
+                     char* path,
+                     char* type,
+                     int path_len,
+                     int type_len);
 
 extern "C"
-void rp_lib_get(          int* handle, 
-                            char* path,
-                            char* retText,
-                            int path_len,
-                            int retText_len );
+void rp_lib_get(int* handle,
+                char* path,
+                char* retText,
+                int path_len,
+                int retText_len);
 
 extern "C"
-double rp_lib_get_double( int* handle, 
-                            char* path,
-                            int path_len);
+double rp_lib_get_double(int* handle,
+                         char* path,
+                         int path_len);
 
 extern "C"
-void rp_lib_put_str(     int* handle, 
-                            char* path, 
-                            char* value, 
-                            int* append,
-                            int path_len,
-                            int value_len ); 
+void rp_lib_put_str(int* handle,
+                    char* path,
+                    char* value,
+                    int* append,
+                    int path_len,
+                    int value_len);
 
 extern "C"
-void rp_lib_put_id_str(  int* handle, 
-                            char* path, 
-                            char* value, 
-                            char* id, 
-                            int* append,
-                            int path_len,
-                            int value_len,
-                            int id_len ); 
+void rp_lib_put_id_str(int* handle,
+                       char* path,
+                       char* value,
+                       char* id,
+                       int* append,
+                       int path_len,
+                       int value_len,
+                       int id_len);
 
 extern "C"
-void rp_lib_put_obj(     int* handle, 
-                            char* path, 
-                            int* valHandle, 
-                            int* append,
-                            int path_len ); 
+void rp_lib_put_obj(int* handle,
+                    char* path,
+                    int* valHandle,
+                    int* append,
+                    int path_len);
 
 extern "C"
-void rp_lib_put_id_obj(  int* handle, 
-                            char* path, 
-                            int* valHandle, 
-                            char* id, 
-                            int* append,
-                            int path_len,
-                            int id_len ); 
+void rp_lib_put_id_obj(int* handle,
+                       char* path,
+                       int* valHandle,
+                       char* id,
+                       int* append,
+                       int path_len,
+                       int id_len);
 
 extern "C"
-int rp_lib_remove(       int* handle, 
-                            char* path, 
-                            int path_len);
+int rp_lib_remove(int* handle,
+                  char* path,
+                  int path_len);
 
 extern "C"
-int rp_lib_xml_len(      int* handle);
+int rp_lib_xml_len(int* handle);
 
 extern "C"
-void rp_lib_xml(         int* handle, 
-                            char* retText, 
-                            int retText_len);
+void rp_lib_xml(int* handle,
+                char* retText,
+                int retText_len);
 
 extern "C"
-int rp_lib_write_xml(     int* handle, 
-                            char* outFile, 
-                            int outFile_len);
+int rp_lib_write_xml(int* handle,
+                     char* outFile,
+                     int outFile_len);
+
 extern "C"
 void rp_quit();
 
@@ -305,18 +305,19 @@ PyObject* getObject(int objKey);
 // char* null_terminate(char* inStr, int len);
 
 // global vars
-// dictionary to hold the python objects that 
+// dictionary to hold the python objects that
 // cannot be sent to fortran
 
 #define DICT_TEMPLATE <int,PyObject*>
 RpDict DICT_TEMPLATE fortObjDict;
 int rapptureStarted = 0;
 
-void rp_init() {
+void rp_init()
+{
     //
     PyObject* rpClass = NULL;
     int retVal = 0;
-    
+
     // initialize the interpreter
     Py_Initialize();
     rpClass = importRappture();
@@ -328,7 +329,7 @@ void rp_init() {
     }
 }
 
-int rp_lib(const char* filePath, int filePath_len) 
+int rp_lib(const char* filePath, int filePath_len)
 {
     PyObject* lib = NULL;
     PyObject* rpClass = NULL;
@@ -340,9 +341,9 @@ int rp_lib(const char* filePath, int filePath_len)
     }
 
     inFilePath = null_terminate((char*)filePath, filePath_len);
-    
+
     // error checking to make sure inText is valid???
-    
+
     // grab the rappture class from the dictionary
     rpClass = getObject(0);
 
@@ -366,9 +367,8 @@ int rp_lib(const char* filePath, int filePath_len)
 }
 
 int rp_lib_element_obj(int* handle,     /* integer handle of library */
-                          char* path,     /* null terminated path */
-                          int path_len
-                        )
+                       char* path,     /* null terminated path */
+                       int path_len)
 {
     int newObjHandle = -1;
 
@@ -387,7 +387,7 @@ int rp_lib_element_obj(int* handle,     /* integer handle of library */
             lib = getObject(*handle);
             if (lib) {
                 retObj = (PyObject*) rpElement(lib, inPath, flavor);
-                
+
                 if (retObj) {
 
                     newObjHandle = storeObject(retObj);
@@ -405,12 +405,12 @@ int rp_lib_element_obj(int* handle,     /* integer handle of library */
     return newObjHandle;
 }
 
-void rp_lib_element_comp( int* handle, /* integer handle of library */
-                            char* path,      /* null terminated path */
-                            char* retText,   /* return buffer for fortran*/
-                            int path_len,
-                            int retText_len /* length of return text buffer */
-                          )
+void rp_lib_element_comp(int* handle, /* integer handle of library */
+                         char* path,      /* null terminated path */
+                         char* retText,   /* return buffer for fortran*/
+                         int path_len,
+                         int retText_len /* length of return text buffer */
+                         )
 {
     char* inPath = NULL;
 
@@ -425,7 +425,7 @@ void rp_lib_element_comp( int* handle, /* integer handle of library */
     // error checking to make sure inText is valid???
 
     rp_lib_element_str(handle,inPath,"component",retText,path_len,10,retText_len);
-    
+
     if (inPath) {
         free(inPath);
         inPath = NULL;
@@ -433,12 +433,12 @@ void rp_lib_element_comp( int* handle, /* integer handle of library */
 
 }
 
-void rp_lib_element_id(   int* handle, /* integer handle of library */
-                            char* path,      /* null terminated path */
-                            char* retText,   /* return buffer for fortran*/
-                            int path_len,
-                            int retText_len /* length of return text buffer */
-                        ) 
+void rp_lib_element_id(int* handle, /* integer handle of library */
+                       char* path,      /* null terminated path */
+                       char* retText,   /* return buffer for fortran*/
+                       int path_len,
+                       int retText_len /* length of return text buffer */
+                       )
 {
     char* inPath = NULL;
     inPath = null_terminate(path,path_len);
@@ -458,12 +458,12 @@ void rp_lib_element_id(   int* handle, /* integer handle of library */
 
 }
 
-void rp_lib_element_type( int* handle, /* integer handle of library */
-                            char* path,      /* null terminated path */
-                            char* retText,   /* return buffer for fortran*/
-                            int path_len,
-                            int retText_len /* length of return text buffer */
-                          )
+void rp_lib_element_type(int* handle, /* integer handle of library */
+                         char* path,      /* null terminated path */
+                         char* retText,   /* return buffer for fortran*/
+                         int path_len,
+                         int retText_len /* length of return text buffer */
+                         )
 {
     char* inPath = NULL;
     inPath = null_terminate(path,path_len);
@@ -482,13 +482,13 @@ void rp_lib_element_type( int* handle, /* integer handle of library */
 
 }
 
-void rp_lib_element_str(  int* handle, /* integer handle of library */
-                            char* path,      /* null terminated path */
-                            char* flavor,    /* null terminated flavor */
-                            char* retText,   /* return buffer for fortran*/
-                            int path_len,
-                            int flavor_len,
-                            int retText_len /* length of return text buffer */
+void rp_lib_element_str(int* handle, /* integer handle of library */
+                        char* path,      /* null terminated path */
+                        char* flavor,    /* null terminated flavor */
+                        char* retText,   /* return buffer for fortran*/
+                        int path_len,
+                        int flavor_len,
+                        int retText_len /* length of return text buffer */
                         )
 {
     // int length_in = 0;
@@ -497,9 +497,9 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
     const char* xmlText = NULL;
 
     PyObject* lib = NULL;
-    
+
     char* retObj = NULL;
-    
+
     char* inPath = NULL;
     char* inFlavor = NULL;
 
@@ -516,9 +516,9 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
                     retObj = (char*) rpElement(lib, inPath, inFlavor);
                     if (retObj) {
                         xmlText = retObj;
-                    
+
                         fortranify(xmlText, retText, retText_len);
-            
+
                         /*
                         length_in = strlen(xmlText);
                         length_out = retText_len;
@@ -533,19 +533,19 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
                         }
                         *(retText+length_out-1) = ' ';
                         */
-                        
+
                         free(retObj);
                         retObj = NULL;
                     }
                     else {
-                        
+
                     }
                 }
 
             }
         }
     }
-    
+
     if (inPath) {
         free(inPath);
         inPath = NULL;
@@ -558,10 +558,9 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
 
 }
 
-int rp_lib_child_num( int* handle, 
-                         char* path, 
-                         int path_len
-                       )
+int rp_lib_child_num(int* handle,
+                     char* path,
+                     int path_len)
 {
     int numChildren = 0;
 
@@ -570,7 +569,7 @@ int rp_lib_child_num( int* handle,
     char* inPath = NULL;
 
     inPath = null_terminate(path,path_len);
-    
+
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
@@ -582,7 +581,7 @@ int rp_lib_child_num( int* handle,
                     Py_DECREF(list);
                 }
                 else {
-                    
+
                 }
             }
         }
@@ -598,15 +597,15 @@ int rp_lib_child_num( int* handle,
 }
 
 
-int rp_lib_child_comp (   int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       )
+int rp_lib_child_comp(int* handle,    /* integer handle of library */
+                      char* path,     /* DOM path of requested object */
+                      char* type,     /* specific name of element */
+                      int* childNum,  /* child number for iteration */
+                      char* retText,  /* buffer to store return text */
+                      int path_len,   /* length of path */
+                      int type_len,   /* length of type */
+                      int retText_len /* length of return text buffer */
+                      )
 {
     int retVal = 0;
 
@@ -630,17 +629,16 @@ int rp_lib_child_comp (   int* handle,    /* integer handle of library */
         type_len = 0;
     }
 
-    retVal = rp_lib_child_str( handle,
-                                 inPath,
-                                 "component",
-                                 inType,
-                                 childNum,
-                                 retText,
-                                 path_len,
-                                 10,
-                                 type_len,
-                                 retText_len
-                               );
+    retVal = rp_lib_child_str(handle,
+                              inPath,
+                              "component",
+                              inType,
+                              childNum,
+                              retText,
+                              path_len,
+                              10,
+                              type_len,
+                              retText_len);
 
     if (inPath) {
         free(inPath);
@@ -655,15 +653,15 @@ int rp_lib_child_comp (   int* handle,    /* integer handle of library */
     return retVal;
 }
 
-int rp_lib_child_id(   int* handle,    /* integer handle of library */
-                          char* path,     /* DOM path of requested object */
-                          char* type,     /* specific name of element */
-                          int* childNum,  /* child number for iteration */
-                          char* retText,  /* buffer to store return text */
-                          int path_len,   /* length of path */
-                          int type_len,   /* length of type */
-                          int retText_len /* length of return text buffer */
-                       )
+int rp_lib_child_id(int* handle,    /* integer handle of library */
+                    char* path,     /* DOM path of requested object */
+                    char* type,     /* specific name of element */
+                    int* childNum,  /* child number for iteration */
+                    char* retText,  /* buffer to store return text */
+                    int path_len,   /* length of path */
+                    int type_len,   /* length of type */
+                    int retText_len /* length of return text buffer */
+                    )
 {
     int retVal = 0;
     char* inPath = NULL;
@@ -686,17 +684,16 @@ int rp_lib_child_id(   int* handle,    /* integer handle of library */
         type_len = 0;
     }
 
-    retVal = rp_lib_child_str( handle,
-                                 inPath,
-                                 "id",
-                                 inType,
-                                 childNum,
-                                 retText,
-                                 path_len,
-                                 3,
-                                 type_len,
-                                 retText_len
-                               );
+    retVal = rp_lib_child_str(handle,
+                              inPath,
+                              "id",
+                              inType,
+                              childNum,
+                              retText,
+                              path_len,
+                              3,
+                              type_len,
+                              retText_len);
 
     if (inPath) {
         free(inPath);
@@ -711,15 +708,15 @@ int rp_lib_child_id(   int* handle,    /* integer handle of library */
     return retVal;
 }
 
-int rp_lib_child_type (   int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       )
+int rp_lib_child_type(int* handle,    /* integer handle of library */
+                      char* path,     /* DOM path of requested object */
+                      char* type,     /* specific name of element */
+                      int* childNum,  /* child number for iteration */
+                      char* retText,  /* buffer to store return text */
+                      int path_len,   /* length of path */
+                      int type_len,   /* length of type */
+                      int retText_len /* length of return text buffer */
+                      )
 {
     int retVal = 0;
     char* inPath = NULL;
@@ -742,17 +739,16 @@ int rp_lib_child_type (   int* handle,    /* integer handle of library */
         type_len = 0;
     }
 
-    retVal = rp_lib_child_str( handle,
-                                 inPath,
-                                 "type",
-                                 inType,
-                                 childNum,
-                                 retText,
-                                 path_len,
-                                 5,
-                                 type_len,
-                                 retText_len
-                               );
+    retVal = rp_lib_child_str(handle,
+                              inPath,
+                              "type",
+                              inType,
+                              childNum,
+                              retText,
+                              path_len,
+                              5,
+                              type_len,
+                              retText_len);
 
     if (inPath) {
         free(inPath);
@@ -767,17 +763,17 @@ int rp_lib_child_type (   int* handle,    /* integer handle of library */
     return retVal;
 }
 
-int rp_lib_child_str (    int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* flavor,   /* information you want returned*/
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int flavor_len, /* length of flavor */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       )
+int rp_lib_child_str(int* handle,    /* integer handle of library */
+                     char* path,     /* DOM path of requested object */
+                     char* flavor,   /* information you want returned*/
+                     char* type,     /* specific name of element */
+                     int* childNum,  /* child number for iteration */
+                     char* retText,  /* buffer to store return text */
+                     int path_len,   /* length of path */
+                     int flavor_len, /* length of flavor */
+                     int type_len,   /* length of type */
+                     int retText_len /* length of return text buffer */
+                     )
 {
     int retVal = 0;
     // int i = 0;
@@ -786,12 +782,12 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
     PyObject* lib = NULL;
     PyObject* list = NULL;
     PyObject* list_item = NULL;
-    
+
     char* xmlChild = NULL;
     char* inPath = NULL;
     char* inType = NULL;
     char* inFlavor = NULL;
-    
+
     inPath = null_terminate(path,path_len);
     inFlavor = null_terminate(flavor,flavor_len);
     inType = null_terminate(type,type_len);
@@ -800,7 +796,7 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
             if (lib) {
-                if(objType(inFlavor) == 1) {
+                if (objType(inFlavor) == 1) {
 
                     list = rpChildren_f(lib, inPath, inFlavor);
                     if (list) {
@@ -831,9 +827,6 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
                             }
                         }
                     }
-                    else {
-                        
-                    }
                 }
             }
         }
@@ -854,22 +847,20 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
         inType = NULL;
     }
 
-
     return retVal;
 }
 
- int rp_lib_child_obj ( int* handle, 
-                            char* path, 
-                            char* type, 
-                            int path_len,
-                            int type_len
-                          )
+int rp_lib_child_obj(int* handle,
+                     char* path,
+                     char* type,
+                     int path_len,
+                     int type_len)
 {
     int newObjHandle = -1;
 
     PyObject* lib = NULL;
     PyObject* list = NULL;
-    
+
     char* inPath = NULL;
     char* inType = NULL;
 
@@ -879,7 +870,7 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
-            
+
             if (lib) {
                 list = rpChildren_f(lib, inPath, "object");
                 if (list) {
@@ -887,9 +878,6 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
                     // need to make a way to read the nodes
                     newObjHandle = storeObject(list);
                     // Py_DECREF(list);
-                }
-                else {
-                    
                 }
             }
         }
@@ -906,16 +894,15 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
     }
 
     return newObjHandle;
-
 }
 
 
-void rp_lib_get( int* handle, /* integer handle of library */
-                   char* path,      /* null terminated path */
-                   char* retText,   /* return text buffer for fortran*/
-                   int path_len,
-                   int retText_len /* length of return text buffer */
-                 )
+void rp_lib_get(int* handle, /* integer handle of library */
+                char* path,      /* null terminated path */
+                char* retText,   /* return text buffer for fortran*/
+                int path_len,
+                int retText_len /* length of return text buffer */
+                )
 {
     // int length_in = 0;
     // int length_out = 0;
@@ -923,7 +910,7 @@ void rp_lib_get( int* handle, /* integer handle of library */
     const char* xmlText = NULL;
 
     PyObject* lib = NULL;
-    
+
     char* inPath = NULL;
 
     inPath = null_terminate(path,path_len);
@@ -931,16 +918,16 @@ void rp_lib_get( int* handle, /* integer handle of library */
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
-            
+
             if (lib) {
-                // retObj is a borrowed object 
+                // retObj is a borrowed object
                 // whose contents must not be modified
                 xmlText = rpGet(lib, inPath);
-                
+
                 if (xmlText) {
 
                     fortranify(xmlText, retText, retText_len);
-                    
+
                     /*
                     length_in = strlen(xmlText);
                     length_out = retText_len;
@@ -956,7 +943,6 @@ void rp_lib_get( int* handle, /* integer handle of library */
                     *(retText+length_out-1) = ' ';
                     */
                 }
-
             }
         }
     }
@@ -965,19 +951,17 @@ void rp_lib_get( int* handle, /* integer handle of library */
         free(inPath);
         inPath = NULL;
     }
-
 }
 
-double rp_lib_get_double( int* handle,   /* integer handle of library */
-                            char* path,    /* null terminated path */
-                            int path_len
-                          )
+double rp_lib_get_double(int* handle,   /* integer handle of library */
+                         char* path,    /* null terminated path */
+                         int path_len)
 {
     double retVal = 0.0;
     const char* xmlText = NULL;
 
     PyObject* lib = NULL;
-    
+
     char* inPath = NULL;
 
     inPath = null_terminate(path,path_len);
@@ -987,16 +971,15 @@ double rp_lib_get_double( int* handle,   /* integer handle of library */
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
-            
+
             if (lib) {
-                // retObj is a borrowed object 
+                // retObj is a borrowed object
                 // whose contents must not be modified
                 xmlText = rpGet(lib, inPath);
-                
+
                 if (xmlText) {
                     retVal = atof(xmlText);
                 }
-
             }
         }
     }
@@ -1010,20 +993,18 @@ double rp_lib_get_double( int* handle,   /* integer handle of library */
 }
 
 
-void rp_lib_put_str( int* handle, 
-                        char* path, 
-                        char* value, 
-                        int* append,
-                        int path_len,
-                        int value_len
-                      ) 
+void rp_lib_put_str(int* handle,
+                    char* path,
+                    char* value,
+                    int* append,
+                    int path_len,
+                    int value_len)
 {
     char* inPath = NULL;
     char* inValue = NULL;
 
     inPath = null_terminate(path,path_len);
     inValue = null_terminate(value,value_len);
-
 
     if (inPath) {
         path_len = strlen(inPath) + 1;
@@ -1053,18 +1034,17 @@ void rp_lib_put_str( int* handle,
 }
 
 
-void rp_lib_put_id_str ( int* handle, 
-                        char* path, 
-                        char* value, 
-                        char* id, 
-                        int* append,
-                        int path_len,
-                        int value_len,
-                        int id_len
-                      ) 
+void rp_lib_put_id_str(int* handle,
+                       char* path,
+                       char* value,
+                       char* id,
+                       int* append,
+                       int path_len,
+                       int value_len,
+                       int id_len)
 {
     PyObject* lib = NULL;
-    
+
     char* inPath = NULL;
     char* inValue = NULL;
     char* inId = NULL;
@@ -1076,7 +1056,7 @@ void rp_lib_put_id_str ( int* handle,
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
-            
+
             if (lib) {
                 rpPut(lib, inPath, inValue, inId, *append);
             }
@@ -1097,15 +1077,13 @@ void rp_lib_put_id_str ( int* handle,
         free(inId);
         inId = NULL;
     }
-
 }
 
-void rp_lib_put_obj( int* handle, 
-                        char* path, 
-                        int* valHandle, 
-                        int* append,
-                        int path_len
-                      ) 
+void rp_lib_put_obj(int* handle,
+                    char* path,
+                    int* valHandle,
+                    int* append,
+                    int path_len)
 {
     char* inPath = NULL;
 
@@ -1124,18 +1102,17 @@ void rp_lib_put_obj( int* handle,
 
 }
 
-void rp_lib_put_id_obj ( int* handle, 
-                        char* path, 
-                        int* valHandle, 
-                        char* id, 
-                        int* append,
-                        int path_len,
-                        int id_len
-                      ) 
+void rp_lib_put_id_obj(int* handle,
+                       char* path,
+                       int* valHandle,
+                       char* id,
+                       int* append,
+                       int path_len,
+                       int id_len)
 {
     PyObject* lib = NULL;
     PyObject* value = NULL;
-    
+
     char* inPath = NULL;
     char* inId = NULL;
 
@@ -1146,9 +1123,9 @@ void rp_lib_put_id_obj ( int* handle,
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
             value = getObject(*valHandle);
-            
+
             if (lib && value) {
-                // retObj is a borrowed object 
+                // retObj is a borrowed object
                 // whose contents must not be modified
                 rpPutObj(lib, inPath, value, inId, *append);
             }
@@ -1164,16 +1141,15 @@ void rp_lib_put_id_obj ( int* handle,
         free(inId);
         inId = NULL;
     }
-
 }
 
-int rp_lib_remove (int* handle, char* path, int path_len) 
+int rp_lib_remove(int* handle, char* path, int path_len)
 {
     int newObjHandle = -1;
 
     PyObject* lib = NULL;
     PyObject* removedObj = NULL;
-    
+
     char* inPath = NULL;
 
     inPath = null_terminate(path,path_len);
@@ -1184,16 +1160,15 @@ int rp_lib_remove (int* handle, char* path, int path_len)
 
             if (lib) {
                 removedObj = rpRemove(lib, inPath);
-                
+
                 if (removedObj) {
                     newObjHandle = storeObject(removedObj);
                     // Py_DECREF(removedObj);
                 }
-
             }
         }
     }
-    
+
     if (inPath) {
         free(inPath);
         inPath = NULL;
@@ -1202,7 +1177,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
     return newObjHandle;
 }
 
-int rp_lib_xml_len (int* handle)
+int rp_lib_xml_len(int* handle)
 {
     int length = -1;
     char* xmlText = NULL;
@@ -1228,7 +1203,7 @@ int rp_lib_xml_len (int* handle)
     return length;
 }
 
-void  rp_lib_xml(int* handle, char* retText, int retText_len)
+void rp_lib_xml(int* handle, char* retText, int retText_len)
 {
     // int length_in = 0;
     // int length_out = 0;
@@ -1236,14 +1211,14 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
     char* xmlText = NULL;
 
     PyObject* lib = NULL;
-    
+
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject(*handle);
 
             if (lib) {
                 xmlText = rpXml(lib);
-                
+
                 if (xmlText) {
 
                     fortranify(xmlText, retText, retText_len);
@@ -1265,7 +1240,6 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
 
                     free(xmlText);
                 }
-                
             }
         }
     }
@@ -1320,15 +1294,15 @@ void rp_quit()
     // clean up the dictionary
 
     RpDictEntry DICT_TEMPLATE *hPtr;
-    // RpDictIterator DICT_TEMPLATE iter((RpDict&)*this);                     
+    // RpDictIterator DICT_TEMPLATE iter((RpDict&)*this);
     RpDictIterator DICT_TEMPLATE iter(fortObjDict);
-    
-    hPtr = iter.first();                                                      
-    
+
+    hPtr = iter.first();
+
     while (hPtr) {
         Py_DECREF(*(hPtr->getValue()));
         hPtr->erase();
-        hPtr = iter.next();                                                   
+        hPtr = iter.next();
     }
 
     if (fortObjDict.size()) {
@@ -1340,7 +1314,8 @@ void rp_quit()
     // Py_Finalize();
 }
 
-void rp_result(int* handle) {
+void rp_result(int* handle)
+{
     PyObject* lib = NULL;
 
     if (rapptureStarted && handle && *handle != 0) {
@@ -1352,20 +1327,19 @@ void rp_result(int* handle) {
     rp_quit();
 }
 
-int objType( char* flavor) 
+int objType( char* flavor)
 {
     if (flavor == NULL) {
         // return a PyObject*
         return 0;
     }
-    else if((*flavor == 'o')&&(strncmp(flavor,"object", 6)==0)){
+    else if ((*flavor == 'o') && (strncmp(flavor,"object", 6) == 0)) {
         // return a PyObject*
         return 0;
     }
-    else if ( 
-      ((*flavor == 't')&&(strncmp(flavor,"type", 4) == 0)) 
-    ||((*flavor == 'i')&&(strncmp(flavor,"id", 2) == 0))
-    ||((*flavor == 'c')&&(strncmp(flavor,"component", 9) == 0)))
+    else if (((*flavor == 't') && (strncmp(flavor,"type", 4) == 0)) ||
+             ((*flavor == 'i') && (strncmp(flavor,"id", 2) == 0)) ||
+             ((*flavor == 'c') && (strncmp(flavor,"component", 9) == 0)))
     {
         // return a char*
         // convert the result to c style strings
@@ -1377,8 +1351,8 @@ int objType( char* flavor)
     }
 }
 
-int storeObject(PyObject* objectName) {
-
+int storeObject(PyObject* objectName)
+{
     int retVal = -1;
     int dictKey = fortObjDict.size();
     int newEntry = 0;
@@ -1387,15 +1361,15 @@ int storeObject(PyObject* objectName) {
         // dictionary returns a reference to the inserted value
         // no error checking to make sure it was successful in entering
         // the new entry.
-        fortObjDict.set(dictKey,objectName, &newEntry); 
+        fortObjDict.set(dictKey,objectName, &newEntry);
     }
-    
+
     retVal = dictKey;
     return retVal;
 }
 
-PyObject* getObject(int objKey) {
-
+PyObject* getObject(int objKey)
+{
     PyObject* retVal = *(fortObjDict.find(objKey).getValue());
 
     if (retVal == *(fortObjDict.getNullEntry().getValue())) {
@@ -1403,5 +1377,4 @@ PyObject* getObject(int objKey) {
     }
 
    return retVal;
-
 }

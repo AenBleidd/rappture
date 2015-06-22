@@ -248,13 +248,13 @@ RapptureBufferEncode(RapptureBuffer* buf, int compress, int base64)
     if (base64) {
 	flags |= RPENC_B64;
     }
-    ((Rappture::Buffer*)buf->_buf)->encode(s, flags); 
+    ((Rappture::Buffer*)buf->_buf)->encode(s, flags);
     RpOutcomeToCOutcome(&s,&status);
     return status;
 }
 
 RapptureOutcome
-RapptureBufferDecode(RapptureBuffer* buf, int decompress, int base64 )
+RapptureBufferDecode(RapptureBuffer* buf, int decompress, int base64)
 {
     Rappture::Outcome s;
     RapptureOutcome status;
@@ -288,5 +288,5 @@ RapptureBufferDecode(RapptureBuffer* buf, int decompress, int base64 )
 }
 
 #ifdef __cplusplus
-    }
+}
 #endif // ifdef __cplusplus

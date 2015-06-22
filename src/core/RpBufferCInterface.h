@@ -1,4 +1,3 @@
-
 /*
  * ----------------------------------------------------------------------
  *  INTERFACE: C Rappture Buffer Header
@@ -11,7 +10,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 
 #ifndef _RAPPTURE_BUFFER_C_H
 #define _RAPPTURE_BUFFER_C_H
@@ -38,7 +36,7 @@ typedef struct {
     bool (*encode)(Outcome &result, bool, bool);
     bool (*decode)(Outcome &result, bool, bool);
     */
-}RapptureBuffer;
+} RapptureBuffer;
 
 int RapptureBufferInit(RapptureBuffer* buf);
 int RapptureBufferNew(RapptureBuffer* buf);
@@ -52,9 +50,9 @@ int RapptureBufferTell(RapptureBuffer* buf);
 RapptureOutcome RapptureBufferLoad(RapptureBuffer* buf, const char* filename);
 RapptureOutcome RapptureBufferDump(RapptureBuffer* buf, const char* filename);
 RapptureOutcome RapptureBufferEncode(RapptureBuffer* buf, int compress,
-	int base64 );
-RapptureOutcome RapptureBufferDecode(RapptureBuffer* buf, 
-	int decompress, int base64 );
+                                     int base64);
+RapptureOutcome RapptureBufferDecode(RapptureBuffer* buf,
+                                     int decompress, int base64);
 
 #ifdef __cplusplus
 }

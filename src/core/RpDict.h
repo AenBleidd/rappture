@@ -21,21 +21,20 @@
 /**************************************************************************/
 /**************************************************************************/
 
-template <  typename KeyType,
-            typename ValType,
-            class _Compare=std::equal_to<KeyType> >
+template <typename KeyType,
+          typename ValType,
+          class _Compare=std::equal_to<KeyType> >
     class RpDict;
 
-template <  typename KeyType,
-            typename ValType,
-            class _Compare=std::equal_to<KeyType> >
+template <typename KeyType,
+          typename ValType,
+          class _Compare=std::equal_to<KeyType> >
     class RpDictEntry;
 
-template <  typename KeyType,
-            typename ValType,
-            class _Compare=std::equal_to<KeyType> >
+template <typename KeyType,
+          typename ValType,
+          class _Compare=std::equal_to<KeyType> >
     class RpDictIterator;
-
 
 /*
  * RpDictEntry should not depend on _Compare,
@@ -47,7 +46,6 @@ template <  typename KeyType,
  * RpDictIterator has the same thing going on. It has a default value
  * because RpBindingsDict uses it.
  */
-
 
 /**************************************************************************/
 
@@ -92,17 +90,16 @@ class RpDictIterator
 
     private:
 
-        RpDict<KeyType,ValType,_Compare>& 
-            tablePtr;                   /* pointer to the table we want to 
+        RpDict<KeyType,ValType,_Compare>&
+            tablePtr;                   /* pointer to the table we want to
                                          * iterate */
         int srchNextIndex;              /* Index of next bucket to be
                                          * enumerated after present one. */
-        RpDictEntry<KeyType,ValType,_Compare>* 
+        RpDictEntry<KeyType,ValType,_Compare>*
             srchNextEntryPtr;           /* Next entry to be enumerated in the
                                          * the current bucket. */
 
 };
-
 
 template <typename KeyType, typename ValType, class _Compare>
 class RpDictEntry
@@ -112,7 +109,7 @@ class RpDictEntry
         operator int() const;
         // operator==(const RpDictEntry& entry) const;
         //
-        //operator!=(const RpDictEntry& lhs, const RpDictEntry& rhs) const 
+        //operator!=(const RpDictEntry& lhs, const RpDictEntry& rhs) const
         //{
         //    if (lhs.key != rhs.key)
         //}
@@ -188,7 +185,6 @@ class RpDictEntry
 
 };
 
-
 template <typename KeyType, typename ValType, class _Compare>
 class RpDict
 {
@@ -206,25 +202,25 @@ class RpDict
         // returns !0 on failure (object cannot be inserted or dne)
         //
         /*virtual*/ RpDict<KeyType,ValType,_Compare>&
-                        set(    KeyType& key,
-                                ValType& value,
-                                RpDictHint hint=NULL,
-                                int *newPtr=NULL,
-                                bool ci=false);
+                        set(KeyType& key,
+                            ValType& value,
+                            RpDictHint hint=NULL,
+                            int *newPtr=NULL,
+                            bool ci=false);
 
         // find an RpUnits object that should exist in RpUnitsTable
-        // 
+        //
         /*virtual*/ RpDictEntry<KeyType,ValType,_Compare>&
-                        find(   KeyType& key,
-                                RpDictHint hint = NULL,
-                                bool ci=false   );
+                        find(KeyType& key,
+                             RpDictHint hint = NULL,
+                             bool ci=false);
 
-        /*virtual*/ RpDictEntry<KeyType,ValType,_Compare>& operator[]( KeyType& key)
+        /*virtual*/ RpDictEntry<KeyType,ValType,_Compare>& operator[](KeyType& key)
         {
             return find(key,NULL);
         }
 
-        RpDict<KeyType,ValType,_Compare>& setCI( bool val );
+        RpDict<KeyType,ValType,_Compare>& setCI(bool val);
         bool getCI();
         RpDict<KeyType,ValType,_Compare>& toggleCI();
 
@@ -262,7 +258,7 @@ class RpDict
             assert(nullEntry != NULL);
         }
 
-        // copy constructor 
+        // copy constructor
         // RpDict (const RpDict& dict);
 
         // assignment operator
@@ -282,7 +278,7 @@ class RpDict
         const int SMALL_RP_DICT_SIZE;
         const int REBUILD_MULTIPLIER;
 
-        RpDictEntry<KeyType,ValType,_Compare> 
+        RpDictEntry<KeyType,ValType,_Compare>
                     **buckets;        /* Pointer to bucket array.  Each
                                        * element points to first entry in
                                        * bucket's hash chain, or NULL. */
@@ -313,7 +309,7 @@ class RpDict
         // private member fxns
 
         RpDictEntry<KeyType,ValType,_Compare>*
-            search( KeyType& key, RpDictHint hint = NULL, bool ci = false );
+            search(KeyType& key, RpDictHint hint = NULL, bool ci = false);
 
         // static void RpDict::RebuildTable ();
         void RebuildTable ();
@@ -324,7 +320,6 @@ class RpDict
 
         int randomIndex(unsigned int hash);
 };
-
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -339,17 +334,15 @@ class RpDict
  *
  * Side Effects:
  *  none.
- * 
+ *
  *
  *************************************************************************/
-
 template <typename KeyType, typename ValType, class _Compare>
 int
 RpDict<KeyType,ValType,_Compare>::size() const
 {
     return numEntries;
 }
-
 
 /**************************************************************************
  *
@@ -358,7 +351,7 @@ RpDict<KeyType,ValType,_Compare>::size() const
  *  places a key/value pair into the hash table
  *
  * Results:
- *  Returns a reference to the RpDict object allowing the user to chain 
+ *  Returns a reference to the RpDict object allowing the user to chain
  *  together different commands such as
  *      rpdict_obj.set(key).find(a).erase(a);
  *
@@ -369,11 +362,11 @@ RpDict<KeyType,ValType,_Compare>::size() const
  *************************************************************************/
 template <typename KeyType, typename ValType, class _Compare>
 RpDict<KeyType,ValType,_Compare>&
-RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
-                                        ValType& value,
-                                        RpDictHint hint,
-                                        int* newPtr,
-                                        bool ci )
+RpDict<KeyType,ValType,_Compare>::set(KeyType& key,
+                                      ValType& value,
+                                      RpDictHint hint,
+                                      int* newPtr,
+                                      bool ci)
 {
     RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
     unsigned int hash = 0;
@@ -465,12 +458,11 @@ RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 RpDictEntry<KeyType,ValType,_Compare>&
-RpDict<KeyType,ValType,_Compare>::find( KeyType& key,
-                                        RpDictHint hint,
-                                        bool ci )
+RpDict<KeyType,ValType,_Compare>::find(KeyType& key,
+                                       RpDictHint hint,
+                                       bool ci)
 {
     RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
 
@@ -502,14 +494,13 @@ RpDict<KeyType,ValType,_Compare>::find( KeyType& key,
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 RpDictEntry<KeyType,ValType,_Compare>*
-RpDict<KeyType,ValType,_Compare>::search(   KeyType& key,
-                                            RpDictHint hint,
-                                            bool ci )
-                                            // bool ci,
-                                            // RpDictEntryList* entryList)
+RpDict<KeyType,ValType,_Compare>::search(KeyType& key,
+                                         RpDictHint hint,
+                                         bool ci)
+                                         // bool ci,
+                                         // RpDictEntryList* entryList)
 {
     RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
     unsigned int hash = 0;
@@ -571,8 +562,6 @@ RpDict<KeyType,ValType,_Compare>::search(   KeyType& key,
 
 }
 
-
-
 /**************************************************************************
  *
  * virtual RpDict& RpDictIterator::getTable()
@@ -588,8 +577,8 @@ RpDict<KeyType,ValType,_Compare>::search(   KeyType& key,
  *************************************************************************/
 /*
 template <typename KeyType,typename ValType,class _Compare>
-RpDict<KeyType,ValType,_Compare>& 
-RpDictIterator<KeyType,ValType,_Compare>::getTable() 
+RpDict<KeyType,ValType,_Compare>&
+RpDictIterator<KeyType,ValType,_Compare>::getTable()
 {
     return tablePtr;
 }
@@ -605,7 +594,7 @@ RpDictIterator<KeyType,ValType,_Compare>::getTable()
  *
  * Side Effects:
  *  moves iterator to the beginning of the hash table.
- * 
+ *
  *
  *************************************************************************/
 template <typename KeyType,typename ValType,class _Compare>
@@ -629,10 +618,9 @@ RpDictIterator<KeyType,ValType,_Compare>::first()
  *
  * Side Effects:
  *  moves iterator to the next entry of the hash table if it exists.
- * 
+ *
  *
  *************************************************************************/
-
 template <typename KeyType,typename ValType,class _Compare>
 RpDictEntry<KeyType,ValType,_Compare>*
 RpDictIterator<KeyType,ValType,_Compare>::next()
@@ -668,7 +656,7 @@ RpDictIterator<KeyType,ValType,_Compare>::next()
  *************************************************************************/
 template <typename KeyType, typename ValType, class _Compare>
 RpDict<KeyType,ValType,_Compare>&
-RpDict<KeyType,ValType,_Compare>::setCI( bool val )
+RpDict<KeyType,ValType,_Compare>::setCI(bool val)
 {
     caseInsensitive = val;
     return *this;
@@ -764,7 +752,6 @@ RpDict<KeyType,ValType,_Compare>::getNullEntry()
     return *nullEntry;
 }
 
-
 /*
  *----------------------------------------------------------------------
  *
@@ -783,7 +770,6 @@ RpDict<KeyType,ValType,_Compare>::getNullEntry()
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 void
 RpDictEntry<KeyType,ValType,_Compare>::erase()
@@ -793,7 +779,7 @@ RpDictEntry<KeyType,ValType,_Compare>::erase()
     int index = 0;
 
     // check to see if the object is associated with a table
-    // if object is not associated with a table, there is no 
+    // if object is not associated with a table, there is no
     // need to try to remove it from the table.
     if (tablePtr) {
 
@@ -803,7 +789,7 @@ RpDictEntry<KeyType,ValType,_Compare>::erase()
         bucketPtr = &(tablePtr->buckets[index]);
 
         // remove the entry from the buckets
-        // 
+        //
         // if entry is the first entry in the bucket
         // move the bucket to point to the next entry
         if ((*bucketPtr)->key == this->key) {
@@ -811,7 +797,7 @@ RpDictEntry<KeyType,ValType,_Compare>::erase()
         }
         else {
             // if the entry is not the first entry in the bucket
-            // search for the entry 
+            // search for the entry
             for (prevPtr = *bucketPtr; ; prevPtr = prevPtr->nextPtr) {
 
                 // printf("malformed bucket chain in RpDictEntry::erase()");
@@ -820,7 +806,7 @@ RpDictEntry<KeyType,ValType,_Compare>::erase()
                 if (prevPtr->nextPtr == this) {
                     prevPtr->nextPtr = nextPtr;
                     break;
-                } 
+                }
             } // end for loop
         } // end else
 
@@ -842,7 +828,6 @@ RpDictEntry<KeyType,ValType,_Compare>::erase()
 
 }
 
-
 /*
  *----------------------------------------------------------------------
  *
@@ -858,7 +843,6 @@ RpDictEntry<KeyType,ValType,_Compare>::erase()
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 const KeyType*
 RpDictEntry<KeyType,ValType,_Compare>::getKey() const
@@ -883,7 +867,6 @@ RpDictEntry<KeyType,ValType,_Compare>::getKey() const
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 const ValType*
 RpDictEntry<KeyType,ValType,_Compare>::getValue() const
@@ -906,7 +889,6 @@ RpDictEntry<KeyType,ValType,_Compare>::getValue() const
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 const ValType*
 RpDictEntry<KeyType,ValType,_Compare>::setValue(const ValType& value)
@@ -943,7 +925,6 @@ RpDictEntry<KeyType,ValType,_Compare>::operator int() const
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 bool
 RpDictEntry<KeyType,ValType,_Compare>::isValid() const
@@ -953,7 +934,6 @@ RpDictEntry<KeyType,ValType,_Compare>::isValid() const
     }
     return false;
 }
-
 
 /*************************************************************************/
 /*************************************************************************/
@@ -977,12 +957,11 @@ RpDictEntry<KeyType,ValType,_Compare>::isValid() const
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 void
 RpDict<KeyType,ValType,_Compare>::RebuildTable()
 {
-    int oldSize=0, count=0, index=0; 
+    int oldSize=0, count=0, index=0;
     RpDictEntry<KeyType,ValType,_Compare> **oldBuckets = NULL;
     RpDictEntry<KeyType,ValType,_Compare> **oldChainPtr = NULL, **newChainPtr = NULL;
     RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
@@ -994,7 +973,6 @@ RpDict<KeyType,ValType,_Compare>::RebuildTable()
      * Allocate and initialize the new bucket array, and set up
      * hashing constants for new array size.
      */
-
 
     numBuckets *= 4;
 
@@ -1053,7 +1031,6 @@ RpDict<KeyType,ValType,_Compare>::RebuildTable()
  *
  *----------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 unsigned int
 RpDict<KeyType,ValType,_Compare>::hashFxn(const void *keyPtr) const
@@ -1081,7 +1058,7 @@ RpDict<KeyType,ValType,_Compare>::hashFxn(const void *keyPtr) const
  * all different, but no-one had much idea why they were good ones.
  * I chose the one below (multiply by 9 and add new character)
  * because of the following reasons:
- * 
+ *
  * 1. Multiplying by 10 is perfect for keys that are decimal strings,
  *    and multiplying by 9 is just about as good.
  * 2. Times-9 is (shift-left-3) plus (old).  This means that each
@@ -1090,8 +1067,6 @@ RpDict<KeyType,ValType,_Compare>::hashFxn(const void *keyPtr) const
  *    the high-order bits to fill out the hash value.  This seems
  *    works well both for decimal and non-decimal strings.
  */
-
-
 template <typename KeyType, typename ValType, class _Compare>
 unsigned int
 RpDict<KeyType,ValType,_Compare>::hashFxn(std::string* keyPtr) const
@@ -1157,14 +1132,11 @@ RpDict<KeyType,ValType,_Compare>::hashFxn(char* keyPtr) const
  *
  * ---------------------------------------------------------------------
  */
-
 template <typename KeyType, typename ValType, class _Compare>
 int
 RpDict<KeyType,ValType,_Compare>::randomIndex(unsigned int hash)
 {
     return (((((long) (hash))*1103515245) >> downShift) & mask);
 }
-
-
 
 #endif
