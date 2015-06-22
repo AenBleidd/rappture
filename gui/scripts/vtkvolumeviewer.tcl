@@ -2,11 +2,12 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkvolumeviewer - Vtk volume viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  This widget performs volume rendering on 3D scalar/vector datasets.
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2015  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -62,41 +63,19 @@ itcl::class Rappture::VtkVolumeViewer {
     public method scale {args}
     public method updateTransferFunctions {}
 
-    private method AddNewMarker { x y }
-    private method BuildVolumeComponents {}
-    private method ComputeAlphamap { cname }
-    private method ComputeTransferFunction { cname }
-    private method GetColormap { cname color }
-    private method GetDatasetsWithComponent { cname }
-    private method HideAllMarkers {}
-    private method InitComponentSettings { cname }
-    private method ParseLevelsOption { cname levels }
-    private method ParseMarkersOption { cname markers }
-    private method RemoveMarker { x y }
-    private method ResetColormap { cname color }
-    private method SendTransferFunctions {}
-    private method SetInitialTransferFunction { dataobj cname }
-    private method SwitchComponent { cname }
-
-    private variable _alphamap
-    private variable _current "";       # Currently selected component
-    private variable _volcomponents   ; # Array of components found
-    private variable _componentsList   ; # List of component names
-    private variable _cname2transferFunction
-    private variable _cname2defaultcolormap
-
-    private variable _parsedFunction
-    private variable _transferFunctionEditors
-
     # The following methods are only used by this class.
+    private method AddNewMarker { x y }
     private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildCutplaneTab {}
+    private method BuildCutplanesTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildViewTab {}
+    private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
     private method Combo { option }
+    private method ComputeAlphamap { cname }
+    private method ComputeTransferFunction { cname }
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
@@ -108,14 +87,20 @@ itcl::class Rappture::VtkVolumeViewer {
     private method EventuallyRequestLegend {}
     private method EventuallyRotate { q }
     private method EventuallySetCutplane { axis args }
+    private method GetColormap { cname color }
+    private method GetDatasetsWithComponent { cname }
     private method GetImage { args }
     private method GetVtkData { args }
+    private method HideAllMarkers {}
+    private method InitComponentSettings { cname }
     private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
+    private method ParseLevelsOption { cname levels }
+    private method ParseMarkersOption { cname markers }
     private method Pick {x y}
     private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
@@ -124,17 +109,23 @@ itcl::class Rappture::VtkVolumeViewer {
     private method ReceiveDataset { args }
     private method ReceiveImage { args }
     private method ReceiveLegend { colormap title vmin vmax size }
+    private method RemoveMarker { x y }
     private method RequestLegend {}
+    private method ResetColormap { cname color }
     private method Rotate {option x y}
+    private method SendTransferFunctions {}
+    private method SetInitialTransferFunction { dataobj cname }
     private method SetLegendTip { x y }
-    private method SetObjectStyle { dataobj comp }
+    private method SetObjectStyle { dataobj cname }
     private method SetOrientation { side }
     private method Slice {option args}
+    private method SwitchComponent { cname }
     private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
 
+    private variable _alphamap
     private variable _arcball ""
     private variable _dlist "";         # list of data objects
     private variable _obj2ovride;       # maps dataobj => style override
@@ -144,28 +135,37 @@ itcl::class Rappture::VtkVolumeViewer {
                                         # in the server.
     private variable _dataset2style;    # maps dataobj-component to transfunc
 
-    private variable _click;            # info used for rotate operations
-    private variable _limits;           # autoscale min/max for all axes
-    private variable _view;             # view params for 3D view
-    private variable _settings
     private variable _reset 1;          # Connection to server has been reset.
+    private variable _click;            # Info used for rotate operations.
+    private variable _limits;           # Autoscale min/max for all axes
+    private variable _view;             # View params for 3D view
+    private variable _parsedFunction
+    private variable _transferFunctionEditors
+    private variable _settings
 
-    private variable _first "";         # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
-
-    private variable _width 0
-    private variable _height 0
-    private variable _resizePending 0
-    private variable _rotatePending 0
-    private variable _cutplanePending 0
-    private variable _legendPending 0
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
     private variable _cutplaneCmd "imgcutplane"
     private variable _allowMultiComponent 0
+
+    private variable _first "";         # This is the topmost dataset.
+    private variable _current "";       # Currently selected component
+    private variable _volcomponents;    # Maps component name to list of
+                                        # dataobj-component tags
+    private variable _componentsList;   # List of components found
+    private variable _cname2transferFunction
+    private variable _cname2defaultcolormap
+
+    private variable _width 0
+    private variable _height 0
+    private variable _resizePending 0
+    private variable _legendPending 0
+    private variable _rotatePending 0
+    private variable _cutplanePending 0
 
     private common _downloadPopup;      # download options from popup
     private common _hardcopy
@@ -182,6 +182,7 @@ itk::usual VtkVolumeViewer {
 itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
 
+    #DebugOn
     EnableWaitDialog 900
 
     # Rebuild event
@@ -192,13 +193,13 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Rotate event
-    $_dispatcher register !rotate
-    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
-
     # Legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
+
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
     # X-Cutplane event
     $_dispatcher register !xcutplane
@@ -219,19 +220,19 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -315,7 +316,8 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -367,7 +369,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     if { [catch {
         BuildViewTab
         BuildVolumeTab
-        BuildCutplaneTab
+        BuildCutplanesTab
         BuildAxisTab
         BuildCameraTab
     } errs] != 0 } {
@@ -394,7 +396,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w  \
+        0,0 $itk_component(view) -fill both -reqwidth $w \
         1,0 $itk_component(legend) -fill x
     blt::table configure $itk_component(plotarea) r1 -resize none
 
@@ -527,7 +529,9 @@ itcl::body Rappture::VtkVolumeViewer::EventuallySetCutplane { axis args } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::add {dataobj {settings ""}} {
+    DebugTrace "Enter"
     if { ![IsValidObject $dataobj] } {
+        DebugTrace "Invalid"
         return;                         # Ignore invalid objects.
     }
     array set params {
@@ -569,6 +573,7 @@ itcl::body Rappture::VtkVolumeViewer::add {dataobj {settings ""}} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::delete {args} {
+    DebugTrace "Enter"
     if { [llength $args] == 0} {
         set args $_dlist
     }
@@ -672,6 +677,7 @@ itcl::body Rappture::VtkVolumeViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::scale {args} {
+    DebugTrace "Enter"
     array unset _limits
     array unset _volcomponents
     set _componentsList ""
@@ -857,6 +863,7 @@ itcl::body Rappture::VtkVolumeViewer::isconnected {} {
 #
 itcl::body Rappture::VtkVolumeViewer::disconnect {} {
     Disconnect
+    set _reset 1
 }
 
 #
@@ -1014,8 +1021,8 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         SendCmd "imgflush"
         StartBufferingCommands
     }
-    set _first ""
 
+    set _first ""
     # No volumes are active (i.e. in the working set of displayed volumes).
     # A volume is always invisible if it's not in the working set.  A
     # volume in the working set may be visible/invisible depending upon the
@@ -1025,10 +1032,10 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
-        foreach comp [$dataobj components] {
-            set tag $dataobj-$comp
+        foreach cname [$dataobj components] {
+            set tag $dataobj-$cname
             if { ![info exists _datasets($tag)] } {
-                set bytes [$dataobj vtkdata $comp]
+                set bytes [$dataobj vtkdata $cname]
                 if 0 {
                     set f [open /tmp/vtkvolume.vtk "w"]
                     fconfigure $f -translation binary -encoding binary
@@ -1051,7 +1058,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                 SendCmd "dataset add $tag data follows $length"
                 SendData $bytes
                 set _datasets($tag) 1
-                SetObjectStyle $dataobj $comp
+                SetObjectStyle $dataobj $cname
             }
             if { [info exists _obj2ovride($dataobj-raise)] } {
                 SendCmd "volume visible 1 $tag"
@@ -1987,7 +1994,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize expand
 }
 
-itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
+itcl::body Rappture::VtkVolumeViewer::BuildCutplanesTab {} {
     set font [option get $itk_component(hull) font Font]
 
     set inner [$itk_component(main) insert end \
@@ -2569,14 +2576,11 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     # maintain a list of markers for each transfer-function.  We use the one
     # of the volumes (the first in the list) using the transfer-function as a
     # reference.
-
     if { ![info exists _parsedFunction($cname)] ||
          ![info exists _cname2transferFunction($cname)] } {
         array set style {
             -color BCGYR
-            -alphamap ""
             -levels 6
-            -markers ""
         }
         # Accumulate the style from all the datasets using it.
         foreach tag [GetDatasetsWithComponent $cname] {
@@ -2590,14 +2594,20 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
         if { [info exists _transferFunctionEditors($cname)] } {
             eval $_transferFunctionEditors($cname) limits $_limits($cname)
         }
-        if { [info exists style(-markers)] &&
-             [llength $style(-markers)] > 0 } {
-            ParseMarkersOption $cname $style(-markers)
-        } else {
-            ParseLevelsOption $cname $style(-levels)
-        }
-        if { $style(-alphamap) != "" } {
+        # Don't enable the -alphamap style until we have a proper UI
+        # to allow editing the transfer function
+        array unset style -alphamap
+        if { [info exists style(-alphamap)] &&
+             $style(-alphamap) != "" } {
             set _alphamap($cname) $style(-alphamap)
+            set _parsedFuntion($cname) 1
+        } else {
+            if { [info exists style(-markers)] &&
+                 [llength $style(-markers)] > 0 } {
+                ParseMarkersOption $cname $style(-markers)
+            } else {
+                ParseLevelsOption $cname $style(-levels)
+            }
         }
     } else {
         foreach {cmap amap} $_cname2transferFunction($cname) break
@@ -2607,9 +2617,10 @@ itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
     } else {
         set amap $_alphamap($cname)
     }
+    # We don't need to use a spline for the opaque map
     set opaqueAmap "0.0 1.0 1.0 1.0"
     set _cname2transferFunction($cname) [list $cmap $amap]
-    SendCmd [list colormap define $cname $cmap $amap]
+    SendCmd [list colormap define $cname $cmap -spline $amap]
     SendCmd [list colormap define $cname-opaque $cmap $opaqueAmap]
 }
 
@@ -2627,7 +2638,7 @@ itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
     set cmap [GetColormap $cname $color]
     set _cname2transferFunction($cname) [list $cmap $amap]
     set opaqueAmap "0.0 1.0 1.0 1.0"
-    SendCmd [list colormap define $cname $cmap $amap]
+    SendCmd [list colormap define $cname $cmap -spline $amap]
     SendCmd [list colormap define $cname-opaque $cmap $opaqueAmap]
     EventuallyRequestLegend
 }
@@ -2741,9 +2752,12 @@ itcl::body Rappture::VtkVolumeViewer::SwitchComponent { cname } {
     set _current $cname;                # Reset the current component
 }
 
+#
+# Alpha map is in the format: normalized_value opacity midpoint sharpness
+#
 itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
     if { ![info exists _transferFunctionEditors($cname)] } {
-        return [list 0.0 0.0 1.0 1.0]
+        return [list 0.0 0.0 0.5 0.0 1.0 1.0 0.5 0.0]
     }
     if { ![info exists _settings($cname-volumeambient)] } {
         InitComponentSettings $cname
@@ -2764,7 +2778,7 @@ itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
     set last [lindex $isovalues end]
     set amap ""
     if { $first == "" || $first != 0.0 } {
-        lappend amap 0.0 0.0
+        lappend amap 0.0 0.0 0.5 0.0
     }
     foreach x $isovalues {
         set x1 [expr {$x-$delta-0.00001}]
@@ -2792,13 +2806,13 @@ itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
             set x4 1.0
         }
         # add spikes in the middle
-        lappend amap $x1 0.0
-        lappend amap $x2 $max
-        lappend amap $x3 $max
-        lappend amap $x4 0.0
+        lappend amap $x1 0.0 0.5 0.0
+        lappend amap $x2 $max 0.5 0.0
+        lappend amap $x3 $max 0.5 0.0
+        lappend amap $x4 0.0 0.5 0.0
     }
     if { $last == "" || $last != 1.0 } {
-        lappend amap 1.0 0.0
+        lappend amap 1.0 0.0 0.5 0.0
     }
     return $amap
 }
