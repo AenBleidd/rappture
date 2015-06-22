@@ -7,7 +7,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2015  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -157,14 +157,8 @@ itk::usual NanovisViewer {
 itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _serverType "nanovis"
 
-    # Draw legend event
-    $_dispatcher register !legend
-    $_dispatcher dispatch $this !legend "[itcl::code $this FixLegend]; list"
-
-    # Send transfer functions event
-    $_dispatcher register !send_transfunc
-    $_dispatcher dispatch $this !send_transfunc \
-        "[itcl::code $this SendTransferFunctions]; list"
+    #DebugOn
+    EnableWaitDialog 900
 
     # Rebuild event
     $_dispatcher register !rebuild
@@ -173,6 +167,15 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
+    # Legend event
+    $_dispatcher register !legend
+    $_dispatcher dispatch $this !legend "[itcl::code $this FixLegend]; list"
+
+    # Send transfer functions event
+    $_dispatcher register !send_transfunc
+    $_dispatcher dispatch $this !send_transfunc \
+        "[itcl::code $this SendTransferFunctions]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -183,18 +186,16 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        -qw      0.853553
-        -qx      -0.353553
-        -qy      0.353553
-        -qz      0.146447
-        -xpan    0
-        -ypan    0
-        -zoom    1.0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
-
-    set _reset 1
 
     array set _settings [subst {
         -ambient                60
@@ -229,14 +230,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         -zoom                   $_view(-zoom)
     }]
 
-    itk_component add 3dview {
+    itk_component add view {
         label $itk_component(plotarea).view -image $_image(plot) \
             -highlightthickness 0 -borderwidth 0
     } {
         usual
         ignore -highlightthickness -borderwidth  -background
     }
-    bind $itk_component(3dview) <Control-F1> [itcl::code $this ToggleConsole]
+    bind $itk_component(view) <Control-F1> [itcl::code $this ToggleConsole]
 
     set f [$itk_component(main) component controls]
     itk_component add reset {
@@ -280,8 +281,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         Rappture::PushButton $f.volume \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -command [itcl::code $this AdjustSetting -volume] \
-            -variable [itcl::scope _settings(-volume)]
+            -variable [itcl::scope _settings(-volume)] \
+            -command [itcl::code $this AdjustSetting -volume]
     }
     $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
@@ -329,68 +330,66 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
     set w 10000
-    pack forget $itk_component(3dview)
+    pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(3dview) -fill both -reqwidth $w \
+        0,0 $itk_component(view) -fill both -reqwidth $w \
         1,0 $itk_component(legend) -fill x
     blt::table configure $itk_component(plotarea) r1 -resize none
 
     # Bindings for rotation via mouse
-    bind $itk_component(3dview) <ButtonPress-1> \
+    bind $itk_component(view) <ButtonPress-1> \
         [itcl::code $this Rotate click %x %y]
-    bind $itk_component(3dview) <B1-Motion> \
+    bind $itk_component(view) <B1-Motion> \
         [itcl::code $this Rotate drag %x %y]
-    bind $itk_component(3dview) <ButtonRelease-1> \
+    bind $itk_component(view) <ButtonRelease-1> \
         [itcl::code $this Rotate release %x %y]
 
-    bind $itk_component(3dview) <Configure> \
+    bind $itk_component(view) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
-    bind $itk_component(3dview) <ButtonPress-2> \
+    bind $itk_component(view) <ButtonPress-2> \
         [itcl::code $this Pan click %x %y]
-    bind $itk_component(3dview) <B2-Motion> \
+    bind $itk_component(view) <B2-Motion> \
         [itcl::code $this Pan drag %x %y]
-    bind $itk_component(3dview) <ButtonRelease-2> \
+    bind $itk_component(view) <ButtonRelease-2> \
         [itcl::code $this Pan release %x %y]
 
     # Bindings for panning via keyboard
-    bind $itk_component(3dview) <KeyPress-Left> \
+    bind $itk_component(view) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
-    bind $itk_component(3dview) <KeyPress-Right> \
+    bind $itk_component(view) <KeyPress-Right> \
         [itcl::code $this Pan set 10 0]
-    bind $itk_component(3dview) <KeyPress-Up> \
+    bind $itk_component(view) <KeyPress-Up> \
         [itcl::code $this Pan set 0 -10]
-    bind $itk_component(3dview) <KeyPress-Down> \
+    bind $itk_component(view) <KeyPress-Down> \
         [itcl::code $this Pan set 0 10]
-    bind $itk_component(3dview) <Shift-KeyPress-Left> \
+    bind $itk_component(view) <Shift-KeyPress-Left> \
         [itcl::code $this Pan set -2 0]
-    bind $itk_component(3dview) <Shift-KeyPress-Right> \
+    bind $itk_component(view) <Shift-KeyPress-Right> \
         [itcl::code $this Pan set 2 0]
-    bind $itk_component(3dview) <Shift-KeyPress-Up> \
+    bind $itk_component(view) <Shift-KeyPress-Up> \
         [itcl::code $this Pan set 0 -2]
-    bind $itk_component(3dview) <Shift-KeyPress-Down> \
+    bind $itk_component(view) <Shift-KeyPress-Down> \
         [itcl::code $this Pan set 0 2]
 
     # Bindings for zoom via keyboard
-    bind $itk_component(3dview) <KeyPress-Prior> \
+    bind $itk_component(view) <KeyPress-Prior> \
         [itcl::code $this Zoom out]
-    bind $itk_component(3dview) <KeyPress-Next> \
+    bind $itk_component(view) <KeyPress-Next> \
         [itcl::code $this Zoom in]
 
-    bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
+    bind $itk_component(view) <Enter> "focus $itk_component(view)"
 
     if {[string equal "x11" [tk windowingsystem]]} {
         # Bindings for zoom via mouse
-        bind $itk_component(3dview) <4> [itcl::code $this Zoom out]
-        bind $itk_component(3dview) <5> [itcl::code $this Zoom in]
+        bind $itk_component(view) <4> [itcl::code $this Zoom out]
+        bind $itk_component(view) <5> [itcl::code $this Zoom in]
     }
 
     set _image(download) [image create photo]
 
     eval itk_initialize $args
-
-    EnableWaitDialog 900
     Connect
 }
 
@@ -449,7 +448,7 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
 
 # ----------------------------------------------------------------------
 # USAGE: get ?-objects?
-# USAGE: get ?-image 3dview|legend?
+# USAGE: get ?-image view|legend?
 #
 # Clients use this to query the list of objects being plotted, in
 # order from bottom to top of this result.  The optional "-image"
@@ -479,17 +478,17 @@ itcl::body Rappture::NanovisViewer::get {args} {
         }
         -image {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"get -image 3dview|legend\""
+                error "wrong # args: should be \"get -image view|legend\""
             }
             switch -- [lindex $args end] {
-                3dview {
+                view {
                     return $_image(plot)
                 }
                 legend {
                     return $_image(legend)
                 }
                 default {
-                    error "bad image name \"[lindex $args end]\": should be 3dview or legend"
+                    error "bad image name \"[lindex $args end]\": should be view or legend"
                 }
             }
         }
@@ -502,10 +501,9 @@ itcl::body Rappture::NanovisViewer::get {args} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-#       Clients use this to delete a dataobj from the plot.  If no dataobjs
-#       are specified, then all dataobjs are deleted.  No data objects are
-#       deleted.  They are only removed from the display list.
-#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.  No data objects are
+# deleted.  They are only removed from the display list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::delete {args} {
     if {[llength $args] == 0} {
@@ -681,8 +679,8 @@ itcl::body Rappture::NanovisViewer::Connect {} {
             SendCmd "clientinfo [list $info]"
         }
 
-        set w [winfo width $itk_component(3dview)]
-        set h [winfo height $itk_component(3dview)]
+        set w [winfo width $itk_component(view)]
+        set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
     }
     return $result
@@ -691,7 +689,7 @@ itcl::body Rappture::NanovisViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::NanovisViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -707,8 +705,7 @@ itcl::body Rappture::NanovisViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::NanovisViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -808,11 +805,11 @@ itcl::body Rappture::NanovisViewer::DrawLegend { cname } {
 #
 # ReceiveLegend --
 #
-#       The procedure is the response from the render server to each "legend"
-#       command.  The server sends back a "legend" command invoked our
-#       the slave interpreter.  The purpose is to collect data of the image
-#       representing the legend in the canvas.  In addition, the
-#       active transfer function is displayed.
+# The procedure is the response from the render server to each "legend"
+# command.  The server sends back a "legend" command invoked our
+# the slave interpreter.  The purpose is to collect data of the image
+# representing the legend in the canvas.  In addition, the
+# active transfer function is displayed.
 #
 itcl::body Rappture::NanovisViewer::ReceiveLegend { cname vmin vmax size } {
     if { ![isconnected] } {
@@ -828,11 +825,11 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { cname vmin vmax size } {
 #
 # ReceiveData --
 #
-#       The procedure is the response from the render server to each "data
-#       follows" command.  The server sends back a "data" command invoked our
-#       the slave interpreter.  The purpose was to collect the min/max of the
-#       volume sent to the render server.  This is no longer needed since we
-#       already know the limits.
+# The procedure is the response from the render server to each "data
+# follows" command.  The server sends back a "data" command invoked our
+# the slave interpreter.  The purpose was to collect the min/max of the
+# volume sent to the render server.  This is no longer needed since we
+# already know the limits.
 #
 itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     if { ![isconnected] } {
@@ -854,8 +851,8 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Rebuild {} {
-    set w [winfo width $itk_component(3dview)]
-    set h [winfo height $itk_component(3dview)]
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
         update
         $_dispatcher event -idle !rebuild
@@ -960,6 +957,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         SendCmd "camera reset"
         PanCamera
         SendCmd "camera zoom $_view(-zoom)"
+        set _reset 0
     }
 
     if {"" != $_first} {
@@ -972,7 +970,6 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     blt::busy hold $itk_component(hull)
     StopBufferingCommands
     blt::busy release $itk_component(hull)
-    set _reset 0
 }
 
 # ----------------------------------------------------------------------
@@ -1070,7 +1067,7 @@ itcl::body Rappture::NanovisViewer::PanCamera {} {
 itcl::body Rappture::NanovisViewer::Rotate {option x y} {
     switch -- $option {
         click {
-            $itk_component(3dview) configure -cursor fleur
+            $itk_component(view) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
         }
@@ -1078,8 +1075,8 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
             if {[array size _click] == 0} {
                 Rotate click $x $y
             } else {
-                set w [winfo width $itk_component(3dview)]
-                set h [winfo height $itk_component(3dview)]
+                set w [winfo width $itk_component(view)]
+                set h [winfo height $itk_component(view)]
                 if {$w <= 0 || $h <= 0} {
                     return
                 }
@@ -1106,7 +1103,7 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
         }
         release {
             Rotate drag $x $y
-            $itk_component(3dview) configure -cursor ""
+            $itk_component(view) configure -cursor ""
             catch {unset _click}
         }
         default {
@@ -1125,8 +1122,8 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Pan {option x y} {
     # Experimental stuff
-    set w [winfo width $itk_component(3dview)]
-    set h [winfo height $itk_component(3dview)]
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
     if { $option == "set" } {
         set x [expr $x / double($w)]
         set y [expr $y / double($h)]
@@ -1140,7 +1137,7 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
     if { $option == "click" } {
         set _click(x) $x
         set _click(y) $y
-        $itk_component(3dview) configure -cursor hand1
+        $itk_component(view) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
         set dx [expr ($_click(x) - $x)/double($w)]
@@ -1154,7 +1151,7 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
         set _settings(-ypan) $_view(-ypan)
     }
     if { $option == "release" } {
-        $itk_component(3dview) configure -cursor ""
+        $itk_component(view) configure -cursor ""
     }
 }
 
@@ -1247,7 +1244,7 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
         "-legendvisible" {
             if { $_settings($what) } {
                 blt::table $itk_component(plotarea) \
-                    0,0 $itk_component(3dview) -fill both \
+                    0,0 $itk_component(view) -fill both \
                     1,0 $itk_component(legend) -fill x
                 blt::table configure $itk_component(plotarea) r1 -resize none
             } else {
@@ -1367,11 +1364,11 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #
 # NameTransferFunction --
 #
-#       Creates a transfer function name based on the <style> settings in the
-#       library run.xml file. This placeholder will be used later to create
-#       and send the actual transfer function once the data info has been sent
-#       to us by the render server. [We won't know the volume limits until the
-#       server parses the 3D data and sends back the limits via ReceiveData.]
+# Creates a transfer function name based on the <style> settings in the
+# library run.xml file. This placeholder will be used later to create
+# and send the actual transfer function once the data info has been sent
+# to us by the render server. [We won't know the volume limits until the
+# server parses the 3D data and sends back the limits via ReceiveData.]
 #
 itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
     array set style {
@@ -1402,11 +1399,11 @@ itcl::body Rappture::NanovisViewer::NameTransferFunction { dataobj cname } {
 #
 # ComputeTransferFunction --
 #
-#       Computes and sends the transfer function to the render server.  It's
-#       assumed that the volume data limits are known and that the global
-#       transfer-functions slider values have been set up.  Both parts are
-#       needed to compute the relative value (location) of the marker, and
-#       the alpha map of the transfer function.
+# Computes and sends the transfer function to the render server.  It's
+# assumed that the volume data limits are known and that the global
+# transfer-functions slider values have been set up.  Both parts are
+# needed to compute the relative value (location) of the marker, and
+# the alpha map of the transfer function.
 #
 itcl::body Rappture::NanovisViewer::ComputeTransferFunction { cname } {
     foreach {cmap amap} $_cname2transferFunction($cname) break
@@ -2088,9 +2085,9 @@ itcl::body Rappture::NanovisViewer::SetOrientation { side } {
 #
 # InitComponentSettings --
 #
-#    Initializes the volume settings for a specific component. This should
-#    match what's used as global settings above. This is called the first
-#    time we try to switch to a given component in SwitchComponent below.
+# Initializes the volume settings for a specific component. This should
+# match what's used as global settings above. This is called the first
+# time we try to switch to a given component in SwitchComponent below.
 #
 itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
     foreach {key value} {
@@ -2111,9 +2108,9 @@ itcl::body Rappture::NanovisViewer::InitComponentSettings { cname } {
 #
 # SwitchComponent --
 #
-#    This is called when the current component is changed by the dropdown
-#    menu in the volume tab.  It synchronizes the global volume settings
-#    with the settings of the new current component.
+# This is called when the current component is changed by the dropdown
+# menu in the volume tab.  It synchronizes the global volume settings
+# with the settings of the new current component.
 #
 itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
     if { ![info exists _settings($cname-ambient)] } {
@@ -2136,12 +2133,12 @@ itcl::body Rappture::NanovisViewer::SwitchComponent { cname } {
 #
 # BuildVolumeComponents --
 #
-#    This is called from the "scale" method which is called when a new
-#    dataset is added or deleted.  It repopulates the dropdown menu of
-#    volume component names.  It sets the current component to the first
-#    component in the list (of components found).  Finally, if there is
-#    only one component, don't display the label or the combobox in the
-#    volume settings tab.
+# This is called from the "scale" method which is called when a new
+# dataset is added or deleted.  It repopulates the dropdown menu of
+# volume component names.  It sets the current component to the first
+# component in the list (of components found).  Finally, if there is
+# only one component, don't display the label or the combobox in the
+# volume settings tab.
 #
 itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} {
     $itk_component(volcomponents) choices delete 0 end
@@ -2167,10 +2164,10 @@ itcl::body Rappture::NanovisViewer::BuildVolumeComponents {} {
 #
 # GetDatasetsWithComponents --
 #
-#    Returns a list of all the datasets (known by the combination of their
-#    data object and component name) that match the given component name.
-#    For example, this is used where we want to change the settings of
-#    volumes that have the current component.
+# Returns a list of all the datasets (known by the combination of their
+# data object and component name) that match the given component name.
+# For example, this is used where we want to change the settings of
+# volumes that have the current component.
 #
 itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } {
     if { ![info exists _volcomponents($cname)] } {
@@ -2189,9 +2186,9 @@ itcl::body Rappture::NanovisViewer::GetDatasetsWithComponent { cname } {
 #
 # HideAllMarkers --
 #
-#    Hide all the markers in all the transfer functions.  Can't simply
-#    delete and recreate markers from the <style> since the user may have
-#    created, deleted, or moved markers.
+# Hide all the markers in all the transfer functions.  Can't simply
+# delete and recreate markers from the <style> since the user may have
+# created, deleted, or moved markers.
 #
 itcl::body Rappture::NanovisViewer::HideAllMarkers {} {
     foreach cname [array names _transferFunctionEditors] {
