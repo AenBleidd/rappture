@@ -31,6 +31,15 @@ package require Rappture
 Rappture::objects::init
 Rappture::resources::load
 
+# Parse command line options
+# ----------------------------------------------------------------------
+Rappture::getopts argv params {
+    value -tool ""
+    value -status ""
+    value -output ""
+    value -cleanup no
+}
+
 # load the XML info in the driver file
 if {[catch {Rappture::library $driverxml} result]} {
     puts stderr "ERROR while loading driver file \"$driverxml\""
@@ -40,6 +49,9 @@ if {[catch {Rappture::library $driverxml} result]} {
 set driverobj $result
 
 # If tool.xml is not specified, try to find it the way Rappture would.
+if {$params(-tool) ne ""} {
+    set toolxml $params(-tool)
+}
 if {$toolxml eq ""} {
     if {[file isfile tool.xml]} {
         set toolxml [file normalize tool.xml]
@@ -119,14 +131,8 @@ proc log_stats {args} {
     log_append usage $line
 }
 
-# Parse command line options to see
+# Apply effects of all other command line options
 # ----------------------------------------------------------------------
-Rappture::getopts argv params {
-    value -status ""
-    value -output ""
-    value -cleanup no
-}
-
 if {$params(-status) ne ""} {
     set LogFid [open $params(-status) w]
     $TaskObj configure -logger {log_append status} -jobstats log_stats
