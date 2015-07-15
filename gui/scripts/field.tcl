@@ -650,8 +650,13 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::InitHints {} {
+    # Order of duplicate keys matters here: later entries override
+    # earlier ones.  For example: camera.position is deprecated in
+    # favor of about.camera, so about.camera is listed after
+    # camera.position
     foreach {key path} {
         camera          camera.position
+        camera          about.camera
         color           about.color
         default         about.default
         group           about.group
