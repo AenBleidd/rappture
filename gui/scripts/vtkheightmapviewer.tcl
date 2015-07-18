@@ -1489,7 +1489,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             # Get the new limits because the field changed.
             ResetAxes
             SendCmd "dataset scalar $_curFldName"
-            SendCmd "heightmap colormode scalar $_curFldName"
+            SendCmd "heightmap colormode $_colorMode $_curFldName"
             Zoom reset
             UpdateContourList
             DrawLegend
