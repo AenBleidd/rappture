@@ -1146,6 +1146,16 @@ itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
     rename $reader ""
 }
 
+#
+# FIXME: Allowing a VTK file to be used as a Field <component> means
+# there can be multiple VTK fields with different association, type, and
+# number of components (array elements) within a single Rappture::Field.
+# This breaks the concept of the Field object since the <component>'s
+# <association>, <elemtype> and <elemsize> can't be set to a single
+# value in this case.
+#
+# Rappture needs a Dataset object with a single Mesh and multiple Fields.
+#
 itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     package require vtk
 
@@ -1195,33 +1205,90 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     lappend limits x [list $xmin $xmax]
     lappend limits y [list $ymin $ymax]
     lappend limits z [list $zmin $zmax]
+    set vmin 0
+    set vmax 1
+    set foundDefaultArray 0
     set dataAttrs [$dataset GetPointData]
     if { $dataAttrs == ""} {
-        puts stderr "WARNING: No point data found in \"$_path\""
+        puts stderr "ERROR: Can't get point data attributes in \"$_path\""
         rename $reader ""
         return 0
     }
-    set vmin 0
-    set vmax 1
     set numArrays [$dataAttrs GetNumberOfArrays]
-    if { $numArrays > 0 } {
-        for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
-            set array [$dataAttrs GetArray $i]
-            set fname  [$dataAttrs GetArrayName $i]
-            foreach {min max} [$array GetRange -1] break
-            if {$i == 0} {
-                set vmin $min
-                set vmax $max
-            }
+    for {set i 0} {$i < $numArrays} {incr i} {
+        set array [$dataAttrs GetArray $i]
+        set fname [$dataAttrs GetArrayName $i]
+        foreach {min max} [$array GetRange -1] break
+        if {!$foundDefaultArray} {
+            set vmin $min
+            set vmax $max
+            set foundDefaultArray 1
+        }
+        lappend limits $fname [list $min $max]
+        set _fld2Units($fname) ""
+        set _fld2Label($fname) $fname
+        # Let the VTK file override the <elemsize>
+        set _fld2Components($fname) [$array GetNumberOfComponents]
+        lappend _comp2fldName($cname) $fname
+    }
+    # FIXME: Can't properly handle field names that are re-used in point data
+    # cell data and/or field data even though this is permitted in VTK.
+    # For now, we'll use the first field found of point, cell, then field data
+    set dataAttrs [$dataset GetCellData]
+    if { $dataAttrs == ""} {
+        puts stderr "ERROR: Can't get cell data attributes found in \"$_path\""
+        rename $reader ""
+        return 0
+    }
+    set numArrays [$dataAttrs GetNumberOfArrays]
+    for {set i 0} {$i < $numArrays} {incr i} {
+        set array [$dataAttrs GetArray $i]
+        set fname [$dataAttrs GetArrayName $i]
+        foreach {min max} [$array GetRange -1] break
+        if {!$foundDefaultArray} {
+            set vmin $min
+            set vmax $max
+            set foundDefaultArray 1
+        }
+        if {[info exists _fld2Components($fname)]} {
+            puts stderr "WARNING: Re-use of field name within cell data attributes"
+        } else {
             lappend limits $fname [list $min $max]
             set _fld2Units($fname) ""
             set _fld2Label($fname) $fname
-            # Let the VTK file override the <type> designated.
+            # Let the VTK file override the <elemsize>
             set _fld2Components($fname) [$array GetNumberOfComponents]
             lappend _comp2fldName($cname) $fname
         }
     }
-
+    set dataAttrs [$dataset GetFieldData]
+    if { $dataAttrs == ""} {
+        puts stderr "ERROR: Can't get field data attributes found in \"$_path\""
+        rename $reader ""
+        return 0
+    }
+    set numArrays [$dataAttrs GetNumberOfArrays]
+    for {set i 0} {$i < $numArrays} {incr i} {
+        set array [$dataAttrs GetArray $i]
+        set fname [$dataAttrs GetArrayName $i]
+        foreach {min max} [$array GetRange -1] break
+        if {!$foundDefaultArray} {
+            set vmin $min
+            set vmax $max
+            set foundDefaultArray 1
+        }
+        if {[info exists _fld2Components($fname)]} {
+            puts stderr "WARNING: Re-use of field name within field data attributes"
+        } else {
+            lappend limits $fname [list $min $max]
+            set _fld2Units($fname) ""
+            set _fld2Label($fname) $fname
+            # Let the VTK file override the <elemsize>
+            set _fld2Components($fname) [$array GetNumberOfComponents]
+            lappend _comp2fldName($cname) $fname
+        }
+    }
+    # This is set to the range of the first array found
     lappend limits v [list $vmin $vmax]
     set _comp2limits($cname) $limits
 
