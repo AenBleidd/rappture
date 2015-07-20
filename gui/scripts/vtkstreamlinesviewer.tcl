@@ -2161,7 +2161,6 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
         -surfacevisible 1
         -surfacewireframe 0
         -visible 1
-        -wireframe 0
     }
     if { $dataobj != $_first } {
         set settings(-opacity) 1
