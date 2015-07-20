@@ -69,7 +69,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildStreamsTab {}
-    private method BuildVolumeTab {}
+    private method BuildSurfaceTab {}
     private method DrawLegend {}
     private method Combo { option }
     private method Connect {}
@@ -134,9 +134,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _start 0
     private variable _title ""
     private variable _seeds
-
-    private common _downloadPopup;      # download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
@@ -144,14 +141,15 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _rotatePending 0
     private variable _cutplanePending 0
     private variable _legendPending 0
-    private variable _vectorFields
-    private variable _scalarFields
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _field      ""
     private variable _numSeeds 200
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
+
+    private common _downloadPopup;      # download options from popup
+    private common _hardcopy
 }
 
 itk::usual VtkStreamlinesViewer {
@@ -244,14 +242,14 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         -streamlinesmode            lines
         -streamlinesnumseeds        200
         -streamlinesopacity         100
-        -streamlinesscale           1
+        -streamlineslength          70
         -streamlinesseedsvisible    0
         -streamlinesvisible         1
-        -volumeedges                0
-        -volumelighting             1
-        -volumeopacity              40
-        -volumevisible              1
-        -volumewireframe            0
+        -surfaceedges               0
+        -surfacelighting            1
+        -surfaceopacity             40
+        -surfacevisible             1
+        -surfacewireframe           0
         -xgrid                      0
         -ygrid                      0
         -zgrid                      0
@@ -329,17 +327,17 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    itk_component add volume {
-        Rappture::PushButton $f.volume \
+    itk_component add surface {
+        Rappture::PushButton $f.surface \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -variable [itcl::scope _settings(-volumevisible)] \
-            -command [itcl::code $this AdjustSetting -volumevisible]
+            -variable [itcl::scope _settings(-surfacevisible)] \
+            -command [itcl::code $this AdjustSetting -surfacevisible]
     }
-    $itk_component(volume) select
-    Rappture::Tooltip::for $itk_component(volume) \
-        "Don't display the volume"
-    pack $itk_component(volume) -padx 2 -pady 2
+    $itk_component(surface) select
+    Rappture::Tooltip::for $itk_component(surface) \
+        "Show/Hide the boundary surface"
+    pack $itk_component(surface) -padx 2 -pady 2
 
     itk_component add streamlines {
         Rappture::PushButton $f.streamlines \
@@ -350,7 +348,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     }
     $itk_component(streamlines) select
     Rappture::Tooltip::for $itk_component(streamlines) \
-        "Toggle the streamlines on/off"
+        "Show/Hide the streamlines"
     pack $itk_component(streamlines) -padx 2 -pady 2
 
     itk_component add cutplane {
@@ -361,12 +359,11 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
             -command [itcl::code $this AdjustSetting -cutplanevisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
-        "Show/Hide cutplanes"
+        "Show/Hide the cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
 
-
     if { [catch {
-        BuildVolumeTab
+        BuildSurfaceTab
         BuildStreamsTab
         BuildCutplaneTab
         BuildAxisTab
@@ -1030,6 +1027,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         $itk_component(fieldmenu) delete 0 end
         array unset _fields
         set _curFldName ""
+        set _curFldLabel ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
                 if { [info exists _fields($fname)] } {
@@ -1046,7 +1044,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                     -font "Arial 8" \
                     -command [itcl::code $this Combo invoke]
                 set _fields($fname) [list $label $units $components]
-                if { $_curFldName == "" } {
+                if { $_curFldName == "" && $components == 3 } {
                     set _curFldName $fname
                     set _curFldLabel $label
                 }
@@ -1060,8 +1058,8 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             -streamlinesvisible \
             -streamlineslighting \
             -streamlinescolormap -field \
-            -volumevisible -volumeedges -volumelighting -volumeopacity \
-            -volumewireframe \
+            -surfacevisible -surfaceedges -surfacelighting -surfaceopacity \
+            -surfacewireframe \
             -cutplanevisible \
             -cutplanexposition -cutplaneyposition -cutplanezposition \
             -cutplanexvisible -cutplaneyvisible -cutplanezvisible
@@ -1342,6 +1340,13 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "-cutplanevisible" {
             set bool $_settings($what)
             SendCmd "cutplane visible $bool"
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(cutplane) \
+                    "Hide the cutplanes"
+            } else {
+                Rappture::Tooltip::for $itk_component(cutplane) \
+                    "Show the cutplanes"
+            }
         }
         "-cutplanewireframe" {
             set bool $_settings($what)
@@ -1449,40 +1454,45 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             set sval [expr { 0.01 * double($val) }]
             SendCmd "streamlines opacity $sval"
         }
-        "-streamlinesscale" {
+        "-streamlineslength" {
             set val $_settings($what)
-            set sval [expr { 0.01 * double($val) }]
-            SendCmd "streamlines scale $sval $sval $sval"
+            set sval [expr { (0.01 * double($val)) / 0.7 }]
+            foreach axis {x y z} {
+                foreach {min max} $_limits($axis) break
+                set ${axis}len [expr double($max) - double($min)]
+            }
+            set length [expr { $sval * ($xlen + $ylen + $zlen) } ]
+            SendCmd "streamlines length $length"
         }
         "-streamlineslighting" {
             set bool $_settings($what)
             SendCmd "streamlines lighting $bool"
         }
-        "-volumeopacity" {
+        "-surfaceopacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "polydata opacity $sval"
         }
-        "-volumewireframe" {
+        "-surfacewireframe" {
             set bool $_settings($what)
             SendCmd "polydata wireframe $bool"
         }
-        "-volumevisible" {
+        "-surfacevisible" {
             set bool $_settings($what)
             SendCmd "polydata visible $bool"
             if { $bool } {
-                Rappture::Tooltip::for $itk_component(volume) \
-                    "Hide the volume"
+                Rappture::Tooltip::for $itk_component(surface) \
+                    "Hide the boundary surface"
             } else {
-                Rappture::Tooltip::for $itk_component(volume) \
-                    "Show the volume"
+                Rappture::Tooltip::for $itk_component(surface) \
+                    "Show the boundary surface"
             }
         }
-        "-volumelighting" {
+        "-surfacelighting" {
             set bool $_settings($what)
             SendCmd "polydata lighting $bool"
         }
-        "-volumeedges" {
+        "-surfaceedges" {
             set bool $_settings($what)
             SendCmd "polydata edges $bool"
         }
@@ -1543,8 +1553,6 @@ itcl::body Rappture::VtkStreamlinesViewer::ChangeColormap {dataobj comp color} {
 itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     array set style {
         -color BCGYR
-        -levels 6
-        -opacity 1.0
     }
     set tag $dataobj-$comp
     if { ![info exists _initialStyle($tag)] } {
@@ -1561,7 +1569,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     # Override initial style with current style.
     array set style $_style($tag)
 
-    set name "$style(-color):$style(-levels):$style(-opacity)"
+    set name "$style(-color)"
     if { ![info exists _colormaps($name)] } {
         BuildColormap $name [array get style]
         set _colormaps($name) 1
@@ -1583,11 +1591,6 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name styles } {
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(-volumeopacity)] } {
-        set _settings(-volumeopacity) $style(-opacity)
-    }
-    set max $_settings(-volumeopacity)
-
     set amap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $amap }"
 }
@@ -1614,46 +1617,46 @@ itcl::configbody Rappture::VtkStreamlinesViewer::plotforeground {
     }
 }
 
-itcl::body Rappture::VtkStreamlinesViewer::BuildVolumeTab {} {
+itcl::body Rappture::VtkStreamlinesViewer::BuildSurfaceTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
-        -title "Volume Settings" \
+        -title "Boundary Surface Settings" \
         -icon [Rappture::icon volume-on]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.volume \
-        -text "Show Volume" \
-        -variable [itcl::scope _settings(-volumevisible)] \
-        -command [itcl::code $this AdjustSetting -volumevisible] \
+    checkbutton $inner.surface \
+        -text "Show Surface" \
+        -variable [itcl::scope _settings(-surfacevisible)] \
+        -command [itcl::code $this AdjustSetting -surfacevisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(-volumewireframe)] \
-        -command [itcl::code $this AdjustSetting -volumewireframe] \
+        -variable [itcl::scope _settings(-surfacewireframe)] \
+        -command [itcl::code $this AdjustSetting -surfacewireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(-volumelighting)] \
-        -command [itcl::code $this AdjustSetting -volumelighting] \
+        -variable [itcl::scope _settings(-surfacelighting)] \
+        -command [itcl::code $this AdjustSetting -surfacelighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(-volumeedges)] \
-        -command [itcl::code $this AdjustSetting -volumeedges] \
+        -variable [itcl::scope _settings(-surfaceedges)] \
+        -command [itcl::code $this AdjustSetting -surfaceedges] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-volumeopacity)] \
+        -variable [itcl::scope _settings(-surfaceopacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumeopacity]
+        -command [itcl::code $this AdjustSetting -surfaceopacity]
 
     blt::table $inner \
         0,0 $inner.wireframe -anchor w -pady 2 -cspan 2 \
@@ -1719,12 +1722,12 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -showvalue on \
         -command [itcl::code $this AdjustSetting -streamlinesnumseeds]
 
-    label $inner.scale_l -text "Scale" -font "Arial 9"
+    label $inner.scale_l -text "Length" -font "Arial 9"
     ::scale $inner.scale -from 1 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-streamlinesscale)] \
+        -variable [itcl::scope _settings(-streamlineslength)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting -streamlinesscale]
+        -command [itcl::code $this AdjustSetting -streamlineslength]
 
     label $inner.field_l -text "Color by" -font "Arial 9"
     itk_component add field {
@@ -1750,8 +1753,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         1,1 $inner.colormap    -fill x   -pady 2  \
         2,0 $inner.mode_l      -anchor w -pady 2  \
         2,1 $inner.mode        -fill x   -pady 2  \
-        3,0 $inner.opacity_l   -anchor w -pady 2  \
-        3,1 $inner.opacity     -fill x -pady 2 \
+        3,0 $inner.scale_l     -anchor w -pady 2  \
+        3,1 $inner.scale       -fill x   -pady 2  \
+        4,0 $inner.opacity_l   -anchor w -pady 2  \
+        4,1 $inner.opacity     -fill x -pady 2 \
         5,0 $inner.lighting    -anchor w -pady 2 -cspan 2 \
         6,0 $inner.seeds       -anchor w -pady 2 -cspan 2 \
         7,0 $inner.density_l   -anchor w -pady 2  \
@@ -2136,16 +2141,27 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     set style [$dataobj style $comp]
     array set settings {
-        -color \#808080
-        -edges 0
+        -color BCGYR
+        -constcolor white
         -edgecolor black
-        -linewidth 1.0
-        -opacity 0.4
-        -wireframe 0
+        -edges 0
         -lighting 1
+        -linewidth 1.0
+        -mode lines
+        -numseeds 200
+        -opacity 1.0
         -seeds 1
         -seedcolor white
+        -streamlineslength 0.7
+        -surfacecolor white
+        -surfaceedgecolor black
+        -surfaceedges 0
+        -surfacelighting 1
+        -surfaceopacity 0.4
+        -surfacevisible 1
+        -surfacewireframe 0
         -visible 1
+        -wireframe 0
     }
     if { $dataobj != $_first } {
         set settings(-opacity) 1
@@ -2153,24 +2169,50 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     array set settings $style
     StartBufferingCommands
     SendCmd "streamlines add $tag"
-    SendCmd "streamlines seed visible off $tag"
+    SendCmd "streamlines color [Color2RGB $settings(-constcolor)] $tag"
+    SendCmd "streamlines edges $settings(-edges) $tag"
+    SendCmd "streamlines linecolor [Color2RGB $settings(-edgecolor)] $tag"
+    SendCmd "streamlines linewidth $settings(-linewidth) $tag"
+    SendCmd "streamlines lighting $settings(-lighting) $tag"
+    SendCmd "streamlines opacity $settings(-opacity) $tag"
+    SendCmd "streamlines seed color [Color2RGB $settings(-seedcolor)] $tag"
+    SendCmd "streamlines seed visible $settings(-seeds) $tag"
+    SendCmd "streamlines visible $settings(-visible) $tag"
     set seeds [$dataobj hints seeds]
     if { $seeds != "" && ![info exists _seeds($dataobj)] } {
         set length [string length $seeds]
-        SendCmd "streamlines seed fmesh 200 data follows $length $tag"
+        SendCmd "streamlines seed fmesh $settings(-numseeds) data follows $length $tag"
         SendData $seeds
         set _seeds($dataobj) 1
     }
+    set _settings(-streamlineslighting) $settings(-lighting)
+    $itk_component(streammode) value $settings(-mode)
+    AdjustSetting -streamlinesmode
+    set _settings(-streamlinesnumseeds) $settings(-numseeds)
+    set _settings(-streamlinesopacity) [expr $settings(-opacity) * 100.0]
+    set _settings(-streamlineslength) [expr $settings(-streamlineslength) * 100.0]
+    set _settings(-streamlinesseedsvisible) $settings(-seeds)
+    set _settings(-streamlinesvisible) $settings(-visible)
+
     SendCmd "cutplane add $tag"
+
     SendCmd "polydata add $tag"
+    SendCmd "polydata color [Color2RGB $settings(-surfacecolor)] $tag"
     SendCmd "polydata colormode constant {} $tag"
-    set _settings(-volumeedges) $settings(-edges)
-    set _settings(-volumelighting) $settings(-lighting)
-    set _settings(-volumeopacity) $settings(-opacity)
-    set _settings(-volumewireframe) $settings(-wireframe)
-    set _settings(-volumeopacity) [expr $settings(-opacity) * 100.0]
+    SendCmd "polydata edges $settings(-surfaceedges) $tag"
+    SendCmd "polydata linecolor [Color2RGB $settings(-surfaceedgecolor)] $tag"
+    SendCmd "polydata lighting $settings(-surfacelighting) $tag"
+    SendCmd "polydata opacity $settings(-surfaceopacity) $tag"
+    SendCmd "polydata wireframe $settings(-surfacewireframe) $tag"
+    SendCmd "polydata visible $settings(-surfacevisible) $tag"
+    set _settings(-surfaceedges) $settings(-surfaceedges)
+    set _settings(-surfacelighting) $settings(-surfacelighting)
+    set _settings(-surfaceopacity) [expr $settings(-surfaceopacity) * 100.0]
+    set _settings(-surfacewireframe) $settings(-surfacewireframe)
+    set _settings(-surfacevisible) $settings(-surfacevisible)
     StopBufferingCommands
     SetColormap $dataobj $comp
+    $itk_component(colormap) value $settings(-color)
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
