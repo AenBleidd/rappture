@@ -92,27 +92,27 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
         }
     }
     foreach {key path} {
+        camera  about.camera
+        color   about.color
         group   about.group
         label   about.label
-        color   about.color
-        camera  about.camera
         type    about.type
-        xlabel  xaxis.label
         xdesc   xaxis.description
-        xunits  xaxis.units
+        ydesc   yaxis.description
+        zdesc   zaxis.description
+        xlabel  xaxis.label
+        ylabel  yaxis.label
+        zlabel  zaxis.label
         xscale  xaxis.scale
+        yscale  yaxis.scale
+        zscale  zaxis.scale
+        xunits  xaxis.units
+        yunits  yaxis.units
+        zunits  zaxis.units
         xmin    xaxis.min
         xmax    xaxis.max
-        ylabel  yaxis.label
-        ydesc   yaxis.description
-        yunits  yaxis.units
-        yscale  yaxis.scale
         ymin    yaxis.min
         ymax    yaxis.max
-        zlabel  zaxis.label
-        zdesc   zaxis.description
-        zunits  zaxis.units
-        zscale  zaxis.scale
         zmin    zaxis.min
         zmax    zaxis.max
     } {
