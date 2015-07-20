@@ -658,7 +658,6 @@ itcl::body Rappture::Field::InitHints {} {
         camera          camera.position
         camera          about.camera
         color           about.color
-        default         about.default
         group           about.group
         label           about.label
         scale           about.scale
