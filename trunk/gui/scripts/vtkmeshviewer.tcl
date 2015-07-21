@@ -859,11 +859,6 @@ itcl::body Rappture::VtkMeshViewer::Rebuild {} {
         }
     }
     if {"" != $_first} {
-        set location [$_first hints camera]
-        if { $location != "" } {
-            array set view $location
-        }
-
         foreach axis { x y z } {
             set label [$_first label ${axis}]
             if { $label != "" } {
