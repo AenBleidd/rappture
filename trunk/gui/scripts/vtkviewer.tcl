@@ -66,7 +66,7 @@ itcl::class Rappture::VtkViewer {
     private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildColormap { name styles }
+    private method BuildColormap { name }
     private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildGlyphsTab {}
@@ -1807,8 +1807,6 @@ itcl::body Rappture::VtkViewer::ChangeColormap {dataobj comp color} {
 itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style {
         -color BCGYR
-        -levels 6
-        -opacity 1.0
     }
     if {[$dataobj type $comp] == "molecule"} {
         set style(-color) elementDefault
@@ -1828,13 +1826,9 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     # Override initial style with current style.
     array set style $_style($tag)
 
-    if { $style(-color) == "elementDefault" } {
-        set name "$style(-color)"
-    } else {
-        set name "$style(-color):$style(-levels):$style(-opacity)"
-    }
+    set name "$style(-color)"
     if { ![info exists _colormaps($name)] } {
-        BuildColormap $name [array get style]
+        BuildColormap $name
         set _colormaps($name) 1
     }
     if { ![info exists _dataset2style($tag)] ||
@@ -1857,20 +1851,14 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
 #
 # BuildColormap --
 #
-itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
-    if { $name ==  "elementDefault" } {
+itcl::body Rappture::VtkViewer::BuildColormap { name } {
+    if { $name == "elementDefault" } {
         return
     }
-    array set style $styles
-    set cmap [ColorsToColormap $style(-color)]
+    set cmap [ColorsToColormap $name]
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(polydata-opacity)] } {
-        set _settings(polydata-opacity) $style(-opacity)
-    }
-    set max $_settings(polydata-opacity)
-
     set amap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $amap }"
 }
