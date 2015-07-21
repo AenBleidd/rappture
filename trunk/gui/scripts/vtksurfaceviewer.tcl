@@ -1463,7 +1463,7 @@ itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
         incr h -$lineht
     }
     # Set the legend on the first heightmap dataset.
-    if { $_currentColormap != ""  } {
+    if { $_currentColormap != "" } {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
             BuildColormap $cmap
