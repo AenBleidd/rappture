@@ -152,7 +152,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _resizePending 0
     private variable _rotatePending 0
     private variable _legendPending 0
-    private variable _fieldNames {}
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
