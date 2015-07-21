@@ -65,7 +65,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildColormap { name colors }
+    private method BuildColormap { name }
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildStreamsTab {}
@@ -101,8 +101,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method ReceiveLegend { colormap title vmin vmax size }
     private method RequestLegend {}
     private method Rotate {option x y}
-    private method SetColormap { dataobj comp }
-    private method ChangeColormap { dataobj comp color }
+    private method SetCurrentColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp }
     private method Slice {option args}
@@ -120,14 +119,12 @@ itcl::class Rappture::VtkStreamlinesViewer {
                                    ;    # datasets in the server
     private variable _colormaps    ;    # contains all the colormaps
                                    ;    # in the server.
-    private variable _dataset2style    ;# maps dataobj-component to transfunc
+    private variable _currentColormap ""
 
     private variable _click        ;    # info used for rotate operations
     private variable _limits       ;    # autoscale min/max for all axes
     private variable _view         ;    # view params for 3D view
     private variable _settings
-    private variable _style;            # Array of current component styles.
-    private variable _initialStyle;     # Array of initial component styles.
     private variable _reset 1;          # Connection to server has been reset.
 
     private variable _first ""     ;    # This is the topmost dataset.
@@ -848,7 +845,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     array unset _datasets
     array unset _colormaps
     array unset _seeds
-    array unset _dataset2style
 }
 
 # ----------------------------------------------------------------------
@@ -1443,10 +1439,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "-streamlinescolormap" {
             set colormap [$itk_component(colormap) value]
             set _settings($what) $colormap
-            foreach dataset [CurrentDatasets -visible $_first] {
-                foreach {dataobj comp} [split $dataset -] break
-                ChangeColormap $dataobj $comp $colormap
-            }
+            SetCurrentColormap $colormap
             set _legendPending 1
         }
         "-streamlinesopacity" {
@@ -1523,71 +1516,36 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
         return
     }
     # Set the legend on the first streamlines dataset.
-    foreach dataset [CurrentDatasets -visible $_first] {
-        foreach {dataobj comp} [split $dataset -] break
-        if { [info exists _dataset2style($dataset)] } {
-            SendCmd \
-                "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
-            break;
+    if { $_currentColormap != "" } {
+        set cmap $_currentColormap
+        if { ![info exists _colormaps($cmap)] } {
+            BuildColormap $cmap
+            set _colormaps($cmap) 1
         }
+        #SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
+        SendCmd "legend2 $cmap $w $h"
     }
 }
 
 #
-# ChangeColormap --
+# SetCurrentColormap --
 #
-itcl::body Rappture::VtkStreamlinesViewer::ChangeColormap {dataobj comp color} {
-    set tag $dataobj-$comp
-    if { ![info exist _style($tag)] } {
-        error "no initial colormap"
-    }
-    array set style $_style($tag)
-    set style(-color) $color
-    set _style($tag) [array get style]
-    SetColormap $dataobj $comp
-}
-
-#
-# SetColormap --
-#
-itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
-    array set style {
-        -color BCGYR
-    }
-    set tag $dataobj-$comp
-    if { ![info exists _initialStyle($tag)] } {
-        # Save the initial component style.
-        set _initialStyle($tag) [$dataobj style $comp]
-    }
-
-    # Override defaults with initial style defined in xml.
-    array set style $_initialStyle($tag)
-
-    if { ![info exists _style($tag)] } {
-        set _style($tag) [array get style]
-    }
-    # Override initial style with current style.
-    array set style $_style($tag)
-
-    set name "$style(-color)"
+itcl::body Rappture::VtkStreamlinesViewer::SetCurrentColormap { name } {
+    # Keep track of the colormaps that we build.
     if { ![info exists _colormaps($name)] } {
-        BuildColormap $name [array get style]
+        BuildColormap $name
         set _colormaps($name) 1
     }
-    if { ![info exists _dataset2style($tag)] ||
-         $_dataset2style($tag) != $name } {
-        SendCmd "streamlines colormap $name $tag"
-        SendCmd "cutplane colormap $name $tag"
-        set _dataset2style($tag) $name
-    }
+    set _currentColormap $name
+    SendCmd "streamlines colormap $_currentColormap"
+    SendCmd "cutplane colormap $_currentColormap"
 }
 
 #
 # BuildColormap --
 #
-itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name styles } {
-    array set style $styles
-    set cmap [ColorsToColormap $style(-color)]
+itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name } {
+    set cmap [ColorsToColormap $name]
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
@@ -2139,8 +2097,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildDownloadPopup { popup command } 
 itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
-    set style [$dataobj style $comp]
-    array set settings {
+    array set style {
         -color BCGYR
         -constcolor white
         -edgecolor black
@@ -2162,56 +2119,56 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
         -surfacewireframe 0
         -visible 1
     }
+    array set style [$dataobj style $comp]
     if { $dataobj != $_first } {
-        set settings(-opacity) 1
+        set style(-opacity) 1.0
     }
-    array set settings $style
     StartBufferingCommands
     SendCmd "streamlines add $tag"
-    SendCmd "streamlines color [Color2RGB $settings(-constcolor)] $tag"
-    SendCmd "streamlines edges $settings(-edges) $tag"
-    SendCmd "streamlines linecolor [Color2RGB $settings(-edgecolor)] $tag"
-    SendCmd "streamlines linewidth $settings(-linewidth) $tag"
-    SendCmd "streamlines lighting $settings(-lighting) $tag"
-    SendCmd "streamlines opacity $settings(-opacity) $tag"
-    SendCmd "streamlines seed color [Color2RGB $settings(-seedcolor)] $tag"
-    SendCmd "streamlines seed visible $settings(-seeds) $tag"
-    SendCmd "streamlines visible $settings(-visible) $tag"
+    SendCmd "streamlines color [Color2RGB $style(-constcolor)] $tag"
+    SendCmd "streamlines edges $style(-edges) $tag"
+    SendCmd "streamlines linecolor [Color2RGB $style(-edgecolor)] $tag"
+    SendCmd "streamlines linewidth $style(-linewidth) $tag"
+    SendCmd "streamlines lighting $style(-lighting) $tag"
+    SendCmd "streamlines opacity $style(-opacity) $tag"
+    SendCmd "streamlines seed color [Color2RGB $style(-seedcolor)] $tag"
+    SendCmd "streamlines seed visible $style(-seeds) $tag"
+    SendCmd "streamlines visible $style(-visible) $tag"
     set seeds [$dataobj hints seeds]
     if { $seeds != "" && ![info exists _seeds($dataobj)] } {
         set length [string length $seeds]
-        SendCmd "streamlines seed fmesh $settings(-numseeds) data follows $length $tag"
+        SendCmd "streamlines seed fmesh $style(-numseeds) data follows $length $tag"
         SendData $seeds
         set _seeds($dataobj) 1
     }
-    set _settings(-streamlineslighting) $settings(-lighting)
-    $itk_component(streammode) value $settings(-mode)
+    set _settings(-streamlineslighting) $style(-lighting)
+    $itk_component(streammode) value $style(-mode)
     AdjustSetting -streamlinesmode
-    set _settings(-streamlinesnumseeds) $settings(-numseeds)
-    set _settings(-streamlinesopacity) [expr $settings(-opacity) * 100.0]
-    set _settings(-streamlineslength) [expr $settings(-streamlineslength) * 100.0]
-    set _settings(-streamlinesseedsvisible) $settings(-seeds)
-    set _settings(-streamlinesvisible) $settings(-visible)
+    set _settings(-streamlinesnumseeds) $style(-numseeds)
+    set _settings(-streamlinesopacity) [expr $style(-opacity) * 100.0]
+    set _settings(-streamlineslength) [expr $style(-streamlineslength) * 100.0]
+    set _settings(-streamlinesseedsvisible) $style(-seeds)
+    set _settings(-streamlinesvisible) $style(-visible)
 
     SendCmd "cutplane add $tag"
 
     SendCmd "polydata add $tag"
-    SendCmd "polydata color [Color2RGB $settings(-surfacecolor)] $tag"
+    SendCmd "polydata color [Color2RGB $style(-surfacecolor)] $tag"
     SendCmd "polydata colormode constant {} $tag"
-    SendCmd "polydata edges $settings(-surfaceedges) $tag"
-    SendCmd "polydata linecolor [Color2RGB $settings(-surfaceedgecolor)] $tag"
-    SendCmd "polydata lighting $settings(-surfacelighting) $tag"
-    SendCmd "polydata opacity $settings(-surfaceopacity) $tag"
-    SendCmd "polydata wireframe $settings(-surfacewireframe) $tag"
-    SendCmd "polydata visible $settings(-surfacevisible) $tag"
-    set _settings(-surfaceedges) $settings(-surfaceedges)
-    set _settings(-surfacelighting) $settings(-surfacelighting)
-    set _settings(-surfaceopacity) [expr $settings(-surfaceopacity) * 100.0]
-    set _settings(-surfacewireframe) $settings(-surfacewireframe)
-    set _settings(-surfacevisible) $settings(-surfacevisible)
+    SendCmd "polydata edges $style(-surfaceedges) $tag"
+    SendCmd "polydata linecolor [Color2RGB $style(-surfaceedgecolor)] $tag"
+    SendCmd "polydata lighting $style(-surfacelighting) $tag"
+    SendCmd "polydata opacity $style(-surfaceopacity) $tag"
+    SendCmd "polydata wireframe $style(-surfacewireframe) $tag"
+    SendCmd "polydata visible $style(-surfacevisible) $tag"
+    set _settings(-surfaceedges) $style(-surfaceedges)
+    set _settings(-surfacelighting) $style(-surfacelighting)
+    set _settings(-surfaceopacity) [expr $style(-surfaceopacity) * 100.0]
+    set _settings(-surfacewireframe) $style(-surfacewireframe)
+    set _settings(-surfacevisible) $style(-surfacevisible)
     StopBufferingCommands
-    SetColormap $dataobj $comp
-    $itk_component(colormap) value $settings(-color)
+    SetCurrentColormap $style(-color)
+    $itk_component(colormap) value $style(-color)
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
