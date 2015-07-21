@@ -152,9 +152,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _contourList
     private variable _currentLimits ""
     private variable _widget
-
-    private common _downloadPopup;      # download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
@@ -166,9 +163,11 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
-
     private variable _mouseOver "";     # what called LegendRangeAction, vmin or vmax
     private variable _customRangeClick 1;   # what called ToggleCustomRange
+
+    private common _downloadPopup;      # download options from popup
+    private common _hardcopy
 }
 
 itk::usual VtkIsosurfaceViewer {
