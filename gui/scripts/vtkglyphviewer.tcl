@@ -142,7 +142,6 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _legendPending 0
     private variable _field      ""
     private variable _colorMode "vmag"; #  Mode of colormap (vmag or scalar)
-    private variable _fieldNames {}
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
