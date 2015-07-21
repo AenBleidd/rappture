@@ -133,19 +133,19 @@ itcl::class Rappture::VtkSurfaceViewer {
     private variable _title ""
     private variable _isolines
     private variable _contourList ""
-
-    private common _downloadPopup;      # download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
     private variable _rotatePending 0
     private variable _legendPending 0
     private variable _field      ""
-    private variable _colorMode "scalar";        #  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar"; #  Mode of colormap (vmag or scalar)
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
+
+    private common _downloadPopup;      # download options from popup
+    private common _hardcopy
 }
 
 itk::usual VtkSurfaceViewer {

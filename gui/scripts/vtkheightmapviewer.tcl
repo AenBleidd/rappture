@@ -142,9 +142,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _start 0
     private variable _isolines
     private variable _contourList ""
-
-    private common _downloadPopup;      # download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _legendWidth 0
@@ -156,6 +153,9 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _curFldName ""
     private variable _curFldLabel ""
     private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
+
+    private common _downloadPopup;      # download options from popup
+    private common _hardcopy
 }
 
 itk::usual VtkHeightmapViewer {

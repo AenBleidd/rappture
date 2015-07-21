@@ -131,9 +131,6 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
-
-    private common _downloadPopup;      # download options from popup
-    private common _hardcopy
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
@@ -145,6 +142,9 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
+
+    private common _downloadPopup;      # download options from popup
+    private common _hardcopy
 }
 
 itk::usual VtkGlyphViewer {
