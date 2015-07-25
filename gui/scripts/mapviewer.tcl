@@ -633,15 +633,17 @@ itcl::body Rappture::MapViewer::RequestLegend { colormap w h } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
+    DebugTrace "Enter"
     array set params {
-        -color auto
-        -width 1
-        -linestyle solid
         -brightness 0
-        -raise 0
+        -color auto
         -description ""
+        -linestyle solid
         -param ""
+        -raise 0
+        -simulation 0
         -type ""
+        -width 1
     }
     array set params $settings
     set params(-description) ""
@@ -659,8 +661,6 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
         #}
         lappend _dlist $dataobj
     }
-    set _obj2ovride($dataobj-color) $params(-color)
-    set _obj2ovride($dataobj-width) $params(-width)
     set _obj2ovride($dataobj-raise) $params(-raise)
     $_dispatcher event -idle !rebuild
 }
@@ -673,6 +673,7 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
 # deleted.  They are only removed from the display list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::delete {args} {
+    DebugTrace "Enter"
     if { [llength $args] == 0} {
         set args $_dlist
     }
@@ -789,6 +790,7 @@ itcl::body Rappture::MapViewer::MapIsGeocentric {} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::scale {args} {
+    DebugTrace "Enter"
     array unset _mapsettings
     set _haveTerrain 0
 
@@ -1224,6 +1226,9 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     set _first ""
     set haveTerrain 0
     foreach dataobj [get -objects] {
+        if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
+            set _first $dataobj
+        }
         foreach layer [$dataobj layers] {
             array unset info
             array set info [$dataobj layer $layer]
@@ -1246,10 +1251,10 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 set haveTerrain 1
             }
             # FIXME: This is overriding all layers' initial visibility setting
-            if { [info exists _obj2ovride($dataobj-raise)] } {
+            if { [info exists _obj2ovride($dataobj-raise)] &&
+                 $_obj2ovride($dataobj-raise)} {
                 SendCmd "map layer visible 1 $layer"
                 set _visibility($layer) 1
-                #SetLayerOpacity $dataobj $layer
             }
         }
     }
@@ -2283,7 +2288,12 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
 
 itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     array set info [$dataobj layer $layer]
-    set _visibility($layer) 1
+    if { [info exists info(visible)] &&
+         !$info(visible) } {
+        set _visibility($layer) 0
+    } else {
+        set _visibility($layer) 1
+    }
 
     switch -- $info(type) {
         "image" {
@@ -2415,14 +2425,14 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
         }
         "label" {
             array set settings {
-                -align "center-center"
+                -align "left_baseline"
                 -color black
                 -declutter 1
                 -font Arial
                 -fontsize 16.0
                 -halocolor white
                 -halowidth 2.0
-                -layout "left-to-right"
+                -layout "left_to_right"
                 -minbias 1000
                 -opacity 1.0
                 -removedupes 1
@@ -2443,20 +2453,15 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             foreach {fgR fgG fgB} [Color2RGB $settings(-color)] {}
             foreach {bgR bgG bgB} [Color2RGB $settings(-halocolor)] {}
             if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                SendCmd [list map layer add $layer text $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-minrange) $settings(-maxrange)]
+                SendCmd [list map layer add $layer text $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-minrange) $settings(-maxrange)]
             } else {
-                SendCmd [list map layer add $layer text $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter)]
+                SendCmd [list map layer add $layer text $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align)]
             }
             SendCmd "map layer opacity $settings(-opacity) $layer"
         }
     }
 
-    if { [info exists info(visible)] } {
-        if { !$info(visible) } {
-            set _visibility($layer) 0
-            SendCmd "map layer visible 0 $layer"
-        }
-    }
+    SendCmd "map layer visible $_visibility($layer) $layer"
 }
 
 itcl::body Rappture::MapViewer::SetLayerOpacity { dataobj layer {value 100}} {
