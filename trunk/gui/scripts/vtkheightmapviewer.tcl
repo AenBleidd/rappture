@@ -1489,8 +1489,9 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             ResetAxes
             SendCmd "dataset scalar $_curFldName"
             SendCmd "heightmap colormode $_colorMode $_curFldName"
-            Zoom reset
             UpdateContourList
+            SendCmd "heightmap contourlist [list $_contourList]"
+            Zoom reset
             DrawLegend
         }
         "-heightmapscale" {
