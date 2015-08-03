@@ -1320,8 +1320,9 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             }
             #SendCmd "contour2d colormode $_colorMode $_curFldName"
             SendCmd "polydata colormode $_colorMode $_curFldName"
-            SendCmd "camera reset"
             UpdateContourList
+            SendCmd "contour2d contourlist [list $_contourList]"
+            SendCmd "camera reset"
             DrawLegend
         }
         "-isolinecolor" {
