@@ -75,9 +75,10 @@ int systemCommand(char *commandExe,
    int             stderrBufferSize = 32*MAXBUFFER;
    char           *stdoutBuffer;
    char           *stderrBuffer;
+   int             error;
 
-   pipe(stdoutPipe);
-   pipe(stderrPipe);
+   error = pipe(stdoutPipe);
+   error = pipe(stderrPipe);
 
    if((pid = fork()) < 0) {
       perror("fork");
