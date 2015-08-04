@@ -59,7 +59,8 @@ OBJS        = \
 		rpUnitsGetBasis.oct \
 		rpUnitsGetExponent.oct \
 		rpUnitsGetUnits.oct \
-		rpUnitsGetUnitsName.oct
+		rpUnitsGetUnitsName.oct \
+		rpExec.oct
 
 .PHONY: all install clean distclean
 

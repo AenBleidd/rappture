@@ -65,7 +65,8 @@ OBJS		= \
 		rpUnitsGetExponent$(EXT) \
 		rpUnitsGetUnits$(EXT) \
 		rpUnitsGetUnitsName$(EXT) \
-		rpUtilsProgress$(EXT) 
+		rpUtilsProgress$(EXT) \
+		rpExec$(EXT)
 
 # MEX can't be run in parallel since it generates temporary files
 # that collide with further compilations.
@@ -74,6 +75,9 @@ OBJS		= \
 all: $(OBJS) 
 
 .SUFFIXES: .cc $(EXT)
+
+.c$(EXT):
+	$(MEX) $(MEX_FLAGS) $<
 
 .cc$(EXT):
 	$(MEX) $(MEX_FLAGS) $< $(srcdir)/RpMatlabInterface.cc $(LIBS)
