@@ -75,9 +75,10 @@ int systemCommand(char *commandExe,
    int             stderrBufferSize = 32*MAXBUFFER;
    char           *stdoutBuffer;
    char           *stderrBuffer;
+   int             error;
 
-   pipe(stdoutPipe);
-   pipe(stderrPipe);
+   error = pipe(stdoutPipe);
+   error = pipe(stderrPipe);
 
    if((pid = fork()) < 0) {
       perror("fork");
@@ -249,7 +250,7 @@ Example:\n\n\
       if(!error_state) {
          commandArgs = (char **)calloc(commandCell.numel()+1,sizeof(char *));
          for(i1=0; i1<commandCell.numel(); i1++) {
-            commandArg = c(i1).string_value().c_str();
+            commandArg = commandCell(i1).string_value().c_str();
             commandArgs[i1] = (char *)calloc(strlen(commandArg)+1,sizeof(char));
             strcpy(commandArgs[i1],commandArg);
          }
