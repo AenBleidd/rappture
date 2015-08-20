@@ -12,7 +12,7 @@ incdir          = $(prefix)/include
 
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
-SVN_VERSION	:= $(shell svnversion $(srcdir) | sed 's/Unversioned directory/unknown/')
+SVN_VERSION	:= $(shell readlink -e $(srcdir) | xargs svnversion | sed 's/Unversioned directory/unknown/')
 RAPPTURE_VERSION = @PACKAGE_VERSION@
 CXX             = @CXX@
 # This hack is because the tcl.m4 file generates the line
