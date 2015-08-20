@@ -39,7 +39,7 @@ INCLUDES    = -I$(srcdir) \
   -I$(srcdir)/../../../src/objects \
   -I$(includedir)
 RAPPTURE_VERSION = @PACKAGE_VERSION@
-SVN_VERSION     := $(shell svnversion $(srcdir) | sed 's/Unversioned directory/unknown/')
+SVN_VERSION     := $(shell readlink -e $(srcdir) | xargs svnversion | sed 's/Unversioned directory/unknown/')
 DEFINES         = -DSVN_VERSION=\"$(SVN_VERSION)\" \
                   -DRAPPTURE_VERSION=\"$(RAPPTURE_VERSION)\"
 
