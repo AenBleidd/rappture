@@ -2332,7 +2332,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetCurrentFieldName { dataobj } {
                 -activebackground $itk_option(-plotbackground) \
                 -activeforeground $itk_option(-plotforeground) \
                 -font "Arial 8" \
-                -command [itcl::code $this LegendTitleAction save]
+                -command [itcl::code $this Combo invoke]
             set _fields($fname) [list $label $units $components]
             if { $_curFldName == "" } {
                 set _curFldName $fname
