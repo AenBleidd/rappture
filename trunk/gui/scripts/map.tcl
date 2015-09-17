@@ -213,7 +213,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         }
         set wfs [$layers element -as type $layer.wfs]
         if { $wfs != "" } {
-            foreach key { url typename outputformat maxfeatures request_buffer } {
+            foreach key { url typename format maxfeatures request_buffer } {
                 set value [$layers get $layer.wfs.$key]
                 $_tree set $child "wfs.$key" $value
             }
