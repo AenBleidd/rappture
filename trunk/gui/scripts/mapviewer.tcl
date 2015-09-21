@@ -2323,26 +2323,30 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
 
     switch -- $info(type) {
         "image" {
-            array set settings {
+            array set style {
                 -minlevel 0
                 -maxlevel 23
                 -opacity 1.0
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if { [info exists info(opacity)] } {
-                set settings(-opacity) $info(opacity)
+                set style(-opacity) $info(opacity)
                 set _opacity($layer) $info(opacity)
             }
-            set _opacity($layer) [expr $settings(-opacity) * 100]
+            set _opacity($layer) [expr $style(-opacity) * 100]
+            set coverage 0
+            if { [info exists info(coverage)] } {
+                set coverage $info(coverage)
+            }
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
                     "colorramp" {
                         set cmapName $layer
                         SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
                         SendCmd [list map layer add $layer image colorramp \
-                                     $info(colorramp.url) $info(cache) $info(colorramp.elevdriver) $info(profile)  \
+                                     $info(colorramp.url) $info(cache) $coverage $info(colorramp.elevdriver) $info(profile)  \
                                      $cmapName]
                     }
                     "debug" {
@@ -2350,69 +2354,79 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                     "gdal" {
                         SendCmd [list map layer add $layer image gdal \
-                                     $info(gdal.url) $info(cache)]
+                                     $info(gdal.url) $info(cache) $coverage]
                     }
                     "tms" {
                         SendCmd [list map layer add $layer image tms \
-                                     $info(tms.url) $info(cache)]
+                                     $info(tms.url) $info(cache) $coverage]
                     }
                     "wms" {
                         SendCmd [list map layer add $layer image wms \
-                                     $info(wms.url) $info(cache) \
+                                     $info(wms.url) $info(cache) $coverage \
                                      $info(wms.layers) \
                                      $info(wms.format) \
                                      $info(wms.transparent)]
                     }
                     "xyz" {
                         SendCmd [list map layer add $layer image xyz \
-                                     $info(xyz.url) $info(cache)]
+                                     $info(xyz.url) $info(cache) $coverage]
                     }
                 }
             }
-            SendCmd "map layer opacity $settings(-opacity) $layer"
+            SendCmd "map layer opacity $style(-opacity) $layer"
         }
         "elevation" {
-            array set settings {
+            array set style {
                 -minlevel 0
                 -maxlevel 23
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
                     "gdal" {
                         SendCmd [list map layer add $layer elevation gdal \
-                                     $info(gdal.url)]
+                                     $info(gdal.url) $info(cache)]
                     }
                     "tms" {
                         SendCmd [list map layer add $layer elevation tms \
-                                     $info(tms.url)]
+                                     $info(tms.url) $info(cache)]
+                    }
+                    "wcs" {
+                        SendCmd [list map layer add $layer elevation wcs \
+                                     $info(wcs.url) $info(cache) $info(wcs.identifier)]
                     }
                 }
             }
         }
         "line" {
-            array set settings {
+            array set style {
+                -cap "flat"
+                -clamping terrain
+                -clamptechnique gpu
                 -color black
+                -join "mitre"
                 -minbias 1000
                 -opacity 1.0
+                -stipplepattern 0
+                -stipplefactor 1
                 -width 1
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if { [info exists info(opacity)] } {
-                set settings(-opacity) $info(opacity)
+                set style(-opacity) $info(opacity)
             }
-            set _opacity($layer) [expr $settings(-opacity) * 100]
-            foreach {r g b} [Color2RGB $settings(-color)] {}
+            set _opacity($layer) [expr $style(-opacity) * 100]
+            foreach {r g b} [Color2RGB $style(-color)] {}
             switch -- $info(driver)  {
                 "ogr" {
-                    if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                        SendCmd [list map layer add $layer line ogr {} {} $info(ogr.url) $r $g $b $settings(-width) $settings(-minrange) $settings(-maxrange)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer line ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $layer line ogr {} {} $info(ogr.url) $r $g $b $settings(-width)]
+                        SendCmd [list map layer add $layer line ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique)]
                     }
                 }
                 "tfs" {
@@ -2420,10 +2434,10 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     if {[info exists info(tfs.format)]} {
                         set format $info(tfs.format)
                     }
-                    if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                        SendCmd [list map layer add $layer line tfs $format {} $info(tfs.url) $r $g $b $settings(-width) $settings(-minrange) $settings(-maxrange)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer line tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $layer line tfs $format {} $info(tfs.url) $r $g $b $settings(-width)]
+                        SendCmd [list map layer add $layer line tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique)]
                     }
                 }
                 "wfs" {
@@ -2431,53 +2445,65 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     if {[info exists info(wfs.format)]} {
                         set format $info(wfs.format)
                     }
-                    if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                        SendCmd [list map layer add $layer line wfs $format $info(wfs.typename) $info(wfs.url) $r $g $b $settings(-width) $settings(-minrange) $settings(-maxrange)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer line wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $layer line wfs $format $info(wfs.typename) $info(wfs.url) $r $g $b $settings(-width)]
+                        SendCmd [list map layer add $layer line wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique)]
                     }
                 }
             }
-            SendCmd "map layer opacity $settings(-opacity) $layer"
+            SendCmd "map layer opacity $style(-opacity) $layer"
         }
         "point" {
-            array set settings {
+            array set style {
                 -color black
                 -minbias 1000
                 -opacity 1.0
                 -size 1
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if { [info exists info(opacity)] } {
-                set settings(-opacity) $info(opacity)
+                set style(-opacity) $info(opacity)
             }
-            set _opacity($layer) [expr $settings(-opacity) * 100]
-            foreach {r g b} [Color2RGB $settings(-color)] {}
+            set _opacity($layer) [expr $style(-opacity) * 100]
+            foreach {r g b} [Color2RGB $style(-color)] {}
             switch -- $info(driver)  {
                 "ogr" {
-                    SendCmd [list map layer add $layer point ogr {} {} $info(ogr.url) $r $g $b $settings(-size)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer point ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-size) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer point ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-size)]
+                    }
                 }
                 "tfs" {
                     set format "json"
                     if {[info exists info(tfs.format)]} {
                         set format $info(tfs.format)
                     }
-                    SendCmd [list map layer add $layer point tfs $format {} $info(ogr.url) $r $g $b $settings(-size)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer point tfs $format {} $info(ogr.url) $info(cache) $r $g $b $style(-size) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer point tfs $format {} $info(ogr.url) $info(cache) $r $g $b $style(-size)]
+                    }
                 }
                 "wfs" {
                     set format "json"
                     if {[info exists info(wfs.format)]} {
                         set format $info(wfs.format)
                     }
-                    SendCmd [list map layer add $layer point wfs $format $info(wfs.typename) $info(ogr.url) $r $g $b $settings(-size)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer point wfs $format $info(wfs.typename) $info(ogr.url) $info(cache) $r $g $b $style(-size) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer point wfs $format $info(wfs.typename) $info(ogr.url) $info(cache) $r $g $b $style(-size)]
+                    }
                 }
             }
-            SendCmd "map layer opacity $settings(-opacity) $layer"
+            SendCmd "map layer opacity $style(-opacity) $layer"
         }
         "icon" {
-            array set settings {
+            array set style {
                 -align "center_bottom"
                 -declutter 1
                 -heading {}
@@ -2488,70 +2514,99 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 -scale {}
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if { [info exists info(opacity)] } {
-                set settings(-opacity) $info(opacity)
+                set style(-opacity) $info(opacity)
             }
-            set _opacity($layer) [expr $settings(-opacity) * 100]
+            set _opacity($layer) [expr $style(-opacity) * 100]
             switch -- $info(driver)  {
                 "ogr" {
-                    SendCmd [list map layer add $layer icon ogr {} {} $info(ogr.url) $settings(-icon) $settings(-scale) $settings(-heading) $settings(-declutter) $settings(-placement) $settings(-align)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer icon ogr {} {} $info(ogr.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer icon ogr {} {} $info(ogr.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align)]
+                    }
                 }
                 "tfs" {
                     set format "json"
                     if {[info exists info(tfs.format)]} {
                         set format $info(tfs.format)
                     }
-                    SendCmd [list map layer add $layer icon tfs $format {} $info(tfs.url) $settings(-icon) $settings(-scale) $settings(-heading) $settings(-declutter) $settings(-placement) $settings(-align)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer icon tfs $format {} $info(tfs.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer icon tfs $format {} $info(tfs.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align)]
+                    }
                 }
                 "wfs" {
                     set format "json"
                     if {[info exists info(wfs.format)]} {
                         set format $info(wfs.format)
                     }
-                    SendCmd [list map layer add $layer icon wfs $format $info(wfs.typename) $info(wfs.url) $settings(-icon) $settings(-scale) $settings(-heading) $settings(-declutter) $settings(-placement) $settings(-align)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer icon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer icon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align)]
+                    }
                 }
             }
-            SendCmd "map layer opacity $settings(-opacity) $layer"
+            SendCmd "map layer opacity $style(-opacity) $layer"
         }
         "polygon" {
-            array set settings {
+            array set style {
+                -clamping terrain
+                -clamptechnique gpu
                 -color white
                 -minbias 1000
                 -opacity 1.0
+                -strokecolor black
+                -strokewidth 0.0
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if { [info exists info(opacity)] } {
-                set settings(-opacity) $info(opacity)
+                set style(-opacity) $info(opacity)
             }
-            set _opacity($layer) [expr $settings(-opacity) * 100]
-            foreach {r g b} [Color2RGB $settings(-color)] {}
+            set _opacity($layer) [expr $style(-opacity) * 100]
+            foreach {r g b} [Color2RGB $style(-color)] {}
+            foreach {strokeR strokeG strokeB} [Color2RGB $style(-strokecolor)] {}
             switch -- $info(driver)  {
                 "ogr" {
-                    SendCmd [list map layer add $layer polygon ogr {} {} $info(ogr.url) $r $g $b]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique)]
+                    }
                 }
                 "tfs" {
                     set format "json"
                     if {[info exists info(tfs.format)]} {
                         set format $info(tfs.format)
                     }
-                    SendCmd [list map layer add $layer polygon tfs $format {} $info(tfs.url) $r $g $b]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer polygon tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer polygon tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique)]
+                    }
                 }
                 "wfs" {
                     set format "json"
                     if {[info exists info(wfs.format)]} {
                         set format $info(wfs.format)
                     }
-                    SendCmd [list map layer add $layer polygon wfs $format $info(wfs.typename) $info(wfs.url) $r $g $b]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer polygon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
+                    } else {
+                        SendCmd [list map layer add $layer polygon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique)]
+                    }
                 }
             }
-            SendCmd "map layer opacity $settings(-opacity) $layer"
+            SendCmd "map layer opacity $style(-opacity) $layer"
         }
         "label" {
-            array set settings {
+            array set style {
                 -align "left_baseline"
                 -color black
                 -declutter 1
@@ -2567,26 +2622,26 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 -yoffset 0
             }
             if { [info exists info(style)] } {
-                array set settings $info(style)
+                array set style $info(style)
             }
             if { [info exists info(opacity)] } {
-                set settings(-opacity) $info(opacity)
+                set style(-opacity) $info(opacity)
             }
-            set _opacity($layer) [expr $settings(-opacity) * 100]
+            set _opacity($layer) [expr $style(-opacity) * 100]
             set contentExpr $info(content)
             if {[info exists info(priority)]} {
                 set priorityExpr $info(priority)
             } else {
                 set priorityExpr ""
             }
-            foreach {fgR fgG fgB} [Color2RGB $settings(-color)] {}
-            foreach {bgR bgG bgB} [Color2RGB $settings(-halocolor)] {}
+            foreach {fgR fgG fgB} [Color2RGB $style(-color)] {}
+            foreach {bgR bgG bgB} [Color2RGB $style(-halocolor)] {}
             switch -- $info(driver)  {
                 "ogr" {
-                    if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                        SendCmd [list map layer add $layer text ogr {} {} $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-xoffset) $settings(-yoffset) $settings(-minrange) $settings(-maxrange)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $layer text ogr {} {} $info(ogr.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-xoffset) $settings(-yoffset)]
+                        SendCmd [list map layer add $layer text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
                     }
                 }
                 "tfs" {
@@ -2594,10 +2649,10 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     if {[info exists info(tfs.format)]} {
                         set format $info(tfs.format)
                     }
-                    if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                        SendCmd [list map layer add $layer text tfs $format {} $info(tfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-xoffset) $settings(-yoffset) $settings(-minrange) $settings(-maxrange)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer text tfs $format {} $info(tfs.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $layer text tfs $format {} $info(tfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-xoffset) $settings(-yoffset)]
+                        SendCmd [list map layer add $layer text tfs $format {} $info(tfs.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
                     }
                 }
                 "wfs" {
@@ -2605,14 +2660,14 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     if {[info exists info(wfs.format)]} {
                         set format $info(wfs.format)
                     }
-                    if {[info exists settings(-minrange)] && [info exists settings(-maxrange)]} {
-                        SendCmd [list map layer add $layer text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-xoffset) $settings(-yoffset) $settings(-minrange) $settings(-maxrange)]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        SendCmd [list map layer add $layer text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $layer text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $settings(-halowidth) $settings(-fontsize) $settings(-removedupes) $settings(-declutter) $settings(-align) $settings(-xoffset) $settings(-yoffset)]
+                        SendCmd [list map layer add $layer text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
                     }
                 }
             }
-            SendCmd "map layer opacity $settings(-opacity) $layer"
+            SendCmd "map layer opacity $style(-opacity) $layer"
         }
     }
 

@@ -139,7 +139,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
         # These are settings for which there should be no default
         # We want to know if they have been set by the user or not
         # Not all layer types use these
-        foreach key { opacity content priority style } {
+        foreach key { coverage opacity content priority style } {
             set val [$layers get $layer.$key]
             if {$val != ""} {
                 $_tree set $child $key $val
@@ -211,9 +211,17 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             }
             $_tree set $child "driver" "tms"
         }
+        set wcs [$layers element -as type $layer.wcs]
+        if { $wcs != "" } {
+            foreach key { url identifier format elevationUnit rangeSubset } {
+                set value [$layers get $layer.wcs.$key]
+                $_tree set $child "wcs.$key" $value
+            }
+            $_tree set $child "driver" "wcs"
+        }
         set wfs [$layers element -as type $layer.wfs]
         if { $wfs != "" } {
-            foreach key { url typename format maxfeatures request_buffer } {
+            foreach key { url typename format maxfeatures requestBuffer } {
                 set value [$layers get $layer.wfs.$key]
                 $_tree set $child "wfs.$key" $value
             }
