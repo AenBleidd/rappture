@@ -176,6 +176,7 @@ itk::usual MapViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::constructor {hostlist args} {
     set _serverType "geovis"
+    #DebugOn
 
     if { [catch {
 
@@ -810,6 +811,7 @@ itcl::body Rappture::MapViewer::scale {args} {
             set _mapsettings(label) $hints(label)
         }
         if { ![info exists _mapsettings(style)] } {
+            DebugTrace "map style: $hints(style)"
             set _mapsettings(style) $hints(style)
         }
         if { ![info exists _mapsettings(type)] } {
@@ -1045,7 +1047,7 @@ itcl::body Rappture::MapViewer::ReceiveImage { args } {
 # specified <size> will follow.
 #
 itcl::body Rappture::MapViewer::ReceiveLegend { colormap min max size } {
-    #puts stderr "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
+    DebugTrace "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2329,6 +2331,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 -opacity 1.0
             }
             if { [info exists info(style)] } {
+                DebugTrace "layer style: $info(style)"
                 array set style $info(style)
             }
             if { [info exists info(opacity)] } {
@@ -2399,6 +2402,46 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                 }
             }
+        }
+        "feature" {
+            array set style {
+                -opacity 1.0
+            }
+            if { [info exists info(style)] } {
+                DebugTrace "layer style: $info(style)"
+                array set style $info(style)
+            }
+            if { [info exists info(opacity)] } {
+                set style(-opacity) $info(opacity)
+            }
+            set _opacity($layer) [expr $style(-opacity) * 100]
+            DebugTrace "stylesheet: $info(stylesheet)"
+            set script ""
+            if { [info exists info(script)] } {
+                set script $info(script)
+                DebugTrace "script: $script"
+            }
+            set selectors [list]
+            foreach selector [$dataobj selectors $layer] {
+               array set sinfo [$dataobj selector $layer $selector]
+                DebugTrace "$selector: [array get sinfo]"
+                lappend selectors [array get sinfo]
+                if {[info exists sinfo(styleExpression)]} {
+                    DebugTrace "$selector: $sinfo(styleExpression)"
+                } elseif {[info exists sinfo(query)]} {
+                    if {[info exists sinfo(queryBounds)]} {
+                        foreach {x1 y1 x2 y2} $sinfo(queryBounds) break
+                        DebugTrace "queryBounds: xmin $x1 ymin $y1 xmax $x2 ymax $y2"
+                    }
+                }
+            }
+            set format ""
+            set tmsType ""
+            set cmd [list map layer add $layer feature $info(driver) $format $tmsType $info(ogr.url) $info(cache) $info(stylesheet) $script $selectors]
+            if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                lappend cmd $style(-minrange) $style(-maxrange)
+            }
+            SendCmd $cmd
         }
         "line" {
             array set style {

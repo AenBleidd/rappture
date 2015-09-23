@@ -37,6 +37,8 @@ itcl::class Rappture::Map {
     }
     public method layer { layerName }
     public method layers {}
+    public method selectors { layerName }
+    public method selector { layerName selectorName }
     public method type { layerName }
     public method viewpoint { viewpointName }
     public method viewpoints {}
@@ -47,6 +49,7 @@ itcl::class Rappture::Map {
     private variable _isValid 0;
     private common _nextLayer 0;       # Counter used to generate unique
                                        # layer names.
+    private common _nextSelector 0;
     private common _nextViewpoint 0;   # Counter used to generate unique
                                        # viewpoint names.
     private common _layerTypes
@@ -54,11 +57,12 @@ itcl::class Rappture::Map {
     array set _layerTypes {
         "image"         0
         "elevation"     1
-        "polygon"       2
-        "point"         3
-        "icon"          4
-        "line"          5
-        "label"         6
+        "feature"       2
+        "polygon"       3
+        "point"         4
+        "icon"          5
+        "line"          6
+        "label"         7
     }
     array set _mapTypes {
         "geocentric"    0
@@ -144,6 +148,30 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             if {$val != ""} {
                 $_tree set $child $key $val
             }
+        }
+        set styles [$layers element -as object $layer.styles]
+        if {$styles != ""} {
+            set val [$styles get stylesheet]
+            # Normalize whitespace
+            regsub -all "\[ \t\r\n\]+" [string trim $val] " " val
+            $_tree set $child stylesheet $val
+            set script [$styles get script]
+            if {$script != ""} {
+                regsub -all "\[\r\n\]+" [string trim $script] " " script
+                $_tree set $child script $script
+            }
+            set sparent [$_tree insert $child -label "selectors"]
+            foreach selector [$styles children -type selector] {
+                set id "selector[incr _nextSelector]"
+                set snode [$_tree insert $sparent -label $id]
+                foreach key { name style styleExpression query queryBounds queryOrderBy } {
+                    set val [$styles get $selector.$key]
+                    if {$val != ""} {
+                        $_tree set $snode $key $val
+                    }
+                }
+            }
+            rename $styles ""
         }
         $_tree set $child "driver" "debug"
         set colorramp [$layers element -as type $layer.colorramp]
@@ -244,6 +272,10 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             $_tree set $child "driver" "xyz"
         }
     }
+    if {$layers != ""} {
+        rename $layers ""
+    }
+
     $_tree set root "label"       [$map get "about.label"]
     $_tree set root "attribution" [$map get "about.attribution"]
     $_tree set root "style"       [$map get "style"]
@@ -293,6 +325,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 }
             }
         }
+        rename $viewpoints ""
     }
 
     set projection [$map get "projection"]
@@ -330,6 +363,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             $_tree set root $key $str
         }
     }
+    rename $map ""
     set _isValid 1
 }
 
@@ -368,6 +402,33 @@ itcl::body Rappture::Map::layer { layerName } {
     set id [$_tree findchild root->"layers" $layerName]
     if { $id < 0 } {
         error "unknown layer \"$layerName\""
+    }
+    return [$_tree get $id]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: selectors
+#
+# Returns a list of IDs for the selectors in a layer
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::selectors { layerName } {
+    set list {}
+    foreach node [$_tree children root->"layers"->"$layerName"->"selectors"] {
+        lappend list [$_tree label $node]
+    }
+    return $list
+}
+
+# ----------------------------------------------------------------------
+# USAGE: selector
+#
+# Returns an array of settings for the named selector in the named 
+# layer
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::selector { layerName selectorName } {
+    set id [$_tree findchild root->"layers"->"$layerName"->"selectors" $selectorName]
+    if { $id < 0 } {
+        error "unknown selector \"$selectorName\""
     }
     return [$_tree get $id]
 }
