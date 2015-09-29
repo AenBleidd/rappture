@@ -60,6 +60,7 @@ itcl::class Rappture::MapViewer {
         # do nothing
     }
     public method scale {args}
+    public method select {option {args ""}}
 
     private method KeyPress { key }
     private method KeyRelease { key }
@@ -212,6 +213,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_parser alias map      [itcl::code $this ReceiveMapInfo]
     $_parser alias camera   [itcl::code $this camera]
     $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
+    $_parser alias select   [itcl::code $this select]
 
     # Millisecond delay before animated wait dialog appears
     set _waitTimeout 900
@@ -869,6 +871,26 @@ itcl::body Rappture::MapViewer::scale {args} {
         if { [$itk_component(main) exists "Terrain Settings"] } {
             # TODO: Enable controls like vertical scale that only have
             # an effect when terrain is present
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: select clear
+# USAGE: select feature
+# USAGE: select annotation
+# ----------------------------------------------------------------------
+itcl::body Rappture::MapViewer::select {option {args ""}} {
+    DebugTrace "Enter"
+    switch $option {
+        "annotation" {
+            puts stderr "select annotation $args"
+        }
+        "clear" {
+             puts stderr "select clear"
+        }
+        "feature" {
+             puts stderr "select feature $args"
         }
     }
 }
