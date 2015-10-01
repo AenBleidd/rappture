@@ -115,6 +115,7 @@ itcl::class Rappture::MapViewer {
     private method RequestLegend { colormap w h }
     private method Rotate {option x y}
     private method Select {option x y}
+    private method SendFiles { path }
     private method SetHeading { {value 0} }
     private method SetLayerOpacity { dataobj layer {value 100} }
     private method SetLayerStyle { dataobj layer }
@@ -2336,6 +2337,27 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
     set _settings(terrain-wireframe) $settings(-wireframe)
 }
 
+itcl::body Rappture::MapViewer::SendFiles { path } {
+    if {[string range $path 0 7] != "local://"} {
+        return
+    }
+    DebugTrace "Local path: $path"
+    set path [string range $path 8 end]
+    set basename [file rootname $path]
+    set files [glob -path $basename .*]
+    foreach file $files {
+        set name $file
+        set type [file type $file]
+        set size [file size $file]
+        set f [open $file "r"]
+        fconfigure $f -translation binary -encoding binary
+        set data [read $f]
+        close $f
+        SendCmd [list file put $name $type $size]
+        SendData $data
+    }
+}
+
 itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     array set info [$dataobj layer $layer]
     if { [info exists info(visible)] &&
@@ -2369,6 +2391,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 switch -- $info(driver)  {
                     "colorramp" {
                         set cmapName $layer
+                        SendFiles $info(colorramp.url)
                         SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
                         SendCmd [list map layer add $layer image colorramp \
                                      $info(colorramp.url) $info(cache) $coverage $info(colorramp.elevdriver) $info(profile)  \
@@ -2378,6 +2401,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         SendCmd [list map layer add $layer image debug]
                     }
                     "gdal" {
+                        SendFiles $info(gdal.url)
                         SendCmd [list map layer add $layer image gdal \
                                      $info(gdal.url) $info(cache) $coverage]
                     }
@@ -2411,6 +2435,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
                     "gdal" {
+                        SendFiles $info(gdal.url)
                         SendCmd [list map layer add $layer elevation gdal \
                                      $info(gdal.url) $info(cache)]
                     }
@@ -2463,6 +2488,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                 lappend cmd $style(-minrange) $style(-maxrange)
             }
+            SendFiles $info(ogr.url)
             SendCmd $cmd
         }
         "line" {
@@ -2488,6 +2514,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             foreach {r g b} [Color2RGB $style(-color)] {}
             switch -- $info(driver)  {
                 "ogr" {
+                    SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         SendCmd [list map layer add $layer line ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-width) $style(-cap) $style(-join) $style(-stipplepattern) $style(-stipplefactor) $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
                     } else {
@@ -2536,6 +2563,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             foreach {r g b} [Color2RGB $style(-color)] {}
             switch -- $info(driver)  {
                 "ogr" {
+                    SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         SendCmd [list map layer add $layer point ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-size) $style(-minrange) $style(-maxrange)]
                     } else {
@@ -2587,6 +2615,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set _opacity($layer) [expr $style(-opacity) * 100]
             switch -- $info(driver)  {
                 "ogr" {
+                    SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         SendCmd [list map layer add $layer icon ogr {} {} $info(ogr.url) $info(cache) $style(-icon) $style(-scale) $style(-heading) $style(-declutter) $style(-placement) $style(-align) $style(-minrange) $style(-maxrange)]
                     } else {
@@ -2639,6 +2668,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             foreach {strokeR strokeG strokeB} [Color2RGB $style(-strokecolor)] {}
             switch -- $info(driver)  {
                 "ogr" {
+                    SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         SendCmd [list map layer add $layer polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
                     } else {
@@ -2703,6 +2733,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             foreach {bgR bgG bgB} [Color2RGB $style(-halocolor)] {}
             switch -- $info(driver)  {
                 "ogr" {
+                    SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         SendCmd [list map layer add $layer text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
