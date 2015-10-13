@@ -85,13 +85,14 @@ itcl::class Rappture::Map {
 itcl::body Rappture::Map::constructor {args} {
     if {$args == ""} {
         set _tree [blt::tree create]
-        set parent [$_tree insert root -label "layers"]
         setLabel "Map"
         setType "projected"
         setProjection "global-mercator"
         $_tree set root "extents" ""
         setStyle ""
         setCamera ""
+        $_tree insert root -label "layers"
+        $_tree insert root -label "viewpoints"
         set _isValid 1
     } else {
         set xmlobj [lindex $args 0]
@@ -511,6 +512,7 @@ itcl::body Rappture::Map::viewpoint { viewopintName } {
 
 itcl::body Rappture::Map::addViewpoint { name props } {
     set nodeid "viewpoint[incr _nextViewpoint]"
+    set parent [$_tree findchild root "viewpoints"]
     set child [$_tree insert $parent -label $nodeid]
     $_tree set $child "name" $name
     set haveX 0
