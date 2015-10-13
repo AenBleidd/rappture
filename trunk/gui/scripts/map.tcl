@@ -89,7 +89,7 @@ itcl::body Rappture::Map::constructor {args} {
         setLabel "Map"
         setType "projected"
         setProjection "global-mercator"
-        setExtents ""
+        $_tree set root "extents" ""
         setStyle ""
         setCamera ""
         set _isValid 1
@@ -122,7 +122,7 @@ itcl::body Rappture::Map::hints { args } {
             return [$_tree get root $field ""]
         }
         default {
-            error "wrong # args: should \"hints ?name?\""
+            error "wrong # args: should be \"hints ?name?\""
         }
     }
 }
