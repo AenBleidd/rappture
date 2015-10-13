@@ -22,13 +22,14 @@ namespace eval Rappture {
 }
 
 itcl::class Rappture::Map {
-    constructor {xmlobj path} {
+    constructor {args} {
         # defined below
     }
     destructor {
         # defined below
     }
 
+    public method addViewpoint { name props }
     public method earthfile {}
     public method hints { args }
     public method isGeocentric {}
@@ -39,6 +40,14 @@ itcl::class Rappture::Map {
     public method layers {}
     public method selectors { layerName }
     public method selector { layerName selectorName }
+    public method setAttribution { attribution }
+    public method setCamera { camera }
+    public method setExtents { xmin ymin xmax ymax }
+    public method setLabel { label }
+    public method setProjection { projection }
+    public method setStyle { style }
+    public method setToolInfo { id name command title revision }
+    public method setType { type }
     public method type { layerName }
     public method viewpoint { viewpointName }
     public method viewpoints {}
@@ -73,11 +82,25 @@ itcl::class Rappture::Map {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Map::constructor {xmlobj path} {
-    if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be LibraryObj"
+itcl::body Rappture::Map::constructor {args} {
+    if {$args == ""} {
+        set _tree [blt::tree create]
+        set parent [$_tree insert root -label "layers"]
+        setLabel "Map"
+        setType "projected"
+        setProjection "global-mercator"
+        setExtents ""
+        setStyle ""
+        setCamera ""
+        set _isValid 1
+    } else {
+        set xmlobj [lindex $args 0]
+        set path [lindex $args 1]
+        if {![Rappture::library isvalid $xmlobj]} {
+            error "bad value \"$xmlobj\": should be LibraryObj"
+        }
+        Parse $xmlobj $path
     }
-    Parse $xmlobj $path
 }
 
 # ----------------------------------------------------------------------
@@ -367,6 +390,46 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     set _isValid 1
 }
 
+itcl::body Rappture::Map::setToolInfo { id name command title revision } {
+    foreach key [list id name command title revision] {
+        set str [set $key]
+        if { "" != $str } {
+            $_tree set root "tool$key" $str
+        }
+    }
+}
+
+itcl::body Rappture::Map::setType { type } {
+    if { ![info exists _mapTypes($type)] } {
+        error "unknown map type \"$mapType\": should be one of [array names _mapTypes]"
+    }
+    $_tree set root "type" $type
+}
+
+itcl::body Rappture::Map::setProjection { projection } {
+    $_tree set root "projection" $projection
+}
+
+itcl::body Rappture::Map::setExtents { xmin ymin xmax ymax } {
+    $_tree set root "extents" "$xmin $ymin $xmax $ymax"
+}
+
+itcl::body Rappture::Map::setLabel { label } {
+    $_tree set root "label" $label
+}
+
+itcl::body Rappture::Map::setAttribution { attribution } {
+    $_tree set root "attribution" $attribution
+}
+
+itcl::body Rappture::Map::setStyle { style } {
+    $_tree set root "style" $style
+}
+
+itcl::body Rappture::Map::setCamera { camera } {
+    $_tree set root "camera" $camera
+}
+
 # ----------------------------------------------------------------------
 # USAGE: layers
 #
@@ -444,6 +507,47 @@ itcl::body Rappture::Map::viewpoint { viewopintName } {
         error "unknown viewpoint \"$viewpointName\""
     }
     return [$_tree get $id]
+}
+
+itcl::body Rappture::Map::addViewpoint { name props } {
+    set nodeid "viewpoint[incr _nextViewpoint]"
+    set child [$_tree insert $parent -label $nodeid]
+    $_tree set $child "name" $name
+    set haveX 0
+    set haveZ 0
+    set haveSRS 0
+    set haveVertDatum 0
+    array set info $props
+    foreach key { label description x y z distance heading pitch srs verticalDatum } {
+        if {[info exists info($key)]} {
+            set val $info($key)
+            if {$key == "x"} {
+                set haveX 1
+            } elseif {$key == "z"} {
+                set haveZ 1
+            } elseif {$key == "srs"} {
+                set haveSRS 1
+            } elseif {$key == "verticalDatum"} {
+                set haveVertDatum 1
+            }
+            $_tree set $child $key $val
+        }
+    }
+    if {!$haveX} {
+        set lat $info(latitude)
+        set long $info(longitude)
+        $_tree set $child x $long
+        $_tree set $child y $lat
+        if {!$haveSRS} {
+            $_tree set $child srs wgs84
+        }
+        if {!$haveVertDatum} {
+            $_tree set $child verticalDatum ""
+        }
+    }
+    if {!$haveZ && [info exists info(altitude)]} {
+        $_tree set $child z $info(altitude)
+    }
 }
 
 # ----------------------------------------------------------------------
