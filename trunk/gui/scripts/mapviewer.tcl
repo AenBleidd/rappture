@@ -1300,13 +1300,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             # If this is the first Rebuild, we need to
             # set up the initial view settings if there
             # are any
-            if { [info exists _mapsettings(camera)] } {
-                set location $_mapsettings(camera)
-                if { $location != "" } {
-                    array set _view $location
-                    camera set all
-                }
-            }
+            camera reset
             set _initCamera 0
         } else {
             # Restore view from before reconnect
@@ -2184,9 +2178,9 @@ itcl::body Rappture::MapViewer::camera {option args} {
             }
             if { [info exists _mapsettings(camera)] } {
                 # Check if the tool specified a default
-                set location $_mapsettings(camera)
-                if { $location != "" } {
-                    array set _view $location
+                set view $_mapsettings(camera)
+                if { $view != "" } {
+                    array set _view $view
                     set duration 0.0
                     SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
                 } else {
