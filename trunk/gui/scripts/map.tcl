@@ -221,6 +221,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             }
             $_tree set $child "driver" "colorramp"
         }
+        set arcgis [$layers element -as type $layer.arcgis]
+        if { $arcgis != "" } {
+            foreach key { url token format layers } {
+                set value [$layers get $layer.arcgis.$key]
+                $_tree set $child "arcgis.$key" $value
+            }
+            $_tree set $child "driver" "arcgis"
+        }
         set gdal [$layers element -as type $layer.gdal]
         if { $gdal != "" } {
             foreach key { url } {
@@ -359,8 +367,13 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             error "cannot specify extents without a projection"
         }
         set projection "global-mercator"; # Default projection.
-    } elseif { $projection == "geodetic" && $extents == "" } {
-        set projection "global-geodetic"
+    } elseif { $projection == "geodetic" || $projection == "global-geodetic" ||
+           $projection == "wgs84" || $projection == "epsg:4326" ||
+           $projection == "plate-carre" || $projection == "plate-carree" } {
+        # Can't use angular units in projection  
+        error "Geodetic profile not supported as map projection.  Try using an equirectangular (epsg:32663) projection instead."
+    } elseif { $projection == "equirectangular" || $projection == "eqc-wgs84" } {
+        set projection "epsg:32663"
     }
     # FIXME: Verify projection is valid.
     $_tree set root "projection" $projection
