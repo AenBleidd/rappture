@@ -2383,6 +2383,10 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             if {!$_sendEarthFile} {
                 switch -- $info(driver)  {
+                    "arcgis" {
+                        SendCmd [list map layer add $layer image arcgis \
+                                     $info(arcgis.url) $info(cache) $coverage $info(arcgis.token)]
+                    }
                     "colorramp" {
                         set cmapName $layer
                         SendFiles $info(colorramp.url)
