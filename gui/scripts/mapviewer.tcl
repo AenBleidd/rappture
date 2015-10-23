@@ -2180,9 +2180,19 @@ itcl::body Rappture::MapViewer::camera {option args} {
                 # Check if the tool specified a default
                 set view $_mapsettings(camera)
                 if { $view != "" } {
-                    array set _view $view
+                    array set cam $view
                     set duration 0.0
-                    SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
+                    if {[info exists cam(xmin)] && [info exists cam(ymin)] &&
+                        [info exists cam(xmax)] && [info exists cam(ymax)]} {
+                        set srs ""
+                        if {[info exists cam(srs)]} {
+                            set srs $cam(srs)
+                        }
+                        SendCmd [list camera extent $cam(xmin) $cam(ymin) $cam(xmax) $cam(ymax) $duration $srs]
+                    } else {
+                        array set _view $view
+                        SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
+                    }
                 } else {
                     SendCmd "camera reset"
                     # Retrieve the settings
