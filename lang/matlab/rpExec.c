@@ -245,7 +245,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
       mxFree(commandArgs);
    }
 
-   if(nlhs > 1) {
+   if(nlhs > 0) {
       plhs[0] = mxCreateNumericMatrix(1,1,mxINT32_CLASS,mxREAL);
       return1 = (int *)mxGetData(plhs[0]);
       return1[0] = exitStatus;
@@ -259,8 +259,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
       plhs[2] = mxCreateString(commandOutput.stderrBuffer);
    }
 
-   mxFree(commandOutput.stdoutBuffer);
-   mxFree(commandOutput.stderrBuffer);
+   free(commandOutput.stdoutBuffer);
+   free(commandOutput.stderrBuffer);
 }
 
 
