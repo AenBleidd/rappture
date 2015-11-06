@@ -2491,12 +2491,19 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 }
             }
             set format ""
-            set tmsType ""
-            set cmd [list map layer add $layer feature $info(driver) $format $tmsType $info(ogr.url) $info(cache) $info(stylesheet) $script $selectors]
-            if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                lappend cmd $style(-minrange) $style(-maxrange)
+            set wfsType ""
+            if { [info exists info(ogr.connection)] } {
+                set cmd [list map layer add $layer feature db $format $info(ogr.layer) $info(ogr.connection) $info(cache) $info(stylesheet) $script $selectors]
+                if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                    lappend cmd $style(-minrange) $style(-maxrange)
+                }
+            } else {
+                set cmd [list map layer add $layer feature $info(driver) $format $wfsType $info(ogr.url) $info(cache) $info(stylesheet) $script $selectors]
+                if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                    lappend cmd $style(-minrange) $style(-maxrange)
+                }
+                SendFiles $info(ogr.url)
             }
-            SendFiles $info(ogr.url)
             SendCmd $cmd
         }
         "line" {
