@@ -42,7 +42,7 @@ itcl::class Rappture::Map {
     public method selector { layerName selectorName }
     public method setAttribution { attribution }
     public method setCamera { camera }
-    public method setExtents { xmin ymin xmax ymax }
+    public method setExtents { xmin ymin xmax ymax {srs "wgs84"} }
     public method setLabel { label }
     public method setProjection { projection }
     public method setStyle { style }
@@ -253,6 +253,12 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 # FIXME: Add test for valid file path
                 $_tree set $child "ogr.url" $file
             }
+            foreach key { connection geometry geometry_url layer ogr_driver build_spatial_index } {
+                set value [$layers get $layer.ogr.$key]
+                if { $value != "" } {
+                    $_tree set $child "ogr.$key" $value
+                }
+            }
             $_tree set $child "driver" "ogr"
         }
         set tfs [$layers element -as type $layer.tfs]
@@ -424,8 +430,8 @@ itcl::body Rappture::Map::setProjection { projection } {
     $_tree set root "projection" $projection
 }
 
-itcl::body Rappture::Map::setExtents { xmin ymin xmax ymax } {
-    $_tree set root "extents" "$xmin $ymin $xmax $ymax"
+itcl::body Rappture::Map::setExtents { xmin ymin xmax ymax {srs "wgs84"} } {
+    $_tree set root "extents" [list $xmin $ymin $xmax $ymax $srs]
 }
 
 itcl::body Rappture::Map::setLabel { label } {
