@@ -263,7 +263,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         z               0.0
     }
 
-    # Note: grid types are "geodetic", "utm" and "mgrs"
+    # Note: grid types are "shader", "geodetic", "utm" and "mgrs"
     # Currently only work in geocentric maps
     array set _settings [subst {
         camera-throw           0
@@ -271,7 +271,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         coords-units           "latlong_decimal_degrees"
         coords-visible         1
         grid                   0
-        grid-type              "geodetic"
+        grid-type              "shader"
         legend                 1
         terrain-ambient        0.03
         terrain-edges          0
@@ -2665,7 +2665,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
         "polygon" {
             array set style {
                 -clamping terrain
-                -clamptechnique gpu
+                -clamptechnique drape
                 -color white
                 -minbias 1000
                 -opacity 1.0
