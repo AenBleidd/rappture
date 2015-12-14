@@ -29,6 +29,7 @@ itcl::class Rappture::Map {
         # defined below
     }
 
+    public method addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} }
     public method addViewpoint { name props }
     public method earthfile {}
     public method hints { args }
@@ -448,6 +449,172 @@ itcl::body Rappture::Map::setStyle { style } {
 
 itcl::body Rappture::Map::setCamera { camera } {
     $_tree set root "camera" $camera
+}
+
+itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} } {
+    set id "layer[incr _nextLayer]"
+    set parent [$_tree findchild root "layers"]
+    set child [$_tree insert $parent -label $id]
+    $_tree set $child "name" $name
+    $_tree set $child "type" $type
+    array set params $paramArray
+    foreach key { label description attribution profile srs verticalDatum } {
+        if {[info exists params($key)]} {
+            $_tree set $child $key $params($key)
+        } else {
+            $_tree set $child $key ""
+        }
+    }
+    # Common settings (for all layer types) with defaults
+    foreach { key defval } { visible 1 cache 1 } {
+        $_tree set $child $key $defval
+        if {[info exists params($key)]} {
+            set val $params($key)
+            if {$val != ""} {
+                $_tree set $child $key $val
+            }
+        }
+    }
+    # These are settings for which there should be no default
+    # We want to know if they have been set by the user or not
+    # Not all layer types use these
+    foreach key { coverage opacity content priority style } {
+        if {[info exists params($key)]} {
+            set val $params($key)
+            if {$val != ""} {
+                $_tree set $child $key $val
+            }
+        }
+    }
+    if {$stylesheet != ""} {
+        set val $stylesheet
+        # Normalize whitespace
+        regsub -all "\[ \t\r\n\]+" [string trim $val] " " val
+        $_tree set $child stylesheet $val
+    }
+    if {$script != ""} {
+        regsub -all "\[\r\n\]+" [string trim $script] " " script
+        $_tree set $child script $script
+    }
+    if {$selectors != ""} {
+        set sparent [$_tree insert $child -label "selectors"]
+        foreach selectorItem $selectors {
+            array set selector $selectorItem
+            set id "selector[incr _nextSelector]"
+            set snode [$_tree insert $sparent -label $id]
+            foreach key { name style styleExpression query queryBounds queryOrderBy } {
+                if {[info exists selector($key)]} {
+                    set val $selector($key)
+                    if {$val != ""} {
+                        $_tree set $snode $key $val
+                    }
+                }
+            }
+        }
+    }
+    $_tree set $child "driver" $driver
+    switch -- $driver {
+        "arcgis" {
+            array set params $driverParamArray
+            foreach key { url token format layers } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "arcgis.$key" $value
+                }
+            }
+        }
+        "colorramp" {
+            array set params $driverParamArray
+            $_tree set $child "colorramp.elevdriver" "gdal"
+            $_tree set $child "colorramp.colormap" "0 0 0 0 1 1 1 1 1 1"
+            if {[info exists params(colormap)]} {
+                set cmap $params(colormap)
+                if {$cmap != ""} {
+                    # Normalize whitespace
+                    regsub -all "\[ \t\r\n\]+" [string trim $cmap] " " cmap
+                    $_tree set $child "colorramp.colormap" $cmap
+                }
+            }
+            foreach key { url elevdriver } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    if {$value != ""} {
+                        $_tree set $child "colorramp.$key" $value
+                    }
+                }
+            }
+        }
+        "gdal" {
+            array set params $driverParamArray
+            foreach key { url } {
+                set value $params($key)
+                $_tree set $child "gdal.$key" $value
+            }
+        }
+        "ogr" {
+            array set params $driverParamArray
+            foreach key { url } {
+                set value $params($key)
+                $_tree set $child "ogr.$key" $value
+            }
+            foreach key { connection geometry geometry_url layer ogr_driver build_spatial_index } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    if { $value != "" } {
+                        $_tree set $child "ogr.$key" $value
+                    }
+                }
+            }
+        }
+        "tfs" {
+            foreach key { url format } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "tfs.$key" $value
+                }
+            }
+        }
+        "tms" {
+            foreach key { url tmsType format } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "tms.$key" $value
+                }
+            }
+        }
+        "wcs" {
+            foreach key { url identifier format elevationUnit rangeSubset } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "wcs.$key" $value
+                }
+            }
+        }
+        "wfs" {
+            foreach key { url typename format maxfeatures requestBuffer } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "wfs.$key" $value
+                }
+            }
+        }
+        "wms" {
+            foreach key { url layers format transparent } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "wms.$key" $value
+                }
+            }
+        }
+        "xyz" {
+            foreach key { url } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "xyz.$key" $value
+                }
+            }
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
