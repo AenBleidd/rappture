@@ -637,8 +637,10 @@ itcl::body Rappture::Map::layers {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::viewpoints {} {
     set list {}
-    foreach node [$_tree children root->"viewpoints"] {
-        lappend list [$_tree label $node]
+    catch {
+        foreach node [$_tree children root->"viewpoints"] {
+            lappend list [$_tree label $node]
+        }
     }
     return $list
 }
@@ -663,8 +665,10 @@ itcl::body Rappture::Map::layer { layerName } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::selectors { layerName } {
     set list {}
-    foreach node [$_tree children root->"layers"->"$layerName"->"selectors"] {
-        lappend list [$_tree label $node]
+    catch {
+        foreach node [$_tree children root->"layers"->"$layerName"->"selectors"] {
+            lappend list [$_tree label $node]
+        }
     }
     return $list
 }
