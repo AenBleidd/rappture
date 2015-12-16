@@ -31,7 +31,9 @@ itcl::class Rappture::Map {
 
     public method addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} }
     public method addViewpoint { name props }
+    public method deleteLayer { layerName }
     public method earthfile {}
+    public method hasLayer { layerName }
     public method hints { args }
     public method isGeocentric {}
     public method isvalid {} {
@@ -57,8 +59,6 @@ itcl::class Rappture::Map {
 
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
-    private common _nextLayer 0;       # Counter used to generate unique
-                                       # layer names.
     private common _nextSelector 0;
     private common _nextViewpoint 0;   # Counter used to generate unique
                                        # viewpoint names.
@@ -146,13 +146,17 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     set layers [$map element -as object "layers"]
     foreach layer [$layers children -type layer] {
         # Unique identifier for layer.
-        set name "layer[incr _nextLayer]"
+        set name [$map element -as id "layers.$layer"]
+        if {[hasLayer $name]} {
+            puts stderr "ERROR: Duplicate layer ID '$name', skipping"
+            continue
+        }
         set child [$_tree insert $parent -label $name]
         set layerType [$layers get $layer.type]
         if { ![info exists _layerTypes($layerType)] } {
             error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
         }
-        $_tree set $child "name" $layer
+        $_tree set $child "name" $name
         $_tree set $child "type" $layerType
         foreach key { label description attribution profile srs verticalDatum } {
             $_tree set $child $key [$layers get $layer.$key]
@@ -452,7 +456,10 @@ itcl::body Rappture::Map::setCamera { camera } {
 }
 
 itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} } {
-    set id "layer[incr _nextLayer]"
+    set id "$name"
+    if {[hasLayer $id]} {
+        error "Layer '$id' already exists"
+    }
     set parent [$_tree findchild root "layers"]
     set child [$_tree insert $parent -label $id]
     $_tree set $child "name" $name
@@ -615,6 +622,15 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
     }
+    return $id
+}
+
+itcl::body Rappture::Map::deleteLayer { layerName } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    $_tree delete $id
 }
 
 # ----------------------------------------------------------------------
@@ -656,6 +672,15 @@ itcl::body Rappture::Map::layer { layerName } {
         error "unknown layer \"$layerName\""
     }
     return [$_tree get $id]
+}
+
+itcl::body Rappture::Map::hasLayer { layerName } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        return 0
+    } else {
+        return 1
+    }
 }
 
 # ----------------------------------------------------------------------
