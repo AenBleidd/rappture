@@ -61,6 +61,7 @@ itcl::class Rappture::MapViewer {
     }
     public method scale {args}
     public method select {option {args ""}}
+    public method setSelectCallback {cmd}
 
     private method KeyPress { key }
     private method KeyRelease { key }
@@ -90,6 +91,7 @@ itcl::class Rappture::MapViewer {
     private method DoResize {}
     private method DoRotate {}
     private method DoSelect {}
+    private method DoSelectCallback {option {args ""}}
     private method DrawLegend { colormap min max }
     private method EarthFile {}
     private method EnablePanningMouseBindings {}
@@ -112,6 +114,7 @@ itcl::class Rappture::MapViewer {
     private method ReceiveLegend { args }
     private method ReceiveMapInfo { args }
     private method ReceiveScreenInfo { args }
+    private method ReceiveSelect { option {args ""} }
     private method RequestLegend { colormap w h }
     private method Rotate {option x y}
     private method Select {option x y}
@@ -138,6 +141,7 @@ itcl::class Rappture::MapViewer {
     private variable _layers;           # Contains the names of all the
                                         # layer in the server.
     private variable _viewpoints;
+    private variable _selectCallback "";
     private variable _click;            # info used for rotate operations
     private variable _view;             # view params for 3D view
     private variable _pan;
@@ -214,7 +218,7 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     $_parser alias map      [itcl::code $this ReceiveMapInfo]
     $_parser alias camera   [itcl::code $this camera]
     $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
-    $_parser alias select   [itcl::code $this select]
+    $_parser alias select   [itcl::code $this ReceiveSelect]
 
     # Millisecond delay before animated wait dialog appears
     set _waitTimeout 900
@@ -876,22 +880,59 @@ itcl::body Rappture::MapViewer::scale {args} {
     }
 }
 
+itcl::body Rappture::MapViewer::setSelectCallback {cmd} {
+    set _selectCallback $cmd
+}
+
+itcl::body Rappture::MapViewer::DoSelectCallback {option {args ""}} {
+    if { $_selectCallback != "" } {
+        set cmd [concat $_selectCallback $option $args]
+        uplevel #0 $cmd
+    }
+}
+
 # ----------------------------------------------------------------------
-# USAGE: select clear
-# USAGE: select feature
-# USAGE: select annotation
+# USAGE: ReceiveSelect clear
+# USAGE: ReceiveSelect feature <args...>
+# USAGE: ReceiveSelect annotation <args...>
 # ----------------------------------------------------------------------
-itcl::body Rappture::MapViewer::select {option {args ""}} {
+itcl::body Rappture::MapViewer::ReceiveSelect {option {args ""}} {
     DebugTrace "Enter"
     switch $option {
         "annotation" {
             puts stderr "select annotation $args"
         }
         "clear" {
-             puts stderr "select clear"
+            puts stderr "select clear"
         }
         "feature" {
-             puts stderr "select feature $args"
+            puts stderr "select feature $args"
+        }
+    }
+    eval DoSelectCallback $option $args
+}
+
+# ----------------------------------------------------------------------
+# USAGE: select clear
+# USAGE: select feature <args...>
+# USAGE: select annotation <args...>
+#
+# Clients use this method to notify the map widget of a selection event
+# originating from outside the map
+# ----------------------------------------------------------------------
+itcl::body Rappture::MapViewer::select {option {args ""}} {
+    switch $option {
+        "annotation" {
+            SendCmd "select annotation $args"
+        }
+        "clear" {
+            SendCmd "select clear"
+        }
+        "feature" {
+            SendCmd "select feature $args"
+        }
+        default {
+            puts stderr "Unknown select option \"$option\""
         }
     }
 }
@@ -1253,6 +1294,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 
     set _first ""
     set haveTerrain 0
+    #SendCmd "map layer visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -2478,7 +2520,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             set selectors [list]
             foreach selector [$dataobj selectors $layer] {
-               array set sinfo [$dataobj selector $layer $selector]
+                array set sinfo [$dataobj selector $layer $selector]
                 DebugTrace "$selector: [array get sinfo]"
                 lappend selectors [array get sinfo]
                 if {[info exists sinfo(styleExpression)]} {
