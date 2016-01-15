@@ -52,6 +52,7 @@ itcl::class Rappture::MapViewer {
     public method add {dataobj {settings ""}}
     public method camera {option args}
     public method delete {args}
+    public method remove {args}
     public method disconnect {}
     public method download {option args}
     public method get {args}
@@ -62,6 +63,8 @@ itcl::class Rappture::MapViewer {
     public method scale {args}
     public method select {option {args ""}}
     public method setSelectCallback {cmd}
+
+    public method send { cmd }
 
     private method KeyPress { key }
     private method KeyRelease { key }
@@ -538,6 +541,18 @@ itcl::body Rappture::MapViewer::destructor {} {
     image delete $_image(download)
 }
 
+#
+# send --
+#
+#   Test method for dsk
+#
+#       send [list my command]
+#
+itcl::body Rappture::MapViewer::send {cmd} {
+    puts "sending: \"$cmd\""
+    SendCmd $cmd
+}
+
 itcl::body Rappture::MapViewer::DoResize {} {
     set sendResize 1
     if { $_width < 2 } {
@@ -696,9 +711,55 @@ itcl::body Rappture::MapViewer::delete {args} {
             continue;                   # Don't know anything about it.
         }
         # When a map is marked deleted, we hide its layers.
-        foreach layer [$dataobj layers] {
+        foreach layer [$dataobj layer names] {
             SendCmd "map layer visible 0 $layer"
             set _visibility($layer) 0
+        }
+        # Remove it from the dataobj list.
+        set _dlist [lreplace $_dlist $pos $pos]
+        array unset _obj2ovride $dataobj-*
+        array unset _settings $dataobj-*
+        set changed 1
+    }
+    # If anything changed, then rebuild the plot
+    if { $changed } {
+        $_dispatcher event -idle !rebuild
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: remove ?<dataobj1> <dataobj2> ...?
+#
+# Clients use this to permanantly remove a dataobj from the client
+# and the server. If no dataobjs are specified, then all dataobjs
+# are removed. Unlike the delete method, dataobjects are permenantly
+# removed from both the client and the server and it is safe to add
+# them again without conflict in layer names.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MapViewer::remove {args} {
+    DebugTrace "Enter"
+    if { [llength $args] == 0} {
+        set args $_dlist
+    }
+    # Remove all specified dataobjs
+    set changed 0
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
+        if { $pos < 0 } {
+            continue;                   # Don't know anything about it.
+        }
+        # Remove the layers from the client and server.
+        foreach layer [$dataobj layer names] {
+            SendCmd "map layer delete $layer"
+            if { [info exists _layers($layer)] } {
+                array unset _layers $layer
+            }
+            if { [info exists _opacity($layer)] } {
+                array unset _opacity $layer
+            }
+            if { [info exists _visibility($layer)] } {
+                array unset _visibility $layer
+            }
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
@@ -854,7 +915,7 @@ itcl::body Rappture::MapViewer::scale {args} {
                 set _mapsettings(camera) $hints(camera)
             }
         }
-        foreach layer [$dataobj layers] {
+        foreach layer [$dataobj layer names] {
             if { [$dataobj type $layer] == "elevation" } {
                 set _haveTerrain 1
                 break
@@ -1299,9 +1360,9 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
-        foreach layer [$dataobj layers] {
+        foreach layer [$dataobj layer names] {
             array unset info
-            array set info [$dataobj layer $layer]
+            array set info [$dataobj layer settings $layer]
             if { ![info exists _layers($layer)] } {
                 if { $_reportClientInfo }  {
                     set cinfo {}
@@ -1471,7 +1532,7 @@ itcl::body Rappture::MapViewer::CurrentLayers {args} {
     }
     set rlist ""
     foreach dataobj $dlist {
-        foreach layer [$dataobj layers] {
+        foreach layer [$dataobj layer names] {
             if { [info exists _layers($layer)] && $_layers($layer) } {
                 lappend rlist $layer
             }
@@ -2405,7 +2466,7 @@ itcl::body Rappture::MapViewer::SendFiles { path } {
 }
 
 itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
-    array set info [$dataobj layer $layer]
+    array set info [$dataobj layer settings $layer]
     if { [info exists info(visible)] &&
          !$info(visible) } {
         set _visibility($layer) 0
@@ -2850,9 +2911,9 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     set attrib [list]
     set imgIdx 0
     foreach dataobj [get -objects] {
-        foreach layer [$dataobj layers] {
+        foreach layer [$dataobj layer names] {
             array unset info
-            array set info [$dataobj layer $layer]
+            array set info [$dataobj layer settings $layer]
             checkbutton $f.${layer}_visible \
                 -text $info(label) \
                 -font "Arial 9" -anchor w \
@@ -2994,10 +3055,10 @@ itcl::body Rappture::MapViewer::EarthFile {} {
     append out " </options>\n"
 
     foreach dataobj [get -objects] {
-        foreach layer [$dataobj layers] {
+        foreach layer [$dataobj layer names] {
             set _layers($layer) 1
             array unset info
-            array set info [$dataobj layer $layer]
+            array set info [$dataobj layer settings $layer]
             switch -- $info(type) {
                 "image" {
                     append out " <image"

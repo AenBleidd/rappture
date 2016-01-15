@@ -1,0 +1,89 @@
+# Commands covered:
+#   Rappture::GeoMapDataProviderGdal
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2015  HUBzero Foundation, LLC
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require RapptureGUI
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+proc check {var size} {
+    set l [llength $var]
+    if {$l != $size} {
+        return "length mismatch: should have been $size, was $l"
+    }
+    for {set i 0} {$i < $size} {set i [expr $i+1]} {
+        set j [lindex $var $i]
+        if {$j != "item $i"} {
+            return "element $i should have been \"item $i\", was \"$j\""
+        }
+    }
+    return ok
+}
+
+# temporary class for testing protected methods
+itcl::class TestDataProviderGdal {
+    inherit Rappture::GeoMapDataProviderGdal
+
+    constructor {url args} {
+        Rappture::GeoMapDataProviderGdal::constructor $url
+    } {
+        eval configure $args
+    }
+    destructor {
+        # empty
+    }
+    public method do { args } {eval $args}
+}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# constructor command
+# Rappture::GeoMapDataProviderGdal <name> <url>
+#----------------------------------------------------------
+test geomapdataprovidergdal-1.1 {Rappture::GeoMapDataProviderGdal, 0 arguments} {
+    list [catch {Rappture::GeoMapDataProviderGdal} msg] $msg
+} {0 {}}
+
+
+test geomapdataprovidergdal-1.2 {
+    Rappture::GeoMapDataProviderGdal, name url
+} -body {
+    list [catch {Rappture::GeoMapDataProviderGdal name "http://myurl.com/"} msg] $msg
+} -cleanup {
+    catch {itcl::delete object name} err
+} -result {0 name}
+
+
+#----------------------------------------------------------
+# exportToBltTree
+# $dp exportToBltTree $tree
+#----------------------------------------------------------
+
+test geomapdataprovidergdal-2.1 {exportToBltTree, } {
+    set dp [Rappture::GeoMapDataProviderGdal #auto "http://myurl.com/"]
+    set tree [blt::tree create]
+    $dp exportToBltTree $tree
+    $tree dump root
+} {-1 0 ::tree0 {type image driver gdal cache true attribution {} gdal.url http://myurl.com/} {}
+}
+
+
+# TODO:
+
+::tcltest::cleanupTests
+return
+

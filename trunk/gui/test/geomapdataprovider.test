@@ -1,0 +1,315 @@
+# Commands covered:
+#   Rappture::GeoMapDataProvider
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2015  HUBzero Foundation, LLC
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require RapptureGUI
+    package require BLT
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+proc check {var size} {
+    set l [llength $var]
+    if {$l != $size} {
+        return "length mismatch: should have been $size, was $l"
+    }
+    for {set i 0} {$i < $size} {set i [expr $i+1]} {
+        set j [lindex $var $i]
+        if {$j != "item $i"} {
+            return "element $i should have been \"item $i\", was \"$j\""
+        }
+    }
+    return ok
+}
+
+# temporary class for testing protected methods
+itcl::class TestDataProvider {
+    inherit Rappture::GeoMapDataProvider
+
+    constructor {type driver url} {
+        Rappture::GeoMapDataProvider::constructor $type $driver $url
+    } {
+        # empty
+    }
+    destructor {
+        # empty
+    }
+    public method do { args } {eval $args}
+}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# constructor command
+# Rappture::GeoMapDataProvider <name> <type> <driver> <url>
+#----------------------------------------------------------
+test geomapdataprovider-1.1 {Rappture::GeoMapDataProvider, 0 arguments} {
+    list [catch {Rappture::GeoMapDataProvider} msg] $msg
+} {0 {}}
+
+
+test geomapdataprovider-1.2 {Rappture::GeoMapDataProvider, 1 arguments} {
+    list [catch {Rappture::GeoMapDataProvider name "image"} msg] $msg
+} {1 {wrong # args: should be "::Rappture::GeoMapDataProvider name type driver url ?arg arg ...?"}}
+
+
+test geomapdataprovider-1.3 {Rappture::GeoMapDataProvider, 2 arguments} {
+    list [catch {Rappture::GeoMapDataProvider name "image" "xyz"} msg] $msg
+} {1 {wrong # args: should be "::Rappture::GeoMapDataProvider name type driver url ?arg arg ...?"}}
+
+
+test geomapdataprovider-1.4 {
+    Rappture::GeoMapDataProvider, type driver url
+} -body {
+    list [catch {Rappture::GeoMapDataProvider name "image" "xyz" \
+                    {http://myurl.com/{z}/{x}/{y}.jpg}
+                } msg] $msg
+} -cleanup {
+    catch {itcl::delete object name} err
+} -result {0 name}
+
+
+#----------------------------------------------------------
+# Type command
+# $dp Type
+# $dp Type <type>
+#----------------------------------------------------------
+test geomapdataprovider-2.1 {Type, 0 arguments} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type} msg] $msg
+} {0 image}
+
+test geomapdataprovider-2.2 {Type, set type to "image"} {
+    set dp [TestDataProvider #auto "elevation" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "image"} msg] $msg
+} {0 image}
+
+test geomapdataprovider-2.3 {Type, set type to "feature"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "feature"} msg] $msg
+} {0 feature}
+
+test geomapdataprovider-2.4 {Type, set type to "icon"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "icon"} msg] $msg
+} {0 icon}
+
+test geomapdataprovider-2.5 {Type, set type to "line"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "line"} msg] $msg
+} {0 line}
+
+test geomapdataprovider-2.6 {Type, set type to "point"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "point"} msg] $msg
+} {0 point}
+
+test geomapdataprovider-2.7 {Type, set type to "polygon"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "polygon"} msg] $msg
+} {0 polygon}
+
+test geomapdataprovider-2.8 {Type, set type to "text"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Type "text"} msg] $msg
+} {0 text}
+
+test geomapdataprovider-2.9 {Type, set type to "image" and retrieve type} {
+    set dp [TestDataProvider #auto "elevation" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    $dp do Type "image"
+    list [catch {$dp do Type} msg] $msg
+} {0 image}
+
+
+#----------------------------------------------------------
+# Driver command
+# $dp Driver
+# $dp Driver <driver>
+#----------------------------------------------------------
+test geomapdataprovider-3.1 {Driver, 0 arguments} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver} msg] $msg
+} {0 xyz}
+
+test geomapdataprovider-3.2 {Driver, set driver to "arcgis"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "arcgis"} msg] $msg
+} {0 arcgis}
+
+test geomapdataprovider-3.3 {Driver, set driver to "colorramp"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "colorramp"} msg] $msg
+} {0 colorramp}
+
+test geomapdataprovider-3.4 {Driver, set driver to "debug"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "debug"} msg] $msg
+} {0 debug}
+
+test geomapdataprovider-3.5 {Driver, set driver to "gdal"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "gdal"} msg] $msg
+} {0 gdal}
+
+test geomapdataprovider-3.6 {Driver, set driver to "ogr"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "ogr"} msg] $msg
+} {0 ogr}
+
+test geomapdataprovider-3.7 {Driver, set driver to "tfs"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "tfs"} msg] $msg
+} {0 tfs}
+
+test geomapdataprovider-3.8 {Driver, set driver to "tms"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "tms"} msg] $msg
+} {0 tms}
+
+test geomapdataprovider-3.9 {Driver, set driver to "wcs"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "wcs"} msg] $msg
+} {0 wcs}
+
+test geomapdataprovider-3.10 {Driver, set driver to "wfs"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "wfs"} msg] $msg
+} {0 wfs}
+
+test geomapdataprovider-3.11 {Driver, set driver to "wms"} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "wms"} msg] $msg
+} {0 wms}
+
+test geomapdataprovider-3.11 {Driver, set driver to "xyz"} {
+    set dp [TestDataProvider #auto "image" "colorramp" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Driver "xyz"} msg] $msg
+} {0 xyz}
+
+test geomapdataprovider-3.12 {Driver, set type to "xyz" and retrieve type} {
+    set dp [TestDataProvider #auto "image" "colorramp" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    $dp do Driver "xyz"
+    list [catch {$dp do Driver} msg] $msg
+} {0 xyz}
+
+
+#----------------------------------------------------------
+# Url command
+# $dp Url
+# $dp Url <url>
+#----------------------------------------------------------
+test geomapdataprovider-4.1 {Url, 0 arguments} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Url} msg] $msg
+} {0 http://myurl.com/{z}/{x}/{y}.jpg}
+
+test geomapdataprovider-4.2 {Url, valid http url} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Url {http://mynewurl.com/{z}/{x}/{y}.jpg}} msg] $msg
+} {0 http://mynewurl.com/{z}/{x}/{y}.jpg}
+
+test geomapdataprovider-4.3 {Url, valid file url} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Url {file:///myfilename.jpg}} msg] $msg
+} {0 file:///myfilename.jpg}
+
+test geomapdataprovider-4.4 {Url, invalid url} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp do Url "mynewurl"} msg] $msg
+} {1 {bad value "mynewurl": should be a valid url or url pattern}}
+
+test geomapdataprovider-4.5 {Url, set url and retrieve it} {
+    set dp [TestDataProvider #auto "image" "xyz" {http://myurl.com/{z}/{x}/{y}.jpg}]
+    $dp do Url {file:///myfilename.jpg}
+    list [catch {$dp do Url} msg] $msg
+} {0 file:///myfilename.jpg}
+
+#----------------------------------------------------------
+# attribution flag
+# $dp configure -attribution "copyright text"
+# $dp cget -attribution
+#----------------------------------------------------------
+
+test geomapdataprovider-5.1 {-attribution, set to non-empty string} {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg} \
+                -attribution "copyright text"]
+    list [catch {$dp cget -attribution} msg] $msg
+} {0 {copyright text}}
+
+test geomapdataprovider-5.2 {-attribution, set to empty string} {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg} \
+                -attribution "copyright text"]
+    $dp configure -attribution ""
+    list [catch {$dp cget -attribution} msg] $msg
+} {0 {}}
+
+
+#----------------------------------------------------------
+# cache flag
+# $dp configure -cache true
+# $dp cget -cache
+#----------------------------------------------------------
+
+test geomapdataprovider-6.1 {-cache, set to boolean true} {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg} \
+                -cache true]
+    list [catch {$dp cget -cache} msg] $msg
+} {0 true}
+
+test geomapdataprovider-6.2 {-cache, set to boolean false} {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg} \
+                -cache false]
+    list [catch {$dp cget -cache} msg] $msg
+} {0 false}
+
+test geomapdataprovider-6.3 {-attribution, set and retrieve cache} {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg} \
+                -cache "false"]
+    $dp configure -cache "true"
+    list [catch {$dp cget -cache} msg] $msg
+} {0 true}
+
+test geomapdataprovider-6.1 {-cache, set to invalid boolean} {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg}]
+    list [catch {$dp configure -cache "notabool"} msg] $msg
+} {1 {bad value "notabool": should be a boolean}}
+
+
+#----------------------------------------------------------
+# exportToBltTree
+# $dp exportToBltTree $tree
+#----------------------------------------------------------
+
+test geomapdataprovider-7.1 {exportToBltTree, } {
+    set dp [Rappture::GeoMapDataProvider #auto "image" "xyz" \
+                {http://myurl.com/{z}/{x}/{y}.jpg}]
+    set tree [blt::tree create]
+    $dp exportToBltTree $tree
+    $tree dump root
+} {-1 0 ::tree0 {type image driver xyz cache true attribution {}} {}
+}
+
+
+# TODO:
+
+::tcltest::cleanupTests
+return
+

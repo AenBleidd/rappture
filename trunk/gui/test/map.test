@@ -1,0 +1,207 @@
+# Commands covered:
+#   Rappture::Map
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2015  HUBzero Foundation, LLC
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require RapptureGUI
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+proc check {var size} {
+    set l [llength $var]
+    if {$l != $size} {
+        return "length mismatch: should have been $size, was $l"
+    }
+    for {set i 0} {$i < $size} {set i [expr $i+1]} {
+        set j [lindex $var $i]
+        if {$j != "item $i"} {
+            return "element $i should have been \"item $i\", was \"$j\""
+        }
+    }
+    return ok
+}
+
+#----------------------------------------------------------
+
+#----------------------------------------------------------
+# constructor command
+# Rappture::Map <name>
+#----------------------------------------------------------
+
+test map-1.1 {Rappture::Map, 0 arguments} {
+    list [catch {Rappture::Map} msg] $msg
+} {0 {}}
+
+test map-1.2 {Rappture::Map, 1 arguments} {
+    list [catch {Rappture::Map .m0} msg] $msg
+} {0 .m0}
+
+#----------------------------------------------------------
+# layer command
+#
+# layer add ?-type type? layerData
+# layer delete layerName
+# layer settings layerName
+# layer names
+#----------------------------------------------------------
+
+set layerTree [blt::tree create]
+$layerTree set root \
+    type "image" \
+    driver "xyz" \
+    url "file:///myfile.txt" \
+    label "mylayer1" \
+    description "this is layer1" \
+    attribution "" \
+    cache "false" \
+    visibility "true" \
+    opacity "1.0"
+
+test map-2.0.0 {layer add, ingesting blt::tree layer data} {
+    set m [Rappture::Map #auto]
+    set err [catch {$m layer add $layerTree} msg]
+    if {$err != 0} {
+        list $err $msg
+    } else {
+        set layerName $msg
+        list $err [string compare $layerName ""]
+    }
+} {0 1}
+
+test map-2.0.1 {layer add, ingesting blt::tree layer data using -format flag} {
+    set m [Rappture::Map #auto]
+    set err [catch {$m layer add -format blt_tree $layerTree} msg]
+    if {$err != 0} {
+        list $err $msg
+    } else {
+        set layerName $msg
+        list $err [string compare $layerName ""]
+    }
+} {0 1}
+
+test map-2.0.2 {layer add, -format, invalid format} {
+    set m [Rappture::Map #auto]
+    list [catch {$m layer add -format bad_format $layerTree} msg] $msg
+} {1 {bad format "bad_format": should be one of blt_tree}}
+
+test map-2.0.3 {layer add, invalid option flag} {
+    set m [Rappture::Map #auto]
+    list [catch {$m layer add -badflag $layerTree} msg] $msg
+} {1 {invalid option "-badflag": should be one of -format}}
+
+
+test map-2.1.0 {layer delete, delete a layer} {
+    set m [Rappture::Map #auto]
+    set layerName [$m layer add -format blt_tree $layerTree]
+    list [catch {$m layer delete $layerName} msg] $msg
+} {0 {}}
+
+test map-2.1.1 {layer delete, delete an invalid layer, no layers exist} {
+    set m [Rappture::Map #auto]
+    # set layerName [$m layer add -format blt_tree $layerTree]
+    list [catch {$m layer delete "invalidLayerName"} msg] $msg
+} {1 {invalid layer "invalidLayerName": should be one of }}
+
+test map-2.1.2 {layer delete, delete an invalid layer, map with layers} {
+    set m [Rappture::Map #auto]
+    set layerName1 [$m layer add -format blt_tree $layerTree]
+    set layerName2 [$m layer add -format blt_tree $layerTree]
+    set err [catch {$m layer delete "invalidLayerName"} msg]
+    set msg [lrange [split $msg] 0 end-2]
+    list $err $msg
+} {1 {invalid layer {"invalidLayerName":} should be one of}}
+
+test map-2.2.0 {layer names, map with no layers} {
+    set m [Rappture::Map #auto]
+    list [catch {$m layer names} msg] $msg
+} {0 {}}
+
+test map-2.2.1 {layer names, map with a single layer} {
+    set m [Rappture::Map #auto]
+    set layerName1 [$m layer add -format blt_tree $layerTree]
+    set err [catch {$m layer names} msg]
+    if {$err == 0} {
+        set msg [string compare $layerName1 $msg]
+    }
+    list $err $msg
+} {0 0}
+
+test map-2.2.2 {layer names, map with a multiple layers} {
+    set m [Rappture::Map #auto]
+    set layerName1 [$m layer add -format blt_tree $layerTree]
+    set layerName2 [$m layer add -format blt_tree $layerTree]
+    set layerName3 [$m layer add -format blt_tree $layerTree]
+    set err [catch {$m layer names} msg]
+    if {$err == 0} {
+        foreach l [list $layerName1 $layerName2 $layerName3]  {
+            set i [lsearch -exact $msg $l]
+            if {$i >= 0} {
+                set msg [lreplace $msg $i $i]
+            }
+        }
+    }
+    list $err $msg
+} {0 {}}
+
+test map-2.2.3 {layer names, map with a multiple layers, add and delete} {
+    set m [Rappture::Map #auto]
+    set layerName1 [$m layer add -format blt_tree $layerTree]
+    set layerName2 [$m layer add -format blt_tree $layerTree]
+    set layerName3 [$m layer add -format blt_tree $layerTree]
+    $m layer delete $layerName2
+    set err [catch {$m layer names} msg]
+    if {$err == 0} {
+        foreach l [list $layerName1 $layerName3]  {
+            set i [lsearch -exact $msg $l]
+            if {$i >= 0} {
+                set msg [lreplace $msg $i $i]
+            }
+        }
+    }
+    list $err $msg
+} {0 {}}
+
+test map-2.3.0 {layer settings, retreive a layer's settings} {
+    set m [Rappture::Map #auto]
+    set layerName1 [$m layer add -format blt_tree $layerTree]
+    set err [catch {$m layer settings $layerName1} msg]
+    if {$err == 0} {
+        # compare the lists
+        set layerdata [$layerTree get root]
+        set msg [expr {[lsort $msg] eq [lsort $layerdata]}]
+    }
+    list $err $msg
+} {0 1}
+
+test map-2.3.1 {layer settings, unknown layer} {
+    set m [Rappture::Map #auto]
+    set layerName1 [$m layer add -format blt_tree $layerTree]
+    list [catch {$m layer settings "badLayerName"} msg] $msg
+} {1 {unknown layer "badLayerName"}}
+
+test map-2.4.0 {layer, bad option} {
+    set m [Rappture::Map #auto]
+    list [catch {$m layer badCommand} msg] $msg
+} {1 {unknown layer option "badCommand"}}
+
+
+
+
+# TODO:
+
+::tcltest::cleanupTests
+return
+
