@@ -60,6 +60,17 @@ FILES		= \
 		$(srcdir)/flowvisviewer.tcl \
 		$(srcdir)/gauge.tcl \
 		$(srcdir)/getopts.tcl \
+		$(srcdir)/geomapdataprovider.tcl \
+		$(srcdir)/geomapdataprovidercolorramp.tcl \
+		$(srcdir)/geomapdataprovidergdal.tcl \
+		$(srcdir)/geomapdataproviderogr.tcl \
+		$(srcdir)/geomapdataprovidertfs.tcl \
+		$(srcdir)/geomapdataprovidertms.tcl \
+		$(srcdir)/geomapdataproviderwfs.tcl \
+		$(srcdir)/geomapdataproviderwms.tcl \
+		$(srcdir)/geomapdataproviderxyz.tcl \
+		$(srcdir)/geomaplayer.tcl \
+		$(srcdir)/geomaplayerimage.tcl \
 		$(srcdir)/grab.tcl \
 		$(srcdir)/groupentry.tcl \
 		$(srcdir)/histogram.tcl \
