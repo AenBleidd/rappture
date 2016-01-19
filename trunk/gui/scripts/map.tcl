@@ -32,6 +32,7 @@ itcl::class Rappture::Map {
     public method addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} }
     public method addViewpoint { name props }
     public method deleteLayer { layerName }
+    public method deleteViewpoint { viewpointName }
     public method earthfile {}
     public method hasLayer { layerName }
     public method hints { args }
@@ -765,6 +766,14 @@ itcl::body Rappture::Map::addViewpoint { name props } {
     if {!$haveZ && [info exists info(altitude)]} {
         $_tree set $child z $info(altitude)
     }
+}
+
+itcl::body Rappture::Map::deleteViewpoint { viewopintName } {
+    set id [$_tree findchild root->"viewpoints" $viewpointName]
+    if { $id < 0 } {
+        error "unknown viewpoint \"$viewpointName\""
+    }
+    $_tree delete $id
 }
 
 # ----------------------------------------------------------------------
