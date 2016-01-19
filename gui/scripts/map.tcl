@@ -29,14 +29,17 @@ itcl::class Rappture::Map {
         # defined below
     }
 
+    public method addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} }
     public method addViewpoint { name props }
+    public method deleteLayer { layerName }
     public method earthfile {}
+    public method hasLayer { layerName }
     public method hints { args }
     public method isGeocentric {}
     public method isvalid {} {
         return $_isValid;
     }
-    public method layer { option args }
+    public method layer { layerName }
     public method layers {}
     public method selectors { layerName }
     public method selector { layerName selectorName }
@@ -54,16 +57,8 @@ itcl::class Rappture::Map {
 
     protected method Parse { xmlobj path }
 
-    private method AddLayer { args }
-    private method DeleteLayer { layerName }
-    private method GetLayerNames {}
-    private method GetLayerSettings { layerName }
-
-
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
-    private common _nextLayer 0;       # Counter used to generate unique
-                                       # layer names.
     private common _nextSelector 0;
     private common _nextViewpoint 0;   # Counter used to generate unique
                                        # viewpoint names.
@@ -151,13 +146,17 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     set layers [$map element -as object "layers"]
     foreach layer [$layers children -type layer] {
         # Unique identifier for layer.
-        set name "layer[incr _nextLayer]"
+        set name [$map element -as id "layers.$layer"]
+        if {[hasLayer $name]} {
+            puts stderr "ERROR: Duplicate layer ID '$name', skipping"
+            continue
+        }
         set child [$_tree insert $parent -label $name]
         set layerType [$layers get $layer.type]
         if { ![info exists _layerTypes($layerType)] } {
             error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
         }
-        $_tree set $child "name" $layer
+        $_tree set $child "name" $name
         $_tree set $child "type" $layerType
         foreach key { label description attribution profile srs verticalDatum } {
             $_tree set $child $key [$layers get $layer.$key]
@@ -456,6 +455,197 @@ itcl::body Rappture::Map::setCamera { camera } {
     $_tree set root "camera" $camera
 }
 
+itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} } {
+    set id "$name"
+    if {[hasLayer $id]} {
+        error "Layer '$id' already exists"
+    }
+    set parent [$_tree findchild root "layers"]
+    set child [$_tree insert $parent -label $id]
+    $_tree set $child "name" $name
+    $_tree set $child "type" $type
+    array set params $paramArray
+    foreach key { label description attribution profile srs verticalDatum } {
+        if {[info exists params($key)]} {
+            $_tree set $child $key $params($key)
+        } else {
+            $_tree set $child $key ""
+        }
+    }
+    # Common settings (for all layer types) with defaults
+    foreach { key defval } { visible 1 cache 1 } {
+        $_tree set $child $key $defval
+        if {[info exists params($key)]} {
+            set val $params($key)
+            if {$val != ""} {
+                $_tree set $child $key $val
+            }
+        }
+    }
+    # These are settings for which there should be no default
+    # We want to know if they have been set by the user or not
+    # Not all layer types use these
+    foreach key { coverage opacity content priority style } {
+        if {[info exists params($key)]} {
+            set val $params($key)
+            if {$val != ""} {
+                $_tree set $child $key $val
+            }
+        }
+    }
+    if {$stylesheet != ""} {
+        set val $stylesheet
+        # Normalize whitespace
+        regsub -all "\[ \t\r\n\]+" [string trim $val] " " val
+        $_tree set $child stylesheet $val
+    }
+    if {$script != ""} {
+        regsub -all "\[\r\n\]+" [string trim $script] " " script
+        $_tree set $child script $script
+    }
+    if {$selectors != ""} {
+        set sparent [$_tree insert $child -label "selectors"]
+        foreach selectorItem $selectors {
+            array set selector $selectorItem
+            set id "selector[incr _nextSelector]"
+            set snode [$_tree insert $sparent -label $id]
+            foreach key { name style styleExpression query queryBounds queryOrderBy } {
+                if {[info exists selector($key)]} {
+                    set val $selector($key)
+                    if {$val != ""} {
+                        $_tree set $snode $key $val
+                    }
+                }
+            }
+        }
+    }
+    $_tree set $child "driver" $driver
+    switch -- $driver {
+        "arcgis" {
+            array set params $driverParamArray
+            foreach key { url token format layers } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "arcgis.$key" $value
+                }
+            }
+        }
+        "colorramp" {
+            array set params $driverParamArray
+            $_tree set $child "colorramp.elevdriver" "gdal"
+            $_tree set $child "colorramp.colormap" "0 0 0 0 1 1 1 1 1 1"
+            if {[info exists params(colormap)]} {
+                set cmap $params(colormap)
+                if {$cmap != ""} {
+                    # Normalize whitespace
+                    regsub -all "\[ \t\r\n\]+" [string trim $cmap] " " cmap
+                    $_tree set $child "colorramp.colormap" $cmap
+                }
+            }
+            foreach key { url elevdriver } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    if {$value != ""} {
+                        $_tree set $child "colorramp.$key" $value
+                    }
+                }
+            }
+        }
+        "gdal" {
+            array set params $driverParamArray
+            foreach key { url } {
+                set value $params($key)
+                $_tree set $child "gdal.$key" $value
+            }
+        }
+        "ogr" {
+            array set params $driverParamArray
+            foreach key { url } {
+                set value $params($key)
+                $_tree set $child "ogr.$key" $value
+            }
+            foreach key { connection geometry geometry_url layer ogr_driver build_spatial_index } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    if { $value != "" } {
+                        $_tree set $child "ogr.$key" $value
+                    }
+                }
+            }
+        }
+        "tfs" {
+            foreach key { url format } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "tfs.$key" $value
+                }
+            }
+        }
+        "tms" {
+            foreach key { url tmsType format } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "tms.$key" $value
+                }
+            }
+        }
+        "wcs" {
+            foreach key { url identifier format elevationUnit rangeSubset } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "wcs.$key" $value
+                }
+            }
+        }
+        "wfs" {
+            foreach key { url typename format maxfeatures requestBuffer } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "wfs.$key" $value
+                }
+            }
+        }
+        "wms" {
+            foreach key { url layers format transparent } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "wms.$key" $value
+                }
+            }
+        }
+        "xyz" {
+            foreach key { url } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "xyz.$key" $value
+                }
+            }
+        }
+    }
+    return $id
+}
+
+itcl::body Rappture::Map::deleteLayer { layerName } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    $_tree delete $id
+}
+
+# ----------------------------------------------------------------------
+# USAGE: layers
+#
+# Returns a list of IDs for the layers in the map
+# ----------------------------------------------------------------------
+itcl::body Rappture::Map::layers {} {
+    set list {}
+    foreach node [$_tree children root->"layers"] {
+        lappend list [$_tree label $node]
+    }
+    return $list
+}
+
 # ----------------------------------------------------------------------
 # USAGE: viewpoints
 #
@@ -472,94 +662,11 @@ itcl::body Rappture::Map::viewpoints {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: AddLayer -format <format>
-#
-# Associate a new layer to the map
-# ----------------------------------------------------------------------
-itcl::body Rappture::Map::AddLayer { args } {
-    set layerName ""
-    set valids "-format"
-    set format "blt_tree"
-
-    set layerObj [lrange $args end end]
-    set args [lrange $args 0 end-1]
-
-    while {[llength $args] > 0} {
-        set flag [lindex $args 0]
-        switch -- $flag {
-            "-format" {
-                if {[llength $args] > 1} {
-                    set format [lindex $args 1]
-                    set args [lrange $args 2 end]
-                } else {
-                    error "wrong number args: should be ?-format <format>?"
-                }
-            }
-            default {
-                error "invalid option \"$flag\": should be one of $valids"
-            }
-        }
-    }
-
-    set valids "blt_tree"
-
-    switch -- $format {
-        "blt_tree" {
-            # check if a layer by the same name already exists
-            set layerName "layer[incr _nextLayer]"
-            if {[$_tree findchild root->"layers" $layerName] != -1} {
-                error "key error \"$layerName\": layer name exists"
-            }
-            # copy the incomming layer data into our map object
-            set id [$layerObj copy root $_tree root->"layers"]
-            # give the layer a searchable layer name
-            $_tree label $id $layerName
-        }
-        default {
-            error "bad format \"$format\": should be one of $valids"
-        }
-    }
-
-    return $layerName
-}
-
-# ----------------------------------------------------------------------
-# USAGE: DeleteLayer <layerName>
-#
-# Remove a layer from the map
-# ----------------------------------------------------------------------
-itcl::body Rappture::Map::DeleteLayer { layerName } {
-    set id [$_tree findchild root->"layers" $layerName]
-    if {$id <= 0} {
-        # layer not found
-        error "invalid layer \"$layerName\": should be one of [GetLayerNames]"
-    }
-    # delete the layer
-    $_tree delete $id
-}
-
-
-# ----------------------------------------------------------------------
-# USAGE: GetLayerNames
-# USAGE: layers
-#
-# Returns a list of IDs for the layers in the map
-# ----------------------------------------------------------------------
-itcl::body Rappture::Map::GetLayerNames {} {
-    set list {}
-    foreach node [$_tree children root->"layers"] {
-        lappend list [$_tree label $node]
-    }
-    return $list
-}
-
-# ----------------------------------------------------------------------
-# USAGE: GetLayerSettings <layerName>
 # USAGE: layer <layerName>
 #
-# Returns a list of settings for the named layer
+# Returns an array of settings for the named layer
 # ----------------------------------------------------------------------
-itcl::body Rappture::Map::GetLayerSettings { layerName } {
+itcl::body Rappture::Map::layer { layerName } {
     set id [$_tree findchild root->"layers" $layerName]
     if { $id < 0 } {
         error "unknown layer \"$layerName\""
@@ -567,39 +674,14 @@ itcl::body Rappture::Map::GetLayerSettings { layerName } {
     return [$_tree get $id]
 }
 
-# ----------------------------------------------------------------------
-# USAGE: layer
-#
-#   This public method is called by clients using this widget to manage
-#   layers in the map.
-#
-#       layer add ?-type type? layerData
-#       layer delete layerName
-#       layer names
-#       layer settings layerName
-#
-itcl::body Rappture::Map::layer {option args} {
-    set result ""
-    switch -- $option {
-        "add" {
-            set result [eval AddLayer $args]
-        }
-        "delete" {
-            set result [eval DeleteLayer $args]
-        }
-        "names" {
-            set result [GetLayerNames]
-        }
-        "settings" {
-            set result [GetLayerSettings $args]
-        }
-        default {
-            error "unknown layer option \"$option\""
-        }
+itcl::body Rappture::Map::hasLayer { layerName } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        return 0
+    } else {
+        return 1
     }
-    return $result
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: selectors
