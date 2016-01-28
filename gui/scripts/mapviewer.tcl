@@ -1365,7 +1365,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 }
 
 itcl::body Rappture::MapViewer::EnablePanningMouseBindings {} {
-    if {$_useServerManip} {
+    if {1 || $_useServerManip} {
         bind $itk_component(view) <ButtonPress-1> \
             [itcl::code $this MouseClick 1 %x %y]
         bind $itk_component(view) <B1-Motion> \
@@ -1389,14 +1389,7 @@ itcl::body Rappture::MapViewer::DisablePanningMouseBindings {} {
 }
 
 itcl::body Rappture::MapViewer::EnableRotationMouseBindings {} {
-    if {$_useServerManip} {
-        bind $itk_component(view) <ButtonPress-2> \
-            [itcl::code $this Rotate click %x %y]
-        bind $itk_component(view) <B2-Motion> \
-            [itcl::code $this Rotate drag %x %y]
-        bind $itk_component(view) <ButtonRelease-2> \
-            [itcl::code $this Rotate release %x %y]
-    } else {
+    if {1 || $_useServerManip} {
         # Bindings for rotation via mouse
         bind $itk_component(view) <ButtonPress-2> \
             [itcl::code $this MouseClick 2 %x %y]
@@ -1404,6 +1397,13 @@ itcl::body Rappture::MapViewer::EnableRotationMouseBindings {} {
             [itcl::code $this MouseDrag 2 %x %y]
         bind $itk_component(view) <ButtonRelease-2> \
             [itcl::code $this MouseRelease 2 %x %y]
+    } else {
+        bind $itk_component(view) <ButtonPress-2> \
+            [itcl::code $this Rotate click %x %y]
+        bind $itk_component(view) <B2-Motion> \
+            [itcl::code $this Rotate drag %x %y]
+        bind $itk_component(view) <ButtonRelease-2> \
+            [itcl::code $this Rotate release %x %y]
     }
 }
 
@@ -1414,7 +1414,7 @@ itcl::body Rappture::MapViewer::DisableRotationMouseBindings {} {
 }
 
 itcl::body Rappture::MapViewer::EnableZoomMouseBindings {} {
-    if {$_useServerManip} {
+    if {1 || $_useServerManip} {
         bind $itk_component(view) <ButtonPress-3> \
             [itcl::code $this MouseClick 3 %x %y]
         bind $itk_component(view) <B3-Motion> \
@@ -1708,16 +1708,6 @@ itcl::body Rappture::MapViewer::Pin {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::Pan {option x y} {
     switch -- $option {
-        "set" {
-            set w [winfo width $itk_component(view)]
-            set h [winfo height $itk_component(view)]
-            set x [expr $x / double($w)]
-            set y [expr $y / double($h)]
-            if {[expr (abs($x) > 0.0 || abs($y) > 0.0)]} {
-                SendCmd "camera pan $x $y"
-            }
-            return
-        }
         "click" {
             set _click(x) $x
             set _click(y) $y
@@ -1751,6 +1741,16 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
             Pan drag $x $y
             $itk_component(view) configure -cursor ""
             set _b1mode ""
+        }
+        "set" {
+            set w [winfo width $itk_component(view)]
+            set h [winfo height $itk_component(view)]
+            set x [expr $x / double($w)]
+            set y [expr $y / double($h)]
+            if {[expr (abs($x) > 0.0 || abs($y) > 0.0)]} {
+                SendCmd "camera pan $x $y"
+            }
+            return
         }
         default {
             error "unknown option \"$option\": should set, click, drag, or release"
@@ -2822,6 +2822,11 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             SendCmd "map layer opacity $style(-opacity) $layer"
         }
+    }
+
+    if {[info exists info(placard)]} {
+        array set placard [$dataobj getPlacardConfig $layer]
+        SendCmd [list placard config $placard(attrlist) $placard(style) $placard(padding) $layer]
     }
 
     SendCmd "map layer visible $_visibility($layer) $layer"
