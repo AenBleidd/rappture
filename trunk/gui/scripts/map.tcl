@@ -34,6 +34,7 @@ itcl::class Rappture::Map {
     public method deleteLayer { layerName }
     public method deleteViewpoint { viewpointName }
     public method earthfile {}
+    public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
     public method hints { args }
     public method isGeocentric {}
@@ -48,6 +49,7 @@ itcl::class Rappture::Map {
     public method setCamera { camera }
     public method setExtents { xmin ymin xmax ymax {srs "wgs84"} }
     public method setLabel { label }
+    public method setPlacardConfig { layerName attrlist style padding }
     public method setProjection { projection }
     public method setStyle { style }
     public method setToolInfo { id name command title revision }
@@ -202,6 +204,13 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
                 }
             }
             rename $styles ""
+        }
+        set placard [$layers element -as object $layer.placard]
+        if {$placard != ""} {
+            foreach key { attributes style padding } {
+                set $key [$placard get $key]
+            }
+            setPlacardConfig $name $attributes $style $padding
         }
         $_tree set $child "driver" "debug"
         set colorramp [$layers element -as type $layer.colorramp]
@@ -624,6 +633,32 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
         }
     }
     return $id
+}
+
+itcl::body Rappture::Map::setPlacardConfig { layerName attrlist style padding } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    array set placardConf {}
+    foreach key { padding } {
+        set placardConf($key) [set $key]
+    }
+    foreach key { attrlist style } {
+        # Normalize whitespace
+        set val [set $key]
+        regsub -all "\[ \t\r\n\]+" [string trim $val] " " val
+        set placardConf($key) $val
+    }
+    $_tree set $id "placard" [array get placardConf]
+}
+
+itcl::body Rappture::Map::getPlacardConfig { layerName } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    return [$_tree get $id "placard" ""]
 }
 
 itcl::body Rappture::Map::deleteLayer { layerName } {
