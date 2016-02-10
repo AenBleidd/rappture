@@ -36,6 +36,7 @@ itcl::class Rappture::Map {
     public method earthfile {}
     public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
+    public method hasViewpoint { viewpointName }
     public method hints { args }
     public method isGeocentric {}
     public method isvalid {} {
@@ -63,8 +64,6 @@ itcl::class Rappture::Map {
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
     private common _nextSelector 0;
-    private common _nextViewpoint 0;   # Counter used to generate unique
-                                       # viewpoint names.
     private common _layerTypes
     private common _mapTypes
     array set _layerTypes {
@@ -236,6 +235,14 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             }
             $_tree set $child "driver" "colorramp"
         }
+        set agglite [$layers element -as type $layer.agglite]
+        if { $agglite != "" } {
+            foreach key { url } {
+                set value [$layers get $layer.agglite.$key]
+                $_tree set $child "agglite.$key" $value
+            }
+            $_tree set $child "driver" "agglite"
+        }
         set arcgis [$layers element -as type $layer.arcgis]
         if { $arcgis != "" } {
             foreach key { url token format layers } {
@@ -337,7 +344,11 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
     set viewpoints [$map element -as object "viewpoints"]
     if { $viewpoints != "" } {
         foreach viewpoint [$viewpoints children -type viewpoint] {
-            set name "viewpoint[incr _nextViewpoint]"
+            set name [$map element -as id "viewpoints.$viewpoint"]
+            if {[hasViewpoint $name]} {
+                puts stderr "ERROR: Duplicate viewpoint ID '$name', skipping"
+                continue
+            }
             set child [$_tree insert $parent -label $name]
             $_tree set $child "name" $viewpoint
             set haveX 0
@@ -531,6 +542,15 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
     }
     $_tree set $child "driver" $driver
     switch -- $driver {
+        "agglite" {
+            array set params $driverParamArray
+            foreach key { url featuredriver format typeName } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    $_tree set $child "agglite.$key" $value
+                }
+            }
+        }
         "arcgis" {
             array set params $driverParamArray
             foreach key { url token format layers } {
@@ -761,8 +781,20 @@ itcl::body Rappture::Map::viewpoint { viewpointName } {
     return [$_tree get $id]
 }
 
+itcl::body Rappture::Map::hasViewpoint { viewpointName } {
+    set id [$_tree findchild root->"viewpoints" $viewpointName]
+    if { $id < 0 } {
+        return 0
+    } else {
+        return 1
+    }
+}
+
 itcl::body Rappture::Map::addViewpoint { name props } {
-    set nodeid "viewpoint[incr _nextViewpoint]"
+    set nodeid $name
+    if {[hasViewpoint $nodeid]} {
+        error "Viewpoint '$nodeid' already exists"
+    }
     set parent [$_tree findchild root "viewpoints"]
     set child [$_tree insert $parent -label $nodeid]
     $_tree set $child "name" $name
