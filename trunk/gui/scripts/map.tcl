@@ -749,12 +749,12 @@ itcl::body Rappture::Map::selector { layerName selectorName } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: viewopint <viewopintName>
+# USAGE: viewpoint <viewpointName>
 #
 # Returns an array of settings for the named viewpoint
 # ----------------------------------------------------------------------
-itcl::body Rappture::Map::viewpoint { viewopintName } {
-    set id [$_tree findchild root->"viewpoints" $viewopintName]
+itcl::body Rappture::Map::viewpoint { viewpointName } {
+    set id [$_tree findchild root->"viewpoints" $viewpointName]
     if { $id < 0 } {
         error "unknown viewpoint \"$viewpointName\""
     }
