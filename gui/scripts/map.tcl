@@ -803,7 +803,7 @@ itcl::body Rappture::Map::addViewpoint { name props } {
     }
 }
 
-itcl::body Rappture::Map::deleteViewpoint { viewopintName } {
+itcl::body Rappture::Map::deleteViewpoint { viewpointName } {
     set id [$_tree findchild root->"viewpoints" $viewpointName]
     if { $id < 0 } {
         error "unknown viewpoint \"$viewpointName\""
