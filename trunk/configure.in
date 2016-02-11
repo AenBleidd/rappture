@@ -107,7 +107,7 @@ fi
 SC_CONFIG_CFLAGS
 
 SVN_VERSION=`svnversion $srcdir | sed 's/Unversioned directory/unknown/'`
-SVN_URL=`svn info $srcdir | sed -ne 's/^URL: //p'`
+SVN_URL=`readlink -e $srcdir | xargs svn info | sed -ne 's/^URL: //p'`
 
 make_command=""
 for m in "$MAKE" make gmake gnumake ; do
