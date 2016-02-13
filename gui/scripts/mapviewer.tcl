@@ -695,11 +695,6 @@ itcl::body Rappture::MapViewer::delete {args} {
         if { $pos < 0 } {
             continue;                   # Don't know anything about it.
         }
-        # When a map is marked deleted, we hide its layers.
-        foreach layer [$dataobj layers] {
-            SendCmd "map layer visible 0 $layer"
-            set _visibility($layer) 0
-        }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
         array unset _obj2ovride $dataobj-*
