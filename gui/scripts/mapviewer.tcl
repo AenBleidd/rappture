@@ -93,7 +93,6 @@ itcl::class Rappture::MapViewer {
     private method DoSelect {}
     private method DoSelectCallback {option {args ""}}
     private method DrawLegend { colormap min max }
-    private method EarthFile {}
     private method EnablePanningMouseBindings {}
     private method EnableRotationMouseBindings {}
     private method EnableZoomMouseBindings {}
@@ -163,7 +162,6 @@ itcl::class Rappture::MapViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
-    private variable _sendEarthFile 0
     private variable _useServerManip 0
     private variable _labelCount 0
     private variable _b1mode "pan"
@@ -1219,56 +1217,44 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         if { [info exists _mapsettings(type)] } {
             # The map must be reset once before any layers are added This
             # should not be done more than once as it is very expensive.
-            if {$_sendEarthFile} {
-                set bytes [EarthFile]
-                if {0} {
-                    set f [open "/tmp/map.earth" "w"]
-                    puts $f $bytes
-                    close $f
+            if { [info exists _mapsettings(style)] } {
+                array set settings {
+                    -color white
                 }
-                set length [string length $bytes]
-                SendCmd "map load data follows $length"
-                SendData $bytes
-            } else {
-                if { [info exists _mapsettings(style)] } {
-                    array set settings {
-                        -color white
-                    }
-                    array set settings $_mapsettings(style)
-                }
-                set bgcolor [Color2RGB $settings(-color)]
-                if { $_mapsettings(type) == "geocentric" } {
-                    $itk_component(grid) configure -state normal
-                    $itk_component(time_l) configure -state normal
-                    $itk_component(time) configure -state normal
-                    $itk_component(pitch_slider_l) configure -state normal
-                    $itk_component(pitch_slider) configure -state normal
-                    EnableRotationMouseBindings
-                    SendCmd "map reset geocentric $bgcolor"
-                }  else {
-                    $itk_component(grid) configure -state disabled
-                    $itk_component(time_l) configure -state disabled
-                    $itk_component(time) configure -state disabled
-                    $itk_component(pitch_slider_l) configure -state disabled
-                    $itk_component(pitch_slider) configure -state disabled
-                    DisableRotationMouseBindings
-                    set proj $_mapsettings(projection)
-                    SendCmd "screen bgcolor $bgcolor"
-                    if { $proj == "" } {
-                        SendCmd "map reset projected $bgcolor global-mercator"
-                    } elseif { ![info exists _mapsettings(extents)] || $_mapsettings(extents) == "" } {
-                        SendCmd "map reset projected $bgcolor [list $proj]"
-                    } else {
-                        #foreach {x1 y1 x2 y2} $_mapsettings(extents) break
-                        foreach key "x1 y1 x2 y2" {
-                            set $key $_mapsettings($key)
-                        }
-                        SendCmd "map reset projected $bgcolor [list $proj] $x1 $y1 $x2 $y2"
-                    }
-                }
-                # XXX: Remove these after implementing batch load of layers with reset
-                SendCmd "map layer delete base"
+                array set settings $_mapsettings(style)
             }
+            set bgcolor [Color2RGB $settings(-color)]
+            if { $_mapsettings(type) == "geocentric" } {
+                $itk_component(grid) configure -state normal
+                $itk_component(time_l) configure -state normal
+                $itk_component(time) configure -state normal
+                $itk_component(pitch_slider_l) configure -state normal
+                $itk_component(pitch_slider) configure -state normal
+                EnableRotationMouseBindings
+                SendCmd "map reset geocentric $bgcolor"
+            }  else {
+                $itk_component(grid) configure -state disabled
+                $itk_component(time_l) configure -state disabled
+                $itk_component(time) configure -state disabled
+                $itk_component(pitch_slider_l) configure -state disabled
+                $itk_component(pitch_slider) configure -state disabled
+                DisableRotationMouseBindings
+                set proj $_mapsettings(projection)
+                SendCmd "screen bgcolor $bgcolor"
+                if { $proj == "" } {
+                    SendCmd "map reset projected $bgcolor global-mercator"
+                } elseif { ![info exists _mapsettings(extents)] || $_mapsettings(extents) == "" } {
+                    SendCmd "map reset projected $bgcolor [list $proj]"
+                } else {
+                    #foreach {x1 y1 x2 y2} $_mapsettings(extents) break
+                    foreach key "x1 y1 x2 y2" {
+                        set $key $_mapsettings($key)
+                    }
+                    SendCmd "map reset projected $bgcolor [list $proj] $x1 $y1 $x2 $y2"
+                }
+            }
+            # XXX: Remove these after implementing batch load of layers with reset
+            SendCmd "map layer delete base"
 
             # Most terrain settings are global to the map and apply even
             # if there is no elevation layer.  The exception is the
@@ -2427,43 +2413,41 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(coverage)] } {
                 set coverage $info(coverage)
             }
-            if {!$_sendEarthFile} {
-                switch -- $info(driver)  {
-                    "arcgis" {
-                        SendCmd [list map layer add $layer image arcgis \
-                                     $info(arcgis.url) $info(cache) $coverage $info(arcgis.token)]
-                    }
-                    "colorramp" {
-                        set cmapName $layer
-                        SendFiles $info(colorramp.url)
-                        SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
-                        SendCmd [list map layer add $layer image colorramp \
-                                     $info(colorramp.url) $info(cache) $coverage $info(colorramp.elevdriver) $info(profile)  \
-                                     $cmapName]
-                    }
-                    "debug" {
-                        SendCmd [list map layer add $layer image debug]
-                    }
-                    "gdal" {
-                        SendFiles $info(gdal.url)
-                        SendCmd [list map layer add $layer image gdal \
-                                     $info(gdal.url) $info(cache) $coverage]
-                    }
-                    "tms" {
-                        SendCmd [list map layer add $layer image tms \
-                                     $info(tms.url) $info(cache) $coverage]
-                    }
-                    "wms" {
-                        SendCmd [list map layer add $layer image wms \
-                                     $info(wms.url) $info(cache) $coverage \
-                                     $info(wms.layers) \
-                                     $info(wms.format) \
-                                     $info(wms.transparent)]
-                    }
-                    "xyz" {
-                        SendCmd [list map layer add $layer image xyz \
-                                     $info(xyz.url) $info(cache) $coverage]
-                    }
+            switch -- $info(driver)  {
+                "arcgis" {
+                    SendCmd [list map layer add $layer image arcgis \
+                                 $info(arcgis.url) $info(cache) $coverage $info(arcgis.token)]
+                }
+                "colorramp" {
+                    set cmapName $layer
+                    SendFiles $info(colorramp.url)
+                    SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
+                    SendCmd [list map layer add $layer image colorramp \
+                                 $info(colorramp.url) $info(cache) $coverage $info(colorramp.elevdriver) $info(profile)  \
+                                 $cmapName]
+                }
+                "debug" {
+                    SendCmd [list map layer add $layer image debug]
+                }
+                "gdal" {
+                    SendFiles $info(gdal.url)
+                    SendCmd [list map layer add $layer image gdal \
+                                 $info(gdal.url) $info(cache) $coverage]
+                }
+                "tms" {
+                    SendCmd [list map layer add $layer image tms \
+                                 $info(tms.url) $info(cache) $coverage]
+                }
+                "wms" {
+                    SendCmd [list map layer add $layer image wms \
+                                 $info(wms.url) $info(cache) $coverage \
+                                 $info(wms.layers) \
+                                 $info(wms.format) \
+                                 $info(wms.transparent)]
+                }
+                "xyz" {
+                    SendCmd [list map layer add $layer image xyz \
+                                 $info(xyz.url) $info(cache) $coverage]
                 }
             }
             SendCmd "map layer opacity $style(-opacity) $layer"
@@ -2476,21 +2460,19 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(style)] } {
                 array set style $info(style)
             }
-            if {!$_sendEarthFile} {
-                switch -- $info(driver)  {
-                    "gdal" {
-                        SendFiles $info(gdal.url)
-                        SendCmd [list map layer add $layer elevation gdal \
-                                     $info(gdal.url) $info(cache)]
-                    }
-                    "tms" {
-                        SendCmd [list map layer add $layer elevation tms \
-                                     $info(tms.url) $info(cache)]
-                    }
-                    "wcs" {
-                        SendCmd [list map layer add $layer elevation wcs \
-                                     $info(wcs.url) $info(cache) $info(wcs.identifier)]
-                    }
+            switch -- $info(driver)  {
+                "gdal" {
+                    SendFiles $info(gdal.url)
+                    SendCmd [list map layer add $layer elevation gdal \
+                                 $info(gdal.url) $info(cache)]
+                }
+                "tms" {
+                    SendCmd [list map layer add $layer elevation tms \
+                                 $info(tms.url) $info(cache)]
+                }
+                "wcs" {
+                    SendCmd [list map layer add $layer elevation wcs \
+                                 $info(wcs.url) $info(cache) $info(wcs.identifier)]
                 }
             }
         }
@@ -2952,87 +2934,4 @@ itcl::body Rappture::MapViewer::UpdateViewpointControls {} {
         blt::table configure $f r* c* -resize none
         blt::table configure $f r$row c1 -resize expand
     }
-}
-
-#
-# Generate an OSG Earth file to send to server.  This is inteneded
-# as a stopgap and testing tool until the protocol is fleshed out.
-#
-# Note that the lighting settings are required to be "hard-coded"
-# as below for the runtime control to work.  Don't make those user
-# configurable.
-#
-# Also note: Use "true"/"false" for boolean settings.  Not sure if
-# the parser in OSG Earth accepts all of Tcl's forms of boolean vals.
-#
-itcl::body Rappture::MapViewer::EarthFile {} {
-    append out "<map"
-    append out " name=\"$_mapsettings(label)\""
-    append out " type=\"$_mapsettings(type)\""
-    append out " version=\"2\""
-    append out ">\n"
-    append out " <options lighting=\"true\">\n"
-    # FIXME: convert color setting to hex
-    # array set style $_mapsettings(style)
-    # if {[info exists style(-color)]} {
-    #     set color "?"
-    # }
-    set color "#ffffffff"
-    append out "  <terrain lighting=\"false\" color=\"$color\"/>\n"
-    if { [info exists _mapsettings(projection)] } {
-        append out "  <profile"
-        append out " srs=\"$_mapsettings(projection)\""
-        if { [info exists _mapsettings(extents)] } {
-            append out " xmin=\"$_mapsettings(x1)\""
-            append out " ymin=\"$_mapsettings(y1)\""
-            append out " xmax=\"$_mapsettings(x2)\""
-            append out " ymax=\"$_mapsettings(y2)\""
-        }
-        append out "/>\n"
-    }
-    append out " </options>\n"
-
-    foreach dataobj [get -objects] {
-        foreach layer [$dataobj layers] {
-            set _layers($layer) 1
-            array unset info
-            array set info [$dataobj layer $layer]
-            switch -- $info(type) {
-                "image" {
-                    append out " <image"
-                    append out " name=\"$layer\""
-                    append out " driver=\"gdal\""
-                    if { [info exists info(opacity)] } {
-                        append out " opacity=\"$info(opacity)\""
-                    }
-                    if { $info(visible) } {
-                        append out " visible=\"true\""
-                    } else {
-                        append out " visible=\"false\""
-                    }
-                    append out ">\n"
-                    append out "  <url>$info(url)</url>\n"
-                    append out " </image>\n"
-                }
-                "elevation" {
-                    append out " <elevation"
-                    append out " name=\"$layer\""
-                    append out " driver=\"gdal\""
-                    if { $info(visible) } {
-                        append out " visible=\"true\""
-                    } else {
-                        append out " visible=\"false\""
-                    }
-                    append out ">\n"
-                    append out "  <url>$info(url)</url>\n"
-                    append out " </elevation>\n"
-                }
-                default {
-                    puts stderr "Type $info(type) not implemented in MapViewer::EarthFile"
-                }
-            }
-        }
-    }
-    append out "</map>\n"
-    return $out
 }
