@@ -2413,7 +2413,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(coverage)] } {
                 set coverage $info(coverage)
             }
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "arcgis" {
                     SendCmd [list map layer add $layer image arcgis \
                                  $info(arcgis.url) $info(cache) $coverage $info(arcgis.token)]
