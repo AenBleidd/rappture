@@ -33,7 +33,6 @@ itcl::class Rappture::Map {
     public method addViewpoint { name props }
     public method deleteLayer { layerName }
     public method deleteViewpoint { viewpointName }
-    public method earthfile {}
     public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
     public method hasViewpoint { viewpointName }
@@ -863,68 +862,4 @@ itcl::body Rappture::Map::type { layerName } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::isGeocentric {} {
     return [expr {[hints "type"] eq "geocentric"}]
-}
-
-itcl::body Rappture::Map::earthfile {} {
-    array set info [$_tree get root]
-    append out "<map"
-    append out " name=\"$info(label)\""
-    append out " type=\"$info(type)\""
-    append out " version=\"2\""
-    append out ">\n"
-    # Profile is optional
-    if { [info exists info(projection)] } {
-        append out " <options>\n"
-        append out "  <profile"
-        append out " srs=\"$info(projection)\""
-        if { [info exists info(extents)] && $info(extents) != "" } {
-            foreach {x1 y1 x2 y2} $info(extents) break
-            append out " xmin=\"$x1\""
-            append out " ymin=\"$y1\""
-            append out " xmax=\"$x2\""
-            append out " ymax=\"$y2\""
-        }
-        append out "/>\n"
-        append out " </options>\n"
-    }
-    foreach node [$_tree children root->"layers"] {
-        array unset info
-        array set info [$_tree get $node]
-        set label [$_tree label $node]
-        switch -- $info(type) {
-            "image" {
-                append out " <image"
-                append out " name=\"$label\""
-                append out " driver=\"gdal\""
-                if { [info exists info(opacity)] } {
-                    append out " opacity=\"$info(opacity)\""
-                }
-                if { $info(visible) } {
-                    append out " visible=\"true\""
-                } else {
-                    append out " visible=\"false\""
-                }
-                append out ">\n"
-                append out "  <url>$info(url)</url>\n"
-                append out " </image>\n"
-            }
-            "elevation" {
-                append out " <elevation"
-                append out " name=\"$label\""
-                append out " driver=\"gdal\""
-                if { $info(visible) } {
-                    append out " visible=\"true\""
-                } else {
-                    append out " visible=\"false\""
-                }
-                append out ">\n"
-                append out "  <url>$info(url)</url>\n"
-                append out " </elevation>\n"
-            }
-            default {
-                puts stderr "Type $info(type) not implemented in earthfile"
-            }
-        }
-    }
-    append out "</map>\n"
 }
