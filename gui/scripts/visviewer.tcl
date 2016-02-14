@@ -74,7 +74,6 @@ itcl::class ::Rappture::VisViewer {
     private method ReceiveHelper {}
     private method SendDebugCommand {}
     private method SendHelper {}
-    private method SendHelper.old {}
     private method ServerDown {}
     private method Shuffle { servers }
     private method TraceComm { channel {data {}} }
@@ -333,6 +332,7 @@ itcl::body Rappture::VisViewer::Disconnect {} {
     catch {close $_sid}
     set _sid ""
     set _buffer(in) ""
+    set _buffer(out) ""
     set _outbuf ""
     set _cmdSeq 0
 }
@@ -420,41 +420,6 @@ itcl::body Rappture::VisViewer::SendHelper {} {
 }
 
 #
-# SendHelper.old --
-#
-#   Helper routine called from a file event to send data when the
-#   connection is writable (i.e. not blocked).  Sends data in chunks of 8k
-#   (or less).  Sets magic variable _done($this) to indicate that we're
-#   either finished (success) or could not send bytes to the server
-#   (failure).
-#
-itcl::body Rappture::VisViewer::SendHelper.old {} {
-    if { ![CheckConnection] } {
-        return 0
-    }
-    set bytesLeft [string length $_buffer(out)]
-    if { $bytesLeft > 0} {
-        set chunk [string range $_buffer(out) 0 8095]
-        set _buffer(out)  [string range $_buffer(out) 8096 end]
-        incr bytesLeft -8096
-        set code [catch {
-            if { $bytesLeft > 0 } {
-                puts -nonewline $_sid $chunk
-            } else {
-                puts $_sid $chunk
-            }
-        } err]
-        if { $code != 0 } {
-            puts stderr "error sending data to $_sid: $err"
-            Disconnect
-            set _done($this) 0;     # Failure
-        }
-    } else {
-        set _done($this) 1;     # Success
-    }
-}
-
-#
 # SendBytes --
 #
 #   Send a a string to the visualization server.
@@ -469,23 +434,22 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     # the server is ready first.  Wait for the socket to become writable
     # before sending anything.
     set _done($this) 1
-    if {$_buffer(out) != ""} {
-        puts stderr "ERROR: re-entered SendBytes: buffer=([string range $_buffer(out) 0 70]...)"
-        puts stderr "New cmd $_cmdSeq: [string range $bytes 0 70]..."
+    if { $_debug && [string bytelength $_buffer(out)] > 0 } {
+        puts stderr "SendBytes: appending to output buffer"
     }
-    set _buffer(out) $bytes
+    # Append to the buffer, since we may have been called recursively
+    append _buffer(out) $bytes
     # There's problem when the user is interacting with the GUI at the
     # same time we're trying to write to the server.  Don't want to
     # block because, the GUI will look like it's dead.  We can start
     # by putting a busy window over plot so that inadvertent things like
     # mouse movements aren't received.
     if {$_blockOnWrite} {
-        # Let's try this approach: allow a write to block so we don't
-        # re-enter SendBytes
+        # Allow a write to block.  In this case we won't re-enter SendBytes.
         SendHelper
     } else {
-        # This can cause us to re-enter SendBytes during the tkwait, which
-        # is not safe because the _buffer will be clobbered
+        # NOTE: This can cause us to re-enter SendBytes during the tkwait.
+        # For this reason, we append to the buffer in the code above.
         if { [info exists itk_component(main)] } {
             blt::busy hold $itk_component(main) -cursor ""
         }
