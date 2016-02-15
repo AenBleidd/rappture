@@ -163,7 +163,7 @@ itcl::body Rappture::Map::Parse { xmlobj path } {
             $_tree set $child $key [$layers get $layer.$key]
         }
         # Common settings (for all layer types) with defaults
-        foreach { key defval } { visible 1 cache 1 } {
+        foreach { key defval } { visible 1 cache 1 shared 0 } {
             $_tree set $child $key $defval
             set val [$layers get $layer.$key]
             if {$val != ""} {
@@ -493,7 +493,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
         }
     }
     # Common settings (for all layer types) with defaults
-    foreach { key defval } { visible 1 cache 1 } {
+    foreach { key defval } { visible 1 cache 1 shared 0 } {
         $_tree set $child $key $defval
         if {[info exists params($key)]} {
             set val $params($key)
