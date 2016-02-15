@@ -162,6 +162,7 @@ itcl::class Rappture::MapViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
+    private variable _useSidebar 1
     private variable _useServerManip 0
     private variable _labelCount 0
     private variable _b1mode "pan"
@@ -284,6 +285,20 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
 
     set _settings(time) [clock format [clock seconds] -format %k -gmt 1]
 
+    if {!$_useSidebar} {
+        destroy $itk_component(main)
+        itk_component add main {
+            frame $itk_interior.main
+        }
+        pack $itk_component(main) -expand yes -fill both
+        itk_component add plotarea {
+            frame $itk_component(main).plotarea -highlightthickness 0 -background black
+        } {
+            ignore -background
+        }
+        pack $itk_component(plotarea) -expand yes -fill both
+    }
+
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -305,50 +320,54 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     set _map(zoom) 1.0
     set _map(original) ""
 
-    set f [$itk_component(main) component controls]
-    itk_component add reset {
-        button $f.reset -borderwidth 1 -padx 1 -pady 1 \
-            -highlightthickness 0 \
-            -image [Rappture::icon reset-view] \
-            -command [itcl::code $this camera reset]
-    } {
-        usual
-        ignore -highlightthickness
-    }
-    pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) \
-        "Reset the view to the default zoom level"
+    if {$_useSidebar} {
+        set f [$itk_component(main) component controls]
+        itk_component add reset {
+            button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+                -highlightthickness 0 \
+                -image [Rappture::icon reset-view] \
+                -command [itcl::code $this camera reset]
+        } {
+            usual
+            ignore -highlightthickness
+        }
+        pack $itk_component(reset) -side top -padx 2 -pady 2
+        Rappture::Tooltip::for $itk_component(reset) \
+            "Reset the view to the default zoom level"
 
-    itk_component add zoomin {
-        button $f.zin -borderwidth 1 -padx 1 -pady 1 \
-            -highlightthickness 0 \
-            -image [Rappture::icon zoom-in] \
-            -command [itcl::code $this Zoom in]
-    } {
-        usual
-        ignore -highlightthickness
-    }
-    pack $itk_component(zoomin) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
+        itk_component add zoomin {
+            button $f.zin -borderwidth 1 -padx 1 -pady 1 \
+                -highlightthickness 0 \
+                -image [Rappture::icon zoom-in] \
+                -command [itcl::code $this Zoom in]
+        } {
+            usual
+            ignore -highlightthickness
+        }
+        pack $itk_component(zoomin) -side top -padx 2 -pady 2
+        Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
-    itk_component add zoomout {
-        button $f.zout -borderwidth 1 -padx 1 -pady 1 \
-            -highlightthickness 0 \
-            -image [Rappture::icon zoom-out] \
-            -command [itcl::code $this Zoom out]
-    } {
-        usual
-        ignore -highlightthickness
+        itk_component add zoomout {
+            button $f.zout -borderwidth 1 -padx 1 -pady 1 \
+                -highlightthickness 0 \
+                -image [Rappture::icon zoom-out] \
+                -command [itcl::code $this Zoom out]
+        } {
+            usual
+            ignore -highlightthickness
+        }
+        pack $itk_component(zoomout) -side top -padx 2 -pady 2
+        Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
     }
-    pack $itk_component(zoomout) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    BuildLayerTab
-    BuildViewpointsTab
-    BuildMapTab
-    BuildTerrainTab
-    BuildCameraTab
-    BuildHelpTab
+    if {$_useSidebar} {
+        BuildLayerTab
+        BuildViewpointsTab
+        BuildMapTab
+        BuildTerrainTab
+        BuildCameraTab
+        BuildHelpTab
+    }
 
     # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
@@ -852,7 +871,7 @@ itcl::body Rappture::MapViewer::scale {args} {
             }
         }
     }
-    if { $_haveTerrain } {
+    if { $_useSidebar && $_haveTerrain } {
         if { [$itk_component(main) exists "Terrain Settings"] } {
             # TODO: Enable controls like vertical scale that only have
             # an effect when terrain is present
@@ -1333,8 +1352,10 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         }
     }
 
-    UpdateLayerControls
-    UpdateViewpointControls
+    if {$_useSidebar} {
+        UpdateLayerControls
+        UpdateViewpointControls
+    }
     set _reset 0
     global readyForNextFrame
     set readyForNextFrame 0;            # Don't advance to the next frame
@@ -2185,7 +2206,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             foreach name {x y z heading pitch distance srs verticalDatum} value $args {
                 set _view($name) $value
             }
-            DebugTrace "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
+            #DebugTrace "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
         }
         "go" {
             SendCmd "camera go $args"
