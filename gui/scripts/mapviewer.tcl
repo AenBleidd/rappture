@@ -1213,19 +1213,31 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             }
             set bgcolor [Color2RGB $settings(-color)]
             if { $_mapsettings(type) == "geocentric" } {
-                $itk_component(grid) configure -state normal
-                $itk_component(time_l) configure -state normal
-                $itk_component(time) configure -state normal
-                $itk_component(pitch_slider_l) configure -state normal
-                $itk_component(pitch_slider) configure -state normal
+                if { [info exists itk_component(grid)] } {
+                    $itk_component(grid) configure -state normal
+                }
+                if { [info exists itk_component(time)] } {
+                    $itk_component(time_l) configure -state normal
+                    $itk_component(time) configure -state normal
+                }
+                if { [info exists tk_component(pitch_slider)] } {
+                    $itk_component(pitch_slider_l) configure -state normal
+                    $itk_component(pitch_slider) configure -state normal
+                }
                 EnableRotationMouseBindings
                 SendCmd "map reset geocentric $bgcolor"
             }  else {
-                $itk_component(grid) configure -state disabled
-                $itk_component(time_l) configure -state disabled
-                $itk_component(time) configure -state disabled
-                $itk_component(pitch_slider_l) configure -state disabled
-                $itk_component(pitch_slider) configure -state disabled
+                if { [info exists itk_component(grid)] } {
+                    $itk_component(grid) configure -state disabled
+                }
+                if { [info exists itk_component(time)] } {
+                    $itk_component(time_l) configure -state disabled
+                    $itk_component(time) configure -state disabled
+                }
+                if { [info exists tk_component(pitch_slider)] } {
+                    $itk_component(pitch_slider_l) configure -state disabled
+                    $itk_component(pitch_slider) configure -state disabled
+                }
                 DisableRotationMouseBindings
                 set proj $_mapsettings(projection)
                 SendCmd "screen bgcolor $bgcolor"
@@ -1262,7 +1274,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 
     set _first ""
     set haveTerrain 0
-    #SendCmd "map layer visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1285,24 +1296,28 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 set _layers($layer) 1
                 SetLayerStyle $dataobj $layer
             }
-            if {$info(type) == "elevation"} {
-                set haveTerrain 1
-            }
             # FIXME: This is overriding all layers' initial visibility setting
             if { [info exists _obj2ovride($dataobj-raise)] &&
                  $_obj2ovride($dataobj-raise)} {
                 SendCmd "map layer visible 1 $layer"
                 set _visibility($layer) 1
             }
+            if {$info(type) == "elevation"} {
+                set haveTerrain 1
+            }
         }
     }
 
     if ($haveTerrain) {
-        $itk_component(vscale_l) configure -state normal
-        $itk_component(vscale) configure -state normal
+        if { [info exists itk_component(vscale)] } {
+            $itk_component(vscale_l) configure -state normal
+            $itk_component(vscale) configure -state normal
+        }
     } else {
-        $itk_component(vscale_l) configure -state disabled
-        $itk_component(vscale) configure -state disabled
+        if { [info exists itk_component(vscale)] } {
+            $itk_component(vscale_l) configure -state disabled
+            $itk_component(vscale) configure -state disabled
+        }
     }
 
     if {$_reset} {
@@ -2170,7 +2185,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             foreach name {x y z heading pitch distance srs verticalDatum} value $args {
                 set _view($name) $value
             }
-#            puts stderr "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
+            DebugTrace "view: $_view(x), $_view(y), $_view(z), $_view(heading), $_view(pitch), $_view(distance), {$_view(srs)}, {$_view(verticalDatum)}"
         }
         "go" {
             SendCmd "camera go $args"
@@ -2211,7 +2226,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             } else {
                 SendCmd "camera reset"
                 # Retrieve the settings
-               # SendCmd "camera get"
+                #SendCmd "camera get"
             }
         }
         "set" {
