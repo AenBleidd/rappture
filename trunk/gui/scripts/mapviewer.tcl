@@ -897,17 +897,6 @@ itcl::body Rappture::MapViewer::DoSelectCallback {option {args ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::ReceiveSelect {option {args ""}} {
     DebugTrace "Enter"
-    switch $option {
-        "annotation" {
-            puts stderr "select annotation $args"
-        }
-        "clear" {
-            puts stderr "select clear"
-        }
-        "feature" {
-            puts stderr "select feature $args"
-        }
-    }
     eval DoSelectCallback $option $args
 }
 
