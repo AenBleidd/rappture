@@ -274,7 +274,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
         coords-visible         1
         grid                   0
         grid-type              "shader"
-        legend                 1
         terrain-ambient        0.03
         terrain-edges          0
         terrain-lighting       0
@@ -350,17 +349,6 @@ itcl::body Rappture::MapViewer::constructor {hostlist args} {
     BuildTerrainTab
     BuildCameraTab
     BuildHelpTab
-
-    # Legend
-
-    set _image(legend) [image create photo]
-    itk_component add legend {
-        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
-    } {
-        usual
-        ignore -highlightthickness
-        rename -background -plotbackground plotBackground Background
-    }
 
     # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
@@ -1106,7 +1094,7 @@ itcl::body Rappture::MapViewer::ReceiveLegend { colormap min max size } {
     DebugTrace "ReceiveLegend colormap=$colormap range=$min,$max size=$size"
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
-        if { ![info exists _image(legend)] } {
+        if { ![info exists _image(legend-$colormap)] } {
             set _image(legend-$colormap) [image create photo]
         }
         if 0 {
