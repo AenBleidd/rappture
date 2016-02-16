@@ -33,6 +33,7 @@ itcl::class Rappture::Map {
     public method addViewpoint { name props }
     public method deleteLayer { layerName }
     public method deleteViewpoint { viewpointName }
+    public method getLayerProperty { layerName prop }
     public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
     public method hasViewpoint { viewpointName }
@@ -727,6 +728,14 @@ itcl::body Rappture::Map::layer { layerName } {
         error "unknown layer \"$layerName\""
     }
     return [$_tree get $id]
+}
+
+itcl::body Rappture::Map::getLayerProperty { layerName prop } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    return [$_tree get $id $prop]
 }
 
 itcl::body Rappture::Map::hasLayer { layerName } {
