@@ -218,7 +218,6 @@ itcl::body Rappture::ResultSet::diff {option args} {
                     set v [lindex $rec 1]
                     foreach {raw norm} \
                         [Rappture::LibraryObj::value $xo $col] break
-
                     if {![info exists unique($v)]} {
                         # keep only unique label strings
                         set unique($v) $norm
