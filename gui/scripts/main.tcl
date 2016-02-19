@@ -99,13 +99,13 @@ Rappture::getopts argv params {
 proc ReadToolParameters { numTries } {
     incr numTries -1
     if { $numTries < 0 } {
-	return
+        return
     }
     global env
     set paramsFile $env(TOOL_PARAMETERS)
     if { ![file readable $paramsFile] } {
-	after 500 ReadToolParmeters $numTries
-	return
+        after 500 ReadToolParmeters $numTries
+        return
     }
     catch {
         set f [open $paramsFile "r"]
