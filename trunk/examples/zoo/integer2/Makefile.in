@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/integer.py \
 		$(srcdir)/integer.tcl \
 		$(srcdir)/tool.xml 
 

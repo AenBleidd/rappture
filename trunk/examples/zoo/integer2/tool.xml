@@ -6,7 +6,7 @@
 Each integer object has a different color range.
   </about>
   <command>
-    tclsh @tool/integer.tcl @driver
+    python @tool/integer.py @driver
   </command>
 </tool>
 <input>

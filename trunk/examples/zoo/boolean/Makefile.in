@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/boolean.py \
 		$(srcdir)/boolean.tcl \
 		$(srcdir)/boolean.gif \
 		$(srcdir)/tool.xml

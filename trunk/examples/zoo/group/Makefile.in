@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/group.py \
 		$(srcdir)/group.tcl \
 		$(srcdir)/group1.gif \
 		$(srcdir)/group2.gif \

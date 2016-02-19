@@ -1,0 +1,15 @@
+<html>
+<body>
+    <h2> Rosenbrock Function UQ Test</h2>
+    <p>  The Rosenbrock function is commonly used for testing optimization and uncertainty quantification software.  The form we will use is</p>
+    <p>
+    f(x,y) = 100*(y-x**2)**2 + (1-x)**2
+    <p>
+    This is a fourth order polynomial and its response surface looks like this:
+    <p>
+    <img src="rosen_level_4.jpeg" width=400 align="float"/>
+    <p>
+    UQ software should be able to build close approximations to this response surface given enough sample points.  Our "Smolyak" method will reproduce
+    this response exactly with a level 4 run.
+</body>
+</html>

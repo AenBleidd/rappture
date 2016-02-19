@@ -9,6 +9,7 @@ The description appears in a tooltip when you hover over the number control with
 
 When you click the Simulate button, the input numbers will be used to generate output numbers.
   </about>
+  <uq>off</uq>
   <command>
     python @tool/number.py @driver
   </command>

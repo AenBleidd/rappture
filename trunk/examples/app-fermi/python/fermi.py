@@ -37,7 +37,7 @@ emax = ef + 10*kt
 # Label the output graph with a title, x-axis label,
 # y-axis label, and y-axis units
 f12 = rx['output.curve(f12)']  # a shortcut to save typing
-f12['label'] = 'Fermi-Dirac Factor'
+f12['about.label'] = 'Fermi-Dirac Factor'
 f12['xaxis.label'] = 'Fermi-Dirac Factor'
 f12['yaxis.label'] = 'Energy'
 f12['yaxis.units'] = 'eV'

@@ -69,11 +69,13 @@ proc Rappture::library {args} {
             return $stdlib
         }
         set fname [file join $Rappture::installdir lib library.xml]
-
-        set fid [::open $fname r]
-        set info [read $fid]
-        close $fid
-
+        if { [catch {
+            set fid [::open $fname r]
+            set info [read $fid]
+            close $fid
+        } errs] != 0 } {
+            puts stderr "can't open \"$fname\": errs=$errs errorInfo=$errorInfo"
+        }
         set stdlib [Rappture::LibraryObj ::#auto $info]
         return $stdlib
     }
@@ -82,9 +84,13 @@ proc Rappture::library {args} {
         set info $fname
     } else {
         # otherwise, try to open the file and create its LibraryObj
-        set fid [::open $fname r]
-        set info [read $fid]
-        close $fid
+        if { [catch {
+            set fid [::open $fname r]
+            set info [read $fid]
+            close $fid
+        } errs] != 0 } {
+            puts stderr "can't open \"$fname\": errs=$errs errorInfo=$errorInfo"
+        }
     }
 
     set obj [Rappture::LibraryObj ::#auto $info]
@@ -214,6 +220,7 @@ itcl::class Rappture::LibraryObj {
     public method copy {path from args}
     public method remove {{path ""}}
     public method xml {{path ""}}
+    public method uq_get_vars {{tfile ""}}
 
     public method diff {libobj}
     public proc value {libobj path}
@@ -227,7 +234,7 @@ itcl::class Rappture::LibraryObj {
 
     private variable _root 0       ;# non-zero => this obj owns document
     private variable _document ""  ;# XML DOM tree
-    private variable _node ""      ;# node within 
+    private variable _node ""      ;# node within
 }
 
 # ----------------------------------------------------------------------
@@ -695,6 +702,10 @@ itcl::body Rappture::LibraryObj::diff {libobj} {
     set thisv [Rappture::entities $this input]
     set otherv [Rappture::entities $libobj input]
 
+    # add UQ checking
+    lappend thisv uq.type uq.args
+    lappend otherv uq.type uq.args
+
     # scan through values for this object, and compare against other one
     foreach path $thisv {
         set i [lsearch -exact $otherv $path]
@@ -716,6 +727,7 @@ itcl::body Rappture::LibraryObj::diff {libobj} {
         foreach {oraw onorm} [value $libobj $path] break
         lappend rlist + $path "" $oraw
     }
+
     return $rlist
 }
 
@@ -770,7 +782,7 @@ itcl::body Rappture::LibraryObj::value {libobj path} {
                 # then normalize to default units
                 set units [$libobj get $path.units]
                 if {"" != $units} {
-                    set val [Rappture::Units::convert $val \
+                    set val [Rappture::Units::mconvert $val \
                         -context $units -to $units -units off]
                 }
             }
@@ -1036,4 +1048,117 @@ itcl::body Rappture::LibraryObj::childnodes {node type} {
         }
     }
     return $rlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: uq_get_vars [$tfile]
+#
+# Scans number nodes in the input section for UQ parameters.
+#
+# Returns a string in JSON so it can easily be passed to PUQ. Strips units
+# because PUQ does not need or recognize them.
+#
+# For example, 2 parameters, one gaussian and one uniform might return:
+# [["height","m",["gaussian",100,10,{"min":0}]],["velocity","m/s",["uniform",80,90]]]
+#
+# Returns "" if there are no UQ parameters.
+#
+# If tfile is specified, write a template file out.
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::uq_get_vars {{tfile ""}} {
+    set varout \[
+    set varlist []
+
+    if {$tfile == ""} {
+        set node $_node
+    } else {
+        set fid [::open $tfile r]
+        set doc [dom parse [read $fid]]
+        set node [$doc documentElement]
+        close $fid
+    }
+
+    set count 0
+    set n [$node selectNodes /run/input//number]
+    foreach _n $n {
+        set x [$_n selectNodes current/text()]
+        set val [$x nodeValue]
+        if {[string equal -length 8 $val "uniform "] ||
+            [string equal -length 9 $val "gaussian "]} {
+
+            set vname [$_n getAttribute id]
+            if {[lsearch $varlist $vname] >= 0} {
+                continue
+            } else {
+                lappend varlist $vname
+            }
+
+            if {$count > 0} {
+                append varout ,
+            }
+            incr count
+
+            set units ""
+            set unode [$_n selectNodes units/text()]
+            if {"" != $unode} {
+                set units [$unode nodeValue]
+                set val [Rappture::Units::mconvert $val \
+                -context $units -to $units -units off]
+            }
+
+            set v \[\"$vname\",\"$units\",
+            set fmt "\[\"%s\",%.16g,%.16g"
+            set val [format $fmt [lindex $val 0] [lindex $val 1] [lindex $val 2]]
+            append v $val
+
+            if {[string equal -length 9 [$x nodeValue] "gaussian "]} {
+                set minv ""
+                set min_node [$_n selectNodes min/text()]
+                if {"" != $min_node} {
+                    set minv [$min_node nodeValue]
+                    if {$units != ""} {
+                        set minv [Rappture::Units::convert $minv -context $units -units off]
+                    }
+                }
+
+                set maxv ""
+                set max_node [$_n selectNodes max/text()]
+                if {"" != $max_node} {
+                    set maxv [$max_node nodeValue]
+                    if {$units != ""} {
+                        set maxv [Rappture::Units::convert $maxv -context $units -units off]
+                    }
+                }
+
+                if {$minv != "" || $maxv != ""} {
+                    append v ",{"
+                    if {$minv != ""} {
+                        append v "\"min\":$minv"
+                        if {$maxv != ""} {append v ,}
+                    }
+                    if {$maxv != ""} {
+                        append v "\"max\":$maxv"
+                    }
+                    append v "}"
+                }
+            }
+
+            if {$tfile != ""} {
+                $x nodeValue @@[$_n getAttribute id]
+            }
+            append varout $v\]\]
+        }
+    }
+    append varout \]
+
+    if {$tfile != ""} {
+        set fid [open $tfile w]
+        puts $fid "<?xml version=\"1.0\"?>"
+        puts $fid [$node asXML]
+        close $fid
+        $doc delete
+    }
+    if {$varout == "\[\]"} {set varout ""}
+    #puts "uq_get_vars returning $varout"
+    return [list $varout $count]
 }

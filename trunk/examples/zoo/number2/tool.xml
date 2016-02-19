@@ -5,6 +5,7 @@
   <about>Example of a Rappture &lt;number&gt; object with colors.
 Each number object has a different color range.
   </about>
+  <uq>false</uq>
   <command>
     python @tool/number.py @driver
   </command>

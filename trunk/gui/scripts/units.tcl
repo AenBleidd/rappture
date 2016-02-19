@@ -60,6 +60,169 @@ proc Rappture::Units::define {what args} {
     }
 }
 
+
+# ----------------------------------------------------------------------
+# USAGE: mcheck_range value {min ""} {max ""}
+#
+# Checks a value or PDF to determine if is is in a required range.
+# Automatically does unit conversion if necessary.
+# Returns value if OK.  Error if out-of-range
+# Examples:
+#    [mcheck_range "gaussian 0C 1C" 200K 500K] returns 1
+#    [mcheck_range "uniform 100 200" 150 250] returns 0
+#    [mcheck_range 100 0 200] returns 1
+# ----------------------------------------------------------------------
+
+proc Rappture::Units::_check_range {value min max units} {
+    # puts "_check_range $value min=$min max=$max units=$units"
+    # make sure the value has units
+    if {$units != ""} {
+        set value [Rappture::Units::convert $value -context $units]
+        # for comparisons, remove units
+        set nv [Rappture::Units::convert $value -context $units -units off]
+        # get the units for the value
+        set newunits [Rappture::Units::Search::for $value]
+    } else {
+        set nv $value
+    }
+
+    if {"" != $min} {
+        if {"" != $units} {
+            # compute the minimum in the new units
+            set minv [Rappture::Units::convert $min -to $newunits -context $units  -units off]
+            # same, but include units for printing
+            set convMinVal [Rappture::Units::convert $min -to $newunits -context $units]
+        } else {
+            set minv $min
+            set convMinVal $min
+        }
+        if {$nv < $minv} {
+            error "Minimum value allowed here is $convMinVal"
+        }
+    }
+    if {"" != $max} {
+        if {"" != $units} {
+            # compute the maximum in the new units
+            set maxv [Rappture::Units::convert $max -to $newunits -context $units -units off]
+            # same, but include units for printing
+            set convMaxVal [Rappture::Units::convert $max -to $newunits -context $units ]
+        } else {
+            set maxv $max
+            set convMaxVal $max
+        }
+        if {$nv > $maxv} {
+            error "Maximum value allowed here is $convMaxVal"
+        }
+    }
+    return $value
+}
+
+proc Rappture::Units::mcheck_range {value {min ""} {max ""} {units ""}} {
+    # puts "mcheck_range $value min=$min max=$max units=$units"
+
+    switch -- [lindex $value 0] {
+        normal -
+        gaussian {
+            # get the mean
+            set mean [_check_range [lindex $value 1] $min $max $units]
+            if {$units == ""} {
+                set dev [lindex $value 2]
+                set ndev $dev
+            } else {
+                set dev [Rappture::Units::convert [lindex $value 2] -context $units]
+                set ndev [Rappture::Units::convert $dev -units off]
+            }
+            if {$ndev <= 0} {
+                error "Deviation must be positive."
+            }
+            return [list gaussian $mean $dev]
+        }
+        uniform {
+            set min [_check_range [lindex $value 1] $min $max $units]
+            set max [_check_range [lindex $value 2] $min $max $units]
+            return [list uniform $min $max]
+        }
+        exact  {
+            return [_check_range [lindex $value 1] $min $max $units]
+        }
+        default {
+            return [_check_range [lindex $value 0] $min $max $units]
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: mconvert value ?-context units? ?-to units? ?-units on/off?
+#
+# This version of convert() converts multiple values.  Used when the
+# value could be a range or probability density function (PDF).
+# Examples:
+#    gaussian 100k 1k
+#    uniform 0eV 10eV
+#    42
+#    exact 42
+# ----------------------------------------------------------------------
+
+proc Rappture::Units::mconvert {value args} {
+    # puts "mconvert $value : $args"
+    array set opts {
+        -context ""
+        -to ""
+        -units "on"
+    }
+
+    set value [split $value]
+
+    switch -- [lindex $value 0] {
+        normal - gaussian {
+            set valtype gaussian
+            set vals [lrange $value 1 2]
+            set convtype {0 1}
+        }
+        uniform {
+            set valtype uniform
+            set vals [lrange $value 1 2]
+            set convtype {0 0}
+        }
+        exact  {
+            set valtype ""
+            set vals [lindex $value 1]
+            set convtype {0}
+        }
+        default {
+            set valtype ""
+            set vals $value
+            set convtype {0}
+        }
+    }
+
+    foreach {key val} $args {
+        if {![info exists opts($key)]} {
+            error "bad option \"$key\": should be [join [lsort [array names opts]] {, }]"
+        }
+        set opts($key) $val
+    }
+
+    set newval $valtype
+    foreach val $vals ctype $convtype {
+        if {$ctype == 1} {
+            # This code handles unit conversion for deltas (changes).
+            # For example, if we want a standard deviation of 10C converted
+            # to Kelvin, that is 10K, NOT a standard deviation of 283.15K.
+            set units [Rappture::Units::Search::for $val]
+            set base [eval Rappture::Units::convert 0$units $args -units off]
+            set new [eval Rappture::Units::convert $val $args -units off]
+            set delta [expr $new - $base]
+            set val $delta$opts(-to)
+        }
+        # tcl 8.5 allows us to do this:
+        # lappend newval [Rappture::Units::convert $val {*}$args]
+        # but we are using tcl8.4 so we use eval :^(
+        lappend newval [eval Rappture::Units::convert $val $args]
+    }
+    return $newval
+}
+
 # ----------------------------------------------------------------------
 # USAGE: convert value ?-context units? ?-to units? ?-units on/off?
 #
@@ -69,56 +232,9 @@ proc Rappture::Units::define {what args} {
 # specified, then the value is converted to fundamental units for the
 # current system.
 # ----------------------------------------------------------------------
-proc Rappture::Units::convert {value args} {
-    array set opts {
-        -context ""
-        -to ""
-        -units "on"
-    }
-    foreach {key val} $args {
-        if {![info exists opts($key)]} {
-            error "bad option \"$key\": should be [join [lsort [array names opts]] {, }]"
-        }
-        set opts($key) $val
-    }
+# proc Rappture::Units::convert {value args} {}
+# Actual implementation is in rappture/lang/tcl/src/RpUnitsTclInterface.cc.
 
-    #
-    # Parse the value into the number part and the units part.
-    #
-    set value [string trim $value]
-    if {![regexp {^([-+]?[0-9]+\.?([0-9]+)?([eEdD][-+]?[0-9]+)?) *(/?[a-zA-Z]+[0-9]*)?$} $value match number dummy1 dummy2 units]} {
-        set mesg "bad value \"$value\": should be real number with units"
-        if {$opts(-context) != ""} {
-            append mesg " of [Rappture::Units::description $opts(-context)]"
-        }
-        error $mesg
-    }
-    if {$units == ""} {
-        set units $opts(-context)
-    }
-
-    #
-    # Try to find the object representing the current system of units.
-    #
-    set units [Rappture::Units::System::regularize $units]
-    set oldsys [Rappture::Units::System::for $units]
-    if {$oldsys == ""} {
-        set mesg "value \"$value\" has unrecognized units"
-        if {$opts(-context) != ""} {
-            append mesg ".\nShould be units of [Rappture::Units::description $opts(-context)]"
-        }
-        error $mesg
-    }
-
-    #
-    # Convert the number to the new system of units.
-    #
-    if {$opts(-to) == ""} {
-        # no units -- return the number as is
-        return "$number$units"
-    }
-    return [$oldsys convert "$number$units" $opts(-to) $opts(-units)]
-}
 
 # ----------------------------------------------------------------------
 # USAGE: description <units>
@@ -127,18 +243,9 @@ proc Rappture::Units::convert {value args} {
 # description includes the abstract type (length, temperature, etc.)
 # along with a list of all compatible systems.
 # ----------------------------------------------------------------------
-proc Rappture::Units::description {units} {
-    set sys [Rappture::Units::System::for $units]
-    if {$sys == ""} {
-        return ""
-    }
-    set mesg [$sys cget -type]
-    set ulist [Rappture::Units::System::all $units]
-    if {"" != $ulist} {
-        append mesg " ([join $ulist {, }])"
-    }
-    return $mesg
-}
+# proc Rappture::Units::description {units} {}
+# Actual implementation is in rappture/lang/tcl/src/RpUnitsTclInterface.cc.
+
 
 # ----------------------------------------------------------------------
 itcl::class Rappture::Units::System {
@@ -153,8 +260,10 @@ itcl::class Rappture::Units::System {
     public method convert {value units showUnits}
     private variable _system ""  ;# this system of units
 
-    public proc for {units}
-    public proc all {units}
+    # These are in rappture/lang/tcl/src/RpUnitsTclInterface.cc.
+    # public proc for {units}
+    # public proc all {units}
+
     public proc regularize {units}
 
     private common _base  ;# maps unit name => System obj
@@ -360,51 +469,9 @@ itcl::configbody Rappture::Units::System::metric {
 # Returns the System object for the given system of units, or ""
 # if there is no system that matches the units string.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Units::System::for {units} {
-    #
-    # See if the units are a recognized system.  If not, then try to
-    # extract any metric prefix and see if what's left is a recognized
-    # system.  If all else fails, see if we can find a system without
-    # the exact capitalization.  The user might say "25c" instead of
-    # "25C".  Try to allow that.
-    #
-    if {[info exists _base($units)]} {
-        return $_base($units)
-    } else {
-        set orig $units
-        if {[regexp {^(/?)[cCmMuUnNpPfFaAkKgGtT](.+)$} $units match slash tail]} {
-            set base "$slash$tail"
-            if {[info exists _base($base)]} {
-                set sys $_base($base)
-                if {[$sys cget -metric]} {
-                    return $sys
-                }
-            }
+# itcl::body Rappture::Units::System::for {units} {}
+# Actual implementation is in rappture/lang/tcl/src/RpUnitsTclInterface.cc.
 
-            # check the base part for improper capitalization below...
-            set units $base
-        }
-
-        set matching ""
-        foreach u [array names _base] {
-            if {[string equal -nocase $u $units]} {
-                lappend matching $_base($u)
-            }
-        }
-        if {[llength $matching] == 1} {
-            set sys [lindex $matching 0]
-            #
-            # If we got rid of a metric prefix above, make sure
-            # that the system is metric.  If not, then we don't
-            # have a match.
-            #
-            if {[string equal $units $orig] || [$sys cget -metric]} {
-                return $sys
-            }
-        }
-    }
-    return ""
-}
 
 # ----------------------------------------------------------------------
 # USAGE: all units
@@ -413,28 +480,9 @@ itcl::body Rappture::Units::System::for {units} {
 # Compatible units are determined by following all conversion
 # relationships that lead to the same base system.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Units::System::all {units} {
-    set sys [Rappture::Units::System::for $units]
-    if {$sys == ""} {
-        return ""
-    }
+# itcl::body Rappture::Units::System::all {units} {}
+# Actual implementation is in rappture/lang/tcl/src/RpUnitsTclInterface.cc.
 
-    if {"" != [$sys cget -basis]} {
-        set basis [lindex [$sys cget -basis] 0]
-    } else {
-        set basis $units
-    }
-
-    set ulist $basis
-    foreach u [array names _base] {
-        set obj $_base($u)
-        set b [lindex [$obj cget -basis] 0]
-        if {$b == $basis} {
-            lappend ulist $u
-        }
-    }
-    return $ulist
-}
 
 # ----------------------------------------------------------------------
 # USAGE: regularize units

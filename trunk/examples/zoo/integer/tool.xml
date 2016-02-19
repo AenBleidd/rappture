@@ -10,7 +10,7 @@ The description appears in a tooltip when you hover over the integer control wit
 When you click the Simulate button, the input integers will be used to generate output integers.
   </about>
   <command>
-    tclsh @tool/integer.tcl @driver
+    python @tool/integer.py @driver
   </command>
 </tool>
 <input>

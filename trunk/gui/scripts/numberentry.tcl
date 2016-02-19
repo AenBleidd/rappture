@@ -24,7 +24,6 @@ itcl::class Rappture::NumberEntry {
 
     public method label {}
     public method tooltip {}
-
     protected method _newValue {}
 
     private variable _owner ""    ;# thing managing this control
@@ -42,6 +41,7 @@ itk::usual NumberEntry {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberEntry::constructor {owner path args} {
+    set varname [lindex [split $path ()] end-1]
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
         error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
@@ -67,12 +67,26 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
         }
     }
 
+    # check for number UQ flag
+    set use_uq [$_owner xml get $path.uq]
+    if {$use_uq == ""} {
+        # check for global UQ flag
+        set use_uq [[$_owner tool] xml get tool.uq]
+    }
+
+    if {$use_uq == ""} {
+        set use_uq no
+    } else {
+        set use_uq [string trim $use_uq]
+    }
+
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
     #
     itk_component add gauge {
-        $class $itk_interior.gauge -units $units -presets $presets -log $path
+        $class $itk_interior.gauge -uq $use_uq -units $units -presets $presets \
+            -log $path -varname $varname -label [label]
     }
     pack $itk_component(gauge) -expand yes -fill both
     bind $itk_component(gauge) <<Value>> [itcl::code $this _newValue]

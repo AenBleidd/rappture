@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/sequence.py \
 		$(srcdir)/sequence.tcl \
 		$(srcdir)/sequence2.tcl \
 		$(srcdir)/tool2.xml \

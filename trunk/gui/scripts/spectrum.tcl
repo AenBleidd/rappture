@@ -198,9 +198,32 @@ itcl::body Rappture::Spectrum::get {args} {
     }
 
     set value [lindex $args 0]
-    if {$units != ""} {
-        set value [Rappture::Units::convert $value \
-            -context $units -to $units -units off]
+
+    switch -- [lindex $value 0] {
+        gaussian {
+            set value [lindex $value 1]
+            if {$units != ""} {
+                set value [Rappture::Units::convert $value \
+                -context $units -to $units -units off]
+            }
+        }
+        uniform {
+            set min [lindex $value 1]
+            set max [lindex $value 2]
+            if {$units != ""} {
+                set min [Rappture::Units::convert $min \
+                -context $units -to $units -units off]
+                set max [Rappture::Units::convert $max \
+                -context $units -to $units -units off]
+            }
+            set value [expr {0.5 * ($min + $max)}]
+        }
+        default {
+            if {$units != ""} {
+                set value [Rappture::Units::convert $value \
+                -context $units -to $units -units off]
+            }
+        }
     }
 
     switch -- $what {

@@ -93,10 +93,13 @@ FILES		= \
 		$(srcdir)/periodicelemententry.tcl \
 		$(srcdir)/periodictable.tcl \
 		$(srcdir)/postern.tcl \
+		$(srcdir)/probdisteditor.tcl \
 		$(srcdir)/progress.tcl \
 		$(srcdir)/pushbutton.tcl \
 		$(srcdir)/radiodial.tcl \
 		$(srcdir)/resultset.tcl \
+		$(srcdir)/response.tcl \
+		$(srcdir)/responseviewer.tcl \
 		$(srcdir)/resultselector.tcl \
 		$(srcdir)/resultviewer.tcl \
 		$(srcdir)/scroller.tcl \
@@ -120,6 +123,10 @@ FILES		= \
 		$(srcdir)/unirect3d.tcl \
 		$(srcdir)/units.tcl \
 		$(srcdir)/utils.tcl \
+		$(srcdir)/uq.tcl \
+		$(srcdir)/uqcurve.tcl \
+		$(srcdir)/uqinfo.tcl \
+		$(srcdir)/uqnotebook.tcl \
 		$(srcdir)/valueresult.tcl \
 		$(srcdir)/videochooser.tcl \
 		$(srcdir)/videochooserinfo.tcl \
@@ -156,14 +163,14 @@ tclIndex: $(FILES)
 	$(TCLSH) $(srcdir)/../cf/mkindex.tcl --srcdir $(srcdir) \
 		--outfile tclIndex
 
-install: all install_scripts install_images 
+install: all install_scripts install_images
 
-install_scripts: 
+install_scripts:
 	$(MKDIR_P) -m 0755 $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 0444 $$i $(destdir) ; \
-	done 
+	done
 	$(INSTALL) -m 0444 tclIndex $(destdir)
 
 install_images:
@@ -171,7 +178,7 @@ install_images:
 	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.png $(srcdir)/images/*.xbm; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 0444 $$i $(destdir)/images ; \
-	done 
+	done
 
 clean:
 	$(RM) tclIndex

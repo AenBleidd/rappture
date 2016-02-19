@@ -1,0 +1,41 @@
+
+SHELL		= @SHELL@
+TCLSH		= @TCLSH@
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+pkgdatadir	= $(datadir)/$(PKG_DIR)
+pkglibdir	= $(libdir)/$(PKG_DIR)
+pkgincludedir	= $(includedir)/$(PKG_DIR)
+top_builddir	= .
+
+MKDIR_P		= @MKDIR_P@
+INSTALL		= @INSTALL@
+
+SCRIPTS	= $(srcdir)/get_params.py \
+        $(srcdir)/puq_analyze.py \
+        $(srcdir)/get_response.py
+
+.PHONY: all install clean distclean
+
+all:
+
+install: all
+	$(MKDIR_P) -m 0755 $(bindir)
+	@for i in $(SCRIPTS); do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 0555 $$i $(bindir) ; \
+	done
+
+clean:
+
+distclean: clean
+	$(RM) Makefile *~
+

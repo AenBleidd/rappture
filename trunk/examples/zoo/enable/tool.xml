@@ -9,7 +9,7 @@ The &lt;enable&gt; attribute can be used to selectively enable/disable one objec
 In this example, we have a &lt;choice&gt; object that controls three groups.  Each group appears only when its corresponding choice is set.  Within the first group, we have an entry that depends on a &lt;boolean&gt; object.
   </about>
   <command>
-    tclsh @tool/enable.tcl @driver
+    python @tool/enable.py @driver
   </command>
 </tool>
 <input>

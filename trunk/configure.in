@@ -342,7 +342,7 @@ if test "${with_ffmpeg}" != "no"; then
   AC_CHECK_FUNCS(url_close)
   AC_CHECK_FUNCS(av_close_input_file)
   AC_CHECK_FUNCS(avformat_close_input)
-	
+
   AC_CHECK_FUNC(avcodec_find_decoder,,
     AC_MSG_ERROR(oops! no av_codec_find_decoder ?!?))
   AC_CHECK_FUNC(avcodec_alloc_frame,,
@@ -599,6 +599,7 @@ AC_CONFIG_FILES([
     video/pkgIndex.tcl
     oldtest/Makefile
     oldtest/src/Makefile
+    puq/Makefile
 ])
 AC_OUTPUT
-	
+

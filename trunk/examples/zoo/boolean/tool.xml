@@ -10,7 +10,7 @@ The description appears in a tooltip when you hover over the boolean control wit
 When you click the Simulate button, the input boolean will be used to generate the output boolean.
   </about>
   <command>
-    tclsh @tool/boolean.tcl @driver
+    python @tool/boolean.py @driver
   </command>
 </tool>
 <input>

@@ -248,9 +248,9 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         set linewidth $attrs(-width)
     }
     if { $color == "auto" || $color == "autoreset" } {
-#        if { $color == "autoreset" } {
-#            set _nextColorIndex 0
-#        }
+        if { $color == "autoreset" } {
+            set _nextColorIndex 0
+        }
         set color [lindex $itk_option(-autocolors) $_nextColorIndex]
         if { "" == $color} {
             set color black

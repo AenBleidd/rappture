@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>number</title>
+  <about>Example of UQ on a Curve.</about>
+  <command>
+    python @tool/simple.py @driver
+  </command>
+  <uq>true</uq>
+</tool>
+<input>
+  <number id="vsweep">
+    <about>
+      <label>Voltage Sweep +/-</label>
+      <description>This determines the voltage sweep used to obtain results from the model.</description>
+      <icon>
+R0lGODlhGgASAKEBAAAAAP///////////yH+FUNyZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAB
+ACwAAAAAGgASAAACLoyPqcvtD8CRj8VZrYw8h/tRn2eA4Eiaosa1qttC1EmW81qrtbYvdG8DCodE
+RQEAOw==
+      </icon>
+    </about>
+    <units>V</units>
+    <min>0V</min>
+    <max>10V</max>
+    <default>4V</default>
+    <color>purple</color>
+  </number>
+</input>
+</run>
