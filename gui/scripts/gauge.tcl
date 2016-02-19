@@ -41,7 +41,10 @@ itcl::class Rappture::Gauge {
     itk_option define -samplewidth sampleWidth SampleWidth 0
     itk_option define -sampleheight sampleHeight SampleHeight 0
     itk_option define -log log Log ""
+    itk_option define -varname varname Varname ""
+    itk_option define -label label Label ""
     itk_option define -validatecommand validateCommand ValidateCommand ""
+    itk_option define -uq uq Uq no
 
     constructor {args} { # defined below }
 
@@ -56,8 +59,15 @@ itcl::class Rappture::Gauge {
     protected method _presets {option}
     protected method _layout {}
     protected method _log {event args}
+    protected method _change_param_type {choice}
+    protected method _pop_uq {win}
+    protected method _pop_uq_deactivate {}
 
     private variable _value 0  ;# value for this widget
+    private variable _mode exact ;# current mode
+    private variable _pde ""   ;# ProbDistEditor
+    private variable _val ""   ;# value choice combobox
+    private variable uq no
 
     blt::bitmap define GaugeArrow {
         #define arrow_width 9
@@ -76,6 +86,9 @@ itk::usual Gauge {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::constructor {args} {
+    # puts "GAUGE CONS: $args"
+    array set attrs $args
+
     itk_option remove hull.borderwidth hull.relief
     component hull configure -borderwidth 0
 
@@ -89,6 +102,22 @@ itcl::body Rappture::Gauge::constructor {args} {
     }
     bind $itk_component(icon) <Configure> [itcl::code $this _redraw]
 
+    if {[info exists attrs(-uq)]} {
+        set uq $attrs(-uq)
+        if {[string is true $uq]} {
+            set uq 1
+            itk_component add uq {
+                button $itk_interior.uq -image [Rappture::icon UQ] \
+                    -command [itcl::code $this _pop_uq $itk_interior]
+            }
+            pack $itk_component(uq) -side right -padx 10
+        } else {
+            set uq 0
+        }
+    } else {
+        set uq 0
+    }
+
     itk_component add -protected vframe {
         frame $itk_interior.vframe
     } {
@@ -96,7 +125,7 @@ itcl::body Rappture::Gauge::constructor {args} {
     }
 
     itk_component add value {
-        label $itk_component(vframe).value -width 7 \
+        label $itk_component(vframe).value -width 20 \
             -borderwidth 1 -relief flat -textvariable [itcl::scope _value]
     } {
         keep -font
@@ -198,119 +227,71 @@ itcl::body Rappture::Gauge::constructor {args} {
 # new value is not actually applied, but just checked for correctness.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::value {args} {
-    set onlycheck 0
+    #puts "Gauge value: $args"
+
+    # Query.  Just return the current value.
+    if {[llength $args] == 0} {
+        return $_value
+    }
+
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
         set onlycheck 1
         set args [lreplace $args $i $i]
+    } else {
+        set onlycheck 0
     }
 
-    if {[llength $args] == 1} {
-        #
-        # If this gauge has -units, try to convert the incoming
-        # value to that system of units.  Also, make sure that
-        # the value is bound by any min/max value constraints.
-        #
-        # Keep track of the inputted units so we can give a
-        # response about min and max values in familiar units.
-        #
-        set newval [set nv [string trim [lindex $args 0]]]
-        set units $itk_option(-units)
-        if {"" != $units} {
-            set newval [Rappture::Units::convert $newval -context $units]
-            set nvUnits [Rappture::Units::Search::for $newval]
-            if { "" == $nvUnits} {
-                set msg [Rappture::Units::description $units]
-                error "unrecognized units in value \"$newval\": should be value with units of $msg"
-            }
-            set nv [Rappture::Units::convert $nv \
-                -context $units -to $units -units off]
-
-            # Normalize the units name
-            set newval [Rappture::Units::convert $newval -units off]$nvUnits
-        }
-
-        switch -- $itk_option(-type) {
-            integer {
-                if { [scan $nv "%g" value] != 1 || int($nv) != $value } {
-                    error "bad value \"$nv\": should be an integer value"
-                }
-            }
-            real {
-                # "scan" will reject the number if the string is "NaN" or
-                # "Inf" or the empty string.  It also is accepts large numbers
-                # (e.g. 111111111111111111111) that "string is double"
-                # rejects.  The problem with "scan" is that it doesn't care if
-                # there are extra characters trailing the number (eg. "123a").
-                # The extra %s substitution is used to detect this case.
-                if { [scan $nv "%g%s" dummy1 dummy2] != 1 } {
-                    error "bad value \"$nv\": should be a real number"
-                }
-            }
-        }
-
-        if {"" != $itk_option(-minvalue)} {
-            set convMinVal [set minv $itk_option(-minvalue)]
-            if {"" != $units} {
-                set minv [Rappture::Units::convert $minv \
-                    -context $units -to $units -units off]
-                set convMinVal [Rappture::Units::convert \
-                    $itk_option(-minvalue) -context $units -to $nvUnits]
-            } else {
-                set newval [format "%g" $newval]
-            }
-
-            # fix for the case when the user tries to
-            # compare values like minv=-500 nv=-0600
-            set nv [format "%g" $nv]
-            set minv [format "%g" $minv]
-
-            if {$nv < $minv} {
-                error "minimum value allowed here is $convMinVal"
-            }
-        }
-
-        if {"" != $itk_option(-maxvalue)} {
-            set convMaxVal [set maxv $itk_option(-maxvalue)]
-            if {"" != $units} {
-                set maxv [Rappture::Units::convert $maxv \
-                    -context $units -to $units -units off]
-                set convMaxVal [Rappture::Units::convert \
-                    $itk_option(-maxvalue) -context $units -to $nvUnits]
-            } else {
-                set newval [format "%g" $newval]
-            }
-
-            # fix for the case when the user tries to
-            # compare values like maxv=500 nv=0600
-            set nv [format "%g" $nv]
-            set maxv [format "%g" $maxv]
-
-            if {$nv > $maxv} {
-                error "maximum value allowed here is $convMaxVal"
-            }
-        }
-
-        #
-        # If there's a -validatecommand option, then invoke the code
-        # now to check the new value.
-        #
-        if {[string length $itk_option(-validatecommand)] > 0} {
-            set cmd "uplevel #0 [list $itk_option(-validatecommand) [list $newval]]"
-            set result [eval $cmd]
-        }
-
-        if {$onlycheck} {
-            return
-        }
-
-        set _value $newval
-
-        _redraw
-        event generate $itk_component(hull) <<Value>>
-
-    } elseif {[llength $args] != 0} {
+    if {[llength $args] != 1} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
+    }
+
+    set newval [Rappture::Units::mcheck_range [lindex $args 0] \
+    $itk_option(-minvalue) $itk_option(-maxvalue) $itk_option(-units)]
+
+    set newmode [lindex $newval 0]
+    switch -- $newmode {
+        uniform -
+        gaussian {
+            set _mode $newmode
+        }
+        exact -
+        default {
+            set _mode exact
+        }
+    }
+
+    switch -- $itk_option(-type) {
+        integer {
+            if { [scan $newval "%g" value] != 1 || int($newval) != $value } {
+                error "bad value \"$newval\": should be an integer value"
+            }
+        }
+    }
+
+    #
+    # If there's a -validatecommand option, then invoke the code
+    # now to check the new value.
+    #
+    if {[string length $itk_option(-validatecommand)] > 0} {
+        set cmd "uplevel #0 [list $itk_option(-validatecommand) [list $newval]]"
+        set result [eval $cmd]
+    }
+
+    if {$onlycheck} {
+        return
+    }
+
+    set _value $newval
+    $itk_component(value) configure -width [string length $_value]
+    _redraw
+    event generate $itk_component(hull) <<Value>>
+
+    if {"" != $_pde} {
+        set val [$_val translate [$_val value]]
+        $_val value $_mode
+        $_pde value $_value
+
     }
     return $_value
 }
@@ -493,6 +474,7 @@ itcl::body Rappture::Gauge::_hilite {comp state} {
 # editor for the value of this gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_editor {option args} {
+    # puts "Gauge::editor option=$option args=$args"
     if {$itk_option(-state) == "disabled"} {
         return  ;# disabled? then bail out here!
     }
@@ -514,7 +496,6 @@ itcl::body Rappture::Gauge::_editor {option args} {
                 error "wrong # args: should be \"_editor validate val\""
             }
             set val [lindex $args 0]
-
             if {[catch {value -check $val} result]} {
                 if {[regexp {allowed here is (.+)} $result match newval]} {
                     $itk_component(editor) value $newval
@@ -594,6 +575,10 @@ itcl::body Rappture::Gauge::_presets {option} {
 itcl::body Rappture::Gauge::_layout {} {
     foreach w [pack slaves $itk_component(hull)] {
         pack forget $w
+    }
+
+    if {$itk_option(-type) != "integer" && $uq} {
+        pack $itk_component(uq) -side right -padx 10
     }
 
     array set side2anchor {
@@ -742,4 +727,46 @@ itcl::configbody Rappture::Gauge::type {
             error "bad number type \"$itk_option(-type)\": should be integer or real"
         }
     }
+}
+
+itcl::body Rappture::Gauge::_pop_uq {win} {
+    # puts "min=$itk_option(-minvalue) max=$itk_option(-maxvalue) units=$itk_option(-units)"
+    set varname $itk_option(-varname)
+    set popup .pop_uq_$varname
+    if { ![winfo exists $popup] } {
+        Rappture::Balloon $popup -title $itk_option(-label)
+        set inner [$popup component inner]
+        frame $inner.type
+        pack $inner.type -side top -fill x
+        label $inner.type.l -text "Parameter Value:"
+        pack $inner.type.l -side left
+
+        set _val [Rappture::Combobox $inner.type.val -width 20 -editable no]
+        pack $_val -side left -expand yes -fill x
+        $_val choices insert end exact "Exact Value"
+        $_val choices insert end uniform "Uniform Distribution"
+        $_val choices insert end gaussian "Gaussian Distribution"
+        bind $_val <<Value>> [itcl::code $this _change_param_type $inner]
+
+        set _pde [Rappture::ProbDistEditor $inner.entry \
+        $itk_option(-minvalue) $itk_option(-maxvalue) $itk_option(-units) $_value]
+        $_val value $_mode
+        $_pde value $_value
+        pack $inner.entry -expand yes -fill both -pady {10 0}
+
+        $popup configure \
+        -deactivatecommand [itcl::code $this _pop_uq_deactivate]
+    }
+    update
+    $popup activate $win right
+}
+
+itcl::body Rappture::Gauge::_pop_uq_deactivate {} {
+    # puts "deactivate [$_pde value]"
+    value [$_pde value]
+}
+
+itcl::body Rappture::Gauge::_change_param_type {inner} {
+    set val [$_val translate [$_val value]]
+    $_pde mode $val
 }

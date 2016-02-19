@@ -78,6 +78,9 @@ itcl::class Rappture::Analyzer {
     protected method _pdbToSequence {xmlobj path id child data}
     protected method _lammpsToSequence {xmlobj path id child data}
     protected method _trajToSequence {xmlobj {path ""}}
+    protected method _pop_uq_dialog {win}
+    protected method _setWaitVariable {state}
+    protected method _adjust_level {win}
 
     private variable _tool ""          ;# belongs to this tool
     private variable _appName ""       ;# Name of application
@@ -91,6 +94,8 @@ itcl::class Rappture::Analyzer {
     private variable _plotlist ""      ;# items currently being plotted
     private variable _lastPlot
     private common job                 ;# array var used for blt::bgexec jobs
+    private variable _uq_active 0      ;# a UQ variables has been used
+    private variable _wait_uq 0
 }
 
 itk::usual Analyzer {
@@ -327,8 +332,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
         Rappture::Notebook $f.nb
     }
     pack $itk_component(resultpages) -expand yes -fill both
-
-    set f [$itk_component(results) insert end -fraction 0.1]
+   set f [$itk_component(results) insert end -fraction 0.1]
     itk_component add resultselector {
         Rappture::ResultSelector $f.rsel -resultset $_resultset \
             -settingscommand [itcl::code $this _plot]
@@ -394,7 +398,31 @@ itcl::body Rappture::Analyzer::destructor {} {
 # automatically to "analyze" mode and shows the results.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::simulate {args} {
-    if {$args == "-ifneeded"} {
+    #puts "simulate args='$args'"
+
+    set uq [$_tool get_uq -uq_type smolyak -uq_args 2]
+
+    # pop up UQ window
+    if {[$uq num_runs] > 1} {
+        set _uq_active 1
+        set status [$uq run_dialog $itk_component(simulate)]
+        if {$status == 0} {
+            # cancelled
+            return
+        }
+        lappend args -uq_type [$uq type]
+        lappend args -uq_args [$uq args]
+        # Need to put these UQ values into the driver file
+        # so the call to resultset::contains will be correct.
+        set _xml [$_tool xml object]
+        $_xml put uq.type.current [$uq type]
+        $_xml put uq.args.current [$uq args]
+        $_xml put uq.args.about.label "level"
+        $_xml put uq.args.about.description "Polynomial Degree of Smolyak GPC method."
+    }
+    #puts "simulate args=$args"
+
+    if {[lindex $args 0] == "-ifneeded"} {
         # check to see if simulation is really needed
         $_tool sync
         if {[$_resultset contains [$_tool xml object]]
@@ -403,7 +431,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
             $itk_component(notebook) current analyze
             return
         }
-        set args ""
+        set args [lreplace $args 0 0]
     }
 
     # simulation is needed -- go to simulation page
@@ -426,6 +454,8 @@ itcl::body Rappture::Analyzer::simulate {args} {
     }
 
     # execute the job
+    #puts "$_tool run $args"
+
     foreach {status result} [eval $_tool run $args] break
 
     # if job was aborted, then allow simulation again
@@ -468,6 +498,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
     # do this last -- after _simOutput above
     pack forget $itk_component(progress)
 }
+
 
 # ----------------------------------------------------------------------
 # USAGE: reset ?-eventually|-now?
@@ -514,6 +545,7 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
     if {[string trim [$_tool xml get tool.analyzer]] == "last"} {
         clear
     }
+    #puts "Analyzer::load"
     $_resultset add $xmlobj
 
     # NOTE: Adding will trigger a !change event on the ResultSet
@@ -651,6 +683,7 @@ itcl::body Rappture::Analyzer::download {option args} {
 # desired results to show up on screen.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_plot {args} {
+    #puts "analyzer::_plot"
     set _plotlist $args
 
     set page [$itk_component(viewselector) value]
@@ -754,18 +787,19 @@ itcl::body Rappture::Analyzer::_fixResult {} {
         $itk_component(viewselector) component entry configure -state disabled
     } elseif {$page != ""} {
         set _lastlabel $name
-        set win [winfo toplevel $itk_component(hull)]
         $itk_component(resultpages) current $page
         set f [$itk_component(resultpages) page $page]
-
         # We don't want to replot if we're using an existing viewer with the
         # the same list of objects to plot.  So track the viewer and the list.
         if { ![info exists _lastPlot($f)] || $_plotlist != $_lastPlot($f) } {
             set _lastPlot($f) $_plotlist
+            set win [winfo toplevel $itk_component(hull)]
             blt::busy hold $win
+            #puts "rviewer = $f.rviewer"
+            #puts "_plotlist = $_plotlist"
             $f.rviewer plot clear
             eval $f.rviewer plot add $_plotlist
-            blt::busy release [winfo toplevel $itk_component(hull)]
+            blt::busy release $win
         }
         Rappture::Logger::log output $_label2item($name)
         Rappture::Tooltip::for $itk_component(viewselector) \
@@ -781,6 +815,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
 # When all results are cleared, the viewers are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_fixResultSet {args} {
+    #puts "Analyzer::_fixResultSet $args"
     array set eventData $args
     switch -- $eventData(op) {
         add {
@@ -793,39 +828,38 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
             # Go through the analysis and find all result sets.
             set haveresults 0
             foreach item [_reorder [$xmlobj children output]] {
-                switch -glob -- $item {
-                    log* {
-                        _autoLabel $xmlobj output.$item "Output Log" counters
-                    }
-                    number* {
-                        _autoLabel $xmlobj output.$item "Number" counters
-                    }
-                    integer* {
-                        _autoLabel $xmlobj output.$item "Integer" counters
-                    }
-                    mesh* {
-                        _autoLabel $xmlobj output.$item "Mesh" counters
-                    }
-                    string* {
-                        _autoLabel $xmlobj output.$item "String" counters
-                    }
-                    histogram* - curve* - field* {
-                        _autoLabel $xmlobj output.$item "Plot" counters
-                    }
-                    map* {
-                        _autoLabel $xmlobj output.$item "Map" counters
-                    }
-                    drawing* {
-                        _autoLabel $xmlobj output.$item "Drawing" counters
-                    }
-                    structure* {
-                        _autoLabel $xmlobj output.$item "Structure" counters
-                    }
-                    table* {
-                        _autoLabel $xmlobj output.$item "Energy Levels" counters
-                    }
-                    sequence* {
-                        _autoLabel $xmlobj output.$item "Sequence" counters
+                if {[$xmlobj get output.$item.about.uqtype] == ""} {
+                    switch -glob -- $item {
+                        log* {
+                            _autoLabel $xmlobj output.$item "Output Log" counters
+                        }
+                        number* {
+                            _autoLabel $xmlobj output.$item "Number" counters
+                        }
+                        integer* {
+                            _autoLabel $xmlobj output.$item "Integer" counters
+                        }
+                        mesh* {
+                            _autoLabel $xmlobj output.$item "Mesh" counters
+                        }
+                        string* {
+                            _autoLabel $xmlobj output.$item "String" counters
+                        }
+                        histogram* - curve* - field* {
+                            _autoLabel $xmlobj output.$item "Plot" counters
+                        }
+                        drawing* {
+                            _autoLabel $xmlobj output.$item "Drawing" counters
+                        }
+                        structure* {
+                            _autoLabel $xmlobj output.$item "Structure" counters
+                        }
+                        table* {
+                            _autoLabel $xmlobj output.$item "Energy Levels" counters
+                        }
+                        sequence* {
+                            _autoLabel $xmlobj output.$item "Sequence" counters
+                        }
                     }
                 }
                 set label [$xmlobj get output.$item.about.group]
@@ -852,12 +886,18 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                         set label [$xmlobj get output.$item.about.label]
                     }
                     set hidden [$xmlobj get output.$item.hide]
-                    if { $hidden == "" } {
+                    if {$hidden == ""} {
                         set hidden 0
                     }
                     if {"" != $label && !$hidden} {
+                        set uq_part [$xmlobj get output.$item.about.uqtype]
+
+                        #puts "label=$label uq_part=$uq_part"
+
                         if {![info exists _label2page($label)]} {
+                            #puts "Adding label: '$label'"
                             set name "page[incr _pages]"
+                            #puts "Inserting $name into resultpages"
                             set page [$itk_component(resultpages) \
                                 insert end $name]
                             set _label2page($label) $page
@@ -883,7 +923,7 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                             $page.rviewer clear $index
                             set reset($page) 1
                         }
-                        $page.rviewer add $index $xmlobj output.$item
+                        $page.rviewer add $index $xmlobj output.$item $label $uq_part
                     }
                 }
             }
@@ -1036,7 +1076,9 @@ itcl::body Rappture::Analyzer::_simState {state args} {
             -background $itk_option(-simcontroloutline)
         configure -simcontrolcolor $simcbg
 
-        $itk_component(simulate) configure -state disabled
+        if {$_uq_active == 0} {
+            $itk_component(simulate) configure -state disabled
+        }
         $itk_component(abort) configure -state normal
 
         $itk_component(simstatus) configure -state normal
@@ -1064,6 +1106,7 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
     #
     # Scan through and pick out any =RAPPTURE-PROGRESS=> messages first.
     #
+
     while {[regexp -indices \
                {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)} $message \
                 match percent mesg]} {
@@ -1079,6 +1122,28 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
 
         foreach {i0 i1} $match break
         set message [string replace $message $i0 $i1]
+    }
+
+    #
+    # Now handle SUBMIT-PROGRESS
+    #
+    while {[regexp -indices {=SUBMIT-PROGRESS=> aborted=([0-9]+) finished=([0-9]+) failed=([0-9]+) executing=([0-9]+)\
+        waiting=([0-9]+) setting_up=([0-9]+) setup=([0-9]+) %done=([0-9.]+) timestamp=([0-9.]+)(\n|$)} $message \
+        match aborted finished failed executing waiting setting_up setup percent ts mesg]} {
+
+        set mesg ""
+        foreach {i0 i1} $percent break
+        set percent [string range $message $i0 $i1]
+        foreach {i0 i1} $failed break
+        set failed [string range $message $i0 $i1]
+        foreach {i0 i1} $match break
+        set message [string replace $message $i0 $i1]
+
+        if {$failed != 0} {set mesg "$failed jobs failed!"}
+        if {$percent >= 100} { set mesg "Jobs finished.  Analyzing results..."}
+
+        pack $itk_component(progress) -fill x -padx 10 -pady 10
+        $itk_component(progress) settings -percent $percent -message $mesg
     }
 
     #

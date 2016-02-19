@@ -10,7 +10,7 @@ The description appears in a tooltip when you hover over the string control with
 When you click the Simulate button, the input strings will be used to generate output strings.
   </about>
   <command>
-    tclsh @tool/string.tcl @driver
+    python @tool/string_test.py @driver
   </command>
 </tool>
 <input>

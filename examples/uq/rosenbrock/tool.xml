@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>Rosenbrock Function for testing Uncertainty Quantification</title>
+        <about>This tool is for testing and demonstrating the hub's UQ code and Response Surfaces</about>
+        <command>python @tool/rosen.py @driver</command>
+        <layout>wizard</layout>
+        <uq>yes</uq>
+    </tool>
+    <input>
+        <note>
+            <contents> file:///desc.html</contents>
+        </note>
+        <number id="x">
+            <about>
+                <label>X</label>
+                <description>X variable</description>
+            </about>
+            <default>uniform -2 2</default>
+            <uq>yes</uq>
+        </number>
+        <number id="y">
+            <about>
+                <label>Y</label>
+                <description>Y variable</description>
+            </about>
+            <default>uniform -2 2</default>
+            <uq>yes</uq>
+        </number>
+    </input>
+    <output>
+        <number id="z">
+            <about>
+                <label>Result</label>
+                <description>The result of evaluating the function at x and y.</description>
+            </about>
+        </number>
+    </output>
+</run>

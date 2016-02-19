@@ -39,7 +39,7 @@ ifneq ($(ENABLE_LANG),)
   TARGETS += lang
 endif
 ifneq ($(ENABLE_GUI),)
-  TARGETS += gui builder tester examples 
+  TARGETS += gui builder tester examples puq
 endif
 ifneq ($(HAVE_FFMPEG),)
   TARGETS += video
@@ -56,12 +56,12 @@ all:
 test:
 	$(MAKE) -C test all
 
-install: 
+install:
 	for i in $(TARGETS) ; do \
 	  $(MAKE) -C $$i install || exit 1 ;\
 	done
 
-clean: 
+clean:
 	for i in $(TARGETS) ; do \
 	  $(MAKE) -C $$i clean || exit 1 ;\
 	done
@@ -72,10 +72,10 @@ distclean: clean
 	  $(MAKE) -C $$i distclean || exit 1 ;\
 	done
 
-package: 
+package:
 	tar -C $(pkg_path) -czlf $(rappture_binary_tarfile) $(pkg_name)
 
-distrib: 
+distrib:
 	$(RM) -r exported
 	$(MKDIR_P) -m 0755 exported
 	(cd exported; svn export -q $(rappture_repo) rappture)

@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/string_test.py \
 		$(srcdir)/string.tcl \
 		$(srcdir)/string1.gif \
 		$(srcdir)/string2.gif \

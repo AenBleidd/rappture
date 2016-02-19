@@ -25,8 +25,12 @@ option add *TemperatureGauge.state normal widgetDefault
 itcl::class Rappture::TemperatureGauge {
     inherit Rappture::Gauge
 
-    constructor {args} { # defined below }
-
+    constructor {args} {
+        array set attrs $args
+        Rappture::Gauge::constructor -uq $attrs(-uq)
+    } {
+        eval itk_initialize -spectrum $_spectrum -units K $args
+    }
     protected method _redraw {}
     protected method _resize {}
 
@@ -39,13 +43,6 @@ itcl::class Rappture::TemperatureGauge {
 }
 
 itk::usual TemperatureGauge {
-}
-
-# ----------------------------------------------------------------------
-# CONSTRUCTOR
-# ----------------------------------------------------------------------
-itcl::body Rappture::TemperatureGauge::constructor {args} {
-    eval itk_initialize -spectrum $_spectrum -units K $args
 }
 
 # ----------------------------------------------------------------------

@@ -9,7 +9,7 @@ Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; elem
 When you click the Simulate button, the inputs will be used to generate output fields.
   </about>
   <command>
-    python @tool/field.py @driver
+    tclsh @tool/field.tcl @driver
   </command>
   <limits>
     <cputime>unlimited</cputime>

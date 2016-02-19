@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/enable.py \
 		$(srcdir)/enable.tcl \
 		$(srcdir)/tool.xml \
 		$(srcdir)/tool2.xml 

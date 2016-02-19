@@ -11,7 +11,7 @@ The description appears in a tooltip when you hover over the loader control with
 You can see the real action here by selecting various examples from the loader.  The simulate button doesn't do very much.  It just copies the inputs to the output log.
   </about>
   <command>
-    tclsh @tool/loader.tcl @driver
+    python @tool/loader.py @driver
   </command>
 </tool>
 <input>

@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/parallelepiped.py \
 		$(srcdir)/parallelepiped.tcl \
 		$(srcdir)/tool.xml
 

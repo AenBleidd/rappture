@@ -28,6 +28,10 @@ itcl::class Rappture::Tool {
     public method installdir {} {
         return [$_task installdir]
     }
+    public method get_uq {args} {
+        sync  ;# sync all widget values to XML
+        return [eval $_task get_uq $args]
+    }
     public method run {args} {
         sync  ;# sync all widget values to XML
 

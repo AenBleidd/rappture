@@ -25,12 +25,12 @@ itcl::class Rappture::ResultViewer {
     itk_option define -simulatecommand simulateCommand SimulateCommand ""
 
     constructor {args} {
-        # defined below
+	# defined below
     }
     destructor {
         # defined below
     }
-    public method add {index xmlobj path}
+    public method add {index xmlobj path label {uq_part ""}}
     public method clear {{index ""}}
     public method value {xmlobj}
 
@@ -39,7 +39,7 @@ itcl::class Rappture::ResultViewer {
 
     protected method _plotAdd {xmlobj {settings ""}}
     protected method _fixScale {args}
-    protected method _xml2data {xmlobj path}
+    protected method _xml2data {xmlobj path label {uq_part ""}}
     protected method _cleanIndex {index}
 
     private variable _dispatcher ""  ;# dispatchers for !events
@@ -57,6 +57,7 @@ itk::usual ResultViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::constructor {args} {
+    #puts "Creating RV $args"
     # create a dispatcher for events
     Rappture::dispatcher _dispatcher
     $_dispatcher register !scale
@@ -83,9 +84,10 @@ itcl::body Rappture::ResultViewer::destructor {} {
 # Adds a new result to this result viewer at the specified <index>.
 # Data is taken from the <xmlobj> object at the <path>.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultViewer::add {index xmlobj path} {
+itcl::body Rappture::ResultViewer::add {index xmlobj path label {uq_part ""}} {
+    #puts "RV add index=$index path=$path label=$label uq_part=$uq_part"
     set index [_cleanIndex $index]
-    set dobj [_xml2data $xmlobj $path]
+    set dobj [_xml2data $xmlobj $path $label $uq_part]
 
     #
     # If the index doesn't exist, then fill in empty slots and
@@ -94,11 +96,16 @@ itcl::body Rappture::ResultViewer::add {index xmlobj path} {
     for {set i [llength $_dataslots]} {$i <= $index} {incr i} {
         lappend _dataslots ""
     }
-    set slot [lindex $_dataslots $index]
-    lappend slot $dobj
-    set _dataslots [lreplace $_dataslots $index $index $slot]
 
-    $_dispatcher event -idle !scale
+    set slot [lindex $_dataslots $index]
+
+    # only add dobj if it isn't already there.
+    if {[lsearch -exact $slot $dobj] < 0} {
+        lappend slot $dobj
+        #puts "slot=$slot"
+        set _dataslots [lreplace $_dataslots $index $index $slot]
+        $_dispatcher event -idle !scale
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -111,6 +118,7 @@ itcl::body Rappture::ResultViewer::add {index xmlobj path} {
 # they reside at one or more indices.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::clear {{index ""}} {
+    #puts "RV::clear $index"
     if {$index ne ""} {
         # clear one result
         if {[catch {_cleanIndex $index} i] == 0} {
@@ -190,6 +198,7 @@ itcl::body Rappture::ResultViewer::value {xmlobj} {
 # to the plot; otherwise, default settings are used.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::plot {option args} {
+    #puts "RV plot option=$option args=$args"
     switch -- $option {
         add {
             set params ""
@@ -249,7 +258,16 @@ itcl::body Rappture::ResultViewer::plot {option args} {
 # new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
+    #puts "RV _plotAdd $dataobj : [$dataobj info class] : $settings"
     switch -- [$dataobj info class] {
+        ::Rappture::UqInfo {
+            set mode "uq"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.uq
+                Rappture::UqNotebook $w
+                set _mode2widget($mode) $w
+            }
+        }
         ::Rappture::DataTable {
             set mode "datatable"
             if {![info exists _mode2widget($mode)]} {
@@ -410,12 +428,6 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         }
     }
 
-    if {$mode != $_mode && $_mode != ""} {
-        set nactive [llength [$_mode2widget($_mode) get]]
-        if {$nactive > 0} {
-            return  ;# mixing data that doesn't mix -- ignore it!
-        }
-    }
     # Are we plotting in a new mode? then change widgets
     if {$_mode2widget($mode) != [pack slaves $itk_interior]} {
         # remove any current window
@@ -441,8 +453,18 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 itcl::body Rappture::ResultViewer::_fixScale {args} {
     if {"" != $_mode} {
         set dlist ""
+        set objclass ""
         foreach slot $_dataslots {
             foreach dobj $slot {
+                if {$objclass == ""} {
+                    set objclass [$dobj info class]
+                } else {
+                    if {$objclass != [$dobj info class]} {
+                        # If some of the objects are different classes
+                        # then we cannot use the same scale, so give up.
+                        return
+                    }
+                }
                 lappend dlist $dobj
             }
         }
@@ -473,13 +495,29 @@ itcl::body Rappture::ResultViewer::download {option args} {
 # Used internally to create a data object for the data at the
 # specified <path> in the <xmlobj>.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
-    if {[info exists _xml2data($xmlobj-$path)]} {
+itcl::body Rappture::ResultViewer::_xml2data {xmlobj path label {uq_part ""}} {
+    #puts "RV:_xml2data $path ([$xmlobj element -as type $path]) label=$label uq_part=$uq_part"
+
+    if {$uq_part != ""} {
+        if {[info exists _xml2data($xmlobj-$label)]} {
+            $_xml2data($xmlobj-$label) add $xmlobj $path $uq_part
+            return $_xml2data($xmlobj-$label)
+        }
+    } elseif {[info exists _xml2data($xmlobj-$path]} {
         return $_xml2data($xmlobj-$path)
     }
 
-    set type [$xmlobj element -as type $path]
+    if {$uq_part != ""} {
+        set type "UQ"
+    } else {
+        set type [$xmlobj element -as type $path]
+    }
+
     switch -- $type {
+        UQ {
+            set dobj [Rappture::UqInfo ::#auto $xmlobj $path $uq_part]
+            set path $label
+        }
         curve {
             set dobj [Rappture::Curve ::#auto $xmlobj $path]
         }

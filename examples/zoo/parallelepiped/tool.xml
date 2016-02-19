@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command>tclsh @tool/parallelepiped.tcl @driver</command>
+        <command>python @tool/parallelepiped.py @driver</command>
     </tool>
     <input>
         <number id="temperature">

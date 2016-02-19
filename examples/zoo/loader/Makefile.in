@@ -16,6 +16,7 @@ RM		= rm -f
 
 FILES		= \
 		$(srcdir)/loader.gif \
+		$(srcdir)/loader.py \
 		$(srcdir)/loader.tcl \
 		$(srcdir)/loader2.gif \
 		$(srcdir)/tool.xml \

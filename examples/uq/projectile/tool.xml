@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>Projectile Motion Example</title>
+        <uq>True</uq>
+        <about>This is a simple high school physics example which we use as an example of using Rappture and the Uncertainty Quantification features.</about>
+        <command>@tool/projectile.py @driver</command>
+    </tool>
+    <input>
+        <note>
+            <contents> file://desc.html</contents>
+        </note>
+        <number id="height">
+            <about>
+                <label>Height</label>
+                <description>The initial height of the projectile.</description>
+            </about>
+            <default>0m</default>
+            <units>m</units>
+            <min>0m</min>
+        </number>
+        <number id="velocity">
+            <about>
+                <label>Velocity</label>
+                <description>The initial velocity of the projectile.		</description>
+            </about>
+            <default>100m/s</default>
+            <units>m/s</units>
+            <min>10m/s</min>
+            <max>1000m/s</max>
+        </number>
+        <number id="angle">
+            <about>
+                <label>Angle</label>
+                <description>The initial angle of the projectile, in degrees.</description>
+            </about>
+            <default>45</default>
+            <min>5</min>
+            <max>180</max>
+        </number>
+        <number id="g">
+            <about>
+                <label>g</label>
+                <description>Gravitational acceleration at the Earth's surface.  Standard gravity is by definition 9.80665 m/s^2. However the  normal equatorial value on Earth, 9.78033 m/s^2.  Around the world, the value varies from 9.7639 m/s^2 to  9.8337 m/s^2.</description>
+            </about>
+            <default>9.80665m/s2</default>
+            <units>m/s2</units>
+            <min>9.7639m/s2</min>
+            <max>9.8337m/s2</max>
+        </number>
+    </input>
+    <output>
+        <curve id="path">
+            <about>
+                <label>Path of the Projectile</label>
+                <description>The path of the projectile plotted as distance vs height.</description>
+            </about>
+            <xaxis>
+                <label>Distance</label>
+                <description>Distance</description>
+                <units>m</units>
+            </xaxis>
+            <yaxis>
+                <label>Height</label>
+                <description>Height</description>
+                <units>m</units>
+            </yaxis>
+        </curve>
+        <curve id="height">
+            <about>
+                <label>Height of the Projectile</label>
+                <description>The height of the projectile plotted vs time.</description>
+            </about>
+            <xaxis>
+                <label>Time</label>
+                <description>Time</description>
+                <units>s</units>
+            </xaxis>
+            <yaxis>
+                <label>Height</label>
+                <description>Height</description>
+                <units>m</units>
+            </yaxis>
+        </curve>
+        <number id="distance">
+            <about>
+                <label>Distance</label>
+                <description>The distance the projectile travels.</description>
+            </about>
+            <units>m</units>
+        </number>
+        <number id="maxheight">
+            <about>
+                <label>Maximum Height</label>
+                <description>The maximum height the projectile reaches.</description>
+            </about>
+            <units>m</units>
+        </number>
+    </output>
+</run>

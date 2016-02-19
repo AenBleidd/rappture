@@ -15,6 +15,7 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
+		$(srcdir)/image.py \
 		$(srcdir)/image.tcl \
 		$(srcdir)/image1.gif \
 		$(srcdir)/image2.gif \

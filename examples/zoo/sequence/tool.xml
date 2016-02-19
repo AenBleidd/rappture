@@ -9,7 +9,7 @@ Sequences are used to group together a series of output results.
 When you click the Simulate button, the input image will be resized several times to produce an animated sequence.
   </about>
   <command>
-    tclsh @tool/sequence.tcl @driver
+    python @tool/sequence.py @driver
   </command>
 </tool>
 <input>

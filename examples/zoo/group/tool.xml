@@ -11,7 +11,7 @@ Groups can be used two ways:  A group of elements is normally drawn with a gray 
 Group tags can also be used in the output section to overlay plots, but that's really a coincidence.  The name conflict is confusing and should probably be changed.
   </about>
   <command>
-    tclsh @tool/group.tcl @driver
+    python @tool/group.py @driver
   </command>
 </tool>
 <input>
