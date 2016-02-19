@@ -138,7 +138,7 @@ itcl::class Rappture::MapViewer {
     private variable _dlist "";         # list of data objects
     private variable _obj2ovride;       # maps dataobj => style override
     private variable _layers;           # Contains the names of all the
-                                        # layer in the server.
+                                        # layers in the server.
     private variable _viewpoints;
     private variable _selectCallback "";
     private variable _click;            # info used for rotate operations
@@ -861,11 +861,11 @@ itcl::body Rappture::MapViewer::scale {args} {
         }
         foreach viewpoint [$dataobj viewpoints] {
             set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
-            if 0 {
+            if {$_debug} {
                 array set vp $_viewpoints($viewpoint)
                 foreach key { label description x y z distance heading pitch srs verticalDatum } {
                     if { [info exists vp($key)] } {
-                        puts stderr "$viewpoint $key $vp($key)"
+                        DebugTrace "vp: $viewpoint $key $vp($key)"
                     }
                 }
             }
