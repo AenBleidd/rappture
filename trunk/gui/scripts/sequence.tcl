@@ -85,6 +85,9 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                 field {
                     set obj [Rappture::Field ::\#auto $xmlobj $path.$name.$cname]
                 }
+                map {
+                    set obj [Rappture::Map ::\#auto $xmlobj $path.$name.$cname]
+                }
                 image {
                     set obj [Rappture::Image ::\#auto $xmlobj $path.$name.$cname]
                 }
