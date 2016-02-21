@@ -494,6 +494,11 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 Rappture::FieldResult $w -mode $mode
                 pack $w -expand yes -fill both
             }
+            ::Rappture::Map {
+                set servers [Rappture::VisViewer::GetServerList "geovis"]
+                Rappture::MapViewer $w $servers
+                pack $w -expand yes -fill both
+            }
             ::Rappture::LibraryObj {
                 switch -- [$dataobj element -as type] {
                     structure {
