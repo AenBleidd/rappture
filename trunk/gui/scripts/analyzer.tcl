@@ -848,6 +848,9 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                         histogram* - curve* - field* {
                             _autoLabel $xmlobj output.$item "Plot" counters
                         }
+                        map* {
+                            _autoLabel $xmlobj output.$item "Map" counters
+                        }
                         drawing* {
                             _autoLabel $xmlobj output.$item "Drawing" counters
                         }
