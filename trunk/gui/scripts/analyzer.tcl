@@ -332,7 +332,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
         Rappture::Notebook $f.nb
     }
     pack $itk_component(resultpages) -expand yes -fill both
-   set f [$itk_component(results) insert end -fraction 0.1]
+    set f [$itk_component(results) insert end -fraction 0.1]
     itk_component add resultselector {
         Rappture::ResultSelector $f.rsel -resultset $_resultset \
             -settingscommand [itcl::code $this _plot]
