@@ -1,5 +1,5 @@
 
-AC_INIT([Rappture],[1.5],[rappture@nanohub.org])
+AC_INIT([Rappture],[1.6],[rappture@nanohub.org])
 AC_CONFIG_AUX_DIR(cf)
 AC_CONFIG_HEADER(src/core/config.h)
 
