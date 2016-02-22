@@ -1,9 +1,6 @@
 
 conflict RAPPTURE_CHOICE
 
-use -r -e anaconda-2.3.0
-use -r -e puq-2.2.14
-
 desc "The Rappture tool environment (released version)."
 
 help "Rappture is a graphical tool wrapper.

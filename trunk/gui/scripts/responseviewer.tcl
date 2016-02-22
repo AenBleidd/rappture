@@ -151,7 +151,7 @@ itcl::body Rappture::ResponseViewer::_plot_response {var1 var2} {
     set fname response_result.xml
 
     set rs $_response
-    if {[catch {exec get_response.py $fname $rs $var1 $var2 $_label} res]} {
+    if {[catch {exec puq get_response $fname $rs $var1 $var2 $_label} res]} {
         set fp [open "response.err" r]
         set rdata [read $fp]
         close $fp

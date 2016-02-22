@@ -15,24 +15,26 @@ pkgdatadir	= $(datadir)/$(PKG_DIR)
 pkglibdir	= $(libdir)/$(PKG_DIR)
 pkgincludedir	= $(includedir)/$(PKG_DIR)
 top_builddir	= .
+puq_libdir	= $(libdir)/puq
 
 MKDIR_P		= @MKDIR_P@
 INSTALL		= @INSTALL@
 
 SCRIPTS	= $(srcdir)/get_params.py \
-        $(srcdir)/puq_analyze.py \
-        $(srcdir)/get_response.py
+	$(srcdir)/analyze.py \
+	$(srcdir)/get_response.py
 
 .PHONY: all install clean distclean
 
 all:
 
 install: all
-	$(MKDIR_P) -m 0755 $(bindir)
+	$(MKDIR_P) -m 0755 $(pub_libdir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
-	    $(INSTALL) -m 0555 $$i $(bindir) ; \
+	    $(INSTALL) -m 0555 $$i $(puq_libdir) ; \
 	done
+	$(INSTALL) -m 0555 puq $(bindir)
 
 clean:
 
