@@ -39,6 +39,7 @@ itcl::class Rappture::Task {
     protected method _log {args}
     protected method _build_submit_cmd {cmd tfile params_file}
     protected method _get_params {varlist uq_type uq_args}
+    private method GetSignal { signal }
 
     private variable _xmlobj ""      ;# XML object with inputs/outputs
     private variable _origxml ""     ;# copy of original XML (for reset)
@@ -116,6 +117,20 @@ itcl::body Rappture::Task::resources {{option ""}} {
         return $_resources($option)
     }
     return ""
+}
+
+itcl::body Rappture::Task::GetSignal {code} {
+    set signals {
+        HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV
+        USR2 PIPE ALRM TERM STKFLT CHLD CONT STOP TSTP TTIN
+        TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS
+        RTMIN RTMIN+1 RTMIN+2 RTMIN+3 RTMAX-3 RTMAX-2 RTMAX-1 RTMAX
+    }
+    set sigNum [expr $code - 128]
+    if { $sigNum > 0 && $sigNum < [llength $signals] } {
+        return [lindex $signals $sigNum]
+    }
+    return "unknown exit code \"$code\""
 }
 
 itcl::body Rappture::Task::get_uq {args} {
@@ -291,7 +306,11 @@ itcl::body Rappture::Task::run {args} {
                        # returned a non-zero exitcode.  Consider this an
                        # invalid result from the program.  Append the stderr
                        # from the program to the message.
-                       set logmesg "Program finished: exit code is $code"
+                       if {$code > 128} {
+                          set logmesg "Program signaled: signal was [GetSignal]"
+                       } else {
+                          set logmesg "Program finished: exit code is $code"
+                       }
                        set result "$logmesg\n\n$::Rappture::Task::job(error)"
                     } elseif { $token == "abort" }  {
                         # The user pressed the abort button.
