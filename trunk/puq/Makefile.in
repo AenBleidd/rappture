@@ -29,7 +29,7 @@ SCRIPTS	= $(srcdir)/get_params.py \
 all:
 
 install: all
-	$(MKDIR_P) -m 0755 $(pub_libdir)
+	$(MKDIR_P) -m 0755 $(puq_libdir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 0555 $$i $(puq_libdir) ; \
