@@ -1,5 +1,5 @@
 
-AC_INIT([RapptureGUI],[1.5],[rappture@nanohub.org])
+AC_INIT([RapptureGUI],[1.6],[rappture@nanohub.org])
 AC_CONFIG_AUX_DIR(cf)
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
