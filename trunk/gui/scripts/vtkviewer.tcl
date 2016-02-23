@@ -2633,9 +2633,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     set type [$dataobj type $comp]
     set style [$dataobj style $comp]
-    if { $dataobj != $_first } {
-        set settings(-wireframe) 1
-    }
     switch -- $type {
         "glyphs" {
             array set settings {
