@@ -2268,6 +2268,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildDownloadPopup { popup command } {
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
+    DebugTrace "Enter"
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
@@ -2294,10 +2295,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         -zcutplaneposition      50
         -zcutplanevisible       1
     }
-    array set style [$dataobj style $comp]
-    if { $dataobj != $_first || $style(-levels) == 1 } {
+    if { $style(-levels) == 1 } {
         set style(-opacity) 1.0
     }
+    array set style [$dataobj style $comp]
+    #DebugTrace [array get style]
 
     # This is too complicated.  We want to set the colormap, number of
     # isolines and opacity for the dataset.  They can be the default values,
@@ -2365,6 +2367,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "cutplane edges $style(-cutplaneedges) $tag"
     SendCmd "cutplane lighting $style(-cutplanelighting) $tag"
     SendCmd "cutplane opacity $style(-cutplaneopacity) $tag"
+    set _widget(-cutplaneopacity) [expr $style(-cutplaneopacity) * 100]
     SendCmd "cutplane preinterp $style(-cutplanepreinterp) $tag"
     SendCmd "cutplane wireframe $style(-cutplanewireframe) $tag"
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
@@ -2385,6 +2388,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "contour3d linewidth $style(-linewidth) $tag"
     SendCmd "contour3d opacity $style(-opacity) $tag"
     set _settings(-isosurfaceopacity) $style(-opacity)
+    set _widget(-isosurfaceopacity) [expr $style(-opacity) * 100]
     SetCurrentColormap $style(-color)
     SendCmd "contour3d wireframe $style(-wireframe) $tag"
     set _settings(-isosurfacewireframe) $style(-wireframe)

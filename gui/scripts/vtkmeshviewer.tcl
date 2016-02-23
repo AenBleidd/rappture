@@ -1524,9 +1524,6 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
         -visible 1
         -wireframe 0
     }
-    if { $dataobj != $_first } {
-        set style(-wireframe) 1
-    }
     if {$type == "cloud"} {
         set style(-cloudstyle) points
         set style(-edges) 0

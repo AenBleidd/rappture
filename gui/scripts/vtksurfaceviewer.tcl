@@ -1893,9 +1893,6 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
         -wireframe       0
     }
     array set style [$dataobj style $comp]
-    if { $dataobj != $_first || $style(-levels) == 1 } {
-        set style(-opacity) 1.0
-    }
 
     # This is too complicated.  We want to set the colormap, number of
     # isolines and opacity for the dataset.  They can be the default values,

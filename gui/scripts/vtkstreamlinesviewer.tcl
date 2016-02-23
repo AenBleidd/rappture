@@ -2116,9 +2116,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
         -visible 1
     }
     array set style [$dataobj style $comp]
-    if { $dataobj != $_first } {
-        set style(-opacity) 1.0
-    }
+
     StartBufferingCommands
     SendCmd "streamlines add $tag"
     SendCmd "streamlines color [Color2RGB $style(-constcolor)] $tag"

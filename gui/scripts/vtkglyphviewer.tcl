@@ -2190,9 +2190,6 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set style(-scalemode) $style(-scaleMode)
         array unset style -scaleMode
     }
-    if { $dataobj != $_first } {
-        set style(-opacity) 1
-    }
     if 0 {
     SendCmd "cutplane add $tag"
     SendCmd "cutplane visible 0 $tag"
