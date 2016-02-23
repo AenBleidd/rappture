@@ -180,6 +180,7 @@ itk::usual VtkIsosurfaceViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
+    #DebugOn
 
     # Rebuild event
     $_dispatcher register !rebuild
@@ -1374,7 +1375,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::InitSettings { args } {
 #       server.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
+    DebugTrace "Enter"
     if { ![isconnected] } {
+        DebugTrace "Not connected"
         return
     }
     switch -- $what {
@@ -1505,8 +1508,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
             SendCmd "cutplane colormode $_colorMode $_curFldName"
             SendCmd "contour3d colormode $_colorMode $_curFldName"
-            SendCmd "camera reset"
             GenerateContourList
+            SendCmd [list contour3d contourlist $_contourList(values)]
+            SendCmd "camera reset"
             DrawLegend
         }
         "-isolinecolor" {
@@ -2670,7 +2674,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 #        $c bind sensor <ButtonPress-1>   [itcl::code $this LegendB1Motion press %x %y]
 #        $c bind sensor <B1-Motion>       [itcl::code $this LegendB1Motion motion %x %y]
 #        $c bind sensor <ButtonRelease-1> [itcl::code $this LegendB1Motion release %x %y]
-
     }
     $c delete isoline
     set x2 $x
