@@ -61,7 +61,7 @@ itcl::class ::Rappture::VisViewer {
     # dialog.  If set to 0, dialog is never displayed.
     protected variable _waitTimeout 0
 
-    constructor { servers args } {
+    constructor { args } {
         # defined below
     }
     destructor {
@@ -162,7 +162,7 @@ itk::usual Panedwindow {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VisViewer::constructor { servers args } {
+itcl::body Rappture::VisViewer::constructor { args } {
 
     Rappture::dispatcher _dispatcher
     $_dispatcher register !serverDown
@@ -172,7 +172,6 @@ itcl::body Rappture::VisViewer::constructor { servers args } {
 
     $_dispatcher register !waiting
 
-    CheckNameList $servers
     set _buffer(in) ""
     set _buffer(out) ""
     #

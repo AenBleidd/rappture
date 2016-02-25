@@ -38,8 +38,8 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -178,7 +178,7 @@ itk::usual VtkIsosurfaceViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
+itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
     set _serverType "vtkvis"
     #DebugOn
 

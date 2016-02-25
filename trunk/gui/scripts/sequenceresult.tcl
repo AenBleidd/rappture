@@ -452,8 +452,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
         }
         switch -- $type {
             ::Rappture::Drawing {
-                set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-                Rappture::VtkViewer $w $servers
+                Rappture::VtkViewer $w
                 pack $w -expand yes -fill both
             }
             ::Rappture::Curve {
@@ -495,8 +494,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 pack $w -expand yes -fill both
             }
             ::Rappture::Map {
-                set servers [Rappture::VisViewer::GetServerList "geovis"]
-                Rappture::MapViewer $w $servers
+                Rappture::MapViewer $w
                 pack $w -expand yes -fill both
             }
             ::Rappture::LibraryObj {

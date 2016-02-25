@@ -55,82 +55,68 @@ itcl::body Rappture::FieldResult::constructor {args} {
         -mode ""
     }
     array set flags $args
-    set servers ""
     switch -- $flags(-mode) {
-        "nanovis" - "flowvis" {
-            set servers [Rappture::VisViewer::GetServerList "nanovis"]
+        "nanovis" {
+            itk_component add renderer {
+                Rappture::NanovisViewer $itk_interior.ren
+            }
         }
-        "contour" - "glyphs" - "heightmap" - "isosurface" - "streamlines" - "surface" - "vtkimage" - "vtkviewer" - "vtkvolume" {
-            set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+        "flowvis" {
+            itk_component add renderer {
+                Rappture::FlowvisViewer $itk_interior.ren
+            }
+        }
+        "glyphs" {
+            itk_component add renderer {
+                Rappture::VtkGlyphViewer $itk_interior.ren
+            }
+        }
+        "contour" - "heightmap" {
+            itk_component add renderer {
+                Rappture::VtkHeightmapViewer $itk_interior.ren \
+                    -mode $flags(-mode)
+            }
+        }
+        "isosurface" {
+            itk_component add renderer {
+                Rappture::VtkIsosurfaceViewer $itk_interior.ren
+            }
+        }
+        "streamlines" {
+            itk_component add renderer {
+                Rappture::VtkStreamlinesViewer $itk_interior.ren
+            }
+        }
+        "surface" {
+            itk_component add renderer {
+                Rappture::VtkSurfaceViewer $itk_interior.ren
+            }
+        }
+        "vtkimage" {
+            itk_component add renderer {
+                Rappture::VtkImageViewer $itk_interior.ren
+            }
+        }
+        "vtkviewer" {
+            itk_component add renderer {
+                Rappture::VtkViewer $itk_interior.ren
+            }
+        }
+        "vtkvolume" {
+            itk_component add renderer {
+                Rappture::VtkVolumeViewer $itk_interior.ren
+            }
         }
         default {
             puts stderr "unknown render mode \"$flags(-mode)\""
         }
     }
-    if {"" != $servers} {
-        switch -- $flags(-mode) {
-            "nanovis" {
-                itk_component add renderer {
-                    Rappture::NanovisViewer $itk_interior.ren $servers
-                }
-            }
-            "flowvis" {
-                itk_component add renderer {
-                    Rappture::FlowvisViewer $itk_interior.ren $servers
-                }
-            }
-            "glyphs" {
-                itk_component add renderer {
-                    Rappture::VtkGlyphViewer $itk_interior.ren $servers
-                }
-            }
-            "contour" - "heightmap" {
-                itk_component add renderer {
-                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers \
-                        -mode $flags(-mode)
-                }
-            }
-            "isosurface" {
-                itk_component add renderer {
-                    Rappture::VtkIsosurfaceViewer $itk_interior.ren $servers
-                }
-            }
-            "streamlines" {
-                itk_component add renderer {
-                    Rappture::VtkStreamlinesViewer $itk_interior.ren $servers
-                }
-            }
-            "surface" {
-                itk_component add renderer {
-                    Rappture::VtkSurfaceViewer $itk_interior.ren $servers
-                }
-            }
-            "vtkimage" {
-                itk_component add renderer {
-                    Rappture::VtkImageViewer $itk_interior.ren $servers
-                }
-            }
-            "vtkviewer" {
-                itk_component add renderer {
-                    Rappture::VtkViewer $itk_interior.ren $servers
-                }
-            }
-            "vtkvolume" {
-                itk_component add renderer {
-                    Rappture::VtkVolumeViewer $itk_interior.ren $servers
-                }
-            }
-            default {
-                puts stderr "unknown render mode \"$flags(-mode)\""
-            }
-        }
-        pack $itk_component(renderer) -expand yes -fill both
+    pack $itk_component(renderer) -expand yes -fill both
 
-        # can't connect to rendering farm?
-        if {![$itk_component(renderer) isconnected]} {
-            # Should show a message here
-            #destroy $itk_component(renderer)
-        }
+    # can't connect to rendering farm?
+    if {![$itk_component(renderer) isconnected]} {
+        # Should show a message here
+        #destroy $itk_component(renderer)
     }
 
     if {![info exists itk_component(renderer)]} {

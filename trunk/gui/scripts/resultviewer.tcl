@@ -279,9 +279,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         ::Rappture::Drawing {
             set mode "vtkviewer"
             if {![info exists _mode2widget($mode)]} {
-                set servers [Rappture::VisViewer::GetServerList "vtkvis"]
                 set w $itk_interior.vtkviewer
-                Rappture::VtkViewer $w $servers
+                Rappture::VtkViewer $w
                 set _mode2widget($mode) $w
             }
         }
@@ -316,9 +315,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             }
             set mode "map"
             if {![info exists _mode2widget($mode)]} {
-                set servers [Rappture::VisViewer::GetServerList "geovis"]
                 set w $itk_interior.$mode
-                Rappture::MapViewer $w $servers
+                Rappture::MapViewer $w
                 set _mode2widget($mode) $w
             }
         }
@@ -354,9 +352,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             }
             set mode "vtkmeshviewer"
             if {![info exists _mode2widget($mode)]} {
-                set servers [Rappture::VisViewer::GetServerList "vtkvis"]
                 set w $itk_interior.$mode
-                Rappture::VtkMeshViewer $w $servers
+                Rappture::VtkMeshViewer $w
                 set _mode2widget($mode) $w
             }
         }

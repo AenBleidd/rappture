@@ -39,8 +39,8 @@ itcl::class Rappture::VtkImageViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -mode mode Mode "vtkimage"
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -161,7 +161,7 @@ itk::usual VtkImageViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkImageViewer::constructor {hostlist args} {
+itcl::body Rappture::VtkImageViewer::constructor {args} {
     set _serverType "vtkvis"
 
     # Rebuild event

@@ -32,8 +32,8 @@ itcl::class Rappture::MolvisViewer {
 
     itk_option define -device device Device ""
 
-    constructor { servers args } {
-        Rappture::VisViewer::constructor $servers
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -148,7 +148,7 @@ itk::usual MolvisViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::constructor {servers args} {
+itcl::body Rappture::MolvisViewer::constructor {args} {
     set _serverType "pymol"
 
     #DebugOn

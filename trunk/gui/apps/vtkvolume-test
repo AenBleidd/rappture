@@ -343,8 +343,7 @@ Rappture::Panes .main -sashwidth 4 -sashrelief raised -sashpadding 4 \
 pack .main -expand yes -fill both
 
 set f [.main pane 0]
-set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-Rappture::VtkVolumeViewer $f.viewer $servers
+Rappture::VtkVolumeViewer $f.viewer
 pack $f.viewer -expand yes -fill both
 set widgets(vtkvolumeviewer) $f.viewer
 
