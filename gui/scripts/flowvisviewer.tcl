@@ -41,8 +41,8 @@ itcl::class Rappture::FlowvisViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -167,7 +167,7 @@ itk::usual FlowvisViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
+itcl::body Rappture::FlowvisViewer::constructor {args} {
     set _serverType "nanovis"
 
     #DebugOn

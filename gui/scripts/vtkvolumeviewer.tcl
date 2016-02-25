@@ -39,8 +39,8 @@ itcl::class Rappture::VtkVolumeViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -179,7 +179,7 @@ itk::usual VtkVolumeViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
+itcl::body Rappture::VtkVolumeViewer::constructor {args} {
     set _serverType "vtkvis"
 
     #DebugOn

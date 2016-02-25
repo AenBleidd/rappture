@@ -39,8 +39,8 @@ itcl::class Rappture::VtkHeightmapViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -mode mode Mode "contour"
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -166,7 +166,7 @@ itk::usual VtkHeightmapViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
+itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     set _serverType "vtkvis"
 
     EnableWaitDialog 900

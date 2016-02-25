@@ -38,8 +38,8 @@ itcl::class Rappture::VtkMeshViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -132,7 +132,7 @@ itk::usual VtkMeshViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkMeshViewer::constructor {hostlist args} {
+itcl::body Rappture::VtkMeshViewer::constructor {args} {
     set _serverType "vtkvis"
 
     # Rebuild event

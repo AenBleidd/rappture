@@ -346,8 +346,7 @@ Rappture::Panes .main -sashwidth 4 -sashrelief raised -sashpadding 4 \
 pack .main -expand yes -fill both
 
 set f [.main pane 0]
-set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-Rappture::VtkGlyphViewer $f.viewer $servers
+Rappture::VtkGlyphViewer $f.viewer
 pack $f.viewer -expand yes -fill both
 set widgets(vtkglyphviewer) $f.viewer
 

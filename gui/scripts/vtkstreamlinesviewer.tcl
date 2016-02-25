@@ -38,8 +38,8 @@ itcl::class Rappture::VtkStreamlinesViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { args } {
+        Rappture::VisViewer::constructor
     } {
         # defined below
     }
@@ -157,7 +157,7 @@ itk::usual VtkStreamlinesViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
+itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
     set _serverType "vtkvis"
 
     EnableWaitDialog 2000
