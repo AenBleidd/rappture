@@ -604,6 +604,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
         "tfs" {
+            array set params $driverParamArray
             foreach key { url format } {
                 if {[info exists params($key)]} {
                     set value $params($key)
@@ -612,6 +613,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
         "tms" {
+            array set params $driverParamArray
             foreach key { url tmsType format } {
                 if {[info exists params($key)]} {
                     set value $params($key)
@@ -620,6 +622,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
         "wcs" {
+            array set params $driverParamArray
             foreach key { url identifier format elevationUnit rangeSubset } {
                 if {[info exists params($key)]} {
                     set value $params($key)
@@ -628,6 +631,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
         "wfs" {
+            array set params $driverParamArray
             foreach key { url typename format maxfeatures requestBuffer } {
                 if {[info exists params($key)]} {
                     set value $params($key)
@@ -636,6 +640,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
         "wms" {
+            array set params $driverParamArray
             foreach key { url layers format transparent } {
                 if {[info exists params($key)]} {
                     set value $params($key)
@@ -644,6 +649,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             }
         }
         "xyz" {
+            array set params $driverParamArray
             foreach key { url } {
                 if {[info exists params($key)]} {
                     set value $params($key)
