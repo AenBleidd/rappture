@@ -262,9 +262,6 @@ pack .images.cntls.save -side right -padx 4
 radiobutton .images.cntls.view -text "3D View" -variable images(which) \
     -value "view" -command images_refresh
 pack .images.cntls.view -side top -anchor w
-radiobutton .images.cntls.legend -text "Legend" -variable images(which) \
-    -value "legend" -command images_refresh
-pack .images.cntls.legend -side top -anchor w
 set images(which) "view"
 
 canvas .images.viewer -background black -width 500 -height 500
