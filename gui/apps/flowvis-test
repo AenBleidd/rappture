@@ -256,7 +256,7 @@ proc images_save {} {
 # ----------------------------------------------------------------------
 # USAGE: images_refresh
 #
-# Invoked automatically whenever there is a change in the 3dview/legend
+# Invoked automatically whenever there is a change in the view/legend
 # controls on the images panel.  Updates the image being shown based
 # on the current selection.
 # ----------------------------------------------------------------------
@@ -286,13 +286,13 @@ frame .images.cntls
 pack .images.cntls -side bottom -fill x
 button .images.cntls.save -text "Save As..." -command images_save
 pack .images.cntls.save -side right -padx 4
-radiobutton .images.cntls.3dview -text "3D View" -variable images(which) \
-    -value "3dview" -command images_refresh
-pack .images.cntls.3dview -side top -anchor w
+radiobutton .images.cntls.view -text "3D View" -variable images(which) \
+    -value "view" -command images_refresh
+pack .images.cntls.view -side top -anchor w
 radiobutton .images.cntls.legend -text "Legend" -variable images(which) \
     -value "legend" -command images_refresh
 pack .images.cntls.legend -side top -anchor w
-set images(which) "3dview"
+set images(which) "view"
 
 canvas .images.viewer -background black -width 500 -height 700
 pack .images.viewer -expand yes -fill both
