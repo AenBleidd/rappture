@@ -31,6 +31,7 @@ itcl::class Rappture::Map {
 
     public method addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} }
     public method addViewpoint { name props }
+    public method clearExtents {}
     public method deleteLayer { layerName }
     public method deleteViewpoint { viewpointName }
     public method getLayerProperty { layerName prop }
@@ -91,7 +92,7 @@ itcl::body Rappture::Map::constructor {args} {
         setLabel "Map"
         setType "projected"
         setProjection "global-mercator"
-        $_tree set root "extents" ""
+        clearExtents
         setStyle ""
         setCamera ""
         $_tree insert root -label "layers"
@@ -454,6 +455,10 @@ itcl::body Rappture::Map::setType { type } {
 
 itcl::body Rappture::Map::setProjection { projection } {
     $_tree set root "projection" $projection
+}
+
+itcl::body Rappture::Map::clearExtents {} {
+    $_tree set root "extents" ""
 }
 
 itcl::body Rappture::Map::setExtents { xmin ymin xmax ymax {srs "wgs84"} } {
