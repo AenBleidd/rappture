@@ -804,53 +804,48 @@ itcl::body Rappture::MapViewer::scale {args} {
     array unset _mapsettings
     set _haveTerrain 0
 
-    # Verify that all the maps have the same global settings. For example,
-    # you can't have one map type "geocentric" and the other "projected".
-
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
             continue
         }
-        array unset hints
-        array set hints [$dataobj hints]
-        if { ![info exists _mapsettings(label)] } {
-            set _mapsettings(label) $hints(label)
+        # Global map view settings are taken from the first dataobj
+        array unset settings
+        array set settings [$dataobj hints]
+        if { [array size _mapsettings] == 0 } {
+            set _mapsettings(label) $settings(label)
+            set _mapsettings(style) $settings(style)
+            set _mapsettings(type) $settings(type)
+            set _mapsettings(projection) $settings(projection)
+            set _mapsettings(extents) $settings(extents)
+            set _mapsettings(camera) $settings(camera)
+            DebugTrace "map style: $settings(style)"
         }
-        if { ![info exists _mapsettings(style)] } {
-            DebugTrace "map style: $hints(style)"
-            set _mapsettings(style) $hints(style)
-        }
-        if { ![info exists _mapsettings(type)] } {
-            set _mapsettings(type) $hints(type)
-        } elseif { $hints(type) != $_mapsettings(type) } {
-            error "maps \"$hints(label)\" have differing types"
-        }
-        if { ![info exists _mapsettings(projection)] } {
-            set _mapsettings(projection) $hints(projection)
-        } elseif { $hints(projection) != $_mapsettings(projection) } {
-            error "maps \"$hints(label)\" have differing projections"
-        }
-        if { $hints(extents) != "" } {
-            if { ![info exists _mapsettings(extents)] } {
-                set _mapsettings(extents) $hints(extents)
-            }
-            foreach {x1 y1 x2 y2} $hints(extents) break
-            if { ![info exists _mapsettings(x1)] || $x1 < $_mapsettings(x1) } {
-                set _mapsettings(x1) $x1
-            }
-            if { ![info exists _mapsettings(y1)] || $y1 < $_mapsettings(y1) } {
-                set _mapsettings(y1) $y1
-            }
-            if { ![info exists _mapsettings(x2)] || $x2 > $_mapsettings(x2) } {
-                set _mapsettings(x2) $x2
-            }
-            if { ![info exists _mapsettings(y2)] || $y2 > $_mapsettings(y2) } {
-                set _mapsettings(y2) $y2
-            }
-        }
-        if { [info exists hints(camera)] } {
-            if { ![info exists _mapsettings(camera)] } {
-                set _mapsettings(camera) $hints(camera)
+        if { $settings(extents) != "" &&
+             $settings(type) == $_mapsettings(type) &&
+             $settings(projection) == $_mapsettings(projection)} {
+            foreach {xmin ymin xmax ymax} $settings(extents) break
+            if { $_mapsettings(extents) == $settings(extents) } {
+                set _mapsettings(xmin) $xmin
+                set _mapsettings(ymin) $ymin
+                set _mapsettings(xmax) $xmax
+                set _mapsettings(ymax) $ymax
+            } else {
+                if { $xmin < $_mapsettings(xmin) } {
+                    set _mapsettings(xmin) $xmin
+                    #set _reset 1
+                }
+                if { $ymin < $_mapsettings(ymin) } {
+                    set _mapsettings(ymin) $ymin
+                    #set _reset 1
+                }
+                if { $xmax > $_mapsettings(xmax) } {
+                    set _mapsettings(xmax) $xmax
+                    #set _reset 1
+                }
+                if { $ymax > $_mapsettings(ymax) } {
+                    set _mapsettings(ymax) $ymax
+                    #set _reset 1
+                }
             }
         }
         foreach layer [$dataobj layers] {
@@ -877,6 +872,9 @@ itcl::body Rappture::MapViewer::scale {args} {
             # an effect when terrain is present
         }
     }
+    #if { $_reset } {
+    #    $_dispatcher event -idle !rebuild
+    #}
 }
 
 itcl::body Rappture::MapViewer::setSelectCallback {cmd} {
@@ -1251,17 +1249,17 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 SendCmd "screen bgcolor $bgcolor"
                 if { $proj == "" } {
                     SendCmd "map reset projected $bgcolor global-mercator"
-                } elseif { ![info exists _mapsettings(extents)] || $_mapsettings(extents) == "" } {
+                } elseif { ![info exists _mapsettings(extents)] ||
+                           $_mapsettings(extents) == "" } {
                     SendCmd "map reset projected $bgcolor [list $proj]"
                 } else {
-                    #foreach {x1 y1 x2 y2} $_mapsettings(extents) break
-                    foreach key "x1 y1 x2 y2" {
+                    foreach key "xmin ymin xmax ymax" {
                         set $key $_mapsettings($key)
                     }
-                    SendCmd "map reset projected $bgcolor [list $proj] $x1 $y1 $x2 $y2"
+                    SendCmd "map reset projected $bgcolor [list $proj] $xmin $ymin $xmax $ymax"
                 }
             }
-            # XXX: Remove these after implementing batch load of layers with reset
+            # XXX: Remove after implementing batch load of layers on reset
             SendCmd "map layer delete base"
 
             # Most terrain settings are global to the map and apply even
