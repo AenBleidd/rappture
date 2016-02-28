@@ -28,32 +28,51 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 #
 # Rappture::VtkIsosurfaceViewer <name> <servers>
 #----------------------------------------------------------
-test vtkisosurfaceviewer.constructor.1 {
+test vtkisosurfaceviewer.constructor.0 {
     constructor, 0 args, auto named
 } -setup {
 } -body  {
-    list [catch {Rappture::VtkIsosurfaceViewer .#auto} msg] $msg
+    Rappture::VtkIsosurfaceViewer .#auto
 } -cleanup {
-    destroy .vtkIsosurfaceViewer0
-} -result {0 .vtkIsosurfaceViewer0}
+} -match glob \
+-result {.vtkIsosurfaceViewer*} \
+-errorOutput {connecting to *:2010...
+Render server is VtkVis * (build *)
+}
 
-test vtkisosurfaceviewer.constructor.2 {
-    value command, explicit name, -plotbackground option
+test vtkisosurfaceviewer.constructor.1 {
+    constructor, 0 args, explicit name
 } -setup {
 } -body  {
-    catch {Rappture::VtkIsosurfaceViewer .foo -plotbackground red} msg
+    Rappture::VtkIsosurfaceViewer .foo
 } -cleanup {
-    destroy .foo
-} -result {0}
+} -match glob \
+-result {.foo} \
+-errorOutput {connecting to *:2010...
+Render server is VtkVis * (build *)
+}
+
+test vtkisosurfaceviewer.constructor.2 {
+    value command, auto name, -plotbackground option
+} -setup {
+} -body  {
+    Rappture::VtkIsosurfaceViewer .#auto -plotbackground red
+} -cleanup {
+} -match glob \
+-result {.vtkIsosurfaceViewer*} \
+-errorOutput {connecting to *:2010...
+Render server is VtkVis * (build *)
+}
 
 test vtkisosurfaceviewer.constructor.3 {
     value command, bad option
 } -setup {
 } -body  {
-    list [catch {Rappture::VtkIsosurfaceViewer .foo -nonexistent foo} msg] $msg
+    Rappture::VtkIsosurfaceViewer .#auto -nonexistent foo
 } -cleanup {
-    destroy .foo
-} -result {1 {unknown option "-nonexistent"}}
+} -returnCodes {
+    error
+} -result {unknown option "-nonexistent"}
 
 ::tcltest::cleanupTests
 return
