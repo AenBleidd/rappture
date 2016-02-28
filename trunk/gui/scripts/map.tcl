@@ -901,7 +901,7 @@ itcl::body Rappture::Map::isFileProp { prop } {
     return 0
 }
 
-tcl::body Rappture::Map::parseStylesheet { stylesheet } {
+itcl::body Rappture::Map::parseStylesheet { stylesheet } {
     set styles [list]
     # First split into style blocks
     set blocks [split $stylesheet "\{\}"]
