@@ -7,6 +7,9 @@ package ifneeded RapptureGUI @PACKAGE_VERSION@ [format {
     lappend auto_path [file join $dir scripts]
     namespace eval RapptureGUI {
 	variable version $version
+	variable build "@SVN_VERSION@"
+	variable svnurl "@SVN_URL@"
+	variable installdir $dir
 	variable library $dir
     }
     set ext [info sharedlibextension]

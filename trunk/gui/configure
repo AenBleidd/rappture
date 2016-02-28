@@ -586,20 +586,23 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-TCL_SHLIB_SUFFIX
-TCL_SHLIB_LDFLAGS
-TCL_SHLIB_CFLAGS
-TCL_SHLIB_LD
-TCL_STLIB_LD
-TCL_CFLAGS_OPTIMIZE
-TCL_CFLAGS_DEBUG
 TK_VERSION
 TK_XLIBSW
 TK_LIB_SPEC
 TK_INC_SPEC
 TCL_VERSION
+TCL_STLIB_LD
+TCL_SHLIB_SUFFIX
+TCL_SHLIB_LDFLAGS
+TCL_SHLIB_LD
+TCL_SHLIB_CFLAGS
 TCL_LIB_SPEC
 TCL_INC_SPEC
+TCL_CFLAGS_OPTIMIZE
+TCL_CFLAGS_DEBUG
+SVN_VERSION
+SVN_URL
+INSTALL_PREFIX
 TCLSH
 ENABLE_GUI
 MAKE
@@ -1822,6 +1825,8 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=$prefix
 fi
 
+INSTALL_PREFIX=$prefix
+
 if test "${libdir}" != "${prefix}/lib"; then
     LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
 else
@@ -3002,6 +3007,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 #SC_CONFIG_CFLAGS
 #SC_ENABLE_SHARED
 
+SVN_VERSION=`svnversion $srcdir | sed 's/Unversioned directory/unknown/'`
+SVN_URL=`readlink -e $srcdir | xargs svn info | sed -ne 's/^URL: //p'`
+
 gui_with_tcl=""
 
 make_command=""
@@ -3124,6 +3132,10 @@ fi
 if test -f "${exec_prefix}/lib/tkConfig.sh" ; then
   . ${exec_prefix}/lib/tkConfig.sh
 fi
+
+
+
+
 
 
 

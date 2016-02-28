@@ -12,6 +12,8 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=$prefix
 fi
 
+INSTALL_PREFIX=$prefix
+
 if test "${libdir}" != "${prefix}/lib"; then
     LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
 else
@@ -30,6 +32,9 @@ AC_PROG_CC
 
 #SC_CONFIG_CFLAGS
 #SC_ENABLE_SHARED
+
+SVN_VERSION=`svnversion $srcdir | sed 's/Unversioned directory/unknown/'`
+SVN_URL=`readlink -e $srcdir | xargs svn info | sed -ne 's/^URL: //p'`
 
 gui_with_tcl=""
 
@@ -145,20 +150,24 @@ fi
 if test -f "${exec_prefix}/lib/tkConfig.sh" ; then 
   . ${exec_prefix}/lib/tkConfig.sh	
 fi
+
+AC_SUBST(INSTALL_PREFIX)
+AC_SUBST(SVN_URL)
+AC_SUBST(SVN_VERSION)
+AC_SUBST(TCL_CFLAGS_DEBUG)
+AC_SUBST(TCL_CFLAGS_OPTIMIZE)
 AC_SUBST(TCL_INC_SPEC)
 AC_SUBST(TCL_LIB_SPEC)
+AC_SUBST(TCL_SHLIB_CFLAGS)
+AC_SUBST(TCL_SHLIB_LD)
+AC_SUBST(TCL_SHLIB_LDFLAGS)
+AC_SUBST(TCL_SHLIB_SUFFIX)
+AC_SUBST(TCL_STLIB_LD)
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TK_INC_SPEC)
 AC_SUBST(TK_LIB_SPEC)
 AC_SUBST(TK_XLIBSW)
 AC_SUBST(TK_VERSION)
-AC_SUBST(TCL_CFLAGS_DEBUG)
-AC_SUBST(TCL_CFLAGS_OPTIMIZE)
-AC_SUBST(TCL_STLIB_LD)
-AC_SUBST(TCL_SHLIB_LD)
-AC_SUBST(TCL_SHLIB_CFLAGS)
-AC_SUBST(TCL_SHLIB_LDFLAGS)
-AC_SUBST(TCL_SHLIB_SUFFIX)
 
 
 AC_CONFIG_FILES([
