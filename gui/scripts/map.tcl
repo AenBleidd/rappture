@@ -60,7 +60,12 @@ itcl::class Rappture::Map {
     public method viewpoint { viewpointName }
     public method viewpoints {}
 
-    protected method Parse { xmlobj path }
+    public proc getFilesFromStylesheet { stylesheet }
+
+    protected method parseXML { xmlobj path }
+
+    protected proc isFileProp { prop }
+    protected proc parseStylesheet { stylesheet }
 
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
@@ -104,7 +109,7 @@ itcl::body Rappture::Map::constructor {args} {
         if {![Rappture::library isvalid $xmlobj]} {
             error "bad value \"$xmlobj\": should be LibraryObj"
         }
-        Parse $xmlobj $path
+        parseXML $xmlobj $path
     }
 }
 
@@ -133,11 +138,11 @@ itcl::body Rappture::Map::hints { args } {
 }
 
 #
-# Parse --
+# parseXML --
 #
 #   Parses the map description in the XML object.
 #
-itcl::body Rappture::Map::Parse { xmlobj path } {
+itcl::body Rappture::Map::parseXML { xmlobj path } {
 
     set map [$xmlobj element -as object $path]
 
@@ -882,4 +887,63 @@ itcl::body Rappture::Map::type { layerName } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::isGeocentric {} {
     return [expr {[hints "type"] eq "geocentric"}]
+}
+
+itcl::body Rappture::Map::isFileProp { prop } {
+    foreach fileprop {
+        icon
+        model
+    } {
+        if { $prop eq $fileprop } {
+            return 1
+        }
+    }
+    return 0
+}
+
+tcl::body Rappture::Map::parseStylesheet { stylesheet } {
+    set styles [list]
+    # First split into style blocks
+    set blocks [split $stylesheet "\{\}"]
+    if {[llength $blocks] == 1} {
+        set blocks [list style $blocks]
+    }
+    foreach {styleName block} $blocks {
+        # Get name/value pairs
+        set styleName [string trim $styleName]
+        if {$styleName == ""} { set styleName "style" }
+        set block [string trim $block " \t\n\r\{\}"]
+        if {$block == ""} { continue }
+        #puts stderr "styleName: \"$styleName\""
+        #puts stderr "block: \"$block\""
+        set lines [split $block ";"]
+        foreach line $lines {
+            set line [string trim $line]
+            if {$line == "" || [string index $line 0] == "#"} { continue }
+            #puts stderr "line: \"$line\""
+            set delim [string first ":" $line]
+            set prop [string trim [string range $line 0 [expr {$delim-1}]]]
+            set val [string trim [string range $line [expr {$delim+1}] end]]
+            set ${styleName}($prop) $val
+        }
+        lappend styles $styleName [array get $styleName]
+    }
+    return $styles
+}
+
+itcl::body Rappture::Map::getFilesFromStylesheet { stylesheet } {
+    set files [list]
+    set styles [parseStylesheet $stylesheet]
+    foreach {name style} $styles {
+        #puts stderr "Style: \"$name\""
+        array unset info
+        array set info $style
+        foreach key [array names info] {
+            #puts stderr "Prop: \"$key\" Val: \"$info($key)\""
+            if {[isFileProp $key]} {
+                lappend files $info($key)
+            }
+        }
+    }
+    return $files
 }
