@@ -119,6 +119,7 @@ itcl::class Rappture::MapViewer {
     private method Rotate {option x y}
     private method Select {option x y}
     private method SendFiles { path }
+    private method SendStylesheetFiles { stylesheet }
     private method SetHeading { {value 0} }
     private method SetLayerOpacity { dataobj layer {value 100} }
     private method SetLayerStyle { dataobj layer }
@@ -2395,12 +2396,24 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
     set _settings(terrain-wireframe) $settings(-wireframe)
 }
 
+itcl::body Rappture::MapViewer::SendStylesheetFiles { stylesheet } {
+    set files [Rappture::Map::getFilesFromStylesheet $stylesheet]
+    foreach file $files {
+        SendFiles $file
+    }
+}
+
 itcl::body Rappture::MapViewer::SendFiles { path } {
-    if {[string range $path 0 7] != "local://"} {
+    set isRelative [expr {[string first "://" $path] < 0 &&
+                          [string index $path 0] != "/"}]
+    if {[string range $path 0 7] != "local://" &&
+       !$isRelative} {
         return
     }
     DebugTrace "Local path: $path"
-    set path [string range $path 8 end]
+    if {!$isRelative} {
+        set path [string range $path 8 end]
+    }
     set basename [file rootname $path]
     set files [glob -path $basename .*]
     foreach file $files {
@@ -2543,6 +2556,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             set format ""
             set wfsType ""
+            SendStylesheetFiles $info(stylesheet)
             if { [info exists info(ogr.connection)] } {
                 set cmd [list map layer add $tag feature db $format $info(ogr.layer) $info(ogr.connection) $info(cache) $info(stylesheet) $script $selectors]
                 if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
