@@ -81,6 +81,7 @@ itcl::class Rappture::MapViewer {
     private method BuildMapTab {}
     private method BuildTerrainTab {}
     private method BuildViewpointsTab {}
+    private method Camera {option args}
     private method Connect {}
     private method CurrentLayers {args}
     private method DisablePanningMouseBindings {}
@@ -215,7 +216,7 @@ itcl::body Rappture::MapViewer::constructor {args} {
     $_parser alias image    [itcl::code $this ReceiveImage]
     $_parser alias legend   [itcl::code $this ReceiveLegend]
     $_parser alias map      [itcl::code $this ReceiveMapInfo]
-    $_parser alias camera   [itcl::code $this camera]
+    $_parser alias camera   [itcl::code $this Camera]
     $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
     $_parser alias select   [itcl::code $this ReceiveSelect]
 
@@ -326,7 +327,7 @@ itcl::body Rappture::MapViewer::constructor {args} {
             button $f.reset -borderwidth 1 -padx 1 -pady 1 \
                 -highlightthickness 0 \
                 -image [Rappture::icon reset-view] \
-                -command [itcl::code $this camera reset]
+                -command [itcl::code $this Camera reset]
         } {
             usual
             ignore -highlightthickness
@@ -411,13 +412,13 @@ itcl::body Rappture::MapViewer::constructor {args} {
     } else {
         # Zoom to point
         bind $itk_component(view) <Double-1> \
-            [itcl::code $this camera go %x %y 0.4]
+            [itcl::code $this Camera go %x %y 0.4]
         # Travel to point (no zoom)
         bind $itk_component(view) <Shift-Double-1> \
-            [itcl::code $this camera go %x %y 1.0]
+            [itcl::code $this Camera go %x %y 1.0]
         # Zoom out centered on point
         bind $itk_component(view) <Double-3> \
-            [itcl::code $this camera go %x %y 2.5]
+            [itcl::code $this Camera go %x %y 2.5]
 
         # Pin placemark annotations
         bind $itk_component(view) <Control-ButtonPress-1> \
@@ -483,7 +484,7 @@ itcl::body Rappture::MapViewer::constructor {args} {
         bind $itk_component(view) <KeyPress-Next> \
             [itcl::code $this Zoom in]
         bind $itk_component(view) <KeyPress-Home> \
-            [itcl::code $this camera reset]
+            [itcl::code $this Camera reset]
 
         # Keyboard shortcuts
         # Reset heading to North
@@ -1332,11 +1333,11 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             # If this is the first Rebuild, we need to
             # set up the initial view settings if there
             # are any
-            camera reset
+            Camera reset
             set _initCamera 0
         } else {
             # Restore view from before reconnect
-            camera set all
+            Camera set all
         }
     }
 
@@ -1753,12 +1754,12 @@ itcl::body Rappture::MapViewer::Pan {option x y} {
 
 itcl::body Rappture::MapViewer::SetHeading { {value 0} } {
     set _view(heading) $value
-    camera set heading
+    Camera set heading
 }
 
 itcl::body Rappture::MapViewer::SetPitch { {value -89.999} } {
     set _view(pitch) $value
-    camera set pitch
+    Camera set pitch
 }
 
 # ----------------------------------------------------------------------
@@ -2028,9 +2029,9 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         entry $inner.${tag} -font "Arial 9"  -bg white \
             -textvariable [itcl::scope _view($tag)]
         bind $inner.${tag} <KeyPress-Return> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this Camera set ${tag}]
         bind $inner.${tag} <KP_Enter> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this Camera set ${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
@@ -2043,9 +2044,9 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         entry $inner.${tag} -font "Arial 9"  -bg white \
             -textvariable [itcl::scope _view($tag)]
         bind $inner.${tag} <KeyPress-Return> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this Camera set ${tag}]
         bind $inner.${tag} <KP_Enter> \
-            [itcl::code $this camera set ${tag}]
+            [itcl::code $this Camera set ${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
             $row,1 $inner.${tag} -anchor w -pady 2
@@ -2066,7 +2067,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
     button $inner.set \
         -text "Apply Camera Settings" \
         -font "Arial 9" \
-        -command [itcl::code $this camera set all]
+        -command [itcl::code $this Camera set all]
     blt::table $inner \
         $row,0 $inner.set -anchor w -pady 2 -cspan 2
     blt::table configure $inner r$row -resize none
@@ -2091,7 +2092,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
         -variable [itcl::scope _view(heading)] \
         -width 10 \
         -showvalue on \
-        -command [itcl::code $this camera set heading]
+        -command [itcl::code $this Camera set heading]
 
     blt::table $inner \
             $row,0 $inner.heading_slider_l -anchor w -pady 2
@@ -2109,7 +2110,7 @@ itcl::body Rappture::MapViewer::BuildCameraTab {} {
             -variable [itcl::scope _view(pitch)] \
             -width 10 \
             -showvalue on \
-            -command [itcl::code $this camera set pitch]
+            -command [itcl::code $this Camera set pitch]
     }
 
     blt::table $inner \
@@ -2180,15 +2181,31 @@ Keyboard bindings:
 }
 
 #
-#  camera --
+## camera
+##
+## This is the public camera API
+##
+itcl::body Rappture::MapViewer::camera {option args} {
+    switch -- $option {
+        "reset" {
+            Camera reset
+        }
+        default {
+            error "Unknown camera option \"$option\""
+        }
+    }
+}
+
 #
-# USAGE: camera get
+#  Camera --
+#
+# USAGE: Camera get
 #        This is called by the server to transfer the
 #        current Viewpoint settings
-# USAGE: camera reset
+# USAGE: Camera reset
 #        Reset the camera to the default view
 #
-itcl::body Rappture::MapViewer::camera {option args} {
+itcl::body Rappture::MapViewer::Camera {option args} {
     switch -- $option {
         "get" {
             # We got the camera settings from the server
