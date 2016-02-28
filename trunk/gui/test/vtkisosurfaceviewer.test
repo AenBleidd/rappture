@@ -1,14 +1,15 @@
 # Commands covered:
-# Rappture::Gauge
-# Rappture::Gauge::value
+# Rappture::VtkIsosurfaceViewer
 #
 # This file contains a collection of tests for one of the Rappture Tcl
 # commands.  Sourcing this file into Tcl runs the tests and
 # generates output for errors.  No output means no errors were found.
 #
 # ======================================================================
-# AUTHOR:  Derrick Kearney, Purdue University
-# Copyright (c) 2004-2012  HUBzero Foundation, LLC
+# AUTHORS:
+#   Derrick Kearney, Purdue University
+#   Leif Delgass, Purdue University
+# Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,13 +17,10 @@
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
     package require tcltest
+    package require Rappture
     package require RapptureGUI
     namespace import -force ::tcltest::*
 }
-
-set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-
-Rappture::VtkIsosurfaceViewer .#auto $servers
 
 #----------------------------------------------------------
 #----------------------------------------------------------
@@ -31,38 +29,31 @@ Rappture::VtkIsosurfaceViewer .#auto $servers
 # Rappture::VtkIsosurfaceViewer <name> <servers>
 #----------------------------------------------------------
 test vtkisosurfaceviewer.constructor.1 {
-    value command, 0 args, missing server list error
+    constructor, 0 args, auto named
 } -setup {
 } -body  {
     list [catch {Rappture::VtkIsosurfaceViewer .#auto} msg] $msg
 } -cleanup {
-} -result {1 {wrong # args: should be "::Rappture::VtkIsosurfaceViewer .vtkIsosurfaceViewer1 hostlist ?arg arg ...?"}}
+    destroy .vtkIsosurfaceViewer0
+} -result {0 .vtkIsosurfaceViewer0}
 
 test vtkisosurfaceviewer.constructor.2 {
-    value command, 1 args empty hostlist, empty hostlist uses visviewer defaults
+    value command, explicit name, -plotbackground option
 } -setup {
 } -body  {
-    catch {Rappture::VtkIsosurfaceViewer .#auto {}} msg
+    catch {Rappture::VtkIsosurfaceViewer .foo -plotbackground red} msg
 } -cleanup {
+    destroy .foo
 } -result {0}
 
 test vtkisosurfaceviewer.constructor.3 {
-    value command, 1 args valid hostlist
+    value command, bad option
 } -setup {
 } -body  {
-    catch {Rappture::VtkIsosurfaceViewer .#auto $servers} msg
+    list [catch {Rappture::VtkIsosurfaceViewer .foo -nonexistent foo} msg] $msg
 } -cleanup {
-} -result {0}
-
-#test vtkisosurfaceviewer.constructor.5 {
-#    value command, 1 args valid hostlist
-#} -setup {
-#} -body  {
-#    set w [Rappture::VtkIsosurfaceViewer .#auto $servers]
-#} -cleanup {
-#    destroy $w
-#    catch {unset w}
-#} -result {}
+    destroy .foo
+} -result {1 {unknown option "-nonexistent"}}
 
 ::tcltest::cleanupTests
 return
