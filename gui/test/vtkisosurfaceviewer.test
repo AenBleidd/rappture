@@ -22,6 +22,8 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import -force ::tcltest::*
 }
 
+Rappture::resources::load
+
 #----------------------------------------------------------
 #----------------------------------------------------------
 # constructor
