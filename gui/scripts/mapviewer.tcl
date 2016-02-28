@@ -1226,7 +1226,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     $itk_component(time_l) configure -state normal
                     $itk_component(time) configure -state normal
                 }
-                if { [info exists tk_component(pitch_slider)] } {
+                if { [info exists itk_component(pitch_slider)] } {
                     $itk_component(pitch_slider_l) configure -state normal
                     $itk_component(pitch_slider) configure -state normal
                 }
@@ -1240,7 +1240,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                     $itk_component(time_l) configure -state disabled
                     $itk_component(time) configure -state disabled
                 }
-                if { [info exists tk_component(pitch_slider)] } {
+                if { [info exists itk_component(pitch_slider)] } {
                     $itk_component(pitch_slider_l) configure -state disabled
                     $itk_component(pitch_slider) configure -state disabled
                 }
