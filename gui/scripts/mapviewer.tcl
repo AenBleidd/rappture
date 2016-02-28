@@ -300,6 +300,7 @@ itcl::body Rappture::MapViewer::constructor {args} {
         pack $itk_component(plotarea) -expand yes -fill both
     }
 
+    DebugTrace "main: [winfo class $itk_component(main)]"
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -671,6 +672,7 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
         # can't handle -autocolors yet
         set params(-color) black
     }
+    # Add to display list
     set pos [lsearch -exact $_dlist $dataobj]
     if {$pos < 0} {
         #if {[llength $_dlist] > 0} {
@@ -819,8 +821,8 @@ itcl::body Rappture::MapViewer::scale {args} {
             set _mapsettings(projection) $settings(projection)
             set _mapsettings(extents) $settings(extents)
             set _mapsettings(camera) $settings(camera)
-            DebugTrace "map style: $settings(style)"
         }
+        # If dataobj has the same type and projection as view, expand extents
         if { $settings(extents) != "" &&
              $settings(type) == $_mapsettings(type) &&
              $settings(projection) == $_mapsettings(projection)} {
@@ -2181,10 +2183,10 @@ Keyboard bindings:
 }
 
 #
-## camera
-##
-## This is the public camera API
-##
+# camera
+#
+# This is the public camera API
+#
 itcl::body Rappture::MapViewer::camera {option args} {
     switch -- $option {
         "reset" {
@@ -2863,6 +2865,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     set f $inner.layers
     set attrib [list]
     set imgIdx 0
+    # FIXME: This order may not match stacking order in server
     foreach dataobj [get -objects] {
         foreach layer [$dataobj layers] {
             array unset info
