@@ -941,7 +941,7 @@ itcl::body Rappture::Map::getFilesFromStylesheet { stylesheet } {
         foreach key [array names info] {
             #puts stderr "Prop: \"$key\" Val: \"$info($key)\""
             if {[isFileProp $key]} {
-                lappend files $info($key)
+                lappend files [string trim $info($key) "\""]
             }
         }
     }
