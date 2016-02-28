@@ -2407,7 +2407,7 @@ itcl::body Rappture::MapViewer::SendFiles { path } {
     set isRelative [expr {[string first "://" $path] < 0 &&
                           [string index $path 0] != "/"}]
     if {[string range $path 0 7] != "local://" &&
-       !$isRelative} {
+        !$isRelative} {
         return
     }
     DebugTrace "Local path: $path"
