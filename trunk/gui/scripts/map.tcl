@@ -37,6 +37,7 @@ itcl::class Rappture::Map {
     public method getLayerProperty { layerName prop }
     public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
+    public method hasSelector { layerName selectorName }
     public method hasViewpoint { viewpointName }
     public method hints { args }
     public method isGeocentric {}
@@ -790,6 +791,15 @@ itcl::body Rappture::Map::selector { layerName selectorName } {
         error "unknown selector \"$selectorName\""
     }
     return [$_tree get $id]
+}
+
+itcl::body Rappture::Map::hasSelector { layerName selectorName } {
+    set id [$_tree findchild root->"layers"->"$layerName"->"selectors" $selectorName]
+    if { $id < 0 } {
+        return 0
+    } else {
+        return 1
+    }
 }
 
 # ----------------------------------------------------------------------
