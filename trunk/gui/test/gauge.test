@@ -60,7 +60,7 @@ test gauge.value.3 {value command, 1 args, set value, value is returned} \
     catch {unset w}
 } -result {4}
 
-test gauge.value.4 {value command, just -check flag, value is returned} \
+test gauge.value.4 {value command, just -check flag, error is returned} \
 -setup {
     set w [Rappture::Gauge .#auto]
 } -body  {
@@ -68,17 +68,33 @@ test gauge.value.4 {value command, just -check flag, value is returned} \
 } -cleanup {
     destroy $w
     catch {unset w}
-} -result {0}
+} -returnCodes {
+    error
+} -result {wrong # args: should be "value ?-check? ?newval?"}
 
-test gauge.value.5 {value command, invalid flag, return error} \
+test gauge.value.5 {value command, -check flag, orig value is unchanged} \
 -setup {
     set w [Rappture::Gauge .#auto]
+    $w value 2
 } -body  {
-    list [catch {$w value -chcek} msg] $msg
+    $w value -check 4
+    $w value
 } -cleanup {
     destroy $w
     catch {unset w}
-} -result {1 {bad value "-chcek": should be a real number}}
+} -result {2}
+
+test gauge.value.6 {value command, invalid flag, return error} \
+-setup {
+    set w [Rappture::Gauge .#auto]
+} -body  {
+    $w value -chcek
+} -cleanup {
+    destroy $w
+    catch {unset w}
+} -returnCodes {
+    error
+} -result {bad value "-chcek": should be a real number}
 
 ::tcltest::cleanupTests
 return
