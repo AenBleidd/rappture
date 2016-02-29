@@ -2415,7 +2415,10 @@ itcl::body Rappture::MapViewer::SendFiles { path } {
         set path [string range $path 8 end]
     }
     set basename [file rootname $path]
-    set files [glob -path $basename .*]
+    if {[catch {set files [glob -path $basename .*]} err] != 0} {
+        puts stderr "File not found: $path"
+        return
+    }
     foreach file $files {
         set name $file
         set type [file type $file]
