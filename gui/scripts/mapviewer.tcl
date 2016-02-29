@@ -138,6 +138,7 @@ itcl::class Rappture::MapViewer {
     private variable _mapsettings;        # Global map settings
 
     private variable _dlist "";         # list of data objects
+    private variable _hidden "";        # list of hidden data objects
     private variable _obj2ovride;       # maps dataobj => style override
     private variable _layers;           # Contains the names of all the
                                         # layers in the server.
@@ -681,6 +682,11 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
         #}
         lappend _dlist $dataobj
     }
+    # Remove from hidden list
+    set pos [lsearch -exact $_hidden $dataobj]
+    if {$pos >= 0} {
+        set _hidden [lreplace $_hidden $pos $pos]
+    }
     set _obj2ovride($dataobj-raise) $params(-raise)
     $_dispatcher event -idle !rebuild
 }
@@ -706,6 +712,11 @@ itcl::body Rappture::MapViewer::delete {args} {
         }
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
+        # Add to hidden list
+        set pos [lsearch -exact $_hidden $dataobj]
+        if {$pos < 0} {
+            lappend _hidden $dataobj
+        }
         array unset _obj2ovride $dataobj-*
         set changed 1
     }
@@ -744,6 +755,27 @@ itcl::body Rappture::MapViewer::get {args} {
                 } else {
                     lappend dlist $dataobj
                 }
+            }
+            return $dlist
+        }
+        "-hidden" {
+            set dlist {}
+            foreach dataobj $_hidden {
+                if { [info commands $dataobj] != $dataobj } {
+                    # dataobj was deleted, remove from list
+                    set pos [lsearch -exact $_hidden $dataobj]
+                    if {$pos >= 0} {
+                        set _hidden [lreplace $_hidden $pos $pos]
+                    }
+                    continue
+                }
+                if { ![$dataobj isvalid] } {
+                    continue
+                }
+                if { [info exists _obj2ovride($dataobj-raise)] } {
+                    puts stderr "ERROR: object on hidden list is visible"
+                }
+                lappend dlist $dataobj
             }
             return $dlist
         }
@@ -1284,6 +1316,14 @@ itcl::body Rappture::MapViewer::Rebuild {} {
 
     set _first ""
     set haveTerrain 0
+    foreach dataobj [get -hidden] {
+        foreach layer [$dataobj layers] {
+            if { ![$dataobj getLayerProperty $layer shared] } {
+                set tag $dataobj-$layer
+                SendCmd "map layer visible 0 $tag"
+            }
+        }
+    }
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1292,6 +1332,9 @@ itcl::body Rappture::MapViewer::Rebuild {} {
             array unset info
             array set info [$dataobj layer $layer]
             set tag $layer
+            if { !$info(shared) } {
+                set tag $dataobj-$layer
+            }
             if { ![info exists _layers($tag)] } {
                 if { $_reportClientInfo }  {
                     set cinfo {}
@@ -1307,14 +1350,30 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 set _layers($tag) 1
                 SetLayerStyle $dataobj $layer
             }
-            # FIXME: This is overriding all layers' initial visibility setting
-            if { [info exists _obj2ovride($dataobj-raise)] &&
-                 $_obj2ovride($dataobj-raise)} {
-                SendCmd "map layer visible 1 $tag"
-                set _visibility($tag) 1
+            # Don't change visibility of shared/base layers
+            if { !$info(shared) } {
+                # FIXME: This is overriding data layers' initial visibility
+                if { [info exists _obj2ovride($dataobj-raise)] } {
+                    SendCmd "map layer visible 1 $tag"
+                    set _visibility($tag) 1
+                } else {
+                    SendCmd "map layer visible 0 $tag"
+                    set _visibility($tag) 0
+                }
             }
             if {$info(type) == "elevation"} {
                 set haveTerrain 1
+            }
+        }
+        # Search our layer list for data layers removed from map object
+        foreach tag [array names _layers -glob $dataobj-*] {
+            set layer [string range $tag [string length "$dataobj-"] end]
+            if {![$dataobj hasLayer $layer]} {
+                DebugTrace "Delete layer: tag: $tag layer: $layer"
+                SendCmd "map layer delete $tag"
+                array unset _layers $tag
+                array unset _opacity $tag
+                array unset _visibility $tag
             }
         }
     }
@@ -2435,6 +2494,9 @@ itcl::body Rappture::MapViewer::SendFiles { path } {
 itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     array set info [$dataobj layer $layer]
     set tag $layer
+    if { !$info(shared) } {
+        set tag $dataobj-$layer
+    }
     if { [info exists info(visible)] &&
          !$info(visible) } {
         set _visibility($tag) 0
@@ -2468,7 +2530,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                                  $info(arcgis.url) $info(cache) $coverage $info(arcgis.token)]
                 }
                 "colorramp" {
-                    set cmapName $tag
+                    set cmapName "[regsub -all {::} ${tag} {}]"
                     SendFiles $info(colorramp.url)
                     SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
                     SendCmd [list map layer add $tag image colorramp \
@@ -2860,6 +2922,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
 
 itcl::body Rappture::MapViewer::SetLayerOpacity { dataobj layer {value 100}} {
     set tag $layer
+    if {![$dataobj getLayerProperty $layer shared]} {
+        set tag $dataobj-$layer
+    }
     set val $_opacity($tag)
     set sval [expr { 0.01 * double($val) }]
     SendCmd "map layer opacity $sval $tag"
@@ -2867,6 +2932,9 @@ itcl::body Rappture::MapViewer::SetLayerOpacity { dataobj layer {value 100}} {
 
 itcl::body Rappture::MapViewer::SetLayerVisibility { dataobj layer } {
     set tag $layer
+    if {![$dataobj getLayerProperty $layer shared]} {
+        set tag $dataobj-$layer
+    }
     set bool $_visibility($tag)
     SendCmd "map layer visible $bool $tag"
 }
@@ -2889,6 +2957,10 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             array set info [$dataobj layer $layer]
             set tag $layer
             set ctlname $layer
+            if {!$info(shared)} {
+                set tag $dataobj-$layer
+                set ctlname "[regsub -all {::} ${tag} {}]"
+            }
             checkbutton $f.${ctlname}_visible \
                 -text $info(label) \
                 -font "Arial 9" -anchor w \
@@ -2905,18 +2977,18 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                         set _image(legend-$colormap) [image create photo]
                     }
                     itk_component add legend-$colormap-min {
-                        label $f.${layer}_legend-$colormap-min -text 0
+                        label $f.legend-$colormap-min -text 0
                     }
                     itk_component add legend-$colormap-max {
-                        label $f.${layer}_legend-$colormap-max -text 1
+                        label $f.legend-$colormap-max -text 1
                     }
                     itk_component add legend-$colormap {
-                        label $f.${layer}_legend-$colormap -image $_image(legend-$colormap)
+                        label $f.legend-$colormap -image $_image(legend-$colormap)
                     }
-                    blt::table $f $row,0 $f.${layer}_legend-$colormap-min -anchor w -pady 0
-                    blt::table $f $row,1 $f.${layer}_legend-$colormap-max -anchor e -pady 0
+                    blt::table $f $row,0 $f.legend-$colormap-min -anchor w -pady 0
+                    blt::table $f $row,1 $f.legend-$colormap-max -anchor e -pady 0
                     incr row
-                    blt::table $f $row,0 $f.${layer}_legend-$colormap -anchor w -pady 2 -cspan 2
+                    blt::table $f $row,0 $f.legend-$colormap -anchor w -pady 2 -cspan 2
                     incr row
                     RequestLegend $colormap 256 16
                 }
