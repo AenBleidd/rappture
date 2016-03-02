@@ -156,7 +156,6 @@ itcl::class Rappture::MapViewer {
     private variable _reset 1;          # Indicates that server was reset and
                                         # needs to be reinitialized.
     private variable _initCamera 1;
-    private variable _haveTerrain 0;
 
     private variable _first "";         # This is the topmost dataset.
     private variable _start 0
@@ -838,7 +837,6 @@ itcl::body Rappture::MapViewer::MapIsGeocentric {} {
 itcl::body Rappture::MapViewer::scale {args} {
     DebugTrace "Enter"
     array unset _mapsettings
-    set _haveTerrain 0
 
     foreach dataobj $args {
         if { ![$dataobj isvalid] } {
@@ -884,12 +882,6 @@ itcl::body Rappture::MapViewer::scale {args} {
                 }
             }
         }
-        foreach layer [$dataobj layers] {
-            if { [$dataobj type $layer] == "elevation" } {
-                set _haveTerrain 1
-                break
-            }
-        }
         foreach viewpoint [$dataobj viewpoints] {
             set _viewpoints($viewpoint) [$dataobj viewpoint $viewpoint]
             if {$_debug} {
@@ -900,12 +892,6 @@ itcl::body Rappture::MapViewer::scale {args} {
                     }
                 }
             }
-        }
-    }
-    if { $_useSidebar && $_haveTerrain } {
-        if { [$itk_component(main) exists "Terrain Settings"] } {
-            # TODO: Enable controls like vertical scale that only have
-            # an effect when terrain is present
         }
     }
     #if { $_reset } {
@@ -1378,18 +1364,6 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         }
     }
 
-    if ($haveTerrain) {
-        if { [info exists itk_component(vscale)] } {
-            $itk_component(vscale_l) configure -state normal
-            $itk_component(vscale) configure -state normal
-        }
-    } else {
-        if { [info exists itk_component(vscale)] } {
-            $itk_component(vscale_l) configure -state disabled
-            $itk_component(vscale) configure -state disabled
-        }
-    }
-
     if {$_reset} {
         if {$_initCamera} {
             # If this is the first Rebuild, we need to
@@ -1404,6 +1378,17 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     }
 
     if {$_useSidebar} {
+        if ($haveTerrain) {
+            if { [info exists itk_component(vscale)] } {
+                $itk_component(vscale_l) configure -state normal
+                $itk_component(vscale) configure -state normal
+            }
+        } else {
+            if { [info exists itk_component(vscale)] } {
+                $itk_component(vscale_l) configure -state disabled
+                $itk_component(vscale) configure -state disabled
+            }
+        }
         UpdateLayerControls
         UpdateViewpointControls
     }
