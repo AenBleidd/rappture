@@ -467,7 +467,7 @@ itcl::body Rappture::Map::setToolInfo { id name command title revision } {
 
 itcl::body Rappture::Map::setType { type } {
     if { ![info exists _mapTypes($type)] } {
-        error "unknown map type \"$mapType\": should be one of [array names _mapTypes]"
+        error "unknown map type \"$type\": should be one of [array names _mapTypes]"
     }
     $_tree set root "type" $type
 }
