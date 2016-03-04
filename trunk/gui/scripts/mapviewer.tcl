@@ -1304,7 +1304,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
     set haveTerrain 0
     foreach dataobj [get -hidden] {
         foreach layer [$dataobj layers] {
-            if { ![$dataobj getLayerProperty $layer shared] } {
+            if { ![$dataobj layer $layer shared] } {
                 set tag $dataobj-$layer
                 SendCmd "map layer visible 0 $tag"
             }
@@ -2907,7 +2907,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
 
 itcl::body Rappture::MapViewer::SetLayerOpacity { dataobj layer {value 100}} {
     set tag $layer
-    if {![$dataobj getLayerProperty $layer shared]} {
+    if {![$dataobj layer $layer shared]} {
         set tag $dataobj-$layer
     }
     set val $_opacity($tag)
@@ -2917,7 +2917,7 @@ itcl::body Rappture::MapViewer::SetLayerOpacity { dataobj layer {value 100}} {
 
 itcl::body Rappture::MapViewer::SetLayerVisibility { dataobj layer } {
     set tag $layer
-    if {![$dataobj getLayerProperty $layer shared]} {
+    if {![$dataobj layer $layer shared]} {
         set tag $dataobj-$layer
     }
     set bool $_visibility($tag)

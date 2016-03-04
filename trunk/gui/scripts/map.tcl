@@ -34,7 +34,6 @@ itcl::class Rappture::Map {
     public method clearExtents {}
     public method deleteLayer { layerName }
     public method deleteViewpoint { viewpointName }
-    public method getLayerProperty { layerName prop }
     public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
     public method hasSelector { layerName selectorName }
@@ -44,7 +43,7 @@ itcl::class Rappture::Map {
     public method isvalid {} {
         return $_isValid;
     }
-    public method layer { layerName }
+    public method layer { layerName args }
     public method layers {}
     public method selectors { layerName }
     public method selector { layerName selectorName }
@@ -739,20 +738,23 @@ itcl::body Rappture::Map::viewpoints {} {
 #
 # Returns an array of settings for the named layer
 # ----------------------------------------------------------------------
-itcl::body Rappture::Map::layer { layerName } {
+itcl::body Rappture::Map::layer { layerName args } {
     set id [$_tree findchild root->"layers" $layerName]
     if { $id < 0 } {
         error "unknown layer \"$layerName\""
     }
-    return [$_tree get $id]
-}
-
-itcl::body Rappture::Map::getLayerProperty { layerName prop } {
-    set id [$_tree findchild root->"layers" $layerName]
-    if { $id < 0 } {
-        error "unknown layer \"$layerName\""
+    switch -- [llength $args] {
+        0 {
+            return [$_tree get $id]
+        }
+        1 {
+            set prop [lindex $args 0]
+            return [$_tree get $id $prop]
+        }
+        default {
+            error "wrong # args: should be \"layer ?layerName? ?prop?\""
+        }
     }
-    return [$_tree get $id $prop]
 }
 
 itcl::body Rappture::Map::hasLayer { layerName } {
