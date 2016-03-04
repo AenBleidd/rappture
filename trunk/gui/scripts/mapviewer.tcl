@@ -2237,6 +2237,34 @@ itcl::body Rappture::MapViewer::camera {option args} {
         "reset" {
             Camera reset
         }
+        "zoom" {
+            if {[llength $args] < 3} {
+                error "wrong # of args to camera zoom"
+            }
+            set zoomopt [lindex $args 0]
+            switch -- $zoomopt {
+                "extent" {
+                    if {[llength $args] < 7} {
+                        error "wrong # of args to camera zoom extent"
+                    }
+                    foreach {xmin ymin xmax ymax duration srs} [lrange $args 1 end] break
+                    foreach key {xmin ymin xmax ymax} {
+                        if {![string is double -strict [set $key]]} {
+                            error "Invalid extent: $key=[set $key]"
+                        }
+                    }
+                    if {$duration == ""} {
+                        set duration 0.0
+                    } elseif {![string is double $duration]} {
+                        error "Invalid duration \"$duration\", should be a double"
+                    }
+                    SendCmd "camera extent $xmin $ymin $xmax $ymax $duration $srs"
+                }
+                default {
+                    error "Unknown camera zoom option \"$zoomopt\""
+                }
+            }
+        }
         default {
             error "Unknown camera option \"$option\""
         }
