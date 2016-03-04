@@ -530,6 +530,9 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
     if {[hasLayer $id]} {
         error "Layer '$id' already exists"
     }
+    if { ![info exists _layerTypes($type)] } {
+        error "Invalid layer type \"$type\": should be one of: [join [array names _layerTypes] {, }]"
+    }
     set parent [$_tree findchild root "layers"]
     set child [$_tree insert $parent -label $id]
     $_tree set $child "name" $name
@@ -559,6 +562,17 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
         if {[info exists params($key)]} {
             set val $params($key)
             if {$val != ""} {
+                if {$key eq "coverage" && $type ne "image"} {
+                    error "Coverage is only valid for layers of type \"image\""
+                }
+                if {$key eq "content" || $key eq "priority"} {
+                    if {$type ne "label"} {
+                        error "content and priority are only valid in layers of type \"label\""
+                    }
+                }
+                if {$key eq "opacity" && $type eq "elevation"} {
+                    error  "opacity is not valid for layers of type \"elevation\""
+                }
                 $_tree set $child $key $val
             }
         }
@@ -705,6 +719,9 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
                     $_tree set $child "xyz.$key" $value
                 }
             }
+        }
+        default {
+            error "Unknown driver \"$driver\""
         }
     }
     return $id
