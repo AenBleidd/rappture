@@ -2898,6 +2898,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
     }
 
     if {[info exists info(placard)]} {
+        if {$info(type) == "image" || $info(type) == "elevation"} {
+            error "Placard not supported on image or elevation layers"
+        }
         array set placard [$dataobj getPlacardConfig $layer]
         SendCmd [list placard config $placard(attrlist) $placard(style) $placard(padding) $tag]
     }
