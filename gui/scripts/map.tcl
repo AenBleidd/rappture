@@ -56,7 +56,6 @@ itcl::class Rappture::Map {
     public method setStyle { style }
     public method setToolInfo { id name command title revision }
     public method setType { type }
-    public method type { layerName }
     public method viewpoint { viewpointName }
     public method viewpoints {}
 
