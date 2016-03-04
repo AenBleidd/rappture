@@ -223,6 +223,9 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         }
         set placard [$layers element -as object $layer.placard]
         if {$placard != ""} {
+            if {$layerType == "image" || $layerType == "elevation"} {
+                puts stderr "ERROR: Placard not supported on image or elevation layers"
+            }
             foreach key { attributes style padding } {
                 set $key [$placard get $key]
             }
