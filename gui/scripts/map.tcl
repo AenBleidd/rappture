@@ -500,6 +500,28 @@ itcl::body Rappture::Map::setStyle { style } {
 }
 
 itcl::body Rappture::Map::setCamera { camera } {
+    if {$camera != "" && [llength $camera] % 2 != 0} {
+        error "Bad camera settings, must be key/value pairs"
+    }
+    array set caminfo $camera
+    foreach key [array names caminfo] {
+        set valid 0
+        foreach validkey {x y z heading pitch distance xmin ymin xmax ymax srs verticalDatum} {
+            if {$key == $validkey} {
+                set valid 1
+                break
+            }
+        }
+        if {!$valid} {
+            error "Unknown camera setting: $key"
+        }
+    }
+    if {([info exists caminfo(x)] || [info exists caminfo(y)] ||
+         [info exists caminfo(z)] || [info exists caminfo(distance)]) &&
+        ([info exists caminfo(xmin)] || [info exists caminfo(xmax)] ||
+         [info exists caminfo(ymin)] || [info exists caminfo(ymax)])} {
+        error "Bad camera settings: Cannot set both focal point and extents"
+    }
     $_tree set root "camera" $camera
 }
 
