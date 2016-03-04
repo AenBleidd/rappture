@@ -734,9 +734,10 @@ itcl::body Rappture::Map::viewpoints {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: layer <layerName>
+# USAGE: layer <layerName> <?prop?>
 #
-# Returns an array of settings for the named layer
+# Returns an array of settings for the named layer, or a single property
+# if specified.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::layer { layerName args } {
     set id [$_tree findchild root->"layers" $layerName]
