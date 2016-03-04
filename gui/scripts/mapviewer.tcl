@@ -2244,7 +2244,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             set zoomopt [lindex $args 0]
             switch -- $zoomopt {
                 "extent" {
-                    if {[llength $args] < 7} {
+                    if {[llength $args] < 5} {
                         error "wrong # of args to camera zoom extent"
                     }
                     foreach {xmin ymin xmax ymax duration srs} [lrange $args 1 end] break
