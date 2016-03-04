@@ -676,6 +676,10 @@ itcl::body Rappture::Map::setPlacardConfig { layerName attrlist style padding } 
     if { $id < 0 } {
         error "unknown layer \"$layerName\""
     }
+    set type [layer $layerName type]
+    if {$type == "image" || $type == "elevation"} {
+        error "Placard not supported on image or elevation layers"
+    }
     array set placardConf {}
     foreach key { padding } {
         set placardConf($key) [set $key]
