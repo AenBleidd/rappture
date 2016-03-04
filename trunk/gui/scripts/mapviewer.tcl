@@ -2238,7 +2238,7 @@ itcl::body Rappture::MapViewer::camera {option args} {
             Camera reset
         }
         "zoom" {
-            if {[llength $args] < 3} {
+            if {[llength $args] < 1} {
                 error "wrong # of args to camera zoom"
             }
             set zoomopt [lindex $args 0]
@@ -2259,6 +2259,25 @@ itcl::body Rappture::MapViewer::camera {option args} {
                         error "Invalid duration \"$duration\", should be a double"
                     }
                     SendCmd "camera extent $xmin $ymin $xmax $ymax $duration $srs"
+                }
+                "layer" {
+                    if {[llength $args] < 3} {
+                        error "wrong # of args to camera zoom layer"
+                    }
+                    foreach {dataobj layer duration} [lrange $args 1 end] break
+                    set tag $layer
+                    if {![$dataobj layer $layer shared]} {
+                        set tag $dataobj-$layer
+                    }
+                    if {![info exists _layers($tag)]} {
+                        error "Unknown layer $layer"
+                    }
+                    if {$duration == ""} {
+                        set duration 0.0
+                    } elseif {![string is double $duration]} {
+                        error "Invalid duration \"$duration\", should be a double"
+                    }
+                    SendCmd "camera lextent $tag $duration"
                 }
                 default {
                     error "Unknown camera zoom option \"$zoomopt\""
