@@ -160,7 +160,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         }
         set layerType [$layers get $layer.type]
         if { ![info exists _layerTypes($layerType)] } {
-            puts stderr "ERROR: invalid layer type \"$layerType\": should be one of [join [array names _layerTypes] {, }]"
+            puts stderr "ERROR: invalid layer type \"$layerType\": should be one of: [join [array names _layerTypes] {, }]"
             continue
         }
         set child [$_tree insert $parent -label $name]
@@ -435,7 +435,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         set mapType "projected";           # Default type is "projected".
     }
     if { ![info exists _mapTypes($mapType)] } {
-        puts stderr "ERROR: unknown map type \"$mapType\": should be one of [join [array names _mapTypes] {, }]"
+        puts stderr "ERROR: unknown map type \"$mapType\": should be one of: [join [array names _mapTypes] {, }]"
         set mapType "projected"
     }
     $_tree set root "type" $mapType
@@ -467,7 +467,7 @@ itcl::body Rappture::Map::setToolInfo { id name command title revision } {
 
 itcl::body Rappture::Map::setType { type } {
     if { ![info exists _mapTypes($type)] } {
-        error "unknown map type \"$type\": should be one of [join [array names _mapTypes] {, }]"
+        error "unknown map type \"$type\": should be one of: [join [array names _mapTypes] {, }]"
     }
     $_tree set root "type" $type
 }
