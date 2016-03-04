@@ -158,11 +158,12 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
             puts stderr "ERROR: Duplicate layer ID '$name', skipping"
             continue
         }
-        set child [$_tree insert $parent -label $name]
         set layerType [$layers get $layer.type]
         if { ![info exists _layerTypes($layerType)] } {
-            error "invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
+            puts stderr "ERROR: invalid layer type \"$layerType\": should be one of [array names _layerTypes]"
+            continue
         }
+        set child [$_tree insert $parent -label $name]
         $_tree set $child "name" $name
         $_tree set $child "type" $layerType
         foreach key { label description attribution profile srs verticalDatum } {
@@ -182,6 +183,17 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         foreach key { coverage opacity content priority style } {
             set val [$layers get $layer.$key]
             if {$val != ""} {
+                if {$key eq "coverage" && $layerType ne "image"} {
+                    puts stderr "ERROR: <coverage> is only valid for layers of type \"image\""
+                }
+                if {$key eq "content" || $key eq "priority"} {
+                    if {$layerType ne "label"} {
+                        puts stderr "ERROR: <content> and <priority> are only valid in layers of type \"label\""
+                    }
+                }
+                if {$key eq "opacity" && $layerType eq "elevation"} {
+                    puts stderr  "ERROR: <opacity> is not valid for layers of type \"elevation\""
+                }
                 $_tree set $child $key $val
             }
         }
@@ -401,14 +413,16 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
     set extents    [$map get "extents"]
     if { $projection  == "" } {
         if { $extents != "" } {
-            error "cannot specify extents without a projection"
+            puts stderr "ERROR: cannot specify extents without a projection"
+            set extents ""
         }
         set projection "global-mercator"; # Default projection.
     } elseif { $projection == "geodetic" || $projection == "global-geodetic" ||
            $projection == "wgs84" || $projection == "epsg:4326" ||
            $projection == "plate-carre" || $projection == "plate-carree" } {
         # Can't use angular units in projection  
-        error "Geodetic profile not supported as map projection.  Try using an equirectangular (epsg:32663) projection instead."
+        puts stderr "ERROR: Geodetic profile not supported as map projection.  Try using an equirectangular (epsg:32663) projection instead."
+        set projection "epsg:32663"
     } elseif { $projection == "equirectangular" || $projection == "eqc-wgs84" } {
         set projection "epsg:32663"
     }
@@ -421,7 +435,8 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         set mapType "projected";           # Default type is "projected".
     }
     if { ![info exists _mapTypes($mapType)] } {
-        error "unknown map type \"$mapType\": should be one of [array names _mapTypes]"
+        puts stderr "ERROR: unknown map type \"$mapType\": should be one of [array names _mapTypes]"
+        set mapType "projected"
     }
     $_tree set root "type" $mapType
 
