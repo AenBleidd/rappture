@@ -132,7 +132,7 @@ itcl::body Rappture::Map::hints { args } {
             return [$_tree get root $field ""]
         }
         default {
-            error "wrong # args: should be \"hints ?name?\""
+            error "wrong # args: should be \"hints <?name?>\""
         }
     }
 }
@@ -752,7 +752,7 @@ itcl::body Rappture::Map::layer { layerName args } {
             return [$_tree get $id $prop]
         }
         default {
-            error "wrong # args: should be \"layer ?layerName? ?prop?\""
+            error "wrong # args: should be \"layer <layerName> <?prop?>\""
         }
     }
 }
