@@ -899,19 +899,6 @@ itcl::body Rappture::Map::deleteViewpoint { viewpointName } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: type <layerName>
-#
-# Returns the type of the named layer
-# ----------------------------------------------------------------------
-itcl::body Rappture::Map::type { layerName } {
-    set id [$_tree findchild root->"layers" $layerName]
-    if { $id < 0 } {
-        error "unknown layer \"$layerName\""
-    }
-    return [$_tree get $id "type" ""]
-}
-
-# ----------------------------------------------------------------------
 # USAGE: isGeocentric
 #
 # Returns if the map is geocentric (1) or projected (0)
