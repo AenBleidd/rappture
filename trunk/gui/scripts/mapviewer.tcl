@@ -2667,6 +2667,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 SendFiles $info(ogr.url)
             }
             SendCmd $cmd
+            SendCmd "map layer opacity $style(-opacity) $tag"
         }
         "line" {
             array set style {
