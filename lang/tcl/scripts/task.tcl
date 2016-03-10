@@ -307,7 +307,7 @@ itcl::body Rappture::Task::run {args} {
                        # invalid result from the program.  Append the stderr
                        # from the program to the message.
                        if {$code > 128} {
-                          set logmesg "Program signaled: signal was [GetSignal]"
+                          set logmesg "Program signaled: signal was [GetSignal $code]"
                        } else {
                           set logmesg "Program finished: exit code is $code"
                        }
