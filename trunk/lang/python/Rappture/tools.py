@@ -110,10 +110,10 @@ def executeCommand(command,
        childoutFd = childout.fileno()
        childerr   = child.stderr
        childerrFd = childerr.fileno()
- 
+
        outEOF = False
        errEOF = False
- 
+
        while True:
            toCheck = []
            if not outEOF:
@@ -134,7 +134,7 @@ def executeCommand(command,
                if streamOutput:
                    sys.stdout.write(outChunk)
                    sys.stdout.flush()
- 
+
            if childerrFd in readyRead:
                errChunk = os.read(childerrFd,BUFSIZ)
                if errChunk == '':
@@ -143,10 +143,10 @@ def executeCommand(command,
                if streamOutput:
                    sys.stderr.write(errChunk)
                    sys.stderr.flush()
- 
+
            if outEOF and errEOF:
                break
- 
+
        pid,exitStatus = os.waitpid(commandPid,0)
        commandPid = 0
        if fpStdin:
@@ -154,7 +154,7 @@ def executeCommand(command,
              fpStdin.close()
           except:
              pass
- 
+
        try:
           signal.signal(signal.SIGINT,sig_INT_handler)
           signal.signal(signal.SIGHUP,sig_HUP_handler)
@@ -164,7 +164,7 @@ def executeCommand(command,
           pass
        except:
           print traceback.format_exc()
- 
+
        if exitStatus != 0:
            if   os.WIFSIGNALED(exitStatus):
               sys.stderr.write("%s failed w/ signal %d\n" % (command,os.WTERMSIG(exitStatus)))
