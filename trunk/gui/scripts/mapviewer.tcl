@@ -56,9 +56,7 @@ itcl::class Rappture::MapViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method parameters {title args} {
-        # do nothing
-    }
+    public method parameters {title args} { # do nothing }
     public method scale {args}
     public method select {option {args ""}}
     public method setSelectCallback {cmd}
@@ -729,6 +727,7 @@ itcl::body Rappture::MapViewer::delete {args} {
 # USAGE: get ?-objects?
 # USAGE: get ?-visible?
 # USAGE: get ?-image view?
+# USAGE: get ?-image legend <dataobj> <layer>?
 #
 # Clients use this to query the list of objects being plotted, in
 # order from bottom to top of this result.  The optional "-image"
@@ -799,20 +798,33 @@ itcl::body Rappture::MapViewer::get {args} {
             return $dlist
         }
         -image {
-            if {[llength $args] != 2} {
-                error "wrong # args: should be \"get -image view\""
+            if {[llength $args] < 2} {
+                error "wrong # args: should be \"get -image view|legend\""
             }
-            switch -- [lindex $args end] {
+            switch -- [lindex $args 1] {
+                legend {
+                    if {[llength $args] < 4} {
+                        error "wrong # args: should be \"get -image legend <dataobj> <layer>\""
+                    }
+                    set dataobj [lindex $args 2]
+                    set layer [lindex $args 3]
+                    set colormap $layer
+                    if {![$dataobj layer $layer shared]} {
+                        set colormap $dataobj-$layer
+                        set colormap "[regsub -all {::} ${colormap} {}]"
+                    }
+                    return $_image(legend-$colormap)
+                }
                 view {
                     return $_image(plot)
                 }
                 default {
-                    error "bad image name \"[lindex $args end]\": should be view"
+                    error "bad image name \"[lindex $args 1]\": should be view|legend"
                 }
             }
         }
         default {
-            error "bad option \"$op\": should be -objects or -image"
+            error "bad option \"$op\": should be -objects, -hidden, -visible or -image"
         }
     }
 }
