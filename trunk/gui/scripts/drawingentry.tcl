@@ -577,7 +577,7 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
             set options($option) $value
         }
     }
-    set contents [XmlGetSubst $cpath.contents]
+    set contents [string trim [XmlGetSubst $cpath.contents]]
     set img ""
     if { [string compare -length 7 $contents "file://"] == 0 } {
         set fileName [string range $contents 7 end]
@@ -601,10 +601,10 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     } elseif { [string compare -length 7 $contents "http://"] == 0 } {
         puts stderr  "don't know how to handle http"
         return
-    } else {
+    } elseif { $contents != "" } {
         set img [image create photo -data $contents]
     }
-    if {$img eq ""} {
+    if {$img == ""} {
         return
     }
     # Coordinates
