@@ -421,19 +421,40 @@ itcl::body Rappture::XyResult::download {option args} {
             }
             switch -- $_downloadPopup(format) {
                 csv {
-                    # reverse the objects so the selected data appears on top
                     set dlist ""
-                    foreach dataobj [get] {
-                        set dlist [linsert $dlist 0 $dataobj]
+                    set g $itk_component(plot)
+
+                    # Build up a list of download-able dataobjs. Add
+                    # objects that are currently viewable (selected by the
+                    # simulation selector) and visible in the graph
+                    # (selected by the legend).
+                    foreach elem $_viewable {
+                        foreach {dataobj cname} \
+                            [split $_elem2comp($elem) -] break
+
+                        # Build a lookup table of graph elements associated
+                        # with each label. There will be more than one
+                        # element for each entry if there is more than one
+                        # simulation currently being downloaded.
+
+                        set label [$dataobj hints label]
+                        lappend label2elem($label) $elem
+
+                        # Ignore hidden graph elements.
+                        if { [$g element cget $elem -hide] } {
+                            continue
+                        }
+                        lappend dlist $dataobj
+
                     }
 
-                    # generate the comma-separated value data for these objects
+                    # Generate the comma-separated value data for these
+                    # objects.
                     set csvdata ""
                     foreach dataobj $dlist {
                         append csvdata "[string repeat - 60]\n"
                         append csvdata " [$dataobj hints label]\n"
-                        if {[info exists _dataobj2desc($dataobj)]
-                            && [llength [split $_dataobj2desc($dataobj) \n]] > 1} {
+                        if { [info exists _dataobj2desc($dataobj)] } {
                             set indent "for:"
                             foreach line [split $_dataobj2desc($dataobj) \n] {
                                 append csvdata " $indent $line\n"
@@ -441,8 +462,15 @@ itcl::body Rappture::XyResult::download {option args} {
                             }
                         }
                         append csvdata "[string repeat - 60]\n"
-
-                        append csvdata "[$dataobj hints xlabel], [$dataobj hints ylabel]\n"
+                        set sim $_dataobj2sim($dataobj)
+                        set xlabel [$dataobj hints xlabel]
+                        set ylabel [$dataobj hints ylabel]
+                        set label [$dataobj hints label]
+                        if { [llength $label2elem($label)] > 1 } {
+                            set xlabel [format "%s (\#%d)" $xlabel $sim]
+                            set ylabel [format "%s (\#%d)" $ylabel $sim]
+                        }
+                        append csvdata "$xlabel, $ylabel\n"
                         set first 1
                         foreach comp [$dataobj components] {
                             if {!$first} {
@@ -601,7 +629,7 @@ itcl::body Rappture::XyResult::ResetLegend {} {
             }
             foreach {dataobj cname} [split $_elem2comp($elem) -] break
             set sim $_dataobj2sim($dataobj)
-            set elabel [format "%s \#%d" $label $sim]
+            set elabel [format "%s (\#%d)" $label $sim]
             $g element configure $elem -label $elabel
         }
     }
@@ -1651,3 +1679,4 @@ itcl::body Rappture::XyResult::SetElements { dataobj {settings ""} } {
         }
     }
 }
+
