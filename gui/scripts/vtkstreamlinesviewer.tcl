@@ -1717,7 +1717,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         7,1 $inner.density     -fill x   -pady 2  \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r10 c1 c2 -resize expand
+    blt::table configure $inner r8 c1 c2 -resize expand
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
