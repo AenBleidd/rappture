@@ -629,9 +629,11 @@ VTK_VERSION
 VTK_TCL_DIR
 TK_XLIBSW
 TK_VERSION
+TK_SRC_DIR
 TK_LIB_SPEC
 TK_INC_SPEC
 TCL_VERSION
+TCL_SRC_DIR
 TCL_SHLIB_SUFFIX
 TCL_SHLIB_LDFLAGS
 TCL_SHLIB_LD
@@ -7348,6 +7350,17 @@ for dir in \
   fi
 done
 
+TK_VERSION="8.4"
+for dir in \
+ ${exec_prefix} \
+ ${exec_prefix}/lib ; do
+  tkconfig="${dir}/tkConfig.sh"
+  if test -f "$tkconfig" ; then
+    . $tkconfig
+    break
+  fi
+done
+
 
 # Check whether --with-ffmpeg was given.
 if test "${with_ffmpeg+set}" = set; then :
@@ -10136,6 +10149,8 @@ fi
 
 
 MAKE=${make_command}
+
+
 
 
 
