@@ -588,10 +588,12 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 TK_VERSION
 TK_XLIBSW
+TK_SRC_DIR
 TK_LIB_SPEC
 TK_INC_SPEC
 TCL_VERSION
 TCL_STLIB_LD
+TCL_SRC_DIR
 TCL_SHLIB_SUFFIX
 TCL_SHLIB_LDFLAGS
 TCL_SHLIB_LD
@@ -3132,6 +3134,8 @@ fi
 if test -f "${exec_prefix}/lib/tkConfig.sh" ; then
   . ${exec_prefix}/lib/tkConfig.sh
 fi
+
+
 
 
 

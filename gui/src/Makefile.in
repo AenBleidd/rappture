@@ -25,11 +25,13 @@ SHLIB_SUFFIX    = @TCL_SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @TCL_CFLAGS_DEFAULT@
 LIB_RUNTIME_DIR = @LIB_RUNTIME_DIR@
 CFLAGS          = @CFLAGS@ -fPIC
+TCL_SRC_DIR     = @TCL_SRC_DIR@
 TCL_VERSION     = @TCL_VERSION@
-TCLTK_SRCS	= -I../../../runtime/tcl8.4.19/generic -I../../../runtime/tk8.4.19/generic -I../../../runtime/tk8.4.19/unix
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+TK_SRC_DIR      = @TK_SRC_DIR@
 TK_LIB_SPEC     = @TK_LIB_SPEC@
-TK_XLIBSW	= @TK_XLIBSW@
+TK_XLIBSW       = @TK_XLIBSW@
+TCLTK_INCLUDES  = -I$(TCL_SRC_DIR)/generic -I$(TK_SRC_DIR)/generic -I$(TK_SRC_DIR)/unix
 VTK_VERSION     = @VTK_VERSION@
 VTK_TCL_DIR     = @VTK_TCL_DIR@
 ENABLE_VTK      = @ENABLE_VTK@
@@ -94,7 +96,7 @@ install: $(lib)
 	$(INSTALL) -m 555 $(lib) $(destdir) 
 
 RpListbox.o: RpListbox.c
-	$(CC) $(CC_SWITCHES) $(TCLTK_SRCS) -c $? 
+	$(CC) $(CC_SWITCHES) $(TCLTK_INCLUDES) -c $? 
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o:
