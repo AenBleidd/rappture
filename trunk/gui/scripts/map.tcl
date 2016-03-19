@@ -496,6 +496,22 @@ itcl::body Rappture::Map::setAttribution { attribution } {
 }
 
 itcl::body Rappture::Map::setStyle { style } {
+    if {$style != "" && [llength $style] % 2 != 0} {
+        error "Bad map style, must be key/value pairs"
+    }
+    array set styleinfo $style
+    foreach key [array names styleinfo] {
+        set valid 0
+        foreach validkey {-ambient -color -edgecolor -edges -lighting -linewidth -vertscale -wireframe} {
+            if {$key == $validkey} {
+                set valid 1
+                break
+            }
+        }
+        if {!$valid} {
+            error "Unknown style setting: $key"
+        }
+    }
     $_tree set root "style" $style
 }
 
