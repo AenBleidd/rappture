@@ -91,16 +91,16 @@ itcl::class Rappture::Map {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Map::constructor {args} {
+    set _tree [blt::tree create]
+    $_tree insert root -label "layers"
+    $_tree insert root -label "viewpoints"
+    setLabel "Map"
+    setType "projected"
+    setProjection "global-mercator"
+    clearExtents
+    setStyle ""
+    setCamera ""
     if {$args == ""} {
-        set _tree [blt::tree create]
-        setLabel "Map"
-        setType "projected"
-        setProjection "global-mercator"
-        clearExtents
-        setStyle ""
-        setCamera ""
-        $_tree insert root -label "layers"
-        $_tree insert root -label "viewpoints"
         set _isValid 1
     } else {
         set xmlobj [lindex $args 0]
@@ -142,18 +142,64 @@ itcl::body Rappture::Map::hints { args } {
 #   Parses the map description in the XML object.
 #
 itcl::body Rappture::Map::parseXML { xmlobj path } {
-
     set map [$xmlobj element -as object $path]
 
-    if { $_tree != "" } {
-        blt::tree destroy $_tree
+    # Set global map properties
+    setLabel [$map get "about.label"]
+    setAttribution [$map get "about.attribution"]
+
+    set mapType [$map get "type"]
+    if { $mapType != "" } {
+        if {[catch {setType $mapType} msg] != 0} {
+            puts stderr "ERROR: $msg"
+            return
+        }
     }
-    set _tree [blt::tree create]
-    set parent [$_tree insert root -label "layers"]
+
+    set projection [$map get "projection"]
+    set extents    [$map get "extents"]
+    if { $projection  == "" } {
+        if { $extents != "" } {
+            puts stderr "ERROR: cannot specify extents without a projection"
+            set extents ""
+        }
+        set projection "global-mercator"; # Default projection.
+    } elseif { $projection == "geodetic" || $projection == "global-geodetic" ||
+               $projection == "wgs84" || $projection == "epsg:4326" ||
+               $projection == "plate-carre" || $projection == "plate-carree" } {
+        # Can't use angular units in projection  
+        puts stderr "ERROR: Geodetic profile not supported as map projection.  Try using an equirectangular (epsg:32663) projection instead."
+        set projection "epsg:32663"
+    } elseif { $projection == "equirectangular" ||
+               $projection == "eqc-wgs84" } {
+        set projection "epsg:32663"
+    }
+    # FIXME: Verify projection is valid.
+    setProjection $projection
+    if {$extents != ""} {
+        foreach {xmin ymin xmax ymax srs} $extents {}
+        if {$srs == ""} {
+            setExtents $xmin $ymin $xmax $ymax
+        } else {
+            setExtents $xmin $ymin $xmax $ymax $srs
+        }
+    } else {
+         clearExtents
+    }
+
+    if {[catch {setStyle [$map get "style"]} msg] != 0} {
+        puts stderr "ERROR: $msg"
+    }
+    if {[catch {setCamera [$map get "camera"]} msg] != 0} {
+        puts stderr "ERROR: $msg"
+    }
+
+    # Parse layers
+    set parent [$_tree findchild root "layers"]
     set layers [$map element -as object "layers"]
     foreach layer [$layers children -type layer] {
         # Unique identifier for layer.
-        set name [$map element -as id "layers.$layer"]
+        set name [$layers element -as id "$layer"]
         if {[hasLayer $name]} {
             puts stderr "ERROR: Duplicate layer ID '$name', skipping"
             continue
@@ -210,7 +256,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
             }
             set sparent [$_tree insert $child -label "selectors"]
             foreach selector [$styles children -type selector] {
-                set id "selector[incr _nextSelector]"
+                set id [$styles element -as id "$selector"]
                 set snode [$_tree insert $sparent -label $id]
                 foreach key { name style styleExpression query queryBounds queryOrderBy } {
                     set val [$styles get $selector.$key]
@@ -356,15 +402,12 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         rename $layers ""
     }
 
-    $_tree set root "label"       [$map get "about.label"]
-    $_tree set root "attribution" [$map get "about.attribution"]
-    $_tree set root "style"       [$map get "style"]
-    $_tree set root "camera"      [$map get "camera"]
-    set parent [$_tree insert root -label "viewpoints"]
+    # Parse viewpoints
+    set parent [$_tree findchild root "viewpoints"]
     set viewpoints [$map element -as object "viewpoints"]
     if { $viewpoints != "" } {
         foreach viewpoint [$viewpoints children -type viewpoint] {
-            set name [$map element -as id "viewpoints.$viewpoint"]
+            set name [$viewpoints element -as id "$viewpoint"]
             if {[hasViewpoint $name]} {
                 puts stderr "ERROR: Duplicate viewpoint ID '$name', skipping"
                 continue
@@ -412,37 +455,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         rename $viewpoints ""
     }
 
-    set projection [$map get "projection"]
-    set extents    [$map get "extents"]
-    if { $projection  == "" } {
-        if { $extents != "" } {
-            puts stderr "ERROR: cannot specify extents without a projection"
-            set extents ""
-        }
-        set projection "global-mercator"; # Default projection.
-    } elseif { $projection == "geodetic" || $projection == "global-geodetic" ||
-           $projection == "wgs84" || $projection == "epsg:4326" ||
-           $projection == "plate-carre" || $projection == "plate-carree" } {
-        # Can't use angular units in projection  
-        puts stderr "ERROR: Geodetic profile not supported as map projection.  Try using an equirectangular (epsg:32663) projection instead."
-        set projection "epsg:32663"
-    } elseif { $projection == "equirectangular" || $projection == "eqc-wgs84" } {
-        set projection "epsg:32663"
-    }
-    # FIXME: Verify projection is valid.
-    $_tree set root "projection" $projection
-    $_tree set root "extents"    $extents
-
-    set mapType [$map get "type"]
-    if { $mapType == "" } {
-        set mapType "projected";           # Default type is "projected".
-    }
-    if { ![info exists _mapTypes($mapType)] } {
-        puts stderr "ERROR: unknown map type \"$mapType\": should be one of: [join [array names _mapTypes] {, }]"
-        set mapType "projected"
-    }
-    $_tree set root "type" $mapType
-
+    # Fill in tool info
     foreach {key path} {
         toolid          tool.id
         toolname        tool.name
@@ -455,6 +468,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
             $_tree set root $key $str
         }
     }
+
     rename $map ""
     set _isValid 1
 }
@@ -607,7 +621,11 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
         set sparent [$_tree insert $child -label "selectors"]
         foreach selectorItem $selectors {
             array set selector $selectorItem
-            set id "selector[incr _nextSelector]"
+            if { [info exists selector(id)] } {
+                set id $selector(id)
+            } else {
+                set id "selector[incr _nextSelector]"
+            }
             set snode [$_tree insert $sparent -label $id]
             foreach key { name style styleExpression query queryBounds queryOrderBy } {
                 if {[info exists selector($key)]} {
