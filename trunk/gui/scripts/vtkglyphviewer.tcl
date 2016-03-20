@@ -69,21 +69,21 @@ itcl::class Rappture::VtkGlyphViewer {
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildGlyphTab {}
-    private method DrawLegend {}
     private method Combo { option }
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
     private method DoResize {}
     private method DoRotate {}
+    private method DrawLegend {}
     private method EnterLegend { x y }
+    private method EventuallyRequestLegend {}
     private method EventuallyResize { w h }
     private method EventuallyRotate { q }
-    private method EventuallyRequestLegend {}
     private method EventuallySetCutplane { axis args }
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
@@ -99,11 +99,11 @@ itcl::class Rappture::VtkGlyphViewer {
     private method ReceiveLegend { colormap title vmin vmax size }
     private method RequestLegend {}
     private method Rotate {option x y}
+    private method SetCurrentColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp }
-    private method Slice {option args}
-    private method SetCurrentColormap { color }
     private method SetOrientation { side }
+    private method Slice {option args}
     private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
@@ -545,10 +545,9 @@ itcl::body Rappture::VtkGlyphViewer::add {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-#    Clients use this to delete a dataobj from the plot.  If no dataobjs
-#    are specified, then all dataobjs are deleted.  No data objects are
-#    deleted.  They are only removed from the display list.
-#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.  No data objects are
+# deleted.  They are only removed from the display list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkGlyphViewer::delete {args} {
     if { [llength $args] == 0} {

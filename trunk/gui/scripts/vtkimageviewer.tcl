@@ -502,10 +502,9 @@ itcl::body Rappture::VtkImageViewer::add {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-#       Clients use this to delete a dataobj from the plot.  If no dataobjs
-#       are specified, then all dataobjs are deleted.  No data objects are
-#       deleted.  They are only removed from the display list.
-#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.  No data objects are
+# deleted.  They are only removed from the display list.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkImageViewer::delete {args} {
     if { [llength $args] == 0} {
