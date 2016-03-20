@@ -100,6 +100,7 @@ itcl::class Rappture::VtkGlyphViewer {
     private method RequestLegend {}
     private method Rotate {option x y}
     private method SetCurrentColormap { color }
+    private method SetCurrentFieldName { dataobj }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
@@ -957,9 +958,11 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
     }
     set _first ""
     SendCmd "dataset visible 0"
+    eval scale $_dlist
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
+            SetCurrentFieldName $dataobj
         }
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
@@ -990,43 +993,12 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
                 SetObjectStyle $dataobj $comp
             }
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                # Setting dataset visible enables outline
-                # and glyphs
-                SendCmd "dataset visible 1 $tag"
+                SendCmd "glyphs visible 1 $tag"
             }
         }
     }
 
-    if { $_first != "" } {
-        $itk_component(field) choices delete 0 end
-        $itk_component(fieldmenu) delete 0 end
-        array unset _fields
-        set _curFldName ""
-        foreach cname [$_first components] {
-            foreach fname [$_first fieldnames $cname] {
-                if { [info exists _fields($fname)] } {
-                    continue
-                }
-                foreach { label units components } \
-                    [$_first fieldinfo $fname] break
-                $itk_component(field) choices insert end "$fname" "$label"
-                $itk_component(fieldmenu) add radiobutton -label "$label" \
-                    -value $label -variable [itcl::scope _curFldLabel] \
-                    -selectcolor red \
-                    -activebackground $itk_option(-plotbackground) \
-                    -activeforeground $itk_option(-plotforeground) \
-                    -font "Arial 8" \
-                    -command [itcl::code $this Combo invoke]
-                set _fields($fname) [list $label $units $components]
-                if { $_curFldName == "" } {
-                    set _curFldName $fname
-                    set _curFldLabel $label
-                }
-            }
-        }
-        $itk_component(field) value $_curFldLabel
-    }
-    InitSettings -outline
+    InitSettings -glyphsvisible -outline
         #-cutplanesvisible
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
@@ -2596,4 +2568,35 @@ itcl::body Rappture::VtkGlyphViewer::SetOrientation { side } {
     set _view(-xpan) 0
     set _view(-ypan) 0
     set _view(-zoom) 1.0
+}
+
+itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentFieldName { dataobj } {
+    set _first $dataobj
+    $itk_component(field) choices delete 0 end
+    $itk_component(fieldmenu) delete 0 end
+    array unset _fields
+    set _curFldName ""
+    foreach cname [$_first components] {
+        foreach fname [$_first fieldnames $cname] {
+            if { [info exists _fields($fname)] } {
+                continue
+            }
+            foreach { label units components } \
+                [$_first fieldinfo $fname] break
+            $itk_component(field) choices insert end "$fname" "$label"
+            $itk_component(fieldmenu) add radiobutton -label "$label" \
+                -value $label -variable [itcl::scope _curFldLabel] \
+                -selectcolor red \
+                -activebackground $itk_option(-plotbackground) \
+                -activeforeground $itk_option(-plotforeground) \
+                -font "Arial 8" \
+                -command [itcl::code $this Combo invoke]
+            set _fields($fname) [list $label $units $components]
+            if { $_curFldName == "" } {
+                set _curFldName $fname
+                set _curFldLabel $label
+            }
+        }
+    }
+    $itk_component(field) value $_curFldLabel
 }
