@@ -474,7 +474,7 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
             } else {
                 set w [winfo width $itk_component(image)]
                 set h [winfo height $itk_component(image)]
-                if {$w == 1 && $h == 1} {
+                if {$w <= 1 && $h <= 1} {
                     return 0
                 }
 
