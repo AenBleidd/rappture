@@ -1527,13 +1527,17 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 #
 itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     set _legendPending 0
-    set font "Arial 8"
-    set w 12
-    set lineht [font metrics $font -linespace]
-    # color ramp height = (canvas height) - (min and max value lines) - 2
-    set h [expr {$_height - 2 * ($lineht + 2)}]
-
+    if { ![info exists _fields($_curFldName)] } {
+        return
+    }
     set fname $_curFldName
+    set font "Arial 8"
+    set lineht [font metrics $font -linespace]
+    set w 12
+    set h [expr {$_height - 2 * ($lineht + 2)}]
+    if { $h < 1 } {
+        return
+    }
     if { [string match "component*" $fname] } {
         set title ""
     } else {
@@ -1549,9 +1553,6 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     # If there's a title too, subtract one more line
     if { $title != "" } {
         incr h -$lineht
-    }
-    if { $h < 1 } {
-        return
     }
     # Set the legend on the first dataset.
     if { $_currentColormap != "" } {
@@ -2404,7 +2405,7 @@ itcl::body Rappture::VtkGlyphViewer::Slice {option args} {
 # specified <size> will follow.
 #
 itcl::body Rappture::VtkGlyphViewer::ReceiveLegend { colormap title min max size } {
-    #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
+    DebugTrace "Enter"
     set _title $title
     regsub {\(mag\)} $title "" _title
     if { [IsConnected] } {

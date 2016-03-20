@@ -2599,7 +2599,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Slice {option args} {
 # specified <size> will follow.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::ReceiveLegend { colormap title min max size } {
-    # puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
+    DebugTrace "Enter"
     set _title $title
     regsub {\(mag\)} $title "" _title
     if { [IsConnected] } {
