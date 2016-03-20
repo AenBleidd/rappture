@@ -998,7 +998,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
         }
     }
 
-    InitSettings -glyphsvisible -outline
+    InitSettings -glyphvisible -outline
         #-cutplanesvisible
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
