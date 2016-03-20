@@ -6,7 +6,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -181,7 +181,9 @@ itk::usual MapViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::constructor {args} {
     set _serverType "geovis"
+
     #DebugOn
+    EnableWaitDialog 900
 
     if { [catch {
 
@@ -218,9 +220,6 @@ itcl::body Rappture::MapViewer::constructor {args} {
     $_parser alias camera   [itcl::code $this Camera]
     $_parser alias screen   [itcl::code $this ReceiveScreenInfo]
     $_parser alias select   [itcl::code $this ReceiveSelect]
-
-    # Millisecond delay before animated wait dialog appears
-    set _waitTimeout 900
 
     # Settings for mouse motion events: these are required
     # to update the Lat/Long coordinate display

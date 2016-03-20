@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkviewer - Vtk drawing object viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -90,7 +90,7 @@ itcl::class Rappture::VtkViewer {
     private method EventuallySetPolydataOpacity { args }
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
@@ -175,6 +175,9 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     package require vtk
     set _serverType "vtkvis"
 
+    #DebugOn
+    EnableWaitDialog 900
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -226,14 +229,14 @@ itcl::body Rappture::VtkViewer::constructor {args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -296,7 +299,7 @@ itcl::body Rappture::VtkViewer::constructor {args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     set c $itk_component(view)
@@ -439,7 +442,6 @@ itcl::body Rappture::VtkViewer::constructor {args} {
 
     eval itk_initialize $args
 
-    EnableWaitDialog 900
     Connect
 }
 
@@ -897,7 +899,7 @@ itcl::body Rappture::VtkViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -914,8 +916,7 @@ itcl::body Rappture::VtkViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1367,9 +1368,9 @@ itcl::body Rappture::VtkViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1758,9 +1759,9 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.  It will be rotated
-#       to be vertical when drawn.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.  It will be rotated
+# to be vertical when drawn.
 #
 itcl::body Rappture::VtkViewer::RequestLegend {} {
     set font "Arial 8"
@@ -2011,7 +2012,7 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
     itk_component add glyphspalette {
-        Rappture::Combobox $inner.palette -width 10 -editable no
+        Rappture::Combobox $inner.palette -width 10 -editable 0
     }
     $inner.palette choices insert end [GetColormapList]
     $itk_component(glyphspalette) value "BCGYR"
@@ -2083,7 +2084,7 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
 
     label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
     itk_component add meshpalette {
-        Rappture::Combobox $inner.palette -width 10 -editable no
+        Rappture::Combobox $inner.palette -width 10 -editable 0
     }
     $inner.palette choices insert end [GetColormapList]
     $itk_component(meshpalette) value "BCGYR"
@@ -2159,7 +2160,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axismode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -2259,7 +2260,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
 
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move x] \
             -variable [itcl::scope _axis(xposition)]
@@ -2299,7 +2300,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
 
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move y] \
             -variable [itcl::scope _axis(yposition)]
@@ -2339,7 +2340,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
 
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move z] \
             -variable [itcl::scope _axis(zposition)]
@@ -2425,7 +2426,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -font "Arial 9"
 
     itk_component add representation {
-        Rappture::Combobox $inner.rep -width 20 -editable no
+        Rappture::Combobox $inner.rep -width 20 -editable 0
     }
     $inner.rep choices insert end \
         "ballandstick"  "Ball and Stick" \
@@ -2443,7 +2444,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -font "Arial 9"
 
     itk_component add rscale {
-        Rappture::Combobox $inner.rscale -width 20 -editable no
+        Rappture::Combobox $inner.rscale -width 20 -editable 0
     }
     $inner.rscale choices insert end \
         "atomic"        "Atomic"   \
@@ -2457,7 +2458,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
 
     label $inner.palette_l -text "Palette" -font "Arial 9"
     itk_component add moleculepalette {
-        Rappture::Combobox $inner.palette -width 10 -editable no
+        Rappture::Combobox $inner.palette -width 10 -editable 0
     }
     $inner.palette choices insert end [GetColormapList -includeElementDefault]
     $itk_component(moleculepalette) value "elementDefault"
@@ -2526,7 +2527,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkViewer::camera {option args} {
     switch -- $option {
@@ -2894,8 +2895,8 @@ itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title vmin vmax size } 
 #
 # DrawLegend --
 #
-#       Draws the legend in it's own canvas which resides to the right
-#       of the contour plot area.
+# Draws the legend in it's own canvas which resides to the right
+# of the contour plot area.
 #
 itcl::body Rappture::VtkViewer::DrawLegend {} {
     set c $itk_component(view)

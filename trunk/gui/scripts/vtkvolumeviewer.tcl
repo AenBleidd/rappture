@@ -7,7 +7,7 @@
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2015  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -83,8 +83,8 @@ itcl::class Rappture::VtkVolumeViewer {
     private method DoRotate {}
     private method DrawLegend {}
     private method EnterLegend { x y }
-    private method EventuallyResize { w h }
     private method EventuallyRequestLegend {}
+    private method EventuallyResize { w h }
     private method EventuallyRotate { q }
     private method EventuallySetCutplane { axis args }
     private method GetColormap { cname color }
@@ -238,36 +238,36 @@ itcl::body Rappture::VtkVolumeViewer::constructor {args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-        -axesvisible                    1
-        -axisflymode                    static
-        -axislabels                     1
-        -axisminorticks                 1
-        -background                     black
-        -color                          "default"
-        -cutplanelighting               1
-        -cutplaneopacity                100
-        -cutplanesvisible               0
-        -legendvisible                  1
-        -volumeambient                  40
-        -volumeblendmode                composite
-        -volumediffuse                  60
-        -volumelighting                 1
-        -volumeopacity                  50
-        -volumeoutline                  0
-        -volumequality                  80
-        -volumespecularexponent         90
-        -volumespecularlevel            30
-        -volumethickness                350
-        -volumevisible                  1
-        -xcutplaneposition              50
-        -xcutplanevisible               1
-        -xgrid                          0
-        -ycutplaneposition              50
-        -ycutplanevisible               1
-        -ygrid                          0
-        -zcutplaneposition              50
-        -zcutplanevisible               1
-        -zgrid                          0
+        -axesvisible            1
+        -axisflymode            static
+        -axislabels             1
+        -axisminorticks         1
+        -background             black
+        -color                  "default"
+        -cutplanelighting       1
+        -cutplaneopacity        100
+        -cutplanesvisible       0
+        -legendvisible          1
+        -volumeambient          40
+        -volumeblendmode        composite
+        -volumediffuse          60
+        -volumelighting         1
+        -volumeopacity          50
+        -volumeoutline          0
+        -volumequality          80
+        -volumespecularexponent 90
+        -volumespecularlevel    30
+        -volumethickness        350
+        -volumevisible          1
+        -xcutplaneposition      50
+        -xcutplanevisible       1
+        -xgrid                  0
+        -ycutplaneposition      50
+        -ycutplanevisible       1
+        -ygrid                  0
+        -zcutplaneposition      50
+        -zcutplanevisible       1
+        -zgrid                  0
     }
 
     itk_component add view {
@@ -275,12 +275,12 @@ itcl::body Rappture::VtkVolumeViewer::constructor {args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no
+            -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -1615,7 +1615,7 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     set h [winfo height $c]
     set h [expr {$h-$lineht-20}]
     set w [expr {$w-20}]
-    # Set the legend on the first volume dataset.
+    # Set the legend on the first dataset.
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
@@ -1687,7 +1687,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildViewTab {} {
 
     label $inner.background_l -text "Background" -font $font
     itk_component add background {
-        Rappture::Combobox $inner.background -width 10 -editable no
+        Rappture::Combobox $inner.background -width 10 -editable 0
     }
     $inner.background choices insert end \
         "black" "black" \
@@ -1722,7 +1722,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.volcomponents_l -text "Component" -font $font
     itk_component add volcomponents {
-        Rappture::Combobox $inner.volcomponents -editable no
+        Rappture::Combobox $inner.volcomponents -editable 0
     }
     bind $inner.volcomponents <<Value>> \
         [itcl::code $this AdjustSetting -current]
@@ -1789,7 +1789,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.field_l -text "Field" -font $font
     itk_component add field {
-        Rappture::Combobox $inner.field -editable no
+        Rappture::Combobox $inner.field -editable 0
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
@@ -1809,7 +1809,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.colormap_l -text "Colormap" -font $font
     itk_component add colormap {
-        Rappture::Combobox $inner.colormap -width 10 -editable no
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList -includeDefault]
 
@@ -1819,7 +1819,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     label $inner.blendmode_l -text "Blend Mode" -font $font
     itk_component add blendmode {
-        Rappture::Combobox $inner.blendmode -editable no
+        Rappture::Combobox $inner.blendmode -editable 0
     }
     $inner.blendmode choices insert end \
         "composite"     "Composite"         \
@@ -1910,7 +1910,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font $font
 
     itk_component add axismode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -2030,7 +2030,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplanesTab {} {
 
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
             -variable [itcl::scope _settings(-xcutplaneposition)]
@@ -2058,7 +2058,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplanesTab {} {
 
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
             -variable [itcl::scope _settings(-ycutplaneposition)]
@@ -2086,7 +2086,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplanesTab {} {
 
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
             -variable [itcl::scope _settings(-zcutplaneposition)]
@@ -2116,7 +2116,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplanesTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkVolumeViewer::camera {option args} {
     switch -- $option {
