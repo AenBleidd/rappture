@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkglyphviewer - Vtk 3D glyphs object viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -66,7 +66,7 @@ itcl::class Rappture::VtkGlyphViewer {
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name }
-    private method BuildCutplaneTab {}
+    private method BuildCutplanesTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildGlyphTab {}
     private method Combo { option }
@@ -134,11 +134,11 @@ itcl::class Rappture::VtkGlyphViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
+    private variable _legendPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
-    private variable _legendPending 0
     private variable _field      ""
-    private variable _colorMode "vmag"; #  Mode of colormap (vmag or scalar)
+    private variable _colorMode "vmag"; # Mode of colormap (vmag or scalar)
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
@@ -158,6 +158,9 @@ itk::usual VtkGlyphViewer {
 itcl::body Rappture::VtkGlyphViewer::constructor {args} {
     set _serverType "vtkvis"
 
+    #DebugOn
+    EnableWaitDialog 900
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -166,51 +169,51 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Rotate event
-    $_dispatcher register !rotate
-    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
-
     # Legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
 
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
+
     # X-Cutplane event
     $_dispatcher register !xcutplane
     $_dispatcher dispatch $this !xcutplane \
-        "[itcl::code $this AdjustSetting -cutplanexposition]; list"
+        "[itcl::code $this AdjustSetting -xcutplaneposition]; list"
 
     # Y-Cutplane event
     $_dispatcher register !ycutplane
     $_dispatcher dispatch $this !ycutplane \
-        "[itcl::code $this AdjustSetting -cutplaneyposition]; list"
+        "[itcl::code $this AdjustSetting -ycutplaneposition]; list"
 
     # Z-Cutplane event
     $_dispatcher register !zcutplane
     $_dispatcher dispatch $this !zcutplane \
-        "[itcl::code $this AdjustSetting -cutplanezposition]; list"
+        "[itcl::code $this AdjustSetting -zcutplaneposition]; list"
 
     #
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
-    array set _settings [subst {
+    array set _settings {
         -axesvisible            1
         -axislabels             1
         -axisminorticks         1
@@ -220,34 +223,34 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
         -colormapvisible        1
         -cutplaneedges          0
         -cutplanelighting       1
-        -cutplanepreinterp      1
         -cutplaneopacity        100
-        -cutplanevisible        0
+        -cutplanepreinterp      1
+        -cutplanesvisible       0
         -cutplanewireframe      0
-        -cutplanexposition      50
-        -cutplanexvisible       1
-        -cutplaneyposition      50
-        -cutplaneyvisible       1
-        -cutplanezposition      50
-        -cutplanezvisible       1
         -field                  "Default"
         -glyphedges             0
         -glyphlighting          1
         -glyphnormscale         1
         -glyphopacity           100
         -glyphorient            1
-        -glyphoutline           0
         -glyphscale             1
         -glyphscalemode         "vmag"
         -glyphshape             "arrow"
         -glyphvisible           1
         -glyphwireframe         0
         -legendvisible          1
+        -outline                0
         -saveglyphopacity       100
+        -xcutplaneposition      50
+        -xcutplanevisible       1
         -xgrid                  0
+        -ycutplaneposition      50
+        -ycutplanevisible       1
         -ygrid                  0
+        -zcutplaneposition      50
+        -zcutplanevisible       1
         -zgrid                  0
-    }]
+    }
     array set _changed {
         -colormap               0
         -glyphopacity           0
@@ -258,12 +261,12 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no
+            -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -335,7 +338,7 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
     }
     $itk_component(glyphs) select
     Rappture::Tooltip::for $itk_component(glyphs) \
-        "Don't display the glyphs"
+        "Hide the glyphs"
     pack $itk_component(glyphs) -padx 2 -pady 2
 
     if {0} {
@@ -343,24 +346,24 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings(-cutplanevisible)] \
-            -command [itcl::code $this AdjustSetting -cutplanevisible]
+            -variable [itcl::scope _settings(-cutplanesvisible)] \
+            -command [itcl::code $this AdjustSetting -cutplanesvisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
-        "Show/Hide cutplanes"
+        "Show the cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
     }
 
     if { [catch {
         BuildGlyphTab
-        #BuildCutplaneTab
+        #BuildCutplanesTab
         BuildAxisTab
         BuildCameraTab
     } errs] != 0 } {
         puts stderr errs=$errs
     }
-    # Legend
 
+    # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
         canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
@@ -434,7 +437,6 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
 
     eval itk_initialize $args
 
-    EnableWaitDialog 900
     Connect
 }
 
@@ -797,7 +799,7 @@ itcl::body Rappture::VtkGlyphViewer::Connect {} {
 #
 # isconnected --
 #
-#    Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkGlyphViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -814,8 +816,7 @@ itcl::body Rappture::VtkGlyphViewer::disconnect {} {
 #
 # Disconnect --
 #
-#    Clients use this method to disconnect from the current rendering
-#    server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkGlyphViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -829,7 +830,6 @@ itcl::body Rappture::VtkGlyphViewer::Disconnect {} {
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
     array unset _datasets
-    array unset _data
     array unset _colormaps
 }
 
@@ -856,9 +856,11 @@ itcl::body Rappture::VtkGlyphViewer::ReceiveImage { args } {
             close $f
         }
         $_image(plot) configure -data $bytes
-        set time [clock seconds]
-        set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"
+        #set time [clock seconds]
+        #set date [clock format $time]
+        #set w [image width $_image(plot)]
+        #set h [image height $_image(plot)]
+        #puts stderr "$date: received image ${w}x${h} image"
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
             #puts stderr "round trip time [expr $finish -$_start] milliseconds"
@@ -938,19 +940,15 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        #
+
         # Reset the camera and other view parameters
-        #
         $_arcball quaternion [ViewToQuaternion]
-        if {$_view(-ortho)} {
-            SendCmd "camera mode ortho"
-        } else {
-            SendCmd "camera mode persp"
-        }
+        InitSettings -ortho
         DoRotate
         PanCamera
         set _first ""
-        InitSettings -xgrid -ygrid -zgrid -axismode \
+        InitSettings -background \
+            -xgrid -ygrid -zgrid -axismode \
             -axesvisible -axislabels -axisminorticks
         #SendCmd "axis lformat all %g"
         StopBufferingCommands
@@ -1028,8 +1026,8 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings -glyphoutline
-        #-cutplanevisible
+    InitSettings -outline
+        #-cutplanesvisible
     if { $_reset } {
         # These are settings that rely on a dataset being loaded.
         InitSettings \
@@ -1037,8 +1035,8 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
             -glyphedges -glyphlighting -glyphnormscale -glyphopacity \
             -glyphorient -glyphscale -glyphscalemode -glyphshape -glyphwireframe
 
-        #-cutplanexposition -cutplaneyposition -cutplanezposition \
-            -cutplanexvisible -cutplaneyvisible -cutplanezvisible \
+        #-xcutplaneposition -ycutplaneposition -zcutplaneposition \
+            -xcutplanevisible -ycutplanevisible -zcutplanevisible \
             -cutplanepreinterp
 
         Zoom reset
@@ -1050,7 +1048,7 @@ itcl::body Rappture::VtkGlyphViewer::Rebuild {} {
             if { $label == "" } {
                 set label [string toupper $axis]
             }
-            # May be a space in the axis label.
+            # There may be a space in the axis label.
             SendCmd [list axis name $axis $label]
         }
         if { [array size _fields] < 2 } {
@@ -1288,27 +1286,15 @@ itcl::body Rappture::VtkGlyphViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#    Changes/updates a specific setting in the widget.  There are
-#    usually user-setable option.  Commands are sent to the render
-#    server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
         return
     }
     switch -- $what {
-        "-background" {
-            set bgcolor [$itk_component(background) value]
-            array set fgcolors {
-                "black" "white"
-                "white" "black"
-                "grey"  "black"
-            }
-            configure -plotbackground $bgcolor \
-                -plotforeground $fgcolors($bgcolor)
-            $itk_component(view) delete "legend"
-            DrawLegend
-        }
         "-axesvisible" {
             set bool $_settings($what)
             SendCmd "axis visible all $bool"
@@ -1321,33 +1307,27 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis minticks all $bool"
         }
-        "-xgrid" - "-ygrid" - "-zgrid" {
-            set axis [string tolower [string range $what 1 1]]
-            set bool $_settings($what)
-            SendCmd "axis grid $axis $bool"
-        }
         "-axismode" {
             set mode [$itk_component(axisMode) value]
             set mode [$itk_component(axisMode) translate $mode]
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
+        "-background" {
+            set bgcolor [$itk_component(background) value]
+            array set fgcolors {
+                "black" "white"
+                "white" "black"
+                "grey"  "black"
+            }
+            configure -plotbackground $bgcolor \
+                -plotforeground $fgcolors($bgcolor)
+            $itk_component(view) delete "legend"
+            DrawLegend
+        }
         "-cutplaneedges" {
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
-        }
-        "-cutplanevisible" {
-            set bool $_settings($what)
-            SendCmd "cutplane visible 0"
-            if { $bool } {
-                foreach tag [CurrentDatasets -visible] {
-                    SendCmd "cutplane visible $bool $tag"
-                }
-            }
-        }
-        "-cutplanewireframe" {
-            set bool $_settings($what)
-            SendCmd "cutplane wireframe $bool"
         }
         "-cutplanelighting" {
             set bool $_settings($what)
@@ -1362,23 +1342,18 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "cutplane preinterp $bool"
         }
-        "-cutplanexvisible" - "-cutplaneyvisible" - "-cutplanezvisible" {
-            set axis [string tolower [string range $what 9 9]]
+        "-cutplanesvisible" {
             set bool $_settings($what)
+            SendCmd "cutplane visible 0"
             if { $bool } {
-                $itk_component(${axis}position) configure -state normal \
-                    -troughcolor white
-            } else {
-                $itk_component(${axis}position) configure -state disabled \
-                    -troughcolor grey82
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "cutplane visible $bool $tag"
+                }
             }
-            SendCmd "cutplane axis $axis $bool"
         }
-        "-cutplanexposition" - "-cutplaneyposition" - "-cutplanezposition" {
-            set axis [string tolower [string range $what 9 9]]
-            set pos [expr $_settings($what) * 0.01]
-            SendCmd "cutplane slice ${axis} ${pos}"
-            set _cutplanePending 0
+        "-cutplanewireframe" {
+            set bool $_settings($what)
+            SendCmd "cutplane wireframe $bool"
         }
         "-colormap" {
             set _changed($what) 1
@@ -1400,6 +1375,32 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             StopBufferingCommands
             EventuallyRequestLegend
         }
+        "-field" {
+            set label [$itk_component(field) value]
+            set fname [$itk_component(field) translate $label]
+            set _settings($what) $fname
+            if { [info exists _fields($fname)] } {
+                foreach { label units components } $_fields($fname) break
+                if { $components > 1 } {
+                    set _colorMode vmag
+                } else {
+                    set _colorMode scalar
+                }
+                set _curFldName $fname
+                set _curFldLabel $label
+            } else {
+                puts stderr "unknown field \"$fname\""
+                return
+            }
+            #if { ![info exists _limits($_curFldName)] } {
+            #    SendCmd "dataset maprange all"
+            #} else {
+            #    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            #}
+            #SendCmd "cutplane colormode $_colorMode $_curFldName"
+            SendCmd "glyphs colormode $_colorMode $_curFldName"
+            DrawLegend
+        }
         "-glyphwireframe" {
             set bool $_settings($what)
             SendCmd "glyphs wireframe $bool"
@@ -1414,10 +1415,10 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             }
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(glyphs) \
-                    "Hide the glyph"
+                    "Hide the glyphs"
             } else {
                 Rappture::Tooltip::for $itk_component(glyphs) \
-                    "Show the glyph"
+                    "Show the glyphs"
             }
             DrawLegend
         }
@@ -1428,15 +1429,6 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
         "-glyphedges" {
             set bool $_settings($what)
             SendCmd "glyphs edges $bool"
-        }
-        "-glyphoutline" {
-            set bool $_settings($what)
-            SendCmd "outline visible 0"
-            if { $bool } {
-                foreach tag [CurrentDatasets -visible] {
-                    SendCmd "outline visible $bool $tag"
-                }
-            }
         }
         "-glyphopacity" {
             set val $_settings($what)
@@ -1469,37 +1461,51 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set _settings($what) $shape
             SendCmd "glyphs shape $shape"
         }
-        "-field" {
-            set label [$itk_component(field) value]
-            set fname [$itk_component(field) translate $label]
-            set _settings($what) $fname
-            if { [info exists _fields($fname)] } {
-                foreach { label units components } $_fields($fname) break
-                if { $components > 1 } {
-                    set _colorMode vmag
-                } else {
-                    set _colorMode scalar
-                }
-                set _curFldName $fname
-                set _curFldLabel $label
-            } else {
-                puts stderr "unknown field \"$fname\""
-                return
-            }
-            #if { ![info exists _limits($_curFldName)] } {
-            #    SendCmd "dataset maprange all"
-            #} else {
-            #    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
-            #}
-            #SendCmd "cutplane colormode $_colorMode $_curFldName"
-            SendCmd "glyphs colormode $_colorMode $_curFldName"
-            DrawLegend
-        }
         "-legendvisible" {
             if { !$_settings($what) } {
                 $itk_component(view) delete legend
             }
             DrawLegend
+        }
+        "-ortho" {
+            set bool $_view($what)
+            if { $bool } {
+                SendCmd "camera mode ortho"
+            } else {
+                SendCmd "camera mode persp"
+            }
+        }
+        "-outline" {
+            set bool $_settings($what)
+            SendCmd "outline visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "outline visible $bool $tag"
+                }
+            }
+        }
+        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            if { $bool } {
+                $itk_component(${axis}position) configure -state normal \
+                    -troughcolor white
+            } else {
+                $itk_component(${axis}position) configure -state disabled \
+                    -troughcolor grey82
+            }
+            SendCmd "cutplane axis $axis $bool"
+        }
+        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set axis [string tolower [string range $what 1 1]]
+            set pos [expr $_settings($what) * 0.01]
+            SendCmd "cutplane slice ${axis} ${pos}"
+            set _cutplanePending 0
+        }
+        "-xgrid" - "-ygrid" - "-zgrid" {
+            set axis [string tolower [string range $what 1 1]]
+            set bool $_settings($what)
+            SendCmd "axis grid $axis $bool"
         }
         default {
             error "don't know how to fix $what"
@@ -1510,15 +1516,14 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#    Request a new legend from the server.  The size of the legend
-#    is determined from the height of the canvas.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.
 #
 # This should be called when
-#    1.  A new current colormap is set.
-#    2.  Window is resized.
-#    3.  The limits of the data have changed.  (Just need a redraw).
-#    4.  Number of glyph have changed. (Just need a redraw).
-#    5.  Legend becomes visible (Just need a redraw).
+#   1.  A new current colormap is set.
+#   2.  Window is resized.
+#   3.  The limits of the data have changed.  (Just need a redraw).
+#   4.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
     set _legendPending 0
@@ -1541,14 +1546,14 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
             set title $fname
         }
     }
-    # If there's a title too, substract one more line
+    # If there's a title too, subtract one more line
     if { $title != "" } {
         incr h -$lineht
     }
     if { $h < 1 } {
         return
     }
-    # Set the legend on the first heightmap dataset.
+    # Set the legend on the first dataset.
     if { $_currentColormap != "" } {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
@@ -1600,7 +1605,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
 
     label $inner.gshape_l -text "Glyph shape" -font "Arial 9"
     itk_component add gshape {
-        Rappture::Combobox $inner.gshape -width 10 -editable no
+        Rappture::Combobox $inner.gshape -width 10 -editable 0
     }
     $inner.gshape choices insert end \
         "arrow"              "arrow"           \
@@ -1620,7 +1625,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
 
     label $inner.scaleMode_l -text "Scale by" -font "Arial 9"
     itk_component add scaleMode {
-        Rappture::Combobox $inner.scaleMode -width 10 -editable no
+        Rappture::Combobox $inner.scaleMode -width 10 -editable 0
     }
     $inner.scaleMode choices insert end \
         "scalar" "Scalar"            \
@@ -1665,8 +1670,8 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope _settings(-glyphoutline)] \
-        -command [itcl::code $this AdjustSetting -glyphoutline] \
+        -variable [itcl::scope _settings(-outline)] \
+        -command [itcl::code $this AdjustSetting -outline] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
@@ -1677,7 +1682,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
 
     label $inner.background_l -text "Background" -font "Arial 9"
     itk_component add background {
-        Rappture::Combobox $inner.background -width 10 -editable no
+        Rappture::Combobox $inner.background -width 10 -editable 0
     }
     $inner.background choices insert end \
         "black"              "black"            \
@@ -1685,7 +1690,8 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         "grey"               "grey"
 
     $itk_component(background) value $_settings(-background)
-    bind $inner.background <<Value>> [itcl::code $this AdjustSetting -background]
+    bind $inner.background <<Value>> \
+        [itcl::code $this AdjustSetting -background]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
@@ -1721,14 +1727,14 @@ itcl::body Rappture::VtkGlyphViewer::BuildGlyphTab {} {
         ignore -font
     }
     itk_component add field {
-        Rappture::Combobox $inner.field -width 10 -editable no
+        Rappture::Combobox $inner.field -width 10 -editable 0
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
-        Rappture::Combobox $inner.colormap -width 10 -editable no
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList -includeNone]
     $itk_component(colormap) value "BCGYR"
@@ -1808,7 +1814,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axisMode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -1873,7 +1879,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildCameraTab {} {
     checkbutton $inner.ortho \
         -text "Orthographic Projection" \
         -variable [itcl::scope _view(-ortho)] \
-        -command [itcl::code $this camera set -ortho] \
+        -command [itcl::code $this AdjustSetting -ortho] \
         -font "Arial 9"
     blt::table $inner \
             $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
@@ -1885,7 +1891,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize expand
 }
 
-itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
+itcl::body Rappture::VtkGlyphViewer::BuildCutplanesTab {} {
 
     set fg [option get $itk_component(hull) font Font]
 
@@ -1897,8 +1903,8 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
 
     checkbutton $inner.visible \
         -text "Cutplanes" \
-        -variable [itcl::scope _settings(-cutplanevisible)] \
-        -command [itcl::code $this AdjustSetting -cutplanevisible] \
+        -variable [itcl::scope _settings(-cutplanesvisible)] \
+        -command [itcl::code $this AdjustSetting -cutplanesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
@@ -1938,18 +1944,18 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane-red] \
             -offimage [Rappture::icon x-cutplane-red] \
-            -command [itcl::code $this AdjustSetting -cutplanexvisible] \
-            -variable [itcl::scope _settings(-cutplanexvisible)] \
+            -command [itcl::code $this AdjustSetting -xcutplanevisible] \
+            -variable [itcl::scope _settings(-xcutplanevisible)] \
     }
     Rappture::Tooltip::for $itk_component(xbutton) \
         "Toggle the X-axis cutplane on/off"
     $itk_component(xbutton) select
     itk_component add xposition {
         ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
-            -variable [itcl::scope _settings(-cutplanexposition)] \
+            -variable [itcl::scope _settings(-xcutplaneposition)] \
             -foreground red2 -font "Arial 9 bold"
     } {
         usual
@@ -1966,8 +1972,8 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane-green] \
             -offimage [Rappture::icon y-cutplane-green] \
-            -command [itcl::code $this AdjustSetting -cutplaneyvisible] \
-            -variable [itcl::scope _settings(-cutplaneyvisible)] \
+            -command [itcl::code $this AdjustSetting -ycutplanevisible] \
+            -variable [itcl::scope _settings(-ycutplanevisible)] \
     }
     Rappture::Tooltip::for $itk_component(ybutton) \
         "Toggle the Y-axis cutplane on/off"
@@ -1975,10 +1981,10 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
 
     itk_component add yposition {
         ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
-            -variable [itcl::scope _settings(-cutplaneyposition)] \
+            -variable [itcl::scope _settings(-ycutplaneposition)] \
             -foreground green3 -font "Arial 9 bold"
     } {
         usual
@@ -1995,8 +2001,8 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane-blue] \
             -offimage [Rappture::icon z-cutplane-blue] \
-            -command [itcl::code $this AdjustSetting -cutplanezvisible] \
-            -variable [itcl::scope _settings(-cutplanezvisible)] \
+            -command [itcl::code $this AdjustSetting -zcutplanevisible] \
+            -variable [itcl::scope _settings(-zcutplanevisible)] \
     } {
         usual
         ignore -foreground
@@ -2007,10 +2013,10 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
 
     itk_component add zposition {
         ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
-            -variable [itcl::scope _settings(-cutplanezposition)] \
+            -variable [itcl::scope _settings(-zcutplaneposition)] \
             -foreground blue3 -font "Arial 9 bold"
     } {
         usual
@@ -2041,7 +2047,7 @@ itcl::body Rappture::VtkGlyphViewer::BuildCutplaneTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkGlyphViewer::camera {option args} {
     switch -- $option {
@@ -2189,12 +2195,9 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set style(-scalemode) $style(-scaleMode)
         array unset style -scaleMode
     }
-    if 0 {
-    SendCmd "cutplane add $tag"
-    SendCmd "cutplane visible 0 $tag"
-    }
-    # This is too complicated.  We want to set the colormap, number of
-    # glyph and opacity for the dataset.  They can be the default values,
+
+    # This is too complicated.  We want to set the colormap and opacity
+    # for the dataset.  They can be the default values,
     # the style hints loaded with the dataset, or set by user controls.  As
     # datasets get loaded, they first use the defaults that are overidden
     # by the style hints.  If the user changes the global controls, then that
@@ -2212,10 +2215,15 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         $itk_component(colormap) value $style(-color)
     }
 
+    if 0 {
+    SendCmd "cutplane add $tag"
+    SendCmd "cutplane visible 0 $tag"
+    }
+
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
-    set _settings(-glyphoutline) $style(-outline)
+    set _settings(-outline) $style(-outline)
 
     SendCmd "glyphs add $style(-shape) $tag"
     set _settings(-glyphshape) $style(-shape)
@@ -2391,9 +2399,9 @@ itcl::body Rappture::VtkGlyphViewer::Slice {option args} {
 #
 # ReceiveLegend --
 #
-#    Invoked automatically whenever the "legend" command comes in from
-#    the rendering server.  Indicates that binary image data with the
-#    specified <size> will follow.
+# Invoked automatically whenever the "legend" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
 #
 itcl::body Rappture::VtkGlyphViewer::ReceiveLegend { colormap title min max size } {
     #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
@@ -2416,7 +2424,7 @@ itcl::body Rappture::VtkGlyphViewer::ReceiveLegend { colormap title min max size
 #
 # DrawLegend --
 #
-#    Draws the legend in the own canvas on the right side of the plot area.
+# Draws the legend on the canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkGlyphViewer::DrawLegend {} {
     set fname $_curFldName
@@ -2557,7 +2565,7 @@ itcl::body Rappture::VtkGlyphViewer::SetCurrentColormap { name } {
 #
 # BuildColormap --
 #
-#    Build the designated colormap on the server.
+# Build the designated colormap on the server.
 #
 itcl::body Rappture::VtkGlyphViewer::BuildColormap { name } {
     set cmap [ColorsToColormap $name]

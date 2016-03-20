@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkheightmapviewer - Vtk heightmap viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -84,7 +84,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method GetHeightmapScale {}
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
@@ -147,12 +147,12 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _legendWidth 0
     private variable _legendHeight 0
     private variable _resizePending 0
-    private variable _rotatePending 0
     private variable _legendPending 0
+    private variable _rotatePending 0
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar";# Mode of colormap (vmag or scalar)
 
     private common _downloadPopup;      # download options from popup
     private common _hardcopy
@@ -169,7 +169,9 @@ itk::usual VtkHeightmapViewer {
 itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     set _serverType "vtkvis"
 
+    #DebugOn
     EnableWaitDialog 900
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -178,13 +180,13 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Rotate event
-    $_dispatcher register !rotate
-    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
-
     # Legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
+
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -198,14 +200,14 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.36
-        -qx              0.25
-        -qy              0.50
-        -qz              0.70
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.36
+        -qx       0.25
+        -qy       0.50
+        -qz       0.70
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -254,7 +256,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu \
             -relief flat \
-            -tearoff no
+            -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -612,11 +614,11 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
 #
 # scale  --
 #
-#       This gets called either incrementally as new simulations are
-#       added or all at once as a sequence of heightmaps.
-#       This  accounts for all objects--even those not showing on the
-#       screen.  Because of this, the limits are appropriate for all
-#       objects as the user scans through data in the ResultSet viewer.
+# This gets called either incrementally as new simulations are
+# added or all at once as a sequence of heightmaps.
+# This  accounts for all objects--even those not showing on the
+# screen.  Because of this, the limits are appropriate for all
+# objects as the user scans through data in the ResultSet viewer.
 #
 itcl::body Rappture::VtkHeightmapViewer::scale {args} {
     foreach dataobj $args {
@@ -779,7 +781,7 @@ itcl::body Rappture::VtkHeightmapViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkHeightmapViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -796,8 +798,7 @@ itcl::body Rappture::VtkHeightmapViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkHeightmapViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1350,9 +1351,9 @@ itcl::body Rappture::VtkHeightmapViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1682,15 +1683,15 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.
 #
 # This should be called when
-#        1.  A new current colormap is set.
-#        2.  Window is resized.
-#        3.  The limits of the data have changed.  (Just need a redraw).
-#        4.  Number of isolines have changed. (Just need a redraw).
-#        5.  Legend becomes visible (Just need a redraw).
+#   1.  A new current colormap is set.
+#   2.  Window is resized.
+#   3.  The limits of the data have changed.  (Just need a redraw).
+#   4.  Number of isolines have changed. (Just need a redraw).
+#   5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     set _legendPending 0
@@ -1714,14 +1715,14 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
             set title $fname
         }
     }
-    # If there's a title too, substract one more line
+    # If there's a title too, subtract one more line
     if { $title != "" } {
         incr h -$lineht
     }
     if { $h < 1 } {
         return
     }
-    # Set the legend on the first heightmap dataset.
+    # Set the legend on the first dataset.
     if { $_currentColormap != "" } {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
@@ -1736,7 +1737,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
 #
 # ResetAxes --
 #
-#       Set axis z bounds and range
+# Set axis z bounds and range
 #
 itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     if { ![info exists _limits($_curFldName)]} {
@@ -1792,7 +1793,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetCurrentColormap { name } {
 #
 # BuildColormap --
 #
-#       Build the designated colormap on the server.
+# Build the designated colormap on the server.
 #
 itcl::body Rappture::VtkHeightmapViewer::BuildColormap { name } {
     set cmap [ColorsToColormap $name]
@@ -1919,14 +1920,14 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         ignore -font
     }
     itk_component add field {
-        Rappture::Combobox $inner.field -width 10 -editable no
+        Rappture::Combobox $inner.field -width 10 -editable 0
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
-        Rappture::Combobox $inner.colormap -width 10 -editable no
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList -includeNone]
     $itk_component(colormap) value $_settings(-colormap)
@@ -1935,7 +1936,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
 
     label $inner.isolinecolor_l -text "Isolines Color" -font "Arial 9"
     itk_component add isolinecolor {
-        Rappture::Combobox $inner.isolinecolor -width 10 -editable no
+        Rappture::Combobox $inner.isolinecolor -width 10 -editable 0
     }
     $inner.isolinecolor choices insert end \
         "black"              "black"            \
@@ -1955,7 +1956,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
 
     label $inner.background_l -text "Background Color" -font "Arial 9"
     itk_component add background {
-        Rappture::Combobox $inner.background -width 10 -editable no
+        Rappture::Combobox $inner.background -width 10 -editable 0
     }
     $inner.background choices insert end \
         "black"              "black"            \
@@ -2075,7 +2076,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axisflymode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -2153,7 +2154,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkHeightmapViewer::camera {option args} {
     switch -- $option {
@@ -2258,10 +2259,9 @@ itcl::body Rappture::VtkHeightmapViewer::BuildDownloadPopup { popup command } {
 #
 # SetObjectStyle --
 #
-#       Set the style of the heightmap/contour object.  This gets calls
-#       for each dataset once as it is loaded.  It can overridden by
-#       the user controls.
-#
+# Set the style of the heightmap/contour object.  This gets calls
+# for each dataset once as it is loaded.  It can overridden by
+# the user controls.
 #
 itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
@@ -2358,7 +2358,7 @@ itcl::body Rappture::VtkHeightmapViewer::ReceiveLegend { colormap title min max 
 #
 # DrawLegend --
 #
-#       Draws the legend in the own canvas on the right side of the plot area.
+# Draws the legend in the own canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     set fname $_curFldName

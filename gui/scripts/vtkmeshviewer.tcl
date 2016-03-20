@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkmeshviewer - Vtk mesh viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -77,7 +77,7 @@ itcl::class Rappture::VtkMeshViewer {
     private method EventuallySetPolydataOpacity {}
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method Pan {option x y}
     private method PanCamera {}
@@ -135,6 +135,9 @@ itk::usual VtkMeshViewer {
 itcl::body Rappture::VtkMeshViewer::constructor {args} {
     set _serverType "vtkvis"
 
+    #DebugOn
+    EnableWaitDialog 900
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -159,14 +162,14 @@ itcl::body Rappture::VtkMeshViewer::constructor {args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -193,12 +196,12 @@ itcl::body Rappture::VtkMeshViewer::constructor {args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no
+            -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -330,7 +333,6 @@ itcl::body Rappture::VtkMeshViewer::constructor {args} {
 
     eval itk_initialize $args
 
-    EnableWaitDialog 900
     Connect
 }
 
@@ -674,7 +676,7 @@ itcl::body Rappture::VtkMeshViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkMeshViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -691,8 +693,7 @@ itcl::body Rappture::VtkMeshViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkMeshViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1116,9 +1117,9 @@ itcl::body Rappture::VtkMeshViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkMeshViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1258,7 +1259,7 @@ itcl::body Rappture::VtkMeshViewer::BuildPolydataTab {} {
         ignore -font
     }
     itk_component add field {
-        Rappture::Combobox $inner.field -width 10 -editable no
+        Rappture::Combobox $inner.field -width 10 -editable 0
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
@@ -1330,7 +1331,7 @@ itcl::body Rappture::VtkMeshViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axismode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -1408,7 +1409,7 @@ itcl::body Rappture::VtkMeshViewer::BuildCameraTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkMeshViewer::camera {option args} {
     switch -- $option {

@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtksurfaceviewer - Vtk 3D boundary surface viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -81,7 +81,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method EventuallyRotate { q }
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
@@ -136,8 +136,8 @@ itcl::class Rappture::VtkSurfaceViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
-    private variable _rotatePending 0
     private variable _legendPending 0
+    private variable _rotatePending 0
     private variable _field      ""
     private variable _colorMode "scalar"; #  Mode of colormap (vmag or scalar)
     private variable _fields
@@ -158,6 +158,7 @@ itk::usual VtkSurfaceViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkSurfaceViewer::constructor {args} {
     set _serverType "vtkvis"
+    #DebugOn
 
     # Rebuild event
     $_dispatcher register !rebuild
@@ -167,13 +168,13 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Rotate event
-    $_dispatcher register !rotate
-    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
-
     # Legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
+
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
     #
     # Populate parser with commands handle incoming requests
@@ -184,52 +185,52 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-        -axesvisible                1
-        -axislabels                 1
-        -axisminorticks             1
-        -axismode                   "static"
-        -background                 black
-        -colormap                   BCGYR
-        -colormapvisible            1
-        -field                      "Default"
-        -isolinecolor               white
-        -isolinesvisible            0
-        -legendvisible              1
-        -numcontours                10
-        -outline                    0
-        -surfaceedges               0
-        -surfacelighting            1
-        -surfaceopacity             100
-        -surfacevisible             1
-        -surfacewireframe           0
-        -xgrid                      0
-        -ygrid                      0
-        -zgrid                      0
+        -axesvisible            1
+        -axislabels             1
+        -axisminorticks         1
+        -axismode               "static"
+        -background             black
+        -colormap               BCGYR
+        -colormapvisible        1
+        -field                  "Default"
+        -isolinecolor           white
+        -isolinesvisible        0
+        -legendvisible          1
+        -numcontours            10
+        -outline                0
+        -surfaceedges           0
+        -surfacelighting        1
+        -surfaceopacity         100
+        -surfacevisible         1
+        -surfacewireframe       0
+        -xgrid                  0
+        -ygrid                  0
+        -zgrid                  0
     }
     array set _changed {
-        -colormap                0
-        -isolinecolor            0
-        -isolinesvisible         0
-        -numcontours             0
-        -outline                 0
-        -surfaceedges            0
-        -surfacelighting         0
-        -surfaceopacity          0
-        -surfacevisible          0
-        -surfacewireframe        0
+        -colormap               0
+        -isolinecolor           0
+        -isolinesvisible        0
+        -numcontours            0
+        -outline                0
+        -surfaceedges           0
+        -surfacelighting        0
+        -surfaceopacity         0
+        -surfacevisible         0
+        -surfacewireframe       0
     }
 
     itk_component add view {
@@ -237,7 +238,7 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
@@ -755,7 +756,7 @@ itcl::body Rappture::VtkSurfaceViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkSurfaceViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -772,8 +773,7 @@ itcl::body Rappture::VtkSurfaceViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkSurfaceViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1202,9 +1202,9 @@ itcl::body Rappture::VtkSurfaceViewer::Pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkSurfaceViewer::InitSettings { args } {
     foreach spec $args {
-        if { [info exists _settings($_first-$spec)] } {
+        if { [info exists _settings($_first${spec})] } {
             # Reset global setting with dataobj specific setting
-            set _settings($spec) $_settings($_first-$spec)
+            set _settings($spec) $_settings($_first${spec})
         }
         AdjustSetting $spec
     }
@@ -1213,9 +1213,9 @@ itcl::body Rappture::VtkSurfaceViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1423,15 +1423,15 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.
 #
 # This should be called when
-#        1.  A new current colormap is set.
-#        2.  Window is resized.
-#        3.  The limits of the data have changed.  (Just need a redraw).
-#        4.  Number of isolines have changed. (Just need a redraw).
-#        5.  Legend becomes visible (Just need a redraw).
+#   1.  A new current colormap is set.
+#   2.  Window is resized.
+#   3.  The limits of the data have changed.  (Just need a redraw).
+#   4.  Number of isolines have changed. (Just need a redraw).
+#   5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
     set _legendPending 0
@@ -1462,7 +1462,7 @@ itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
     if { $title != "" } {
         incr h -$lineht
     }
-    # Set the legend on the first heightmap dataset.
+    # Set the legend on the first dataset.
     if { $_currentColormap != "" } {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
@@ -1772,7 +1772,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildCameraTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkSurfaceViewer::camera {option args} {
     switch -- $option {
@@ -2066,9 +2066,9 @@ itcl::body Rappture::VtkSurfaceViewer::SetLegendTip { x y } {
 #
 # ReceiveLegend --
 #
-#        Invoked automatically whenever the "legend" command comes in from
-#        the rendering server.  Indicates that binary image data with the
-#        specified <size> will follow.
+# Invoked automatically whenever the "legend" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
 #
 itcl::body Rappture::VtkSurfaceViewer::ReceiveLegend { colormap title min max size } {
     #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
@@ -2091,7 +2091,7 @@ itcl::body Rappture::VtkSurfaceViewer::ReceiveLegend { colormap title min max si
 #
 # DrawLegend --
 #
-#       Draws the legend in the own canvas on the right side of the plot area.
+# Draws the legend in the own canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
     set fname $_curFldName
@@ -2260,7 +2260,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetCurrentColormap { name } {
 #
 # BuildColormap --
 #
-#       Build the designated colormap on the server.
+# Build the designated colormap on the server.
 #
 itcl::body Rappture::VtkSurfaceViewer::BuildColormap { name } {
     set cmap [ColorsToColormap $name]

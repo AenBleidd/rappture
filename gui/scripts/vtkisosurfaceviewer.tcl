@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkisosurfaceviewer - Vtk 3D contour object viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -66,7 +66,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name }
-    private method BuildCutplaneTab {}
+    private method BuildCutplanesTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildIsosurfaceTab {}
     private method Connect {}
@@ -155,11 +155,11 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
+    private variable _legendPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
-    private variable _legendPending 0
     private variable _field      ""
-    private variable _colorMode "scalar";   #  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar";   # Mode of colormap (vmag or scalar)
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
@@ -180,7 +180,9 @@ itk::usual VtkIsosurfaceViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
     set _serverType "vtkvis"
+
     #DebugOn
+    EnableWaitDialog 900
 
     # Rebuild event
     $_dispatcher register !rebuild
@@ -190,13 +192,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Rotate event
-    $_dispatcher register !rotate
-    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
-
     # Legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
+
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
     # Contour levels event
     $_dispatcher register !contours
@@ -222,19 +224,19 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
@@ -246,67 +248,67 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
         values          ""
     }
     array set _settings {
-        -axesvisible                1
-        -axislabels                 1
-        -axisminorticks             1
-        -axismode                   "static"
-        -background                 black
-        -colormap                   BCGYR
-        -colormapvisible            1
-        -customrange                0
-        -customrangemin             0
-        -customrangemax             1
-        -cutplaneedges              0
-        -cutplanelighting           1
-        -cutplaneopacity            1.0
-        -cutplanepreinterp          1
-        -cutplanesvisible           0
-        -cutplanewireframe          0
-        -field                      "Default"
-        -isolinecolor               white
-        -isosurfaceedges            0
-        -isosurfacelighting         1
-        -isosurfaceopacity          0.6
-        -isosurfacevisible          1
-        -isosurfacewireframe        0
-        -legendvisible              1
-        -numcontours                10
-        -outline                    0
-        -xcutplaneposition          50
-        -xcutplanevisible           1
-        -xgrid                      0
-        -ycutplaneposition          50
-        -ycutplanevisible           1
-        -ygrid                      0
-        -zcutplaneposition          50
-        -zcutplanevisible           1
-        -zgrid                      0
+        -axesvisible            1
+        -axislabels             1
+        -axisminorticks         1
+        -axismode               "static"
+        -background             black
+        -colormap               BCGYR
+        -colormapvisible        1
+        -customrange            0
+        -customrangemin         0
+        -customrangemax         1
+        -cutplaneedges          0
+        -cutplanelighting       1
+        -cutplaneopacity        1.0
+        -cutplanepreinterp      1
+        -cutplanesvisible       0
+        -cutplanewireframe      0
+        -field                  "Default"
+        -isolinecolor           white
+        -isosurfaceedges        0
+        -isosurfacelighting     1
+        -isosurfaceopacity      0.6
+        -isosurfacevisible      1
+        -isosurfacewireframe    0
+        -legendvisible          1
+        -numcontours            10
+        -outline                0
+        -xcutplaneposition      50
+        -xcutplanevisible       1
+        -xgrid                  0
+        -ycutplaneposition      50
+        -ycutplanevisible       1
+        -ygrid                  0
+        -zcutplaneposition      50
+        -zcutplanevisible       1
+        -zgrid                  0
     }
     array set _changed {
-        -colormap                0
-        -cutplaneedges           0
-        -cutplanelighting        0
-        -cutplaneopacity         0
-        -cutplanepreinterp       0
-        -cutplanesvisible        0
-        -cutplanewireframe       0
-        -isosurfaceedges         0
-        -isosurfacelighting      0
-        -isosurfaceopacity       0
-        -isosurfacevisible       0
-        -isosurfacewireframe     0
-        -numcontours             0
-        -outline                 0
-        -xcutplaneposition       0
-        -xcutplanevisible        0
-        -ycutplaneposition       0
-        -ycutplanevisible        0
-        -zcutplaneposition       0
-        -zcutplanevisible        0
+        -colormap               0
+        -cutplaneedges          0
+        -cutplanelighting       0
+        -cutplaneopacity        0
+        -cutplanepreinterp      0
+        -cutplanesvisible       0
+        -cutplanewireframe      0
+        -isosurfaceedges        0
+        -isosurfacelighting     0
+        -isosurfaceopacity      0
+        -isosurfacevisible      0
+        -isosurfacewireframe    0
+        -numcontours            0
+        -outline                0
+        -xcutplaneposition      0
+        -xcutplanevisible       0
+        -ycutplaneposition      0
+        -ycutplanevisible       0
+        -zcutplaneposition      0
+        -zcutplanevisible       0
     }
     array set _widget {
-        -isosurfaceopacity       60
-        -cutplaneopacity         100
+        -isosurfaceopacity      60
+        -cutplaneopacity        100
     }
 
     itk_component add view {
@@ -314,7 +316,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
@@ -417,7 +419,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
 
     if { [catch {
         BuildIsosurfaceTab
-        BuildCutplaneTab
+        BuildCutplanesTab
         BuildAxisTab
         BuildCameraTab
     } errs] != 0 } {
@@ -462,7 +464,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
 
     eval itk_initialize $args
 
-    EnableWaitDialog 900
     Connect
 }
 
@@ -909,7 +910,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -926,8 +927,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1128,7 +1128,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             if { $label == "" } {
                 set label [string toupper $axis]
             }
-            # May be a space in the axis label
+            # There may be a space in the axis label.
             SendCmd [list axis name $axis $label]
         }
         if { [array size _fields] < 2 } {
@@ -1358,9 +1358,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::InitSettings { args } {
     foreach spec $args {
-        if { [info exists _settings($_first-$spec)] } {
+        if { [info exists _settings($_first${spec})] } {
             # Reset global setting with dataobj specific setting
-            set _settings($spec) $_settings($_first-$spec)
+            set _settings($spec) $_settings($_first${spec})
         }
         AdjustSetting $spec
     }
@@ -1369,9 +1369,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
     DebugTrace "Enter"
@@ -1630,8 +1630,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.
 #
 # This should be called when
 #   1.  A new current colormap is set.
@@ -1669,7 +1669,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
     if { $title != "" } {
         incr h -$lineht
     }
-    # Set the legend on the first isosurface dataset.
+    # Set the legend on the first dataset.
     if { $_currentColormap != "" } {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
@@ -1856,28 +1856,28 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
 
     blt::table $inner \
-        0,0 $inner.field_l   -anchor w -pady 2  \
-        0,1 $inner.field     -anchor w -pady 2  -fill x \
-        1,0 $inner.colormap_l -anchor w -pady 2  \
-        1,1 $inner.colormap   -anchor w -pady 2  -fill x \
-        2,0 $inner.linecolor_l  -anchor w -pady 2  \
-        2,1 $inner.linecolor    -anchor w -pady 2 -fill x  \
+        0,0 $inner.field_l      -anchor w -pady 2 \
+        0,1 $inner.field        -anchor w -pady 2 -fill x \
+        1,0 $inner.colormap_l   -anchor w -pady 2 \
+        1,1 $inner.colormap     -anchor w -pady 2 -fill x \
+        2,0 $inner.linecolor_l  -anchor w -pady 2 \
+        2,1 $inner.linecolor    -anchor w -pady 2 -fill x \
         3,0 $inner.background_l -anchor w -pady 2 \
-        3,1 $inner.background -anchor w -pady 2  -fill x \
+        3,1 $inner.background   -anchor w -pady 2 -fill x \
         4,0 $inner.numcontours_l -anchor w -pady 2 \
-        4,1 $inner.numcontours -anchor w -pady 2 \
-        5,0 $inner.wireframe -anchor w -pady 2 -cspan 2 \
-        6,0 $inner.lighting  -anchor w -pady 2 -cspan 2 \
-        7,0 $inner.edges     -anchor w -pady 2 -cspan 2 \
-        8,0 $inner.outline   -anchor w -pady 2 -cspan 2 \
-        9,0 $inner.legend    -anchor w -pady 2 \
-        10,0 $inner.opacity_l -anchor w -pady 2 \
-        10,1 $inner.opacity   -fill x   -pady 2 -fill x \
-        11,0 $inner.crange    -anchor w -pady 2 -cspan 2 \
-        12,0 $inner.l_min     -anchor w -pady 2 \
-        12,1 $inner.min       -anchor w -pady 2 -fill x \
-        13,0 $inner.l_max     -anchor w -pady 2 \
-        13,1 $inner.max       -anchor w -pady 2 -fill x \
+        4,1 $inner.numcontours  -anchor w -pady 2 \
+        5,0 $inner.wireframe    -anchor w -pady 2 -cspan 2 \
+        6,0 $inner.lighting     -anchor w -pady 2 -cspan 2 \
+        7,0 $inner.edges        -anchor w -pady 2 -cspan 2 \
+        8,0 $inner.outline      -anchor w -pady 2 -cspan 2 \
+        9,0 $inner.legend       -anchor w -pady 2 \
+        10,0 $inner.opacity_l   -anchor w -pady 2 \
+        10,1 $inner.opacity     -fill x   -pady 2 -fill x \
+        11,0 $inner.crange      -anchor w -pady 2 -cspan 2 \
+        12,0 $inner.l_min       -anchor w -pady 2 \
+        12,1 $inner.min         -anchor w -pady 2 -fill x \
+        13,0 $inner.l_max       -anchor w -pady 2 \
+        13,1 $inner.max         -anchor w -pady 2 -fill x \
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r14 c1 -resize expand
@@ -1940,15 +1940,15 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 4 \
-        1,0 $inner.labels  -anchor w -cspan 4 \
-        2,0 $inner.minorticks  -anchor w -cspan 4 \
-        4,0 $inner.grid_l  -anchor w \
-        4,1 $inner.xgrid   -anchor w \
-        4,2 $inner.ygrid   -anchor w \
-        4,3 $inner.zgrid   -anchor w \
-        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
-        5,1 $inner.mode    -fill x   -cspan 3
+        0,0 $inner.visible    -anchor w -cspan 4 \
+        1,0 $inner.labels     -anchor w -cspan 4 \
+        2,0 $inner.minorticks -anchor w -cspan 4 \
+        4,0 $inner.grid_l     -anchor w \
+        4,1 $inner.xgrid      -anchor w \
+        4,2 $inner.ygrid      -anchor w \
+        4,3 $inner.zgrid      -anchor w \
+        5,0 $inner.mode_l     -anchor w -padx { 2 0 } \
+        5,1 $inner.mode       -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c6 -resize expand
@@ -2007,7 +2007,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize expand
 }
 
-itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
+itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplanesTab {} {
 
     set fg [option get $itk_component(hull) font Font]
 
@@ -2144,27 +2144,26 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
         "@[itcl::code $this Slice tooltip z]"
 
     blt::table $inner \
-        0,0 $inner.visible              -anchor w -pady 2 -cspan 3 \
-        1,0 $inner.lighting             -anchor w -pady 2 -cspan 3 \
-        2,0 $inner.wireframe            -anchor w -pady 2 -cspan 3 \
-        3,0 $inner.edges                -anchor w -pady 2 -cspan 3 \
-        4,0 $inner.preinterp            -anchor w -pady 2 -cspan 3 \
-        5,0 $inner.opacity_l            -anchor w -pady 2 -cspan 1 \
-        5,1 $inner.opacity              -fill x   -pady 2 -cspan 3 \
-        6,0 $inner.xbutton              -anchor w -padx 2 -pady 2 \
-        7,0 $inner.ybutton              -anchor w -padx 2 -pady 2 \
-        8,0 $inner.zbutton              -anchor w -padx 2 -pady 2 \
-        6,1 $inner.xval                 -fill y -rspan 4 \
-        6,2 $inner.yval                 -fill y -rspan 4 \
-        6,3 $inner.zval                 -fill y -rspan 4 \
-
+        0,0 $inner.visible   -anchor w -pady 2 -cspan 3 \
+        1,0 $inner.lighting  -anchor w -pady 2 -cspan 3 \
+        2,0 $inner.wireframe -anchor w -pady 2 -cspan 3 \
+        3,0 $inner.edges     -anchor w -pady 2 -cspan 3 \
+        4,0 $inner.preinterp -anchor w -pady 2 -cspan 3 \
+        5,0 $inner.opacity_l -anchor w -pady 2 -cspan 1 \
+        5,1 $inner.opacity   -fill x   -pady 2 -cspan 3 \
+        6,0 $inner.xbutton   -anchor w -padx 2 -pady 2 \
+        7,0 $inner.ybutton   -anchor w -padx 2 -pady 2 \
+        8,0 $inner.zbutton   -anchor w -padx 2 -pady 2 \
+        6,1 $inner.xval      -fill y -rspan 4 \
+        6,2 $inner.yval      -fill y -rspan 4 \
+        6,3 $inner.zval      -fill y -rspan 4 \
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r9 c4 -resize expand
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkIsosurfaceViewer::camera {option args} {
     switch -- $option {
@@ -2595,9 +2594,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Slice {option args} {
 #
 # ReceiveLegend --
 #
-#   Invoked automatically whenever the "legend" command comes in from
-#   the rendering server.  Indicates that binary image data with the
-#   specified <size> will follow.
+# Invoked automatically whenever the "legend" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::ReceiveLegend { colormap title min max size } {
     # puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
@@ -2620,7 +2619,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveLegend { colormap title min max
 #
 # DrawLegend --
 #
-#       Draws the legend on the canvas on the right side of the plot area.
+# Draws the legend on the canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     set fname $_curFldName
@@ -2766,7 +2765,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 # title. The leave option is invoked when the user moves the mouse away
 # from the field title.  The save option is invoked whenever there is a
 # selection from the list, to alert the visualization server.
-#
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::LegendTitleAction {option} {
     set c $itk_component(view)
@@ -2807,7 +2805,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendTitleAction {option} {
 # <widget> is the widget where a tooltip/warning message should show up on
 # <which> is either "vmin" or "vmax".
 # <value> is the value to be validated.
-#
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeValidate {widget which value} {
 
@@ -2890,7 +2887,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::MouseOver2Which {} {
 # this method to get the xywh dimensions of the popup editor. After the user
 # changes focus or sets the value in the editor, the editor calls this methods
 # validate and apply options to set the value.
-#
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeAction {option args} {
     set c $itk_component(view)
@@ -2976,7 +2972,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeAction {option args} {
 # custom range values from our backup variables. If the variable is 0,
 # the custom range was enabled through the user manipulating the
 # min and max value in the legend.
-#
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::ToggleCustomRange {args} {
     if { ! $_settings(-customrange) } {
@@ -3069,7 +3064,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentColormap { name } {
 #
 # BuildColormap --
 #
-#       Build the designated colormap on the server.
+# Build the designated colormap on the server.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::BuildColormap { name } {
     set cmap [ColorsToColormap $name]

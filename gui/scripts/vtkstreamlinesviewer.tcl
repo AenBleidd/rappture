@@ -2,11 +2,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkstreamlinesviewer - Vtk streamlines object viewer
 #
-#  It connects to the Vtk server running on a rendering farm,
+#  It connects to the Vtkvis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2014  HUBzero Foundation, LLC
+#  Copyright (c) 2004-2016  HUBzero Foundation, LLC
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -66,7 +66,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method BuildAxisTab {}
     private method BuildCameraTab {}
     private method BuildColormap { name }
-    private method BuildCutplaneTab {}
+    private method BuildCutplanesTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildStreamsTab {}
     private method BuildSurfaceTab {}
@@ -85,7 +85,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method EventuallySetCutplane { axis args }
     private method GetImage { args }
     private method GetVtkData { args }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
     private method MotionLegend { x y }
@@ -134,10 +134,10 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
+    private variable _legendPending 0
     private variable _reseedPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
-    private variable _legendPending 0
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
@@ -160,6 +160,7 @@ itk::usual VtkStreamlinesViewer {
 itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
     set _serverType "vtkvis"
 
+    #DebugOn
     EnableWaitDialog 2000
 
     # Rebuild event
@@ -170,6 +171,10 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
+    # Legend event
+    $_dispatcher register !legend
+    $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
+
     # Reseed event
     $_dispatcher register !reseed
     $_dispatcher dispatch $this !reseed "[itcl::code $this DoReseed]; list"
@@ -178,91 +183,87 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
-    # Legend event
-    $_dispatcher register !legend
-    $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
-
     # X-Cutplane event
     $_dispatcher register !xcutplane
     $_dispatcher dispatch $this !xcutplane \
-        "[itcl::code $this AdjustSetting -cutplanexposition]; list"
+        "[itcl::code $this AdjustSetting -xcutplaneposition]; list"
 
     # Y-Cutplane event
     $_dispatcher register !ycutplane
     $_dispatcher dispatch $this !ycutplane \
-        "[itcl::code $this AdjustSetting -cutplaneyposition]; list"
+        "[itcl::code $this AdjustSetting -ycutplaneposition]; list"
 
     # Z-Cutplane event
     $_dispatcher register !zcutplane
     $_dispatcher dispatch $this !zcutplane \
-        "[itcl::code $this AdjustSetting -cutplanezposition]; list"
+        "[itcl::code $this AdjustSetting -zcutplaneposition]; list"
 
     #
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
-        -ortho           0
-        -qw              0.853553
-        -qx              -0.353553
-        -qy              0.353553
-        -qz              0.146447
-        -xpan            0
-        -ypan            0
-        -zoom            1.0
+        -ortho    0
+        -qw       0.853553
+        -qx       -0.353553
+        -qy       0.353553
+        -qz       0.146447
+        -xpan     0
+        -ypan     0
+        -zoom     1.0
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
-    array set _settings [subst {
-        -axesvisible                1
-        -axislabelsvisible          1
-        -axisminorticks             1
-        -axismode                   "static"
-        -cutplaneedges              0
-        -cutplanelighting           1
-        -cutplaneopacity            100
-        -cutplanevisible            0
-        -cutplanewireframe          0
-        -cutplanexposition          50
-        -cutplanexvisible           1
-        -cutplaneyposition          50
-        -cutplaneyvisible           1
-        -cutplanezposition          50
-        -cutplanezvisible           1
-        -legendvisible              1
-        -streamlineslighting        1
-        -streamlinesmode            lines
-        -streamlinesnumseeds        200
-        -streamlinesopacity         100
-        -streamlineslength          70
-        -streamlinesseedsvisible    0
-        -streamlinesvisible         1
-        -surfaceedges               0
-        -surfacelighting            1
-        -surfaceopacity             40
-        -surfacevisible             1
-        -surfacewireframe           0
-        -xgrid                      0
-        -ygrid                      0
-        -zgrid                      0
-    }]
+    array set _settings {
+        -axesvisible              1
+        -axislabelsvisible        1
+        -axisminorticks           1
+        -axismode                 "static"
+        -cutplaneedges            0
+        -cutplanelighting         1
+        -cutplaneopacity          100
+        -cutplanesvisible         0
+        -cutplanewireframe        0
+        -legendvisible            1
+        -streamlineslighting      1
+        -streamlinesmode          lines
+        -streamlinesnumseeds      200
+        -streamlinesopacity       100
+        -streamlineslength        70
+        -streamlinesseedsvisible  0
+        -streamlinesvisible       1
+        -surfaceedges             0
+        -surfacelighting          1
+        -surfaceopacity           40
+        -surfacevisible           1
+        -surfacewireframe         0
+        -xcutplaneposition        50
+        -xcutplanevisible         1
+        -xgrid                    0
+        -ycutplaneposition        50
+        -ycutplanevisible         1
+        -ygrid                    0
+        -zcutplaneposition        50
+        -zcutplanevisible         1
+        -zgrid                    0
+    }
 
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness -borderwidth  -background
+        ignore -highlightthickness -borderwidth -background
     }
 
     itk_component add fieldmenu {
         menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
-            -tearoff no
+            -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -352,8 +353,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings(-cutplanevisible)] \
-            -command [itcl::code $this AdjustSetting -cutplanevisible]
+            -variable [itcl::scope _settings(-cutplanesvisible)] \
+            -command [itcl::code $this AdjustSetting -cutplanesvisible]
     }
     Rappture::Tooltip::for $itk_component(cutplane) \
         "Show/Hide the cutplanes"
@@ -362,7 +363,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
     if { [catch {
         BuildSurfaceTab
         BuildStreamsTab
-        BuildCutplaneTab
+        BuildCutplanesTab
         BuildAxisTab
         BuildCameraTab
     } errs] != 0 } {
@@ -809,7 +810,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Connect {} {
 #
 # isconnected --
 #
-#       Indicates if we are currently connected to the visualization server.
+# Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::VtkStreamlinesViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -826,8 +827,7 @@ itcl::body Rappture::VtkStreamlinesViewer::disconnect {} {
 #
 # Disconnect --
 #
-#       Clients use this method to disconnect from the current rendering
-#       server.
+# Clients use this method to disconnect from the current rendering server.
 #
 itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -1051,9 +1051,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             -streamlinescolormap -field \
             -surfacevisible -surfaceedges -surfacelighting -surfaceopacity \
             -surfacewireframe \
-            -cutplanevisible \
-            -cutplanexposition -cutplaneyposition -cutplanezposition \
-            -cutplanexvisible -cutplaneyvisible -cutplanezvisible
+            -cutplanesvisible \
+            -xcutplaneposition -ycutplaneposition -zcutplaneposition \
+            -xcutplanevisible -ycutplanevisible -zcutplanevisible
 
         # Reset the camera and other view parameters
         $_arcball quaternion [ViewToQuaternion]
@@ -1297,9 +1297,9 @@ itcl::body Rappture::VtkStreamlinesViewer::InitSettings { args } {
 #
 # AdjustSetting --
 #
-#       Changes/updates a specific setting in the widget.  There are
-#       usually user-setable option.  Commands are sent to the render
-#       server.
+# Changes/updates a specific setting in the widget.  There are
+# usually user-setable option.  Commands are sent to the render
+# server.
 #
 itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
@@ -1328,7 +1328,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
         }
-        "-cutplanevisible" {
+        "-cutplanesvisible" {
             set bool $_settings($what)
             SendCmd "cutplane visible $bool"
             if { $bool } {
@@ -1351,24 +1351,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "cutplane opacity $sval"
-        }
-        "-cutplanexvisible" - "-cutplaneyvisible" - "-cutplanezvisible" {
-            set axis [string range $what 9 9]
-            set bool $_settings($what)
-            if { $bool } {
-                $itk_component(${axis}CutScale) configure -state normal \
-                    -troughcolor white
-            } else {
-                $itk_component(${axis}CutScale) configure -state disabled \
-                    -troughcolor grey82
-            }
-            SendCmd "cutplane axis $axis $bool"
-        }
-        "-cutplanexposition" - "-cutplaneyposition" - "-cutplanezposition" {
-            set axis [string range $what 9 9]
-            set pos [expr $_settings($what) * 0.01]
-            SendCmd "cutplane slice ${axis} ${pos}"
-            set _cutplanePending 0
         }
         "-field" {
             set label [$itk_component(field) value]
@@ -1484,6 +1466,24 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "polydata edges $bool"
         }
+        "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
+            set axis [string range $what 1 1]
+            set bool $_settings($what)
+            if { $bool } {
+                $itk_component(${axis}CutScale) configure -state normal \
+                    -troughcolor white
+            } else {
+                $itk_component(${axis}CutScale) configure -state disabled \
+                    -troughcolor grey82
+            }
+            SendCmd "cutplane axis $axis $bool"
+        }
+        "-xcutplaneposition" - "-ycutplaneposition" - "-zcutplaneposition" {
+            set axis [string range $what 1 1]
+            set pos [expr $_settings($what) * 0.01]
+            SendCmd "cutplane slice ${axis} ${pos}"
+            set _cutplanePending 0
+        }
         "-xgrid" - "-ygrid" - "-zgrid" {
             set axis [string range $what 1 1]
             set bool $_settings($what)
@@ -1498,9 +1498,9 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#       Request a new legend from the server.  The size of the legend
-#       is determined from the height of the canvas.  It will be rotated
-#       to be vertical when drawn.
+# Request a new legend from the server.  The size of the legend
+# is determined from the height of the canvas.  It will be rotated
+# to be vertical when drawn.
 #
 itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     set font "Arial 8"
@@ -1510,7 +1510,7 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     if { $h < 1 } {
         return
     }
-    # Set the legend on the first streamlines dataset.
+    # Set the legend on the first dataset.
     if { $_currentColormap != "" } {
         set cmap $_currentColormap
         if { ![info exists _colormaps($cmap)] } {
@@ -1652,7 +1652,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 
     label $inner.mode_l -text "Mode" -font "Arial 9"
     itk_component add streammode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "lines"    "lines" \
@@ -1684,14 +1684,14 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 
     label $inner.field_l -text "Color by" -font "Arial 9"
     itk_component add field {
-        Rappture::Combobox $inner.field -width 10 -editable no
+        Rappture::Combobox $inner.field -width 10 -editable 0
     }
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9"
     itk_component add colormap {
-        Rappture::Combobox $inner.colormap -width 10 -editable no
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList]
 
@@ -1765,7 +1765,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
     itk_component add axismode {
-        Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -1842,7 +1842,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize expand
 }
 
-itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
+itcl::body Rappture::VtkStreamlinesViewer::BuildCutplanesTab {} {
 
     set fg [option get $itk_component(hull) font Font]
 
@@ -1854,8 +1854,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 
     checkbutton $inner.visible \
         -text "Show Cutplanes" \
-        -variable [itcl::scope _settings(-cutplanevisible)] \
-        -command [itcl::code $this AdjustSetting -cutplanevisible] \
+        -variable [itcl::scope _settings(-cutplanesvisible)] \
+        -command [itcl::code $this AdjustSetting -cutplanesvisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
@@ -1889,8 +1889,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane-red] \
             -offimage [Rappture::icon x-cutplane-red] \
-            -command [itcl::code $this AdjustSetting -cutplanexvisible] \
-            -variable [itcl::scope _settings(-cutplanexvisible)]
+            -command [itcl::code $this AdjustSetting -xcutplanevisible] \
+            -variable [itcl::scope _settings(-xcutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X-axis cutplane on/off"
@@ -1898,10 +1898,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
-            -variable [itcl::scope _settings(-cutplanexposition)] \
+            -variable [itcl::scope _settings(-xcutplaneposition)] \
             -foreground red3 -font "Arial 9 bold"
     } {
         usual
@@ -1918,8 +1918,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane-green] \
             -offimage [Rappture::icon y-cutplane-green] \
-            -command [itcl::code $this AdjustSetting -cutplaneyvisible] \
-            -variable [itcl::scope _settings(-cutplaneyvisible)]
+            -command [itcl::code $this AdjustSetting -ycutplanevisible] \
+            -variable [itcl::scope _settings(-ycutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y-axis cutplane on/off"
@@ -1927,10 +1927,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
-            -variable [itcl::scope _settings(-cutplaneyposition)] \
+            -variable [itcl::scope _settings(-ycutplaneposition)] \
             -foreground green3 -font "Arial 9 bold"
     } {
         usual
@@ -1947,8 +1947,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane-blue] \
             -offimage [Rappture::icon z-cutplane-blue] \
-            -command [itcl::code $this AdjustSetting -cutplanezvisible] \
-            -variable [itcl::scope _settings(-cutplanezvisible)]
+            -command [itcl::code $this AdjustSetting -zcutplanevisible] \
+            -variable [itcl::scope _settings(-zcutplanevisible)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z-axis cutplane on/off"
@@ -1956,10 +1956,10 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue yes \
+            -width 10 -orient vertical -showvalue 1 \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \
-            -variable [itcl::scope _settings(-cutplanezposition)] \
+            -variable [itcl::scope _settings(-zcutplaneposition)] \
             -foreground blue3 -font "Arial 9 bold"
     } {
         usual
@@ -1988,7 +1988,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 }
 
 #
-#  camera --
+# camera --
 #
 itcl::body Rappture::VtkStreamlinesViewer::camera {option args} {
     switch -- $option {
@@ -2198,8 +2198,8 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
 #
 # DrawLegend --
 #
-#       Draws the legend in it's own canvas which resides to the right
-#       of the contour plot area.
+# Draws the legend in it's own canvas which resides to the right
+# of the contour plot area.
 #
 itcl::body Rappture::VtkStreamlinesViewer::DrawLegend {} {
     set fname $_curFldName
