@@ -2570,7 +2570,7 @@ itcl::body Rappture::VtkGlyphViewer::SetOrientation { side } {
     set _view(-zoom) 1.0
 }
 
-itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentFieldName { dataobj } {
+itcl::body Rappture::VtkGlyphViewer::SetCurrentFieldName { dataobj } {
     set _first $dataobj
     $itk_component(field) choices delete 0 end
     $itk_component(fieldmenu) delete 0 end
