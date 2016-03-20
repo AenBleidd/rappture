@@ -180,8 +180,8 @@ itcl::body Rappture::VtkSurfaceViewer::constructor {args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -904,7 +904,8 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
         DoRotate
         PanCamera
         set _first ""
-        InitSettings -xgrid -ygrid -zgrid -axismode \
+        InitSettings -background \
+            -xgrid -ygrid -zgrid -axismode \
             -axesvisible -axislabels -axisminorticks
         #SendCmd "axis lformat all %g"
         StopBufferingCommands
@@ -972,7 +973,7 @@ itcl::body Rappture::VtkSurfaceViewer::Rebuild {} {
             if { $label == "" } {
                 set label [string toupper $axis]
             }
-            # May be a space in the axis label.
+            # There may be a space in the axis label.
             SendCmd [list axis name $axis $label]
         }
         if { [array size _fields] < 2 } {
@@ -1624,25 +1625,25 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         [itcl::code $this AdjustSetting -numcontours]
 
     blt::table $inner \
-        0,0 $inner.field_l   -anchor w -pady 2  \
-        0,1 $inner.field     -anchor w -pady 2  -fill x \
-        1,0 $inner.colormap_l -anchor w -pady 2  \
-        1,1 $inner.colormap   -anchor w -pady 2  -fill x \
-        2,0 $inner.linecolor_l  -anchor w -pady 2  \
-        2,1 $inner.linecolor    -anchor w -pady 2 -fill x  \
+        0,0 $inner.field_l      -anchor w -pady 2 \
+        0,1 $inner.field        -anchor w -pady 2 -fill x \
+        1,0 $inner.colormap_l   -anchor w -pady 2 \
+        1,1 $inner.colormap     -anchor w -pady 2 -fill x \
+        2,0 $inner.linecolor_l  -anchor w -pady 2 \
+        2,1 $inner.linecolor    -anchor w -pady 2 -fill x \
         3,0 $inner.background_l -anchor w -pady 2 \
-        3,1 $inner.background -anchor w -pady 2  -fill x \
+        3,1 $inner.background   -anchor w -pady 2 -fill x \
         4,0 $inner.numcontours_l -anchor w -pady 2 \
-        4,1 $inner.numcontours -anchor w -pady 2 \
+        4,1 $inner.numcontours  -anchor w -pady 2 \
         5,0 $inner.colormapDiscrete -anchor w -pady 2 -cspan 2 \
-        6,0 $inner.isolines  -anchor w -pady 2 -cspan 2 \
-        7,0 $inner.wireframe -anchor w -pady 2 -cspan 2 \
-        8,0 $inner.lighting  -anchor w -pady 2 -cspan 2 \
-        9,0 $inner.edges     -anchor w -pady 2 -cspan 2 \
-        10,0 $inner.outline   -anchor w -pady 2 -cspan 2 \
-        11,0 $inner.legend    -anchor w -pady 2 \
-        12,0 $inner.opacity_l -anchor w -pady 2 \
-        12,1 $inner.opacity   -fill x   -pady 2 -fill x \
+        6,0 $inner.isolines     -anchor w -pady 2 -cspan 2 \
+        7,0 $inner.wireframe    -anchor w -pady 2 -cspan 2 \
+        8,0 $inner.lighting     -anchor w -pady 2 -cspan 2 \
+        9,0 $inner.edges        -anchor w -pady 2 -cspan 2 \
+        10,0 $inner.outline     -anchor w -pady 2 -cspan 2 \
+        11,0 $inner.legend      -anchor w -pady 2 \
+        12,0 $inner.opacity_l   -anchor w -pady 2 \
+        12,1 $inner.opacity     -fill x   -pady 2 -fill x \
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r13 c1 -resize expand
@@ -1705,15 +1706,15 @@ itcl::body Rappture::VtkSurfaceViewer::BuildAxisTab {} {
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
-        0,0 $inner.visible -anchor w -cspan 4 \
-        1,0 $inner.labels  -anchor w -cspan 4 \
-        2,0 $inner.minorticks  -anchor w -cspan 4 \
-        4,0 $inner.grid_l  -anchor w \
-        4,1 $inner.xgrid   -anchor w \
-        4,2 $inner.ygrid   -anchor w \
-        4,3 $inner.zgrid   -anchor w \
-        5,0 $inner.mode_l  -anchor w -padx { 2 0 } \
-        5,1 $inner.mode    -fill x   -cspan 3
+        0,0 $inner.visible    -anchor w -cspan 4 \
+        1,0 $inner.labels     -anchor w -cspan 4 \
+        2,0 $inner.minorticks -anchor w -cspan 4 \
+        4,0 $inner.grid_l     -anchor w \
+        4,1 $inner.xgrid      -anchor w \
+        4,2 $inner.ygrid      -anchor w \
+        4,3 $inner.zgrid      -anchor w \
+        5,0 $inner.mode_l     -anchor w -padx { 2 0 } \
+        5,1 $inner.mode       -fill x   -cspan 3
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c6 -resize expand
@@ -2071,7 +2072,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetLegendTip { x y } {
 # specified <size> will follow.
 #
 itcl::body Rappture::VtkSurfaceViewer::ReceiveLegend { colormap title min max size } {
-    #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
+    DebugTrace "Enter"
     set _title $title
     regsub {\(mag\)} $title "" _title
     if { [IsConnected] } {
@@ -2091,7 +2092,7 @@ itcl::body Rappture::VtkSurfaceViewer::ReceiveLegend { colormap title min max si
 #
 # DrawLegend --
 #
-# Draws the legend in the own canvas on the right side of the plot area.
+# Draws the legend on the canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
     set fname $_curFldName
