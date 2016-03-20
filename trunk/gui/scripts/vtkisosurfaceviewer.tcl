@@ -1410,6 +1410,26 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             $itk_component(view) delete "legend"
             DrawLegend
         }
+        "-colormap" {
+            set _changed($what) 1
+            StartBufferingCommands
+            set color [$itk_component(colormap) value]
+            set _settings($what) $color
+            if { $color == "none" } {
+                if { $_settings(-colormapvisible) } {
+                    SendCmd "contour3d colormode constant {}"
+                    set _settings(-colormapvisible) 0
+                }
+            } else {
+                if { !$_settings(-colormapvisible) } {
+                    SendCmd "contour3d colormode $_colorMode $_curFldName"
+                    set _settings(-colormapvisible) 1
+                }
+                SetCurrentColormap $color
+            }
+            StopBufferingCommands
+            EventuallyRequestLegend
+        }
         "-cutplaneedges" {
             set _changed($what) 1
             set bool $_settings($what)
@@ -1451,26 +1471,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set _changed($what) 1
             set bool $_settings($what)
             SendCmd "cutplane wireframe $bool"
-        }
-        "-colormap" {
-            set _changed($what) 1
-            StartBufferingCommands
-            set color [$itk_component(colormap) value]
-            set _settings($what) $color
-            if { $color == "none" } {
-                if { $_settings(-colormapvisible) } {
-                    SendCmd "contour3d colormode constant {}"
-                    set _settings(-colormapvisible) 0
-                }
-            } else {
-                if { !$_settings(-colormapvisible) } {
-                    SendCmd "contour3d colormode $_colorMode $_curFldName"
-                    set _settings(-colormapvisible) 1
-                }
-                SetCurrentColormap $color
-            }
-            StopBufferingCommands
-            EventuallyRequestLegend
         }
         "-field" {
             set label [$itk_component(field) value]
