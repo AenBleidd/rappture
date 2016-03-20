@@ -1263,7 +1263,9 @@ itcl::body Rappture::VtkGlyphViewer::InitSettings { args } {
 # server.
 #
 itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
+    DebugTrace "Enter"
     if { ![isconnected] } {
+        DebugTrace "Not connected"
         return
     }
     switch -- $what {
@@ -1297,6 +1299,26 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             $itk_component(view) delete "legend"
             DrawLegend
         }
+        "-colormap" {
+            set _changed($what) 1
+            StartBufferingCommands
+            set color [$itk_component(colormap) value]
+            set _settings($what) $color
+            if { $color == "none" } {
+                if { $_settings(-colormapvisible) } {
+                    SendCmd "glyphs colormode constant {}"
+                    set _settings(-colormapvisible) 0
+                }
+            } else {
+                if { !$_settings(-colormapvisible) } {
+                    SendCmd "glyphs colormode $_colorMode $_curFldName"
+                    set _settings(-colormapvisible) 1
+                }
+                SetCurrentColormap $color
+            }
+            StopBufferingCommands
+            EventuallyRequestLegend
+        }
         "-cutplaneedges" {
             set bool $_settings($what)
             SendCmd "cutplane edges $bool"
@@ -1322,30 +1344,17 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
                     SendCmd "cutplane visible $bool $tag"
                 }
             }
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(cutplane) \
+                    "Hide the cutplanes"
+            } else {
+                Rappture::Tooltip::for $itk_component(cutplane) \
+                    "Show the cutplanes"
+            }
         }
         "-cutplanewireframe" {
             set bool $_settings($what)
             SendCmd "cutplane wireframe $bool"
-        }
-        "-colormap" {
-            set _changed($what) 1
-            StartBufferingCommands
-            set color [$itk_component(colormap) value]
-            set _settings($what) $color
-            if { $color == "none" } {
-                if { $_settings(-colormapvisible) } {
-                    SendCmd "glyphs colormode constant {}"
-                    set _settings(-colormapvisible) 0
-                }
-            } else {
-                if { !$_settings(-colormapvisible) } {
-                    SendCmd "glyphs colormode $_colorMode $_curFldName"
-                    set _settings(-colormapvisible) 1
-                }
-                SetCurrentColormap $color
-            }
-            StopBufferingCommands
-            EventuallyRequestLegend
         }
         "-field" {
             set label [$itk_component(field) value]
@@ -1373,43 +1382,22 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             SendCmd "glyphs colormode $_colorMode $_curFldName"
             DrawLegend
         }
-        "-glyphwireframe" {
+        "-glyphedges" {
             set bool $_settings($what)
-            SendCmd "glyphs wireframe $bool"
-        }
-        "-glyphvisible" {
-            set bool $_settings($what)
-            SendCmd "glyphs visible 0"
-            if { $bool } {
-                foreach tag [CurrentDatasets -visible] {
-                    SendCmd "glyphs visible $bool $tag"
-                }
-            }
-            if { $bool } {
-                Rappture::Tooltip::for $itk_component(glyphs) \
-                    "Hide the glyphs"
-            } else {
-                Rappture::Tooltip::for $itk_component(glyphs) \
-                    "Show the glyphs"
-            }
-            DrawLegend
+            SendCmd "glyphs edges $bool"
         }
         "-glyphlighting" {
             set bool $_settings($what)
             SendCmd "glyphs lighting $bool"
         }
-        "-glyphedges" {
+        "-glyphnormscale" {
             set bool $_settings($what)
-            SendCmd "glyphs edges $bool"
+            SendCmd "glyphs normscale $bool"
         }
         "-glyphopacity" {
             set val $_settings($what)
             set sval [expr { 0.01 * double($val) }]
             SendCmd "glyphs opacity $sval"
-        }
-        "-glyphnormscale" {
-            set bool $_settings($what)
-            SendCmd "glyphs normscale $bool"
         }
         "-glyphorient" {
             set bool $_settings($what)
@@ -1432,6 +1420,27 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             set shape [$itk_component(gshape) translate $label]
             set _settings($what) $shape
             SendCmd "glyphs shape $shape"
+        }
+        "-glyphvisible" {
+            set bool $_settings($what)
+            SendCmd "glyphs visible 0"
+            if { $bool } {
+                foreach tag [CurrentDatasets -visible] {
+                    SendCmd "glyphs visible $bool $tag"
+                }
+            }
+            if { $bool } {
+                Rappture::Tooltip::for $itk_component(glyphs) \
+                    "Hide the glyphs"
+            } else {
+                Rappture::Tooltip::for $itk_component(glyphs) \
+                    "Show the glyphs"
+            }
+            DrawLegend
+        }
+        "-glyphwireframe" {
+            set bool $_settings($what)
+            SendCmd "glyphs wireframe $bool"
         }
         "-legendvisible" {
             if { !$_settings($what) } {
