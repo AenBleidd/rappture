@@ -2153,7 +2153,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         -shape arrow
         -wireframe 0
     }
-    set $style(-constcolor) $itk_option(-plotforeground)
+    set style(-constcolor) $itk_option(-plotforeground)
     set numComponents [$dataobj numComponents $comp]
     if {$numComponents == 3} {
         set style(-shape) "arrow"
