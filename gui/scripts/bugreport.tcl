@@ -606,7 +606,10 @@ proc Rappture::bugreport::shouldReport {option value} {
             if {[string match {[Ww]orkspace*} $appname]} {
                 return 0
             }
-
+            set url [Rappture::Tool::resources -huburl]
+            if { $url == "" } {
+                return 0
+            }
             # if this is a problem launching a job and the tool
             # expects this, then don't bother with automatic reports.
             variable reportJobFailures
