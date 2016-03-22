@@ -115,9 +115,10 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method SetMinMaxGauges { min max }
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
-    private method SetupMouseRotationBindings {}
-    private method SetupMousePanningBindings {}
     private method SetupKeyboardBindings {}
+    private method SetupMousePanningBindings {}
+    private method SetupMouseRotationBindings {}
+    private method SetupMouseZoomBindings {}
     private method Slice {option args}
     private method ToggleCustomRange { args }
     private method ViewToQuaternion {} {
@@ -337,8 +338,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
 
     set c $itk_component(view)
     bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
-    bind $c <4> [itcl::code $this Zoom in 0.25]
-    bind $c <5> [itcl::code $this Zoom out 0.25]
     bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
     bind $c <KeyPress-Right> [list %W xview scroll -10 units]
     bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
@@ -416,7 +415,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
         "Show the cutplanes"
     pack $itk_component(cutplane) -padx 2 -pady 2
 
-
     if { [catch {
         BuildIsosurfaceTab
         BuildCutplanesTab
@@ -447,18 +445,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {args} {
 
     SetupMouseRotationBindings
     SetupMousePanningBindings
+    SetupMouseZoomBindings
     SetupKeyboardBindings
-
 
     #bind $itk_component(view) <ButtonRelease-3> \
     #    [itcl::code $this Pick %x %y]
-
-
-    if {[string equal "x11" [tk windowingsystem]]} {
-        # Bindings for zoom via mouse
-        bind $itk_component(view) <4> [itcl::code $this Zoom out]
-        bind $itk_component(view) <5> [itcl::code $this Zoom in]
-    }
 
     set _image(download) [image create photo]
 
@@ -502,6 +493,14 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetupMousePanningBindings {} {
         [itcl::code $this Pan drag %x %y]
     bind $itk_component(view) <ButtonRelease-2> \
         [itcl::code $this Pan release %x %y]
+}
+
+itcl::body Rappture::VtkIsosurfaceViewer::SetupMouseZoomBindings {} {
+    if {[string equal "x11" [tk windowingsystem]]} {
+        # Bindings for zoom via mouse
+        bind $itk_component(view) <4> [itcl::code $this Zoom out]
+        bind $itk_component(view) <5> [itcl::code $this Zoom in]
+    }
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::SetupKeyboardBindings {} {
@@ -1676,7 +1675,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        #SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
         SendCmd "legend2 $cmap $w $h"
     }
 }
@@ -1820,7 +1819,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
     bind $itk_component(numcontours) <<Value>> \
         [itcl::code $this AdjustSetting -numcontours]
 
-
     # add widgets for setting a custom range on the legend
 
     itk_component add crange {
@@ -1853,7 +1851,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
 
     $itk_component(min) configure -state disabled
     $itk_component(max) configure -state disabled
-
 
     blt::table $inner \
         0,0 $inner.field_l      -anchor w -pady 2 \
@@ -2761,7 +2758,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
 #
 # Used internally to handle the dropdown list for the fields menu combobox.
 # The post option is invoked when the field title is pressed to launch the
-# dropdown. The enter option is invoked when the user mouses over the field
+# dropdown.  The enter option is invoked when the user mouses over the field
 # title. The leave option is invoked when the user moves the mouse away
 # from the field title.  The save option is invoked whenever there is a
 # selection from the list, to alert the visualization server.
@@ -2789,7 +2786,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendTitleAction {option} {
             AdjustSetting -field
         }
         default {
-            error "bad option \"$option\": should be post, enter, leave, save"
+            error "bad option \"$option\": should be post, enter, leave or save"
         }
     }
 }
