@@ -224,8 +224,8 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Initialize the view to some default parameters.
     array set _view {
