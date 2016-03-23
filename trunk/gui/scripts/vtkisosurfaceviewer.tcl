@@ -128,25 +128,25 @@ itcl::class Rappture::VtkIsosurfaceViewer {
 
     private variable _arcball ""
 
-    private variable _dlist ""     ;    # list of data objects
-    private variable _obj2ovride   ;    # maps dataobj => style override
-    private variable _datasets     ;    # contains all the dataobj-component
-                                   ;    # datasets in the server
-    private variable _colormaps    ;    # contains all the colormaps
-                                   ;    # in the server.
+    private variable _dlist "";         # list of data objects
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _datasets;         # contains all the dataobj-component
+                                        # datasets in the server
+    private variable _colormaps;        # contains all the colormaps
+                                        # in the server.
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
     private variable _currentColormap ""
     private variable _currentNumContours -1
 
-    private variable _click        ;    # info used for rotate operations
-    private variable _limits       ;    # autoscale min/max for all axes
-    private variable _view         ;    # view params for 3D view
+    private variable _click;            # info used for rotate operations
+    private variable _limits;           # autoscale min/max for all axes
+    private variable _view;             # view params for 3D view
     private variable _settings
     private variable _changed
     private variable _reset 1;          # Connection to server has been reset.
 
-    private variable _first ""     ;    # This is the topmost dataset.
+    private variable _first "";         # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
     private variable _isolines
@@ -160,12 +160,13 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _rotatePending 0
     private variable _cutplanePending 0
     private variable _field      ""
-    private variable _colorMode "scalar";   # Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _mouseOver "";     # what called LegendRangeAction, vmin or vmax
-    private variable _customRangeClick 1;   # what called ToggleCustomRange
+    private variable _mouseOver "";     # what called LegendRangeAction:
+                                        # vmin or vmax
+    private variable _customRangeClick 1; # what called ToggleCustomRange
 
     private common _downloadPopup;      # download options from popup
     private common _hardcopy
@@ -1703,7 +1704,6 @@ itcl::configbody Rappture::VtkIsosurfaceViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
-
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1805,7 +1805,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList]
-
     $itk_component(colormap) value "BCGYR"
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -colormap]
@@ -2457,10 +2456,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendB1Motion { status x y } {
 # ----------------------------------------------------------------------
 # USAGE: LegendPointToValue <x> <y>
 #
-# Convert an x,y point on the legend to a numeric isosurface value.
+# Convert an x,y point on the legend to a numeric field value.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::LegendPointToValue { x y } {
-
     set fname $_curFldName
 
     set font "Arial 8"
@@ -2804,7 +2802,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::LegendTitleAction {option} {
 # <value> is the value to be validated.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::LegendRangeValidate {widget which value} {
-
     #check for a valid value
     if {[string is double $value] != 1} {
         set msg "should be valid number"
