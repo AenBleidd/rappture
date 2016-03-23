@@ -327,11 +327,6 @@ itcl::body Rappture::VtkGlyphViewer::constructor {args} {
 
     set c $itk_component(view)
     bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
-    bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
-    bind $c <KeyPress-Right> [list %W xview scroll -10 units]
-    bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
-    bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
-    bind $c <Enter> "focus %W"
     bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
     # Fix the scrollregion in case we go off screen

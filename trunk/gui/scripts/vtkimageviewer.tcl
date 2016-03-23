@@ -108,12 +108,12 @@ itcl::class Rappture::VtkImageViewer {
     private method Zoom {option}
 
     private variable _arcball ""
-    private variable _dlist ""     ;    # list of data objects
-    private variable _obj2ovride   ;    # maps dataobj => style override
-    private variable _datasets     ;    # contains all the dataobj-component
-                                   ;    # datasets in the server
-    private variable _colormaps    ;    # contains all the colormaps
-                                   ;    # in the server.
+    private variable _dlist "";         # list of data objects
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _datasets;         # contains all the dataobj-component
+                                        # datasets in the server
+    private variable _colormaps;        # contains all the colormaps
+                                        # in the server.
 
     # The name of the current colormap used.  The colormap is global to all
     # images displayed.
@@ -125,15 +125,15 @@ itcl::class Rappture::VtkImageViewer {
                                         # automatically turning on
                                         # -stretchtofit
 
-    private variable _click        ;    # info used for rotate operations
-    private variable _limits       ;    # Holds overall limits for all dataobjs
+    private variable _click;            # info used for rotate operations
+    private variable _limits;           # Holds overall limits for all dataobjs
                                         # using the viewer.
-    private variable _view         ;    # view params for 3D view
+    private variable _view;             # view params for 3D view
     private variable _settings
     private variable _changed
     private variable _reset 1;          # Connection to server has been reset.
 
-    private variable _first ""     ;    # This is the topmost dataset.
+    private variable _first "";         # This is the topmost dataset.
     private variable _start 0
     private variable _isolines
     private variable _contourList ""
@@ -147,7 +147,7 @@ itcl::class Rappture::VtkImageViewer {
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _colorMode "scalar";#  Mode of colormap (vmag or scalar)
+    private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
 
     private common _downloadPopup;      # download options from popup
     private common _hardcopy
@@ -187,8 +187,8 @@ itcl::body Rappture::VtkImageViewer::constructor {args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     # Create image for legend colorbar.
     set _image(legend) [image create photo]
@@ -251,13 +251,6 @@ itcl::body Rappture::VtkImageViewer::constructor {args} {
     }
     set c $itk_component(view)
     bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
-    bind $c <4> [itcl::code $this Zoom in 0.25]
-    bind $c <5> [itcl::code $this Zoom out 0.25]
-    bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
-    bind $c <KeyPress-Right> [list %W xview scroll -10 units]
-    bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
-    bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
-    bind $c <Enter> "focus %W"
     bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
     # Fix the scrollregion in case we go off screen
