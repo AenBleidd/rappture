@@ -88,6 +88,8 @@ itcl::body Rappture::Editor::constructor {args} {
         [itcl::code $this _resize]
     bind $itk_component(editor) <KeyPress-Return> \
         [itcl::code $this deactivate]
+    bind $itk_component(editor) <KP_Enter> \
+        [itcl::code $this deactivate]
     bind $itk_component(editor) <KeyPress-Escape> \
         [itcl::code $this deactivate -abort]
     bind $itk_component(editor) <ButtonPress> \
