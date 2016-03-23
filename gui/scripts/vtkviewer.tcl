@@ -304,13 +304,6 @@ itcl::body Rappture::VtkViewer::constructor {args} {
 
     set c $itk_component(view)
     bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
-    bind $c <4> [itcl::code $this Zoom in 0.25]
-    bind $c <5> [itcl::code $this Zoom out 0.25]
-    bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
-    bind $c <KeyPress-Right> [list %W xview scroll -10 units]
-    bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
-    bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
-    bind $c <Enter> "focus %W"
     bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
     # Fix the scrollregion in case we go off screen
