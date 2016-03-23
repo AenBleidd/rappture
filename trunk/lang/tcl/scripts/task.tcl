@@ -422,7 +422,7 @@ itcl::body Rappture::Task::run {args} {
         if {$uq_type != ""} {
             # UQ. Collect data from all jobs and put it in one xml run file.
             file delete -force -- run_uq.xml
-            if {[catch {exec puq analyze puq_[pid].hdf5} res]} {
+            if {[catch {exec puq.sh analyze puq_[pid].hdf5} res]} {
                 set fp [open "uq_debug.err" r]
                 set rdata [read $fp]
                 close $fp
@@ -666,8 +666,8 @@ itcl::body Rappture::Task::MiddlewareTime {args} {
 # and get a CSV file containing the parameter values to use for the runs.
 itcl::body Rappture::Task::_get_params {varlist uq_type uq_args} {
     set pid [pid]
-    # puts "puq get_params $pid $varlist $uq_type $uq_args"
-    if {[catch {exec puq get_params $pid $varlist $uq_type $uq_args}]} {
+    # puts "puq.sh get_params $pid $varlist $uq_type $uq_args"
+    if {[catch {exec puq.sh get_params $pid $varlist $uq_type $uq_args}]} {
         set fp [open "uq_debug.err" r]
         set rdata [read $fp]
         close $fp

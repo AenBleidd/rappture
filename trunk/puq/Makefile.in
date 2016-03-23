@@ -34,7 +34,7 @@ install: all
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 0555 $$i $(puq_libdir) ; \
 	done
-	$(INSTALL) -m 0555 puq $(bindir)
+	$(INSTALL) -m 0555 puq.sh $(bindir)
 
 clean:
 

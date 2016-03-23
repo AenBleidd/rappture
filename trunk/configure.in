@@ -607,7 +607,7 @@ AC_CONFIG_FILES([
     oldtest/Makefile
     oldtest/src/Makefile
     puq/Makefile
-    puq/puq
+    puq/puq.sh
 ])
 AC_OUTPUT
 
