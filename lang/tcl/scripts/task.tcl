@@ -667,12 +667,17 @@ itcl::body Rappture::Task::MiddlewareTime {args} {
 itcl::body Rappture::Task::_get_params {varlist uq_type uq_args} {
     set pid [pid]
     # puts "puq.sh get_params $pid $varlist $uq_type $uq_args"
-    if {[catch {exec puq.sh get_params $pid $varlist $uq_type $uq_args}]} {
-        set fp [open "uq_debug.err" r]
-        set rdata [read $fp]
-        close $fp
-        puts "get_params.py failed: $rdata"
-        error "get_params.py: $rdata"
+    if { [catch {
+        exec puq.sh get_params $pid $varlist $uq_type $uq_args
+    } errs] != 0 } {
+        set contents {}
+        if { [file exists "uq_debug.err"] } {
+            set fp [open "uq_debug.err" r]
+            set contents [read $fp]
+            close $fp
+        }
+        puts "get_params.py failed: $errs\n$contents"
+        error "get_params.py failed: $errs\n$contents"
     }
     return params[pid].csv
 }
