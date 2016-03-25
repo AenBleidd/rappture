@@ -1,32 +1,32 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-destdir		= $(prefix)/examples/3D
 
-SHELL		= @SHELL@
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
+SHELL           = @SHELL@
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
 
-destdir		= $(prefix)/examples
+destdir         = $(prefix)/examples
 
-FILES		= \
-		demo.bash
+FILES           = \
+                  demo.bash
 
-SUBDIRS		= \
-		3D \
-		app-fermi \
-		c-example \
-		canvas \
-		flow \
-		graph \
-		objects \
-		zoo 
+SUBDIRS         = \
+                  3D \
+                  app-fermi \
+                  c-example \
+                  canvas \
+                  flow \
+                  graph \
+                  mapviewer \
+                  objects \
+                  zoo
 
 .PHONY: all install clean distclean $(SUBDIRS)
 

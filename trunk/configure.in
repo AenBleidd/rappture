@@ -556,6 +556,19 @@ AC_CONFIG_FILES([
     examples/flow/demo2/Makefile
     examples/flow/demo3/Makefile
     examples/graph/Makefile
+    examples/mapviewer/Makefile
+    examples/mapviewer/camera/Makefile
+    examples/mapviewer/colorramp/Makefile
+    examples/mapviewer/common/Makefile
+    examples/mapviewer/feature/Makefile
+    examples/mapviewer/gdal/Makefile
+    examples/mapviewer/layers/Makefile
+    examples/mapviewer/ogr/Makefile
+    examples/mapviewer/placard/Makefile
+    examples/mapviewer/select/Makefile
+    examples/mapviewer/tms/Makefile
+    examples/mapviewer/wms/Makefile
+    examples/mapviewer/xyz/Makefile
     examples/objects/Makefile
     examples/objects/axis/Makefile
     examples/objects/curve/Makefile
