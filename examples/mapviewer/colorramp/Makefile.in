@@ -1,0 +1,34 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+VPATH           = @srcdir@
+
+destdir         = $(prefix)/examples/mapviewer/camera
+FILES           = \
+                  $(srcdir)/colorramp_geotiff_example.tcl \
+                  $(srcdir)/colorramp_netcdf_example.tcl \
+                  $(srcdir)/ameantemp.nc
+
+all:
+
+install:
+	$(MKDIR_P) -m 0755 $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 0444  $$i $(destdir) ; \
+	done
+
+clean:
+
+distclean: clean
+	$(RM) Makefile
+

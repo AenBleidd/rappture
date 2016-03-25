@@ -1,0 +1,53 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+
+SHELL           = @SHELL@
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+
+destdir         = $(prefix)/examples/mapviewer
+
+SUBDIRS         = \
+                  camera \
+                  colorramp \
+                  common \
+                  feature \
+                  gdal \
+                  layers \
+                  ogr \
+                  placard \
+                  select \
+                  tms \
+                  wms \
+                  xyz
+
+.PHONY: all install clean distclean $(SUBDIRS)
+
+all: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
+
+install:
+	$(MKDIR_P) -m 0755 $(destdir)
+	for i in $(SUBDIRS) ; do \
+	    $(MAKE) -C $$i install || exit 1 ; \
+	done
+
+clean:
+	for i in $(SUBDIRS) ; do \
+	    $(MAKE) -C $$i clean || exit 1 ; \
+	done
+
+distclean: clean
+	for i in $(SUBDIRS) ; do \
+	    $(MAKE) -C $$i distclean || exit 1 ; \
+	done
+	$(RM) Makefile *~
