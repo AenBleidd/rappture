@@ -121,7 +121,7 @@ itcl::body Rappture::Task::resources {{option ""}} {
 
 itcl::body Rappture::Task::GetSignal {code} {
     set signals {
-        HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV
+        xxx HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV
         USR2 PIPE ALRM TERM STKFLT CHLD CONT STOP TSTP TTIN
         TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS
         RTMIN RTMIN+1 RTMIN+2 RTMIN+3 RTMAX-3 RTMAX-2 RTMAX-1 RTMAX
