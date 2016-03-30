@@ -948,7 +948,26 @@ itcl::body Rappture::MapViewer::select {option {args ""}} {
             SendCmd "select clear"
         }
         "feature" {
-            SendCmd "select feature $args"
+            set op [lindex $args 0]
+            set layer [lindex $args end]
+            if {![info exists _layers($layer)]} {
+                puts stderr "Unknown layer \"$layer\""
+                return
+            }
+            switch $op {
+                "add" {
+                    SendCmd "select fadd [lrange $args 1 end]"
+                }
+                "delete" {
+                    SendCmd "select fdelete [lrange $args 1 end]"
+                }
+                "set" {
+                    SendCmd "select feature [lrange $args 1 end]"
+                }
+                default {
+                    puts stderr "Unknown select feature op \"$op\""
+                }
+            }
         }
         default {
             puts stderr "Unknown select option \"$option\""
