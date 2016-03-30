@@ -933,21 +933,24 @@ itcl::body Rappture::MapViewer::ReceiveSelect {option {args ""}} {
 
 # ----------------------------------------------------------------------
 # USAGE: select clear
-# USAGE: select feature <args...>
-# USAGE: select annotation <args...>
+# USAGE: select feature add|delete|set <featureIDList> <layerName>
+# USAGE: select mode <boolean>
 #
 # Clients use this method to notify the map widget of a selection event
 # originating from outside the map
 # ----------------------------------------------------------------------
 itcl::body Rappture::MapViewer::select {option {args ""}} {
     switch $option {
-        "annotation" {
-            SendCmd "select annotation $args"
-        }
         "clear" {
+            if {[llength $args] > 0} {
+                error "wrong # args: should be \"select clear\""
+            }
             SendCmd "select clear"
         }
         "feature" {
+            if {[llength $args] != 3} {
+                error "wrong #args: should be \"select feature <op> <featureIDList> <layerName>\""
+            }
             set op [lindex $args 0]
             set layer [lindex $args end]
             if {![info exists _layers($layer)]} {
@@ -968,6 +971,15 @@ itcl::body Rappture::MapViewer::select {option {args ""}} {
                     puts stderr "Unknown select feature op \"$op\""
                 }
             }
+        }
+        "mode" {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"select mode <boolean>\""
+            }
+            if {![string is boolean $args]} {
+                error "argument to \"select mode\" must be boolean"
+            }
+            SendCmd "select mode $args"
         }
         default {
             puts stderr "Unknown select option \"$option\""
