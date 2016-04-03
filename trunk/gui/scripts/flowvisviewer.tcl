@@ -132,7 +132,7 @@ itcl::class Rappture::FlowvisViewer {
                                        ;# to volumes in the server
     private variable _dataset2style    ;# maps dataobj-component to transfunc
     private variable _style2datasets   ;# maps tf back to list of
-                                       ;# dataobj-components using the tf.
+                                        # dataobj-components using the tf.
     private variable _dataset2flow     ;# Maps dataobj-component to a flow.
 
     private variable _reset 1          ;# Connection to server has been reset.
@@ -223,8 +223,6 @@ itcl::body Rappture::FlowvisViewer::constructor {args} {
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
-
-    set _reset 1
 
     array set _settings [subst {
         -ambient                60
@@ -1647,7 +1645,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
     if { ![info exists _isomarkers($tf)] } {
         # Have to defer creation of isomarkers until we have data limits
         if { [info exists style(-markers)] &&
-             [llength $style(-markers)] > 0  } {
+             [llength $style(-markers)] > 0 } {
             ParseMarkersOption $tf $style(-markers)
         } else {
             ParseLevelsOption $tf $style(-levels)
