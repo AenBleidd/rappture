@@ -495,14 +495,11 @@ itcl::body Rappture::VtkStreamlinesViewer::EventuallyReseed { numPoints } {
     }
 }
 
-set rotate_delay 100
-
 itcl::body Rappture::VtkStreamlinesViewer::EventuallyRotate { q } {
     QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay
-        $_dispatcher event -after $rotate_delay !rotate
+        $_dispatcher event -after 100 !rotate
     }
 }
 

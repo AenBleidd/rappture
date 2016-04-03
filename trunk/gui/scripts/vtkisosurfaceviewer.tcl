@@ -571,14 +571,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::EventuallyResize { w h } {
     }
 }
 
-set rotate_delay 100
-
 itcl::body Rappture::VtkIsosurfaceViewer::EventuallyRotate { q } {
     QuaternionToView $q
     if { !$_rotatePending } {
         set _rotatePending 1
-        global rotate_delay
-        $_dispatcher event -after $rotate_delay !rotate
+        $_dispatcher event -after 100 !rotate
     }
 }
 
@@ -594,8 +591,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::EventuallyChangeContourLevels {} {
     set _contourList(values) ""
     if { !$_contourList(updatePending) } {
         set _contourList(updatePending) 1
-        global rotate_delay
-        $_dispatcher event -after $rotate_delay !contours
+        $_dispatcher event -after 100 !contours
     }
 }
 
