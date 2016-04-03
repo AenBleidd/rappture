@@ -601,7 +601,7 @@ itcl::body Rappture::NanovisViewer::download {option args} {
             }
         }
         controls {
-            set popup .nanovisdownload
+            set popup .nanovisviewerdownload
             if { ![winfo exists $popup] } {
                 set inner [BuildDownloadPopup $popup [lindex $args 0]]
             } else {
@@ -617,7 +617,7 @@ itcl::body Rappture::NanovisViewer::download {option args} {
             return $popup
         }
         now {
-            set popup .nanovisdownload
+            set popup .nanovisviewerdownload
             if { [winfo exists $popup] } {
                 $popup deactivate
             }
