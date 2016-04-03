@@ -75,12 +75,14 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
-    private method DoResize {}
+    private method DoRescale {}
     private method DoReseed {}
+    private method DoResize {}
     private method DoRotate {}
     private method EnterLegend { x y }
-    private method EventuallyResize { w h }
+    private method EventuallyRescale { length }
     private method EventuallyReseed { numPoints }
+    private method EventuallyResize { w h }
     private method EventuallyRotate { q }
     private method EventuallySetCutplane { axis args }
     private method GetImage { args }
@@ -135,13 +137,15 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _height 0
     private variable _resizePending 0
     private variable _legendPending 0
+    private variable _rescalePending 0
     private variable _reseedPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
-    private variable _field      ""
+    private variable _field ""
+    private variable _streamlinesLength 0
     private variable _numSeeds 200
     private variable _colorMode "vmag"; # Mode of colormap (vmag or scalar)
 
@@ -174,6 +178,10 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
     # Legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
+
+    # Rescale streamlines event
+    $_dispatcher register !rescale
+    $_dispatcher dispatch $this !rescale "[itcl::code $this DoRescale]; list"
 
     # Reseed event
     $_dispatcher register !reseed
@@ -468,9 +476,15 @@ itcl::body Rappture::VtkStreamlinesViewer::DoRotate {} {
     set _rotatePending 0
 }
 
+itcl::body Rappture::VtkStreamlinesViewer::DoRescale {} {
+    foreach dataset [CurrentDatasets -visible] {
+        SendCmd "streamlines length $_streamlinesLength $dataset"
+    }
+    set _rescalePending 0
+}
+
 itcl::body Rappture::VtkStreamlinesViewer::DoReseed {} {
     foreach dataset [CurrentDatasets -visible] {
-        foreach {dataobj comp} [split $dataset -] break
         # This command works for either random or fmesh seeds
         SendCmd "streamlines seed numpts $_numSeeds $dataset"
     }
@@ -484,6 +498,14 @@ itcl::body Rappture::VtkStreamlinesViewer::EventuallyResize { w h } {
     if { !$_resizePending } {
         set _resizePending 1
         $_dispatcher event -after 400 !resize
+    }
+}
+
+itcl::body Rappture::VtkStreamlinesViewer::EventuallyRescale { length } {
+    set _streamlinesLength $length
+    if { !$_rescalePending } {
+        set _rescalePending 1
+        $_dispatcher event -after 600 !rescale
     }
 }
 
@@ -1422,7 +1444,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 set ${axis}len [expr double($max) - double($min)]
             }
             set length [expr { $sval * ($xlen + $ylen + $zlen) } ]
-            SendCmd "streamlines length $length"
+            EventuallyRescale $length
         }
         "-streamlineslighting" {
             set bool $_settings($what)
