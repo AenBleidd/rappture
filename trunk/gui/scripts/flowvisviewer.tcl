@@ -564,7 +564,6 @@ itcl::body Rappture::FlowvisViewer::constructor {args} {
     set _image(download) [image create photo]
 
     eval itk_initialize $args
-
     Connect
 }
 
@@ -690,7 +689,6 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
     if {[llength $args] == 0} {
         set args $_dlist
     }
-
     # Delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
