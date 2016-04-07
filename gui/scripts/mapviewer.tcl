@@ -54,6 +54,7 @@ itcl::class Rappture::MapViewer {
     public method delete {args}
     public method disconnect {}
     public method download {option args}
+    public method enablePlacard {state layerName}
     public method get {args}
     public method isconnected {}
     public method parameters {title args} { # do nothing }
@@ -985,6 +986,22 @@ itcl::body Rappture::MapViewer::select {option {args ""}} {
             puts stderr "Unknown select option \"$option\""
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: enablePlacard <state> <layerName>
+# 
+# Clients use this method to enable/disable display of a feature placard
+# when a feature is clicked/selected.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MapViewer::enablePlacard {state layerName} {
+    if {![info exists _layers($layerName)]} {
+        error "Unknown layer \"$layerName\""
+    }
+    if {![string is boolean $state]} {
+        error "argument to enablePlacard must be boolean"
+    }
+    SendCmd "placard enable $state $layerName"
 }
 
 # ----------------------------------------------------------------------
