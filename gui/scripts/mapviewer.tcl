@@ -51,9 +51,11 @@ itcl::class Rappture::MapViewer {
     }
     public method add {dataobj {settings ""}}
     public method camera {option args}
-    public method delete {args}
+    public method clear {args}
+    public method delete {args} { eval hide $args }
     public method disconnect {}
     public method download {option args}
+    public method hide {args}
     public method placard {option args}
     public method get {args}
     public method isconnected {}
@@ -689,18 +691,17 @@ itcl::body Rappture::MapViewer::add {dataobj {settings ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: delete ?<dataobj1> <dataobj2> ...?
+# USAGE: hide ?<dataobj1> <dataobj2> ...?
 #
-# Clients use this to delete a dataobj from the plot.  If no dataobjs
-# are specified, then all dataobjs are deleted.  No data objects are
-# deleted.  They are only removed from the display list.
+# Clients use this to hide a dataobj from the plot.  If no dataobjs are
+# specified, then all dataobjs are hidden.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MapViewer::delete {args} {
+itcl::body Rappture::MapViewer::hide {args} {
     DebugTrace "Enter"
     if { [llength $args] == 0} {
         set args $_dlist
     }
-    # Delete all specified dataobjs
+    # Mark all specified dataobjs as hidden
     set changed 0
     foreach dataobj $args {
         set pos [lsearch -exact $_dlist $dataobj]
@@ -715,6 +716,64 @@ itcl::body Rappture::MapViewer::delete {args} {
             lappend _hidden $dataobj
         }
         array unset _obj2ovride $dataobj-*
+        set changed 1
+    }
+    # If anything changed, then rebuild the plot
+    if { $changed } {
+        $_dispatcher event -idle !rebuild
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: clear ?<dataobj1> <dataobj2> ...?
+#
+# Clients use this to permanently clear a dataobj from the plot and the
+# render server.  If no dataobjs are specified, then all dataobjs are 
+# cleared.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MapViewer::clear {args} {
+    DebugTrace "Enter"
+    if { [llength $args] == 0} {
+        set args [concat $_dlist $_hidden]
+    }
+    # Delete all specified dataobjs
+    set changed 0
+    foreach dataobj $args {
+        set found 0
+        set dpos [lsearch -exact $_dlist $dataobj]
+        if { $dpos >= 0 } {
+            set found 1
+        }
+        set hpos [lsearch -exact $_hidden $dataobj]
+        if { $hpos >= 0 } {
+            set found 1
+        }
+        if { !$found } {
+            continue
+        }
+        foreach tag [array names _layers -glob $dataobj-*] {
+            SendCmd "map layer delete $tag"
+        }
+        if { [info commands $dataobj] == $dataobj } {
+            # Remove the layers from the client and server.
+            foreach layer [$dataobj layers] {
+                if { ![$dataobj layer $layer shared] } {
+                    # Remove shared layer if no other objects have it?
+                }
+            }
+        }
+        if { $dpos >= 0 } {
+            # Remove it from the dataobj list.
+            set _dlist [lreplace $_dlist $dpos $dpos]
+        }
+        if { $hpos >= 0 } {
+            # Remove it from the hidden list.
+            set _hidden [lreplace $_hidden $hpos $hpos]
+        }
+        array unset _obj2ovride $dataobj-*
+        array unset _layers $dataobj-*
+        array unset _opacity $dataobj-*
+        array unset _visibility $dataobj-*
         set changed 1
     }
     # If anything changed, then rebuild the plot
