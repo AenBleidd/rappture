@@ -929,7 +929,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
     }
 
     set _first ""
-    # Start off with no datasets are visible.
+    # Start off with no datasets visible.
     SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {

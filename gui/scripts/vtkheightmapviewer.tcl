@@ -950,7 +950,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
     }
 
     set _first ""
-    # Start off with no datasets are visible.
+    # Start off with no datasets visible.
     SendCmd "dataset visible 0"
     set scale [GetHeightmapScale]
     foreach dataobj [get -objects] {
