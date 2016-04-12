@@ -55,11 +55,11 @@ itcl::class Rappture::MapViewer {
     public method delete {args} { eval hide $args }
     public method disconnect {}
     public method download {option args}
-    public method hide {args}
-    public method placard {option args}
     public method get {args}
+    public method hide {args}
     public method isconnected {}
     public method parameters {title args} { # do nothing }
+    public method placard {option args}
     public method scale {args}
     public method select {option {args ""}}
     public method setSelectCallback {cmd}
