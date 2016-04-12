@@ -118,23 +118,23 @@ itcl::class Rappture::NanovisViewer {
     private method Zoom {option}
 
     private variable _arcball ""
-    private variable _dlist ""         ;# list of data objects
-    private variable _obj2ovride       ;# maps dataobj => style override
-    private variable _datasets         ;# contains all the dataobj-component
-                                       ;# to volumes in the server
+    private variable _dlist "";         # list of data objects
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _datasets;         # maps dataobj-component
+                                        # to volumes in the server
 
-    private variable _reset 1          ;# Connection to server has been reset.
-    private variable _click            ;# Info used for rotate operations.
-    private variable _limits           ;# Autoscale min/max for all axes
-    private variable _view             ;# View params for 3D view
+    private variable _reset 1;          # Connection to server has been reset.
+    private variable _click;            # Info used for rotate operations.
+    private variable _limits;           # Autoscale min/max for all axes
+    private variable _view;             # View params for 3D view
     private variable _parsedFunction
     private variable _transferFunctionEditors
     private variable _settings
-    private variable _first ""         ;# This is the topmost volume.
-    private variable _current ""       ;# Currently selected component
-    private variable _volcomponents    ;# Maps component name to list of
-                                       ;# dataobj-component tags
-    private variable _componentsList   ;# List of components found
+    private variable _first "";         # This is the topmost volume.
+    private variable _current "";       # Currently selected component
+    private variable _volcomponents;    # Maps component name to list of
+                                        # dataobj-component tags
+    private variable _componentsList;   # List of components found
     private variable _cname2transferFunction
     private variable _cname2defaultcolormap
     private variable _width 0
@@ -142,7 +142,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _resizePending 0
     private variable _resizeLegendPending 0
 
-    private common _downloadPopup      ;# download options from popup
+    private common _downloadPopup;      # download options from popup
     private common _hardcopy
 }
 

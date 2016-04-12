@@ -126,26 +126,26 @@ itcl::class Rappture::FlowvisViewer {
     private method streams { tag name }
 
     private variable _arcball ""
-    private variable _dlist ""         ;# list of data objects
-    private variable _obj2ovride       ;# maps dataobj => style override
-    private variable _datasets         ;# contains all the dataobj-component
-                                       ;# to volumes in the server
-    private variable _dataset2style    ;# maps dataobj-component to transfunc
-    private variable _style2datasets   ;# maps tf back to list of
+    private variable _dlist "";         # list of data objects
+    private variable _obj2ovride;       # maps dataobj => style override
+    private variable _datasets;         # maps dataobj-component
+                                        # to volumes in the server
+    private variable _dataset2style;    # maps dataobj-component to transfunc
+    private variable _style2datasets;   # maps tf back to list of
                                         # dataobj-components using the tf.
-    private variable _dataset2flow     ;# Maps dataobj-component to a flow.
+    private variable _dataset2flow;     # Maps dataobj-component to a flow.
 
-    private variable _reset 1          ;# Connection to server has been reset.
-    private variable _click            ;# Info used for rotate operations.
-    private variable _limits           ;# Autoscale min/max for all axes
-    private variable _view             ;# View params for 3D view
-    private variable _isomarkers       ;# array of isosurface level values 0..1
+    private variable _reset 1;          # Connection to server has been reset.
+    private variable _click;            # Info used for rotate operations.
+    private variable _limits;           # Autoscale min/max for all axes
+    private variable _view;             # View params for 3D view
+    private variable _isomarkers;       # array of isosurface level values 0..1
     private variable _settings
-    private variable _activeTf ""      ;# Currently active transfer function
-    private variable _first ""         ;# This is the topmost volume.
-    private variable _volcomponents    ;# Maps component name to list of
-                                       ;# dataobj-component tags
-    private variable _componentsList   ;# List of components found
+    private variable _activeTf "";      # Currently active transfer function
+    private variable _first "";         # This is the topmost volume.
+    private variable _volcomponents;    # Maps component name to list of
+                                        # dataobj-component tags
+    private variable _componentsList;   # List of components found
     private variable _nextToken 0
     private variable _icon 0
     private variable _flow
@@ -155,7 +155,7 @@ itcl::class Rappture::FlowvisViewer {
     private variable _resizeLegendPending 0
     private variable _gotoPending 0
 
-    private common _downloadPopup      ;# download options from popup
+    private common _downloadPopup;      # download options from popup
     private common _hardcopy
 }
 
