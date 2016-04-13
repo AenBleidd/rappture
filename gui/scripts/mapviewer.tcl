@@ -105,7 +105,7 @@ itcl::class Rappture::MapViewer {
     private method EventuallySelect { x y }
     private method GetImage { args }
     private method GetNormalizedMouse { x y }
-    private method GoToViewpoint { dataobj viewpoint }
+    private method GoToViewpoint { dataobj viewpoint {duration 2.0} }
     private method InitSettings { args  }
     private method MapIsGeocentric {}
     private method Pan {option x y}
@@ -2367,6 +2367,24 @@ itcl::body Rappture::MapViewer::camera {option args} {
         "reset" {
             Camera reset
         }
+        "viewpoint" {
+            if {[llength $args] < 1} {
+                error "wrong # args to camera viewpoint"
+            }
+            set vpopt [lindex $args 0]
+            switch -- $vpopt {
+                "go" {
+                    if {[llength $args] < 3} {
+                        error "wrong # of args to camera viewpoint go"
+                    }
+                    foreach {dataobj viewpoint} [lrange $args 1 end] break
+                    GoToViewpoint $dataobj $viewpoint
+                }
+                default {
+                    error "Unknown camera viewpoint option \"$vpopt\""
+                }
+            }
+        }
         "zoom" {
             if {[llength $args] < 1} {
                 error "wrong # of args to camera zoom"
@@ -2502,7 +2520,7 @@ itcl::body Rappture::MapViewer::Camera {option args} {
     }
 }
 
-itcl::body Rappture::MapViewer::GoToViewpoint { dataobj viewpoint } {
+itcl::body Rappture::MapViewer::GoToViewpoint { dataobj viewpoint {duration 2.0}} {
     array set view [subst {
         x 0
         y 0
@@ -2523,7 +2541,6 @@ itcl::body Rappture::MapViewer::GoToViewpoint { dataobj viewpoint } {
     if {![MapIsGeocentric]} {
         set _view(pitch) -90
     }
-    set duration 2.0
     SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
 }
 
