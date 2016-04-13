@@ -49,6 +49,7 @@ itcl::class Rappture::Map {
     public method selector { layerName selectorName }
     public method setAttribution { attribution }
     public method setCamera { camera }
+    public method setDescription { description }
     public method setExtents { xmin ymin xmax ymax {srs "wgs84"} }
     public method setLabel { label }
     public method setPlacardConfig { layerName attrlist style padding }
@@ -146,6 +147,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
 
     # Set global map properties
     setLabel [$map get "about.label"]
+    setDescription [$map get "about.description"]
     setAttribution [$map get "about.attribution"]
 
     set mapType [$map get "type"]
@@ -503,6 +505,10 @@ itcl::body Rappture::Map::setExtents { xmin ymin xmax ymax {srs "wgs84"} } {
 
 itcl::body Rappture::Map::setLabel { label } {
     $_tree set root "label" $label
+}
+
+itcl::body Rappture::Map::setDescription { description } {
+    $_tree set root "description" $description
 }
 
 itcl::body Rappture::Map::setAttribution { attribution } {
