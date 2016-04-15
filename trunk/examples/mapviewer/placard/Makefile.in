@@ -16,6 +16,7 @@ VPATH           = @srcdir@
 destdir         = $(prefix)/examples/mapviewer/placard
 FILES           = \
                   $(srcdir)/placard_example.tcl \
+                  $(srcdir)/placard_disable_example.tcl \
                   $(srcdir)/station_clean.csv
 
 all:
