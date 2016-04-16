@@ -70,9 +70,8 @@ $map setPlacardConfig stations \
 $mapviewer scale $map
 $mapviewer add $map
 
+# Make sure the MapViewer rebuilds the map
+update idletasks
+
 # disable the placard for the "stations" layer of $map
-# we add the delay so there is time for the layer to
-# exist on the server before we try to disable the placard for it.
-after 2000 {
-    $mapviewer placard enable off "$map-stations"
-}
+$mapviewer placard enable off "$map-stations"
