@@ -18,6 +18,7 @@ proc handler {option {args ""}} {
         "clear" {
             # previously selected features have been unselected.
             # no arguments associated with this option.
+            puts "select clear"
         }
         "feature" {
             # a feature was selected, the server returns 4 values about the feature
@@ -36,6 +37,9 @@ proc handler {option {args ""}} {
                 featureIdList=\"$featureIdList\"\
                 numFeaturesInLayer=\"$numFeaturesInLayer\"\
                 layerName=\"$layerName\""
+        }
+        "region" {
+            puts "select region $args"
         }
         default {
             error "bad option \"$option\": should be one of annotation,\
