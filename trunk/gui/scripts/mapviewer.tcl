@@ -1848,6 +1848,8 @@ itcl::body Rappture::MapViewer::Select {option x y} {
             if {$_click(x) == $x &&
                 $_click(y) == $y} {
                 SendCmd "map box clear"
+            } else {
+                SendCmd "map box end $x $y"
             }
         }
     }
