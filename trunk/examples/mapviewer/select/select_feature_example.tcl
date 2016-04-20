@@ -6,44 +6,51 @@ Rappture::resources::load
 set commondir [file join [file dirname [info script]] .. common]
 source [file join $commondir geovis_settings.tcl]
 
-# this method is called when a user clicks on a icon in the map
-# the method is used at the bottom of this example
-# the callback is called with two arguments:
-# option - should be one of "annotation", "clear", "feature"
-proc handler {option {args ""}} {
+# This method is called when a user modifies the selection in the map view.
+# This callback is installed in the viewer using setSelectCallback in the code below.
+# The callback has two arguments:
+#   option - should be one of "annotation", "clear", "feature", "region"
+#   args - depends on option, see below
+proc selectHandler {option {args ""}} {
     switch $option {
         "annotation" {
-            # pass
+            # An annotation (not in a feature layer) was selected, the single argument
+            # is a list of the selected annotation names.
         }
         "clear" {
-            # previously selected features have been unselected.
-            # no arguments associated with this option.
+            # Previously selected features or annotations have been deselected.
+            # No arguments.
             puts "select clear"
         }
         "feature" {
-            # a feature was selected, the server returns 4 values about the feature
-            # that are held in args:
-            # globalObjId - the global object identifier
-            # featureIdList - a single value or list of feature identifiers.
-            #                 if multiple features are returned, they arei
-            #                 enclosed in curly brackets.
-            # numFeaturesInLayer - the number of features in the layer
-            # layerName - the name of the layer the features were found in.
-            #             only features from a single layer can be selected
-            #             at a time.
-            foreach {globalObjId featureIdList numFeaturesInLayer layerName} $args break
-            puts "handler caught\
-                globalObjId=\"$globalObjId\"\
-                featureIdList=\"$featureIdList\"\
-                numFeaturesInLayer=\"$numFeaturesInLayer\"\
-                layerName=\"$layerName\""
+            # The feature selection set changed, the arguments are:
+            #   op - "add", "delete" or "set"
+            #   featureIdList - a list of feature identifiers.
+            #   layerName - the name of the layer the features were found in.
+            foreach {op featureIdList layerName} $args break
+            switch $op {
+                "add" {
+                    puts "select feature add:\nfeatureIDList=\"$featureIdList\"\nlayerName=\"$layerName\""
+                }
+                "delete" {
+                    puts "select feature delete:\nfeatureIDList=\"$featureIdList\"\nlayerName=\"$layerName\""
+                }
+                "set" {
+                    puts "select feature set:\nfeatureIDList=\"$featureIdList\"\nlayerName=\"$layerName\""
+                }
+                default {
+                    error "bad op \"$op\": should be one of: add, delete or set"
+                }
+            }
         }
         "region" {
-            puts "select region $args"
+            # An area defined by two wgs84 corner points was selected.
+            # Here x is wgs84 decimal degrees longitude and y is wgs84 decimal degrees latitude.
+            foreach {xmin ymin xmax ymax} $args break
+            puts "select region: ($xmin, $ymin) - ($xmax, $ymax)"
         }
         default {
-            error "bad option \"$option\": should be one of annotation,\
-                clean, or feature"
+            error "bad option \"$option\": should be one of: annotation, clean, feature or region"
         }
     }
 }
@@ -90,10 +97,10 @@ station {
 }
 "
 
-# create a map object
+# Create a map object
 set map [Rappture::Map #auto]
 
-# add all layers to the map object
+# Add all layers to the map object
 $map addLayer image \
     osm [array get osmParams] \
     xyz [array get xyzParams]
@@ -105,14 +112,14 @@ $map addLayer icon \
     ogr [array get ogrParams] \
     $stylesheet
 
-# add a map to the vis client
+# Add a map to the vis client
 $mapviewer scale $map
 $mapviewer add $map
 
 
-# set the proc/method to be called when a feature is selected on the map.
-# in this case we give the full path to the previously defined
-# procedure named "handler". for an itcl class method, you may need to
-# use itcl::code to get the full path of the  callback method:
-# for example: [itcl::code $this handler]
-$mapviewer setSelectCallback ::handler
+# Set the proc/method to be called when a feature is selected on the map.
+# In this case we give the full path to the previously defined
+# procedure named "selectHandler". For an itcl class method, you may need to
+# use itcl::code to get the full path of the callback method, e.g.
+# [itcl::code $this selectHandler]
+$mapviewer setSelectCallback ::selectHandler
