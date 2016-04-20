@@ -50,7 +50,7 @@ proc selectHandler {option {args ""}} {
             puts "select region: ($xmin, $ymin) - ($xmax, $ymax)"
         }
         default {
-            error "bad option \"$option\": should be one of: annotation, clean, feature or region"
+            error "bad option \"$option\": should be one of: annotation, clear, feature or region"
         }
     }
 }
