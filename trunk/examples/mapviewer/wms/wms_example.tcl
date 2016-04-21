@@ -1,3 +1,4 @@
+package require Tk
 package require Rappture
 package require RapptureGUI
 
