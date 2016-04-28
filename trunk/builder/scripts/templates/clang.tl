@@ -179,6 +179,8 @@ all: @@FILEROOT@@c
 @@FILEROOT@@c: @@FILENAME@@
 	$(CC) $(CFLAGS) $(INCLUDES) $< -o $@ $(LIBS)
 
+install:
+
 clean:
 	$(RM) @@FILEROOT@@c run*.xml
 }

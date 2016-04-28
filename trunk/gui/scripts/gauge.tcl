@@ -635,6 +635,9 @@ itcl::configbody Rappture::Gauge::state {
     $itk_component(spinup) configure -state $itk_option(-state)
     $itk_component(spindn) configure -state $itk_option(-state)
     $itk_component(presets) configure -state $itk_option(-state)
+    if { [info exists itk_component(uq)] } {
+        $itk_component(uq) configure -state $itk_option(-state)
+    }
     _redraw  ;# fix gauge
 }
 
@@ -755,7 +758,7 @@ itcl::body Rappture::Gauge::_pop_uq {win} {
         pack $inner.entry -expand yes -fill both -pady {10 0}
 
         $popup configure \
-        -deactivatecommand [itcl::code $this _pop_uq_deactivate]
+            -deactivatecommand [itcl::code $this _pop_uq_deactivate]
     }
     update
     $popup activate $win right

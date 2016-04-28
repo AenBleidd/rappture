@@ -178,6 +178,8 @@ all: @@FILEROOT@@f77
 @@FILEROOT@@f77: @@FILENAME@@
 	$(FC) $(FCFLAGS) $(INCLUDES) $< -o $@ $(LIBS)
 
+install:
+
 clean:
 	$(RM) @@FILEROOT@@f77 run*.xml
 }
