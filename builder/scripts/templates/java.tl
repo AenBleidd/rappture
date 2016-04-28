@@ -125,6 +125,8 @@ all: @@FILEROOT@@.class
 @@FILEROOT@@.class: @@FILENAME@@
 	$(JAVAC) $(CLASSPATH) $<
 
+install: 
+
 clean:
 	$(RM) @@FILEROOT@@.class run*.xml
 }
