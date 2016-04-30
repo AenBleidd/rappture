@@ -42,6 +42,8 @@ set params(load) ""
 set params(execute) ""
 set params(input) ""
 
+set rapptureInfo(cwd) [pwd]
+
 if {[info exists env(TOOL_PARAMETERS)]} {
     # if we can't find the file, wait a little
     set ntries 25

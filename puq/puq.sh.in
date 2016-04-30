@@ -20,5 +20,5 @@ python=python${python_version}
 
 script=$1
 shift
-exec ${python} ${puq_exec_prefix}/${script}.py $*
+exec ${python} ${puq_exec_prefix}/${script}.py "$@"
 

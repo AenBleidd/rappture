@@ -74,6 +74,7 @@ proc Rappture::library {args} {
             set info [read $fid]
             close $fid
         } errs] != 0 } {
+            global errorInfo
             puts stderr "can't open \"$fname\": errs=$errs errorInfo=$errorInfo"
         }
         set stdlib [Rappture::LibraryObj ::#auto $info]
@@ -89,6 +90,7 @@ proc Rappture::library {args} {
             set info [read $fid]
             close $fid
         } errs] != 0 } {
+            global errorInfo
             puts stderr "can't open \"$fname\": errs=$errs errorInfo=$errorInfo"
         }
     }
@@ -1066,8 +1068,8 @@ itcl::body Rappture::LibraryObj::childnodes {node type} {
 # If tfile is specified, write a template file out.
 # ----------------------------------------------------------------------
 itcl::body Rappture::LibraryObj::uq_get_vars {{tfile ""}} {
-    set varout \[
-    set varlist []
+    set varout "\["
+    set varlist {}
 
     if {$tfile == ""} {
         set node $_node

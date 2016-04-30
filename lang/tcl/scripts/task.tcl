@@ -217,7 +217,8 @@ itcl::body Rappture::Task::run {args} {
     Rappture::rlimit set cputime $limit
 
     # write out the driver.xml file for the tool
-    set file "driver[pid].xml"
+    global rapptureInfo
+    set file [file join $rapptureInfo(cwd) "driver[pid].xml"]
     set status [catch {
         set fid [open $file w]
         puts $fid "<?xml version=\"1.0\"?>"
@@ -577,7 +578,8 @@ itcl::body Rappture::Task::save {xmlobj {filename ""}} {
             if {[info exists _resources(-resultdir)]} {
                 set rdir $_resources(-resultdir)
             } else {
-                set rdir "."
+                global rapptureInfo
+                set rdir $rapptureInfo(cwd)
             }
         } elseif {$resultdir ne ""} {
             set rdir $resultdir
