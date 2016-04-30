@@ -146,23 +146,23 @@ itcl::body Rappture::ResponseViewer::add {uqobj {settings ""}} {
 }
 
 itcl::body Rappture::ResponseViewer::_plot_response {var1 var2} {
-    #puts "plotting $var1 vs $var2"
-
-    set fname response_result.xml
-
-    set rs $_response
-    if {[catch {exec puq get_response $fname $rs $var1 $var2 $_label} res]} {
+    #puts stderr "plotting $var1 vs $var2"
+    global rapptureInfo 
+    set fname [file join $rapptureInfo(cwd) "response_result.xml"]
+    if { [catch {
+        exec puq.sh get_response $fname $_response $var1 $var2 $_label
+    } res] != 0 } {
         set fp [open "response.err" r]
         set rdata [read $fp]
         close $fp
-        puts "Surrogate Model failed: $res\n$rdata"
+        puts stderr "Surrogate Model failed: $res\n$rdata"
         error "Sampling of Surrogate Model failed: $res\n$rdata"
         # FIXME: Maybe put in text box instead of error()?
         return
     }
 
     set xmlobj [Rappture::library $fname]
-    #puts "xmlobj=$xmlobj"
+    #puts stderr "xmlobj=$xmlobj"
     set w $itk_component(frame).field
 
     if {$var1 == $var2} {
