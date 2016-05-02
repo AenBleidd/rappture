@@ -1548,7 +1548,7 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { cname markers } {
             lappend list [expr {$value * 0.01}]
         } else {
             # $n : absolute value, compute relative
-            lappend list  [expr {(double($value)-$min)/($max-$min)]}
+            lappend list [expr {(double($value)-$min)/($max-$min)}]
         }
     }
     set _parsedFunction($cname) 1
