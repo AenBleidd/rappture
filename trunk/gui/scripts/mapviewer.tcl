@@ -60,6 +60,7 @@ itcl::class Rappture::MapViewer {
     public method isconnected {}
     public method parameters {title args} { # do nothing }
     public method placard {option args}
+    public method refresh {} { Rebuild }
     public method scale {args}
     public method select {option {args ""}}
     public method setSelectCallback {cmd}
