@@ -84,7 +84,6 @@ after 10000 {
     $map deleteLayer landuse
 
     # Update the map
-    $mapviewer delete
-    $mapviewer add $map
+    $mapviewer refresh
 }
 

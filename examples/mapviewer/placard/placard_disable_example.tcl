@@ -72,7 +72,7 @@ $mapviewer scale $map
 $mapviewer add $map
 
 # Make sure the MapViewer rebuilds the map
-update idletasks
+$mapviewer refresh
 
 # disable the placard for the "stations" layer of $map
 $mapviewer placard enable off "$map-stations"
