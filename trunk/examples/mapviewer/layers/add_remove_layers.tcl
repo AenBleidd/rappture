@@ -79,8 +79,7 @@ after 15000 {
         colorramp [array get colorrampParams]
 
     # Update map
-    $mapviewer delete
-    $mapviewer add $map
+    $mapviewer refresh
     puts stderr "Deleted OSM Layer, Added colorramp"
 }
 
@@ -94,8 +93,7 @@ after 20000 {
         ogr [array get ogrParams]
 
     # Update map
-    $mapviewer delete
-    $mapviewer add $map
+    $mapviewer refresh
     puts stderr "Deleted colorramp Layer, Added line layer"
 }
 
@@ -110,8 +108,7 @@ after 25000 {
         xyz [array get xyzParams]
 
     # Update map
-    $mapviewer delete
-    $mapviewer add $map
+    $mapviewer refresh
     puts stderr "Deleted line Layer, Added OSM layer"
 }
 
@@ -122,8 +119,7 @@ after 30000 {
         colorramp [array get colorrampParams]
 
     # Update map
-    $mapviewer delete
-    $mapviewer add $map
+    $mapviewer refresh
     puts stderr "Added colorramp layer"
 }
 
@@ -134,8 +130,7 @@ after 35000 {
         ogr [array get ogrParams]
 
     # Update map
-    $mapviewer delete
-    $mapviewer add $map
+    $mapviewer refresh
     puts stderr "Added line layer"
 }
 
