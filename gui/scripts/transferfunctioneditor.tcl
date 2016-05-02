@@ -41,8 +41,8 @@ itcl::class Rappture::TransferFunctionEditor {
     private method GetOverlappingMarkers { x y }
     private method GetScreenPosition { name }
     private method LeaveTick { name }
-    private method SetRelativeValue  { name x }
-    private method GetRelativeValue  { name }
+    private method SetRelativeValue { name x }
+    private method GetRelativeValue { name }
     private method RemoveDuplicateMarkers {name x y}
     private method SetScreenPosition { name }
     private method SetVisibility { name bool }
@@ -224,11 +224,16 @@ itcl::body Rappture::TransferFunctionEditor::SetAbsoluteValue { name value } {
     return $absval
 }
 
-itcl::body Rappture::TransferFunctionEditor::GetRelativeValue  { name } {
+itcl::body Rappture::TransferFunctionEditor::GetRelativeValue { name } {
     return $_values($name)
 }
 
-itcl::body Rappture::TransferFunctionEditor::SetRelativeValue  { name value } {
+itcl::body Rappture::TransferFunctionEditor::SetRelativeValue { name value } {
+    if {$value < 0.0} {
+        set value 0.0
+    } elseif {$value > 1.0} {
+        set value 1.0
+    }
     set _values($name) $value
     set x [GetScreenPosition $name]
     set y 31
