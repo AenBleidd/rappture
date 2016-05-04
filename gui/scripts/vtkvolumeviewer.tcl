@@ -535,9 +535,6 @@ itcl::body Rappture::VtkVolumeViewer::add {dataobj {settings ""}} {
         -type ""
     }
     array set params $settings
-    set params(-description) ""
-    set params(-param) ""
-    array set params $settings
 
     if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
         # can't handle -autocolors yet
