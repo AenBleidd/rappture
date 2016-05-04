@@ -19,66 +19,41 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -sendcommand sendCommand SendCommand ""
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
-    private common _servers;            # array of visualization server lists
-    set _servers(geovis)  "localhost:2015"
-    set _servers(nanovis) "localhost:2000"
-    set _servers(pymol)   "localhost:2020"
-    set _servers(vmdmds)  "localhost:2018"
-    set _servers(vtkvis)  "localhost:2010"
-
-    private common _done;               # Used to indicate status of send.
-    private variable _buffer;           # buffer for incoming/outgoing commands
-    private variable _outbuf;           # buffer for outgoing commands
-    private variable _blockOnWrite 0;   # Should writes to socket block?
-    private variable _initialized
-    private variable _isOpen 0
-    private variable _afterId -1
-    private variable _icon 0
-    private variable _trace 0;          # Protocol tracing for console
-    private variable _logging 0;        # Command logging to file
-    # Number of milliseconds to wait before idle timeout.  If greater than 0,
-    # automatically disconnect from the visualization server when idle timeout
-    # is reached.
-    private variable _idleTimeout 43200000; # 12 hours
-    #private variable _idleTimeout 5000;# 5 seconds
-    #private variable _idleTimeout 0;   # No timeout
-
-    protected variable _debug 0
-    protected variable _serverType "???";# Type of server.
-    protected variable _sid "";         # socket connection to server
-    protected variable _maxConnects 100
-    protected variable _buffering 0
-    protected variable _cmdSeq 0;       # Command sequence number
-    protected variable _dispatcher "";  # dispatcher for !events
-    protected variable _hosts "";       # list of hosts for server
-    protected variable _parser "";      # interpreter for incoming commands
-    protected variable _image
-    protected variable _hostname
-    protected variable _numConnectTries 0
-    protected variable _debugConsole 0
-    protected variable _reportClientInfo 1
-    # Number of milliscends to wait for server reply before displaying wait
-    # dialog.  If set to 0, dialog is never displayed.
-    protected variable _waitTimeout 0
-
     constructor { args } {
         # defined below
     }
     destructor {
         # defined below
     }
-    # Used internally only.
-    private method BuildConsole {}
-    private method DebugConsole {}
-    private method HideConsole {}
-    private method ReceiveHelper {}
-    private method SendDebugCommand {}
-    private method SendHelper {}
-    private method ServerDown {}
-    private method Shuffle { servers }
-    private method TraceComm { channel {data {}} }
-    private method WaitDialog { state }
-    private method Waiting { option widget }
+    public proc GetServerList { type } {
+        return $_servers($type)
+    }
+    public proc SetServerList { type namelist } {
+        # Convert the comma separated list into a Tcl list.  OGRE also adds
+        # a trailing comma that we want to ignore.
+        regsub -all "," $namelist " " namelist
+        CheckNameList $namelist
+        set _servers($type) $namelist
+    }
+    public proc RemoveServerFromList { type server } {
+        if { ![info exists _servers($type)] } {
+            error "unknown server type \"$type\""
+        }
+        set i [lsearch $_servers($type) $server]
+        if { $i < 0 } {
+            return
+        }
+        set _servers($type) [lreplace $_servers($type) $i $i]
+    }
+    public proc SetPymolServerList { namelist } {
+        SetServerList "pymol" $namelist
+    }
+    public proc SetNanovisServerList { namelist } {
+        SetServerList "nanovis" $namelist
+    }
+    public proc SetVtkServerList { namelist } {
+        SetServerList "vtk" $namelist
+    }
 
     protected method CheckConnection {}
     protected method Color2RGB { color }
@@ -116,6 +91,36 @@ itcl::class ::Rappture::VisViewer {
     protected method StopWaiting {}
     protected method ToggleConsole {}
 
+    protected variable _debug 0
+    protected variable _serverType "???";# Type of server.
+    protected variable _sid "";         # socket connection to server
+    protected variable _maxConnects 100
+    protected variable _buffering 0
+    protected variable _cmdSeq 0;       # Command sequence number
+    protected variable _dispatcher "";  # dispatcher for !events
+    protected variable _hosts "";       # list of hosts for server
+    protected variable _parser "";      # interpreter for incoming commands
+    protected variable _image
+    protected variable _hostname
+    protected variable _numConnectTries 0
+    protected variable _debugConsole 0
+    protected variable _reportClientInfo 1
+    # Number of milliscends to wait for server reply before displaying wait
+    # dialog.  If set to 0, dialog is never displayed.
+    protected variable _waitTimeout 0
+
+    private method BuildConsole {}
+    private method DebugConsole {}
+    private method HideConsole {}
+    private method ReceiveHelper {}
+    private method SendDebugCommand {}
+    private method SendHelper {}
+    private method ServerDown {}
+    private method Shuffle { servers }
+    private method TraceComm { channel {data {}} }
+    private method WaitDialog { state }
+    private method Waiting { option widget }
+
     private proc CheckNameList { namelist }  {
         foreach host $namelist {
             set pattern {^[a-zA-Z0-9\.]+:[0-9]}
@@ -124,35 +129,30 @@ itcl::class ::Rappture::VisViewer {
             }
         }
     }
-    public proc GetServerList { type } {
-        return $_servers($type)
-    }
-    public proc SetServerList { type namelist } {
-        # Convert the comma separated list into a Tcl list.  OGRE also adds
-        # a trailing comma that we want to ignore.
-        regsub -all "," $namelist " " namelist
-        CheckNameList $namelist
-        set _servers($type) $namelist
-    }
-    public proc RemoveServerFromList { type server } {
-        if { ![info exists _servers($type)] } {
-            error "unknown server type \"$type\""
-        }
-        set i [lsearch $_servers($type) $server]
-        if { $i < 0 } {
-            return
-        }
-        set _servers($type) [lreplace $_servers($type) $i $i]
-    }
-    public proc SetPymolServerList { namelist } {
-        SetServerList "pymol" $namelist
-    }
-    public proc SetNanovisServerList { namelist } {
-        SetServerList "nanovis" $namelist
-    }
-    public proc SetVtkServerList { namelist } {
-        SetServerList "vtk" $namelist
-    }
+
+    private variable _buffer;           # buffer for incoming/outgoing commands
+    private variable _outbuf;           # buffer for outgoing commands
+    private variable _blockOnWrite 0;   # Should writes to socket block?
+    private variable _initialized
+    private variable _isOpen 0
+    private variable _afterId -1
+    private variable _icon 0
+    private variable _trace 0;          # Protocol tracing for console
+    private variable _logging 0;        # Command logging to file
+    # Number of milliseconds to wait before idle timeout.  If greater than 0,
+    # automatically disconnect from the visualization server when idle timeout
+    # is reached.
+    private variable _idleTimeout 43200000; # 12 hours
+    #private variable _idleTimeout 5000;# 5 seconds
+    #private variable _idleTimeout 0;   # No timeout
+
+    private common _servers;            # array of visualization server lists
+    set _servers(geovis)  "localhost:2015"
+    set _servers(nanovis) "localhost:2000"
+    set _servers(pymol)   "localhost:2020"
+    set _servers(vmdmds)  "localhost:2018"
+    set _servers(vtkvis)  "localhost:2010"
+    private common _done;               # Used to indicate status of send.
 }
 
 itk::usual Panedwindow {
