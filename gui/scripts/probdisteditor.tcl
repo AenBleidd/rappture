@@ -18,12 +18,14 @@ option add *ProbDistEditor.fillColor blue widgetDefault
 option add *ProbDistEditor*Entry.background white widgetDefault
 option add *ProbDistEditor*Entry.width 10 widgetDefault
 
-    itcl::class Rappture::ProbDistEditor {
+itcl::class Rappture::ProbDistEditor {
     inherit itk::Widget
 
     itk_option define -fillcolor fillColor FillColor ""
 
-    constructor {args} { # defined below }
+    constructor {args} {
+        # defined below
+    }
     public method value {{newval ""}}
     public method mode {{newval ""}}
     public method reset {}
@@ -32,13 +34,13 @@ option add *ProbDistEditor*Entry.width 10 widgetDefault
     protected method _axisLabels {which graph val}
     protected method _apply {op {widget ""}}
 
-    protected variable _dispatcher ""   ;# dispatcher for !events
-    protected variable _mode ""         ;# type of distribution function
-    protected variable _value           ;# data values for mode-detail
-    protected variable _uvalue          ;# data values for mode-detail with units
-    protected variable _umin             ;# minimum allowed value for tool with units
-    protected variable _umax             ;# maximum allowed value for tool with units
-    protected variable _units           ;# units for min and max
+    protected variable _dispatcher "";  # dispatcher for !events
+    protected variable _mode "";        # type of distribution function
+    protected variable _value;          # data values for mode-detail
+    protected variable _uvalue;         # data values for mode-detail with units
+    protected variable _umin;           # minimum allowed value for tool with units
+    protected variable _umax;           # maximum allowed value for tool with units
+    protected variable _units;          # units for min and max
 }
 
 itk::usual ProbDistEditor {
