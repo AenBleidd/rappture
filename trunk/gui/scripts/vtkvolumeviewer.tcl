@@ -634,7 +634,7 @@ itcl::body Rappture::VtkVolumeViewer::get {args} {
             }
             return $dlist
         }
-        -image {
+        "-image" {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view\""
             }
@@ -648,7 +648,7 @@ itcl::body Rappture::VtkVolumeViewer::get {args} {
             }
         }
         default {
-            error "bad option \"$op\": should be -objects or -image"
+            error "bad option \"$op\": should be -objects, -visible or -image"
         }
     }
 }

@@ -461,7 +461,7 @@ itcl::body Rappture::NanovisViewer::get {args} {
 
     set op [lindex $args 0]
     switch -- $op {
-        -objects {
+        "-objects" {
             # put the dataobj list in order according to -raise options
             set dlist $_dlist
             foreach dataobj $dlist {
@@ -476,7 +476,7 @@ itcl::body Rappture::NanovisViewer::get {args} {
             }
             return $dlist
         }
-        -image {
+        "-image" {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"get -image view|legend\""
             }
