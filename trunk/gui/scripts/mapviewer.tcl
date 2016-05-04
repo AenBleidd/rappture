@@ -857,7 +857,7 @@ itcl::body Rappture::MapViewer::get {args} {
             }
             return $dlist
         }
-        -image {
+        "-image" {
             if {[llength $args] < 2} {
                 error "wrong # args: should be \"get -image view|legend\""
             }
