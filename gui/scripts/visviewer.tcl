@@ -19,39 +19,39 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -sendcommand sendCommand SendCommand ""
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
-    private common _servers         ;# array of visualization server lists
+    private common _servers;            # array of visualization server lists
     set _servers(geovis)  "localhost:2015"
     set _servers(nanovis) "localhost:2000"
     set _servers(pymol)   "localhost:2020"
     set _servers(vmdmds)  "localhost:2018"
     set _servers(vtkvis)  "localhost:2010"
 
-    private common _done            ;   # Used to indicate status of send.
-    private variable _buffer        ;   # buffer for incoming/outgoing commands
-    private variable _outbuf       ;    # buffer for outgoing commands
+    private common _done;               # Used to indicate status of send.
+    private variable _buffer;           # buffer for incoming/outgoing commands
+    private variable _outbuf;           # buffer for outgoing commands
     private variable _blockOnWrite 0;   # Should writes to socket block?
     private variable _initialized
     private variable _isOpen 0
     private variable _afterId -1
     private variable _icon 0
-    private variable _trace 0        ;    # Protocol tracing for console
-    private variable _logging 0      ;    # Command logging to file
+    private variable _trace 0;          # Protocol tracing for console
+    private variable _logging 0;        # Command logging to file
     # Number of milliseconds to wait before idle timeout.  If greater than 0,
     # automatically disconnect from the visualization server when idle timeout
     # is reached.
     private variable _idleTimeout 43200000; # 12 hours
-    #private variable _idleTimeout 5000;    # 5 seconds
-    #private variable _idleTimeout 0;       # No timeout
+    #private variable _idleTimeout 5000;# 5 seconds
+    #private variable _idleTimeout 0;   # No timeout
 
     protected variable _debug 0
     protected variable _serverType "???";# Type of server.
-    protected variable _sid ""      ;   # socket connection to server
+    protected variable _sid "";         # socket connection to server
     protected variable _maxConnects 100
     protected variable _buffering 0
-    protected variable _cmdSeq 0     ;    # Command sequence number
+    protected variable _cmdSeq 0;       # Command sequence number
     protected variable _dispatcher "";  # dispatcher for !events
-    protected variable _hosts ""    ;   # list of hosts for server
-    protected variable _parser ""   ;   # interpreter for incoming commands
+    protected variable _hosts "";       # list of hosts for server
+    protected variable _parser "";      # interpreter for incoming commands
     protected variable _image
     protected variable _hostname
     protected variable _numConnectTries 0
