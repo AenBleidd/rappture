@@ -30,10 +30,23 @@ itcl::class Rappture::Map {
     }
 
     public method addLayer { type name paramArray driver driverParamArray {stylesheet {}} {script {}} {selectors {}} }
+    public method addSelector { layerName selectorName paramArray }
     public method addViewpoint { name props }
     public method clearExtents {}
     public method deleteLayer { layerName }
+    public method deleteSelector { layerName selectorName }
     public method deleteViewpoint { viewpointName }
+    public method dirty { key args } {
+        if {[llength $args] == 0} {
+            if { [info exists _dirty($key)] } {
+                return $_dirty($key)
+            } else {
+                return 0
+            }
+        } else {
+            set _dirty($key) [lindex $args 0]
+        }
+    }
     public method getPlacardConfig { layerName }
     public method hasLayer { layerName }
     public method hasSelector { layerName selectorName }
@@ -49,12 +62,15 @@ itcl::class Rappture::Map {
     public method selector { layerName selectorName }
     public method setAttribution { attribution }
     public method setCamera { camera }
+    public method setColormap { layerName colormap }
     public method setDescription { description }
     public method setExtents { xmin ymin xmax ymax {srs "wgs84"} }
     public method setLabel { label }
     public method setPlacardConfig { layerName attrlist style padding }
     public method setProjection { projection }
+    public method setScript { layerName script }
     public method setStyle { style }
+    public method setStylesheet { layerName stylesheet }
     public method setToolInfo { id name command title revision }
     public method setType { type }
     public method viewpoint { viewpointName }
@@ -69,6 +85,10 @@ itcl::class Rappture::Map {
 
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
+    private variable _dirty;
+    array set _dirty {
+        viewpoints 0
+    }
     private common _nextSelector 0;
     private common _layerTypes
     private common _mapTypes
@@ -764,6 +784,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             error "Unknown driver \"$driver\""
         }
     }
+    set _dirty($id) 1
     return $id
 }
 
@@ -803,6 +824,7 @@ itcl::body Rappture::Map::deleteLayer { layerName } {
         error "unknown layer \"$layerName\""
     }
     $_tree delete $id
+    array unset _dirty $layerName
 }
 
 # ----------------------------------------------------------------------
@@ -867,6 +889,33 @@ itcl::body Rappture::Map::hasLayer { layerName } {
     }
 }
 
+itcl::body Rappture::Map::setScript { layerName script } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    $_tree set $id "script" $script
+    set _dirty($layerName) 1
+}
+
+itcl::body Rappture::Map::setStylesheet { layerName stylesheet } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    $_tree set $id "stylesheet" $stylesheet
+    set _dirty($layerName) 1
+}
+
+itcl::body Rappture::Map::setColormap { layerName colormap } {
+    set id [$_tree findchild root->"layers" $layerName]
+    if { $id < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    $_tree set $id "colorramp.colormap" $colormap
+    set _dirty($layerName) 1
+}
+
 # ----------------------------------------------------------------------
 # USAGE: selectors
 #
@@ -903,6 +952,39 @@ itcl::body Rappture::Map::hasSelector { layerName selectorName } {
     } else {
         return 1
     }
+}
+
+itcl::body Rappture::Map::addSelector { layerName name params } {
+    set nodeid $name
+    set layerid [$_tree findchild root->"layers" $layerName]
+    if { $layerid < 0 } {
+        error "unknown layer \"$layerName\""
+    }
+    if {[hasSelector $layerName $nodeid]} {
+        error "Selector '$nodeid' already exists"
+    }
+    set parent [$_tree findchild root->"layers"->"$layerName" "selectors"]
+    if { $parent == "" } {
+        set parent [$_tree insert $layerid -label "selectors"]
+    }
+    set child [$_tree insert $parent -label $nodeid]
+    array set info $params
+    foreach key { name style styleExpression query queryBounds queryOrderBy } {
+        if { [info exists info($key)] &&
+             $info($key) != ""} {
+            $_tree set $child $key $info($key)
+        }
+    }
+    set _dirty($layerName) 1
+}
+
+itcl::body Rappture::Map::deleteSelector { layerName selectorName } {
+    set id [$_tree findchild root->"layers"->"$layerName"->"selectors" $selectorName]
+    if { $id < 0 } {
+        error "unknown selector \"$selectorName\""
+    }
+    $_tree delete $id
+    set _dirty($layerName) 1
 }
 
 # ----------------------------------------------------------------------
@@ -970,6 +1052,7 @@ itcl::body Rappture::Map::addViewpoint { name props } {
     if {!$haveZ && [info exists info(altitude)]} {
         $_tree set $child z $info(altitude)
     }
+    set _dirty(viewpoints) 1
 }
 
 itcl::body Rappture::Map::deleteViewpoint { viewpointName } {
@@ -978,6 +1061,7 @@ itcl::body Rappture::Map::deleteViewpoint { viewpointName } {
         error "unknown viewpoint \"$viewpointName\""
     }
     $_tree delete $id
+    set _dirty(viewpoints) 1
 }
 
 # ----------------------------------------------------------------------

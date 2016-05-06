@@ -1466,7 +1466,13 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 }
                 set _layers($tag) 1
                 SetLayerStyle $dataobj $layer
+            } elseif { [$dataobj dirty $layer] } {
+                # Recreate layer
+                # FIXME: retain layer order
+                SendCmd "map layer delete $tag"
+                SetLayerStyle $dataobj $layer
             }
+            $dataobj dirty $layer 0
             # Don't change visibility of shared/base layers
             if { !$info(shared) } {
                 # FIXME: This is overriding data layers' initial visibility
