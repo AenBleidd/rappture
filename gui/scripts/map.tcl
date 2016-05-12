@@ -648,11 +648,11 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
         foreach selectorItem $selectors {
             array set selector $selectorItem
             if { [info exists selector(id)] } {
-                set id $selector(id)
+                set selectorId $selector(id)
             } else {
-                set id "selector[incr _nextSelector]"
+                set selectorId "selector[incr _nextSelector]"
             }
-            set snode [$_tree insert $sparent -label $id]
+            set snode [$_tree insert $sparent -label $selectorId]
             foreach key { name style styleExpression query queryBounds queryOrderBy } {
                 if {[info exists selector($key)]} {
                     set val $selector($key)
