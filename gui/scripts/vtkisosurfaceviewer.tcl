@@ -1501,7 +1501,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-isolinecolor" {
-            set color [$itk_component(isolineColor) value]
+            set color [$itk_component(isolinecolor) value]
             set _settings($what) $color
             DrawLegend
         }
@@ -1737,7 +1737,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         -font "Arial 9"
 
     label $inner.linecolor_l -text "Isolines" -font "Arial 9"
-    itk_component add isolineColor {
+    itk_component add isolinecolor {
         Rappture::Combobox $inner.linecolor -width 10 -editable 0
     }
     $inner.linecolor choices insert end \
@@ -1752,7 +1752,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildIsosurfaceTab {} {
         "white"              "white"            \
         "none"               "none"
 
-    $itk_component(isolineColor) value "white"
+    $itk_component(isolinecolor) value $_settings(-isolinecolor)
     bind $inner.linecolor <<Value>> \
         [itcl::code $this AdjustSetting -isolinecolor]
 
