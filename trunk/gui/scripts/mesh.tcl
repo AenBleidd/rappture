@@ -1451,7 +1451,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
         set nodeList [$_mesh get $cname.nodes]
         set numNodes [llength $nodeList]
         if { ![info exists node2celltype($numNodes)] } {
-            puts stderr "WARNING: bad nodes/elements mesh \$path\": unknown number of indices \"$_numNodes\": should be 3, 4, 5, 6, or 8"
+            puts stderr "WARNING: bad nodes/elements mesh \$path\": unknown number of indices \"$numNodes\": should be 3, 4, 5, 6, or 8"
             return 0
         }
         set celltype $node2celltype($numNodes)
