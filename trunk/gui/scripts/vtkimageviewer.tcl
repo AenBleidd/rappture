@@ -208,10 +208,10 @@ itcl::body Rappture::VtkImageViewer::constructor {args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-        -axisflymode            "static"
+        -axesvisible            1
         -axislabels             1
         -axisminorticks         1
-        -axisvisible            1
+        -axismode               "static"
         -backingcolor           white
         -backingvisible         1
         -colormapdiscrete       0
@@ -1043,7 +1043,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
         }
         PanCamera
         InitSettings -xgrid -ygrid -zgrid \
-            -axisvisible -axislabels -field -view3d
+            -axesvisible -axislabels -field -view3d
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }
@@ -1294,11 +1294,9 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "-axisflymode" {
-            set mode [$itk_component(axisflymode) value]
-            set mode [$itk_component(axisflymode) translate $mode]
-            set _settings($what) $mode
-            SendCmd "axis flymode $mode"
+        "-axesvisible" {
+            set bool $_settings($what)
+            SendCmd "axis visible all $bool"
         }
         "-axislabels" {
             set bool $_settings($what)
@@ -1308,9 +1306,11 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis minticks all $bool"
         }
-        "-axisvisible" {
-            set bool $_settings($what)
-            SendCmd "axis visible all $bool"
+        "-axismode" {
+            set mode [$itk_component(axismode) value]
+            set mode [$itk_component(axismode) translate $mode]
+            set _settings($what) $mode
+            SendCmd "axis flymode $mode"
         }
         "-background" {
             set bg [$itk_component(background) value]
@@ -1393,6 +1393,42 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             SendCmd "camera reset"
             DrawLegend
         }
+        "-legendvisible" {
+            if { !$_settings($what) } {
+                $itk_component(view) delete legend
+            }
+            DrawLegend
+        }
+        "-level" {
+            set val $_settings($what)
+            SendCmd "image level $val"
+        }
+        "-opacity" {
+            set _changed($what) 1
+            if { $_settings(-view3d) } {
+                set _settings(-saveopacity) $_settings($what)
+                set val [expr $_settings($what) * 0.01]
+                SendCmd "image opacity $val"
+            } else {
+                SendCmd "image opacity 1.0"
+            }
+        }
+        "-outline" {
+            set bool $_settings($what)
+            SendCmd "outline visible $bool"
+        }
+        "-stretchtofit" {
+            set bool $_settings($what)
+            if { $bool } {
+                if { $_settings(-view3d) } {
+                    SendCmd "camera aspect native"
+                } else {
+                    SendCmd "camera aspect window"
+                }
+            } else {
+                SendCmd "camera aspect native"
+            }
+        }
         "-view3d" {
             set bool $_settings($what)
             set c $itk_component(view)
@@ -1447,42 +1483,6 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
         "-window" {
             set val $_settings($what)
             SendCmd "image window $val"
-        }
-        "-level" {
-            set val $_settings($what)
-            SendCmd "image level $val"
-        }
-        "-legendvisible" {
-            if { !$_settings($what) } {
-                $itk_component(view) delete legend
-            }
-            DrawLegend
-        }
-        "-opacity" {
-            set _changed($what) 1
-            if { $_settings(-view3d) } {
-                set _settings(-saveopacity) $_settings($what)
-                set val [expr $_settings($what) * 0.01]
-                SendCmd "image opacity $val"
-            } else {
-                SendCmd "image opacity 1.0"
-            }
-        }
-        "-outline" {
-            set bool $_settings($what)
-            SendCmd "outline visible $bool"
-        }
-        "-stretchtofit" {
-            set bool $_settings($what)
-            if { $bool } {
-                if { $_settings(-view3d) } {
-                    SendCmd "camera aspect native"
-                } else {
-                    SendCmd "camera aspect window"
-                }
-            } else {
-                SendCmd "camera aspect native"
-            }
         }
         "-xgrid" - "-ygrid" - "-zgrid" {
             set axis [string tolower [string range $what 1 1]]
@@ -1794,8 +1794,8 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Axes" \
-        -variable [itcl::scope _settings(-axisvisible)] \
-        -command [itcl::code $this AdjustSetting -axisvisible] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
     checkbutton $inner.labels \
         -text "Axis Labels" \
@@ -1826,7 +1826,7 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
 
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
-    itk_component add axisflymode {
+    itk_component add axismode {
         Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
@@ -1834,8 +1834,8 @@ itcl::body Rappture::VtkImageViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"
-    $itk_component(axisflymode) value $_settings(-axisflymode)
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
+    $itk_component(axismode) value $_settings(-axismode)
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 4 \

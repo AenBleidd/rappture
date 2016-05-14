@@ -213,10 +213,10 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     $_arcball quaternion [ViewToQuaternion]
 
     array set _settings {
-        -axisflymode            "static"
+        -axesvisible            1
         -axislabels             1
         -axisminorticks         1
-        -axisvisible            1
+        -axismode               "static"
         -colormap               BCGYR
         -colormapdiscrete       0
         -colormapvisible        1
@@ -1092,7 +1092,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         }
         PanCamera
         InitSettings -xgrid -ygrid -zgrid \
-            -axisvisible -axislabels -heightmapscale -field -isheightmap \
+            -axesvisible -axislabels -heightmapscale -field -isheightmap \
             -numisolines
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
@@ -1353,11 +1353,9 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "-axisflymode" {
-            set mode [$itk_component(axisflymode) value]
-            set mode [$itk_component(axisflymode) translate $mode]
-            set _settings($what) $mode
-            SendCmd "axis flymode $mode"
+        "-axesvisible" {
+            set bool $_settings($what)
+            SendCmd "axis visible all $bool"
         }
         "-axislabels" {
             set bool $_settings($what)
@@ -1367,9 +1365,11 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis minticks all $bool"
         }
-        "-axisvisible" {
-            set bool $_settings($what)
-            SendCmd "axis visible all $bool"
+        "-axismode" {
+            set mode [$itk_component(axismode) value]
+            set mode [$itk_component(axismode) translate $mode]
+            set _settings($what) $mode
+            SendCmd "axis flymode $mode"
         }
         "-background" {
             set bg [$itk_component(background) value]
@@ -1412,11 +1412,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             StopBufferingCommands
             EventuallyRequestLegend
         }
-        "-colormapvisible" {
-            set _changed($what) 1
-            set bool $_settings($what)
-            SendCmd "heightmap surface $bool"
-        }
         "-colormapdiscrete" {
             set _changed($what) 1
             set bool $_settings($what)
@@ -1433,6 +1428,11 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
             StopBufferingCommands
             EventuallyRequestLegend
+        }
+        "-colormapvisible" {
+            set _changed($what) 1
+            set bool $_settings($what)
+            SendCmd "heightmap surface $bool"
         }
         "-edges" {
             set _changed($what) 1
@@ -2051,8 +2051,8 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Axes" \
-        -variable [itcl::scope _settings(-axisvisible)] \
-        -command [itcl::code $this AdjustSetting -axisvisible] \
+        -variable [itcl::scope _settings(-axesvisible)] \
+        -command [itcl::code $this AdjustSetting -axesvisible] \
         -font "Arial 9"
     checkbutton $inner.labels \
         -text "Axis Labels" \
@@ -2083,7 +2083,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
 
     label $inner.mode_l -text "Mode" -font "Arial 9"
 
-    itk_component add axisflymode {
+    itk_component add axismode {
         Rappture::Combobox $inner.mode -width 10 -editable 0
     }
     $inner.mode choices insert end \
@@ -2091,8 +2091,8 @@ itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "farthest" \
         "outer_edges"     "outer"
-    $itk_component(axisflymode) value $_settings(-axisflymode)
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axisflymode]
+    $itk_component(axismode) value $_settings(-axismode)
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting -axismode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 4 \
