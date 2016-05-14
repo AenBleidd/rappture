@@ -68,7 +68,6 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method BuildColormap { name }
     private method BuildDownloadPopup { widget command }
     private method BuildSurfaceTab {}
-    private method Combo { option }
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
@@ -84,6 +83,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
+    private method LegendTitleAction { option }
     private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
@@ -2165,9 +2165,9 @@ itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
         }
     }
 
-    $c bind title <ButtonPress> [itcl::code $this Combo post]
-    $c bind title <Enter> [itcl::code $this Combo activate]
-    $c bind title <Leave> [itcl::code $this Combo deactivate]
+    $c bind title <ButtonPress> [itcl::code $this LegendTitleAction post]
+    $c bind title <Enter> [itcl::code $this LegendTitleAction enter]
+    $c bind title <Leave> [itcl::code $this LegendTitleAction leave]
     # Reset the item coordinates according the current size of the plot.
     $c itemconfigure title -text $title
     if { [info exists _limits($_curFldName)] } {
@@ -2192,17 +2192,19 @@ itcl::body Rappture::VtkSurfaceViewer::DrawLegend {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _dropdown post
-# USAGE: _dropdown unpost
-# USAGE: _dropdown select
+# USAGE: LegendTitleAction post
+# USAGE: LegendTitleAction enter
+# USAGE: LegendTitleAction leave
+# USAGE: LegendTitleAction save
 #
-# Used internally to handle the dropdown list for this combobox.  The
-# post/unpost options are invoked when the list is posted or unposted
-# to manage the relief of the controlling button.  The select option
-# is invoked whenever there is a selection from the list, to assign
-# the value back to the gauge.
+# Used internally to handle the dropdown list for the fields menu combobox.
+# The post option is invoked when the field title is pressed to launch the
+# dropdown.  The enter option is invoked when the user mouses over the field
+# title. The leave option is invoked when the user moves the mouse away
+# from the field title.  The save option is invoked whenever there is a
+# selection from the list, to alert the visualization server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkSurfaceViewer::Combo {option} {
+itcl::body Rappture::VtkSurfaceViewer::LegendTitleAction {option} {
     set c $itk_component(view)
     switch -- $option {
         post {
@@ -2214,18 +2216,18 @@ itcl::body Rappture::VtkSurfaceViewer::Combo {option} {
             set y [expr $y2 + [winfo rooty $itk_component(view)]]
             tk_popup $itk_component(fieldmenu) $x $y
         }
-        activate {
+        enter {
             $c itemconfigure title -fill red
         }
-        deactivate {
+        leave {
             $c itemconfigure title -fill $itk_option(-plotforeground)
         }
-        invoke {
+        save {
             $itk_component(field) value $_curFldLabel
             AdjustSetting -field
         }
         default {
-            error "bad option \"$option\": should be post, unpost, select"
+            error "bad option \"$option\": should be post, enter, leave or save"
         }
     }
 }
@@ -2315,7 +2317,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetCurrentFieldName { dataobj } {
                 -activebackground $itk_option(-plotbackground) \
                 -activeforeground $itk_option(-plotforeground) \
                 -font "Arial 8" \
-                -command [itcl::code $this Combo invoke]
+                -command [itcl::code $this LegendTitleAction save]
             set _fields($fname) [list $label $units $components]
             if { $_curFldName == "" } {
                 set _curFldName $fname
