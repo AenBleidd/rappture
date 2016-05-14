@@ -1456,8 +1456,13 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
             return 0
         }
         set celltype $node2celltype($numNodes)
+        if { _$dim == 3 && $numNodes == 4 } {
+            # If mesh is 3D, assume a tetrahedron (default is quad)
+            # XXX: Does prophet output tets, and if so what is the node order?
+            set celltype 10
+        }
         append celltypes "$celltype\n"
-        if { $numNodes == 4 } {
+        if { $celltype == 9 } {
             # Fix the node order for quad cells
             # (this converts from PROPHET convention to VTK convention)
             set newList {}
@@ -1465,7 +1470,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
                 lappend newList [lindex $nodeList $i]
             }
             set nodeList $newList
-        } elseif { $numNodes == 8 } {
+        } elseif { $celltype == 12 } {
             # Fix the node order for hexahedron cells
             # (this converts from PROPHET convention to VTK convention)
             set newList {}
