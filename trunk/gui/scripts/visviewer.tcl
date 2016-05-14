@@ -863,7 +863,7 @@ itcl::body Rappture::VisViewer::HandleError { args } {
             Rappture::Scroller $inner.scrl \
                 -xscrollmode auto -yscrollmode auto
             text $inner.scrl.text \
-                -font "Arial 9 " -background white -relief sunken -bd 1 \
+                -font "Arial 9" -background white -relief sunken -bd 1 \
                 -height 5 -wrap word -width 60
             $inner.scrl contents $inner.scrl.text
             button $inner.ok -text "Dismiss" -command [list $popup deactivate] \

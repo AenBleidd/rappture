@@ -2584,7 +2584,7 @@ itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
     label $inner.summary -text "" -anchor w
     radiobutton $inner.vtk_button -text "VTK data file" \
         -variable [itcl::scope _downloadPopup(format)] \
-        -font "Helvetica 9 " \
+        -font "Arial 9" \
         -value vtk
     Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
     radiobutton $inner.image_button -text "Image File" \
