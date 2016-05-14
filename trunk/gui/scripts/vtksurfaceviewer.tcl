@@ -1314,7 +1314,7 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
         }
         "-isolinecolor" {
             set _changed($what) 1
-            set color [$itk_component(isolineColor) value]
+            set color [$itk_component(isolinecolor) value]
             set _settings($what) $color
             SendCmd "contour2d linecolor [Color2RGB $color]"
             DrawLegend
@@ -1542,7 +1542,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         -font "Arial 9"
 
     label $inner.linecolor_l -text "Isolines" -font "Arial 9"
-    itk_component add isolineColor {
+    itk_component add isolinecolor {
         Rappture::Combobox $inner.linecolor -width 10 -editable 0
     }
     $inner.linecolor choices insert end \
@@ -1557,7 +1557,7 @@ itcl::body Rappture::VtkSurfaceViewer::BuildSurfaceTab {} {
         "white"              "white"            \
         "none"               "none"
 
-    $itk_component(isolineColor) value "white"
+    $itk_component(isolinecolor) value $_settings(-isolinecolor)
     bind $inner.linecolor <<Value>> \
         [itcl::code $this AdjustSetting -isolinecolor]
 
