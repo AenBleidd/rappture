@@ -2207,7 +2207,7 @@ itcl::body Rappture::VtkGlyphViewer::camera {option args} {
                 "-zoom" {
                     SendCmd "camera zoom $_view($what)"
                 }
-             }
+            }
         }
     }
 }
