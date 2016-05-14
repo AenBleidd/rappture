@@ -2179,7 +2179,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::camera {option args} {
                 "-zoom" {
                     SendCmd "camera zoom $_view($what)"
                 }
-             }
+            }
         }
     }
 }
