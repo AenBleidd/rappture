@@ -103,7 +103,7 @@ itcl::class Rappture::VtkViewer {
     private method Rebuild {}
     private method ReceiveDataset { args }
     private method ReceiveImage { args }
-    private method ReceiveLegend { colormap title vmin vmax size }
+    private method ReceiveLegend { colormap title min max size }
     private method RequestLegend {}
     private method Rotate {option x y}
     private method SetAtomScale {}
@@ -2862,15 +2862,15 @@ itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: ReceiveLegend <colormap> <title> <vmin> <vmax> <size>
+# USAGE: ReceiveLegend <colormap> <title> <min> <max> <size>
 #
 # Invoked automatically whenever the "legend" command comes in from
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title vmin vmax size } {
-    set _limits(vmin) $vmin
-    set _limits(vmax) $vmax
+itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title min max size } {
+    set _limits(vmin) $min
+    set _limits(vmax) $max
     set _title $title
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]

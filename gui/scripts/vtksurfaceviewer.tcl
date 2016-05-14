@@ -94,7 +94,7 @@ itcl::class Rappture::VtkSurfaceViewer {
     private method Rebuild {}
     private method ReceiveDataset { args }
     private method ReceiveImage { args }
-    private method ReceiveLegend { colormap title vmin vmax size }
+    private method ReceiveLegend { colormap title min max size }
     private method RequestLegend {}
     private method Rotate {option x y}
     private method SetCurrentColormap { color }
