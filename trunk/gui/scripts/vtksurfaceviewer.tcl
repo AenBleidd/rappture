@@ -138,7 +138,6 @@ itcl::class Rappture::VtkSurfaceViewer {
     private variable _resizePending 0
     private variable _legendPending 0
     private variable _rotatePending 0
-    private variable _field ""
     private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
     private variable _fields
     private variable _curFldName ""
