@@ -2814,7 +2814,7 @@ itcl::body Rappture::FlowvisViewer::BuildDownloadPopup { popup command } {
 
     radiobutton $inner.image_button -text "Image File" \
         -variable [itcl::scope _downloadPopup(format)] \
-        -font "Arial 9 " \
+        -font "Arial 9" \
         -value image
     Rappture::Tooltip::for $inner.image_button \
         "Save as digital image."
