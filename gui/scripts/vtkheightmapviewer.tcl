@@ -242,8 +242,14 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     }
     array set _changed {
         -colormap               0
+        -colormapdiscrete       0
+        -colormapvisible        0
+        -edges                  0
+        -isolinecolor           0
+        -isolinesvisible        0
         -numisolines            0
         -opacity                0
+        -wireframe              0
     }
     itk_component add view {
         canvas $itk_component(plotarea).view \
@@ -1387,11 +1393,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             set _settings($what) $color
             if { $color == "none" } {
                 if { $_settings(-colormapvisible) } {
+                    set _changed(-colormapvisible) 1
                     SendCmd "heightmap surface 0"
                     set _settings(-colormapvisible) 0
                 }
             } else {
                 if { !$_settings(-colormapvisible) } {
+                    set _changed(-colormapvisible) 1
                     SendCmd "heightmap surface 1"
                     set _settings(-colormapvisible) 1
                 }
@@ -1405,10 +1413,12 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             EventuallyRequestLegend
         }
         "-colormapvisible" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "heightmap surface $bool"
         }
         "-colormapdiscrete" {
+            set _changed($what) 1
             set bool $_settings($what)
             set numColors [expr $_settings(-numisolines) + 1]
             StartBufferingCommands
@@ -1425,6 +1435,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             EventuallyRequestLegend
         }
         "-edges" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "heightmap edges $bool"
         }
@@ -1570,14 +1581,18 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             StopBufferingCommands
         }
         "-isolinecolor" {
+            set _changed($what) 1
             set color [$itk_component(isolinecolor) value]
             if { $color == "none" } {
                 if { $_settings(-isolinesvisible) } {
+                    set _changed(-isolinesvisible) 1
                     SendCmd "heightmap isolines 0"
                     set _settings(-isolinesvisible) 0
                 }
             } else {
+                set _settings($what) $color
                 if { !$_settings(-isolinesvisible) } {
+                    set _changed(-isolinesvisible) 1
                     SendCmd "heightmap isolines 1"
                     set _settings(-isolinesvisible) 1
                 }
@@ -1586,7 +1601,11 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-isolinesvisible" {
+            set _changed($what) 1
             set bool $_settings($what)
+            if { $bool } {
+                $itk_component(isolinecolor) value $_settings(-isolinecolor)
+            }
             SendCmd "heightmap isolines $bool"
             DrawLegend
         }
@@ -1630,6 +1649,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
         }
         "-outline" {
+            set _changed($what) 1
             if { $_settings(-isheightmap) } {
                 SendCmd "outline visible 0"
             } else {
@@ -1653,6 +1673,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             Zoom reset
         }
         "-wireframe" {
+            set _changed($what) 1
             set bool $_settings($what)
             SendCmd "heightmap wireframe $bool"
         }
@@ -2254,9 +2275,18 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
-        -color BCGYR
-        -levels 10
-        -opacity 1.0
+        -color           BCGYR
+        -colormapvisible 1
+        -edgecolor       black
+        -edges           0
+        -isolinecolor    black
+        -isolinesvisible 1
+        -isolinewidth    1.0
+        -levels          10
+        -linewidth       1.0
+        -opacity         1.0
+        -outline         0
+        -wireframe       0
     }
     set stylelist [$dataobj style $comp]
     if { $stylelist != "" } {
@@ -2294,20 +2324,35 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         UpdateContourList
         DrawLegend
     }
+    foreach setting {-edges -outline -wireframe \
+                     -colormapvisible -isolinecolor -isolinesvisible} {
+        if {$_changed($setting)} {
+            # User-modified UI setting overrides style
+            set style($setting) $_settings($setting)
+        } else {
+            # Set UI control to style setting (tool provided or default)
+            set _settings($setting) $style($setting)
+        }
+    }
+
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
-    SendCmd "outline visible $_settings(-outline) $tag"
+    SendCmd "outline visible $style(-outline) $tag"
+
     set scale [GetHeightmapScale]
     SendCmd "[list heightmap add contourlist $_contourList $scale $tag]"
     set _comp2scale($tag) $_settings(-heightmapscale)
-    SendCmd "heightmap edges $_settings(-edges) $tag"
-    SendCmd "heightmap wireframe $_settings(-wireframe) $tag"
+    SendCmd "heightmap edges $style(-edges) $tag"
+    SendCmd "heightmap linecolor [Color2RGB $style(-edgecolor)] $tag"
+    SendCmd "heightmap linewidth $style(-linewidth) $tag"
+    SendCmd "heightmap wireframe $style(-wireframe) $tag"
     SetCurrentColormap $style(-color)
-    set color [$itk_component(isolinecolor) value]
-    SendCmd "heightmap isolinecolor [Color2RGB $color] $tag"
+    SendCmd "heightmap isolinecolor [Color2RGB $style(-isolinecolor)] $tag"
+    $itk_component(isolinecolor) value $style(-isolinecolor)
+    SendCmd "heightmap isolinewidth $style(-isolinewidth) $tag"
     SendCmd "heightmap lighting $_settings(-isheightmap) $tag"
-    SendCmd "heightmap isolines $_settings(-isolinesvisible) $tag"
-    SendCmd "heightmap surface $_settings(-colormapvisible) $tag"
+    SendCmd "heightmap isolines $style(-isolinesvisible) $tag"
+    SendCmd "heightmap surface $style(-colormapvisible) $tag"
     SendCmd "heightmap opacity $style(-opacity) $tag"
     set _settings(-opacity) [expr $style(-opacity) * 100.0]
 }
