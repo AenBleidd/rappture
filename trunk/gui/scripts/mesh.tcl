@@ -1456,7 +1456,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
             return 0
         }
         set celltype $node2celltype($numNodes)
-        if { _$dim == 3 && $numNodes == 4 } {
+        if { $_dim == 3 && $numNodes == 4 } {
             # If mesh is 3D, assume a tetrahedron (default is quad)
             # XXX: Does prophet output tets, and if so what is the node order?
             set celltype 10
