@@ -210,6 +210,7 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     } elseif {[$_mesh element "unstructured"] != "" } {
         set result [ReadUnstructuredGrid $path]
     } elseif {[$_mesh element "node"] != "" && [$_mesh element "element"] != ""} {
+        puts stderr "WARNING: <node>/<element> mesh is deprecated.  Please use an unstructured mesh instead."
         set result [ReadNodesElements $path]
     }
     set _isValid $result
@@ -1437,7 +1438,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
     }
     array set node2celltype {
         3 5
-        4 10
+        4 9
         8 12
         6 13
         5 14
@@ -1451,15 +1452,22 @@ itcl::body Rappture::Mesh::ReadNodesElements {path} {
         set nodeList [$_mesh get $cname.nodes]
         set numNodes [llength $nodeList]
         if { ![info exists node2celltype($numNodes)] } {
-            puts stderr "WARNING: bad nodes/elements mesh \$path\": unknown number of indices \"$numNodes\": should be 3, 4, 5, 6, or 8"
+            puts stderr "WARNING: bad node/element mesh \$path\": unknown number of nodes \"$numNodes\": should be 3, 4, 5, 6, or 8"
             return 0
         }
         set celltype $node2celltype($numNodes)
         append celltypes "$celltype\n"
-        if { $celltype == 12 } {
-            # Formerly used voxels instead of hexahedrons. We're converting
-            # it here to be backward compatible and still fault-tolerant of
-            # non-axis aligned cells.
+        if { $numNodes == 4 } {
+            # Fix the node order for quad cells
+            # (this converts from PROPHET convention to VTK convention)
+            set newList {}
+            foreach i { 0 1 3 2 } {
+                lappend newList [lindex $nodeList $i]
+            }
+            set nodeList $newList
+        } elseif { $numNodes == 8 } {
+            # Fix the node order for hexahedron cells
+            # (this converts from PROPHET convention to VTK convention)
             set newList {}
             foreach i { 0 1 3 2 4 5 7 6 } {
                 lappend newList [lindex $nodeList $i]
