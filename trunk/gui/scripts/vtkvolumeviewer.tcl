@@ -95,7 +95,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
-    private method LegendTitleAction {}
+    private method LegendTitleAction { option }
     private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
