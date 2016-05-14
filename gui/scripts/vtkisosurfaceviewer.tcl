@@ -2255,6 +2255,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color                  BCGYR
+        -constcolor             white
         -cutplaneedges          0
         -cutplanelighting       1
         -cutplaneopacity        1.0
@@ -2280,6 +2281,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     if { $style(-levels) == 1 } {
         set style(-opacity) 1.0
     }
+    set style(-constcolor) $itk_option(-plotforeground)
     array set style [$dataobj style $comp]
     #DebugTrace [array get style]
 
@@ -2311,7 +2313,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
         set style(-color) $_settings(-colormap)
     }
     if { $_currentColormap == "" } {
-        SetCurrentColormap $style(-color)
         $itk_component(colormap) value $style(-color)
     }
     if { $_contourList(numLevels) != $style(-levels) } {
@@ -2339,7 +2340,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     }
 
     SendCmd "cutplane add $tag"
-    SendCmd "cutplane color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "cutplane color [Color2RGB $style(-constcolor)] $tag"
     foreach axis {x y z} {
         set pos [expr $style(-${axis}cutplaneposition) * 0.01]
         set visible $style(-${axis}cutplanevisible)
@@ -2355,7 +2356,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "cutplane visible $style(-cutplanesvisible) $tag"
 
     SendCmd "outline add $tag"
-    SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
 
     GenerateContourList
@@ -2363,7 +2364,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "contour3d visible $style(-isosurfacevisible) $tag"
     SendCmd "contour3d edges $style(-edges) $tag"
     set _settings(-isosurfaceedges) $style(-edges)
-    #SendCmd "contour3d color [Color2RGB $style(-color)] $tag"
+    #SendCmd "contour3d color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "contour3d lighting $style(-lighting) $tag"
     set _settings(-isosurfacelighting) $style(-lighting)
     SendCmd "contour3d linecolor [Color2RGB $style(-edgecolor)] $tag"
