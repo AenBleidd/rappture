@@ -1603,7 +1603,8 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         "-isolinesvisible" {
             set _changed($what) 1
             set bool $_settings($what)
-            if { $bool } {
+            set color [$itk_component(isolinecolor) value]
+            if { $bool && $color != $_settings(-isolinecolor)} {
                 $itk_component(isolinecolor) value $_settings(-isolinecolor)
             }
             SendCmd "heightmap isolines $bool"
@@ -2390,7 +2391,7 @@ itcl::body Rappture::VtkHeightmapViewer::ReceiveLegend { colormap title min max 
 #
 # DrawLegend --
 #
-# Draws the legend in the own canvas on the right side of the plot area.
+# Draws the legend in its own canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     set fname $_curFldName
