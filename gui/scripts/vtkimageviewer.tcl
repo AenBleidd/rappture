@@ -2091,7 +2091,7 @@ itcl::body Rappture::VtkImageViewer::ReceiveLegend { colormap title min max size
 #
 # DrawLegend --
 #
-#       Draws the legend in the own canvas on the right side of the plot area.
+# Draws the legend in its own canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkImageViewer::DrawLegend {} {
     set fname $_curFldName
