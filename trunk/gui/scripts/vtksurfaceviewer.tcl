@@ -1314,8 +1314,25 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
         "-isolinecolor" {
             set _changed($what) 1
             set color [$itk_component(isolinecolor) value]
-            set _settings($what) $color
-            SendCmd "contour2d linecolor [Color2RGB $color]"
+            if { $color == "none" } {
+                if { $_settings(-isolinesvisible) } {
+                    set _changed(-isolinesvisible) 1
+                    foreach tag [CurrentDatasets -visible] {
+                        SendCmd "contour2d visible 0 $tag"
+                    }
+                    set _settings(-isolinesvisible) 0
+                }
+            } else {
+                set _settings($what) $color
+                if { !$_settings(-isolinesvisible) } {
+                    set _changed(-isolinesvisible) 1
+                    foreach tag [CurrentDatasets -visible] {
+                        SendCmd "contour2d visible 0 $tag"
+                    }
+                    set _settings(-isolinesvisible) 1
+                }
+                SendCmd "contour2d linecolor [Color2RGB $color]"
+            }
             DrawLegend
         }
         "-isolinesvisible" {
@@ -1323,6 +1340,9 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "contour2d visible 0"
             if { $bool } {
+                if { [$itk_component(isolinecolor) value] != $_settings(-isolinecolor)} {
+                    $itk_component(isolinecolor) value $_settings(-isolinecolor)
+                }
                 foreach tag [CurrentDatasets -visible] {
                     SendCmd "contour2d visible $bool $tag"
                 }
