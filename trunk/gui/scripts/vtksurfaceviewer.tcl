@@ -1327,7 +1327,7 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
                 if { !$_settings(-isolinesvisible) } {
                     set _changed(-isolinesvisible) 1
                     foreach tag [CurrentDatasets -visible] {
-                        SendCmd "contour2d visible 0 $tag"
+                        SendCmd "contour2d visible 1 $tag"
                     }
                     set _settings(-isolinesvisible) 1
                 }
