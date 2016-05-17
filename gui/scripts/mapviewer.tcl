@@ -2810,19 +2810,25 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set format ""
             set wfsType ""
             SendStylesheetFiles $info(stylesheet)
+            set ssSize [string length $info(stylesheet)]
+            set scriptSize [string length $script]
+            set selectorsSize [string length $selectors]
             if { [info exists info(ogr.connection)] } {
-                set cmd [list map layer add $tag feature db $format $info(ogr.layer) $info(ogr.connection) $info(cache) $info(stylesheet) $script $selectors]
+                set cmd [list map layer add $tag feature db $format $info(ogr.layer) $info(ogr.connection) $info(cache) $ssSize $scriptSize $selectorsSize]
                 if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                     lappend cmd $style(-minrange) $style(-maxrange)
                 }
             } else {
-                set cmd [list map layer add $tag feature $info(driver) $format $wfsType $info(ogr.url) $info(cache) $info(stylesheet) $script $selectors]
+                set cmd [list map layer add $tag feature $info(driver) $format $wfsType $info(ogr.url) $info(cache) $ssSize $scriptSize $selectorsSize]
                 if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                     lappend cmd $style(-minrange) $style(-maxrange)
                 }
                 SendFiles $info(ogr.url)
             }
             SendCmd $cmd
+            if { $ssSize > 0 }       { SendData $info(stylesheet) }
+            if { $scriptSize > 0 }   { SendData $script }
+            if { $selectorsSize > 0} { SendData $selectors }
             SendCmd "map layer opacity $style(-opacity) $tag"
         }
         "line" {
