@@ -60,7 +60,12 @@ itcl::class Rappture::MapViewer {
     public method isconnected {}
     public method parameters {title args} { # do nothing }
     public method placard {option args}
-    public method refresh {} { Rebuild }
+    public method refresh {} {
+        Rebuild
+        # Temporary hack to fix one frame delay in update
+        SendCmd "imgflush"
+        SendCmd "renderer render"
+    }
     public method scale {args}
     public method select {option {args ""}}
     public method setSelectCallback {cmd}
