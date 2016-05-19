@@ -2812,28 +2812,54 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     }
                 }
             }
-            set format ""
-            set wfsType ""
             SendStylesheetFiles $info(stylesheet)
             set ssSize [string length $info(stylesheet)]
             set scriptSize [string length $script]
             set selectorsSize [string length $selectors]
-            if { [info exists info(ogr.connection)] } {
-                set cmd [list map layer add $tag feature db $format $info(ogr.layer) $info(ogr.connection) $info(cache) $ssSize $scriptSize $selectorsSize]
-                if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                    lappend cmd $style(-minrange) $style(-maxrange)
+            switch -- $info(driver) {
+                "ogr" {
+                    if { [info exists info(ogr.connection)] } {
+                        set cmd [list map layer add $tag feature db {} $info(ogr.layer) $info(ogr.connection) $info(cache) $ssSize $scriptSize $selectorsSize]
+                        if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                            lappend cmd $style(-minrange) $style(-maxrange)
+                        }
+                    } else {
+                        set cmd [list map layer add $tag feature $info(driver) {} {} $info(ogr.url) $info(cache) $ssSize $scriptSize $selectorsSize]
+                        if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                            lappend cmd $style(-minrange) $style(-maxrange)
+                        }
+                        SendFiles $info(ogr.url)
+                    }
                 }
-            } else {
-                set cmd [list map layer add $tag feature $info(driver) $format $wfsType $info(ogr.url) $info(cache) $ssSize $scriptSize $selectorsSize]
-                if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                    lappend cmd $style(-minrange) $style(-maxrange)
+                "tfs" {
+                    set format "json"
+                    if {[info exists info(tfs.format)]} {
+                        set format $info(tfs.format)
+                    }
+                    set cmd [list map layer add $tag feature $info(driver) $format {} $info(tfs.url) $info(cache) $ssSize $scriptSize $selectorsSize]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        lappend cmd $style(-minrange) $style(-maxrange)
+                    }
                 }
-                SendFiles $info(ogr.url)
+                "wfs" {
+                    set format "json"
+                    if {[info exists info(wfs.format)]} {
+                        set format $info(wfs.format)
+                    }
+                    set wfsType ""
+                    if {[info exists info(wfs.typename)]} {
+                        set wfsType $info(wfs.typename)
+                    }
+                    set cmd [list map layer add $tag feature $info(driver) $format $wfsType $info(wfs.url) $info(cache) $ssSize $scriptSize $selectorsSize]
+                    if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
+                        lappend cmd $style(-minrange) $style(-maxrange)
+                    }
+                }
             }
             SendCmd $cmd
-            if { $ssSize > 0 }       { SendData $info(stylesheet) }
-            if { $scriptSize > 0 }   { SendData $script }
-            if { $selectorsSize > 0} { SendData $selectors }
+            if { $ssSize > 0 }        { SendData $info(stylesheet) }
+            if { $scriptSize > 0 }    { SendData $script }
+            if { $selectorsSize > 0 } { SendData $selectors }
             SendCmd "map layer opacity $style(-opacity) $tag"
         }
         "line" {
