@@ -900,7 +900,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
         $_arcball resize $w $h
         DoResize
         if { $_settings(-stretchtofit) } {
-            AdjustSetting -stretchToFit
+            AdjustSetting -stretchtofit
         }
     }
     if { $_reset } {
@@ -2018,7 +2018,7 @@ itcl::body Rappture::VtkImageViewer::SetObjectStyle { dataobj comp } {
     }
     if { [info exists style(-stretchtofit)] } {
         set _settings(-stretchtofit) $style(-stretchtofit)
-        AdjustSetting -stretchToFit
+        AdjustSetting -stretchtofit
     }
     SendCmd "outline add $tag"
     SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
