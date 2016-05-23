@@ -102,6 +102,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method ResetAxes {}
     private method Rotate {option x y}
     private method SetCurrentColormap { color }
+    private method SetCurrentFieldName { dataobj }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp }
     private method SetOrientation { side }
@@ -959,6 +960,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
+            SetCurrentFieldName $dataobj
         }
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
@@ -1000,37 +1002,8 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             }
         }
     }
-    if { $_first != "" } {
-        $itk_component(field) choices delete 0 end
-        $itk_component(fieldmenu) delete 0 end
-        array unset _fields
-        set _curFldName ""
-        foreach cname [$_first components] {
-            foreach fname [$_first fieldnames $cname] {
-                if { [info exists _fields($fname)] } {
-                    continue
-                }
-                foreach { label units components } \
-                    [$_first fieldinfo $fname] break
-                $itk_component(field) choices insert end "$fname" "$label"
-                $itk_component(fieldmenu) add radiobutton -label "$label" \
-                    -value $label -variable [itcl::scope _curFldLabel] \
-                    -selectcolor red \
-                    -activebackground $itk_option(-plotbackground) \
-                    -activeforeground $itk_option(-plotforeground) \
-                    -font "Arial 8" \
-                    -command [itcl::code $this LegendTitleAction save]
-                set _fields($fname) [list $label $units $components]
-                if { $_curFldName == "" } {
-                    set _curFldName $fname
-                    set _curFldLabel $label
-                }
-            }
-        }
-        $itk_component(field) value $_curFldLabel
-    }
-    InitSettings -stretchtofit -outline
 
+    InitSettings -stretchtofit -outline
     if { $_reset } {
         SendCmd "axis tickpos outside"
         #SendCmd "axis lformat all %g"
@@ -2677,4 +2650,35 @@ itcl::body Rappture::VtkHeightmapViewer::UpdateContourList {} {
     $v delete end 0
     set _contourList [$v range 0 end]
     blt::vector destroy $v
+}
+
+itcl::body Rappture::VtkHeightmapViewer::SetCurrentFieldName { dataobj } {
+    set _first $dataobj
+    $itk_component(field) choices delete 0 end
+    $itk_component(fieldmenu) delete 0 end
+    array unset _fields
+    set _curFldName ""
+    foreach cname [$_first components] {
+        foreach fname [$_first fieldnames $cname] {
+            if { [info exists _fields($fname)] } {
+                continue
+            }
+            foreach { label units components } \
+                [$_first fieldinfo $fname] break
+            $itk_component(field) choices insert end "$fname" "$label"
+            $itk_component(fieldmenu) add radiobutton -label "$label" \
+                -value $label -variable [itcl::scope _curFldLabel] \
+                -selectcolor red \
+                -activebackground $itk_option(-plotbackground) \
+                -activeforeground $itk_option(-plotforeground) \
+                -font "Arial 8" \
+                -command [itcl::code $this LegendTitleAction save]
+            set _fields($fname) [list $label $units $components]
+            if { $_curFldName == "" } {
+                set _curFldName $fname
+                set _curFldLabel $label
+            }
+        }
+    }
+    $itk_component(field) value $_curFldLabel
 }
