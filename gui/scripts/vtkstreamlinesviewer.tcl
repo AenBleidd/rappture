@@ -104,6 +104,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method RequestLegend {}
     private method Rotate {option x y}
     private method SetCurrentColormap { color }
+    private method SetCurrentFieldName { dataobj }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp }
     private method Slice {option args}
@@ -977,6 +978,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
+            SetCurrentFieldName $dataobj
         }
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
@@ -1022,34 +1024,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                 SendCmd [list axis units $axis $units]
             }
         }
-        $itk_component(field) choices delete 0 end
-        $itk_component(fieldmenu) delete 0 end
-        array unset _fields
-        set _curFldName ""
-        set _curFldLabel ""
-        foreach cname [$_first components] {
-            foreach fname [$_first fieldnames $cname] {
-                if { [info exists _fields($fname)] } {
-                    continue
-                }
-                foreach { label units components } \
-                    [$_first fieldinfo $fname] break
-                $itk_component(field) choices insert end "$fname" "$label"
-                $itk_component(fieldmenu) add radiobutton -label "$label" \
-                    -value $label -variable [itcl::scope _curFldLabel] \
-                    -selectcolor red \
-                    -activebackground $itk_option(-plotbackground) \
-                    -activeforeground $itk_option(-plotforeground) \
-                    -font "Arial 8" \
-                    -command [itcl::code $this LegendTitleAction save]
-                set _fields($fname) [list $label $units $components]
-                if { $_curFldName == "" && $components == 3 } {
-                    set _curFldName $fname
-                    set _curFldLabel $label
-                }
-            }
-        }
-        $itk_component(field) value $_curFldLabel
     }
 
     if { $_reset } {
@@ -2432,4 +2406,36 @@ itcl::body Rappture::VtkStreamlinesViewer::SetOrientation { side } {
     set _view(-xpan) 0
     set _view(-ypan) 0
     set _view(-zoom) 1.0
+}
+
+itcl::body Rappture::VtkStreamlinesViewer::SetCurrentFieldName { dataobj } {
+    set _first $dataobj
+    $itk_component(field) choices delete 0 end
+    $itk_component(fieldmenu) delete 0 end
+    array unset _fields
+    set _curFldName ""
+    set _curFldLabel ""
+    foreach cname [$_first components] {
+        foreach fname [$_first fieldnames $cname] {
+            if { [info exists _fields($fname)] } {
+                continue
+            }
+            foreach { label units components } \
+                [$_first fieldinfo $fname] break
+            $itk_component(field) choices insert end "$fname" "$label"
+            $itk_component(fieldmenu) add radiobutton -label "$label" \
+                -value $label -variable [itcl::scope _curFldLabel] \
+                -selectcolor red \
+                -activebackground $itk_option(-plotbackground) \
+                -activeforeground $itk_option(-plotforeground) \
+                -font "Arial 8" \
+                -command [itcl::code $this LegendTitleAction save]
+            set _fields($fname) [list $label $units $components]
+            if { $_curFldName == "" && $components == 3 } {
+                set _curFldName $fname
+                set _curFldLabel $label
+            }
+        }
+    }
+    $itk_component(field) value $_curFldLabel
 }
