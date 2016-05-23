@@ -604,6 +604,8 @@ itcl::body Rappture::VtkImageViewer::scale {args} {
             continue;                   # Object doesn't contain valid data.
         }
         foreach axis { x y } {
+            set units [$dataobj hints ${axis}units]
+            set found($units) 1
             set lim [$dataobj limits $axis]
             if { ![info exists _limits($axis)] } {
                 set _limits($axis) $lim
@@ -618,8 +620,6 @@ itcl::body Rappture::VtkImageViewer::scale {args} {
                 set amax $max
             }
             set _limits($axis) [list $amin $amax]
-            set units [$dataobj hints ${axis}units]
-            set found($units) 1
         }
         foreach { fname lim } [$dataobj fieldlimits] {
             if { ![info exists _limits($fname)] } {
