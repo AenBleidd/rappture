@@ -652,7 +652,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::delete {args} {
         # Remove it from the dataobj list.
         set _dlist [lreplace $_dlist $pos $pos]
         array unset _obj2ovride $dataobj-*
-        array unset _settings $dataobj-*
         set changed 1
     }
     # If anything changed, then rebuild the plot
@@ -1345,10 +1344,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::Pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::InitSettings { args } {
     foreach spec $args {
-        if { [info exists _settings($_first${spec})] } {
-            # Reset global setting with dataobj specific setting
-            set _settings($spec) $_settings($_first${spec})
-        }
         AdjustSetting $spec
     }
 }
