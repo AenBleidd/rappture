@@ -870,7 +870,9 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         $_arcball resize $w $h
         DoResize
     }
-
+    if { $_reset } {
+        InitSettings -background -axesvisible -gridvisible
+    }
     set _first ""
     SendCmd "volume state 0"
     foreach dataobj [get -objects] {
@@ -925,8 +927,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         -xcutplaneposition -ycutplaneposition -zcutplaneposition
 
     if { $_reset } {
-        InitSettings -axesvisible -gridvisible \
-            -opacity -light2side -isosurfaceshading \
+        InitSettings -opacity -light2side -isosurfaceshading \
             -ambient -diffuse -specularlevel -specularexponent \
             -current
 

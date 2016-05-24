@@ -1094,7 +1094,9 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         $_arcball resize $w $h
         DoResize
     }
-
+    if { $_reset } {
+        InitSettings -background -axesvisible -gridvisible
+    }
     set _first ""
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
@@ -1147,8 +1149,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         -xcutplaneposition -ycutplaneposition -zcutplaneposition
 
     if { $_reset } {
-        InitSettings -axesvisible -gridvisible \
-            -opacity -light2side -isosurfaceshading \
+        InitSettings -opacity -light2side -isosurfaceshading \
             -ambient -diffuse -specularlevel -specularexponent
 
         #
