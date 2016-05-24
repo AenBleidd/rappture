@@ -159,10 +159,10 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _legendPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
-    private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
+    private variable _colorMode "scalar"; # Mode of colormap (vmag or scalar)
     private variable _mouseOver "";     # what called LegendRangeAction:
                                         # vmin or vmax
     private variable _customRangeClick 1; # what called ToggleCustomRange

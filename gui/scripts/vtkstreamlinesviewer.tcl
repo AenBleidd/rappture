@@ -145,9 +145,9 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _fields
     private variable _curFldName ""
     private variable _curFldLabel ""
+    private variable _colorMode "vmag"; # Mode of colormap (vmag or scalar)
     private variable _streamlinesLength 0
     private variable _numSeeds 200
-    private variable _colorMode "vmag"; # Mode of colormap (vmag or scalar)
 
     private common _downloadPopup;      # download options from popup
     private common _hardcopy
@@ -300,7 +300,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
