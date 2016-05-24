@@ -2241,18 +2241,19 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
-        -color           BCGYR
-        -colormapvisible 1
-        -edgecolor       black
-        -edges           0
-        -isolinecolor    black
-        -isolinesvisible 1
-        -isolinewidth    1.0
-        -levels          10
-        -linewidth       1.0
-        -opacity         1.0
-        -outline         0
-        -wireframe       0
+        -color            BCGYR
+        -colormapdiscrete 0
+        -colormapvisible  1
+        -edgecolor        black
+        -edges            0
+        -isolinecolor     black
+        -isolinesvisible  1
+        -isolinewidth     1.0
+        -levels           10
+        -linewidth        1.0
+        -opacity          1.0
+        -outline          0
+        -wireframe        0
     }
     set stylelist [$dataobj style $comp]
     if { $stylelist != "" } {
@@ -2290,7 +2291,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         UpdateContourList
         DrawLegend
     }
-    foreach setting {-edges -outline -wireframe \
+    foreach setting {-edges -outline -wireframe -colormapdiscrete \
                      -colormapvisible -isolinecolor -isolinesvisible} {
         if {$_changed($setting)} {
             # User-modified UI setting overrides style
@@ -2313,6 +2314,11 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     SendCmd "heightmap linewidth $style(-linewidth) $tag"
     SendCmd "heightmap wireframe $style(-wireframe) $tag"
     SetCurrentColormap $style(-color)
+    if {$style(-colormapdiscrete)} {
+        SendCmd "heightmap preinterp 1 $tag"
+        set numColors [expr $style(-levels) + 1]
+        SendCmd "colormap res $numColors $style(-color)"
+    }
     SendCmd "heightmap isolinecolor [Color2RGB $style(-isolinecolor)] $tag"
     $itk_component(isolinecolor) value $style(-isolinecolor)
     SendCmd "heightmap isolinewidth $style(-isolinewidth) $tag"
