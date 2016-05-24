@@ -261,9 +261,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
     }
 
     itk_component add fieldmenu {
-        menu $itk_component(plotarea).menu \
-            -relief flat \
-            -tearoff 0
+        menu $itk_component(plotarea).menu -relief flat -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -292,7 +290,8 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady { 2 0 }
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -923,7 +922,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         #
         # Reset the camera and other view parameters
         #
-        InitSettings -isheightmap -background
+        InitSettings -isheightmap -background \
+            -xgrid -ygrid -zgrid -axismode \
+            -axesvisible -axislabels -axisminorticks
 
         # Setting a custom exponent and label format for axes is causing
         # a problem with rounding.  Near zero ticks aren't rounded by
@@ -936,6 +937,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         # -Leif
         #SendCmd "axis exp 0 0 0 1"
 
+        SendCmd "axis tickpos outside"
         SendCmd "axis lrot z 90"
         $_arcball quaternion [ViewToQuaternion]
         if {$_settings(-isheightmap) } {
@@ -1005,9 +1007,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 
     InitSettings -stretchtofit -outline
     if { $_reset } {
-        SendCmd "axis tickpos outside"
-        #SendCmd "axis lformat all %g"
-
         foreach axis { x y z } {
             set label ""
             if { $_first != "" } {
@@ -1064,9 +1063,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             SendCmd "camera reset"
         }
         PanCamera
-        InitSettings -xgrid -ygrid -zgrid \
-            -axesvisible -axislabels -heightmapscale -field -isheightmap \
-            -numisolines
+        InitSettings -heightmapscale -field -isheightmap -numisolines
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }

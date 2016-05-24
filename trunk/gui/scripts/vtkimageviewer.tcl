@@ -243,9 +243,7 @@ itcl::body Rappture::VtkImageViewer::constructor {args} {
     }
 
     itk_component add fieldmenu {
-        menu $itk_component(plotarea).menu \
-            -relief flat \
-            -tearoff 0
+        menu $itk_component(plotarea).menu -relief flat -tearoff 0
     } {
         usual
         ignore -background -foreground -relief -tearoff
@@ -274,7 +272,8 @@ itcl::body Rappture::VtkImageViewer::constructor {args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady { 2 0 }
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -907,8 +906,11 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
         #
         # Reset the camera and other view parameters
         #
-        InitSettings -view3d -background
+        InitSettings -view3d -background \
+            -xgrid -ygrid -zgrid -axismode \
+            -axesvisible -axislabels -axisminorticks
 
+        SendCmd "axis tickpos outside"
         SendCmd "axis lrot z 90"
         $_arcball quaternion [ViewToQuaternion]
         if {$_settings(-view3d) } {
@@ -972,9 +974,6 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
 
     InitSettings -stretchtofit -outline
     if { $_reset } {
-        SendCmd "axis tickpos outside"
-        #SendCmd "axis lformat all %g"
-
         foreach axis { x y z } {
             set label ""
             if { $_first != "" } {
@@ -1015,8 +1014,7 @@ itcl::body Rappture::VtkImageViewer::Rebuild {} {
             SendCmd "camera reset"
         }
         PanCamera
-        InitSettings -xgrid -ygrid -zgrid \
-            -axesvisible -axislabels -field -view3d
+        InitSettings -field -view3d
         if { [array size _fields] < 2 } {
             catch {blt::table forget $itk_component(field) $itk_component(field_l)}
         }
