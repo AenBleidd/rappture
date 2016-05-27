@@ -174,6 +174,9 @@ itcl::body Rappture::Controls::insert {pos path} {
         drawing {
             Rappture::DrawingEntry $w $_owner $path
         }
+        map {
+            Rappture::MapEntry $w $_owner $path
+        }
         image {
             Rappture::ImageEntry $w $_owner $path
         }
@@ -275,7 +278,7 @@ itcl::body Rappture::Controls::insert {pos path} {
     set _name2info($name-enable) $enable
     $_owner widgetfor $path $w
 
-    if {[lsearch {control group drawing separator note} $type] < 0} {
+    if {[lsearch {control group drawing map separator note} $type] < 0} {
         # make a label for this control
         set label [$w label]
         if {$label ne ""} {
