@@ -35,6 +35,7 @@ proc MapViewer_init_resources {} {
 itcl::class Rappture::MapViewer {
     inherit Rappture::VisViewer
 
+    itk_option define -map map Map ""
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
@@ -3290,5 +3291,25 @@ itcl::body Rappture::MapViewer::UpdateViewpointControls {} {
     if { $row > 0 } {
         blt::table configure $f r* c* -resize none
         blt::table configure $f r$row c1 -resize expand
+    }
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -map
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::MapViewer::map {
+    if {$itk_option(-map) != "" } {
+        if {[catch {$itk_option(-map) isa Rappture::Map} valid] != 0 || !$valid} {
+            error "bad value \"$itk_option(-map)\": should be Rappture::Map object"
+        }
+        $this clear
+        $this add $itk_option(-map)
+        $this scale $itk_option(-map)
+    } else {
+        $this clear
+    }
+
+    if { [isconnected] } {
+        $_dispatcher event -idle !rebuild
     }
 }
