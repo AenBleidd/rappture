@@ -147,7 +147,7 @@ set DiffShow ""  ;# used to track which diff objects are being displayed
 # ----------------------------------------------------------------------
 wm title . "Rappture Regression Tester"
 wm geometry . 800x500
-Rappture::Panes .pw -orientation horizontal -sashcursor sb_h_double_arrow
+Rappture::Panes .pw -orientation horizontal
 pack .pw -expand yes -fill both
 
 set win [.pw pane 0]
@@ -261,7 +261,7 @@ Rappture::Tester::StringDiffs .testdiffs.body.val2strs.diffs \
 pack .testdiffs.body.val2strs.diffs -expand yes -fill both -padx 10 -pady 10
 
 # viewer for value diffs where we have a special object viewer
-Rappture::Panes .testdiffs.body.val2objs -orientation horizontal -sashcursor sb_h_double_arrow
+Rappture::Panes .testdiffs.body.val2objs -orientation horizontal
 
 # empty area for the object value viewer
 set win [.testdiffs.body.val2objs pane 0]
