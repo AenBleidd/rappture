@@ -15,10 +15,14 @@ VPATH           = @srcdir@
 
 destdir         = $(prefix)/examples/mapviewer/feature
 FILES           = \
-                  $(srcdir)/afr_countries.dbf \
-                  $(srcdir)/afr_countries.prj \
-                  $(srcdir)/afr_countries.shp \
-                  $(srcdir)/afr_countries.shx \
+                  $(srcdir)/afr_elas.dbf \
+                  $(srcdir)/afr_elas.prj \
+                  $(srcdir)/afr_elas.shp \
+                  $(srcdir)/afr_elas.shx \
+                  $(srcdir)/feature_layer_26_colors.tcl \
+                  $(srcdir)/feature_multiple_selection_by_callback.tcl \
+                  $(srcdir)/feature_multiple_selection_by_new_layer.tcl \
+                  $(srcdir)/feature_multiple_selection_by_updated_layer.tcl \
                   $(srcdir)/feature_selector_query.tcl
 
 all:
