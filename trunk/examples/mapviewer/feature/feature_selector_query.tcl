@@ -27,7 +27,7 @@ array set osm {
 
 # Parameters for feature layer
 array set ogrParams {
-    url {local://afr_countries.shp}
+    url {local://afr_elas.shp}
 }
 array set countries {
     label   "Countries"
