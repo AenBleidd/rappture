@@ -37,6 +37,7 @@ itcl::class Rappture::Dropdownchecks {
     public method size {}
     public method state {value {newval ""}}
     public method reset {}
+    public method current {{what -value}}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _values ""     ;# values for all elems in list
@@ -279,6 +280,33 @@ itcl::body Rappture::Dropdownchecks::reset {} {
     foreach val $_values {
         set _states($val) 0
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: current ?-value|-label|-both?
+#
+# Clients use this to query the current selections from the listbox/canvas.
+# Returns a list of values, labels, or list of lists of both, according
+# to the option.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Dropdownchecks::current {{what -value}} {
+    set rlist ""
+    set l  [llength $_values]
+    for {set i 0} {$i < $l} {incr i} {
+        set val [lindex $_values $i]
+        if {$_states($val)} {
+            switch -- $what {
+                -value { lappend rlist [lindex $_values $i] }
+                -label { lappend rlist [lindex $_labels $i] }
+                -both  { lappend rlist [list [lindex $_values $i] \
+                                             [lindex $_labels $i]] }
+                default {
+                    error "bad option \"$what\": should be -value, -label, -both"
+                }
+            }
+        }
+    }
+    return $rlist
 }
 
 # ----------------------------------------------------------------------

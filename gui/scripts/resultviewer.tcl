@@ -25,7 +25,7 @@ itcl::class Rappture::ResultViewer {
     itk_option define -simulatecommand simulateCommand SimulateCommand ""
 
     constructor {args} {
-	# defined below
+        # defined below
     }
     destructor {
         # defined below
@@ -394,7 +394,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
-                boolean - choice {
+                boolean - choice - multichoice {
                     set mode "value"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.value
@@ -548,7 +548,7 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path label {uq_part ""}} {
         structure {
             set dobj [$xmlobj element -as object $path]
         }
-        number - integer - boolean - choice {
+        number - integer - boolean - choice - multichoice {
             set dobj [$xmlobj element -as object $path]
         }
         drawing3d - drawing {

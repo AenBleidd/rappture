@@ -66,6 +66,7 @@ itcl::body Rappture::ControlOwner::constructor {owner} {
         image current
         integer current
         loader current
+        multichoice current
         note contents
         number current
         periodicelement current

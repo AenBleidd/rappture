@@ -602,6 +602,7 @@ AC_CONFIG_FILES([
     examples/zoo/loader/examples/Makefile
     examples/zoo/log/Makefile
     examples/zoo/mesh/Makefile
+    examples/zoo/multichoice/Makefile
     examples/zoo/note/Makefile
     examples/zoo/note/docs/Makefile
     examples/zoo/number/Makefile

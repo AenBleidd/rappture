@@ -1,0 +1,81 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: multichoice
+#
+#  A set of non mutually-exclusive choices, as in Model A and/or Model B.
+#  Usually used as an input to a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object multichoice -extends base {
+    palettes "Inputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_multichoice
+
+    attr options -title "Options" -type choices -path option -tooltip "List of choices that will appear on the drop-down menu in your program."
+
+    attr default -title "Default Value" -type string -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    check options {
+        if {[llength $attr(options)] < 2} {
+            return [list warning "Should have at least two options for this multichoice, or it's not really a choice at all."]
+        }
+    }
+
+    check default {
+        if {[llength $attr(options)] > 0} {
+            if {[string length [string trim $attr(default)]] == 0} {
+                return [list error "Must have a default value for this multichoice."]
+            }
+
+            # make sure that the default is really a choice
+            set found 0
+            set alldefvals [split $attr(default) ","]
+            foreach defval $alldefvals {
+                set defval [string trim $defval]
+                foreach rec $attr(options) {
+                    set label [string trim [lindex $rec 0]]
+                    set value [string trim [lindex $rec 1]]
+                    if {$defval eq $label || $defval eq $value} {
+                        incr found
+                        break
+                    }
+                }
+            }
+            if {$found != [llength $alldefvals]} {
+                return [list error "Default value must be labels or values from one of the current choices."]
+            }
+        }
+    }
+
+    storage {
+        private variable _val   ;# current choice
+    }
+
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        set _val $val
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        return [string compare $_val $_val2]
+    }
+}

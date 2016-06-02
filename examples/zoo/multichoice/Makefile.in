@@ -1,0 +1,37 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+FILES		= \
+		$(srcdir)/choice.gif \
+		$(srcdir)/multichoice.tcl \
+		$(srcdir)/tool.xml
+
+destdir		= $(prefix)/examples/zoo/multichoice
+
+.PHONY: all install clean distclean
+
+all: 
+
+install: all
+	$(MKDIR_P) -m 0755 $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 0444  $$i $(destdir) ; \
+	done
+
+clean:
+
+distclean: clean
+	$(RM) Makefile *~

@@ -18,6 +18,7 @@ package require BLT
 option add *Combochecks.borderWidth 2 widgetDefault
 option add *Combochecks.relief sunken widgetDefault
 option add *Combochecks.width 10 widgetDefault
+option add *Combochecks.editable yes widgetDefault
 option add *Combochecks.textBackground white widgetDefault
 option add *Combochecks.textForeground black widgetDefault
 option add *Combochecks.disabledBackground white widgetDefault
@@ -27,19 +28,22 @@ option add *Combochecks.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 itcl::class Rappture::Combochecks {
     inherit itk::Widget
 
+    itk_option define -editable editable Editable ""
     itk_option define -state state State "normal"
     itk_option define -width width Width 0
     itk_option define -disabledbackground disabledBackground DisabledBackground ""
     itk_option define -disabledforeground disabledForeground DisabledForeground ""
+    itk_option define -interactcommand interactCommand InteractCommand ""
 
     constructor {args} { # defined below }
 
     public method value {args}
-    public method current {}
+    public method translate {value {defValue ""}}
+    public method label {value}
     public method choices {option args}
 
     protected method _entry {option}
-    protected method _fixDisplay {}
+    protected method _dropdown {option}
     protected method _fixState {}
 
     blt::bitmap define CombochecksArrow {
@@ -56,6 +60,7 @@ itk::usual Combochecks {
     keep -cursor -font
     keep -foreground -background
     keep -textforeground -textbackground
+    keep -selectbackground -selectforeground -selectborderwidth
 }
 
 # ----------------------------------------------------------------------
@@ -94,10 +99,13 @@ itcl::body Rappture::Combochecks::constructor {args} {
         [itcl::code $this _entry click]
 
     itk_component add ddlist {
-        Rappture::Dropdownchecks $itk_component(button).ddlist
+        Rappture::Dropdownchecks $itk_component(button).ddlist \
+            -postcommand [itcl::code $this _dropdown post] \
+            -unpostcommand [itcl::code $this _dropdown unpost] \
     }
+
     bind $itk_component(ddlist) <<DropdownchecksSelect>> \
-        [itcl::code $this _fixDisplay]
+        [itcl::code $this _dropdown select]
 
     $itk_component(button) configure -command \
         [list $itk_component(ddlist) post $itk_component(hull) left]
@@ -114,35 +122,61 @@ itcl::body Rappture::Combochecks::constructor {args} {
 # sends a <<Value>> event.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combochecks::value {args} {
-    switch -- [llength $args] {
-        0 {
-            # return a list of checked optons
-            set max [$itk_component(ddlist) size]
-            set rlist ""
-            foreach val [$itk_component(ddlist) get -value] {
-                if {[$itk_component(ddlist) state $val]} {
-                    lappend rlist $val
-                }
-            }
-            return $rlist
+    if {[llength $args] == 1} {
+        set newval [lindex $args 0]
+
+        # FIXME: not sure if I need to update the ddlist just in case
+        # user calls value() without manipulating the ddlist
+        $itk_component(ddlist) reset
+        foreach part $newval {
+            set part [translate $part]
+            $itk_component(ddlist) state $part 1
         }
-        1 {
-            set newval [lindex $args 0]
 
-            $itk_component(ddlist) reset
-            foreach part $newval {
-                $itk_component(ddlist) state $part 1
-            }
-            _fixDisplay
-
-            after 10 [list catch \
-                [list event generate $itk_component(hull) <<Value>>]]
-
+        $itk_component(entry) configure -state normal
+        $itk_component(entry) delete 0 end
+        $itk_component(entry) insert end [join $newval {, }]
+        if {!$itk_option(-editable)} {
+            $itk_component(entry) configure -state disabled
         }
-        default {
-            error "wrong # args: should be \"value ?newval?\""
+
+        after 10 [list catch \
+            [list event generate $itk_component(hull) <<Value>>]]
+    } elseif {[llength $args] != 0} {
+        error "wrong # args: should be \"value ?newval?\""
+    }
+    return [$itk_component(entry) get]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: translate <value>
+#
+# Clients use this to translate a value from the entry part of the
+# combobox to one of the underlying values in the combobox.  If the
+# <value> string matches one of the labels for the choices, this
+# method returns the corresponding value.  Otherwise, it returns "".
+# ----------------------------------------------------------------------
+itcl::body Rappture::Combochecks::translate {value {defValue ""}} {
+    foreach {val label} [choices get -both] {
+        if {$label eq $value} {
+            return $val
         }
     }
+    return $defValue
+}
+
+# ----------------------------------------------------------------------
+# USAGE: label <value>
+#
+# Clients use this to translate a value to a label.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Combochecks::label { myValue } {
+    foreach {val label} [choices get -both] {
+        if {$myValue == $val} {
+            return $label
+        }
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -166,21 +200,24 @@ itcl::body Rappture::Combochecks::choices {option args} {
 # USAGE: _entry apply
 # USAGE: _entry click
 #
-# Used internally to handle the dropdown list for this combobox.  The
-# post/unpost options are invoked when the list is posted or unposted
-# to manage the relief of the controlling button.  The select option
-# is invoked whenever there is a selection from the list, to assign
-# the value back to the gauge.
+# Used internally to handle the entry widget for this combobox.  The
+# click option is invoked when the user click on the entry widget and
+# performs a post operation on the dropdown list. The apply option
+# is invoked when the user presses the Return key to set the value of
+# the entry widget or selects a value. It generates a Value signal.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combochecks::_entry {option} {
     switch -- $option {
         apply {
-            if {$itk_option(-state) == "normal"} {
+            if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
                 event generate $itk_component(hull) <<Value>>
+                if {[string length $itk_option(-interactcommand)] > 0} {
+                    uplevel #0 $itk_option(-interactcommand)
+                }
             }
         }
         click {
-            if {$itk_option(-state) == "normal"} {
+            if {!$itk_option(-editable) && $itk_option(-state) == "normal"} {
                 $itk_component(button) configure -relief sunken
                 update idletasks; after 100
                 $itk_component(button) configure -relief raised
@@ -195,24 +232,55 @@ itcl::body Rappture::Combochecks::_entry {option} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _fixDisplay
+# USAGE: _dropdown post
+# USAGE: _dropdown unpost
+# USAGE: _dropdown select
 #
-# Used internally to handle the dropdown list for this combobox.
-# Invoked whenever there is a selection from the list, to assign
+# Used internally to handle the dropdown list for this combobox.  The
+# post/unpost options are invoked when the list is posted or unposted
+# to manage the relief of the controlling button.  The select option
+# is invoked whenever there is a selection from the list, to assign
 # the value back to the entry.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Combochecks::_fixDisplay {} {
-    $itk_component(entry) configure -state normal
-    $itk_component(entry) delete 0 end
-    $itk_component(entry) insert end [join [value] {, }]
-    $itk_component(entry) configure -state disabled
+itcl::body Rappture::Combochecks::_dropdown {option} {
+    switch -- $option {
+        post {
+#            set value [$itk_component(entry) get]
+#            set i [$itk_component(ddlist) index -label $value]
+#            if {$i >= 0} {
+#                $itk_component(ddlist) select clear 0 end
+#                $itk_component(ddlist) select set $i
+#            }
+        }
+        unpost {
+            if {$itk_option(-editable)} {
+                focus $itk_component(entry)
+            }
+        }
+        select {
+            set newval [$itk_component(ddlist) current -label]
+            set val [$itk_component(entry) get]
+            if {$newval ne "" && $newval ne $val} {
+                value $newval
+                if {[string length $itk_option(-interactcommand)] > 0} {
+                    uplevel #0 $itk_option(-interactcommand)
+                }
+            }
+            if {$newval eq ""} {
+                value $val
+            }
+        }
+        default {
+            error "bad option \"$option\": should be post, unpost, select"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
 # USAGE: _fixState
 #
-# Used internally to fix the widget state when the -state option
-# changes.
+# Used internally to fix the widget state when the -editable/-state
+# options change.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combochecks::_fixState {} {
     if {$itk_option(-state) == "normal"} {
@@ -231,12 +299,32 @@ itcl::body Rappture::Combochecks::_fixState {} {
             -disabledforeground $itk_option(-disabledforeground)
     }
 
-    if {$itk_option(-state) != "normal"} {
+    if {$itk_option(-editable)} {
+        if {$itk_option(-state) == "normal"} {
+            $itk_component(entry) configure -state normal
+        } else {
+            $itk_component(entry) configure -state disabled
+        }
+    } else {
+        $itk_component(entry) configure -state disabled
+    }
+
+    if {!$itk_option(-editable) || $itk_option(-state) != "normal"} {
         # can't keep focus here -- move it along to the next widget
         if {[focus] == $itk_component(entry)} {
             focus [tk_focusNext [focus]]
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -editable
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Combochecks::editable {
+    if {![string is boolean -strict $itk_option(-editable)]} {
+        error "bad value \"$itk_option(-editable)\": should be boolean"
+    }
+    _fixState
 }
 
 # ----------------------------------------------------------------------

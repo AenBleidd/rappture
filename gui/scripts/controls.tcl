@@ -155,6 +155,10 @@ itcl::body Rappture::Controls::insert {pos path} {
             Rappture::Loader $w $_owner $path -tool [$_owner tool]
             bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
+        multichoice {
+            Rappture::MultiChoiceEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
         number {
             Rappture::NumberEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $name]
