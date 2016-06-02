@@ -82,6 +82,7 @@ FILES		= \
 		$(srcdir)/mesh.tcl \
 		$(srcdir)/meshresult.tcl \
 		$(srcdir)/molvisviewer.tcl \
+		$(srcdir)/multichoiceentry.tcl \
 		$(srcdir)/nanovisviewer.tcl \
 		$(srcdir)/note.tcl \
 		$(srcdir)/notebook.tcl \

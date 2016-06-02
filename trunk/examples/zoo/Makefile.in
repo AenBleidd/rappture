@@ -29,6 +29,7 @@ examples	= \
 		loader \
 		log \
 		mesh \
+		multichoice \
 		note \
 		number \
 		number2 \

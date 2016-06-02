@@ -175,7 +175,7 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                 set w $frame.results.result[incr num]
                 set type [$obj element -as type]
                 switch -- $type {
-                    number - integer - boolean - choice {
+                    number - integer - boolean - choice - multichoice {
                         Rappture::ResultViewer $w -width 0 -height 0
                         pack $w -fill x -padx 4 -pady 4
                     }

@@ -174,9 +174,11 @@ itcl::body Rappture::Combobox::label { myValue } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getValue <value>
+# USAGE: current
 #
-# Clients use this to translate a value to a label.
+# Clients use this to retrieve a label from the entry widget and return
+# its value, if one exists. If no value exists for the label, then the
+# label is returned.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::current {} {
     set raw [$itk_component(entry) get]
