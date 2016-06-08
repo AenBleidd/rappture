@@ -1171,6 +1171,7 @@ itcl::body Rappture::MapViewer::Connect {} {
             lappend info "svnurl" "$Rappture::svnurl"
             lappend info "installdir" "$Rappture::installdir"
             lappend info "hub" [exec hostname]
+            lappend info "hub_url" [Rappture::Tool::resources -huburl]
             lappend info "client" "mapviewer"
             lappend info "user" $user
             lappend info "session" $session
