@@ -1450,8 +1450,8 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             SendCmd [list axis units z $units]
             # Get the new limits because the field changed.
             ResetAxes
-            SendCmd "dataset scalar $_curFldName"
-            SendCmd "heightmap colormode $_colorMode $_curFldName"
+            SendCmd [list dataset scalar $_curFldName]
+            SendCmd [list heightmap colormode $_colorMode $_curFldName]
             UpdateContourList
             SendCmd "heightmap contourlist [list $_contourList]"
             Zoom reset
@@ -1703,7 +1703,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        #SendCmd [list legend $cmap scalar $_curFldName {} $w $h 0]
         SendCmd "legend2 $cmap $w $h"
     }
 }
@@ -1746,7 +1746,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     }
     set bmax [expr $bmax - $bmin]
     set bmin 0
-    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+    SendCmd [list dataset maprange explicit $_limits($_curFldName) $_curFldName]
     SendCmd "axis bounds z $bmin $bmax"
     SendCmd "axis range z $_limits($_curFldName)"
 }

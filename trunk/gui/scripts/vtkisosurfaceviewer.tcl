@@ -1404,7 +1404,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 }
             } else {
                 if { !$_settings(-colormapvisible) } {
-                    SendCmd "contour3d colormode $_colorMode $_curFldName"
+                    SendCmd [list contour3d colormode $_colorMode $_curFldName]
                     set _settings(-colormapvisible) 1
                 }
                 SetCurrentColormap $color
@@ -1471,7 +1471,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            SendCmd "dataset scalar $_curFldName"
+            SendCmd [list dataset scalar $_curFldName]
             if { ![info exists _limits($_curFldName)] } {
                 SendCmd "dataset maprange all"
             } else {
@@ -1485,10 +1485,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                     # when the legend is redrawn in DrawLegend
                     SetMinMaxGauges $vmin $vmax
                 }
-                SendCmd "dataset maprange explicit $vmin $vmax $_curFldName"
+                SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName]
             }
-            SendCmd "cutplane colormode $_colorMode $_curFldName"
-            SendCmd "contour3d colormode $_colorMode $_curFldName"
+            SendCmd [list cutplane colormode $_colorMode $_curFldName]
+            SendCmd [list contour3d colormode $_colorMode $_curFldName]
             GenerateContourList
             SendCmd [list contour3d contourlist $_contourList(values)]
             SendCmd "camera reset"
@@ -1575,7 +1575,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
             GenerateContourList
             SendCmd [list contour3d contourlist $_contourList(values)]
-            SendCmd "dataset maprange explicit $vmin $vmax $_curFldName"
+            SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName]
             DrawLegend
         }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
@@ -1658,7 +1658,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
+        #SendCmd [list legend $cmap $_colorMode $_curFldName {} $w $h 0]
         SendCmd "legend2 $cmap $w $h"
     }
 }
@@ -3136,7 +3136,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentFieldName { dataobj } {
     $itk_component(field) value $_curFldLabel
     if { $_settings(-customrange) } {
         set limits [list [$itk_component(min) value] [$itk_component(max) value]]
-        SendCmd "dataset maprange explicit $limits $_curFldName"
+        SendCmd [list dataset maprange explicit $limits $_curFldName]
         if { $limits != $_currentLimits } {
             set _currentLimits $limits
             EventuallyChangeContourLevels
@@ -3146,7 +3146,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentFieldName { dataobj } {
             SendCmd "dataset maprange all"
         } else {
             set limits $_limits($_curFldName)
-            SendCmd "dataset maprange explicit $limits $_curFldName"
+            SendCmd [list dataset maprange explicit $limits $_curFldName]
             if { $limits != $_currentLimits } {
                 set _currentLimits $limits
                 EventuallyChangeContourLevels

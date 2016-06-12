@@ -1377,7 +1377,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
                 }
             } else {
                 if { !$_settings(-colormapvisible) } {
-                    SendCmd "glyphs colormode $_colorMode $_curFldName"
+                    SendCmd [list glyphs colormode $_colorMode $_curFldName]
                     set _settings(-colormapvisible) 1
                 }
                 SetCurrentColormap $color
@@ -1458,10 +1458,10 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
                     # when the legend is redrawn in DrawLegend
                     SetMinMaxGauges $vmin $vmax
                 }
-                SendCmd "dataset maprange explicit $vmin $vmax $_curFldName point_data $_curFldComp"
+                SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName point_data $_curFldComp]
             }
-            #SendCmd "cutplane colormode $_colorMode $_curFldName"
-            SendCmd "glyphs colormode $_colorMode $_curFldName"
+            #SendCmd [list cutplane colormode $_colorMode $_curFldName]
+            SendCmd [list glyphs colormode $_colorMode $_curFldName]
             DrawLegend
         }
         "-glyphedges" {
@@ -1562,7 +1562,7 @@ itcl::body Rappture::VtkGlyphViewer::AdjustSetting {what {value ""}} {
             } else {
                 foreach { vmin vmax } $_limits($_curFldName) break
             }
-            SendCmd "dataset maprange explicit $vmin $vmax $_curFldName point_data $_curFldComp"
+            SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName point_data $_curFldComp]
             DrawLegend
         }
         "-xcutplanevisible" - "-ycutplanevisible" - "-zcutplanevisible" {
@@ -1644,7 +1644,7 @@ itcl::body Rappture::VtkGlyphViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
+        #SendCmd [list legend $cmap $_colorMode $_curFldName {} $w $h 0]
         SendCmd "legend2 $cmap $w $h"
     }
 }
@@ -2426,7 +2426,7 @@ itcl::body Rappture::VtkGlyphViewer::SetObjectStyle { dataobj comp } {
         set _settings(-colormapvisible) 0
         set _settings(-colormap) "none"
     } else {
-        SendCmd "glyphs colormode $style(-colormode) $_curFldName $tag"
+        SendCmd [list glyphs colormode $style(-colormode) $_curFldName $tag]
         set _settings(-colormapvisible) 1
         set _settings(-colormap) $style(-color)
         SetCurrentColormap $style(-color)
@@ -3108,13 +3108,13 @@ itcl::body Rappture::VtkGlyphViewer::SetCurrentFieldName { dataobj } {
     $itk_component(field) value $_curFldLabel
     if { $_settings(-customrange) } {
         set limits [list [$itk_component(min) value] [$itk_component(max) value]]
-        SendCmd "dataset maprange explicit $limits $_curFldName point_data $_curFldComp"
+        SendCmd [list dataset maprange explicit $limits $_curFldName point_data $_curFldComp]
     } else {
         if { ![info exists _limits($_curFldName)] } {
             SendCmd "dataset maprange all"
         } else {
             set limits $_limits($_curFldName)
-            SendCmd "dataset maprange explicit $limits $_curFldName point_data $_curFldComp"
+            SendCmd [list dataset maprange explicit $limits $_curFldName point_data $_curFldComp]
         }
     }
 }

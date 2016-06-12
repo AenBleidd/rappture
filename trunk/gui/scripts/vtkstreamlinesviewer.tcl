@@ -1351,10 +1351,10 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             if { ![info exists _limits($_curFldName)] } {
                 SendCmd "dataset maprange all"
             } else {
-                SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+                SendCmd [list dataset maprange explicit $_limits($_curFldName) $_curFldName]
             }
-            SendCmd "streamlines colormode $_colorMode $_curFldName"
-            SendCmd "cutplane colormode $_colorMode $_curFldName"
+            SendCmd [list streamlines colormode $_colorMode $_curFldName]
+            SendCmd [list cutplane colormode $_colorMode $_curFldName]
             DrawLegend
         }
         "-streamlinesseedsvisible" {
@@ -1495,7 +1495,7 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap $_colorMode $_curFldName {} $w $h 0"
+        #SendCmd [list legend $cmap $_colorMode $_curFldName {} $w $h 0]
         SendCmd "legend2 $cmap $w $h"
     }
 }

@@ -1247,8 +1247,8 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
                 }
             } else {
                 if { !$_settings(-colormapvisible) } {
-                    #SendCmd "contour2d colormode $_colorMode $_curFldName"
-                    SendCmd "polydata colormode $_colorMode $_curFldName"
+                    #SendCmd [list contour2d colormode $_colorMode $_curFldName]
+                    SendCmd [list polydata colormode $_colorMode $_curFldName]
                     set _settings(-colormapvisible) 1
                 }
                 SetCurrentColormap $color
@@ -1293,14 +1293,14 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            SendCmd "dataset scalar $_curFldName"
+            SendCmd [list dataset scalar $_curFldName]
             if { ![info exists _limits($_curFldName)] } {
                 SendCmd "dataset maprange all"
             } else {
-                SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+                SendCmd [list dataset maprange explicit $_limits($_curFldName) $_curFldName]
             }
-            #SendCmd "contour2d colormode $_colorMode $_curFldName"
-            SendCmd "polydata colormode $_colorMode $_curFldName"
+            #SendCmd [list contour2d colormode $_colorMode $_curFldName]
+            SendCmd [list polydata colormode $_colorMode $_curFldName]
             UpdateContourList
             SendCmd "contour2d contourlist [list $_contourList]"
             SendCmd "camera reset"
@@ -1471,7 +1471,7 @@ itcl::body Rappture::VtkSurfaceViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        #SendCmd [list legend $cmap scalar $_curFldName {} $w $h 0]
         SendCmd "legend2 $cmap $w $h"
     }
 }
@@ -1949,7 +1949,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
 
     SendCmd "polydata add $tag"
     if { $_curFldName != "" } {
-        SendCmd "polydata colormode $_colorMode $_curFldName $tag"
+        SendCmd [list polydata colormode $_colorMode $_curFldName $tag]
     }
     SendCmd "polydata edges $style(-edges) $tag"
     set _settings(-surfaceedges) $style(-edges)
