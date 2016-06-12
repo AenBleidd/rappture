@@ -3107,14 +3107,15 @@ itcl::body Rappture::VtkGlyphViewer::SetCurrentFieldName { dataobj } {
     }
     $itk_component(field) value $_curFldLabel
     if { $_settings(-customrange) } {
-        set limits [list [$itk_component(min) value] [$itk_component(max) value]]
-        SendCmd [list dataset maprange explicit $limits $_curFldName point_data $_curFldComp]
+        set vmin [$itk_component(min) value]
+        set vmax [$itk_component(max) value]
+        SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName point_data $_curFldComp]
     } else {
         if { ![info exists _limits($_curFldName)] } {
             SendCmd "dataset maprange all"
         } else {
-            set limits $_limits($_curFldName)
-            SendCmd [list dataset maprange explicit $limits $_curFldName point_data $_curFldComp]
+            foreach { vmin vmax } $_limits($_curFldName) break
+            SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName point_data $_curFldComp]
         }
     }
 }

@@ -1746,7 +1746,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     }
     set bmax [expr $bmax - $bmin]
     set bmin 0
-    SendCmd [list dataset maprange explicit $_limits($_curFldName) $_curFldName]
+    SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName]
     SendCmd "axis bounds z $bmin $bmax"
     SendCmd "axis range z $_limits($_curFldName)"
 }
