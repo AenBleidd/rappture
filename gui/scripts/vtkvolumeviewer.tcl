@@ -1408,8 +1408,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 return
             }
             foreach dataset [CurrentDatasets -visible $_first] {
-                #SendCmd "$_cutplaneCmd colormode $_colorMode $_curFldName $dataset"
-                SendCmd "dataset scalar $_curFldName $dataset"
+                #SendCmd [list $_cutplaneCmd colormode $_colorMode $_curFldName $dataset]
+                SendCmd [list dataset scalar $_curFldName $dataset]
             }
             SendCmd "camera reset"
             DrawLegend
@@ -1573,7 +1573,7 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            #SendCmd "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
+            #SendCmd [list legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0]
             SendCmd "legend2 $_dataset2style($dataset) $w $h"
             break;
         }

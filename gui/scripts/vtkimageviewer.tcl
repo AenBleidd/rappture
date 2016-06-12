@@ -1354,8 +1354,8 @@ itcl::body Rappture::VtkImageViewer::AdjustSetting {what {value ""}} {
             }
 
             # Get the new limits because the field changed.
-            SendCmd "dataset scalar $_curFldName"
-            #SendCmd "image colormode scalar $_curFldName"
+            SendCmd [list dataset scalar $_curFldName]
+            #SendCmd [list image colormode scalar $_curFldName]
             SendCmd "camera reset"
             DrawLegend
         }
@@ -1510,7 +1510,7 @@ itcl::body Rappture::VtkImageViewer::RequestLegend {} {
             BuildColormap $cmap
             set _colormaps($cmap) 1
         }
-        #SendCmd "legend $cmap scalar $_curFldName {} $w $h 0"
+        #SendCmd [list legend $cmap scalar $_curFldName {} $w $h 0]
         SendCmd "legend2 $cmap $w $h"
     }
 }
