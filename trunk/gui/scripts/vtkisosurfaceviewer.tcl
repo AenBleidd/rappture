@@ -3135,8 +3135,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentFieldName { dataobj } {
     }
     $itk_component(field) value $_curFldLabel
     if { $_settings(-customrange) } {
-        set limits [list [$itk_component(min) value] [$itk_component(max) value]]
-        SendCmd [list dataset maprange explicit $limits $_curFldName]
+        set vmin [$itk_component(min) value]
+        set vmax [$itk_component(max) value]
+        SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName]
+        set limits [list $vmin $vmax]
         if { $limits != $_currentLimits } {
             set _currentLimits $limits
             EventuallyChangeContourLevels
@@ -3145,8 +3147,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetCurrentFieldName { dataobj } {
         if { ![info exists _limits($_curFldName)] } {
             SendCmd "dataset maprange all"
         } else {
-            set limits $_limits($_curFldName)
-            SendCmd [list dataset maprange explicit $limits $_curFldName]
+            foreach { vmin vmax } $_limits($_curFldName) break
+            SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName]
+            set limits [list $vmin $vmax]
             if { $limits != $_currentLimits } {
                 set _currentLimits $limits
                 EventuallyChangeContourLevels

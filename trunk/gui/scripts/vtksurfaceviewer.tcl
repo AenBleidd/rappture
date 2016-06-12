@@ -1297,7 +1297,8 @@ itcl::body Rappture::VtkSurfaceViewer::AdjustSetting {what {value ""}} {
             if { ![info exists _limits($_curFldName)] } {
                 SendCmd "dataset maprange all"
             } else {
-                SendCmd [list dataset maprange explicit $_limits($_curFldName) $_curFldName]
+                foreach { vmin vmax } $_limits($_curFldName) break
+                SendCmd [list dataset maprange explicit $vmin $vmax $_curFldName]
             }
             #SendCmd [list contour2d colormode $_colorMode $_curFldName]
             SendCmd [list polydata colormode $_colorMode $_curFldName]
