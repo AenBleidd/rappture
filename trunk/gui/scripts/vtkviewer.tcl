@@ -133,6 +133,9 @@ itcl::class Rappture::VtkViewer {
     private variable _dataset2style;    # maps dataobj-component to transfunc
     private variable _click;            # info used for rotate operations
     private variable _limits;           # autoscale min/max for all axes
+    private variable _fieldlimits;      # maps dataobj-comp to field limits
+    private variable _fieldComponents;  # maps dataobj-comp-fname to number of
+                                        # components
     private variable _view;             # view params for 3D view
     private variable _settings
     private variable _style;            # Array of current component styles.
@@ -241,9 +244,6 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
-    set _limits(zmin) 0.0
-    set _limits(zmax) 1.0
-
     array set _axis [subst {
         labels          1
         minorticks      1
@@ -262,37 +262,39 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         zdirection      -1
     }]
     array set _settings [subst {
-        glyphs-edges            0
-        glyphs-lighting         1
-        glyphs-opacity          100
-        glyphs-outline          0
-        glyphs-palette          BCGYR
-        glyphs-visible          1
-        glyphs-wireframe        0
-        legend                  1
-        molecule-atoms-visible  1
-        molecule-atomscale      0.3
-        molecule-bonds-visible  1
-        molecule-bondscale      0.075
-        molecule-bondstyle      "cylinder"
-        molecule-edges          0
-        molecule-labels         0
-        molecule-lighting       1
-        molecule-opacity        100
-        molecule-outline        0
-        molecule-palette        elementDefault
-        molecule-quality        1.0
-        molecule-representation "Ball and Stick"
-        molecule-rscale         "covalent"
-        molecule-visible        1
-        molecule-wireframe      0
-        polydata-edges          0
-        polydata-lighting       1
-        polydata-opacity        100
-        polydata-outline        0
-        polydata-palette        BCGYR
-        polydata-visible        1
-        polydata-wireframe      0
+        glyphs-edges               0
+        glyphs-lighting            1
+        glyphs-opacity             100
+        glyphs-outline             0
+        glyphs-palette             BCGYR
+        glyphs-visible             1
+        glyphs-wireframe           0
+        legend                     1
+        molecule-atoms-visible     1
+        molecule-atomscale         0.3
+        molecule-bonds-visible     1
+        molecule-bondscale         0.075
+        molecule-bondstyle         "cylinder"
+        molecule-colorfield        "element"
+        molecule-colormode         "by_elements"
+        molecule-edges             0
+        molecule-labels            0
+        molecule-lighting          1
+        molecule-opacity           100
+        molecule-outline           0
+        molecule-palette           elementDefault
+        molecule-quality           1.0
+        molecule-representation    "Ball and Stick"
+        molecule-rscale            "covalent"
+        molecule-visible           1
+        molecule-wireframe         0
+        polydata-edges             0
+        polydata-lighting          1
+        polydata-opacity           100
+        polydata-outline           0
+        polydata-palette           BCGYR
+        polydata-visible           1
+        polydata-wireframe         0
     }]
     itk_component add view {
         canvas $itk_component(plotarea).view \
@@ -759,14 +761,16 @@ itcl::body Rappture::VtkViewer::scale {args} {
     if { $_haveGlyphs } {
         if { ![$itk_component(main) exists "Glyphs Settings"] } {
             if { [catch { BuildGlyphsTab } errs ]  != 0 } {
-                puts stderr "errs=$errs"
+                global errorInfo
+                puts stderr "errs=$errs\nerrorInfo=$errorInfo"
             }
         }
     }
     if { $_havePolydata } {
         if { ![$itk_component(main) exists "Mesh Settings"] } {
             if { [catch { BuildPolydataTab } errs ]  != 0 } {
-                puts stderr "errs=$errs"
+                global errorInfo
+                puts stderr "errs=$errs\nerrorInfo=$errorInfo"
             }
         }
     }
@@ -1030,11 +1034,10 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         StartBufferingCommands
     }
 
-    set _limits(zmin) ""
-    set _limits(zmax) ""
     set _first ""
     SendCmd "dataset visible 0"
     set count 0
+    eval scale $_dlist
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1577,10 +1580,12 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 if { $type == "molecule" } {
                     ChangeColormap $dataobj $comp $palette
                     if { $palette == "elementDefault" } {
-                        SendCmd "molecule colormode by_elements element $dataset"
+                        SendCmd [list molecule colormode by_elements element $dataset]
                     } else {
                         # FIXME: Set the chosen scalar field name here
-                        SendCmd "molecule colormode scalar {} $dataset"
+                        set _settings(molecule-colormode) scalar
+                        set _settings(molecule-colorfield) ""
+                        SendCmd [list molecule colormode $_settings(molecule-colormode) $_settings(molecule-colorfield) $dataset]
                     }
                 }
             }
@@ -1869,10 +1874,10 @@ itcl::configbody Rappture::VtkViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkViewer::limits { dataobj } {
-    foreach comp [$dataobj components] {
-        set tag $dataobj-$comp
+    foreach cname [$dataobj components] {
+        set tag $dataobj-$cname
         if { ![info exists _limits($tag)] } {
-            set data [$dataobj data $comp]
+            set data [$dataobj data $cname]
             if { $data == "" } {
                 continue
             }
@@ -1883,60 +1888,58 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
             close $f
             set reader [vtkDataSetReader $tag-xvtkDataSetReader]
             $reader SetFileName $tmpfile
-set debug 0
-            if {$debug} {
-                # Only needed for debug output below
-                $reader ReadAllNormalsOn
-                $reader ReadAllTCoordsOn
-                $reader ReadAllScalarsOn
-                $reader ReadAllColorScalarsOn
-                $reader ReadAllVectorsOn
-                $reader ReadAllTensorsOn
-                $reader ReadAllFieldsOn
-            }
+            $reader ReadAllNormalsOn
+            $reader ReadAllTCoordsOn
+            $reader ReadAllScalarsOn
+            $reader ReadAllColorScalarsOn
+            $reader ReadAllVectorsOn
+            $reader ReadAllTensorsOn
+            $reader ReadAllFieldsOn
             $reader Update
             file delete $tmpfile
-            set output [$reader GetOutput]
-            if { $output == "" } {
+            set dataset [$reader GetOutput]
+            if { $dataset == "" } {
                 # Invalid VTK file -- loader failed to parse
                 continue
             }
-            set _limits($tag) [$output GetBounds]
-            if {$debug} {
-                puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
-                puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
-                puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
-                puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
-                puts stderr "\#tcoords=[$reader GetNumberOfTCoordsInFile]"
-                puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
-                puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
-                set pointData [$output GetPointData]
-                if { $pointData != ""} {
-                    puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
-                    puts stderr "point \#components=[$pointData GetNumberOfComponents]"
-                    puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
-                    puts stderr "point scalars=[$pointData GetScalars]"
-                    puts stderr "point vectors=[$pointData GetVectors]"
-                }
-                set cellData [$output GetCellData]
-                if { $cellData != ""} {
-                    puts stderr "cell \#arrays=[$cellData GetNumberOfArrays]"
-                    puts stderr "cell \#components=[$cellData GetNumberOfComponents]"
-                    puts stderr "cell \#tuples=[$cellData GetNumberOfTuples]"
-                    puts stderr "cell scalars=[$cellData GetScalars]"
-                    puts stderr "cell vectors=[$cellData GetVectors]"
-                }
-                set fieldData [$output GetFieldData]
-                if { $fieldData != ""} {
-                    puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
-                    puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
-                    puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
+            set _limits($tag) [$dataset GetBounds]
+            set dataAttrs [$dataset GetPointData]
+            if { $dataAttrs != ""} {
+                set numArrays [$dataAttrs GetNumberOfArrays]
+                for {set i 0} {$i < $numArrays} {incr i} {
+                    set array [$dataAttrs GetArray $i]
+                    set fname [$dataAttrs GetArrayName $i]
+                    foreach {min max} [$array GetRange -1] break
+                    lappend _fieldlimits($tag) $fname [list $min $max]
+                    set _fieldComponents($tag-$fname) [$array GetNumberOfComponents]
                 }
             }
-            rename $output ""
+            set dataAttrs [$dataset GetCellData]
+            if { $dataAttrs != ""} {
+                set numArrays [$dataAttrs GetNumberOfArrays]
+                for {set i 0} {$i < $numArrays} {incr i} {
+                    set array [$dataAttrs GetArray $i]
+                    set fname [$dataAttrs GetArrayName $i]
+                    foreach {min max} [$array GetRange -1] break
+                    lappend _fieldlimits($tag) $fname [list $min $max]
+                    set _fieldComponents($tag-$fname) [$array GetNumberOfComponents]
+                }
+            }
+            set dataAttrs [$dataset GetFieldData]
+            if { $dataAttrs != ""} {
+                set numArrays [$dataAttrs GetNumberOfArrays]
+                for {set i 0} {$i < $numArrays} {incr i} {
+                    set array [$dataAttrs GetArray $i]
+                    set fname [$dataAttrs GetArrayName $i]
+                    foreach {min max} [$array GetRange -1] break
+                    lappend _fieldlimits($tag) $fname [list $min $max]
+                    set _fieldComponents($tag-$fname) [$array GetNumberOfComponents]
+                }
+            }
+            rename $dataset ""
             rename $reader ""
         }
-        foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
+        foreach {xMin xMax yMin yMax zMin zMax} $_limits($tag) break
         if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
             set limits(xmin) $xMin
         }
@@ -2687,10 +2690,15 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             array set settings {
                 -atomscale 0.3
                 -atomsvisible 1
+                -bondconstcolor white
+                -bondcolormode "by_elements"
                 -bondscale 0.075
                 -bondstyle "cylinder"
                 -bondsvisible 1
                 -color "elementDefault"
+                -colormode "by_elements"
+                -colorfield "element"
+                -constcolor white
                 -edgecolor black
                 -edges 0
                 -labels 0
@@ -2798,6 +2806,15 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             }
             SendCmd "molecule labels $settings(-labels) $tag"
             set _settings(molecule-labels) $settings(-labels)
+            SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
+            SendCmd "molecule bcolor [Color2RGB $settings(-bondconstcolor)] $tag"
+            SendCmd "molecule color [Color2RGB $settings(-constcolor)] $tag"
+            SendCmd "molecule colormap $settings(-color) $tag"
+            set _settings(molecule-palette) $settings(-color)
+            $itk_component(moleculepalette) value $settings(-color)
+            SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
+            set _settings(molecule-colormode) $settings(-colormode)
+            set _settings(molecule-colorfield) $settings(-colorfield)
             SendCmd "molecule linecolor [Color2RGB $settings(-edgecolor)] $tag"
             SendCmd "molecule linewidth $settings(-linewidth) $tag"
             SendCmd "molecule edges $settings(-edges) $tag"
