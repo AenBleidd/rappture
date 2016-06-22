@@ -266,7 +266,7 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         glyphs-lighting            1
         glyphs-opacity             100
         glyphs-outline             0
-        glyphs-palette             BCGYR
+        glyphs-colormap            BCGYR
         glyphs-visible             1
         glyphs-wireframe           0
         legend                     1
@@ -282,7 +282,7 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         molecule-lighting          1
         molecule-opacity           100
         molecule-outline           0
-        molecule-palette           elementDefault
+        molecule-colormap          elementDefault
         molecule-quality           1.0
         molecule-representation    "Ball and Stick"
         molecule-rscale            "covalent"
@@ -292,7 +292,7 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         polydata-lighting          1
         polydata-opacity           100
         polydata-outline           0
-        polydata-palette           BCGYR
+        polydata-colormap          BCGYR
         polydata-visible           1
         polydata-wireframe         0
     }]
@@ -1427,14 +1427,14 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "glyphs-palette" {
-            set palette [$itk_component(glyphspalette) value]
-            set _settings($what) $palette
+        "glyphs-colormap" {
+            set colormap [$itk_component(glyphscolormap) value]
+            set _settings($what) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "glyphs" } {
-                    ChangeColormap $dataobj $comp $palette
+                    ChangeColormap $dataobj $comp $colormap
                     # FIXME: fill in current selected fieldname
                     #SendCmd "glyphs colormode scalar {} $dataset"
                 }
@@ -1499,14 +1499,14 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "polydata-palette" {
-            set palette [$itk_component(meshpalette) value]
-            set _settings($what) $palette
+        "polydata-colormap" {
+            set colormap [$itk_component(meshcolormap) value]
+            set _settings($what) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "polydata" } {
-                    ChangeColormap $dataobj $comp $palette
+                    ChangeColormap $dataobj $comp $colormap
                     # FIXME: fill in current selected fieldname
                     #SendCmd "polydata colormode scalar {} $dataset"
                 }
@@ -1571,15 +1571,15 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "molecule-palette" {
-            set palette [$itk_component(moleculepalette) value]
-            set _settings($what) $palette
+        "molecule-colormap" {
+            set colormap [$itk_component(moleculecolormap) value]
+            set _settings($what) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
                 set type [$dataobj type $comp]
                 if { $type == "molecule" } {
-                    ChangeColormap $dataobj $comp $palette
-                    if { $palette == "elementDefault" } {
+                    ChangeColormap $dataobj $comp $colormap
+                    if { $colormap == "elementDefault" } {
                         SendCmd [list molecule colormode by_elements element $dataset]
                     } else {
                         # FIXME: Set the chosen scalar field name here
@@ -2002,14 +2002,14 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
         -command [itcl::code $this AdjustSetting glyphs-edges] \
         -font "Arial 9" -anchor w
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
-    itk_component add glyphspalette {
-        Rappture::Combobox $inner.palette -width 10 -editable 0
+    label $inner.colormap_l -text "Colormap" -font "Arial 9" -anchor w
+    itk_component add glyphscolormap {
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
-    $inner.palette choices insert end [GetColormapList]
-    $itk_component(glyphspalette) value "BCGYR"
-    bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting glyphs-palette]
+    $inner.colormap choices insert end [GetColormapList]
+    $itk_component(glyphscolormap) value "BCGYR"
+    bind $inner.colormap <<Value>> \
+        [itcl::code $this AdjustSetting glyphs-colormap]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
@@ -2020,15 +2020,15 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
     $inner.opacity set $_settings(glyphs-opacity)
 
     blt::table $inner \
-        0,0 $inner.glyphs    -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.outline   -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        5,0 $inner.opacity_l -anchor w -pady 2 \
-        5,1 $inner.opacity   -fill x   -pady 2 \
-        6,0 $inner.palette_l -anchor w -pady 2 \
-        6,1 $inner.palette   -fill x   -pady 2
+        0,0 $inner.glyphs     -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.outline    -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.wireframe  -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.lighting   -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.edges      -cspan 2  -anchor w -pady 2 \
+        5,0 $inner.opacity_l  -anchor w -pady 2 \
+        5,1 $inner.opacity    -fill x   -pady 2 \
+        6,0 $inner.colormap_l -anchor w -pady 2 \
+        6,1 $inner.colormap   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r8 c1 -resize expand
@@ -2074,14 +2074,14 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -command [itcl::code $this AdjustSetting polydata-edges] \
         -font "Arial 9" -anchor w
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w
-    itk_component add meshpalette {
-        Rappture::Combobox $inner.palette -width 10 -editable 0
+    label $inner.colormap_l -text "Colormap" -font "Arial 9" -anchor w
+    itk_component add meshcolormap {
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
-    $inner.palette choices insert end [GetColormapList]
-    $itk_component(meshpalette) value "BCGYR"
-    bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting polydata-palette]
+    $inner.colormap choices insert end [GetColormapList]
+    $itk_component(meshcolormap) value "BCGYR"
+    bind $inner.colormap <<Value>> \
+        [itcl::code $this AdjustSetting polydata-colormap]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
@@ -2092,15 +2092,15 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
     $inner.opacity set $_settings(polydata-opacity)
 
     blt::table $inner \
-        0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
-        1,0 $inner.outline   -cspan 2  -anchor w -pady 2 \
-        2,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
-        3,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
-        4,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
-        5,0 $inner.opacity_l -anchor w -pady 2 \
-        5,1 $inner.opacity   -fill x   -pady 2 \
-        6,0 $inner.palette_l -anchor w -pady 2 \
-        6,1 $inner.palette   -fill x   -pady 2
+        0,0 $inner.mesh       -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.outline    -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.wireframe  -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.lighting   -cspan 2  -anchor w -pady 2 \
+        4,0 $inner.edges      -cspan 2  -anchor w -pady 2 \
+        5,0 $inner.opacity_l  -anchor w -pady 2 \
+        5,1 $inner.opacity    -fill x   -pady 2 \
+        6,0 $inner.colormap_l -anchor w -pady 2 \
+        6,1 $inner.colormap   -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r8 c1 -resize expand
@@ -2448,14 +2448,14 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         [itcl::code $this AdjustSetting molecule-rscale]
     $inner.rscale value "Covalent"
 
-    label $inner.palette_l -text "Palette" -font "Arial 9"
-    itk_component add moleculepalette {
-        Rappture::Combobox $inner.palette -width 10 -editable 0
+    label $inner.colormap_l -text "Colormap" -font "Arial 9"
+    itk_component add moleculecolormap {
+        Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
-    $inner.palette choices insert end [GetColormapList -includeElementDefault]
-    $itk_component(moleculepalette) value "elementDefault"
-    bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting molecule-palette]
+    $inner.colormap choices insert end [GetColormapList -includeElementDefault]
+    $itk_component(moleculecolormap) value "elementDefault"
+    bind $inner.colormap <<Value>> \
+        [itcl::code $this AdjustSetting molecule-colormap]
 
     label $inner.atomscale_l -text "Atom Scale" -font "Arial 9"
     ::scale $inner.atomscale -width 15 -font "Arial 7" \
@@ -2503,8 +2503,8 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         5,0 $inner.rep          -fill x    -pady 2 \
         6,0 $inner.rscale_l     -anchor w -pady { 2 0 } \
         7,0 $inner.rscale       -fill x    -pady 2 \
-        8,0 $inner.palette_l    -anchor w  -pady 0 \
-        9,0 $inner.palette      -fill x    -padx 2 \
+        8,0 $inner.colormap_l    -anchor w  -pady 0 \
+        9,0 $inner.colormap      -fill x    -padx 2 \
         10,0 $inner.atomscale_l  -anchor w -pady {3 0} \
         11,0 $inner.atomscale   -fill x    -padx 2 \
         12,0 $inner.bondscale_l -anchor w -pady {3 0} \
@@ -2806,12 +2806,12 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             }
             SendCmd "molecule labels $settings(-labels) $tag"
             set _settings(molecule-labels) $settings(-labels)
-            SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
             SendCmd "molecule color [Color2RGB $settings(-constcolor)] $tag"
+            SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
             SendCmd "molecule bcolor [Color2RGB $settings(-bondconstcolor)] $tag"
             SendCmd "molecule colormap $settings(-color) $tag"
-            set _settings(molecule-palette) $settings(-color)
-            $itk_component(moleculepalette) value $settings(-color)
+            set _settings(molecule-colormap) $settings(-color)
+            $itk_component(moleculecolormap) value $settings(-color)
             SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
             set _settings(molecule-colormode) $settings(-colormode)
             set _settings(molecule-colorfield) $settings(-colorfield)
