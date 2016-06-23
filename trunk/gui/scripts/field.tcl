@@ -881,7 +881,10 @@ itcl::body Rappture::Field::Build {} {
                 puts stderr "WARNING: No data for \"$_path.$cname.vtk\""
                 continue;               # Ignore this component
             }
-            ReadVtkDataSet $cname $contents
+            if { ![ReadVtkDataSet $cname $contents] } {
+                puts stderr "WARNING: Invalid VTK file for \"$_path.$cname.vtk\""
+                continue;               # Ignore this component
+            }
             set _comp2vtk($cname) $contents
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
@@ -917,7 +920,10 @@ itcl::body Rappture::Field::Build {} {
                 # Read back VTK: this will set the field limits and the mesh
                 # dimensions based on the bounds (sets _dim).  We rely on this
                 # conversion for limits even if we send DX data to nanovis.
-                ReadVtkDataSet $cname $vtkdata
+                if { ![ReadVtkDataSet $cname $vtkdata] } {
+                    puts stderr "WARNING: Could not parse generated VTK for \"$_path.$cname.$type\""
+                    continue;           # Ignore this component
+                }
                 if 0 {
                     set f [open /tmp/$_path.$cname.vtk "w"]
                     puts -nonewline $f $vtkdata
@@ -951,6 +957,10 @@ itcl::body Rappture::Field::Build {} {
                 continue;               # Ignore this component
             }
             set vtkdata [DicomToVtk $cname $contents]
+            if { $vtkdata == "" } {
+                puts stderr "WARNING: Could not parse generated VTK for \"$_path.$cname.$type\""
+                continue;               # Ignore this component
+            }
             if { $_viewer == "" } {
                 set _viewer [expr {($_dim == 3) ? "vtkvolume" : "vtkimage"}]
             }
@@ -963,7 +973,10 @@ itcl::body Rappture::Field::Build {} {
                 continue;               # Ignore this component
             }
             set vtkdata [AvsToVtk $cname $contents]
-            ReadVtkDataSet $cname $vtkdata
+            if { ![ReadVtkDataSet $cname $vtkdata] } {
+                puts stderr "WARNING: Could not parse generated VTK for \"$_path.$cname.$type\""
+                continue;               # Ignore this component
+            }
             set _comp2vtk($cname) $vtkdata
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
@@ -1180,8 +1193,18 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     file delete $tmpfile
 
     set dataset [$reader GetOutput]
+    if { $dataset == "" } {
+        puts stderr "Failed to parse VTK file"
+        rename $reader ""
+        return 0
+    }
     set limits {}
     foreach {xmin xmax ymin ymax zmin zmax} [$dataset GetBounds] break
+    if {$xmin > $xmax || $ymin > $ymax || $zmin > $zmax} {
+        puts stderr "Invalid VTK file"
+        rename $reader ""
+        return 0
+    }
     # Figure out the dimension of the mesh from the bounds.
     set _dim 0
     if { $xmax > $xmin } {
@@ -1292,6 +1315,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     set _comp2limits($cname) $limits
 
     rename $reader ""
+    return 1
 }
 
 #
@@ -1651,7 +1675,7 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
 
     if { ![file exists $path] } {
         puts stderr "path \"$path\" doesn't exist."
-        return 0
+        return ""
     }
 
     if { [file isdir $path] } {
@@ -1660,7 +1684,7 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
             set files [glob -nocomplain $path/*]
             if { [llength $files] == 0 } {
                 puts stderr "no dicom files found in \"$path\""
-                return 0
+                return ""
             }
         }
 
@@ -1685,7 +1709,9 @@ itcl::body Rappture::Field::DicomToVtk { cname path } {
         }
     }
 
-    ReadVtkDataSet $cname $data(vtkdata)
+    if { ![ReadVtkDataSet $cname $data(vtkdata)] } {
+        return ""
+    }
     return $data(vtkdata)
 }
 
