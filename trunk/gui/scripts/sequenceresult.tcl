@@ -497,6 +497,10 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 Rappture::MapViewer $w
                 pack $w -expand yes -fill both
             }
+            ::Rappture::Mesh {
+                Rappture::VtkMeshViewer $w
+                pack $w -expand yes -fill both
+            }
             ::Rappture::LibraryObj {
                 switch -- [$dataobj element -as type] {
                     structure {

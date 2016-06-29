@@ -55,7 +55,6 @@ itcl::class Rappture::SequenceDial {
 
     itk_option define -interactcommand interactCommand InteractCommand ""
 
-
     constructor {args} { # defined below }
     destructor { # defined below }
 
