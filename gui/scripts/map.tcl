@@ -80,8 +80,16 @@ itcl::class Rappture::Map {
 
     protected method parseXML { xmlobj path }
 
+    protected proc colorToHTML { color }
+    protected proc fixBoolean { val }
+    protected proc fixEnum { str }
+    protected proc fixQuotes { str }
+    protected proc isBooleanProp { prop }
+    protected proc isColorProp { prop }
     protected proc isFileProp { prop }
     protected proc parseStylesheet { stylesheet }
+    protected proc styleToCSS { layerType props {styleName "style"} }
+    protected proc translateProp { layerType styleProp styleValue }
 
     private variable _tree "";         # Tree of information about the map.
     private variable _isValid 0;
@@ -1073,6 +1081,58 @@ itcl::body Rappture::Map::isGeocentric {} {
     return [expr {[hints "type"] eq "geocentric"}]
 }
 
+itcl::body Rappture::Map::styleToCSS { layerType props {styleName "style"} } {
+    append output "$styleName { "
+    foreach {name value} $props {
+        if {[string range $name 0 0] eq "-"} {
+            set name [string range $name 1 end]
+        }
+        # These aren't really style properties
+        if {$name eq "minrange" || $name eq "maxrange" } {
+            continue
+        }
+        foreach {name value} [translateProp $layerType $name $value] {}
+        # TODO: Fix quoting
+        if {$name ne ""} {
+            append output "$name: $value; "
+        }
+    }
+    append output "}"
+    return $output
+}
+
+itcl::body Rappture::Map::colorToHTML { color } {
+    foreach {r g b} [winfo rgb . $color] break
+    return [format "#%02X%02X%02X" [expr {$r/256}] [expr {$g/256}] [expr {$b/256}]]
+}
+
+itcl::body Rappture::Map::isColorProp { prop } {
+    foreach colorprop { fill stroke point-fill text-fill text-halo } {
+        if { $prop eq $colorprop } {
+            return 1
+        }
+    }
+    return 0
+}
+
+itcl::body Rappture::Map::isBooleanProp { prop } {
+    foreach boolprop {
+        extrusion-flatten
+        skin-tiled
+        icon-declutter
+        render-depth-test
+        render-lighting
+        render-transparent
+        render-depth-offset
+        text-declutter
+    } {
+        if { $prop eq $boolprop } {
+            return 1
+        }
+    }
+    return 0
+}
+
 itcl::body Rappture::Map::isFileProp { prop } {
     foreach fileprop {
         icon
@@ -1083,6 +1143,122 @@ itcl::body Rappture::Map::isFileProp { prop } {
         }
     }
     return 0
+}
+
+itcl::body Rappture::Map::fixQuotes { str } {
+    return [string map {"\{" "\"" "\}" "\""} [list $str]]
+}
+
+itcl::body Rappture::Map::fixEnum { str } {
+    return [string map {"_" "-"} $str]
+}
+
+itcl::body Rappture::Map::fixBoolean { val } {
+    if { $val } {
+        return "true"
+    } else {
+        return "false"
+    }
+}
+
+itcl::body Rappture::Map::translateProp { layerType styleProp styleValue } {
+    switch -- $layerType {
+        "icon" {
+            array set trans {
+                "align" "icon-align"
+                "clamping" "altitude-clamping"
+                "clamptechnique" "altitude-technique"
+                "declutter" "icon-declutter"
+                "library" "icon-library"
+                "minbias" "render-depth-offset-min-bias"
+                "maxbias" "render-depth-offset-max-bias"
+                "scale" "icon-scale"
+                "heading" "icon-heading"
+                "placement" "icon-placement"
+                "url" "icon"
+            }
+        }
+        "label" {
+            array set trans {
+                "align" "text-align"
+                "clamping" "altitude-clamping"
+                "clamptechnique" "altitude-technique"
+                "color" "text-fill"
+                "content" "text-content"
+                "declutter" "text-declutter"
+                "font" "text-font"
+                "fontsize" "text-size"
+                "halocolor" "text-halo"
+                "halowidth" "text-halo-offset"
+                "layout" "text-layout"
+                "minbias" "render-depth-offset-min-bias"
+                "maxbias" "render-depth-offset-max-bias"
+                "priority" "text-priority"
+                "xoffset" "text-offset-x"
+                "yoffset" "text-offset-y"
+            }
+        }
+        "line" {
+            array set trans {
+                "cap" "stroke-linecap"
+                "clamping" "altitude-clamping"
+                "clamptechnique" "altitude-technique"
+                "color" "stroke"
+                "join" "stroke-linejoin"
+                "minbias" "render-depth-offset-min-bias"
+                "maxbias" "render-depth-offset-max-bias"
+                "stipplepattern" "stroke-stipple-pattern"
+                "stipplefactor" "stroke-stipple-factor"
+                "width" "stroke-width"
+            }
+        }
+        "point" {
+             array set trans {
+                "clamping" "altitude-clamping"
+                "clamptechnique" "altitude-technique"
+                "color" "point-fill"
+                "minbias" "render-depth-offset-min-bias"
+                "maxbias" "render-depth-offset-max-bias"
+                "size" "point-size"
+            }
+        }
+        "polygon" {
+            array set trans {
+                "clamping" "altitude-clamping"
+                "clamptechnique" "altitude-technique"
+                "color" "fill"
+                "minbias" "render-depth-offset-min-bias"
+                "maxbias" "render-depth-offset-max-bias"
+                "strokecolor" "stroke"
+                "strokewidth" "stroke-width"
+            }
+        }
+        "image" - "elevation" - "feature" {
+        }
+        default {
+            error "Unknown layer type: \"$layerType\""
+        }
+    }
+    if {[info exists trans($styleProp)]} {
+        set styleProp $trans($styleProp)
+    }
+    if {[isColorProp $styleProp]} {
+        set styleValue [colorToHTML $styleValue]
+    }
+    if {$styleProp eq "icon-scale" && $styleValue eq ""} {
+        set styleProp ""
+    }
+    if {$styleProp eq "icon-heading" && $styleValue eq ""} {
+        set styleProp ""
+    }
+    if {$styleProp eq "text-align" || $styleProp eq "icon-align"} {
+        set styleValue [fixEnum $styleValue]
+    }
+    if {[isBooleanProp $styleProp]} {
+        set styleValue [fixBoolean $styleValue]
+    }
+    set styleValue [fixQuotes $styleValue]
+    return [list $styleProp $styleValue]
 }
 
 itcl::body Rappture::Map::parseStylesheet { stylesheet } {
