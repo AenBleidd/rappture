@@ -198,10 +198,21 @@ RpSqueezerCmd(clientData, interp, argc, argv)
             *(pixelPtr+3) = aval;
         }
     }
+#if TK_MAJOR_VERSION > 8 || (TK_MAJOR_VERSION == 8 && TK_MINOR_VERSION > 4)
+    if (Tk_PhotoSetSize(interp, destPhoto, destw, srch) != TCL_OK) {
+        ckfree((char*)destBlock.pixelPtr);
+        return TCL_ERROR;
+    }
+    if (Tk_PhotoPutBlock(interp, destPhoto, &destBlock, 0, 0,
+                         destBlock.width, destBlock.height, TK_PHOTO_COMPOSITE_SET) != TCL_OK) {
+        ckfree((char*)destBlock.pixelPtr);
+        return TCL_ERROR;
+    }
+#else
     Tk_PhotoSetSize(destPhoto, destw, srch);
     Tk_PhotoPutBlock(destPhoto, &destBlock, 0, 0,
         destBlock.width, destBlock.height, TK_PHOTO_COMPOSITE_SET);
-
+#endif
     ckfree((char*)destBlock.pixelPtr);
     return TCL_OK;
 }
