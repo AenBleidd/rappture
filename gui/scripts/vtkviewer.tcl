@@ -262,11 +262,11 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         zdirection      -1
     }]
     array set _settings [subst {
+        glyphs-colormap            BCGYR
         glyphs-edges               0
         glyphs-lighting            1
         glyphs-opacity             100
         glyphs-outline             0
-        glyphs-colormap            BCGYR
         glyphs-visible             1
         glyphs-wireframe           0
         legend                     1
@@ -276,23 +276,23 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         molecule-bondscale         0.075
         molecule-bondstyle         "cylinder"
         molecule-colorfield        "element"
+        molecule-colormap          elementDefault
         molecule-colormode         "by_elements"
         molecule-edges             0
         molecule-labels            0
         molecule-lighting          1
         molecule-opacity           100
         molecule-outline           0
-        molecule-colormap          elementDefault
         molecule-quality           1.0
         molecule-representation    "Ball and Stick"
         molecule-rscale            "covalent"
         molecule-visible           1
         molecule-wireframe         0
+        polydata-colormap          BCGYR
         polydata-edges             0
         polydata-lighting          1
         polydata-opacity           100
         polydata-outline           0
-        polydata-colormap          BCGYR
         polydata-visible           1
         polydata-wireframe         0
     }]
