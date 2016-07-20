@@ -917,6 +917,8 @@ itcl::body Rappture::VtkViewer::Disconnect {} {
     # disconnected -- no more data sitting on server
     array unset _datasets
     array unset _colormaps
+    array unset _dataset2style
+
     global readyForNextFrame
     set readyForNextFrame 1
 }
