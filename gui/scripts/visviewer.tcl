@@ -139,6 +139,7 @@ itcl::class ::Rappture::VisViewer {
     private variable _icon 0
     private variable _trace 0;          # Protocol tracing for console
     private variable _logging 0;        # Command logging to file
+    private variable _console;          # Debug console window path
     # Number of milliseconds to wait before idle timeout.  If greater than 0,
     # automatically disconnect from the visualization server when idle timeout
     # is reached.
@@ -153,6 +154,7 @@ itcl::class ::Rappture::VisViewer {
     set _servers(vmdmds)  "localhost:2018"
     set _servers(vtkvis)  "localhost:2010"
     private common _done;               # Used to indicate status of send.
+    private common _consoleCnt 0;
 }
 
 itk::usual Panedwindow {
@@ -215,6 +217,9 @@ itcl::body Rappture::VisViewer::constructor { args } {
     if { [info exists env(VISTRACE)] } {
         set _trace 1
     }
+    incr _consoleCnt
+    set _console ".renderconsole$_consoleCnt"
+
     eval itk_initialize $args
 }
 
@@ -225,6 +230,9 @@ itcl::body Rappture::VisViewer::destructor {} {
     $_dispatcher cancel !timeout
     interp delete $_parser
     array unset _done $this
+    if {[winfo exists $_console]} {
+        destroy $_console
+    }
 }
 
 #
@@ -705,9 +713,9 @@ itcl::body Rappture::VisViewer::HideConsole {} {
 #    in commands to send to the render server.
 #
 itcl::body Rappture::VisViewer::BuildConsole {} {
-    toplevel .renderconsole
-    wm protocol .renderconsole WM_DELETE_WINDOW [itcl::code $this HideConsole]
-    set f .renderconsole
+    toplevel $_console
+    wm protocol $_console WM_DELETE_WINDOW [itcl::code $this HideConsole]
+    set f $_console
     frame $f.send
     pack $f.send -side bottom -fill x
     label $f.send.l -text "Send:"
@@ -762,17 +770,17 @@ itcl::body Rappture::VisViewer::ToggleConsole {} {
 #    is created if necessary and hidden/shown.
 #
 itcl::body Rappture::VisViewer::DebugConsole {} {
-    if { ![winfo exists .renderconsole] } {
+    if { ![winfo exists $_console] } {
         BuildConsole
     }
     if { $_debugConsole } {
         $this configure -sendcommand [itcl::code $this TraceComm]
         $this configure -receivecommand [itcl::code $this TraceComm]
-        wm deiconify .renderconsole
+        wm deiconify $_console
     } else {
         $this configure -sendcommand ""
         $this configure -receivecommand ""
-        wm withdraw .renderconsole
+        wm withdraw $_console
     }
 }
 
