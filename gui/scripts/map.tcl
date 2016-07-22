@@ -1277,6 +1277,7 @@ itcl::body Rappture::Map::parseStylesheet { stylesheet } {
         #puts stderr "styleName: \"$styleName\""
         #puts stderr "block: \"$block\""
         set lines [split $block ";"]
+        array unset styleArray
         foreach line $lines {
             set line [string trim $line]
             if {$line == "" || [string index $line 0] == "#"} { continue }
@@ -1284,9 +1285,9 @@ itcl::body Rappture::Map::parseStylesheet { stylesheet } {
             set delim [string first ":" $line]
             set prop [string trim [string range $line 0 [expr {$delim-1}]]]
             set val [string trim [string range $line [expr {$delim+1}] end]]
-            set ${styleName}($prop) $val
+            set styleArray($prop) $val
         }
-        lappend styles $styleName [array get $styleName]
+        lappend styles $styleName [array get styleArray]
     }
     return $styles
 }
