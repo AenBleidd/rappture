@@ -256,6 +256,32 @@ redirect output to files for easier debugging by putting this at the top of your
 
 
 
+
+----------
+
+RUNNING RAPPTURE TOOLS FROM PYTHON
+----------------------------------
+
+If you want to write a Python program that runs Rappture tools, you can do it with the above API and
+the Rappture Tool class.  For example, to run a published tool named "complam":
+
+.. code-block:: python
+
+    import Rappture
+    io = Rappture.Tool("complam")
+
+    # Set input values for the Complam tool
+    material = io['input.group(tabs).group(Material)']
+    material['number(E1).current'] = E1 / 1e9
+    material['number(E2).current'] = E2 / 1e9
+
+    # run the tool
+    io.run()
+
+    # read the results
+    ex = io['output.number(Ex).current'].value
+    nu = io['output.number(nu).current'].value
+
 REFERENCE
 =========
 
@@ -271,8 +297,8 @@ Opening
 Closing
 -------
 
-- node.close()
-    Writes out the XML.
+- node.close(status=0)
+    Sets the output status field and writes out the XML.
 
 Reading
 -------

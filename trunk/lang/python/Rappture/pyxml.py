@@ -78,5 +78,7 @@ class Node:
         elem = self.lib.element(self.path)
         return elem.xml()
 
-    def close(self):
+    def close(self, status=0):
+        self.lib.result(status)
         result(self.lib)
+
