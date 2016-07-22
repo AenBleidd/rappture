@@ -9,6 +9,7 @@ import tools as tools
 import Units
 import Utils
 import encoding
+from raptool import Tool
 
 # encoding/decoding flags
 RPENC_Z   = 1
