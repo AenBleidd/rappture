@@ -2811,7 +2811,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "molecule color [Color2RGB $settings(-constcolor)] $tag"
             SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
             SendCmd "molecule bcolor [Color2RGB $settings(-bondconstcolor)] $tag"
-            SendCmd "molecule colormap $settings(-color) $tag"
+            # Colormap is set by call to SetColormap below
             set _settings(molecule-colormap) $settings(-color)
             $itk_component(moleculecolormap) value $settings(-color)
             SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
