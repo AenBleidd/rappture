@@ -1180,7 +1180,7 @@ itcl::body Rappture::VisViewer::StartBufferingCommands { } {
 #
 itcl::body Rappture::VisViewer::StopBufferingCommands { } {
     incr _buffering -1
-    if { $_buffering == 0 } {
+    if { $_buffering == 0 && $_outbuf != "" } {
         SendBytes $_outbuf
         set _outbuf ""
     }
