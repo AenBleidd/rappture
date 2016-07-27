@@ -759,7 +759,7 @@ itcl::body Rappture::VtkViewer::scale {args} {
         }
     }
     if { $_haveGlyphs } {
-        if { ![$itk_component(main) exists "Glyphs Settings"] } {
+        if { ![$itk_component(main) exists "Glyph Settings"] } {
             if { [catch { BuildGlyphsTab } errs ]  != 0 } {
                 global errorInfo
                 puts stderr "errs=$errs\nerrorInfo=$errorInfo"
