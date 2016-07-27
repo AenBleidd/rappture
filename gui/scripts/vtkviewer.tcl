@@ -2630,7 +2630,8 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     switch -- $type {
         "glyphs" {
             array set settings {
-                -color white
+                -color BCGYR
+                -constcolor white
                 -edgecolor black
                 -edges 0
                 -gscale 1
@@ -2663,7 +2664,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 array unset settings -scaleMode
             }
             SendCmd "outline add $tag"
-            SendCmd "outline color [Color2RGB $settings(-color)] $tag"
+            SendCmd "outline color [Color2RGB $settings(-constcolor)] $tag"
             SendCmd "outline visible $settings(-outline) $tag"
             set _settings(glyphs-outline) $settings(-outline)
 
@@ -2671,7 +2672,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "glyphs normscale $settings(-normscale) $tag"
             SendCmd "glyphs gscale $settings(-gscale) $tag"
             SendCmd "glyphs wireframe $settings(-wireframe) $tag"
-            SendCmd "glyphs color [Color2RGB $settings(-color)] $tag"
+            SendCmd "glyphs color [Color2RGB $settings(-constcolor)] $tag"
             #SendCmd "glyphs colormode constant {} $tag"
             # Omitting field name for gorient and smode commands
             # defaults to active scalars or vectors depending on mode
@@ -2833,7 +2834,8 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         "polydata" {
             array set settings {
                 -cloudstyle "mesh"
-                -color white
+                -color BCGYR
+                -constcolor white
                 -edgecolor black
                 -edges 1
                 -lighting 1
@@ -2846,7 +2848,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             array set settings $style
 
             SendCmd "outline add $tag"
-            SendCmd "outline color [Color2RGB $settings(-color)] $tag"
+            SendCmd "outline color [Color2RGB $settings(-constcolor)] $tag"
             SendCmd "outline visible $settings(-outline) $tag"
             set _settings(polydata-outline) $settings(-outline)
 
@@ -2856,7 +2858,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "polydata edges $settings(-edges) $tag"
             set _settings(polydata-edges) $settings(-edges)
             SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
-            SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
+            SendCmd "polydata color [Color2RGB $settings(-constcolor)] $tag"
             #SendCmd "polydata colormode constant {} $tag"
             SendCmd "polydata lighting $settings(-lighting) $tag"
             set _settings(polydata-lighting) $settings(-lighting)
