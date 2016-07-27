@@ -1431,6 +1431,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "glyphs-colormap" {
             set colormap [$itk_component(glyphscolormap) value]
+            set colormap [$itk_component(glyphscolormap) translate $colormap]
             set _settings($what) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
@@ -1502,7 +1503,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
         }
         "polydata-colormap" {
-            set colormap [$itk_component(meshcolormap) value]
+            set colormap [$itk_component(polydatacolormap) value]
+            set colormap [$itk_component(polydatacolormap) translate $colormap]
             set _settings($what) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
@@ -1575,6 +1577,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "molecule-colormap" {
             set colormap [$itk_component(moleculecolormap) value]
+            set colormap [$itk_component(moleculecolormap) translate $colormap]
             set _settings($what) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
@@ -2009,7 +2012,7 @@ itcl::body Rappture::VtkViewer::BuildGlyphsTab {} {
         Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList]
-    $itk_component(glyphscolormap) value "BCGYR"
+    $itk_component(glyphscolormap) value [$itk_component(glyphscolormap) label $_settings(glyphs-colormap)]
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting glyphs-colormap]
 
@@ -2077,11 +2080,11 @@ itcl::body Rappture::VtkViewer::BuildPolydataTab {} {
         -font "Arial 9" -anchor w
 
     label $inner.colormap_l -text "Colormap" -font "Arial 9" -anchor w
-    itk_component add meshcolormap {
+    itk_component add polydatacolormap {
         Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList]
-    $itk_component(meshcolormap) value "BCGYR"
+    $itk_component(polydatacolormap) value [$itk_component(polydatacolormap) label $_settings(polydata-colormap)]
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting polydata-colormap]
 
@@ -2455,7 +2458,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         Rappture::Combobox $inner.colormap -width 10 -editable 0
     }
     $inner.colormap choices insert end [GetColormapList -includeElementDefault]
-    $itk_component(moleculecolormap) value "elementDefault"
+    $itk_component(moleculecolormap) value [$itk_component(moleculecolormap) label $_settings(molecule-colormap)]
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting molecule-colormap]
 
@@ -2674,6 +2677,9 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "glyphs wireframe $settings(-wireframe) $tag"
             SendCmd "glyphs color [Color2RGB $settings(-constcolor)] $tag"
             #SendCmd "glyphs colormode constant {} $tag"
+            # Colormap is set by call to SetColormap below
+            set _settings(glyphs-colormap) $settings(-color)
+            $itk_component(glyphscolormap) value [$itk_component(glyphscolormap) label $settings(-color)]
             # Omitting field name for gorient and smode commands
             # defaults to active scalars or vectors depending on mode
             SendCmd "glyphs gorient $settings(-orientglyphs) {} $tag"
@@ -2814,7 +2820,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "molecule bcolor [Color2RGB $settings(-bondconstcolor)] $tag"
             # Colormap is set by call to SetColormap below
             set _settings(molecule-colormap) $settings(-color)
-            $itk_component(moleculecolormap) value $settings(-color)
+            $itk_component(moleculecolormap) value [$itk_component(moleculecolormap) label $settings(-color)]
             SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
             set _settings(molecule-colormode) $settings(-colormode)
             set _settings(molecule-colorfield) $settings(-colorfield)
@@ -2860,6 +2866,9 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
             SendCmd "polydata color [Color2RGB $settings(-constcolor)] $tag"
             #SendCmd "polydata colormode constant {} $tag"
+            # Colormap is set by call to SetColormap below
+            set _settings(polydata-colormap) $settings(-color)
+            $itk_component(polydatacolormap) value [$itk_component(polydatacolormap) label $settings(-color)]
             SendCmd "polydata lighting $settings(-lighting) $tag"
             set _settings(polydata-lighting) $settings(-lighting)
             SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
