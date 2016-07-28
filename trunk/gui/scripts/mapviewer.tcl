@@ -878,6 +878,7 @@ itcl::body Rappture::MapViewer::get {args} {
                     if {![$dataobj layer $layer shared]} {
                         set colormap $dataobj-$layer
                         set colormap "[regsub -all {::} ${colormap} {}]"
+                        set colormap "[regsub -all {\-} ${colormap} {_}]"
                     }
                     return $_image(legend-$colormap)
                 }
@@ -2726,6 +2727,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 }
                 "colorramp" {
                     set cmapName "[regsub -all {::} ${tag} {}]"
+                    set cmapName "[regsub -all {\-} ${cmapName} {_}]"
                     SendFiles $info(colorramp.url)
                     SendCmd [list colormap define $cmapName $info(colorramp.colormap)]
                     SendCmd [list map layer add $tag image colorramp \
