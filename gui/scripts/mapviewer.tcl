@@ -3191,6 +3191,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             if {!$info(shared)} {
                 set tag $dataobj-$layer
                 set ctlname "[regsub -all {::} ${tag} {}]"
+                set ctlname "[regsub -all {\-} ${ctlname} {_}]"
             }
             checkbutton $f.${ctlname}_visible \
                 -text $info(label) \
