@@ -2109,6 +2109,8 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
             -showvalue on \
             -command [itcl::code $this AdjustSetting time]
     }
+    Rappture::Tooltip::for $inner.time \
+        "Set ephemeris time for sky lighting"
 
     itk_component add ambient_l {
         label $inner.ambient_l -text "Ambient min." -font "Arial 9"
@@ -2123,6 +2125,8 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
             -showvalue on \
             -command [itcl::code $this AdjustSetting terrain-ambient]
     }
+    Rappture::Tooltip::for $inner.vscale \
+        "Set terrain vertical scale factor"
 
     blt::table $inner \
         0,0 $inner.posdisp   -cspan 2 -anchor w -pady 2 \
@@ -2170,6 +2174,8 @@ itcl::body Rappture::MapViewer::BuildTerrainTab {} {
             -command [itcl::code $this AdjustSetting terrain-vertscale]
     }
     $inner.vscale set $_settings(terrain-vertscale)
+    Rappture::Tooltip::for $inner.vscale \
+        "Set terrain vertical scale factor"
 
     blt::table $inner \
         0,0 $inner.vscale_l  -anchor w -pady 2 \
