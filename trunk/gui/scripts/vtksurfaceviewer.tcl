@@ -1955,7 +1955,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     }
     SendCmd "polydata edges $style(-edges) $tag"
     set _settings(-surfaceedges) $style(-edges)
-    SendCmd "polydata color [Color2RGB $settings(-constcolor)] $tag"
+    SendCmd "polydata color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "polydata lighting $style(-lighting) $tag"
     set _settings(-surfacelighting) $style(-lighting)
     SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
