@@ -2125,8 +2125,8 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
             -showvalue on \
             -command [itcl::code $this AdjustSetting terrain-ambient]
     }
-    Rappture::Tooltip::for $inner.vscale \
-        "Set terrain vertical scale factor"
+    Rappture::Tooltip::for $inner.ambient \
+        "Set minimum global ambient light level"
 
     blt::table $inner \
         0,0 $inner.posdisp   -cspan 2 -anchor w -pady 2 \
