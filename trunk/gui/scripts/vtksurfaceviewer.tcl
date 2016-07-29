@@ -1882,6 +1882,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     array set style {
         -color           BCGYR
+        -constcolor      white
         -edgecolor       black
         -edges           0
         -isolinecolor    white
@@ -1954,7 +1955,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     }
     SendCmd "polydata edges $style(-edges) $tag"
     set _settings(-surfaceedges) $style(-edges)
-    #SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
+    SendCmd "polydata color [Color2RGB $settings(-constcolor)] $tag"
     SendCmd "polydata lighting $style(-lighting) $tag"
     set _settings(-surfacelighting) $style(-lighting)
     SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
@@ -2253,7 +2254,7 @@ itcl::body Rappture::VtkSurfaceViewer::LegendTitleAction {option} {
 #
 itcl::body Rappture::VtkSurfaceViewer::SetCurrentColormap { name } {
     # Keep track of the colormaps that we build.
-    if { ![info exists _colormaps($name)] } {
+    if { $name != "none" && ![info exists _colormaps($name)] } {
         BuildColormap $name
         set _colormaps($name) 1
     }
