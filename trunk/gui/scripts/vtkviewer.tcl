@@ -1915,7 +1915,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
                     set array [$dataAttrs GetArray $i]
                     set fname [$dataAttrs GetArrayName $i]
                     foreach {min max} [$array GetRange -1] break
-                    lappend _fieldlimits($tag) $fname [list $min $max]
+                    lappend _fieldlimits($tag) $fname pointdata [list $min $max]
                     set _fieldComponents($tag-$fname) [$array GetNumberOfComponents]
                 }
             }
@@ -1926,7 +1926,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
                     set array [$dataAttrs GetArray $i]
                     set fname [$dataAttrs GetArrayName $i]
                     foreach {min max} [$array GetRange -1] break
-                    lappend _fieldlimits($tag) $fname [list $min $max]
+                    lappend _fieldlimits($tag) $fname celldata [list $min $max]
                     set _fieldComponents($tag-$fname) [$array GetNumberOfComponents]
                 }
             }
@@ -1937,7 +1937,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
                     set array [$dataAttrs GetArray $i]
                     set fname [$dataAttrs GetArrayName $i]
                     foreach {min max} [$array GetRange -1] break
-                    lappend _fieldlimits($tag) $fname [list $min $max]
+                    lappend _fieldlimits($tag) $fname fielddata [list $min $max]
                     set _fieldComponents($tag-$fname) [$array GetNumberOfComponents]
                 }
             }
@@ -2634,6 +2634,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         "glyphs" {
             array set settings {
                 -color BCGYR
+                -colormode constant
                 -constcolor white
                 -edgecolor black
                 -edges 0
@@ -2676,7 +2677,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "glyphs gscale $settings(-gscale) $tag"
             SendCmd "glyphs wireframe $settings(-wireframe) $tag"
             SendCmd "glyphs color [Color2RGB $settings(-constcolor)] $tag"
-            #SendCmd "glyphs colormode constant {} $tag"
+            #SendCmd "glyphs colormode $settings(-colormode) {} $tag"
             # Colormap is set by call to SetColormap below
             set _settings(glyphs-colormap) $settings(-color)
             $itk_component(glyphscolormap) value [$itk_component(glyphscolormap) label $settings(-color)]
@@ -2720,6 +2721,20 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -rscale "covalent"
                 -visible 1
                 -wireframe 0
+            }
+            set haveElementArray 0
+            foreach {fname assoc limits} $_fieldlimits($tag) {
+                DebugTrace "$assoc field $fname ([lindex $limits 0],[lindex $limits 1])"
+                if {$assoc == "pointdata" && $fname == "element"} {
+                    set haveElementArray 1
+                    break
+                }
+            }
+            if {!$haveElementArray} {
+                set settings(-bondcolormode) constant
+                set settings(-colorfield) ""
+                set settings(-color) BCGYR
+                set settings(-colormode) scalar
             }
             array set settings $style
 
@@ -2816,14 +2831,14 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             SendCmd "molecule labels $settings(-labels) $tag"
             set _settings(molecule-labels) $settings(-labels)
             SendCmd "molecule color [Color2RGB $settings(-constcolor)] $tag"
-            SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
             SendCmd "molecule bcolor [Color2RGB $settings(-bondconstcolor)] $tag"
+            SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
+            SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
+            set _settings(molecule-colormode) $settings(-colormode)
+            set _settings(molecule-colorfield) $settings(-colorfield)
             # Colormap is set by call to SetColormap below
             set _settings(molecule-colormap) $settings(-color)
             $itk_component(moleculecolormap) value [$itk_component(moleculecolormap) label $settings(-color)]
-            SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
-            set _settings(molecule-colormode) $settings(-colormode)
-            set _settings(molecule-colorfield) $settings(-colorfield)
             SendCmd "molecule linecolor [Color2RGB $settings(-edgecolor)] $tag"
             SendCmd "molecule linewidth $settings(-linewidth) $tag"
             SendCmd "molecule edges $settings(-edges) $tag"
@@ -2841,6 +2856,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             array set settings {
                 -cloudstyle "mesh"
                 -color BCGYR
+                -colormode constant
                 -constcolor white
                 -edgecolor black
                 -edges 1
@@ -2865,7 +2881,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             set _settings(polydata-edges) $settings(-edges)
             SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
             SendCmd "polydata color [Color2RGB $settings(-constcolor)] $tag"
-            #SendCmd "polydata colormode constant {} $tag"
+            #SendCmd "polydata colormode $settings(-colormode) {} $tag"
             # Colormap is set by call to SetColormap below
             set _settings(polydata-colormap) $settings(-color)
             $itk_component(polydatacolormap) value [$itk_component(polydatacolormap) label $settings(-color)]
