@@ -2739,7 +2739,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             array set settings $style
 
             SendCmd "outline add $tag"
-            SendCmd "outline color [Color2RGB white] $tag"
+            SendCmd "outline color [Color2RGB $settings(-constcolor)] $tag"
             SendCmd "outline visible $settings(-outline) $tag"
             set _settings(molecule-outline) $settings(-outline)
 

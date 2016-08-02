@@ -2358,7 +2358,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "contour3d visible $style(-isosurfacevisible) $tag"
     SendCmd "contour3d edges $style(-edges) $tag"
     set _settings(-isosurfaceedges) $style(-edges)
-    #SendCmd "contour3d color [Color2RGB $style(-constcolor)] $tag"
+    SendCmd "contour3d color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "contour3d lighting $style(-lighting) $tag"
     set _settings(-isosurfacelighting) $style(-lighting)
     SendCmd "contour3d linecolor [Color2RGB $style(-edgecolor)] $tag"
