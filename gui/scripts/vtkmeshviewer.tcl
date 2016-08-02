@@ -1511,6 +1511,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
         -linewidth 1.0
         -opacity 1.0
         -outline 0
+        -ptsize 1.0
         -visible 1
         -wireframe 0
     }
@@ -1540,6 +1541,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     set _settings(-polydatalighting) $style(-lighting)
     SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "polydata linewidth $style(-linewidth) $tag"
+    SendCmd "polydata ptsize $style(-ptsize) $tag"
     SendCmd "polydata opacity $style(-opacity) $tag"
     set _settings(-polydataopacity) $style(-opacity)
     set _widget(-polydataopacity) [expr 100.0 * $style(-opacity)]

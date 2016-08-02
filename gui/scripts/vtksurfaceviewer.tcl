@@ -1892,9 +1892,11 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
         -linewidth       1.0
         -opacity         1.0
         -outline         0
+        -ptsize          1.0
         -surfacevisible  1
         -wireframe       0
     }
+    set style(-constcolor) $itk_option(-plotforeground)
     array set style [$dataobj style $comp]
 
     # This is too complicated.  We want to set the colormap, number of
@@ -1946,7 +1948,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     }
 
     SendCmd "outline add $tag"
-    SendCmd "outline color [Color2RGB $itk_option(-plotforeground)] $tag"
+    SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
 
     SendCmd "polydata add $tag"
@@ -1960,6 +1962,7 @@ itcl::body Rappture::VtkSurfaceViewer::SetObjectStyle { dataobj comp } {
     set _settings(-surfacelighting) $style(-lighting)
     SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
     SendCmd "polydata linewidth $style(-linewidth) $tag"
+    SendCmd "polydata ptsize $style(-ptsize) $tag"
     SendCmd "polydata opacity $style(-opacity) $tag"
     set _settings(-surfaceopacity) [expr $style(-opacity) * 100.0]
     SetCurrentColormap $style(-color)

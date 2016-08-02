@@ -2093,6 +2093,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
         -surfacewireframe 0
         -visible 1
     }
+    set style(-constcolor) $itk_option(-plotforeground)
     array set style [$dataobj style $comp]
 
     StartBufferingCommands
