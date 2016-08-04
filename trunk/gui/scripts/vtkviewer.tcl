@@ -2631,10 +2631,9 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     set type [$dataobj type $comp]
-    set style [$dataobj style $comp]
     switch -- $type {
         "glyphs" {
-            array set settings {
+            array set style {
                 -color BCGYR
                 -colormode constant
                 -constcolor white
@@ -2654,52 +2653,52 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -visible 1
                 -wireframe 0
             }
-            array set settings $style
+            array set style [$dataobj style $comp]
             set shape [$dataobj shape $comp]
             if {$shape != ""} {
-                set settings(-shape) $shape
+                set style(-shape) $shape
             }
             # Backwards compat with camel case style option
-            if { [info exists settings(-orientGlyphs)] } {
-                set settings(-orientglyphs) $settings(-orientGlyphs)
-                array unset settings -orientGlyphs
+            if { [info exists style(-orientGlyphs)] } {
+                set style(-orientglyphs) $style(-orientGlyphs)
+                array unset style -orientGlyphs
             }
             # Backwards compat with camel case style option
-            if { [info exists settings(-scaleMode)] } {
-                set settings(-scalemode) $settings(-scaleMode)
-                array unset settings -scaleMode
+            if { [info exists style(-scaleMode)] } {
+                set style(-scalemode) $style(-scaleMode)
+                array unset style -scaleMode
             }
             SendCmd "outline add $tag"
-            SendCmd "outline color [Color2RGB $settings(-constcolor)] $tag"
-            SendCmd "outline visible $settings(-outline) $tag"
-            set _settings(glyphs-outline) $settings(-outline)
+            SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
+            SendCmd "outline visible $style(-outline) $tag"
+            set _settings(glyphs-outline) $style(-outline)
 
-            SendCmd "glyphs add $settings(-shape) $tag"
-            SendCmd "glyphs normscale $settings(-normscale) $tag"
-            SendCmd "glyphs gscale $settings(-gscale) $tag"
-            SendCmd "glyphs wireframe $settings(-wireframe) $tag"
-            SendCmd "glyphs color [Color2RGB $settings(-constcolor)] $tag"
-            #SendCmd "glyphs colormode $settings(-colormode) {} $tag"
+            SendCmd "glyphs add $style(-shape) $tag"
+            SendCmd "glyphs normscale $style(-normscale) $tag"
+            SendCmd "glyphs gscale $style(-gscale) $tag"
+            SendCmd "glyphs wireframe $style(-wireframe) $tag"
+            SendCmd "glyphs color [Color2RGB $style(-constcolor)] $tag"
+            #SendCmd "glyphs colormode $style(-colormode) {} $tag"
             # Colormap is set by call to SetColormap below
-            set _settings(glyphs-colormap) $settings(-color)
-            $itk_component(glyphscolormap) value [$itk_component(glyphscolormap) label $settings(-color)]
+            set _settings(glyphs-colormap) $style(-color)
+            $itk_component(glyphscolormap) value [$itk_component(glyphscolormap) label $style(-color)]
             # Omitting field name for gorient and smode commands
             # defaults to active scalars or vectors depending on mode
-            SendCmd "glyphs gorient $settings(-orientglyphs) {} $tag"
-            SendCmd "glyphs smode $settings(-scalemode) {} $tag"
-            SendCmd "glyphs edges $settings(-edges) $tag"
-            SendCmd "glyphs linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            SendCmd "glyphs linewidth $settings(-linewidth) $tag"
-            SendCmd "glyphs ptsize $settings(-ptsize) $tag"
-            SendCmd "glyphs quality $settings(-quality) $tag"
-            SendCmd "glyphs lighting $settings(-lighting) $tag"
-            SendCmd "glyphs opacity $settings(-opacity) $tag"
-            set _settings(glyphs-opacity) [expr 100.0 * $settings(-opacity)]
-            SendCmd "glyphs visible $settings(-visible) $tag"
-            set _settings(glyphs-wireframe) $settings(-wireframe)
+            SendCmd "glyphs gorient $style(-orientglyphs) {} $tag"
+            SendCmd "glyphs smode $style(-scalemode) {} $tag"
+            SendCmd "glyphs edges $style(-edges) $tag"
+            SendCmd "glyphs linecolor [Color2RGB $style(-edgecolor)] $tag"
+            SendCmd "glyphs linewidth $style(-linewidth) $tag"
+            SendCmd "glyphs ptsize $style(-ptsize) $tag"
+            SendCmd "glyphs quality $style(-quality) $tag"
+            SendCmd "glyphs lighting $style(-lighting) $tag"
+            SendCmd "glyphs opacity $style(-opacity) $tag"
+            set _settings(glyphs-opacity) [expr 100.0 * $style(-opacity)]
+            SendCmd "glyphs visible $style(-visible) $tag"
+            set _settings(glyphs-wireframe) $style(-wireframe)
         }
         "molecule" {
-            array set settings {
+            array set style {
                 -atomscale 0.3
                 -atomsvisible 1
                 -bondconstcolor white
@@ -2733,21 +2732,21 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 }
             }
             if {!$haveElementArray} {
-                set settings(-bondcolormode) constant
-                set settings(-colorfield) ""
-                set settings(-color) BCGYR
-                set settings(-colormode) scalar
+                set style(-bondcolormode) constant
+                set style(-colorfield) ""
+                set style(-color) BCGYR
+                set style(-colormode) scalar
             }
-            array set settings $style
+            array set style [$dataobj style $comp]
 
             SendCmd "outline add $tag"
-            SendCmd "outline color [Color2RGB $settings(-constcolor)] $tag"
-            SendCmd "outline visible $settings(-outline) $tag"
-            set _settings(molecule-outline) $settings(-outline)
+            SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
+            SendCmd "outline visible $style(-outline) $tag"
+            set _settings(molecule-outline) $style(-outline)
 
             SendCmd "molecule add $tag"
-            if {$settings(-representation) != ""} {
-                switch -- $settings(-representation) {
+            if {$style(-representation) != ""} {
+                switch -- $style(-representation) {
                     "ballandstick" {
                         set _settings(molecule-rscale) covalent
                         set _settings(molecule-atoms-visible) 1
@@ -2806,9 +2805,9 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 SendCmd "molecule bstyle $_settings(molecule-bondstyle) $tag"
                 SendCmd "molecule ascale $_settings(molecule-atomscale) $tag"
                 SendCmd "molecule bscale $_settings(molecule-bondscale) $tag"
-                $itk_component(representation) value [$itk_component(representation) label $settings(-representation)]
+                $itk_component(representation) value [$itk_component(representation) label $style(-representation)]
                 $itk_component(rscale) value [$itk_component(rscale) label $_settings(molecule-rscale)]
-                switch -- $settings(-representation) {
+                switch -- $style(-representation) {
                     "ballandstick" - "balls" - "spheres" {
                         $itk_component(rscale) configure -state normal
                     }
@@ -2817,45 +2816,45 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                     }
                 }
             } else {
-                SendCmd "molecule rscale $settings(-rscale) $tag"
-                set _settings(molecule-rscale) $settings(-rscale)
-                SendCmd "molecule atoms $settings(-atomsvisible) $tag"
-                set _settings(molecule-atoms-visible) $settings(-atomsvisible)
-                SendCmd "molecule bonds $settings(-bondsvisible) $tag"
-                set _settings(molecule-bonds-visible) $settings(-bondsvisible)
-                SendCmd "molecule bstyle $settings(-bondstyle) $tag"
-                set _settings(molecule-bondstyle) $settings(-bondstyle)
-                SendCmd "molecule ascale $settings(-atomscale) $tag"
-                set _settings(molecule-atomscale) $settings(-atomscale)
-                SendCmd "molecule bscale $settings(-bondscale) $tag"
-                set _settings(molecule-bondscale) $settings(-bondscale)
+                SendCmd "molecule rscale $style(-rscale) $tag"
+                set _settings(molecule-rscale) $style(-rscale)
+                SendCmd "molecule atoms $style(-atomsvisible) $tag"
+                set _settings(molecule-atoms-visible) $style(-atomsvisible)
+                SendCmd "molecule bonds $style(-bondsvisible) $tag"
+                set _settings(molecule-bonds-visible) $style(-bondsvisible)
+                SendCmd "molecule bstyle $style(-bondstyle) $tag"
+                set _settings(molecule-bondstyle) $style(-bondstyle)
+                SendCmd "molecule ascale $style(-atomscale) $tag"
+                set _settings(molecule-atomscale) $style(-atomscale)
+                SendCmd "molecule bscale $style(-bondscale) $tag"
+                set _settings(molecule-bondscale) $style(-bondscale)
             }
-            SendCmd "molecule labels $settings(-labels) $tag"
-            set _settings(molecule-labels) $settings(-labels)
-            SendCmd "molecule color [Color2RGB $settings(-constcolor)] $tag"
-            SendCmd "molecule bcolor [Color2RGB $settings(-bondconstcolor)] $tag"
-            SendCmd [list molecule colormode $settings(-colormode) $settings(-colorfield) $tag]
-            SendCmd "molecule bcmode $settings(-bondcolormode) $tag"
-            set _settings(molecule-colormode) $settings(-colormode)
-            set _settings(molecule-colorfield) $settings(-colorfield)
+            SendCmd "molecule labels $style(-labels) $tag"
+            set _settings(molecule-labels) $style(-labels)
+            SendCmd "molecule color [Color2RGB $style(-constcolor)] $tag"
+            SendCmd "molecule bcolor [Color2RGB $style(-bondconstcolor)] $tag"
+            SendCmd [list molecule colormode $style(-colormode) $style(-colorfield) $tag]
+            SendCmd "molecule bcmode $style(-bondcolormode) $tag"
+            set _settings(molecule-colormode) $style(-colormode)
+            set _settings(molecule-colorfield) $style(-colorfield)
             # Colormap is set by call to SetColormap below
-            set _settings(molecule-colormap) $settings(-color)
-            $itk_component(moleculecolormap) value [$itk_component(moleculecolormap) label $settings(-color)]
-            SendCmd "molecule linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            SendCmd "molecule linewidth $settings(-linewidth) $tag"
-            SendCmd "molecule edges $settings(-edges) $tag"
-            set _settings(molecule-edges) $settings(-edges)
-            SendCmd "molecule lighting $settings(-lighting) $tag"
-            set _settings(molecule-lighting) $settings(-lighting)
-            SendCmd "molecule aquality $settings(-quality) $tag"
-            SendCmd "molecule bquality $settings(-quality) $tag"
-            set _settings(molecule-quality) $settings(-quality)
-            SendCmd "molecule visible $settings(-visible) $tag"
-            set _settings(molecule-visible) $settings(-visible)
+            set _settings(molecule-colormap) $style(-color)
+            $itk_component(moleculecolormap) value [$itk_component(moleculecolormap) label $style(-color)]
+            SendCmd "molecule linecolor [Color2RGB $style(-edgecolor)] $tag"
+            SendCmd "molecule linewidth $style(-linewidth) $tag"
+            SendCmd "molecule edges $style(-edges) $tag"
+            set _settings(molecule-edges) $style(-edges)
+            SendCmd "molecule lighting $style(-lighting) $tag"
+            set _settings(molecule-lighting) $style(-lighting)
+            SendCmd "molecule aquality $style(-quality) $tag"
+            SendCmd "molecule bquality $style(-quality) $tag"
+            set _settings(molecule-quality) $style(-quality)
+            SendCmd "molecule visible $style(-visible) $tag"
+            set _settings(molecule-visible) $style(-visible)
             set _haveMolecules 1
         }
         "polydata" {
-            array set settings {
+            array set style {
                 -cloudstyle "mesh"
                 -color BCGYR
                 -colormode constant
@@ -2869,32 +2868,32 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
                 -visible 1
                 -wireframe 0
             }
-            array set settings $style
+            array set style [$dataobj style $comp]
 
             SendCmd "outline add $tag"
-            SendCmd "outline color [Color2RGB $settings(-constcolor)] $tag"
-            SendCmd "outline visible $settings(-outline) $tag"
-            set _settings(polydata-outline) $settings(-outline)
+            SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
+            SendCmd "outline visible $style(-outline) $tag"
+            set _settings(polydata-outline) $style(-outline)
 
             SendCmd "polydata add $tag"
-            SendCmd "polydata visible $settings(-visible) $tag"
-            set _settings(polydata-visible) $settings(-visible)
-            SendCmd "polydata edges $settings(-edges) $tag"
-            set _settings(polydata-edges) $settings(-edges)
-            SendCmd "polydata cloudstyle $settings(-cloudstyle) $tag"
-            SendCmd "polydata color [Color2RGB $settings(-constcolor)] $tag"
-            #SendCmd "polydata colormode $settings(-colormode) {} $tag"
+            SendCmd "polydata visible $style(-visible) $tag"
+            set _settings(polydata-visible) $style(-visible)
+            SendCmd "polydata edges $style(-edges) $tag"
+            set _settings(polydata-edges) $style(-edges)
+            SendCmd "polydata cloudstyle $style(-cloudstyle) $tag"
+            SendCmd "polydata color [Color2RGB $style(-constcolor)] $tag"
+            #SendCmd "polydata colormode $style(-colormode) {} $tag"
             # Colormap is set by call to SetColormap below
-            set _settings(polydata-colormap) $settings(-color)
-            $itk_component(polydatacolormap) value [$itk_component(polydatacolormap) label $settings(-color)]
-            SendCmd "polydata lighting $settings(-lighting) $tag"
-            set _settings(polydata-lighting) $settings(-lighting)
-            SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
-            SendCmd "polydata linewidth $settings(-linewidth) $tag"
-            SendCmd "polydata opacity $settings(-opacity) $tag"
-            set _settings(polydata-opacity) [expr 100.0 * $settings(-opacity)]
-            SendCmd "polydata wireframe $settings(-wireframe) $tag"
-            set _settings(polydata-wireframe) $settings(-wireframe)
+            set _settings(polydata-colormap) $style(-color)
+            $itk_component(polydatacolormap) value [$itk_component(polydatacolormap) label $style(-color)]
+            SendCmd "polydata lighting $style(-lighting) $tag"
+            set _settings(polydata-lighting) $style(-lighting)
+            SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
+            SendCmd "polydata linewidth $style(-linewidth) $tag"
+            SendCmd "polydata opacity $style(-opacity) $tag"
+            set _settings(polydata-opacity) [expr 100.0 * $style(-opacity)]
+            SendCmd "polydata wireframe $style(-wireframe) $tag"
+            set _settings(polydata-wireframe) $style(-wireframe)
             set havePolyData 1
         }
     }
