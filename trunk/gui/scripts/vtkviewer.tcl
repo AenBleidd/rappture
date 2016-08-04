@@ -1821,22 +1821,24 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style $_style($tag)
 
     set name "$style(-color)"
-    if { ![info exists _colormaps($name)] } {
+    if { $name != "none" && ![info exists _colormaps($name)] } {
         BuildColormap $name
         set _colormaps($name) 1
     }
     if { ![info exists _dataset2style($tag)] ||
          $_dataset2style($tag) != $name } {
         set _dataset2style($tag) $name
-        switch -- [$dataobj type $comp] {
-            "polydata" {
-                SendCmd "polydata colormap $name $tag"
-            }
-            "glyphs" {
-                SendCmd "glyphs colormap $name $tag"
-            }
-            "molecule" {
-                SendCmd "molecule colormap $name $tag"
+        if { $name != "none" } {
+            switch -- [$dataobj type $comp] {
+                "polydata" {
+                    SendCmd "polydata colormap $name $tag"
+                }
+                "glyphs" {
+                    SendCmd "glyphs colormap $name $tag"
+                }
+                "molecule" {
+                    SendCmd "molecule colormap $name $tag"
+                }
             }
         }
     }

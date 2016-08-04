@@ -1504,7 +1504,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
 
     array set style {
         -cloudstyle mesh
-        -color white
+        -constcolor white
         -edgecolor black
         -edges 1
         -lighting 1
@@ -1523,10 +1523,10 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     array set style [$dataobj hints style]
 
     if {[$dataobj hints color] != ""} {
-        set style(-color) [$dataobj hints color]
+        set style(-constcolor) [$dataobj hints color]
     }
     SendCmd "outline add $tag"
-    SendCmd "outline color [Color2RGB $style(-color)] $tag"
+    SendCmd "outline color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "outline visible $style(-outline) $tag"
     set _settings(-outline) $style(-outline)
 
@@ -1536,7 +1536,7 @@ itcl::body Rappture::VtkMeshViewer::SetObjectStyle { dataobj } {
     SendCmd "polydata cloudstyle $style(-cloudstyle) $tag"
     SendCmd "polydata edges $style(-edges) $tag"
     set _settings(-polydataedges) $style(-edges)
-    SendCmd "polydata color [Color2RGB $style(-color)] $tag"
+    SendCmd "polydata color [Color2RGB $style(-constcolor)] $tag"
     SendCmd "polydata lighting $style(-lighting) $tag"
     set _settings(-polydatalighting) $style(-lighting)
     SendCmd "polydata linecolor [Color2RGB $style(-edgecolor)] $tag"
