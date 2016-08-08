@@ -63,10 +63,10 @@ itcl::class Rappture::Gauge {
     protected method _pop_uq {win}
     protected method _pop_uq_deactivate {}
 
-    private variable _value 0  ;# value for this widget
-    private variable _mode exact ;# current mode
-    private variable _pde ""   ;# ProbDistEditor
-    private variable _val ""   ;# value choice combobox
+    private variable _value 0;    # value for this widget
+    private variable _mode exact; # current mode
+    private variable _pde "";     # ProbDistEditor
+    private variable _val "";     # value choice combobox
     private variable uq no
 
     blt::bitmap define GaugeArrow {
@@ -307,7 +307,7 @@ itcl::body Rappture::Gauge::value {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::edit {option} {
     if {$itk_option(-state) == "disabled"} {
-        return  ;# disabled? then bail out here!
+        return; # disabled? then bail out here!
     }
     switch -- $option {
         cut {
@@ -445,7 +445,7 @@ itcl::body Rappture::Gauge::_resize {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_hilite {comp state} {
     if {$itk_option(-state) == "disabled"} {
-        set state 0  ;# disabled? then don't hilite
+        set state 0; # disabled? then don't hilite
     }
     if {$comp == "value" && !$itk_option(-editable)} {
         $itk_component(value) configure -relief flat
@@ -476,7 +476,7 @@ itcl::body Rappture::Gauge::_hilite {comp state} {
 itcl::body Rappture::Gauge::_editor {option args} {
     # puts "Gauge::editor option=$option args=$args"
     if {$itk_option(-state) == "disabled"} {
-        return  ;# disabled? then bail out here!
+        return; # disabled? then bail out here!
     }
     switch -- $option {
         popup {
@@ -638,7 +638,7 @@ itcl::configbody Rappture::Gauge::state {
     if { [info exists itk_component(uq)] } {
         $itk_component(uq) configure -state $itk_option(-state)
     }
-    _redraw  ;# fix gauge
+    _redraw; # fix gauge
 }
 
 # ----------------------------------------------------------------------
