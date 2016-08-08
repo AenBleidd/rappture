@@ -66,6 +66,7 @@ itcl::class Rappture::Pager {
     private variable _pages ""       ;# list of known pages
     private variable _page2info      ;# maps page name => -frame,-title,-command
     private variable _current ""     ;# page currently shown
+    public variable nosim 0
 }
 
 itk::usual Pager {
@@ -373,8 +374,8 @@ itcl::body Rappture::Pager::current {args} {
             # If this new page has a command associated with it, then
             # invoke it now.
             #
-            if {"" != $_current
-                  && [string length $_page2info($_current-command)] > 0} {
+            if {"" != $_current && !$nosim && 
+                  [string length $_page2info($_current-command)] > 0} {
                 uplevel #0 $_page2info($_current-command)
             }
         }
