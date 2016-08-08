@@ -1790,7 +1790,7 @@ RpLibrary::put (std::string path, std::string value, std::string id,
     }
 
     // check for binary data
-    // FIXME: I've already appended a NUL-byte of this assuming that
+    // FIXME: I've already appended a NUL-byte to this assuming that
     //        it's a ASCII string. This test must come before.
     if (Rappture::encoding::isBinary(value.c_str(), value.length())) {
         putData(path, value.c_str(), value.length(), append);
@@ -2046,7 +2046,8 @@ RpLibrary::putFile(std::string path, std::string fileName,
         status.addContext("RpLibrary::putFile()");
         return *this;
     }
-    if (compress == RPLIB_COMPRESS) {
+    if ((compress == RPLIB_COMPRESS) ||
+	(Rappture::encoding::isBinary(fileBuf.bytes(), fileBuf.size()))) {	
         putData(path, fileBuf.bytes(), fileBuf.size(), append);
     } else {
         /* Always append a NUL-byte to the end of ASCII strings. */

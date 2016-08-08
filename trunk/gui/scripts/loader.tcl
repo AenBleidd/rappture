@@ -37,6 +37,7 @@ itcl::class Rappture::Loader {
     protected method _log {}
 
     private method SetDefaultValue { value }
+    private method EventuallySetDefaultValue { value }
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this loader
@@ -245,7 +246,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set str [string trim [$_owner xml get $path.default]]
     if { $str != "" } {
-        bind $itk_component(hull) <Map> [itcl::code $this SetDefaultValue $str]
+        EventuallySetDefaultValue $str
     }
 }
 
@@ -284,7 +285,6 @@ itcl::body Rappture::Loader::value {args} {
         set newval [lindex $args 0]
         $itk_component(combo) value $newval
         return $newval
-
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
@@ -322,22 +322,21 @@ itcl::body Rappture::Loader::tooltip {} {
     return "@[itcl::code $this _tooltip]"
 }
 
-#
-# SetDefaultValue --
-#
-#       Sets the designated default value for the loader.  This must be done
-#       after the entire application is assembled, otherwise the default
-#       values set up by the loader will be overwritten by the various widgets
-#       themselves when they try to set their default values.
-#
-#       This is called from a  <Map> event to the loader (combobox).  This
-#       will get trigger the first time the loader is displayed.  The binding
-#       is then removed.
-#
 itcl::body Rappture::Loader::SetDefaultValue { value } {
-    after idle [itcl::code $this value $value]
-    # We're done. Remove the binding.
-    bind $itk_component(hull) <Map> {}
+    $itk_component(combo) value $value
+    _newValue
+}
+#
+#
+# EventuallySetDefaultValue --
+#
+#   Sets the designated default value for the loader.  This must be done
+#   after the entire application is assembled, otherwise the default values
+#   set up by the loader will be overwritten by the various widgets
+#   themselves when they try to set their default values.
+#
+itcl::body Rappture::Loader::EventuallySetDefaultValue { value } {
+    after 100 [itcl::code $this SetDefaultValue $value]
 }
 
 # ----------------------------------------------------------------------

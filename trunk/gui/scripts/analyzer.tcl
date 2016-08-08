@@ -59,8 +59,10 @@ itcl::class Rappture::Analyzer {
     public method simulate {args}
     public method reset {{when -eventually}}
     public method load {xmlobj}
+    public method reload { fileName }
     public method clear {{xmlobj "all"}}
     public method download {option args}
+    public method buildMenu { w url appName }
 
     protected method _plot {args}
     protected method _reorder {comps}
@@ -82,6 +84,11 @@ itcl::class Rappture::Analyzer {
     protected method _setWaitVariable {state}
     protected method _adjust_level {win}
 
+    private variable _done 0
+    private variable _tree ""
+    private variable _saved 
+    private variable _name "" 
+    private variable _revision 0;       # Tool revision
     private variable _tool ""          ;# belongs to this tool
     private variable _appName ""       ;# Name of application
     private variable _control "manual" ;# start mode
@@ -93,9 +100,34 @@ itcl::class Rappture::Analyzer {
     private variable _lastlabel ""     ;# label of last example loaded
     private variable _plotlist ""      ;# items currently being plotted
     private variable _lastPlot
-    private common job                 ;# array var used for blt::bgexec jobs
     private variable _uq_active 0      ;# a UQ variables has been used
     private variable _wait_uq 0
+    private common job                 ;# array var used for blt::bgexec jobs
+
+    private method BuildQuestionDialog { popup }
+    private method BuildSimulationTable { w }
+    private method Cancel {}
+    private method CheckSimsetDetails {}
+    private method CleanName { name }
+    private method CreateSharedPath { path } 
+    private method EditSimset {}
+    private method ExportFile { src msgFile }
+    private method ExportURL { appName installdir } 
+    private method FindSimsetsForApp { appName }
+    private method GetSimset { name }
+    private method InstallSharedFile { installdir file } 
+    private method LoadSimulations { runfiles }
+    private method Ok {}
+    private method OverwriteSaveFile {}
+    private method PostMenu { menu }
+    private method ReadSimsetFile { fileName }
+    private method Save {}
+    private method SaveSimulations {}
+    private method SelectSimsetForDeletion {}
+    private method SelectSimsetForLoading {}
+    private method SelectSimsetNameAndSave {}
+    private method SelectSimsetToShare {}
+    private method WriteSimsetFile { appName fileName share }
 }
 
 itk::usual Analyzer {
@@ -107,6 +139,7 @@ itk::usual Analyzer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::constructor {tool args} {
     set _tool $tool
+    set _tree [blt::tree create]
 
     # use this to store all simulation results
     set _resultset [Rappture::ResultSet ::\#auto]
@@ -148,52 +181,40 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     bind $itk_component(simulate) <ButtonPress> {focus %W}
 
     # if there's a hub url, then add "About" and "Questions" links
-    set _appName [$_tool xml get tool.id]
-    set url [Rappture::Tool::resources -huburl]
-    if {"" != $url && "" != $_appName} {
-        itk_component add hubcntls {
-            frame $itk_component(simbg).hubcntls
-        } {
-            usual
-            rename -background -simcontrolcolor simControlColor Color
-        }
-        pack $itk_component(hubcntls) -side right -padx 4
-
-        itk_component add icon {
-            label $itk_component(hubcntls).icon -image [Rappture::icon ask] \
-                -highlightthickness 0
-        } {
-            usual
-            ignore -highlightthickness
-            rename -background -simcontrolcolor simControlColor Color
-        }
-        pack $itk_component(icon) -side left
-
-        itk_component add about {
-            button $itk_component(hubcntls).about -text "About this tool" \
-                -command [list Rappture::filexfer::webpage \
-                              "$url/tools/$_appName"]
-        } {
-            usual
-            ignore -font
-            rename -background -simcontrolcolor simControlColor Color
-            rename -highlightbackground -simcontrolcolor simControlColor Color
-        }
-        pack $itk_component(about) -side top -anchor w
-
-        itk_component add questions {
-            button $itk_component(hubcntls).questions -text Questions? \
-                -command [list Rappture::filexfer::webpage \
-                              "$url/resources/$_appName/questions"]
-        } {
-            usual
-            ignore -font
-            rename -background -simcontrolcolor simControlColor Color
-            rename -highlightbackground -simcontrolcolor simControlColor Color
-        }
-        pack $itk_component(questions) -side top -anchor w
+    global rapptureInfo
+    if { $rapptureInfo(appName) == "" } {
+        set _appName [$_tool xml get "tool.id"]
+    } else {
+        set _appName $rapptureInfo(appName)
     }
+    set num [$_tool xml get "tool.version.application.revision"]
+    if { $num == "" } {
+        set num 0
+    }
+    set _revision $num
+    set url [Rappture::Tool::resources -huburl]
 
+    itk_component add hubcntls {
+        frame $itk_component(simbg).hubcntls
+    } {
+        usual
+        rename -background -simcontrolcolor simControlColor Color
+    }
+    pack $itk_component(hubcntls) -side right -padx 4
+    
+    itk_component add help {
+        menubutton $itk_component(hubcntls).help \
+            -image [Rappture::icon hamburger_menu] \
+            -highlightthickness 0 \
+            -menu $itk_component(hubcntls).help.menu
+    } {
+        usual
+        ignore -highlightthickness
+        rename -background -simcontrolcolor simControlColor Color
+    }
+    pack $itk_component(help) -side left
+    buildMenu $itk_component(help).menu $url $_appName
+    
     itk_component add simstatus {
         text $itk_component(simbg).simstatus -borderwidth 0 \
             -highlightthickness 0 -height 1 -width 1 -wrap none \
@@ -398,7 +419,6 @@ itcl::body Rappture::Analyzer::destructor {} {
 # automatically to "analyze" mode and shows the results.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::simulate {args} {
-    #puts "simulate args='$args'"
 
     set uq [$_tool get_uq -uq_type smolyak -uq_args 2]
 
@@ -425,8 +445,8 @@ itcl::body Rappture::Analyzer::simulate {args} {
     if {[lindex $args 0] == "-ifneeded"} {
         # check to see if simulation is really needed
         $_tool sync
-        if {[$_resultset contains [$_tool xml object]]
-              && ![string equal $_control "manual-resim"]} {
+        if {[$_resultset contains [$_tool xml object]] &&
+            ![string equal $_control "manual-resim"]} {
             # not needed -- show results and return
             $itk_component(notebook) current analyze
             return
@@ -517,8 +537,8 @@ itcl::body Rappture::Analyzer::reset {{when -eventually}} {
 
     # check to see if simulation is really needed
     $_tool sync
-    if {![$_resultset contains [$_tool xml object]]
-          || [string equal $_control "manual-resim"]} {
+    if {![$_resultset contains [$_tool xml object]] ||
+        [string equal $_control "manual-resim"]} {
         # if control mode is "auto", then simulate right away
         if {[string match auto* $_control]} {
             # auto control -- don't need button
@@ -1109,10 +1129,8 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
     #
     # Scan through and pick out any =RAPPTURE-PROGRESS=> messages first.
     #
-
-    while {[regexp -indices \
-               {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)} $message \
-                match percent mesg]} {
+    set pattern {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)}
+    while {[regexp -indices $pattern $message match percent mesg]} {
 
         foreach {i0 i1} $percent break
         set percent [string range $message $i0 $i1]
@@ -1154,11 +1172,8 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
     # Show errors in a special color.
     #
     $itk_component(runinfo) configure -state normal
-
-    while {[regexp -indices \
-               {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
-                match type mesg]} {
-
+    set pattern {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)}
+    while {[regexp -indices $pattern $message match type mesg]} {
         foreach {i0 i1} $match break
         set first [string range $message 0 [expr {$i0-1}]]
         if {[string length $first] > 0} {
@@ -1201,7 +1216,7 @@ itcl::body Rappture::Analyzer::_resultTooltip {} {
     set tip ""
     set name [$itk_component(viewselector) value]
     if {[info exists _label2desc($name)] &&
-         [string length $_label2desc($name)] > 0} {
+        [string length $_label2desc($name)] > 0} {
         append tip "$_label2desc($name)\n\n"
     }
     if {[array size _label2page] > 1} {
@@ -1469,10 +1484,6 @@ itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
             }
             continue
         }
-        if 0 {
-        # Recurse over all child nodes.
-        _trajToSequence $xmlobj $current
-        }
     }
 }
 
@@ -1497,3 +1508,673 @@ itcl::configbody Rappture::Analyzer::simcontrol {
 itcl::configbody Rappture::Analyzer::notebookpage {
     _fixNotebook
 }
+
+itcl::body Rappture::Analyzer::PostMenu { m } {
+    if { [FindSimsetsForApp $_appName] == 0 } {
+        $m entryconfigure "Load Simulations" -state disable
+        $m entryconfigure "Share Simulations" -state disable
+        $m entryconfigure "Delete Simulations" -state disabled
+    } else {
+        $m entryconfigure "Load Simulations" -state normal
+        $m entryconfigure "Share Simulations" -state normal
+        $m entryconfigure "Delete Simulations" -state normal
+    }
+    if { [$_resultset size] == 0 } {
+        $m entryconfigure "Save Simulations" -state disabled
+    } else {
+        $m entryconfigure "Save Simulations" -state normal
+    }
+}
+        
+#
+# Build Help menu 
+#
+itcl::body Rappture::Analyzer::buildMenu { m url appName } {
+    menu $m \
+        -tearoff 0 \
+        -postcommand [itcl::code $this PostMenu $m]
+    if { $appName == "" || $url == "" } {
+        set state disabled
+    } else {
+        set state normal
+    }
+    set webcmd Rappture::filexfer::webpage
+    set group "app-$_appName"
+    if { [info exists env(SESSION)] }  {
+        set referer "&referrer=$url/tools/$appName/session?sess=$env(SESSION)"
+    } else {
+        set referer ""
+    }
+    $m add command -label "About this tool" \
+        -command [list $webcmd "$url/tools/$appName"] \
+        -state $state
+    $m add command -label "Questions?" \
+        -command [list $webcmd "$url/resources/$_appName/questions"] \
+        -state $state
+    $m add command -label "Tickets" -state $state \
+        -command [list $webcmd "$url/feedback/report_problems?group=$group$referer"]
+    $m add command -label "Wish List" -state disabled
+    $m add separator
+    $m add command -label "Save Simulations" \
+        -command [itcl::code $this SelectSimsetNameAndSave] \
+        -state $state
+    $m add command -label "Load Simulations" \
+        -command [itcl::code $this SelectSimsetForLoading] \
+        -state $state
+    $m add command -label "Delete Simulations" \
+        -command [itcl::code $this SelectSimsetForDeletion] \
+        -state $state
+    $m add command -label "Share Simulations" \
+        -command [itcl::code $this SelectSimsetToShare] \
+        -state $state
+    return $m
+}
+
+itcl::body Rappture::Analyzer::BuildSimulationTable { top } {
+    # All weirdness is due to the Resultset object.
+
+    # First create nodes for each simulation.  The node label is the
+    # simulation number (such as #1, #2, etc).  
+    eval $_tree delete 0
+    set labels "selected simnum"
+    foreach {name index} [$_resultset diff values simnum] {
+        set node [$_tree insert 0 -label $name]
+        $_tree set $node "simnum" $name
+        set index2name($index) $name
+        
+    }
+    # Next fill in the xmlobj associated with each simulation.  We assume
+    # that the order is the the same as the simulation number.
+    set index 0
+    foreach {xmlobj dummy} [$_resultset diff values xmlobj]  {
+        set node [$_tree findchild 0 $index2name($index)]
+        set runfile [$xmlobj get output.filename]
+        set version [$xmlobj get output.version]
+        $_tree set $node \
+            "selected" 1 "xmlobj" $xmlobj "runfile" $runfile "version" $version
+        incr index
+    }
+    # Finally for each different input, for each simulation add the
+    # label and value for the specific input.
+    foreach name [$_resultset diff names] {
+        # Ignore non-input names.
+        if { $name == "xmlobj" || $name == "simnum" } {
+            continue
+        }
+        foreach node [$_tree children 0] {
+            set xmlobj [$_tree get $node xmlobj]
+            set label [$xmlobj get $name.about.label]
+            set value [$xmlobj get $name.current]
+            if { [$_tree exists $node $label] } {
+                puts stderr "This can't be: $label already exists in $node"
+            }
+            if { [lsearch $labels $label] < 0 } {
+                lappend labels $label
+            }
+            $_tree set $node $label $value
+        }
+    }
+    frame $top
+    set tv $top.tv
+    blt::treeview $top.tv -tree $_tree \
+        -height 1i \
+        -xscrollcommand [list $top.xs set] \
+        -yscrollcommand [list $top.ys set] \
+        -font "Arial 10"
+    scrollbar $top.xs -orient horizontal -command "$tv xview"
+    scrollbar $top.ys -orient vertical -command "$tv yview"
+        
+    eval $tv column insert end $labels
+    $tv style checkbox checkbox -showvalue no 
+    $tv column configure simnum -title "Simulation" 
+    $tv column configure selected -title "Save" -style checkbox \
+        -width .5i -edit yes 
+    $tv column configure treeView -hide yes 
+    blt::table $top \
+        0,0 $top.tv -fill both \
+        0,1 $top.ys -fill y \
+        1,0 $top.xs -fill x
+    blt::table configure $top r* c* -resize none
+    blt::table configure $top r0 c0 -resize both
+}
+
+itcl::body Rappture::Analyzer::CleanName { name } {
+    regsub -all {/} $name {_} name
+    return $name
+}
+
+#
+# Get the results and display them in a table.
+#
+# Use the table to omit specific results
+# Use file chooser to save to specific 
+itcl::body Rappture::Analyzer::SelectSimsetNameAndSave {} {
+    if { [EditSimset] } {
+        set name [CleanName $_saved(Name)]
+        set saveDir [file join ~/data/saved $_appName $name]
+        set saveDir [file normalize $saveDir]
+        file mkdir $saveDir 
+        set fileName [file join $saveDir $name.sav]
+        if { [file exists $fileName] } {
+            if { ![OverwriteSaveFile] } {
+                return
+            }
+        }
+        WriteSimsetFile $_appName $fileName 0
+    }
+}
+
+#
+# Get the results and display them in a table.
+#
+# Use the table to omit specific results
+# Use file chooser to save to specific 
+itcl::body Rappture::Analyzer::SelectSimsetToShare {} {
+    if { [GetSimset "share"] } {
+        global env
+        set name [CleanName $_saved(Name)]
+        set shareDir [file join /data/tools/shared $env(USER) $_appName $name]
+        if { [catch {
+            CreateSharedPath $shareDir
+        } errs] != 0 } {
+            puts stderr errs=$errs
+            return 
+        }
+        set fileName [file join $shareDir $name.sav]
+        if { [file exists $fileName] } {
+            if { ![OverwriteSaveFile] } {
+                return
+            }
+        }
+        WriteSimsetFile $_appName $fileName 1
+        ExportURL $_appName $shareDir
+    }
+}
+
+#
+# Checks editor widgets to see if the name and description have been
+# set.  If this is so it enables the save button in the editor.
+#
+itcl::body Rappture::Analyzer::CheckSimsetDetails {} {
+    set popup .savesimset
+    if { ![winfo exists $popup] } {
+        return
+    }
+    set inner [$popup component inner]
+    set name [string trim [$inner.name get]]
+    set desc [string trim [$inner.desc get 0.0 end]]
+    $inner.controls.save configure -state disabled
+    if { $name == "" || $desc == "" } {
+        return
+    }
+    $inner.controls.save configure -state normal
+}
+
+#
+# Gathers all the information from the simset editor into the _saved array
+#
+itcl::body Rappture::Analyzer::SaveSimulations {} {
+    set popup .savesimset
+    if { ![winfo exists $popup] } {
+        return
+    }
+    set inner [$popup component inner]
+    array unset _saved
+    set name [string trim [$inner.name get]]
+    set desc [string trim [$inner.desc get 0.0 end]]
+    set _saved(Application) $_appName
+    set _saved(Revision) $_revision
+    set _saved(Date) [clock format [clock seconds]]
+    set _saved(Name) $name
+    set _saved(Description) $desc
+    set files {}
+    foreach node [$_tree children root] {
+        set fileName [$_tree get $node runfile]
+        lappend files $fileName
+    }
+    set _saved(Files) $files
+    set _done 1 
+}
+
+itcl::body Rappture::Analyzer::Cancel {} {
+    set _done 0
+}
+
+itcl::body Rappture::Analyzer::Ok {} {
+    set popup .selectsimset
+    if { ![winfo exists $popup] } {
+        return
+    }
+    set inner [$popup component inner]
+    set tv $inner.tv
+    if { ![$tv selection present] } {
+        return
+    }
+    set node [$tv curselection]
+    array unset _saved
+    array set _saved [$_tree get $node]
+    set saveDir [file dirname $_saved(FileName)]
+    set files {}
+    foreach file $_saved(Files) {
+        if { [file pathtype $file] == "relative" } {
+            set file [file join $saveDir $file]
+        }
+        lappend files $file
+    }
+    set _saved(Files) $files
+    set _done 1 
+}
+
+#
+# WriteSimsetFile --
+#
+#       Write the .sav file and the runfiles in the 
+#            ~/data/saved/$_appName/$name
+#       directory.  
+# The run files will be in the same directory as the .sav file.  
+# For example, if the simset file is /path/to/appName/myName/myName.sav, 
+# the runfile directory is /path/to/appName/myName.
+#
+itcl::body Rappture::Analyzer::WriteSimsetFile { appName fileName share } {
+    set saveDir [file dirname $fileName]
+    if { [file exists $saveDir] } {
+        file delete -force $saveDir
+    }
+    if { [catch {
+        if { $share } {
+            CreateSharedPath $saveDir
+        } else {
+            file mkdir $saveDir
+        }
+        set f [open $fileName "w"]
+        puts $f [list "Name"        $_saved(Name)]
+        puts $f [list "Description" $_saved(Description)]
+        puts $f [list "Date"        $_saved(Date)]
+        global env
+        puts $f [list "Creator"     $env(USER)]
+        puts $f [list "Application" $_saved(Application)]
+        puts $f [list "Revision"    $_saved(Revision)]
+        set runfiles ""
+        foreach file $_saved(Files) {
+            set tail [file tail $file]
+            set dest [file join $saveDir $tail]
+            if { $share } {
+                InstallSharedFile $saveDir $file
+            } else {
+                file copy -force $file $dest
+            }
+            lappend runfiles $tail
+        }
+        puts $f [list "Files" $runfiles]
+        close $f
+        if { $share } {
+            file attributes $fileName -permissions o+r,g+rw
+        }
+    } errs] != 0 } {
+        global errorInfo
+        puts stderr "errs=$errs errorInfo=$errorInfo"
+    }
+}
+
+itcl::body Rappture::Analyzer::EditSimset {} {
+    set popup .savesimset
+    if { [winfo exists $popup] } {
+        destroy $popup
+    }
+    # Create a popup for the print dialog
+    Rappture::Balloon $popup -title "Save set of simulations..."
+    set inner [$popup component inner]
+
+    label $inner.name_l -text "Simulation Set Name"
+    entry $inner.name -background white
+    label $inner.desc_l -text "Simulation Set Description" -height 5 
+    text $inner.desc  -background white
+    label $inner.select_l -text "Selected Simulations"
+    BuildSimulationTable $inner.select
+    frame $inner.controls
+    bind $inner.desc <KeyPress> [itcl::code $this CheckSimsetDetails]
+    bind $inner.name <KeyPress> [itcl::code $this CheckSimsetDetails]
+    bind $inner.desc <Motion> [itcl::code $this CheckSimsetDetails]
+    bind $inner.name <Motion> [itcl::code $this CheckSimsetDetails]
+    button $inner.controls.cancel -text "Cancel" \
+        -command [itcl::code $this Cancel]
+    button $inner.controls.save -text "Save" \
+        -command [itcl::code $this SaveSimulations]
+    blt::table $inner.controls \
+        0,0 $inner.controls.cancel \
+        0,1 $inner.controls.save
+    
+    blt::table $inner \
+        0,0 $inner.name_l -anchor ne \
+        0,1 $inner.name -fill x \
+        1,0 $inner.desc_l -anchor ne \
+        1,1 $inner.desc -fill both \
+        2,0 $inner.select_l -anchor ne \
+        2,1 $inner.select -fill both \
+        3,1 $inner.controls  -fill x
+    blt::table configure $inner r1 -height 1i
+    blt::table configure $inner r2 -pad 20
+    $popup configure \
+        -deactivatecommand [itcl::code $this Cancel] 
+
+    set inner [$popup component inner]
+    if {[$_resultset size] > 1} {
+        blt::table $inner \
+            2,0 $inner.select_l -anchor ne \
+            2,1 $inner.select -fill both 
+    } else {
+        blt::table forget $inner.select $inner.select_l
+    }
+    CheckSimsetDetails
+    update
+    # Activate the popup and call for the output.
+    $popup activate $itk_component(help) below
+    Cancel
+    tkwait variable [itcl::scope _done]
+    set doSave $_done
+    $popup deactivate 
+    return $doSave
+}
+
+
+itcl::body Rappture::Analyzer::ReadSimsetFile { fileName } {
+    if { [catch {
+        set f [open $fileName "r"]
+        set contents [read $f]
+        close $f
+        array set _saved $contents
+    } errs] != 0 } {
+        return 0
+    }
+    if { ![info exists _saved(Files)] } {
+        return 0
+    }
+    set saveDir [file dirname $fileName]
+    foreach file $_saved(Files) {
+        if { [file pathtype $file] == "relative" } {
+            set file [file join $saveDir $file]
+        }
+        if { ![file readable $file] } {
+            puts stderr "runfile $file isn't readable"
+            return 0
+        }
+    }
+    set _saved(FileName) $fileName
+    return 1
+}
+
+#
+# Run files can be either explicitly named with their absolute or
+# relative path.  If the path is relative it is assumed the parent
+# directory is relative to the simset file.
+#
+#   /my/path/to/myfile.sav 
+#   /my/path/to/myfile/runfiles...
+#
+itcl::body Rappture::Analyzer::LoadSimulations { files } {
+    set loadobjs {}
+    set saveDir [file dirname $_saved(FileName)]
+    foreach runfile $files {
+        if { [file pathtype $runfile] == "relative" } {
+            set runfile [file join $saveDir $runfile]
+        }
+        if { ![file exists $runfile] } {
+            puts stderr "can't find run: \"$runfile\""
+            continue
+        }
+        set status [catch {Rappture::library $runfile} result]
+        lappend loadobjs $result
+    }
+    clear
+    foreach runobj $loadobjs {
+        load $runobj
+    }
+    configure -notebookpage analyze
+    global win
+    $win.pager configure -nosim 1 
+    $win.pager current analyzer
+    $win.pager configure -nosim 0 
+}
+
+#
+# Delete selected simulation set.
+#
+itcl::body Rappture::Analyzer::SelectSimsetForDeletion {} {
+    if { [FindSimsetsForApp $_appName] == 0 } {
+        return
+    }
+    if { [GetSimset "delete"] } {
+        set saveDir [file dirname $_saved(FileName)]
+        file delete -force $saveDir
+    }
+}
+
+#
+# Find all .sav files for an application and load them into the tree.
+#
+itcl::body Rappture::Analyzer::FindSimsetsForApp { appName } {
+    if { $appName == "" } {
+        puts stderr "No application name found"
+        return 0
+    }
+    $_tree delete 0
+    foreach fileName [glob -nocomplain ~/data/saved/$appName/*/*.sav] {
+        if { [ReadSimsetFile $fileName] } {
+            if { $_revision > 0 && [info exists _saved(Revision)] &&
+                 $_revision != $_saved(Revision) } {
+                continue;               # Revision doesn't match.
+            }
+            $_tree insert 0 -label $_saved(Name) -data [array get _saved] 
+        }
+    }
+    return [$_tree degree 0]
+}
+
+#
+# Create dialog to select a simset from the currently available simsets.
+#
+itcl::body Rappture::Analyzer::GetSimset { name } {
+    set popup .selectsimset
+    if { [winfo exists $popup] } {
+        destroy $popup
+    }
+    # Create a popup for the print dialog
+    set title [string tolower $name]
+    Rappture::Balloon $popup -title "Select set of simulations to $title..."
+    set inner [$popup component inner]
+    
+    set tv $inner.tv
+    blt::treeview $inner.tv -tree $_tree \
+        -height 1i \
+        -width 5i \
+        -xscrollcommand [list $inner.xs set] \
+        -yscrollcommand [list $inner.ys set] \
+        -font "Arial 10"
+    scrollbar $inner.xs -orient horizontal -command "$tv xview"
+    scrollbar $inner.ys -orient vertical -command "$tv yview"
+    frame $inner.controls
+    
+    $tv column insert end "Name" "Description" "Date" "Creator"
+    $tv column configure treeView -hide yes 
+    blt::table $inner \
+        0,0 $inner.tv -fill both \
+        0,1 $inner.ys -fill y \
+        1,0 $inner.xs -fill x
+    blt::table configure $inner r* c* -resize none
+    blt::table configure $inner r0 c0 -resize both
+
+    button $inner.controls.cancel -text "Cancel" \
+        -command [itcl::code $this Cancel]
+    set title [string totitle $name]
+    button $inner.controls.save -text $title \
+        -command [itcl::code $this Ok]
+    blt::table $inner.controls \
+        0,0 $inner.controls.cancel \
+        0,1 $inner.controls.save
+    
+    blt::table $inner \
+        0,0 $inner.tv -fill both \
+        0,1 $inner.ys -fill y \
+        1,0 $inner.xs -fill x \
+        3,0 $inner.controls  -fill x -cspan 2
+    blt::table configure $inner r* c* -resize none
+    blt::table configure $inner r0 c0 -resize both
+    blt::table configure $inner r2 -height 0.1i
+    
+    $popup configure \
+        -deactivatecommand [itcl::code $this Cancel] 
+
+    $tv selection set [$_tree firstchild 0]
+    set inner [$popup component inner]
+    update
+    # Activate the popup and call for the output.
+    $popup activate $itk_component(help) below
+    Cancel
+    tkwait variable [itcl::scope _done]
+    set result $_done
+    $popup deactivate 
+    return $result
+}
+
+itcl::body Rappture::Analyzer::SelectSimsetForLoading {} {
+    if { [FindSimsetsForApp $_appName] == 0 } {
+        return
+    }
+    if { [GetSimset "load"] } {
+        LoadSimulations $_saved(Files)
+    }
+}
+
+itcl::body Rappture::Analyzer::reload { fileName } {
+    if { [catch {
+        ReadSimsetFile $fileName
+        if { [llength $_saved(Files)] > 0 } {
+            #StartSplashScreen
+            LoadSimulations $_saved(Files)
+            #HideSplashScreen
+        }
+    } errs] != 0 } {
+        puts stderr "can't load \"$fileName\": errs=$errs"
+    }
+}
+
+itcl::body Rappture::Analyzer::BuildQuestionDialog { popup } {
+    toplevel $popup -background grey92 -bd 2 -relief raised
+    wm withdraw $popup
+    wm overrideredirect $popup true
+    set inner $popup
+    # Create the print dialog widget and add it to the the balloon popup.
+    label $popup.title -text " " \
+        -padx 10 -pady 10 \
+        -background grey92 
+    button $popup.yes -text "Yes" \
+        -highlightthickness 0 \
+        -bd 2  \
+        -command [itcl::code $this Save] 
+    button $popup.no -text "No" \
+        -highlightthickness 0 \
+        -bd 2 \
+        -command [itcl::code $this Cancel] 
+    blt::table $popup \
+        0,0 $popup.title -cspan 2  -fill x -pady 4 \
+        1,0 $popup.yes -width { 0 1i .6i } -pady 4 \
+        1,1 $popup.no -width { 0 1i .6i }  -pady 4 
+    blt::table configure $popup  r2 -height 0.125i
+}
+
+itcl::body Rappture::Analyzer::Save {} {
+    set _done 1
+}
+
+itcl::body Rappture::Analyzer::OverwriteSaveFile {} {
+    set popup .question
+    if { ![winfo exists $popup] } {
+        BuildQuestionDialog $popup 
+    }
+    set text "Simulation set \"$_saved(Name)\" already exists. Overwrite?"
+    $popup.title configure -text $text 
+    $popup.yes configure -text "Save" 
+    $popup.no configure -text "Cancel" 
+    set main [winfo toplevel $itk_component(help)]
+    set pw [winfo reqwidth $popup]
+    set ph [winfo reqheight $popup]
+    set sw [winfo reqwidth $main]
+    set sh [winfo reqheight $main]
+    set rootx [winfo rootx $main]
+    set rooty [winfo rooty $main]
+    set x [expr $rootx + (($sw - $pw) / 2)]
+    set y [expr $rooty + (($sh - $ph) / 2)]
+    wm geometry $popup +$x+$y
+    wm deiconify $popup 
+    update
+    grab $popup 
+    # Activate the popup and call for the output.
+    Cancel
+    tkwait variable [itcl::scope _done]
+    set doSave $_done
+    grab release $popup 
+    destroy $popup 
+    return $doSave
+}
+
+itcl::body Rappture::Analyzer::InstallSharedFile { installdir file } {
+    set dst [file join $installdir [file tail $file]]
+    file copy -force $file $dst
+    file attributes $dst -permissions g+rw,o+r
+    return $dst
+}
+
+itcl::body Rappture::Analyzer::CreateSharedPath { path } {
+    set dir ""
+    foreach file [file split $path] {
+        set dir [file join $dir $file]
+        if { [file exists $dir] } {
+            if { ![file isdirectory $dir] } {
+                error "error in path \"$path\": \"$dir\" is not a directory."
+            }
+        } else {
+            file mkdir $dir 
+            file attributes $dir -permissions g+rwx,o+rx
+        }
+    }
+}
+
+itcl::body Rappture::Analyzer::ExportURL { appName installdir } {
+    set fileName [file join $installdir url.txt]
+    set name [file tail $installdir]
+    set f [open $fileName "w"]
+    puts $f "https://nanohub.org/tools/$appName/invoke?params=file(simset):$installdir/$name.sav\n"
+    close $f
+    file attributes $fileName -permissions g+rw,o+r
+    if { [file exists /usr/bin/exportfile] } {
+        set msgFile [file join $::Rappture::installdir export.html]
+        ExportFile $fileName $msgFile
+    }
+}
+
+itcl::body Rappture::Analyzer::ExportFile { src msgFile } {
+    set dstdir ~/.filexfer/exportfile
+    file mkdir $dstdir
+    set dst [file join $dstdir [file tail $src]]
+    if { [file exists $dst] } {
+        puts stderr "could be a problem: already waiting to export $dst"
+    }
+    file copy -force $src $dst
+    # Now export the file.
+    if { [catch {
+        global exportFileVar 
+        set exportFileVar 0;            # Kill any previous export.
+        set mesg "Select file to export to desktop/laptop"
+        update
+        set cmd "/usr/bin/exportfile --delete $dst --timeout 3 "
+        if { [file exists $msgFile] } { 
+            append cmd "--message $msgFile"
+        }
+        blt::bgexec exportFileVar /bin/sh -c $cmd &
+    } errs]  != 0 } {
+        global errorInfo
+        puts stderr "err: $errorInfo"
+        file delete -force $dst
+    }
+}
+

@@ -93,6 +93,7 @@ Rappture::getopts argv params {
     value -tool tool.xml
     list  -load ""
     value -input ""
+    value -simset ""
     value -nosim 0
 }
 
@@ -259,27 +260,20 @@ Rappture::Pager $win.pager
 pack $win.pager -expand yes -fill both
 
 #
-# Add a place for about/questions in the breadcrumbs area of this pager.
+# Add a place for menu button in the breadcrumbs area of this pager.
 #
 set app [string trim [$tool xml get tool.id]]
 set url [Rappture::Tool::resources -huburl]
-if {"" != $url && "" != $app} {
-    set f [$win.pager component breadcrumbarea]
-    frame $f.hubcntls
-    pack $f.hubcntls -side right -padx 4
-    label $f.hubcntls.icon -image [Rappture::icon ask] -highlightthickness 0
-    pack $f.hubcntls.icon -side left
-    button $f.hubcntls.about -text "About this tool" -command "
-        [list Rappture::filexfer::webpage $url/tools/$app]
-        Rappture::Logger::log help about
-    "
-    pack $f.hubcntls.about -side top -anchor w
-    button $f.hubcntls.questions -text Questions? -command "
-        [list Rappture::filexfer::webpage $url/resources/$app/questions]
-        Rappture::Logger::log help questions
-    "
-    pack $f.hubcntls.questions -side top -anchor w
-}
+set crumbs [$win.pager component breadcrumbarea]
+frame $crumbs.hubcntls
+pack $crumbs.hubcntls -side right -padx 4
+
+set m $crumbs.hubcntls.help.menu
+menubutton $crumbs.hubcntls.help \
+    -image [Rappture::icon hamburger_menu] \
+    -highlightthickness 0 \
+    -menu $m
+pack $crumbs.hubcntls.help -side top -anchor w
 
 #
 # Load up the components in the various phases of input.
@@ -338,6 +332,8 @@ Rappture::Analyzer $f.analyze $tool -simcontrol auto -notebookpage about
 pack $f.analyze -expand yes -fill both
 
 $tool notify add analyzer * [list $f.analyze reset]
+$f.analyze buildMenu $m $url $app
+
 
 # ----------------------------------------------------------------------
 # Finalize the arrangement
@@ -385,6 +381,7 @@ if {[llength [$win.pager page]] > 2} {
 }
 
 # load previous xml runfiles
+update
 if {[llength $params(-load)] > 0} {
     foreach runobj $loadobjs {
         $f.analyze load $runobj
@@ -397,7 +394,11 @@ if {[llength $params(-load)] > 0} {
         $f.analyze configure -simcontrol off
     }
     $f.analyze configure -notebookpage analyze
+    $win.pager configure -nosim 1 
     $win.pager current analyzer
+    $win.pager configure -nosim 0 
+} elseif {$params(-simset) ne ""} {
+    $f.analyze reload $params(-simset)
 } elseif {$params(-input) ne ""} {
     $tool load $inputobj
 }
@@ -406,21 +407,30 @@ if {[llength $params(-load)] > 0} {
 update
 
 foreach path [array names ::Rappture::parameters] {
+    if { $path == "simset" } {
+        continue;                       # Don't consider file(simset)
+    }
     set fname $::Rappture::parameters($path)
-    if {[catch {
-          set fid [open $fname r]
-          set info [read $fid]
-          close $fid}] == 0} {
-
-        set w [$tool widgetfor $path]
-        if {$w ne ""} {
-            if {[catch {$w value [string trim $info]} result]} {
-                puts stderr "WARNING: bad tool parameter value for \"$path\""
-                puts stderr "  $result"
-            }
-        } else {
-            puts stderr "WARNING: can't find control for tool parameter: $path"
-        }
+    if { ![file exists $fname] } {
+        puts stderr "WARNING: tool parameters file \"$fname\" doesn't exist"
+        continue;                       # Can't find parameters file
+    }        
+    if { ![file readable $fname] } {
+        puts stderr "WARNING: can't read tool parameters file \"$fname\""
+        continue;                       # Can't read parameters file
+    }
+    set f [open $fname r]
+    set contents [read $f]
+    close $f
+    
+    set w [$tool widgetfor $path]
+    if { $w == "" } {
+        puts stderr "WARNING: can't find control for tool parameter: $path"
+        continue;                       # Can't find rappture control for path
+    }
+    if {[catch {$w value [string trim $info]} result]} {
+        puts stderr "WARNING: bad tool parameter value for \"$path\""
+        puts stderr "  $result"
     }
 }
 

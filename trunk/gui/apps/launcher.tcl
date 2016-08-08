@@ -1,5 +1,5 @@
 #!/bin/sh
-# -*- mode: Tcl -*-
+# -*- mode: tcl; indent-tabs-mode: nil -*-
 # ----------------------------------------------------------------------
 #  RAPPTURE LAUNCHER
 #
@@ -43,6 +43,7 @@ set params(execute) ""
 set params(input) ""
 
 set rapptureInfo(cwd) [pwd]
+set rapptureInfo(appName) ""
 
 if {[info exists env(TOOL_PARAMETERS)]} {
     # if we can't find the file, wait a little
@@ -79,6 +80,10 @@ if {[info exists env(TOOL_PARAMETERS)]} {
                         "(load)" - "" {
                             lappend params(load) $value
                             set params(opt) "-load"
+                        }
+                        "(simset)" - "" {
+                            lappend params(simset) $value
+                            set params(opt) "-simset"
                         }
                         "(execute)" {
                             set params(execute) $value
@@ -175,6 +180,15 @@ while {[llength $argv] > 0} {
                     set argv [lrange $argv 1 end]
                 }
             }
+            -simset {
+                lappend alist $opt [lindex $argv 0]
+                set argv [lrange $argv 1 end]
+            }
+            -appname {
+                global rapptureInfo
+                set rapptureInfo(appName) [lindex $argv 0]
+                set argv [lrange $argv 1 end]
+            }
             default {
                 puts stderr "usage:"
                 puts stderr "  rappture ?-run? ?-tool toolFile? ?-nosim 0/1? ?-load file file ...?"
@@ -195,6 +209,16 @@ if {$mainscript eq ""} {
             # add tool parameters to the end of any files given on cmd line
             set loadlist [concat $loadlist $params(load)]
             set alist [concat $alist -load $loadlist]
+
+            package require RapptureGUI
+            set guidir $RapptureGUI::library
+            set mainscript [file join $guidir scripts main.tcl]
+            set reqpkgs Tk
+        }
+        -simset {
+            # add tool parameters to the end of any files given on cmd line
+            set loadlist [concat $loadlist $params(simset)]
+            set alist [concat $alist -simset $loadlist]
 
             package require RapptureGUI
             set guidir $RapptureGUI::library
@@ -259,10 +283,10 @@ if {$mainscript eq ""} {
 
 # Note: We're sourcing the driver file "main.tcl" rather than exec-ing
 #       wish because we want to see stderr and stdout messages when they
-#	are written, rather than when the program completes.  It also
-#	eliminates one process waiting for the other to complete. If
-#	"exec" is needed, then the following could be replaced with
-#	blt::bgexec.  It doesn't try to redirect stderr into a file.
+#       are written, rather than when the program completes.  It also
+#       eliminates one process waiting for the other to complete. If
+#       "exec" is needed, then the following could be replaced with
+#       blt::bgexec.  It doesn't try to redirect stderr into a file.
 set argv $alist
 foreach name $reqpkgs {
     package require $name
