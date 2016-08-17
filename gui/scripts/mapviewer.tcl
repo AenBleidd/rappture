@@ -1854,14 +1854,23 @@ itcl::body Rappture::MapViewer::Select {option x y} {
             SendCmd "map box init $x $y"
         }
         "drag" {
-            if {$_b1mode == "select"} {
-                EventuallySelect $x $y
+            if {$_b1mode != "select"} {
+                return
             }
+            if { ![info exists _click(x)] } {
+                set _click(x) $x
+            }
+            if { ![info exists _click(y)] } {
+                set _click(y) $y
+            }
+            EventuallySelect $x $y
         }
         "release" {
             set _b1mode ""
-            if {$_click(x) == $x &&
-                $_click(y) == $y} {
+            if {![info exists _click(x)] ||
+                ![info exists _click(y)] ||
+                ($_click(x) == $x &&
+                 $_click(y) == $y)} {
                 SendCmd "map box clear"
             } else {
                 SendCmd "map box end $x $y"
