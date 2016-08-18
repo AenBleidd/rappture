@@ -2783,19 +2783,23 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { [info exists info(style)] } {
                 array set style $info(style)
             }
+            set verticalDatum ""
+            if {[info exists info(verticalDatum)]} {
+                set verticalDatum $info(verticalDatum)
+            }
             switch -- $info(driver)  {
                 "gdal" {
                     SendFiles $info(gdal.url)
                     SendCmd [list map layer add $tag elevation gdal \
-                                 $info(gdal.url) $info(cache)]
+                                 $info(gdal.url) $info(cache) $verticalDatum]
                 }
                 "tms" {
                     SendCmd [list map layer add $tag elevation tms \
-                                 $info(tms.url) $info(cache)]
+                                 $info(tms.url) $info(cache) $verticalDatum]
                 }
                 "wcs" {
                     SendCmd [list map layer add $tag elevation wcs \
-                                 $info(wcs.url) $info(cache) $info(wcs.identifier)]
+                                 $info(wcs.url) $info(cache) $verticalDatum $info(wcs.identifier)]
                 }
             }
         }
