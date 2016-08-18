@@ -570,7 +570,7 @@ itcl::body Rappture::Map::setCamera { camera } {
     array set caminfo $camera
     foreach key [array names caminfo] {
         set valid 0
-        foreach validkey {x y z heading pitch distance xmin ymin xmax ymax srs verticalDatum} {
+        foreach validkey {layer x y latitude longitude z heading pitch distance xmin ymin xmax ymax srs verticalDatum} {
             if {$key == $validkey} {
                 set valid 1
                 break

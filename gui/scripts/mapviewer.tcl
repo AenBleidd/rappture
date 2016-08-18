@@ -2508,13 +2508,29 @@ itcl::body Rappture::MapViewer::Camera {option args} {
                 if { $view != "" } {
                     array set cam $view
                     set duration 0.0
-                    if {[info exists cam(xmin)] && [info exists cam(ymin)] &&
-                        [info exists cam(xmax)] && [info exists cam(ymax)]} {
+                    if {[info exists cam(layer)]} {
+                        set tag $cam(layer)
+                        if {$_first != "" &&
+                            ![$_first layer $cam(layer) shared]} {
+                            set tag $_first-$cam(layer)
+                        }
+                        SendCmd [list camera lextent $tag]
+                    } elseif {[info exists cam(xmin)] &&
+                              [info exists cam(ymin)] &&
+                              [info exists cam(xmax)] &&
+                              [info exists cam(ymax)]} {
                         set srs ""
                         if {[info exists cam(srs)]} {
                             set srs $cam(srs)
                         }
                         SendCmd [list camera extent $cam(xmin) $cam(ymin) $cam(xmax) $cam(ymax) $duration $srs]
+                    } elseif {[info exists cam(latitude)] &&
+                              [info exists cam(longitude)]} {
+                        array set _view $view
+                        set _view(x) $cam(longitude)
+                        set _view(y) $cam(latitude)
+                        set _view(srs) wgs84
+                        SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
                     } else {
                         array set _view $view
                         SendCmd [list camera set $_view(x) $_view(y) $_view(z) $_view(heading) $_view(pitch) $_view(distance) $duration $_view(srs) $_view(verticalDatum)]
