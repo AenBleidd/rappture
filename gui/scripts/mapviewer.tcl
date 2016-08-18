@@ -3214,13 +3214,22 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 set ctlname "[regsub -all {::} ${tag} {}]"
                 set ctlname "[regsub -all {\-} ${ctlname} {_}]"
             }
+            button $f.${ctlname}_zoom \
+                -borderwidth 1 -padx 1 -pady 1 \
+                -highlightthickness 0 \
+                -image [Rappture::icon zoom-extent] \
+                -command [itcl::code $this camera zoom layer $dataobj $layer 1.0]
+            Rappture::Tooltip::for $f.${ctlname}_zoom \
+                "Zoom to extent for $info(label)"
+
             checkbutton $f.${ctlname}_visible \
                 -text $info(label) \
                 -font "Arial 9" -anchor w \
                 -variable [itcl::scope _visibility($tag)] \
                 -command [itcl::code $this \
                               SetLayerVisibility $dataobj $layer]
-            blt::table $f $row,0 $f.${ctlname}_visible -anchor w -pady 2 -cspan 2
+            blt::table $f $row,0 $f.${ctlname}_zoom -anchor w -pady 2
+            blt::table $f $row,1 $f.${ctlname}_visible -anchor w -pady 2 -cspan 2
             incr row
             if { $info(type) == "image" } {
                 incr imgIdx
@@ -3238,10 +3247,10 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                     itk_component add legend-$colormap {
                         label $f.legend-$colormap -image $_image(legend-$colormap)
                     }
-                    blt::table $f $row,0 $f.legend-$colormap-min -anchor w -pady 0
-                    blt::table $f $row,1 $f.legend-$colormap-max -anchor e -pady 0
+                    blt::table $f $row,0 $f.legend-$colormap-min -anchor w -pady 0 -cspan 2
+                    blt::table $f $row,2 $f.legend-$colormap-max -anchor e -pady 0
                     incr row
-                    blt::table $f $row,0 $f.legend-$colormap -anchor w -pady 2 -cspan 2
+                    blt::table $f $row,0 $f.legend-$colormap -anchor w -pady 2 -cspan 3
                     incr row
                     RequestLegend $colormap 256 16
                 }
@@ -3256,8 +3265,8 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                     -command [itcl::code $this \
                                   SetLayerOpacity $dataobj $layer]
                 Rappture::Tooltip::for $f.${ctlname}_opacity "Set opacity of $info(label) layer"
-                blt::table $f $row,0 $f.${ctlname}_opacity_l -anchor w -pady 2
-                blt::table $f $row,1 $f.${ctlname}_opacity -anchor w -pady 2
+                blt::table $f $row,0 $f.${ctlname}_opacity_l -anchor w -pady 2 -cspan 2
+                blt::table $f $row,2 $f.${ctlname}_opacity -anchor w -pady 2
                 incr row
             }
             set tooltip [list $info(description)]
@@ -3274,11 +3283,11 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     }
     SendCmd "[list map attrib [encoding convertto utf-8 [join $attrib ,]]]"
     label $f.map_attrib -text [join $attrib \n] -font "Arial 9"
-    blt::table $f $row,0 $f.map_attrib -anchor sw -pady 2 -cspan 2
+    blt::table $f $row,0 $f.map_attrib -anchor sw -pady 2 -cspan 3
     #incr row
     if { $row > 0 } {
         blt::table configure $f r* c* -resize none
-        blt::table configure $f r$row c1 -resize expand
+        blt::table configure $f r$row c2 -resize expand
     }
 }
 
