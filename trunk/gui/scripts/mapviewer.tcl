@@ -1370,8 +1370,8 @@ itcl::body Rappture::MapViewer::Rebuild {} {
         DoResize
 
         if { [info exists _mapsettings(type)] } {
-            # The map must be reset once before any layers are added This
-            # should not be done more than once as it is very expensive.
+            # The map must be reset once before any layers are added.
+            # This should not be done more than once as it is very expensive.
             if { [info exists _mapsettings(style)] } {
                 array set settings {
                     -color white
