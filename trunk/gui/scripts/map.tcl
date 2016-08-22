@@ -104,11 +104,12 @@ itcl::class Rappture::Map {
         "image"         0
         "elevation"     1
         "feature"       2
-        "polygon"       3
-        "point"         4
-        "icon"          5
-        "line"          6
-        "label"         7
+        "model"         3
+        "polygon"       4
+        "point"         5
+        "icon"          6
+        "line"          7
+        "label"         8
     }
     array set _mapTypes {
         "geocentric"    0
@@ -172,6 +173,11 @@ itcl::body Rappture::Map::hints { args } {
 #
 itcl::body Rappture::Map::parseXML { xmlobj path } {
     set map [$xmlobj element -as object $path]
+    set elemType [$xmlobj element -as type $path]
+    if {$elemType != "map"} {
+        puts stderr "ERROR: Invalid map XML: \"$elemType\""
+        return
+    }
 
     # Set global map properties
     setLabel [$map get "about.label"]
@@ -378,6 +384,27 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
                 }
             }
             $_tree set $child "driver" "ogr"
+        }
+        set osg [$layers element -as type $layer.osg]
+        if { $osg != "" } {
+            foreach key { url } {
+                set value [$layers get $layer.osg.$key]
+                $_tree set $child "osg.$key" $value
+            }
+            set file [$layers get $layer.osg.file]
+            if { $file != "" } {
+                $_tree set $child "osg.url" $file
+            }
+            $_tree set $child "osg.x" 0.0
+            $_tree set $child "osg.y" 0.0
+            $_tree set $child "osg.z" 0.0
+            foreach key { x y z rotx roty rotz paged } {
+                set value [$layers get $layer.osg.$key]
+                if { $value != "" } {
+                    $_tree set $child "osg.$key" $value
+                }
+            }
+            $_tree set $child "driver" "osg"
         }
         set tfs [$layers element -as type $layer.tfs]
         if { $tfs != "" } {
@@ -730,6 +757,24 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
                     set value $params($key)
                     if { $value != "" } {
                         $_tree set $child "ogr.$key" $value
+                    }
+                }
+            }
+        }
+        "osg" {
+            array set params $driverParamArray
+            foreach key { url } {
+                set value $params($key)
+                $_tree set $child "osg.$key" $value
+            }
+            $_tree set $child "osg.x" 0.0
+            $_tree set $child "osg.y" 0.0
+            $_tree set $child "osg.z" 0.0
+            foreach key { x y z rotx roty rotz paged } {
+                if {[info exists params($key)]} {
+                    set value $params($key)
+                    if { $value != "" } {
+                        $_tree set $child "osg.$key" $value
                     }
                 }
             }
@@ -1233,7 +1278,7 @@ itcl::body Rappture::Map::translateProp { layerType styleProp styleValue } {
                 "strokewidth" "stroke-width"
             }
         }
-        "image" - "elevation" - "feature" {
+        "image" - "elevation" - "feature" - "model" {
         }
         default {
             error "Unknown layer type: \"$layerType\""

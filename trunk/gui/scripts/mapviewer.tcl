@@ -2803,7 +2803,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if {[info exists info(verticalDatum)]} {
                 set verticalDatum $info(verticalDatum)
             }
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "gdal" {
                     SendFiles $info(gdal.url)
                     SendCmd [list map layer add $tag elevation gdal \
@@ -2901,6 +2901,14 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { $selectorsSize > 0 } { SendData $selectors }
             SendCmd "map layer opacity $style(-opacity) $tag"
         }
+        "model" {
+            switch -- $info(driver) {
+                "osg" {
+                    SendFiles $info(osg.url)
+                    SendCmd [list map layer add $tag model simple $info(osg.url) $info(osg.x) $info(osg.y) $info(osg.z)]
+                }
+            }
+        }
         "line" {
             array set style {
                 -cap "flat"
@@ -2922,7 +2930,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             set _opacity($tag) [expr $style(-opacity) * 100]
             foreach {r g b} [Color2RGB $style(-color)] {}
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
@@ -2971,7 +2979,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             set _opacity($tag) [expr $style(-opacity) * 100]
             foreach {r g b} [Color2RGB $style(-color)] {}
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
@@ -3023,7 +3031,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 set style(-opacity) $info(opacity)
             }
             set _opacity($tag) [expr $style(-opacity) * 100]
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
@@ -3076,7 +3084,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set _opacity($tag) [expr $style(-opacity) * 100]
             foreach {r g b} [Color2RGB $style(-color)] {}
             foreach {strokeR strokeG strokeB} [Color2RGB $style(-strokecolor)] {}
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
@@ -3141,7 +3149,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             foreach {fgR fgG fgB} [Color2RGB $style(-color)] {}
             foreach {bgR bgG bgB} [Color2RGB $style(-halocolor)] {}
-            switch -- $info(driver)  {
+            switch -- $info(driver) {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
