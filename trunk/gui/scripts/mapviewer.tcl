@@ -2901,6 +2901,37 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             if { $selectorsSize > 0 } { SendData $selectors }
             SendCmd "map layer opacity $style(-opacity) $tag"
         }
+        "mask"  {
+            set minLOD 0
+            switch -- $info(driver) {
+                "ogr" {
+                    if { [info exists info(ogr.connection)] } {
+                        SendCmd [list map layer add $tag mask db {} $info(ogr.layer) $info(ogr.connection) $minLOD]
+                    } else {
+                        SendFiles $info(ogr.url)
+                        SendCmd [list map layer add $tag mask $info(driver) {} {} $info(ogr.url) $minLOD]
+                    }
+                }
+                "tfs" {
+                    set format "json"
+                    if {[info exists info(tfs.format)]} {
+                        set format $info(tfs.format)
+                    }
+                    SendCmd [list map layer add $tag mask $info(driver) $format {} $info(tfs.url) $minLOD]
+                }
+                "wfs" {
+                    set format "json"
+                    if {[info exists info(wfs.format)]} {
+                        set format $info(wfs.format)
+                    }
+                    set wfsType ""
+                    if {[info exists info(wfs.typename)]} {
+                        set wfsType $info(wfs.typename)
+                    }
+                    SendCmd [list map layer add $tag mask $info(driver) $format $wfsType $info(wfs.url) $minLOD]
+                }
+            }
+        }
         "model" {
             switch -- $info(driver) {
                 "osg" {
