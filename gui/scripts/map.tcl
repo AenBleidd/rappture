@@ -104,12 +104,13 @@ itcl::class Rappture::Map {
         "image"         0
         "elevation"     1
         "feature"       2
-        "model"         3
-        "polygon"       4
-        "point"         5
-        "icon"          6
-        "line"          7
-        "label"         8
+        "mask"          3
+        "model"         4
+        "polygon"       5
+        "point"         6
+        "icon"          7
+        "line"          8
+        "label"         9
     }
     array set _mapTypes {
         "geocentric"    0
@@ -608,6 +609,7 @@ itcl::body Rappture::Map::setCamera { camera } {
         }
     }
     if {([info exists caminfo(x)] || [info exists caminfo(y)] ||
+         [info exists caminfo(latitude)] || [info exists caminfo(longitude)] ||
          [info exists caminfo(z)] || [info exists caminfo(distance)]) &&
         ([info exists caminfo(xmin)] || [info exists caminfo(xmax)] ||
          [info exists caminfo(ymin)] || [info exists caminfo(ymax)])} {
@@ -1278,7 +1280,7 @@ itcl::body Rappture::Map::translateProp { layerType styleProp styleValue } {
                 "strokewidth" "stroke-width"
             }
         }
-        "image" - "elevation" - "feature" - "model" {
+        "image" - "elevation" - "feature" - "mask" - "model" {
         }
         default {
             error "Unknown layer type: \"$layerType\""
