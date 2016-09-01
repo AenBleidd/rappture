@@ -783,6 +783,9 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
             $_tree set $child "osg.x" 0.0
             $_tree set $child "osg.y" 0.0
             $_tree set $child "osg.z" 0.0
+            $_tree set $child "osg.rotx" 0.0
+            $_tree set $child "osg.roty" 0.0
+            $_tree set $child "osg.rotz" 0.0
             foreach key { x y z rotx roty rotz paged } {
                 if {[info exists params($key)]} {
                     set value $params($key)
