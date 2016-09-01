@@ -263,7 +263,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         # These are settings for which there should be no default
         # We want to know if they have been set by the user or not
         # Not all layer types use these
-        foreach key { coverage opacity content priority style } {
+        foreach key { coverage opacity content priority style terrainPatch } {
             set val [$layers get $layer.$key]
             if {$val != ""} {
                 if {$key eq "coverage" && $layerType ne "image"} {
@@ -275,7 +275,11 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
                     }
                 }
                 if {$key eq "opacity" && $layerType eq "elevation"} {
-                    puts stderr  "ERROR: <opacity> is not valid for layers of type \"elevation\""
+                    puts stderr "ERROR: <opacity> is not valid for layers of type \"elevation\""
+                }
+                if {$key eq "terrainPatch" && $layerType ne "feature" &&
+                    $layerType ne "model" && $layerType ne "polygon"} {
+                    puts stderr "ERROR: <terrainPatch> is only valid for layers of type \"feature\", \"model\" or \"polygon\""
                 }
                 $_tree set $child $key $val
             }
@@ -378,7 +382,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
                 # FIXME: Add test for valid file path
                 $_tree set $child "ogr.url" $file
             }
-            foreach key { connection geometry geometry_url layer ogr_driver build_spatial_index } {
+            foreach key { connection geometry geometryUrl layer ogrDriver buildSpatialIndex } {
                 set value [$layers get $layer.ogr.$key]
                 if { $value != "" } {
                     $_tree set $child "ogr.$key" $value
@@ -399,6 +403,9 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
             $_tree set $child "osg.x" 0.0
             $_tree set $child "osg.y" 0.0
             $_tree set $child "osg.z" 0.0
+            $_tree set $child "osg.rotx" 0.0
+            $_tree set $child "osg.roty" 0.0
+            $_tree set $child "osg.rotz" 0.0
             foreach key { x y z rotx roty rotz paged } {
                 set value [$layers get $layer.osg.$key]
                 if { $value != "" } {
@@ -651,7 +658,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
     # These are settings for which there should be no default
     # We want to know if they have been set by the user or not
     # Not all layer types use these
-    foreach key { coverage opacity content priority style } {
+    foreach key { coverage opacity content priority style terrainPatch } {
         if {[info exists params($key)]} {
             set val $params($key)
             if {$val != ""} {
@@ -665,6 +672,10 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
                 }
                 if {$key eq "opacity" && $type eq "elevation"} {
                     error  "opacity is not valid for layers of type \"elevation\""
+                }
+                if {$key eq "terrainPatch" && $type ne "feature" &&
+                    $type ne "model" && $type ne "polygon"} {
+                    puts stderr "ERROR: <terrainPatch> is only valid for layers of type \"feature\", \"model\" or \"polygon\""
                 }
                 $_tree set $child $key $val
             }
@@ -754,7 +765,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
                 set value $params($key)
                 $_tree set $child "ogr.$key" $value
             }
-            foreach key { connection geometry geometry_url layer ogr_driver build_spatial_index } {
+            foreach key { connection geometry geometryUrl layer ogrDriver buildSpatialIndex } {
                 if {[info exists params($key)]} {
                     set value $params($key)
                     if { $value != "" } {
