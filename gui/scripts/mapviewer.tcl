@@ -3284,22 +3284,38 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 set ctlname "[regsub -all {::} ${tag} {}]"
                 set ctlname "[regsub -all {\-} ${ctlname} {_}]"
             }
+
+            set tooltip [list $info(description)]
+            if { [info exists info(attribution)] &&
+                 $info(attribution) != ""} {
+                lappend tooltip $info(attribution)
+            }
+
             button $f.${ctlname}_zoom \
                 -borderwidth 1 -padx 1 -pady 1 \
                 -highlightthickness 0 \
                 -image [Rappture::icon zoom-extent] \
                 -command [itcl::code $this camera zoom layer $dataobj $layer 1.0]
+            blt::table $f $row,0 $f.${ctlname}_zoom -anchor w -pady 2
             Rappture::Tooltip::for $f.${ctlname}_zoom \
                 "Zoom to extent for $info(label)"
 
-            checkbutton $f.${ctlname}_visible \
-                -text $info(label) \
-                -font "Arial 9" -anchor w \
-                -variable [itcl::scope _visibility($tag)] \
-                -command [itcl::code $this \
+            if { $info(type) == "mask" } {
+                label $f.${ctlname}_lbl \
+                    -text $info(label) \
+                    -font "Arial 9" -anchor w
+                blt::table $f $row,1 $f.${ctlname}_lbl -anchor w -pady 2 -cspan 2
+                Rappture::Tooltip::for $f.${ctlname}_lbl [join $tooltip \n]
+            } else {
+                checkbutton $f.${ctlname}_visible \
+                    -text $info(label) \
+                    -font "Arial 9" -anchor w \
+                    -variable [itcl::scope _visibility($tag)] \
+                    -command [itcl::code $this \
                               SetLayerVisibility $dataobj $layer]
-            blt::table $f $row,0 $f.${ctlname}_zoom -anchor w -pady 2
-            blt::table $f $row,1 $f.${ctlname}_visible -anchor w -pady 2 -cspan 2
+                blt::table $f $row,1 $f.${ctlname}_visible -anchor w -pady 2 -cspan 2
+                Rappture::Tooltip::for $f.${ctlname}_visible [join $tooltip \n]
+            }
             incr row
             if { $info(type) == "image" } {
                 incr imgIdx
@@ -3326,6 +3342,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 }
             }
             if { $info(type) != "elevation" &&
+                 $info(type) != "mask" &&
                 ($info(type) != "image" || $imgIdx > 1) } {
                 label $f.${ctlname}_opacity_l -text "Opacity" -font "Arial 9"
                 ::scale $f.${ctlname}_opacity -from 0 -to 100 \
@@ -3339,12 +3356,6 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 blt::table $f $row,2 $f.${ctlname}_opacity -anchor w -pady 2
                 incr row
             }
-            set tooltip [list $info(description)]
-            if { [info exists info(attribution)] &&
-                 $info(attribution) != ""} {
-                lappend tooltip $info(attribution)
-            }
-            Rappture::Tooltip::for $f.${ctlname}_visible [join $tooltip \n]
         }
         set mapAttrib [$dataobj hints "attribution"]
         if { $mapAttrib != "" } {
