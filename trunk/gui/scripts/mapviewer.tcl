@@ -2861,7 +2861,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
             switch -- $info(driver) {
                 "ogr" {
-                    if { [info exists info(ogr.connection)] } {
+                    if {[info exists info(ogr.connection)]} {
                         set cmd [list map layer add $tag feature db {} $info(ogr.layer) $info(ogr.connection) $info(cache) $ssSize $scriptSize $selectorsSize $terrainPatch]
                         if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                             lappend cmd $style(-minrange) $style(-maxrange)
@@ -2909,7 +2909,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set minLOD 0
             switch -- $info(driver) {
                 "ogr" {
-                    if { [info exists info(ogr.connection)] } {
+                    if {[info exists info(ogr.connection)]} {
                         SendCmd [list map layer add $tag mask db {} $info(ogr.layer) $info(ogr.connection) $minLOD]
                     } elseif {[info exists info(ogr.geometryUrl)]} {
                         SendFiles $info(ogr.geometryUrl)
