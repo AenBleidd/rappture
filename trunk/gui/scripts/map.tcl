@@ -274,8 +274,9 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
                         puts stderr "ERROR: <content> and <priority> are only valid in layers of type \"label\""
                     }
                 }
-                if {$key eq "opacity" && $layerType eq "elevation"} {
-                    puts stderr "ERROR: <opacity> is not valid for layers of type \"elevation\""
+                if {$key eq "opacity" && ($layerType eq "elevation" ||
+                    $layerType eq "mask")} {
+                    puts stderr "ERROR: <opacity> is not valid for layers of type \"elevation\" or \"mask\""
                 }
                 if {$key eq "terrainPatch" && $layerType ne "feature" &&
                     $layerType ne "model" && $layerType ne "polygon"} {
@@ -670,8 +671,9 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
                         error "content and priority are only valid in layers of type \"label\""
                     }
                 }
-                if {$key eq "opacity" && $type eq "elevation"} {
-                    error  "opacity is not valid for layers of type \"elevation\""
+                if {$key eq "opacity" && ($type eq "elevation" ||
+                    $type eq "mask")} {
+                    error  "opacity is not valid for layers of type \"elevation\" or \"mask\""
                 }
                 if {$key eq "terrainPatch" && $type ne "feature" &&
                     $type ne "model" && $type ne "polygon"} {
