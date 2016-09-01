@@ -2855,15 +2855,19 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set ssSize [string length $info(stylesheet)]
             set scriptSize [string length $script]
             set selectorsSize [string length $selectors]
+            set terrainPatch 0
+            if {[info exists info(terrainPatch)] && $info(terrainPatch)} {
+                set terrainPatch 1
+            }
             switch -- $info(driver) {
                 "ogr" {
                     if { [info exists info(ogr.connection)] } {
-                        set cmd [list map layer add $tag feature db {} $info(ogr.layer) $info(ogr.connection) $info(cache) $ssSize $scriptSize $selectorsSize]
+                        set cmd [list map layer add $tag feature db {} $info(ogr.layer) $info(ogr.connection) $info(cache) $ssSize $scriptSize $selectorsSize $terrainPatch]
                         if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                             lappend cmd $style(-minrange) $style(-maxrange)
                         }
                     } else {
-                        set cmd [list map layer add $tag feature $info(driver) {} {} $info(ogr.url) $info(cache) $ssSize $scriptSize $selectorsSize]
+                        set cmd [list map layer add $tag feature $info(driver) {} {} $info(ogr.url) $info(cache) $ssSize $scriptSize $selectorsSize $terrainPatch]
                         if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                             lappend cmd $style(-minrange) $style(-maxrange)
                         }
@@ -2875,7 +2879,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     if {[info exists info(tfs.format)]} {
                         set format $info(tfs.format)
                     }
-                    set cmd [list map layer add $tag feature $info(driver) $format {} $info(tfs.url) $info(cache) $ssSize $scriptSize $selectorsSize]
+                    set cmd [list map layer add $tag feature $info(driver) $format {} $info(tfs.url) $info(cache) $ssSize $scriptSize $selectorsSize $terrainPatch]
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         lappend cmd $style(-minrange) $style(-maxrange)
                     }
@@ -2889,7 +2893,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                     if {[info exists info(wfs.typename)]} {
                         set wfsType $info(wfs.typename)
                     }
-                    set cmd [list map layer add $tag feature $info(driver) $format $wfsType $info(wfs.url) $info(cache) $ssSize $scriptSize $selectorsSize]
+                    set cmd [list map layer add $tag feature $info(driver) $format $wfsType $info(wfs.url) $info(cache) $ssSize $scriptSize $selectorsSize $terrainPatch]
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                         lappend cmd $style(-minrange) $style(-maxrange)
                     }
@@ -2907,6 +2911,13 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 "ogr" {
                     if { [info exists info(ogr.connection)] } {
                         SendCmd [list map layer add $tag mask db {} $info(ogr.layer) $info(ogr.connection) $minLOD]
+                    } elseif {[info exists info(ogr.geometryUrl)]} {
+                        SendFiles $info(ogr.geometryUrl)
+                        SendCmd [list map layer add $tag mask wkt_file {} {} $info(ogr.geometryUrl) $minLOD]
+                    } elseif {[info exists info(ogr.geometry)]} {
+                        set len [string length $info(ogr.geometry)]
+                        SendCmd [list map layer add $tag mask wkt {} {} $len $minLOD]
+                        if {$len > 0} { SendData $info(ogr.geometry) }
                     } else {
                         SendFiles $info(ogr.url)
                         SendCmd [list map layer add $tag mask $info(driver) {} {} $info(ogr.url) $minLOD]
@@ -2933,10 +2944,14 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             }
         }
         "model" {
+            set terrainPatch 0
+            if {[info exists info(terrainPatch)] && $info(terrainPatch)} {
+                set terrainPatch 1
+            }
             switch -- $info(driver) {
                 "osg" {
                     SendFiles $info(osg.url)
-                    SendCmd [list map layer add $tag model simple $info(osg.url) $info(osg.x) $info(osg.y) $info(osg.z)]
+                    SendCmd [list map layer add $tag model simple $info(osg.url) $info(osg.x) $info(osg.y) $info(osg.z) $info(osg.rotx) $info(osg.roty) $info(osg.rotz) $terrainPatch]
                 }
             }
         }
