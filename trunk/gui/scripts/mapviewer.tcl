@@ -3407,7 +3407,9 @@ itcl::body Rappture::MapViewer::UpdateViewpointControls {} {
                 -font "Arial 9" -anchor w
             blt::table $f $row,0 $f.${viewpoint}_go -anchor w -pady 2 -cspan 2
             #blt::table $f $row,1 $f.${viewpoint}_label -anchor w -pady 2
-            Rappture::Tooltip::for $f.${viewpoint}_go $info(description)
+            if {[info exists info(description)]} {
+                Rappture::Tooltip::for $f.${viewpoint}_go $info(description)
+            }
             incr row
         }
     }
