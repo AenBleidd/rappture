@@ -2867,7 +2867,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                             lappend cmd $style(-minrange) $style(-maxrange)
                         }
                     } elseif {[info exists info(ogr.geometryUrl)]} {
-                        set cmd [list map layer add $tag feature wkt_file {} {} $info(ogr.geometryUrl) $info(cache) $ssSize $scriptSize $selectorSize $terrainPatch]
+                        set cmd [list map layer add $tag feature wkt_file {} {} $info(ogr.geometryUrl) $info(cache) $ssSize $scriptSize $selectorsSize $terrainPatch]
                         if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
                             lappend cmd $style(-minrange) $style(-maxrange)
                         }
