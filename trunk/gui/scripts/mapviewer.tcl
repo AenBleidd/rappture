@@ -3130,13 +3130,17 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
             set _opacity($tag) [expr $style(-opacity) * 100]
             foreach {r g b} [Color2RGB $style(-color)] {}
             foreach {strokeR strokeG strokeB} [Color2RGB $style(-strokecolor)] {}
+            set terrainPatch 0
+            if {[info exists info(terrainPatch)] && $info(terrainPatch)} {
+                set terrainPatch 1
+            }
             switch -- $info(driver) {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                        SendCmd [list map layer add $tag polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
+                        SendCmd [list map layer add $tag polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $terrainPatch $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $tag polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique)]
+                        SendCmd [list map layer add $tag polygon ogr {} {} $info(ogr.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $terrainPatch]
                     }
                 }
                 "tfs" {
@@ -3145,9 +3149,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         set format $info(tfs.format)
                     }
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                        SendCmd [list map layer add $tag polygon tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
+                        SendCmd [list map layer add $tag polygon tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $terrainPatch $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $tag polygon tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique)]
+                        SendCmd [list map layer add $tag polygon tfs $format {} $info(tfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $terrainPatch]
                     }
                 }
                 "wfs" {
@@ -3156,9 +3160,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         set format $info(wfs.format)
                     }
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                        SendCmd [list map layer add $tag polygon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $style(-minrange) $style(-maxrange)]
+                        SendCmd [list map layer add $tag polygon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $terrainPatch $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $tag polygon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique)]
+                        SendCmd [list map layer add $tag polygon wfs $format $info(wfs.typename) $info(wfs.url) $info(cache) $r $g $b $style(-strokewidth) $strokeR $strokeG $strokeB $style(-clamping) $style(-clamptechnique) $terrainPatch]
                     }
                 }
             }
@@ -3312,7 +3316,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                     -font "Arial 9" -anchor w \
                     -variable [itcl::scope _visibility($tag)] \
                     -command [itcl::code $this \
-                              SetLayerVisibility $dataobj $layer]
+                                  SetLayerVisibility $dataobj $layer]
                 blt::table $f $row,1 $f.${ctlname}_visible -anchor w -pady 2 -cspan 2
                 Rappture::Tooltip::for $f.${ctlname}_visible [join $tooltip \n]
             }
