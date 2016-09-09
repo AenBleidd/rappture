@@ -19,7 +19,7 @@ pack .g -expand yes -fill both
 
 # Driver parameter array for XYZ provider
 array set xyzParams {
-    url {http://otile[1234].mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.jpg}
+    url {http://[abc].tile.openstreetmap.org/{z}/{x}/{y}.png}
 }
 # Image layer parameter array
 array set osmParams {
