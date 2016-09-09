@@ -18,7 +18,7 @@ pack .g -expand yes -fill both
 
 # create an XYZ world layer
 array set dp1 {
-    url {http://otile[1234].mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.jpg}
+    url {http://[abc].tile.openstreetmap.org/{z}/{x}/{y}.png}
 }
 array set l1 {
     label "OSM Map"

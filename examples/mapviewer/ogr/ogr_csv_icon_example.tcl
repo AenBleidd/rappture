@@ -17,7 +17,7 @@ set mapviewer [Rappture::MapViewer .g]
 pack .g -expand yes -fill both
 
 array set xyzParams {
-    url {http://otile[1234].mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.jpg}
+    url {http://[abc].tile.openstreetmap.org/{z}/{x}/{y}.png}
 }
 array set osm {
     label "OSM Map"
