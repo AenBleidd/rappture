@@ -129,7 +129,12 @@ itcl::body Rappture::Combochecks::value {args} {
         # user calls value() without manipulating the ddlist
         $itk_component(ddlist) reset
         foreach part $newval {
+            set oldpart $part
             set part [translate $part]
+            if {[string compare $part ""] == 0} {
+                # part could not be translated to a component
+                error "bad value \"$oldpart\": should be one of \"[join [choices get -label] {, }]\""
+            }
             $itk_component(ddlist) state $part 1
         }
 
@@ -260,14 +265,16 @@ itcl::body Rappture::Combochecks::_dropdown {option} {
         select {
             set newval [$itk_component(ddlist) current -label]
             set val [$itk_component(entry) get]
-            if {$newval ne "" && $newval ne $val} {
+            if {$newval eq ""} {
+                # all options are unchecked, use the old val
+                # wrap val (from entry) in a list to protect embedded whitespace
+                value [list $val]
+            } elseif {$newval ne $val} {
+                # new value selected, update the widget
                 value $newval
                 if {[string length $itk_option(-interactcommand)] > 0} {
                     uplevel #0 $itk_option(-interactcommand)
                 }
-            }
-            if {$newval eq ""} {
-                value $val
             }
         }
         default {
