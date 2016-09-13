@@ -179,6 +179,11 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         puts stderr "ERROR: Invalid map XML: \"$elemType\""
         return
     }
+    # If there is a <current>, use it
+    set current [$map element -as object "current"]
+    if {$current != ""} {
+        set map $current
+    }
 
     # Set global map properties
     setLabel [$map get "about.label"]
