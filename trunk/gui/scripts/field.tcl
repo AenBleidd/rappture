@@ -1171,28 +1171,47 @@ itcl::body Rappture::Field::VerifyVtkDataSet { contents } {
 itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     package require vtk
 
-    set reader $this-datasetreader
-    vtkDataSetReader $reader
+    if {[string index $contents 0] == "<"} {
+        set reader $this-xmlreader
+        vtkXMLGenericDataObjectReader $reader
 
-    # Write the contents to a file just in case it's binary.
-    set tmpfile file[pid].vtk
-    set f [open "$tmpfile" "w"]
-    fconfigure $f -translation binary -encoding binary
-    puts $f $contents
-    close $f
+        # Write the contents to a file, since the XML reader
+        # can't read from a memory buffer
+        set tmpfile file[pid]-vtk.xml
+        set f [open "$tmpfile" "w"]
+        fconfigure $f -translation binary -encoding binary
+        puts $f $contents
+        close $f
 
-    $reader SetFileName $tmpfile
-    $reader ReadAllNormalsOn
-    $reader ReadAllTCoordsOn
-    $reader ReadAllScalarsOn
-    $reader ReadAllColorScalarsOn
-    $reader ReadAllVectorsOn
-    $reader ReadAllTensorsOn
-    $reader ReadAllFieldsOn
-    $reader Update
-    file delete $tmpfile
+        $reader SetFileName $tmpfile
+        $reader Update
+        file delete $tmpfile
 
-    set dataset [$reader GetOutput]
+        set dataset [$reader GetOutputAsDataSet]
+    } else {
+        set reader $this-datasetreader
+        vtkDataSetReader $reader
+
+        # Write the contents to a file just in case it's binary.
+        set tmpfile file[pid].vtk
+        set f [open "$tmpfile" "w"]
+        fconfigure $f -translation binary -encoding binary
+        puts $f $contents
+        close $f
+
+        $reader SetFileName $tmpfile
+        $reader ReadAllNormalsOn
+        $reader ReadAllTCoordsOn
+        $reader ReadAllScalarsOn
+        $reader ReadAllColorScalarsOn
+        $reader ReadAllVectorsOn
+        $reader ReadAllTensorsOn
+        $reader ReadAllFieldsOn
+        $reader Update
+        file delete $tmpfile
+
+        set dataset [$reader GetOutput]
+    }
     if { $dataset == "" } {
         puts stderr "Failed to parse VTK file"
         rename $reader ""
