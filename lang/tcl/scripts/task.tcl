@@ -463,20 +463,18 @@ itcl::body Rappture::Task::MiddlewareTime {args} {
 itcl::body Rappture::Task::IsCacheable {} {
     if { ![info exists _resources(-cachehosts)] ||
          $_resources(-cachehosts) == "" } {
-puts stderr cachehosts=[info exists _resources(-cachehosts)]
+        puts stderr cachehosts=[info exists _resources(-cachehosts)]
         return 0
     }
-if 0 {
-    set state [$_xmlobj get "tool.cache"]
-puts stderr "cache tag is \"$state\""
-    if { $state == "" } {
-        return 0
+    global env
+    if { [info exists env(RAPPTURE_CACHE_OVERRIDE)] } {
+        set state $env(RAPPTURE_CACHE_OVERRIDE)
+    } else {
+        set state [$_xmlobj get "tool.cache"]
     }
-} else {
-    set state 1 
-}
-    if { ![string is boolean $state] } {
-        return 0
+    puts stderr "cache tag is \"$state\""
+    if { $state == ""  || ![string is boolean $state] } {
+        return 1;                       # Default is to allow caching.
     }
     return $state
 }
