@@ -239,7 +239,11 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
     # Parse layers
     set parent [$_tree findchild root "layers"]
     set layers [$map element -as object "layers"]
-    foreach layer [$layers children -type layer] {
+    set layerList [list]
+    if {$layers != ""} {
+        set layerList [$layers children -type layer]
+    }
+    foreach layer $layerList {
         # Unique identifier for layer.
         set name [$layers element -as id "$layer"]
         if {[hasLayer $name]} {
