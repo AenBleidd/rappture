@@ -3345,9 +3345,9 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                     itk_component add legend-$colormap {
                         label $f2.legend-$colormap -image $_image(legend-$colormap)
                     }
-                    blt::table $f2 $row,0 $f2.legend-$colormap-min -anchor w -pady 0
-                    blt::table $f2 $row,1 $f2.legend-$colormap-max -anchor e -pady 0
-                    blt::table $f2 $row,0 $f2.legend-$colormap -anchor w -pady 2 -cspan 2
+                    blt::table $f2 0,0 $f2.legend-$colormap-min -anchor w -pady 0
+                    blt::table $f2 0,1 $f2.legend-$colormap-max -anchor e -pady 0
+                    blt::table $f2 1,0 $f2.legend-$colormap -anchor w -pady 2 -cspan 2
 
                     blt::table $f $row,0 $f2 -anchor w -pady 0 -cspan 2
                     incr row
@@ -3367,8 +3367,8 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                     -command [itcl::code $this \
                                   SetLayerOpacity $dataobj $layer]
                 Rappture::Tooltip::for $f2.${ctlname}_opacity "Set opacity of $info(label) layer"
-                blt::table $f2 $row,0 $f2.${ctlname}_opacity_l -anchor w -pady 2
-                blt::table $f2 $row,1 $f2.${ctlname}_opacity -anchor w -pady 2
+                blt::table $f2 0,0 $f2.${ctlname}_opacity_l -anchor w -pady 2
+                blt::table $f2 0,1 $f2.${ctlname}_opacity -anchor w -pady 2
 
                 blt::table $f $row,0 $f2 -anchor w -pady 0 -cspan 2
                 incr row
