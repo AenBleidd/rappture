@@ -3330,9 +3330,9 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             if { $info(type) == "image" } {
                 incr imgIdx
                 if { $info(driver) == "colorramp" } {
-                    set f2 $f.cmap
-                    frame $f2
                     set colormap $ctlname
+                    set f2 $f.cmap_$ctlname
+                    frame $f2
                     if { ![info exists _image(legend-$colormap)] } {
                         set _image(legend-$colormap) [image create photo]
                     }
@@ -3357,7 +3357,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             if { $info(type) != "elevation" &&
                  $info(type) != "mask" &&
                 ($info(type) != "image" || $imgIdx > 1) } {
-                set f2 $f.op
+                set f2 $f.op_$ctlname
                 frame $f2
                 label $f2.${ctlname}_opacity_l -text "Opacity" -font "Arial 9"
                 ::scale $f2.${ctlname}_opacity -from 0 -to 100 \
