@@ -2142,10 +2142,10 @@ itcl::body Rappture::MapViewer::BuildMapTab {} {
         1,0 $inner.grid      -cspan 2 -anchor w -pady 2 \
         2,0 $inner.wireframe -cspan 2 -anchor w -pady 2 \
         3,0 $inner.lighting  -cspan 2 -anchor w -pady 2 \
-        4,0 $inner.time_l    -cspan 2 -anchor w -pady 2 \
-        4,1 $inner.time      -cspan 2 -fill x   -pady 2 \
-        5,0 $inner.ambient_l -cspan 2 -anchor w -pady 2 \
-        5,1 $inner.ambient   -cspan 2 -fill x   -pady 2
+        4,0 $inner.time_l             -anchor w -pady 2 \
+        4,1 $inner.time               -fill x   -pady 2 \
+        5,0 $inner.ambient_l          -anchor w -pady 2 \
+        5,1 $inner.ambient            -fill x   -pady 2
 #        4,0 $inner.edges     -cspan 2  -anchor w -pady 2
 
     blt::table configure $inner r* c* -resize none
@@ -3314,7 +3314,7 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                 label $f.${ctlname}_lbl \
                     -text $info(label) \
                     -font "Arial 9" -anchor w
-                blt::table $f $row,1 $f.${ctlname}_lbl -anchor w -pady 2 -cspan 2
+                blt::table $f $row,1 $f.${ctlname}_lbl -anchor w -pady 2
                 Rappture::Tooltip::for $f.${ctlname}_lbl [join $tooltip \n]
             } else {
                 checkbutton $f.${ctlname}_visible \
@@ -3323,30 +3323,33 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
                     -variable [itcl::scope _visibility($tag)] \
                     -command [itcl::code $this \
                                   SetLayerVisibility $dataobj $layer]
-                blt::table $f $row,1 $f.${ctlname}_visible -anchor w -pady 2 -cspan 2
+                blt::table $f $row,1 $f.${ctlname}_visible -anchor w -pady 2
                 Rappture::Tooltip::for $f.${ctlname}_visible [join $tooltip \n]
             }
             incr row
             if { $info(type) == "image" } {
                 incr imgIdx
                 if { $info(driver) == "colorramp" } {
+                    set f2 $f.cmap
+                    frame $f2
                     set colormap $ctlname
                     if { ![info exists _image(legend-$colormap)] } {
                         set _image(legend-$colormap) [image create photo]
                     }
                     itk_component add legend-$colormap-min {
-                        label $f.legend-$colormap-min -text 0
+                        label $f2.legend-$colormap-min -text 0
                     }
                     itk_component add legend-$colormap-max {
-                        label $f.legend-$colormap-max -text 1
+                        label $f2.legend-$colormap-max -text 1
                     }
                     itk_component add legend-$colormap {
-                        label $f.legend-$colormap -image $_image(legend-$colormap)
+                        label $f2.legend-$colormap -image $_image(legend-$colormap)
                     }
-                    blt::table $f $row,0 $f.legend-$colormap-min -anchor w -pady 0 -cspan 2
-                    blt::table $f $row,2 $f.legend-$colormap-max -anchor e -pady 0
-                    incr row
-                    blt::table $f $row,0 $f.legend-$colormap -anchor w -pady 2 -cspan 3
+                    blt::table $f2 $row,0 $f2.legend-$colormap-min -anchor w -pady 0
+                    blt::table $f2 $row,1 $f2.legend-$colormap-max -anchor e -pady 0
+                    blt::table $f2 $row,0 $f2.legend-$colormap -anchor w -pady 2 -cspan 2
+
+                    blt::table $f $row,0 $f2 -anchor w -pady 0 -cspan 2
                     incr row
                     RequestLegend $colormap 256 16
                 }
@@ -3354,16 +3357,20 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
             if { $info(type) != "elevation" &&
                  $info(type) != "mask" &&
                 ($info(type) != "image" || $imgIdx > 1) } {
-                label $f.${ctlname}_opacity_l -text "Opacity" -font "Arial 9"
-                ::scale $f.${ctlname}_opacity -from 0 -to 100 \
+                set f2 $f.op
+                frame $f2
+                label $f2.${ctlname}_opacity_l -text "Opacity" -font "Arial 9"
+                ::scale $f2.${ctlname}_opacity -from 0 -to 100 \
                     -orient horizontal -showvalue off \
                     -variable [itcl::scope _opacity($tag)] \
                     -width 10 \
                     -command [itcl::code $this \
                                   SetLayerOpacity $dataobj $layer]
-                Rappture::Tooltip::for $f.${ctlname}_opacity "Set opacity of $info(label) layer"
-                blt::table $f $row,0 $f.${ctlname}_opacity_l -anchor w -pady 2 -cspan 2
-                blt::table $f $row,2 $f.${ctlname}_opacity -anchor w -pady 2
+                Rappture::Tooltip::for $f2.${ctlname}_opacity "Set opacity of $info(label) layer"
+                blt::table $f2 $row,0 $f2.${ctlname}_opacity_l -anchor w -pady 2
+                blt::table $f2 $row,1 $f2.${ctlname}_opacity -anchor w -pady 2
+
+                blt::table $f $row,0 $f2 -anchor w -pady 0 -cspan 2
                 incr row
             }
         }
@@ -3374,11 +3381,11 @@ itcl::body Rappture::MapViewer::UpdateLayerControls {} {
     }
     SendCmd "[list map attrib [encoding convertto utf-8 [join $attrib ,]]]"
     label $f.map_attrib -text [join $attrib \n] -font "Arial 9"
-    blt::table $f $row,0 $f.map_attrib -anchor sw -pady 2 -cspan 3
+    blt::table $f $row,0 $f.map_attrib -anchor sw -pady 2 -cspan 2
     #incr row
     if { $row > 0 } {
         blt::table configure $f r* c* -resize none
-        blt::table configure $f r$row c2 -resize expand
+        blt::table configure $f r$row c1 -resize expand
     }
 }
 
