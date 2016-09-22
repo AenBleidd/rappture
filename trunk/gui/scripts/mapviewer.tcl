@@ -2778,11 +2778,21 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                                  $info(tms.url) $info(cache) $coverage]
                 }
                 "wms" {
-                    SendCmd [list map layer add $tag image wms \
-                                 $info(wms.url) $info(cache) $coverage \
-                                 $info(wms.layers) \
-                                 $info(wms.format) \
-                                 $info(wms.transparent)]
+                    if {[info exists info(wms.times)]} {
+                        SendCmd [list map layer add $tag image wms \
+                                     $info(wms.url) $info(cache) $coverage \
+                                     $info(wms.layers) \
+                                     $info(wms.format) \
+                                     $info(wms.transparent) \
+                                     $info(wms.times) \
+                                     $info(wms.frameSeconds)]
+                    }
+                        SendCmd [list map layer add $tag image wms \
+                                     $info(wms.url) $info(cache) $coverage \
+                                     $info(wms.layers) \
+                                     $info(wms.format) \
+                                     $info(wms.transparent)]
+                    }
                 }
                 "xyz" {
                     SendCmd [list map layer add $tag image xyz \
