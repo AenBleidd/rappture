@@ -462,6 +462,17 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
                 set value [$layers get $layer.wms.$key]
                 $_tree set $child "wms.$key" $value
             }
+            # These are optional
+            foreach key { times frameSeconds } {
+                set value [$layers get $layer.wms.$key]
+                if { $value != "" } {
+                    if {$key == "times"} {
+                        # Normalize whitespace
+                        regsub -all "\[ \t\r\n\]+" [string trim $value] " " value
+                    }
+                    $_tree set $child "wms.$key" $value
+                }
+            }
             $_tree set $child "driver" "wms"
         }
         set xyz [$layers element -as type $layer.xyz]
@@ -844,9 +855,13 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
         }
         "wms" {
             array set params $driverParamArray
-            foreach key { url layers format transparent } {
+            foreach key { url layers format transparent times frameSeconds } {
                 if {[info exists params($key)]} {
                     set value $params($key)
+                    if {$key == "times"} {
+                        # Normalize whitespace
+                        regsub -all "\[ \t\r\n\]+" [string trim $value] " " value
+                    }
                     $_tree set $child "wms.$key" $value
                 }
             }
