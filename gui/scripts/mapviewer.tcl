@@ -2786,7 +2786,7 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                                      $info(wms.transparent) \
                                      $info(wms.times) \
                                      $info(wms.frameSeconds)]
-                    }
+                    } else {
                         SendCmd [list map layer add $tag image wms \
                                      $info(wms.url) $info(cache) $coverage \
                                      $info(wms.layers) \
