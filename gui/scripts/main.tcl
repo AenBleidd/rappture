@@ -334,7 +334,6 @@ pack $f.analyze -expand yes -fill both
 $tool notify add analyzer * [list $f.analyze reset]
 $f.analyze buildMenu $m $url $app
 
-
 # ----------------------------------------------------------------------
 # Finalize the arrangement
 # ----------------------------------------------------------------------
@@ -404,7 +403,18 @@ if {[llength $params(-load)] > 0} {
 }
 
 # let components (loaders) settle after the newly loaded runs
-update
+#
+# This update was put in to allow the loader to wait for all the
+# widgets to get created before updating them with whatever is the
+# default for the loader.
+#
+# This update is a source of problems for tools that are 1) loading
+# previously saved/shared simulation results and 2) talk to a visualization
+# server.
+#
+# So we're commenting out the "update".  It may need to go back
+# if this breaks loaders with a default setting.
+#update
 
 foreach path [array names ::Rappture::parameters] {
     if { $path == "simset" } {
