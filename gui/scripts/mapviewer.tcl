@@ -3196,7 +3196,6 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 -layout "left_to_right"
                 -minbias 1000
                 -opacity 1.0
-                -removedupes 1
                 -xoffset 0
                 -yoffset 0
             }
@@ -3219,9 +3218,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 "ogr" {
                     SendFiles $info(ogr.url)
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                        SendCmd [list map layer add $tag text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
+                        SendCmd [list map layer add $tag text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $tag text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
+                        SendCmd [list map layer add $tag text ogr {} {} $info(ogr.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
                     }
                 }
                 "tfs" {
@@ -3230,9 +3229,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         set format $info(tfs.format)
                     }
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                        SendCmd [list map layer add $tag text tfs $format {} $info(tfs.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
+                        SendCmd [list map layer add $tag text tfs $format {} $info(tfs.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $tag text tfs $format {} $info(tfs.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
+                        SendCmd [list map layer add $tag text tfs $format {} $info(tfs.url) $info(cache) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
                     }
                 }
                 "wfs" {
@@ -3241,9 +3240,9 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                         set format $info(wfs.format)
                     }
                     if {[info exists style(-minrange)] && [info exists style(-maxrange)]} {
-                        SendCmd [list map layer add $tag text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
+                        SendCmd [list map layer add $tag text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset) $style(-minrange) $style(-maxrange)]
                     } else {
-                        SendCmd [list map layer add $tag text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-removedupes) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
+                        SendCmd [list map layer add $tag text wfs $format $info(wfs.typename) $info(wfs.url) $contentExpr $priorityExpr $fgR $fgG $fgB $bgR $bgG $bgB $style(-halowidth) $style(-fontsize) $style(-declutter) $style(-align) $style(-xoffset) $style(-yoffset)]
                     }
                 }
             }
