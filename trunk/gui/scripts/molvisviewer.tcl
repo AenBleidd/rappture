@@ -909,21 +909,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set data1      ""
             set serial    1
 
-            if { $_reportClientInfo }  {
-                set parent [$dataobj parent -as object]
-                while { $parent != "" } {
-                    set xmlobj $parent
-                    set parent [$parent parent -as object]
-                }
-                set info {}
-                lappend info "tool_id"      [$xmlobj get tool.id]
-                lappend info "tool_name"    [$xmlobj get tool.name]
-                lappend info "tool_title"   [$xmlobj get tool.title]
-                lappend info "tool_command" [$xmlobj get tool.execute]
-                lappend info "tool_revision" \
-                    [$xmlobj get tool.version.application.revision]
-                SendCmd "clientinfo [list $info]"
-            }
             foreach _atom [$dataobj children -type atom components.molecule] {
                 set symbol [$dataobj get components.molecule.$_atom.symbol]
                 set xyz [$dataobj get components.molecule.$_atom.xyz]
@@ -945,10 +930,31 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 append data1 $line
                 incr serial
             }
+            if { $_reportClientInfo }  {
+                set parent [$dataobj parent -as object]
+                while { $parent != "" } {
+                    set xmlobj $parent
+                    set parent [$parent parent -as object]
+                }
+            }
             if {"" != $data1} {
                 # Save the PDB data in case the user wants to later save it.
                 set _pdbdata $data1
                 set numBytes [string length $data1]
+
+                if { $_reportClientInfo }  {
+                    set info {}
+                    lappend info "tool_id"      [$xmlobj get tool.id]
+                    lappend info "tool_name"    [$xmlobj get tool.name]
+                    lappend info "tool_title"   [$xmlobj get tool.title]
+                    lappend info "tool_command" [$xmlobj get tool.execute]
+                    lappend info "tool_revision" \
+                        [$xmlobj get tool.version.application.revision]
+                    lappend info "dataset_type" "molecule-xml"
+                    lappend info "dataset_size"  $numBytes
+                    lappend info "dataset_tag"   $model-$state
+                    SendCmd "clientinfo [list $info]"
+                }
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
@@ -963,6 +969,20 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 set _pdbdata $data2
                 set numBytes [string length $data2]
 
+                if { $_reportClientInfo }  {
+                    set info {}
+                    lappend info "tool_id"      [$xmlobj get tool.id]
+                    lappend info "tool_name"    [$xmlobj get tool.name]
+                    lappend info "tool_title"   [$xmlobj get tool.title]
+                    lappend info "tool_command" [$xmlobj get tool.execute]
+                    lappend info "tool_revision" \
+                        [$xmlobj get tool.version.application.revision]
+                    lappend info "dataset_type" "pdb"
+                    lappend info "dataset_size"  $numBytes
+                    lappend info "dataset_tag"   $model-$state
+                    SendCmd "clientinfo [list $info]"
+                }
+
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
                 SendCmd "loadpdb -defer follows $model $state $numBytes"
@@ -970,9 +990,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 set _dataobjs($model-$state)  1
             }
             # lammps dump file overwrites pdb file (change this?)
-            set lammpstypemap [$dataobj get components.molecule.lammpstypemap]
             set lammpsdata [$dataobj get components.molecule.lammps]
             if {"" != $lammpsdata} {
+                set lammpstypemap [$dataobj get components.molecule.lammpstypemap]
                 set data3 ""
                 set modelcount 0
                 foreach lammpsline [split $lammpsdata "\n"] {
@@ -1011,6 +1031,20 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                     # Save the PDB data in case the user wants to later save it.
                     set _pdbdata $data3
                     set numBytes [string length $data3]
+
+                    if { $_reportClientInfo }  {
+                        set info {}
+                        lappend info "tool_id"      [$xmlobj get tool.id]
+                        lappend info "tool_name"    [$xmlobj get tool.name]
+                        lappend info "tool_title"   [$xmlobj get tool.title]
+                        lappend info "tool_command" [$xmlobj get tool.execute]
+                        lappend info "tool_revision" \
+                            [$xmlobj get tool.version.application.revision]
+                        lappend info "dataset_type" "lammps"
+                        lappend info "dataset_size"  $numBytes
+                        lappend info "dataset_tag"   $model-$state
+                        SendCmd "clientinfo [list $info]"
+                    }
 
                     # We know we're buffered here, so append the "loadpdb"
                     # command with the data payload immediately afterwards.
