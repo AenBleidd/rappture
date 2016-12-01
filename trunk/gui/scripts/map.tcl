@@ -219,11 +219,16 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
     # FIXME: Verify projection is valid.
     setProjection $projection
     if {$extents != ""} {
-        foreach {xmin ymin xmax ymax srs} $extents {}
-        if {$srs == ""} {
-            setExtents $xmin $ymin $xmax $ymax
+        if {[string range $projection 0 6] == "global-"} {
+            puts stderr "ERROR: cannot specify extents for global profile"
+            clearExtents
         } else {
-            setExtents $xmin $ymin $xmax $ymax $srs
+            foreach {xmin ymin xmax ymax srs} $extents {}
+            if {$srs == ""} {
+                setExtents $xmin $ymin $xmax $ymax
+            } else {
+                setExtents $xmin $ymin $xmax $ymax $srs
+            }
         }
     } else {
          clearExtents
