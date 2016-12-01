@@ -214,7 +214,9 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         set projection "epsg:32663"
     } elseif { $projection == "equirectangular" ||
                $projection == "eqc-wgs84" } {
-        set projection "epsg:32663"
+        # FIXME: epsg:32663 not recognized?
+        #set projection "epsg:32663"
+        set projection "+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     }
     # FIXME: Verify projection is valid.
     setProjection $projection
