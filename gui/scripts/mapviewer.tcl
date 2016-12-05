@@ -91,6 +91,7 @@ itcl::class Rappture::MapViewer {
     private method BuildViewpointsTab {}
     private method Camera {option args}
     private method Connect {}
+    private method ConvertTime { timeval }
     private method CurrentLayers {args}
     private method DisablePanningMouseBindings {}
     private method DisableRotationMouseBindings {}
@@ -2653,6 +2654,14 @@ itcl::body Rappture::MapViewer::ToggleWireframe {} {
     AdjustSetting terrain-wireframe
 }
 
+# Convert from Tcl integer epoch time value to hours as a double
+itcl::body Rappture::MapViewer::ConvertTime { timeval } {
+    set hrs [clock format $timeval -format %k -gmt 1]
+    set min [clock format $timeval -format %M -gmt 1]
+    set sec [clock format $timeval -format %S -gmt 1]
+    set val [expr {$hrs + $min/60.0 + $sec/3600.0}]
+}
+
 itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
     array set settings {
         -ambient 0.03
@@ -2661,6 +2670,7 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
         -edges 0
         -lighting 1
         -linewidth 1.0
+        -time now
         -vertscale 1.0
         -wireframe 0
     }
@@ -2672,6 +2682,13 @@ itcl::body Rappture::MapViewer::SetTerrainStyle { style } {
     set _settings(terrain-edges) $settings(-edges)
     SendCmd "map terrain color [Color2RGB $settings(-color)]"
     #SendCmd "map terrain colormode constant"
+    if {$settings(-time) eq "now"} {
+        set settings(-time) [ConvertTime [clock seconds]]
+    } else {
+        set settings(-time) [ConvertTime [clock scan $settings(-time) -gmt 1]]
+    }
+    SendCmd "map time $settings(-time)"
+    set _settings(time) $settings(-time)
     SendCmd "map terrain lighting $settings(-lighting)"
     set _settings(terrain-lighting) $settings(-lighting)
     SendCmd "map terrain linecolor [Color2RGB $settings(-edgecolor)]"

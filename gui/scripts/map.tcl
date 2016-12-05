@@ -613,7 +613,7 @@ itcl::body Rappture::Map::setStyle { style } {
     array set styleinfo $style
     foreach key [array names styleinfo] {
         set valid 0
-        foreach validkey {-ambient -color -edgecolor -edges -lighting -linewidth -vertscale -wireframe} {
+        foreach validkey {-ambient -color -edgecolor -edges -lighting -linewidth -time -vertscale -wireframe} {
             if {$key == $validkey} {
                 set valid 1
                 break
