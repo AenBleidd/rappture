@@ -114,7 +114,7 @@ itcl::class Rappture::MapViewer {
     private method GetImage { args }
     private method GetNormalizedMouse { x y }
     private method GoToViewpoint { dataobj viewpoint {duration 2.0} }
-    private method InitSettings { args  }
+    private method InitSettings { args }
     private method MapIsGeocentric {}
     private method Pan {option x y}
     private method Pin {option x y}
