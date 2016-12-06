@@ -241,8 +241,24 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
     if {[catch {setStyle [$map get "style"]} msg] != 0} {
         puts stderr "ERROR: $msg"
     }
-    if {[catch {setCamera [$map get "camera"]} msg] != 0} {
-        puts stderr "ERROR: $msg"
+
+    set camnode [$map element -as object "camera"]
+    if {$camnode != ""} {
+        # For backwards compat with camera name/value list string in CDATA
+        set caminfo [string trim [$map get "camera"]]
+        if {$caminfo == ""} {
+            # No CDATA, check for tags
+            foreach camparam {layer x y latitude longitude z heading pitch distance xmin ymin xmax ymax srs verticalDatum} {
+                # Tags can have empty content, so check for node first
+                set params [$camnode children -type $camparam]
+                foreach param $params {
+                    lappend caminfo $camparam [$camnode get $param]
+                }
+            }
+        }
+        if {[catch {setCamera $caminfo} msg] != 0} {
+            puts stderr "ERROR: $msg"
+        }
     }
 
     # Parse layers
