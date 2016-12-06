@@ -2658,7 +2658,11 @@ itcl::body Rappture::MapViewer::ToggleWireframe {} {
 itcl::body Rappture::MapViewer::ConvertTime { timeval } {
     set hrs [clock format $timeval -format %k -gmt 1]
     set min [clock format $timeval -format %M -gmt 1]
+    # Strip leading zeroes
+    scan $min %d min
     set sec [clock format $timeval -format %S -gmt 1]
+    # Strip leading zeroes
+    scan $sec %d sec
     set val [expr {$hrs + $min/60.0 + $sec/3600.0}]
 }
 
