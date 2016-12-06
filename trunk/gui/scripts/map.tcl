@@ -211,7 +211,9 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
                $projection == "plate-carre" || $projection == "plate-carree" } {
         # Can't use angular units in projection  
         puts stderr "ERROR: Geodetic profile not supported as map projection.  Try using an equirectangular (epsg:32663) projection instead."
-        set projection "epsg:32663"
+        # FIXME: epsg:32663 not recognized?
+        #set projection "epsg:32663"
+        set projection "+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     } elseif { $projection == "equirectangular" ||
                $projection == "eqc-wgs84" } {
         # FIXME: epsg:32663 not recognized?
@@ -233,7 +235,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
             }
         }
     } else {
-         clearExtents
+        clearExtents
     }
 
     if {[catch {setStyle [$map get "style"]} msg] != 0} {
