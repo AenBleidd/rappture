@@ -33,6 +33,32 @@ for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
     $driver put -append yes output.curve(single).component.xy "$x $y\n"
 }
 
+# generate a single curve with x and y axis upper and lower limits
+set xminl [expr $min+(($max-$min)/4.0)]
+set xmaxl [expr $max-(($max-$min)/4.0)]
+set yminl [expr {cos($xminl)/(1+$xminl)}]
+set ymaxl [expr {cos($xmaxl)/(1+$xmaxl)}]
+
+$driver put output.curve(limited).about.label "Axis limits curve"
+$driver put output.curve(limited).about.description \
+    "This is an example of a single curve with x and y axis limits applied."
+$driver put output.curve(limited).xaxis.label "Time"
+$driver put output.curve(limited).xaxis.description "Time during the experiment."
+$driver put output.curve(limited).xaxis.units "s"
+$driver put output.curve(limited).xaxis.min $xminl
+$driver put output.curve(limited).xaxis.max $xmaxl
+$driver put output.curve(limited).yaxis.label "Voltage v(11)"
+$driver put output.curve(limited).yaxis.description "Output from the amplifier."
+$driver put output.curve(limited).yaxis.units "V"
+$driver put output.curve(limited).yaxis.min $yminl
+$driver put output.curve(limited).yaxis.max $ymaxl
+
+for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
+    set y [expr {cos($x)/(1+$x)}]
+    $driver put -append yes output.curve(limited).component.xy "$x $y\n"
+}
+
+
 # generate multiple curves on the same plot
 foreach factor {1 2} {
     $driver put output.curve(multi$factor).about.group "Multiple curve"

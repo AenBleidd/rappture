@@ -39,6 +39,30 @@ single['component.xy'] = (x, y)
 # single['component.xy'] = [x, y]
 # single['component.xy'] = np.row_stack((x, y))
 
+# generate a single curve with x and y axis upper and lower limits
+xminl = xmin+((xmax-xmin)/4.0)
+xmaxl = xmax-((xmax-xmin)/4.0)
+yminl = np.cos(xminl)/(1+xminl)
+ymaxl = np.cos(xmaxl)/(1+xmaxl)
+limited = rx['output.curve(limited)']
+limited['about.label'] = "Axis limits curve"
+limited['about.description'] = \
+    'This is an example of a single curve with x and y axis limits applied.'
+limited['xaxis.label'] = "Time"
+limited['xaxis.description'] = "Time during the experiment."
+limited['xaxis.units'] = "s"
+limited['xaxis.min'] = xminl
+limited['xaxis.max'] = xmaxl
+limited['yaxis.label'] = "Voltage v(11)"
+limited['yaxis.description'] = "Output from the amplifier."
+limited['yaxis.units'] = "V"
+limited['yaxis.min'] = yminl
+limited['yaxis.max'] = ymaxl
+
+# plot it
+limited['component.xy'] = (x, y)
+
+
 # generate multiple curves on the same plot
 for factor in [1, 2]:
     curve = rx['output.curve(multi%s)' % factor]
