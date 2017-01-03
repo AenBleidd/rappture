@@ -2858,6 +2858,12 @@ itcl::body Rappture::MapViewer::SetLayerStyle { dataobj layer } {
                 DebugTrace "layer style: $info(style)"
                 array set style $info(style)
             }
+            if { [info exists info(minrange)] } {
+                set style(-minrange) $info(minrange)
+            }
+            if { [info exists info(maxrange)] } {
+                set style(-maxrange) $info(maxrange)
+            }
             if { [info exists info(opacity)] } {
                 set style(-opacity) $info(opacity)
             }

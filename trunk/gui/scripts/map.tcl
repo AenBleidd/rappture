@@ -297,7 +297,7 @@ itcl::body Rappture::Map::parseXML { xmlobj path } {
         # These are settings for which there should be no default
         # We want to know if they have been set by the user or not
         # Not all layer types use these
-        foreach key { coverage opacity content priority style terrainPatch } {
+        foreach key { coverage opacity content priority style minrange maxrange terrainPatch } {
             set val [$layers get $layer.$key]
             if {$val != ""} {
                 if {$key eq "coverage" && $layerType ne "image"} {
@@ -704,7 +704,7 @@ itcl::body Rappture::Map::addLayer { type name paramArray driver driverParamArra
     # These are settings for which there should be no default
     # We want to know if they have been set by the user or not
     # Not all layer types use these
-    foreach key { coverage opacity content priority style terrainPatch } {
+    foreach key { coverage opacity content priority style minrange maxrange terrainPatch } {
         if {[info exists params($key)]} {
             set val $params($key)
             if {$val != ""} {
