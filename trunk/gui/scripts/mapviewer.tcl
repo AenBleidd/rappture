@@ -293,7 +293,7 @@ itcl::body Rappture::MapViewer::constructor {args} {
         time                   12
     }]
 
-    set _settings(time) [clock format [clock seconds] -format %k -gmt 1]
+    set _settings(time) [ConvertTime [clock seconds]]
 
     if {!$_useSidebar} {
         destroy $itk_component(main)
@@ -1432,7 +1432,7 @@ itcl::body Rappture::MapViewer::Rebuild {} {
                 SetTerrainStyle $_mapsettings(style)
             } else {
                 InitSettings terrain-ambient terrain-edges terrain-lighting \
-                    terrain-vertscale terrain-wireframe
+                    terrain-vertscale terrain-wireframe time
             }
             InitSettings coords-visible
         } else {
