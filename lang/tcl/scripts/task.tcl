@@ -838,6 +838,10 @@ itcl::body Rappture::Task::LogSubmittedSimulationUsage {} {
     } xmlobj] != 0 } {
         error "Can't create rappture library: $xmlobj"
     }
+    global env
+    if {[info exists env(SESSION)]} {
+        $xmlobj put output.session $env(SESSION)
+    }
     set _job(xmlobj) $xmlobj
 }
 
