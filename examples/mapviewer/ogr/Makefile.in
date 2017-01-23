@@ -22,8 +22,7 @@ FILES           = \
                   $(srcdir)/coord.csv \
                   $(srcdir)/ogr_csv_icon_example.tcl \
                   $(srcdir)/ogr_csv_points_example.tcl \
-                  $(srcdir)/ogr_shape_line_example.tcl \
-                  $(srcdir)/station_clean.csv
+                  $(srcdir)/ogr_shape_line_example.tcl
 
 all:
 
