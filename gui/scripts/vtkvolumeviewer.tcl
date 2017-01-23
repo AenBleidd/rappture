@@ -61,20 +61,17 @@ itcl::class Rappture::VtkVolumeViewer {
         # do nothing
     }
     public method scale {args}
-    public method updateTransferFunctions {}
 
     # The following methods are only used by this class.
-    private method AddNewMarker { x y }
     private method AdjustSetting {what {value ""}}
     private method BuildAxisTab {}
     private method BuildCameraTab {}
+    private method BuildColormap { name colors }
     private method BuildCutplanesTab {}
     private method BuildDownloadPopup { widget command }
     private method BuildViewTab {}
-    private method BuildVolumeComponents {}
     private method BuildVolumeTab {}
-    private method ComputeAlphamap { cname }
-    private method ComputeTransferFunction { cname }
+    private method ChangeColormap { dataobj comp color }
     private method Connect {}
     private method CurrentDatasets {args}
     private method Disconnect {}
@@ -86,12 +83,9 @@ itcl::class Rappture::VtkVolumeViewer {
     private method EventuallyResize { w h }
     private method EventuallyRotate { q }
     private method EventuallySetCutplane { axis args }
-    private method GetColormap { cname color }
     private method GetDatasetsWithComponent { cname }
     private method GetImage { args }
     private method GetVtkData { args }
-    private method HideAllMarkers {}
-    private method InitComponentSettings { cname }
     private method InitSettings { args }
     private method IsValidObject { dataobj }
     private method LeaveLegend {}
@@ -99,8 +93,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private method MotionLegend { x y }
     private method Pan {option x y}
     private method PanCamera {}
-    private method ParseLevelsOption { cname levels }
-    private method ParseMarkersOption { cname markers }
     private method Pick {x y}
     private method QuaternionToView { q } {
         foreach { _view(-qw) _view(-qx) _view(-qy) _view(-qz) } $q break
@@ -109,24 +101,19 @@ itcl::class Rappture::VtkVolumeViewer {
     private method ReceiveDataset { args }
     private method ReceiveImage { args }
     private method ReceiveLegend { colormap title min max size }
-    private method RemoveMarker { x y }
     private method RequestLegend {}
-    private method ResetColormap { cname color }
     private method Rotate {option x y}
-    private method SendTransferFunctions {}
+    private method SetColormap { dataobj comp }
     private method SetCurrentFieldName { dataobj }
-    private method SetInitialTransferFunction { dataobj cname }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj cname }
     private method SetOrientation { side }
     private method Slice {option args}
-    private method SwitchComponent { cname }
     private method ViewToQuaternion {} {
         return [list $_view(-qw) $_view(-qx) $_view(-qy) $_view(-qz)]
     }
     private method Zoom {option}
 
-    private variable _alphamap
     private variable _arcball ""
     private variable _dlist "";         # list of data objects
     private variable _obj2ovride;       # maps dataobj => style override
@@ -140,9 +127,9 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _click;            # Info used for rotate operations.
     private variable _limits;           # Autoscale min/max for all axes
     private variable _view;             # View params for 3D view
-    private variable _parsedFunction
-    private variable _transferFunctionEditors
     private variable _settings
+    private variable _style;            # Array of current component styles.
+    private variable _initialStyle;     # Array of initial component styles.
 
     private variable _start 0
     private variable _title ""
@@ -154,12 +141,9 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _allowMultiComponent 0
 
     private variable _first "";         # This is the topmost dataset.
-    private variable _current "";       # Currently selected component
     private variable _volcomponents;    # Maps component name to list of
                                         # dataobj-component tags
     private variable _componentsList;   # List of components found
-    private variable _cname2transferFunction
-    private variable _cname2defaultcolormap
 
     private variable _width 0
     private variable _height 0
@@ -244,21 +228,16 @@ itcl::body Rappture::VtkVolumeViewer::constructor {args} {
         -axisminorticks         1
         -axismode               "static"
         -background             black
-        -color                  "default"
+        -color                  BCGYR
         -cutplanelighting       1
         -cutplaneopacity        100
         -cutplanesvisible       0
         -legendvisible          1
-        -volumeambient          40
-        -volumeblendmode        composite
-        -volumediffuse          60
         -volumelighting         1
+        -volumematerial         80
         -volumeopacity          50
         -volumeoutline          0
         -volumequality          80
-        -volumespecularexponent 90
-        -volumespecularlevel    30
-        -volumethickness        350
         -volumevisible          1
         -xcutplaneposition      50
         -xcutplanevisible       1
@@ -373,16 +352,12 @@ itcl::body Rappture::VtkVolumeViewer::constructor {args} {
     # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -height 50 -highlightthickness 0
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
-    bind $itk_component(legend) <KeyPress-Delete> \
-        [itcl::code $this RemoveMarker %x %y]
-    bind $itk_component(legend) <Enter> \
-        [list focus $itk_component(legend)]
 
     # Hack around the Tk panewindow.  The problem is that the requested
     # size of the 3d view isn't set until an image is retrieved from
@@ -390,9 +365,8 @@ itcl::body Rappture::VtkVolumeViewer::constructor {args} {
     set w 10000
     pack forget $itk_component(view)
     blt::table $itk_component(plotarea) \
-        0,0 $itk_component(view) -fill both -reqwidth $w \
-        1,0 $itk_component(legend) -fill x
-    blt::table configure $itk_component(plotarea) r1 -resize none
+        0,0 $itk_component(view) -fill both -reqwidth $w
+    blt::table configure $itk_component(plotarea) c1 -resize none
 
     # Bindings for rotation via mouse
     bind $itk_component(view) <ButtonPress-1> \
@@ -728,8 +702,6 @@ itcl::body Rappture::VtkVolumeViewer::scale {args} {
             set _limits($cname) [list $vmin $vmax]
         }
     }
-    BuildVolumeComponents
-    updateTransferFunctions
 }
 
 # ----------------------------------------------------------------------
@@ -871,9 +843,6 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     array unset _datasets
     array unset _colormaps
     array unset _dataset2style
-
-    array unset _parsedFunction
-    array unset _cname2transferFunction
 
     set _resizePending 0
     set _rotatePending 0
@@ -1067,8 +1036,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
 
     InitSettings -color \
         -volumevisible \
-        -volumeambient -volumediffuse -volumespecularlevel \
-        -volumespecularexponent -volumeblendmode -volumethickness \
+        -volumematerial \
         -volumelighting -volumeopacity -volumequality -volumeoutline \
         -cutplanesvisible \
         -xcutplaneposition -ycutplaneposition -zcutplaneposition \
@@ -1348,12 +1316,11 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         "-color" {
             set color [$itk_component(colormap) value]
             set _settings($what) $color
-            set _settings($_current${what}) $color
-            ResetColormap $_current $color
-        }
-        "-current" {
-            set cname [$itk_component(volcomponents) value]
-            SwitchComponent $cname
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+                ChangeColormap $dataobj $comp $color
+            }
+            EventuallyRequestLegend
         }
         "-cutplanelighting" {
             set bool $_settings($what)
@@ -1415,103 +1382,50 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             DrawLegend
         }
         "-legendvisible" {
-            set bool $_settings($what)
-            if { $bool } {
-                blt::table $itk_component(plotarea) \
-                    1,0 $itk_component(legend) -fill x
-            } else {
-                blt::table forget $itk_component(legend)
-            }
+            DrawLegend
         }
-        "-volumeambient" {
-            # Other parts of the code use the -volumeambient setting to
-            # tell if the component settings have been initialized
-            if { ![info exists _settings($_current${what})] } {
-                InitComponentSettings $_current
-            }
+        "-volumematerial" {
             set val $_settings($what)
-            set _settings($_current${what}) $val
-            set ambient [expr {0.01*$val}]
-            foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume shading ambient $ambient $tag"
-            }
-        }
-        "-volumeblendmode" {
-            set val [$itk_component(blendmode) value]
-            set mode [$itk_component(blendmode) translate $val]
-            set _settings($what) $mode
-            set _settings($_current${what}) $mode
-            foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume blendmode $mode $tag"
-            }
-        }
-        "-volumediffuse" {
-            set val $_settings($what)
-            set _settings($_current${what}) $val
             set diffuse [expr {0.01*$val}]
-            foreach tag [GetDatasetsWithComponent $_current] {
+            set specular [expr {0.01*$val}]
+            #set power [expr {sqrt(160*$val+1.0)}]
+            set power [expr {$val+1.0}]
+            foreach tag [CurrentDatasets -visible] {
                 SendCmd "volume shading diffuse $diffuse $tag"
+                SendCmd "volume shading specular $specular $power $tag"
             }
         }
         "-volumelighting" {
             set bool $_settings($what)
-            set _settings($_current${what}) $bool
-            foreach tag [GetDatasetsWithComponent $_current] {
+            foreach tag [CurrentDatasets -visible] {
                 SendCmd "volume lighting $bool $tag"
             }
         }
         "-volumeopacity" {
             set val $_settings($what)
-            set _settings($_current${what}) $val
             set val [expr {0.01*$val}]
-            foreach tag [GetDatasetsWithComponent $_current] {
+            foreach tag [CurrentDatasets -visible] {
                 SendCmd "volume opacity $val $tag"
             }
         }
         "-volumeoutline" {
             set bool $_settings($what)
             SendCmd "outline visible 0"
-            foreach tag [GetDatasetsWithComponent $_current] {
+            foreach tag [CurrentDatasets -visible] {
                 SendCmd "outline visible $bool $tag"
             }
         }
         "-volumequality" {
             set val $_settings($what)
-            set _settings($_current${what}) $val
             set val [expr {0.01*$val}]
-            foreach tag [GetDatasetsWithComponent $_current] {
+            foreach tag [CurrentDatasets -visible] {
                 SendCmd "volume quality $val $tag"
             }
         }
-        "-volumespecularlevel" - "-volumespecularexponent" {
-            set val $_settings($what)
-            set _settings($_current${what}) $val
-            set level [expr {0.01*$val}]
-            set exp $_settings($what)
-            foreach tag [GetDatasetsWithComponent $_current] {
-                SendCmd "volume shading specular $level $exp $tag"
-            }
-        }
-        "-volumethickness" {
-            set _settings($_current${what}) $_settings($what)
-            updateTransferFunctions
-        }
         "-volumevisible" {
             set bool $_settings($what)
-            set _settings($_current${what}) $bool
-            # Only the data objects in the array _obj2ovride(*-raise) are
-            # in the working set and can be displayed on screen. The global
-            # volume control determines whether they are visible.
-            #
-            # Note: The use of the current component is a hold over from
-            #       nanovis.  If we can't display more than one volume,
-            #       we don't have to limit the effects to a specific
-            #       component.
-            foreach tag [GetDatasetsWithComponent $_current] {
-                foreach {dataobj cname} [split $tag -] break
-                if { [info exists _obj2ovride($dataobj-raise)] } {
-                    SendCmd "volume visible $bool $tag"
-                }
+            foreach tag [CurrentDatasets -visible] {
+                SendCmd "volume visible $bool $tag"
             }
             if { $bool } {
                 Rappture::Tooltip::for $itk_component(volume) \
@@ -1563,12 +1477,12 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     set _legendPending 0
     set font "Arial 8"
-    set lineht [font metrics $itk_option(-font) -linespace]
-    set c $itk_component(legend)
-    set w [winfo width $c]
-    set h [winfo height $c]
-    set h [expr {$h-$lineht-20}]
-    set w [expr {$w-20}]
+    set lineht [font metrics $font -linespace]
+    set w 12
+    set h [expr {$_height - 3 * ($lineht + 2)}]
+    if { $h < 1 } {
+        return
+    }
     # Set the legend on the first dataset.
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
@@ -1578,6 +1492,74 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
             break;
         }
     }
+}
+
+#
+# ChangeColormap --
+#
+itcl::body Rappture::VtkVolumeViewer::ChangeColormap {dataobj comp color} {
+    set tag $dataobj-$comp
+    if { ![info exist _style($tag)] } {
+        error "no initial colormap"
+    }
+    array set style $_style($tag)
+    set style(-color) $color
+    set _style($tag) [array get style]
+    SetColormap $dataobj $comp
+}
+
+#
+# SetColormap --
+#
+itcl::body Rappture::VtkVolumeViewer::SetColormap { dataobj comp } {
+    array set style {
+        -color BCGYR
+        -levels 6
+    }
+    set tag $dataobj-$comp
+    if { ![info exists _initialStyle($tag)] } {
+        # Save the initial component style.
+        set _initialStyle($tag) [$dataobj style $comp]
+    }
+
+    # Override defaults with initial style defined in xml.
+    array set style $_initialStyle($tag)
+
+    if { ![info exists _style($tag)] } {
+        set _style($tag) [array get style]
+    }
+    # Override initial style with current style.
+    array set style $_style($tag)
+
+    set name "$style(-color):$style(-levels)"
+    if { ![info exists _colormaps($name)] } {
+        BuildColormap $name [array get style]
+        set _colormaps($name) 1
+    }
+    if { ![info exists _dataset2style($tag)] ||
+         $_dataset2style($tag) != $name } {
+        SendCmd "volume colormap $name $tag"
+        SendCmd "$_cutplaneCmd colormap $name-opaque $tag"
+        set _dataset2style($tag) $name
+    }
+}
+
+#
+# BuildColormap --
+#
+# Alpha map is in the format: normalized_value opacity midpoint sharpness
+#
+itcl::body Rappture::VtkVolumeViewer::BuildColormap { name styles } {
+    array set style $styles
+    set cmap [ColorsToColormap $style(-color)]
+    if { [llength $cmap] == 0 } {
+        set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
+    }
+
+    set amap "0.0 0.0 0.5 0.0 1.0 1.0 0.5 0.0"
+    set opaqueAmap "0.0 1.0 1.0 1.0"
+    SendCmd [list colormap define $name $cmap -spline $amap]
+    SendCmd [list colormap define $name-opaque $cmap $opaqueAmap]
 }
 
 # ----------------------------------------------------------------------
@@ -1674,22 +1656,11 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         -icon [Rappture::icon volume-on]]
     $inner configure -borderwidth 4
 
-    label $inner.volcomponents_l -text "Component" -font $font
-    itk_component add volcomponents {
-        Rappture::Combobox $inner.volcomponents -editable 0
-    }
-    bind $inner.volcomponents <<Value>> \
-        [itcl::code $this AdjustSetting -current]
-
     checkbutton $inner.visibility \
         -text "Visible" \
         -font $font \
         -variable [itcl::scope _settings(-volumevisible)] \
         -command [itcl::code $this AdjustSetting -volumevisible]
-
-    label $inner.lighting_l \
-        -text "Lighting / Material Properties" \
-        -font $bfont
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
@@ -1697,49 +1668,24 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         -variable [itcl::scope _settings(-volumelighting)] \
         -command [itcl::code $this AdjustSetting -volumelighting]
 
-    label $inner.ambient_l \
-        -text "Ambient" \
-        -font $font
-    ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-volumeambient)] \
+    label $inner.dim_l -text "Dim" -font $font
+    ::scale $inner.material -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(-volumematerial)] \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumeambient] \
-        -troughcolor grey92
-
-    label $inner.diffuse_l -text "Diffuse" -font $font
-    ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-volumediffuse)] \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumediffuse] \
-        -troughcolor grey92
-
-    label $inner.specularLevel_l -text "Specular" -font $font
-    ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-volumespecularlevel)] \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumespecularlevel] \
-        -troughcolor grey92
-
-    label $inner.specularExponent_l -text "Shininess" -font $font
-    ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
-        -variable [itcl::scope _settings(-volumespecularexponent)] \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumespecularexponent] \
-        -troughcolor grey92
+        -command [itcl::code $this AdjustSetting -volumematerial]
+    label $inner.bright_l -text "Bright" -font $font
 
     label $inner.opacity_l -text "Opacity" -font $font
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(-volumeopacity)] \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumeopacity] \
-        -troughcolor grey92
+        -command [itcl::code $this AdjustSetting -volumeopacity]
 
     label $inner.quality_l -text "Quality" -font $font
     ::scale $inner.quality -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(-volumequality)] \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumequality] \
-        -troughcolor grey92
+        -command [itcl::code $this AdjustSetting -volumequality]
 
     label $inner.field_l -text "Field" -font $font
     itk_component add field {
@@ -1748,76 +1694,32 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting -field]
 
-    label $inner.transferfunction_l \
-        -text "Transfer Function" -font $bfont
-
-    label $inner.thin -text "Thin" -font $font
-    ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
-        -variable [itcl::scope _settings(-volumethickness)] \
-        -showvalue off \
-        -command [itcl::code $this AdjustSetting -volumethickness] \
-        -troughcolor grey92
-
-    label $inner.thick -text "Thick" -font $font
-    $inner.thickness set $_settings(-volumethickness)
-
     label $inner.colormap_l -text "Colormap" -font $font
     itk_component add colormap {
-        Rappture::Combobox $inner.colormap -width 10 -editable 0
+        Rappture::Combobox $inner.colormap -editable 0
     }
-    $inner.colormap choices insert end [GetColormapList -includeDefault]
-
+    $inner.colormap choices insert end [GetColormapList]
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -color]
     $itk_component(colormap) value $_settings(-color)
 
-    label $inner.blendmode_l -text "Blend Mode" -font $font
-    itk_component add blendmode {
-        Rappture::Combobox $inner.blendmode -editable 0
-    }
-    $inner.blendmode choices insert end \
-        "composite"     "Composite"         \
-        "max_intensity" "Maximum Intensity" \
-        "additive"      "Additive"
-
-    $itk_component(blendmode) value \
-        "[$itk_component(blendmode) label $_settings(-volumeblendmode)]"
-    bind $inner.blendmode <<Value>> \
-        [itcl::code $this AdjustSetting -volumeblendmode]
-
     blt::table $inner \
-        0,0 $inner.volcomponents_l -anchor e -cspan 2 \
-        0,2 $inner.volcomponents -cspan 3 -fill x \
-        1,0 $inner.field_l -anchor e -cspan 2  \
-        1,2 $inner.field -cspan 3 -fill x \
-        2,0 $inner.lighting_l -anchor w -cspan 4 \
-        3,1 $inner.lighting -anchor w -cspan 3 \
-        4,1 $inner.ambient_l -anchor e \
-        4,2 $inner.ambient -cspan 3 -fill x \
-        5,1 $inner.diffuse_l -anchor e \
-        5,2 $inner.diffuse -cspan 3 -fill x \
-        6,1 $inner.specularLevel_l -anchor e \
-        6,2 $inner.specularLevel -cspan 3 -fill x \
-        7,1 $inner.specularExponent_l -anchor e \
-        7,2 $inner.specularExponent -cspan 3 -fill x \
-        8,1 $inner.visibility -anchor w -cspan 3 \
-        9,1 $inner.quality_l -anchor e \
-        9,2 $inner.quality -cspan 3 -fill x \
-        10,0 $inner.transferfunction_l -anchor w -cspan 4 \
-        11,1 $inner.opacity_l -anchor e \
-        11,2 $inner.opacity -cspan 3 -fill x \
-        12,1 $inner.colormap_l -anchor e \
-        12,2 $inner.colormap -padx 2 -cspan 3 -fill x \
-        13,1 $inner.blendmode_l -anchor e \
-        13,2 $inner.blendmode -padx 2 -cspan 3 -fill x \
-        14,1 $inner.thin -anchor e \
-        14,2 $inner.thickness -cspan 2 -fill x \
-        14,4 $inner.thick -anchor w
+        0,0 $inner.field_l -anchor w -pady 2 \
+        0,1 $inner.field -fill x -pady 2 -cspan 3 \
+        1,0 $inner.visibility -anchor w -pady 2 -cspan 4 \
+        2,0 $inner.lighting -anchor w -pady 2 -cspan 4 \
+        3,0 $inner.dim_l -anchor e -pady 2 \
+        3,1 $inner.material -fill x -pady 2 -cspan 2 \
+        3,3 $inner.bright_l -anchor w -pady 2 \
+        4,0 $inner.opacity_l -anchor w -pady 2 -cspan 4 \
+        5,0 $inner.opacity -fill x -pady 2 -cspan 4 \
+        6,0 $inner.quality_l -anchor w -pady 2 -cspan 4 \
+        7,0 $inner.quality -fill x -pady 2 -cspan 4 \
+        8,0 $inner.colormap_l -anchor w -pady 2 \
+        8,1 $inner.colormap -fill x -pady 2 -cspan 3
 
-    blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r* -pady { 2 0 }
-    blt::table configure $inner c2 c3 r15 -resize expand
-    blt::table configure $inner c0 -width .1i
+    blt::table configure $inner r* c0 c1 c3 -resize none
+    blt::table configure $inner r9 c2 -resize expand
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
@@ -2182,10 +2084,10 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
         -visible    1
     }
     array set style [$dataobj style $cname]
-    set _settings($cname-volumelighting) $style(-lighting)
-    set _settings($cname-volumeopacity) [expr $style(-opacity) * 100]
-    set _settings($cname-volumeoutline) $style(-outline)
-    set _settings($cname-volumevisible) $style(-visible)
+    set _settings(-volumelighting) $style(-lighting)
+    set _settings(-volumeopacity) [expr $style(-opacity) * 100.0]
+    set _settings(-volumeoutline) $style(-outline)
+    set _settings(-volumevisible) $style(-visible)
 
     $itk_component(colormap) value $style(-color)
 
@@ -2201,10 +2103,7 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj cname } {
     SendCmd "volume lighting $style(-lighting) $tag"
     SendCmd "volume opacity $style(-opacity) $tag"
     SendCmd "volume visible $style(-visible) $tag"
-
-    SetInitialTransferFunction $dataobj $cname
-    SendCmd "volume colormap $cname $tag"
-    SendCmd "$_cutplaneCmd colormap $cname-opaque $tag"
+    SetColormap $dataobj $cname
 }
 
 itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {
@@ -2239,51 +2138,68 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title min max siz
 # DrawLegend --
 #
 itcl::body Rappture::VtkVolumeViewer::DrawLegend {} {
-    if { $_current == "" } {
-        set _current "component"
-    }
-    set cname $_current
-    set c $itk_component(legend)
+    set fname $_curFldName
+    set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
-    set lx 10
-    set ly [expr {$h - 1}]
-    if {"" == [$c find withtag colorbar]} {
-        $c create image 10 10 -anchor nw \
-            -image $_image(legend) -tags colorbar
-        $c create text $lx $ly -anchor sw \
-            -fill $itk_option(-plotforeground) -tags "limits text vmin"
-        $c create text [expr {$w-$lx}] $ly -anchor se \
-            -fill $itk_option(-plotforeground) -tags "limits text vmax"
-        $c create text [expr {$w/2}] $ly -anchor s \
-            -fill $itk_option(-plotforeground) -tags "limits text title"
-        $c lower colorbar
-        $c bind colorbar <ButtonRelease-1> [itcl::code $this AddNewMarker %x %y]
+    set font "Arial 8"
+    set lineht [font metrics $font -linespace]
+
+    if { !$_settings(-legendvisible) } {
+        $c delete legend
+        return
     }
 
-    # Display the markers used by the current transfer function.
-    HideAllMarkers
-    if { [info exists _transferFunctionEditors($cname)] } {
-        $_transferFunctionEditors($cname) showMarkers $_limits($cname)
-    }
-
-    foreach {min max} $_limits($cname) break
-    $c itemconfigure vmin -text [format %g $min]
-    $c coords vmin $lx $ly
-
-    $c itemconfigure vmax -text [format %g $max]
-    $c coords vmax [expr {$w-$lx}] $ly
-
-    set title ""
-    if { $_first != "" } {
-        set title [$_first hints label]
-        set units [$_first hints units]
+    if { [info exists _fields($fname)] } {
+        foreach { title units } $_fields($fname) break
         if { $units != "" } {
-            set title "$title ($units)"
+            set title [format "%s (%s)" $title $units]
         }
+    } else {
+        set title $fname
     }
+
+    set x [expr $w - 2]
+    if { [$c find withtag "legend"] == "" } {
+        set y 2
+        $c create text $x $y \
+            -anchor ne \
+            -fill $itk_option(-plotforeground) -tags "title legend" \
+            -font $font
+        incr y $lineht
+        $c create text $x $y \
+            -anchor ne \
+            -fill $itk_option(-plotforeground) -tags "vmax legend" \
+            -font $font
+        incr y $lineht
+        $c create image $x $y \
+            -anchor ne \
+            -image $_image(legend) -tags "colormap legend"
+        $c create text $x [expr {$h-2}] \
+            -anchor se \
+            -fill $itk_option(-plotforeground) -tags "vmin legend" \
+            -font $font
+        #$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
+        $c bind colormap <Leave> [itcl::code $this LeaveLegend]
+        $c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
+    }
+    $c bind title <ButtonPress> [itcl::code $this LegendTitleAction post]
+    $c bind title <Enter> [itcl::code $this LegendTitleAction enter]
+    $c bind title <Leave> [itcl::code $this LegendTitleAction leave]
+    # Reset the item coordinates according the current size of the plot.
     $c itemconfigure title -text $title
-    $c coords title [expr {$w/2}] $ly
+    if { [info exists _limits($_curFldName)] } {
+        foreach { vmin vmax } $_limits($_curFldName) break
+        $c itemconfigure vmin -text [format %g $vmin]
+        $c itemconfigure vmax -text [format %g $vmax]
+    }
+    set y 2
+    $c coords title $x $y
+    incr y $lineht
+    $c coords vmax $x $y
+    incr y $lineht
+    $c coords colormap $x $y
+    $c coords vmin $x [expr {$h - 2}]
 }
 
 #
@@ -2429,198 +2345,6 @@ itcl::body Rappture::VtkVolumeViewer::LegendTitleAction {option} {
     }
 }
 
-#
-# The -levels option takes a single value that represents the number
-# of evenly distributed markers based on the current data range. Each
-# marker is a relative value from 0.0 to 1.0.
-#
-itcl::body Rappture::VtkVolumeViewer::ParseLevelsOption { cname levels } {
-    set c $itk_component(legend)
-    set list {}
-    regsub -all "," $levels " " levels
-    if {[string is int $levels]} {
-        for {set i 1} { $i <= $levels } {incr i} {
-            lappend list [expr {double($i)/($levels+1)}]
-        }
-    } else {
-        foreach x $levels {
-            lappend list $x
-        }
-    }
-    set _parsedFunction($cname) 1
-    $_transferFunctionEditors($cname) addMarkers $list
-}
-
-#
-# The -markers option takes a list of zero or more values (the values
-# may be separated either by spaces or commas) that have the following
-# format:
-#
-#   N%  Percent of current total data range.  Converted to
-#       to a relative value between 0.0 and 1.0.
-#   N   Absolute value of marker.  If the marker is outside of
-#       the current range, it will be displayed on the outer
-#       edge of the legends, but it range it represents will
-#       not be seen.
-#
-itcl::body Rappture::VtkVolumeViewer::ParseMarkersOption { cname markers } {
-    set c $itk_component(legend)
-    set list {}
-    foreach { min max } $_limits($cname) break
-    regsub -all "," $markers " " markers
-    foreach marker $markers {
-        set n [scan $marker "%g%s" value suffix]
-        if { $n == 2 && $suffix == "%" } {
-            # $n% : Set relative value (0..1).
-            lappend list [expr {$value * 0.01}]
-        } else {
-            # $n : absolute value, compute relative
-            lappend list [expr {(double($value)-$min)/($max-$min)}]
-        }
-    }
-    set _parsedFunction($cname) 1
-    $_transferFunctionEditors($cname) addMarkers $list
-}
-
-#
-# SetInitialTransferFunction --
-#
-# Creates a transfer function name based on the <style> settings in the
-# library run.xml file. This placeholder will be used later to create
-# and send the actual transfer function once the data info has been sent
-# to us by the render server. [We won't know the volume limits until the
-# server parses the 3D data and sends back the limits via ReceiveData.]
-#
-itcl::body Rappture::VtkVolumeViewer::SetInitialTransferFunction { dataobj cname } {
-    set tag $dataobj-$cname
-    if { ![info exists _cname2transferFunction($cname)] } {
-        ComputeTransferFunction $cname
-    }
-    set _dataset2style($tag) $cname
-
-    return $cname
-}
-
-#
-# ComputeTransferFunction --
-#
-# Computes and sends the transfer function to the render server.  It's
-# assumed that the volume data limits are known and that the global
-# transfer-functions slider values have been set up.  Both parts are
-# needed to compute the relative value (location) of the marker, and
-# the alpha map of the transfer function.
-#
-itcl::body Rappture::VtkVolumeViewer::ComputeTransferFunction { cname } {
-
-    if { ![info exists _transferFunctionEditors($cname)] } {
-        set _transferFunctionEditors($cname) \
-            [Rappture::TransferFunctionEditor ::\#auto $itk_component(legend) \
-                 $cname \
-                 -command [itcl::code $this updateTransferFunctions]]
-    }
-
-    # We have to parse the style attributes for a volume using this
-    # transfer-function *once*.  This sets up the initial isomarkers for the
-    # transfer function.  The user may add/delete markers, so we have to
-    # maintain a list of markers for each transfer-function.  We use the one
-    # of the volumes (the first in the list) using the transfer-function as a
-    # reference.
-    if { ![info exists _parsedFunction($cname)] ||
-         ![info exists _cname2transferFunction($cname)] } {
-        array set style {
-            -color BCGYR
-            -levels 6
-        }
-        # Accumulate the style from all the datasets using it.
-        foreach tag [GetDatasetsWithComponent $cname] {
-            foreach {dataobj cname} [split [lindex $tag 0] -] break
-            set option [lindex [$dataobj components -style $cname] 0]
-            array set style $option
-        }
-        set _settings($cname-color) $style(-color)
-        set cmap [ColorsToColormap $style(-color)]
-        set _cname2defaultcolormap($cname) $cmap
-        if { [info exists _transferFunctionEditors($cname)] } {
-            eval $_transferFunctionEditors($cname) limits $_limits($cname)
-        }
-        # Don't enable the -alphamap style until we have a proper UI
-        # to allow editing the transfer function
-        array unset style -alphamap
-        if { [info exists style(-alphamap)] &&
-             $style(-alphamap) != "" } {
-            set _alphamap($cname) $style(-alphamap)
-            set _parsedFuntion($cname) 1
-        } else {
-            if { [info exists style(-markers)] &&
-                 [llength $style(-markers)] > 0 } {
-                ParseMarkersOption $cname $style(-markers)
-            } else {
-                ParseLevelsOption $cname $style(-levels)
-            }
-        }
-    } else {
-        foreach {cmap amap} $_cname2transferFunction($cname) break
-    }
-    if { ![info exists _alphamap($cname)] } {
-        set amap [ComputeAlphamap $cname]
-    } else {
-        set amap $_alphamap($cname)
-    }
-    # We don't need to use a spline for the opaque map
-    set opaqueAmap "0.0 1.0 1.0 1.0"
-    set _cname2transferFunction($cname) [list $cmap $amap]
-    SendCmd [list colormap define $cname $cmap -spline $amap]
-    SendCmd [list colormap define $cname-opaque $cmap $opaqueAmap]
-}
-
-#
-# ResetColormap --
-#
-# Changes only the colormap portion of the transfer function.
-#
-itcl::body Rappture::VtkVolumeViewer::ResetColormap { cname color } {
-    # Get the current transfer function
-    if { ![info exists _cname2transferFunction($cname)] } {
-        return
-    }
-    foreach { cmap amap } $_cname2transferFunction($cname) break
-    set cmap [GetColormap $cname $color]
-    set _cname2transferFunction($cname) [list $cmap $amap]
-    set opaqueAmap "0.0 1.0 1.0 1.0"
-    SendCmd [list colormap define $cname $cmap -spline $amap]
-    SendCmd [list colormap define $cname-opaque $cmap $opaqueAmap]
-    EventuallyRequestLegend
-}
-
-# ----------------------------------------------------------------------
-# USAGE: updateTransferFunctions
-#
-# This is called by the transfer function editor whenever the
-# transfer function definition changes.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkVolumeViewer::updateTransferFunctions {} {
-    foreach cname [array names _volcomponents] {
-        ComputeTransferFunction $cname
-    }
-    EventuallyRequestLegend
-}
-
-itcl::body Rappture::VtkVolumeViewer::AddNewMarker { x y } {
-    if { ![info exists _transferFunctionEditors($_current)] } {
-        continue
-    }
-    # Add a new marker to the current transfer function
-    $_transferFunctionEditors($_current) newMarker $x $y normal
-}
-
-itcl::body Rappture::VtkVolumeViewer::RemoveMarker { x y } {
-    if { ![info exists _transferFunctionEditors($_current)] } {
-        continue
-    }
-    # Add a new marker to the current transfer function
-    $_transferFunctionEditors($_current) deleteMarker $x $y
-}
-
 itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } {
     array set positions {
         front "1 0 0 0"
@@ -2643,142 +2367,6 @@ itcl::body Rappture::VtkVolumeViewer::SetOrientation { side } {
 }
 
 #
-# InitComponentSettings --
-#
-# Initializes the volume settings for a specific component. This
-# should match what's used as global settings above. This
-# is called the first time we try to switch to a given component
-# in SwitchComponent below.
-#
-itcl::body Rappture::VtkVolumeViewer::InitComponentSettings { cname } {
-    array set _settings [subst {
-        $cname-color                    default
-        $cname-volumeambient            40
-        $cname-volumeblendmode          composite
-        $cname-volumediffuse            60
-        $cname-volumelight2side         1
-        $cname-volumelighting           1
-        $cname-volumeopacity            50
-        $cname-volumeoutline            0
-        $cname-volumequality            80
-        $cname-volumespecularexponent   90
-        $cname-volumespecularlevel      30
-        $cname-volumethickness          350
-        $cname-volumevisible            1
-    }]
-}
-
-#
-# SwitchComponent --
-#
-# This is called when the current component is changed by the
-# dropdown menu in the volume tab.  It synchronizes the global
-# volume settings with the settings of the new current component.
-#
-itcl::body Rappture::VtkVolumeViewer::SwitchComponent { cname } {
-    if { ![info exists _settings(${cname}-volumeambient)] } {
-        InitComponentSettings $cname
-    }
-    # _settings variables change widgets, except for colormap
-    foreach name {
-        -volumeambient
-        -volumeblendmode
-        -volumediffuse
-        -volumelight2side
-        -volumelighting
-        -volumeopacity
-        -volumeoutline
-        -volumequality
-        -volumespecularexponent
-        -volumespecularlevel
-        -volumethickness
-        -volumevisible
-    } {
-        set _settings($name) $_settings(${cname}${name})
-    }
-    $itk_component(colormap) value        $_settings($cname-color)
-    set _current $cname;                # Reset the current component
-}
-
-#
-# Alpha map is in the format: normalized_value opacity midpoint sharpness
-#
-itcl::body Rappture::VtkVolumeViewer::ComputeAlphamap { cname } {
-    if { ![info exists _transferFunctionEditors($cname)] } {
-        return [list 0.0 0.0 0.5 0.0 1.0 1.0 0.5 0.0]
-    }
-    if { ![info exists _settings($cname-volumeambient)] } {
-        InitComponentSettings $cname
-    }
-
-    set isovalues [$_transferFunctionEditors($cname) values]
-
-    # Currently using volume opacity to scale opacity in
-    # the volume shader. The transfer function always sets full
-    # opacity
-    set max 1.0;
-
-    # Use the component-wise thickness setting from the slider
-    # settings widget
-    # Scale values between 0.00001 and 0.01000
-    set delta [expr {double($_settings($cname-volumethickness)) * 0.0001}]
-    set first [lindex $isovalues 0]
-    set last [lindex $isovalues end]
-    set amap ""
-    if { $first == "" || $first != 0.0 } {
-        lappend amap 0.0 0.0 0.5 0.0
-    }
-    foreach x $isovalues {
-        set x1 [expr {$x-$delta-0.00001}]
-        set x2 [expr {$x-$delta}]
-        set x3 [expr {$x+$delta}]
-        set x4 [expr {$x+$delta+0.00001}]
-        if { $x1 < 0.0 } {
-            set x1 0.0
-        } elseif { $x1 > 1.0 } {
-            set x1 1.0
-        }
-        if { $x2 < 0.0 } {
-            set x2 0.0
-        } elseif { $x2 > 1.0 } {
-            set x2 1.0
-        }
-        if { $x3 < 0.0 } {
-            set x3 0.0
-        } elseif { $x3 > 1.0 } {
-            set x3 1.0
-        }
-        if { $x4 < 0.0 } {
-            set x4 0.0
-        } elseif { $x4 > 1.0 } {
-            set x4 1.0
-        }
-        # add spikes in the middle
-        lappend amap $x1 0.0 0.5 0.0
-        lappend amap $x2 $max 0.5 0.0
-        lappend amap $x3 $max 0.5 0.0
-        lappend amap $x4 0.0 0.5 0.0
-    }
-    if { $last == "" || $last != 1.0 } {
-        lappend amap 1.0 0.0 0.5 0.0
-    }
-    return $amap
-}
-
-#
-# HideAllMarkers --
-#
-# Hide all the markers in all the transfer functions.  Can't simply
-# delete and recreate markers from the <style> since the user may
-# have create, deleted, or moved markers.
-#
-itcl::body Rappture::VtkVolumeViewer::HideAllMarkers {} {
-    foreach cname [array names _transferFunctionEditors] {
-        $_transferFunctionEditors($cname) hideMarkers
-    }
-}
-
-#
 # GetDatasetsWithComponent --
 #
 # Returns a list of all the datasets (known by the combination of
@@ -2791,44 +2379,6 @@ itcl::body Rappture::VtkVolumeViewer::GetDatasetsWithComponent { cname } {
         return ""
     }
     return $_volcomponents($cname)
-}
-
-#
-# BuildVolumeComponents --
-#
-# This is called from the "scale" method which is called when a
-# new dataset is added or deleted.  It repopulates the dropdown
-# menu of volume component names.  It sets the current component
-# to the first component in the list (of components found).
-# Finally, if there is only one component, don't display the
-# label or the combobox in the volume settings tab.
-#
-itcl::body Rappture::VtkVolumeViewer::BuildVolumeComponents {} {
-    $itk_component(volcomponents) choices delete 0 end
-    foreach name $_componentsList {
-        $itk_component(volcomponents) choices insert end $name $name
-    }
-    set _current [lindex $_componentsList 0]
-    $itk_component(volcomponents) value $_current
-    set parent [winfo parent $itk_component(volcomponents)]
-    if { [llength $_componentsList] <= 1 } {
-        # Unpack the components label and dropdown if there's only one
-        # component.
-        catch {blt::table forget $parent.volcomponents_l $parent.volcomponents}
-    } else {
-        # Pack the components label and dropdown into the table there's
-        # more than one component to select.
-        blt::table $parent \
-            0,0 $parent.volcomponents_l -anchor e -cspan 2 \
-            0,2 $parent.volcomponents -cspan 3 -fill x
-    }
-}
-
-itcl::body Rappture::VtkVolumeViewer::GetColormap { cname color } {
-    if { $color == "default" } {
-        return $_cname2defaultcolormap($cname)
-    }
-    return [ColorsToColormap $color]
 }
 
 itcl::body Rappture::VtkVolumeViewer::SetCurrentFieldName { dataobj } {

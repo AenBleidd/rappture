@@ -124,7 +124,9 @@ itcl::body Rappture::IsoMarker::absval { {x "-get"} } {
 }
 
 itcl::body Rappture::IsoMarker::relval { {x "-get"} } {
-    foreach {min max} [$_nvobj limits $_tf] break
+    array set limits [$_nvobj limits $_tf]
+    set min $limits(vmin)
+    set max $limits(vmax)
     if { $x == "-get" } {
         if { $max == $min } {
             if { $max == 0.0 } {
