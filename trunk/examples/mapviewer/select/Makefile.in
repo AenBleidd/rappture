@@ -15,8 +15,7 @@ VPATH           = @srcdir@
 
 destdir         = $(prefix)/examples/mapviewer/select
 FILES           = \
-                  $(srcdir)/select_feature_example.tcl \
-                  $(srcdir)/station_clean.csv
+                  $(srcdir)/select_feature_example.tcl
 
 all:
 
