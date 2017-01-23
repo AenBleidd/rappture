@@ -60,7 +60,7 @@ itcl::class Rappture::FlowvisViewer {
     public method flow {option}
     public method get {args}
     public method isconnected {}
-    public method limits { cname }
+    public method limits { tf }
     public method overMarker { m x }
     public method parameters {title args} {
         # do nothing
@@ -128,8 +128,9 @@ itcl::class Rappture::FlowvisViewer {
     private variable _arcball ""
     private variable _dlist "";         # list of data objects
     private variable _obj2ovride;       # maps dataobj => style override
-    private variable _datasets;         # maps dataobj-component
+    private variable _serverDatasets;   # contains all the dataobj-component
                                         # to volumes in the server
+    private variable _recvdDatasets;    # list of data objs to send to server
     private variable _dataset2style;    # maps dataobj-component to transfunc
     private variable _style2datasets;   # maps tf back to list of
                                         # dataobj-components using the tf.
@@ -224,20 +225,22 @@ itcl::body Rappture::FlowvisViewer::constructor {args} {
     set _arcball [blt::arcball create 100 100]
     $_arcball quaternion [ViewToQuaternion]
 
+    set _limits(vmin) 0.0
+    set _limits(vmax) 1.0
+
     array set _settings [subst {
-        -ambient                60
         -arrows                 0
         -axesvisible            0
         -background             black
         -colormap               BCGYR
         -currenttime            0
         -cutplanesvisible       0
-        -diffuse                40
         -duration               1:00
         -gridvisible            0
         -isosurfaceshading      0
         -legendvisible          1
         -lic                    1
+        -light                  40
         -light2side             1
         -loop                   0
         -opacity                50
@@ -248,8 +251,6 @@ itcl::body Rappture::FlowvisViewer::constructor {args} {
         -qx                     $_view(-qx)
         -qy                     $_view(-qy)
         -qz                     $_view(-qz)
-        -specularexponent       90
-        -specularlevel          30
         -speed                  500
         -step                   0
         -streams                0
@@ -496,7 +497,6 @@ itcl::body Rappture::FlowvisViewer::constructor {args} {
     $itk_component(speed) value 1
     bind $itk_component(speed) <<Value>> [itcl::code $this flow speed]
 
-
     blt::table $itk_component(flowcontrols) \
         0,0 $itk_component(rewind) -padx {3 0} \
         0,1 $itk_component(stop) -padx {2 0} \
@@ -738,21 +738,20 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
             array set limits [$dataobj valueLimits $cname]
             set _limits($cname) $limits(v)
         }
-        foreach axis {x y z} {
+        foreach axis {x y z v} {
             foreach { min max } [$dataobj limits $axis] break
             if {"" != $min && "" != $max} {
-                if { ![info exists _limits($axis)] } {
-                    set _limits($axis) [list $min $max]
+                if { ![info exists _limits(${axis}min)] } {
+                    set _limits(${axis}min) $min
+                    set _limits(${axis}max) $max
                     continue
                 }
-                foreach {amin amax} $_limits($axis) break
-                if {$min < $amin} {
-                    set amin $min
+                if {$min < $_limits(${axis}min)} {
+                    set _limits(${axis}min) $min
                 }
-                if {$max > $amax} {
-                    set amax $max
+                if {$max > $_limits(${axis}max)} {
+                    set _limits(${axis}max) $max
                 }
-                set _limits($axis) [list $amin $amax]
             }
         }
     }
@@ -896,7 +895,7 @@ itcl::body Rappture::FlowvisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    array unset _datasets
+    array unset _serverDatasets
 }
 
 # ----------------------------------------------------------------------
@@ -992,11 +991,11 @@ itcl::body Rappture::FlowvisViewer::DrawLegend { tag } {
     }
     # Display the markers used by the current transfer function.
     set tf $_dataset2style($tag)
-    foreach {min max} [limits $tf] break
-    $c itemconfigure vmin -text [format %g $min]
+    array set limits [limits $tf]
+    $c itemconfigure vmin -text [format %g $limits(vmin)]
     $c coords vmin $lx $ly
 
-    $c itemconfigure vmax -text [format %g $max]
+    $c itemconfigure vmax -text [format %g $limits(vmax)]
     $c coords vmax [expr {$w-$lx}] $ly
 
     if { $_first == "" } {
@@ -1042,9 +1041,21 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
 #
 # The procedure is the response from the render server to each "data
 # follows" command.  The server sends back a "data" command invoked our
-# the slave interpreter.  The purpose was to collect the min/max of the
-# volume sent to the render server.  This is no longer needed since we
-# already know the limits.
+# the slave interpreter.  The purpose is to collect the min/max of the
+# volume sent to the render server.  Since the client (flowvisviewer)
+# doesn't parse 3D data formats, we rely on the server (nanovis) to
+# tell us what the limits are.  Once we've received the limits to all
+# the data we've sent (tracked by _recvdDatasets) we can then determine
+# what the transfer functions are for these volumes.
+#
+#
+#       Note: There is a considerable tradeoff in having the server report
+#             back what the data limits are.  It means that much of the code
+#             having to do with transfer-functions has to wait for the data
+#             to come back, since the isomarkers are calculated based upon
+#             the data limits.  The client code is much messier because of
+#             this.  The alternative is to parse any of the 3D formats on the
+#             client side.
 #
 itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     if { ![isconnected] } {
@@ -1055,7 +1066,20 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     array set info $args
 
     set tag $info(tag)
-    set _limits($tag) [list $info(min) $info(max)]
+    set parts [split $tag -]
+
+    #
+    # Volumes don't exist until we're told about them.
+    #
+    set dataobj [lindex $parts 0]
+    set _serverDatasets($tag) 0
+    set _limits($tag-min)  $info(min);  # Minimum value of the volume.
+    set _limits($tag-max)  $info(max);  # Maximum value of the volume.
+
+    unset _recvdDatasets($tag)
+    if { [array size _recvdDatasets] == 0 } {
+        updateTransferFunctions
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1098,96 +1122,112 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         InitSettings -background -axesvisible -gridvisible
     }
     set _first ""
-    foreach dataobj [get -objects] {
-        if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
-            set _first $dataobj
-        }
+    foreach dataobj [get] {
         foreach cname [$dataobj components] {
             set tag $dataobj-$cname
-            if { ![info exists _datasets($tag)] } {
-                if { [$dataobj type] == "dx" } {
-                    set data [$dataobj blob $cname]
-                } else {
-                    set data [$dataobj vtkdata $cname]
-                }
-                set nbytes [string length $data]
-                if { $_reportClientInfo }  {
-                    set info {}
-                    lappend info "tool_id"       [$dataobj hints toolid]
-                    lappend info "tool_name"     [$dataobj hints toolname]
-                    lappend info "tool_title"    [$dataobj hints tooltitle]
-                    lappend info "tool_command"  [$dataobj hints toolcommand]
-                    lappend info "tool_revision" [$dataobj hints toolrevision]
-                    lappend info "dataset_label" [$dataobj hints label]
-                    lappend info "dataset_size"  $nbytes
-                    lappend info "dataset_tag"   $tag
-                    SendCmd "clientinfo [list $info]"
-                }
-                set numComponents [$dataobj numComponents $cname]
-                # I have a field. Is a vector field or a volume field?
-                if { $numComponents == 1 } {
-                    SendCmd "volume data follows $nbytes $tag"
-                } else {
-                    if {[SendFlowCmd $dataobj $cname $nbytes $numComponents] < 0} {
-                        continue
-                    }
-                }
-                SendData $data
-                set _datasets($tag) 1
-                NameTransferFunction $dataobj $cname
+            if {[$dataobj type] == "dx"} {
+                set data [$dataobj blob $cname]
+            } else {
+                set data [$dataobj vtkdata $cname]
             }
+            set nbytes [string length $data]
+            if { $_reportClientInfo }  {
+                set info {}
+                lappend info "tool_id"       [$dataobj hints toolid]
+                lappend info "tool_name"     [$dataobj hints toolname]
+                lappend info "tool_title"    [$dataobj hints tooltitle]
+                lappend info "tool_command"  [$dataobj hints toolcommand]
+                lappend info "tool_revision" [$dataobj hints toolrevision]
+                lappend info "dataset_label" [$dataobj hints label]
+                lappend info "dataset_size"  $nbytes
+                lappend info "dataset_tag"   $tag
+                SendCmd "clientinfo [list $info]"
+            }
+            set numComponents [$dataobj numComponents $cname]
+            # I have a field. Is a vector field or a volume field?
+            if { $numComponents == 1 } {
+                SendCmd "volume data follows $nbytes $tag"
+            } else {
+                if {[SendFlowCmd $dataobj $cname $nbytes $numComponents] < 0} {
+                    continue
+                }
+            }
+            SendData $data
+            NameTransferFunction $dataobj $cname
+            set _recvdDatasets($tag) 1
         }
     }
+
+    set _first [lindex [get] 0]
 
     # Turn off cutplanes for all volumes
     foreach axis {x y z} {
         SendCmd "cutplane state 0 $axis"
     }
 
-    InitSettings -volume -outlinevisible -cutplanesvisible \
+    # Reset the camera and other view parameters
+    InitSettings -opacity -light2side -isosurfaceshading \
+        -light \
+        -volume -outlinevisible -cutplanesvisible \
         -xcutplanevisible -ycutplanevisible -zcutplanevisible \
         -xcutplaneposition -ycutplaneposition -zcutplaneposition
 
-    if { $_reset } {
-        InitSettings -opacity -light2side -isosurfaceshading \
-            -ambient -diffuse -specularlevel -specularexponent
-
-        #
-        # Reset the camera and other view parameters
-        #
-        if {"" != $_first} {
-            set axis [$_first hints updir]
-            if { "" != $axis } {
-                SendCmd "up $axis"
-            }
-            set location [$_first hints camera]
-            if { $location != "" } {
-                array set _view $location
-            }
+    # nothing to send -- activate the proper volume
+    if {"" != $_first} {
+        set axis [$_first hints updir]
+        if {"" != $axis} {
+            SendCmd "up $axis"
         }
-        set _settings(-qw)    $_view(-qw)
-        set _settings(-qx)    $_view(-qx)
-        set _settings(-qy)    $_view(-qy)
-        set _settings(-qz)    $_view(-qz)
-        set _settings(-xpan)  $_view(-xpan)
-        set _settings(-ypan)  $_view(-ypan)
-        set _settings(-zoom)  $_view(-zoom)
+        set location [$_first hints camera]
+        if { $location != "" } {
+            array set _view $location
+        }
+    }
+    set _settings(-qw)    $_view(-qw)
+    set _settings(-qx)    $_view(-qx)
+    set _settings(-qy)    $_view(-qy)
+    set _settings(-qz)    $_view(-qz)
+    set _settings(-xpan)  $_view(-xpan)
+    set _settings(-ypan)  $_view(-ypan)
+    set _settings(-zoom)  $_view(-zoom)
 
-        set q [ViewToQuaternion]
-        $_arcball quaternion $q
-        SendCmd "camera orient $q"
-        SendCmd "camera reset"
-        PanCamera
-        SendCmd "camera zoom $_view(-zoom)"
+    set q [ViewToQuaternion]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q"
+    SendCmd "camera reset"
+    PanCamera
+    SendCmd "camera zoom $_view(-zoom)"
+
+    foreach dataobj [get] {
+        foreach cname [$dataobj components] {
+            NameTransferFunction $dataobj $cname
+        }
         set _reset 0
     }
 
+    # nothing to send -- activate the proper ivol
+    set _first [lindex [get] 0]
     if {"" != $_first} {
+        set axis [$_first hints updir]
+        if {"" != $axis} {
+            SendCmd "up $axis"
+        }
+        set location [$_first hints camera]
+        if { $location != "" } {
+            array set _view $location
+        }
         set cname [lindex [$_first components] 0]
         set _activeTf [lindex $_dataset2style($_first-$cname) 0]
-        # Make sure we display the proper transfer function in the legend.
-        updateTransferFunctions
     }
+
+    # sync the state of slicers
+    set vols [CurrentDatasets -cutplanes]
+    foreach axis {x y z} {
+        set pos [expr {0.01*$_settings(-${axis}cutplaneposition)}]
+        SendCmd "cutplane position $pos $axis $vols"
+    }
+    SendCmd "volume data state $_settings(-volume)"
+    EventuallyRedrawLegend
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -1204,19 +1244,19 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::CurrentDatasets {{what -all}} {
-    set rlist ""
+    return ""
     if { $_first == "" } {
         return
     }
-    foreach cname [$_first components] {
-        set tag $_first-$cname
-        if { [info exists _datasets($tag)] && $_datasets($tag) } {
+    foreach tag [array names _serverDatasets *-*] {
+        if {[string match $_first-* $tag]} {
             array set style {
                 -cutplanes 1
             }
-            array set style [lindex [$_first components -style $cname] 0]
-            if { $what != "-cutplanes" || $style(-cutplanes) } {
-                lappend rlist $tag
+            foreach {dataobj cname} [split $tag -] break
+            array set style [lindex [$dataobj components -style $cname] 0]
+            if {$what != "-cutplanes" || $style(-cutplanes)} {
+                lappend rlist $_serverDatasets($tag)
             }
         }
     }
@@ -1404,15 +1444,6 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "-ambient" {
-            if { $_first != "" } {
-                set comp [lindex [$_first components] 0]
-                set tag $_first-$comp
-                set val $_settings($what)
-                set val [expr {0.01*$val}]
-                SendCmd "$tag configure -ambient $val"
-            }
-        }
         "-axesvisible" {
             SendCmd "axis visible $_settings($what)"
         }
@@ -1442,15 +1473,6 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
             set tag [lindex $datasets 0]
             SendCmd "cutplane visible $bool $tag"
         }
-        "-diffuse" {
-            if { $_first != "" } {
-                set comp [lindex [$_first components] 0]
-                set tag $_first-$comp
-                set val $_settings($what)
-                set val [expr {0.01*$val}]
-                SendCmd "$tag configure -diffuse $val"
-            }
-        }
         "-gridvisible" {
             SendCmd "grid visible $_settings($what)"
         }
@@ -1471,6 +1493,17 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 blt::table configure $itk_component(plotarea) r1 -resize none
             } else {
                 blt::table forget $itk_component(legend)
+            }
+        }
+        "-light" {
+            if { $_first != "" } {
+                set comp [lindex [$_first components] 0]
+                set tag $_first-$comp
+                set diffuse [expr {0.01*$_settings($what)}]
+                set ambient [expr {1.0 - $diffuse}]
+                set specularLevel 0.3
+                set specularExp 90.0
+                SendCmd "$tag configure -ambient $ambient -diffuse $diffuse -specularLevel $specularLevel -specularExp $specularExp"
             }
         }
         "-light2side" {
@@ -1494,23 +1527,6 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
                 SendCmd "$tag configure -outline $_settings($what)"
-            }
-        }
-        "-specularlevel" {
-            if { $_first != "" } {
-                set comp [lindex [$_first components] 0]
-                set tag $_first-$comp
-                set val $_settings($what)
-                set val [expr {0.01*$val}]
-                SendCmd "$tag configure -specularLevel $val"
-            }
-        }
-        "-specularexponent" {
-            if { $_first != "" } {
-                set comp [lindex [$_first components] 0]
-                set tag $_first-$comp
-                set val $_settings($what)
-                SendCmd "$tag configure -specularExp $val"
             }
         }
         "-thickness" {
@@ -1600,13 +1616,14 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunction { dataobj cname } {
         -opacity 0.5
     }
     array set style [lindex [$dataobj components -style $cname] 0]
+    set tf "$style(-color):$style(-levels)"
     # Some tools erroneously set -opacity to 1 in style, so
     # override the requested opacity for now
     set style(-opacity) 0.5
     set _settings(-opacity) [expr $style(-opacity) * 100]
-    set _dataset2style($dataobj-$cname) $cname
-    lappend _style2datasets($cname) $dataobj $cname
-    return $cname
+    set _dataset2style($dataobj-$cname) $tf
+    lappend _style2datasets($tf) $dataobj $cname
+    return $tf
 }
 
 #
@@ -1887,12 +1904,38 @@ itcl::body Rappture::FlowvisViewer::overMarker { marker x } {
     return ""
 }
 
-itcl::body Rappture::FlowvisViewer::limits { cname } {
-    if { ![info exists _limits($cname)] } {
-        puts stderr "no limits for cname=($cname)"
-        return [list 0.0 1.0]
+itcl::body Rappture::FlowvisViewer::limits { tf } {
+    set _limits(vmin) 0.0
+    set _limits(vmax) 1.0
+    if { ![info exists _style2datasets($tf)] } {
+        puts stderr "no _style2datasets for tf=($tf)"
+        return [array get _limits]
     }
-    return $_limits($cname)
+    set min ""; set max ""
+    foreach {dataobj comp} $_style2datasets($tf) {
+        set tag $dataobj-$comp
+        if { ![info exists _serverDatasets($tag)] } {
+            puts stderr "$tag not in _serverDatasets?"
+            continue
+        }
+        if { ![info exists _limits($tag-min)] } {
+            puts stderr "$tag no min?"
+            continue
+        }
+        if { $min == "" || $min > $_limits($tag-min) } {
+            set min $_limits($tag-min)
+        }
+        if { $max == "" || $max < $_limits($tag-max) } {
+            set max $_limits($tag-max)
+        }
+    }
+    if { $min != "" } {
+        set _limits(vmin) $min
+    }
+    if { $max != "" } {
+        set _limits(vmax) $max
+    }
+    return [array get _limits]
 }
 
 itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
@@ -1996,29 +2039,12 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         -variable [itcl::scope _settings(-light2side)] \
         -command [itcl::code $this AdjustSetting -light2side]
 
-    label $inner.ambient_l -text "Ambient" -font $fg
-    ::scale $inner.ambient -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-ambient)] \
+    label $inner.dim -text "Glow" -font $fg
+    ::scale $inner.light -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(-light)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting -ambient]
-
-    label $inner.diffuse_l -text "Diffuse" -font $fg
-    ::scale $inner.diffuse -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-diffuse)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting -diffuse]
-
-    label $inner.specularLevel_l -text "Specular" -font $fg
-    ::scale $inner.specularLevel -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(-specularlevel)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting -specularlevel]
-
-    label $inner.specularExponent_l -text "Shininess" -font $fg
-    ::scale $inner.specularExponent -from 10 -to 128 -orient horizontal \
-        -variable [itcl::scope _settings(-specularexponent)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this AdjustSetting -specularexponent]
+        -showvalue off -command [itcl::code $this AdjustSetting -light]
+    label $inner.bright -text "Surface" -font $fg
 
     # Opacity
     label $inner.opacity_l -text "Opacity" -font $fg
@@ -2043,6 +2069,7 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     itk_component add colormap {
         Rappture::Combobox $inner.colormap -width 10 -editable no
     }
+
     $inner.colormap choices insert end [GetColormapList -includeNone]
     bind $inner.colormap <<Value>> \
         [itcl::code $this AdjustSetting -colormap]
@@ -2053,22 +2080,17 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         0,0 $inner.vol -cspan 4 -anchor w -pady 2 \
         1,0 $inner.lighting_l -cspan 4 -anchor w -pady {10 2} \
         2,0 $inner.light2side -cspan 4 -anchor w -pady 2 \
-        3,0 $inner.ambient_l -anchor e -pady 2 \
-        3,1 $inner.ambient -cspan 3 -pady 2 -fill x \
-        4,0 $inner.diffuse_l -anchor e -pady 2 \
-        4,1 $inner.diffuse -cspan 3 -pady 2 -fill x \
-        5,0 $inner.specularLevel_l -anchor e -pady 2 \
-        5,1 $inner.specularLevel -cspan 3 -pady 2 -fill x \
-        6,0 $inner.specularExponent_l -anchor e -pady 2 \
-        6,1 $inner.specularExponent -cspan 3 -pady 2 -fill x \
-        7,0 $inner.opacity_l -anchor e -pady 2 \
-        7,1 $inner.opacity -cspan 3 -pady 2 -fill x \
-        8,0 $inner.thin -anchor e -pady 2 \
-        8,1 $inner.thickness -cspan 2 -pady 2 -fill x \
-        8,3 $inner.thick -anchor w -pady 2
+        3,0 $inner.dim -anchor e -pady 2 \
+        3,1 $inner.light -cspan 2 -pady 2 -fill x \
+        3,3 $inner.bright -anchor w -pady 2 \
+        4,0 $inner.opacity_l -anchor e -pady 2 \
+        4,1 $inner.opacity -cspan 3 -pady 2 -fill x \
+        5,0 $inner.thin -anchor e -pady 2 \
+        5,1 $inner.thickness -cspan 2 -pady 2 -fill x \
+        5,3 $inner.thick -anchor w -pady 2
 
     blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r9 -resize expand
+    blt::table configure $inner r6 -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
@@ -2944,7 +2966,7 @@ itcl::body Rappture::FlowvisViewer::GetDatasetsWithComponent { cname } {
     }
     set list ""
     foreach tag $_volcomponents($cname) {
-        if { ![info exists _datasets($tag)] } {
+        if { ![info exists _serverDatasets($tag)] } {
             continue
         }
         lappend list $tag
