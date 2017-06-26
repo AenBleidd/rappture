@@ -27,6 +27,7 @@ examples	= \
 		integer \
 		integer2 \
 		loader \
+		loader2 \
 		log \
 		mesh \
 		multichoice \

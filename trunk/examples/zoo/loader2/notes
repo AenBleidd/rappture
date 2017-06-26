@@ -1,0 +1,21 @@
+creating xls files:
+
+import numpy as np
+import pandas as pd
+
+x = np.linspace(0,2*np.pi,100)
+y = np.sin(x)
+
+df = pd.DataFrame({'x'=x,'y'=y})
+
+writer1 = pd.ExcelWriter('sinewave.xlsx', engine='xlsxwriter')
+df.to_excel(writer1,sheet_name='Sheet1')
+writer1.close()
+
+y = np.exp(-x)*np.cos(2*np.pi*x)
+
+df3 = pd.DataFrame({'x':x,'y':y})
+
+writer3 = pd.ExcelWriter('dampedcosinewave.xlsx', engine='xlsxwriter')
+df3.to_excel(writer3,sheet_name='Sheet1')
+writer3.close()

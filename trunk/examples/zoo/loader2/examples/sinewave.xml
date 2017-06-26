@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Sine Wave</label>
+  <description>Plot data from the Sine Wave dataset.</description>
+</about>
+<input>
+  <string id="datafile">
+    <current>file://sinewave.xlsx</current>
+  </string>
+</input>
+</run>
