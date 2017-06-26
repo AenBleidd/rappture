@@ -1,0 +1,43 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir          = @srcdir@
+prefix          = @prefix@
+
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+VPATH           = $(srcdir)
+RM              = rm -f
+
+FILES		= \
+		$(srcdir)/dampedcosinewave.xlsx \
+		$(srcdir)/expdecay.xlsx \
+		$(srcdir)/loadxls.py \
+		$(srcdir)/sinewave.xlsx \
+		$(srcdir)/tool.xml \
+
+destdir		= $(prefix)/examples/zoo/loader2
+
+.PHONY: all install clean distclean
+
+all:
+	$(MAKE) -C examples  all
+
+install:
+	$(MKDIR_P) -m 0755 $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 0444  $$i $(destdir) ; \
+	done
+	$(MAKE) -C examples install
+
+clean:
+	$(MAKE) -C examples clean
+
+distclean:
+	$(MAKE) -C examples distclean
+	$(RM) Makefile *~

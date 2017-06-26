@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Exponential Decay</label>
+  <description>Plot data from the Exponential Decay dataset.</description>
+</about>
+<input>
+  <string id="datafile">
+    <current>file://expdecay.xlsx</current>
+  </string>
+</input>
+</run>

@@ -600,6 +600,8 @@ AC_CONFIG_FILES([
     examples/zoo/integer2/Makefile
     examples/zoo/loader/Makefile
     examples/zoo/loader/examples/Makefile
+    examples/zoo/loader2/Makefile
+    examples/zoo/loader2/examples/Makefile
     examples/zoo/log/Makefile
     examples/zoo/mesh/Makefile
     examples/zoo/multichoice/Makefile

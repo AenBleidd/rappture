@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>loadxls</title>
+  <about>
+    Example of using a loader to store and access a file uploaded by a user.
+  </about>
+  <command>
+    python @tool/loadxls.py @driver
+  </command>
+</tool>
+<input>
+  <loader>
+    <about>
+      <label>Data file</label>
+      <description>Use this to pick a data file, or upload your own.</description>
+    </about>
+    <example>*.xml</example>
+    <upload>
+      <to>input.string(datafile)</to>
+    </upload>
+    <default>sinewave.xml</default>
+  </loader>
+
+  <string id="datafile">
+    <about>
+      <label>Datafile</label>
+      <description>Datafile chosen/uploaded by the user</description>
+      <enable>no</enable>
+    </about>
+  </string>
+  <number id="mass">
+    <about>
+      <label>Mass</label>
+    </about>
+    <units>kg</units>
+    <default>10g</default>
+  </number>
+  <number id="temp">
+    <about>
+      <label>Temperature</label>
+    </about>
+    <units>K</units>
+    <default>194K</default>
+  </number>
+  <number id="energy">
+    <about>
+      <label>Energy</label>
+    </about>
+    <units>eV</units>
+    <default>44eV</default>
+  </number>
+</input>
+</run>
