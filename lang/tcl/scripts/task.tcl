@@ -112,7 +112,7 @@ itcl::body Rappture::Task::constructor {xmlobj installdir args} {
     set _installdir $installdir
     package require http
     package require tls
-    http::register https 443 [list ::tls::socket -tls1 1]
+    http::register https 443 [list ::tls::socket -tls1 0 -ssl2 0 -ssl3 0]
 
     eval configure $args
 }

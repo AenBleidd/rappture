@@ -492,7 +492,8 @@ proc Rappture::bugreport::send {} {
 
     package require http
     package require tls
-    http::register https 443 [list ::tls::socket -tls1 1]
+    http::register https 443 [list ::tls::socket -tls1 0 -ssl2 0 -ssl3 0]
+
 
     set report $details(stackTrace)
     set cmts [string trim [.bugreport.comments.info.text get 1.0 end]]
